@@ -416,3 +416,14 @@ acsd CLI normalize (现有 runtime_client.cpp / build_pipeline_ir)
 - #19 既有测试 `26 failed / 56 passed` 的旧锚点漂移需由 ARS-01 [#23](https://github.com/fujiaze/Astro-CS-Database/issues/23) 分类为旧基线失败，不掩盖或写成本轮成功；#19 的现阶段混阶 fail-closed 不能误写成已实现面积保真的 HiPS 重映射。
 
 **本批本地静态 ABI 验证证据**：从本页单头抽出，在独立临时目录用 GCC C11、G++ C++17 `-Wall -Wextra -Wpedantic -Werror` 编译通过，且测得 §3 表中 LP64 尺寸；不构建仓库、不测试 MSVC、未调用真实 DLL，不声称 ARS-02 或 Issue #6 的科学 E2E 完成。当前 #23 仍 Open，#24 只有在基线、配置 schema 和这份头/Host 合同同步到位后才适合启动正式代码实施。本篇不代替全原191篇信息保全工作，后续继续 Issue #6 其他主题。
+
+
+## 7. ARS-02 本批独立静态复核及唯一路径落实（2026-10-17）
+
+**结论：C11 头与双 Operation 的目标架构选择维持不变；本批源码审查不等于已安装/已执行。** 源基线 `d09371c7f40ed8518fe819fcd311a433e42902cb`。
+
+- 现行 CLI 真正内建调用点为 `lib/infrastructure/scheduler/src/module_adapters.cpp::p1_op_calibration`（约 2084–3114；实际 `ac_calibrate_frame` 约 2934）、`p1_op_cosmetic`（3115 起，`ac_correct_frame` 约 3304）。校准底层 C ABI 符号实现在 `lib/algorithms/calibration/src/ac_api.cpp` 约 141/155 行，函数声明在 `include/astro_calibration.h` 约 101/124 行；并非凭 YAML 伪造。坏列处理由 `module_adapters.cpp::p1_op_cosmetic` 约 3329 的 **`ac_correct_columns_ex2`** 完成，不能在 v2 correct_frame 返回后提前结束当前 cosmetic 节点。
+- `lib/algorithms/calibration/src/module_entry.cpp` 当前导出 `acsd_module_query_v1`（约 1515）；它的 `ac_calibrate_frame* / ac_correct_frame*` （约 1036–1068）调用证明内核可复用，但**不**证明 ABI v2、two-operation table、typed credits、CLI 调度已存在。两个 op 维持冻结顺序 0=`calibrate_frame`、1=`correct_frame`，共用一个 `acsd.p1.calibration` DLL，不再让 Agent 选择新的 module 拆分方案。
+- v2 用冻结 C11 `acsd2_*` 类型和静态操作描述符，运行时 adapter 显式将 CLI `acsd.phase1.calibration`/ `acsd.phase1.cosmetic` 映射同一 DLL 两个 op；保持原 `cal -> cos -> WCS/science` 的上游/下游数据身份、F32 维度与坏点统计；`correct_columns_ex2` 仍在 cosmetic node 内，加入实际 v2 execute trace 与正确输出归属。
+- `runtime.process_backend="v2_calibration_slice"` 必须连 schema 解析、loader 符号协商、错误传播、真实 CLI 选路一起实现；缺 DLL 明确失败而不悄悄 fallback。校准 master 缺失、flat floor、dark scaling、cosmetic 形态学掩膜及标记统计使用**现有** CALIBRATION 科学有效域，不能为新 ABI 更改校准方程。内存：最大新输出 `checked(width*height*4)`、读 lease/credits/取消/异常释放；内部 STL 暂不能宣称严格 Host OOM 保护。
+- ARS-01 的 S0 真实 CLI 输入/命令/数值产物作为**唯一对照基线**，做同帧 v1 静态与 v2 插件调用、像素逐项/容差、坏点坏列计数和文件 hashes 对拍。C11/C++17 头独立编译、LP64/LLP64 layout、Windows MSVC 真 DLL loader、v1-v2 符号白名单和双 op execute 计数分别留证。依次实施：头拆分→两 op vtable→loader+schema→CLI adapter/credits→完整真实 E2E；所有未运行步骤 **TARGET/NOT_RUN**。本批不扩张为 ARS-03~08。

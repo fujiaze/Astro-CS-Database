@@ -33,7 +33,7 @@
 | 随机与共同误差 | 背景方差、参考源分量及 omitted_terms 已进入 completion | 生产请求固定 master_uncertainty_modelled=false；母版 Jacobian、修复相关、光度参数共同项与交叉项仍未完整求值；upper_bound 的使用须满足真实 PSD 缺项与固定模板前提 |
 | 支持与摘要 | 目标叶由中心 sky 的共享 ang2pix 取得，叶号0具显式有效性；摘要使用面积加权 log SNR 中位数 | 当前支持来自捕获邻域 Σmin(D_l,Ω_leaf)，不是一般覆盖并集，也不自动等于整个非重叠 patch 支持。当前查询半径和首次叶归属的采样选择仍影响摘要 |
 | 科学模型载荷 | h、Z 和预算内 C 已产生；预算外 writer 使用 local-factor/v2，分别声明源 v、派生 C 与 R 的单位/shape，以及 solver 和假设字段 | PSF载荷已新增planar_template、source_pixel_alpha与reference_alpha_star，读写函数均有对应处理；模板实际为位置标度约定。covariance note为v2、逐点诊断分开。完整顶点参数/支持、模型通用reader接线和外部可求值仍须核对，不能由新增数组声明独立读取全部完成 |
-| 叶阶与单位 | controls 使用实际 leaf order；signal 保存 scale_state；侧车有单位字段 | `p1_op_drizzle` 仍给 signal.leaf_order 赋 k−9，与 controls 的 k 不一致；sidecar 默认 ADU/sr/adu 及 writer 固定 BUNIT 未随 applied 数值单位完整更新 |
+| 叶阶与单位 | controls 使用实际 leaf order；signal 保存 scale_state；侧车有单位字段 | `p1_op_drizzle` 已在修复提交 `e8ff4bc90` 将 signal.leaf_order 赋值为 k；但 reader/schema 仍为 frame-science/v1，且缺跨文件产品几何验收。sidecar 默认 ADU/sr/adu 及 writer 固定 BUNIT 仍未随 applied 数值单位完整更新 |
 | 应用身份 | reader 会拒绝 scale_applied=true 却缺 application_id | 生产fdoc已在frame_applied分支生成application_id/response_id，并有真实applied记录。ID目前将标量k用std::to_string、响应用库键/路径组装；极小标度的字符串精度与完整曲线内容绑定仍有静态风险，不能把ID非空当无损身份 |
 | reader | 已恢复 SIP、leaf/order、kind/domain/representation 与状态；另有 `load_local_model_payload`、`reconstruct_factor_covariance` 和 `verify_frame_science_factor_models` 实现 | 通用 `read_frame_science_document` 尚未调用模型 verifier；独立读取仍缺真实模型 hash/重建及 h-C-Z-R、V_F/T/summary 全面核对。重建函数已加入 expected_linear_unit，核对基础线性单位和平方指数；该函数修复不等于通用 reader 已调用它。发布器的 hash 校验不能替代读侧完整验证 |
 | 发布 | 发布器逐文件验证 hash、原子写模型及 sidecar、回读并返回结果 | 整帧 signal 与所有模型/sidecar 尚非同一发布事务；回读失败直接返回且未撤回已写 sidecar；writer 将该失败记为 precision 不可用，不能等同合法 unavailable 产品已完整发布 |
@@ -82,3 +82,34 @@ Python 监控的 `TraceSnapshotObserver` 只重放构造时事件快照，未按
 [7] [球面参考精度独立复核](../../../实验/normalize-precision-p5/INDEPENDENT_REVIEW_950C261.md)。
 
 [8] [QR、像元积分 PSF 与因子 v2 复核](../../../实验/normalize-precision-p5/ROUND2_INDEPENDENT_REVIEW_633FFC31.md)。
+
+
+## 6. Issue #10/#12 最新基线及 #74/#75 静态证据图（2026-10-17）
+
+基线 `d09371c7f40ed8518fe819fcd311a433e42902cb`；本节全部为**源码静态定位**。Issue #10 已有真实 reader / E2E（`实验/issue10-leaf-order-verify/evidence/REPORT.md`）说明 `leaf_order=k` 修复有效；不能由此推断 v2 schema / reader 交叉验证 / P2/P3 消费已完成。Issue #12 旧 `1e-8*max(1,|h|)` 残留尺度漏洞，唯一新积分域与 oracle 见 `docs/science/algorithms/normalize/PHOTOMETRIC_FIT.md`。
+
+### #74 低 nside 执行异常：定位任务，而非算法结论
+
+实验已观察：相同 M42/M4/T2 + masters/Gaia，auto Nside=2^18 正常约 292.29 秒并生成 sidecar；显式 512 完成 HiPS Norder0 但后约 1204.78 秒终止，无 sidecar；显式 2048 完成 Norder2 后约 236.91 秒终止，无 sidecar。两例观测窗口不同，**ROOT_CAUSE_UNKNOWN / OBSERVED_INCOMPLETE**，不得称“死循环已证明”。复跑入口 `实验/issue10-leaf-order-verify/code/run_e2e_matrix.py` 与 `evidence/{05-e2e-matrix.json,08-k9-anomaly.txt,REPORT.md}`。
+
+生产时序：`module_adapters.cpp::p1_op_drizzle`（8328）→ `normalize_precision.cpp::build_capture_targets`（289；每个控制点 query_disc，可能随较粗球面叶覆盖数量而变）→ `hp_drizzle_run_phase1_hips`（约 9445；完成写叶 tiles 并返回 overlap）→ `aio_pipeline_frame_destroy`（约 9470）→ `build_patch_windows`（325；当前**对每个控制点线性遍历全部 overlaps**，潜在 O(N_control·N_overlap)，但未证明是当次热点）→ `stage_frame_precision`（462；空间 PSF、逐像元 alpha、`complete_spherical_reference` 在 700、局部模型构建/CSR）→ `write_local_model_file` 与 `write_frame_science_document`（约 9689）→ `p1_op_writer`（9883）→ `publish_staged_frame_science`（约 10224，hash/reader）→ final manifest。HiPS 已存在只排除其中部分前段；堆栈可能仍落在该段的线程/异步任务，不可凭日志断言具体调用点。
+
+**唯一取证施工**：保持科学参数、帧输入及真实输出路径完全相同，三个 case 在**同一硬件构型**运行；按 monotonic wall + thread CPU + RSS/峰值 + N_control/N_target_leaves/N_overlap/N_window_pix/N_window_leaves/CSR nnz/solver rank 记录阶段入口/出口、frame/run/nside/thread-id。最少埋点位置为上述八段，单次日志量 O(控制窗口批次) 且须有总字节上限。慢段同时取 `perf record -g`（或等效 Windows ETW）及线程用户态采样堆栈，明确热函数、热点行、系统调用/锁等待/CPU 采样比例；存采样命令、工具版本、退出码、原始 profile、火焰图与耗时分母。超时统一外部监督，发正常取消，采集末栈/指标/未完成产品并按取消处理，不直接 `kill -9` 掩盖现场；异常时候先保留故障证据。以 `N_control×N_overlap` 假说对照实测计数和堆栈，复核 query_disc、GLS/O(nnz)、文件 hash 等备选。先交“热点定位 + 粗复杂度上界”报告，证据支持后再设计等价优化；**不得**擅自减少 precision controls、放弃真实 input、静默改 Nside/阈值或让半产品被发布。源码优化未授权；性能/输出数值 PASS 均 NOT_RUN。
+
+### #75 已有 source stamp 与未闭合产品身份
+
+现有根 `CMakeLists.txt`（约 110–177）在 configure 时从 git HEAD 生成 `version_generated.h` 的 `ACSD_COMMIT_SHA`；已有 **构建期** `eng/tools/gen_build_stamp.py` → `build_stamp_generated.h` → `lib/infrastructure/scheduler/src/build_stamp.cpp` → `acsd::core::build_stamp()`，`commands.cpp::build_run_provenance`（470–493）已把 build_head_sha/dirty/build_source_digest/configure_head_sha 加到 run manifest。旧 `ACSD_COMMIT_SHA` 仍被 CLI 若干路径消费；P1 `normalize_precision.cpp::load_run_identity` 从运行元数据取 `software_sha`。因此**已有部分修补，不能称整个版本机制不存在，也不能将 source_digest 叫 binary hash**。
+
+**唯一施工规格**：先生成依赖闭包报告——确认 custom command 的 `git ls-files` 列表只在 configure 时求值（`CMakeLists` 当前命令依赖 `lib/eng/cmake/CMakeLists/VERSION/CMakePresets`，而 `gen_build_stamp.py::SOURCE_FILES` 额外包含 `eng/contracts/resource_gate_v1.json`、`eng/packaging/config/runtime_resources.json`；当前两份文件是否经其他 CMake 依赖间接触发要逐个验证）。HEAD-only 前进且内容不变会使 build stamp 头在 Ninja 无输入变更时保持不动；必须加入**低成本运行时构建签名检查 target**，每次 ninja 启动能显式检出 HEAD/index/untracked 源清单和受控生成输入变化，仅在内容变化时更新 header 并重编小 TU；不强制重编全仓。对 Git 提交身份的每次变更记录 `build_head_sha`，同时保持同内容 source digest 不变。CMake 输出保持 configure-time `configure_head_sha` 仅供诊断；sidecar 的 `software_sha` 必须来自**运行实际加载**的 build-time 身份而非 configure-time 值。
+
+身份分五层：`repo HEAD`（Git 提交，不保证工作树）、`build_head_sha + build_dirty`（构建时工作树状态）、`build_source_digest`（**声明源集**内容，不含整个 toolchain）、`build_config_digest`（完整编译选项、编译器/链接器/依赖版本/生成文件）、`binary_sha256 + loaded_module_sha256[]`（实际磁盘 exe/DLL 字节）。生产/部署进程需要定位**已加载的** exe 与依赖 DSO 路径，读文件 hash 前后核对装载身份/路径变化；manifest 绑定 input/output 内容与这一整组身份。只有实际产物 SHA 可断言同一文件字节，仍不等于行为或科学正确。安装包文件摘要不能代替运行时被加载 DLL。
+
+确定性负例：保持 CMake build dir，修改并提交 `lib/**.cpp` 后 `ninja -C ...`，新 `build_head_sha/source_digest` 与实编源码一致；仅提交 docs 后 HEAD 更新但 source_digest 保持；dirty 源码与 untracked 头进入显式声明集合；增删源码（更新 Ninja 依赖/重新配置），修改上述 `eng/contracts` 数据生成输入；clean build 同源同 flags；改变 flags/toolchain/source-only 的矩阵；已安装旧 exe + 新 CLI 仓 HEAD 和不同 DLL 字节。逐项比对 **run manifest、frame_science software/build provenance、实际 exe/DLL SHA**。测试失败只能标 UNVERIFIED，旧错误 v1 产品全部拒绝重新由 FITS 计算，不为 #75 增设旧数据补丁。
+
+## 7. 邻接科学实施差异（#8/#9/#13）
+
+#8：`phase2_integrate/src/weight_chain.cpp::weight_from_sparse_layer_pixel / weight_from_snr` 及 `module_adapters.cpp` P2 use_snr_chain 分支仍可能把点源 Fisher `I_F=1/V_F` 用作面亮度 `w_B=1/V_B`。两者必须通过同一被估计量/位置/条件的 `T=V_B/V_F` 转换，详细 oracle 见 DATA_SEMANTICS；静态已定位，真实 E2E NOT_RUN。
+
+#9：`module_adapters.cpp` 的 `photoapplied` 输入（约 8602 起）已对信号应用测光标度，writer `declare_hips_surface_brightness_units`（约 10205）仍以固定 ADU/sr 发布，且 sidecar 默认 ADU/sr，单位与数值可能失配；真实滤镜响应/导出 E2E NOT_RUN。
+
+#13：`module_adapters.cpp::p2_sparse_layer_probe`（约 13038）读取 legacy `ACSD_SPARSE_SNR_LAYER`，与 `normalize_science.cpp::read_frame_science_document` 存在不等于 P2 已调用。P2 v2 球面 canonical 读取和 T 验证均待实施，不能以单独 reader 的存在宣布跨阶段科学闭合。

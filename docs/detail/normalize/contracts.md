@@ -158,7 +158,7 @@ ConditionalNoiseModel 分别承载背景/读噪/暗流、冻结参考源 Poisson
 
 正式工程载体依[Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。优先使用模型精确因子：source pixel index（长度 m）、球面叶索引（长度 nl）、CSR(R) [nl,m]、source diagonal variance v_j（长度 m）、实际h_sphere=R h_ref、背景基 Z_s、量纲/响应与 PSF/支持域模型，声明 C_ref=R diag(v)Rᵀ。只有平面条件噪声确实为 diagonal 时它才是模型内部精确表示；未建模 master/scale 等误差仍记 omitted。
 
-小控制窗可保存显式 C_ref [nl,nl] 对照；因子 values=[v_j] 的 [m,1] 不表示派生 C 的 shape。`local-factor/v2` 分开保存源方差单位、算子单位和派生 C 单位，也分开逻辑矩阵与因子 shape。基础线性单位与 sr 幂次均需一致。v1 只经明确来源和语义的兼容适配使用，不能仅改单位标签升级。
+小控制窗可保存显式 C_ref [nl,nl] 对照；因子 values=[v_j] 的 [m,1] 不表示派生 C 的 shape。`local-factor/v2` 分开保存源方差单位、算子单位和派生 C 单位，也分开逻辑矩阵与因子 shape。基础线性单位与 sr 幂次均需一致。旧 frame-science/v1 和语义有误的研发数据不进入正式 reader；仅原始 FITS 重算生成 v2，绝不对数据改标签、自动 +9 或使用适配层。
 
 每控制点记录真实 leaf_order=log2(nside)，不是 tile order；目标 leaf=0 合法，必须有 `has_target_leaf`。CSR R 的每个非零值 \(R_{lj}=(a_{lj}/A_{\rm drop,j})/N_l\)，N_l 是同次正式 Drizzle 产出的**完整**叶归一分母；debug 或 patch 截断算子不得冒称相同 R。PSF P 和 F_ref 的 flux_estimator/单位配对，h_sphere=R h_ref在sphere leaf域单位为sr^-1。Z 按 [nl,n_bg] 定义，background nuisance 的估计值与单位与模型不可脱钩。
 
@@ -185,10 +185,27 @@ R 满列秩时等价于 A_srcᵀD^-1A_src；小零空间允许低维修正，但
 
 ### 7.5 发布事务
 
-writer 在私有 staging 内等待所有 AIO 完成，先验证 signal、sidecar、模型与 manifest 的同帧同版本关系，再统一发布并最后标记完成；中途失败/取消不可留下可被普通 reader 当作完整产品的新 sidecar。运行清单反映全部 occurrence，包括 failed/cancelled/precision unavailable。旧 HiPS 的显式读取兼容保留，旧损坏产品不在本机静默修成新 canonical。
+writer 在私有 staging 内等待所有 AIO 完成，先验证 signal、sidecar、模型与 manifest 的同帧同版本关系，再统一发布并最后标记完成；中途失败/取消不可留下可被普通 reader 当作完整产品的新 sidecar。运行清单反映全部 occurrence，包括 failed/cancelled/precision unavailable。旧 frame-science/v1/缺失正式 sidecar 的产品拒绝消费，回到原始 FITS 重算；合法无 sidecar 仅指原始输入/未提交 staging，不能冒充完整 v2 产品。
 
 ## 参考文献
 
 [1] [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。
 
 [2] [Normalize 科学正本](../../science/normalize/NORMALIZE_SCIENCE.md)。
+
+
+## 9. frame-science/v2 函数级同步替换任务（#10，TARGET/NOT_RUN）
+
+唯一总合同为 [NORMALIZE_DATA §9](../../../engineering/contracts/NORMALIZE_DATA.md)。Agent 在同一实施批次完成下列**函数与机器合同**，不再设计第二条 v1 适配路径：
+
+| 实际调用点 | v2 施工输入/输出及错误行为 |
+|---|---|
+| `lib/infrastructure/scheduler/src/module_adapters.cpp::p1_op_drizzle`（约 8328、9490、9658、9689） | 已用 `leaf_order=k` 修正；构造 `FrameScienceDocument` 时必须绑定 run、0-based occurrence、原始 FITS hash、真实单位/response/build 身份；`stage_frame_precision` 的控制点 K 与 signal K 一致；私有 staging 记录失败原因但不得发布半成品。 |
+| `lib/infrastructure/scheduler/src/normalize_precision.cpp::build_capture_targets/build_patch_windows/stage_frame_precision`（289/325/462） | 源像元集合、叶目标/完整 overlap、K/HEALPix/NESTED、同次算子 R、局部 h/C/Z 的身份与求解条件不可与 writer 的 geometry 脱节；控制点不是 tile order。 |
+| `lib/algorithms/integration/normalize_science/src/normalize_science.cpp::write_frame_science_document`（约 260）、`write_local_model_file` | 只序列化 v2；验证字段范围、有限性、typed status、模型语义、相对路径、单位、hash；失败返回 `false+ModelWriteResult.error`，禁止生成 v1。 |
+| `normalize_science.cpp::read_frame_science_document`（451）、`load_local_model_payload`、`reconstruct_factor_covariance`、`verify_frame_science_factor_models`（1368） | 只支持 v2；先结构/schema 与 identity，再对磁盘真实文件/hash/几何，再做单位、h/R/C/Z、GLS 信息量/transfer、summary 的独立验证。当前 reader 有 findings，却没有调用全部 factor model 验证；不得以 `ok=true` 宣称已读完完整科学合同。目标在 `FrameScienceReadResult` 内增稳定枚举 code 区分 absent staging、v1、corrupt/conflict 和 available/unavailable，不再以 substring(error) 分支。 |
+| `normalize_science.cpp::publish_staged_frame_science`（922）、`module_adapters.cpp::p1_op_writer`（9883、10216–10243） | 与 schema v2 / available+unavailable examples 同步升级；真正完整产品 revision 的发布完成标记最后写；单个文件的 atomic rename 不等价整组原子性；产品失配直接 DATA 错误，不能把坏 sidecar 吞成 `precision unavailable`。 |
+| `eng/contracts/schemas/normalize_frame_science.schema.json`、`eng/contracts/data/examples/normalize_frame_science.{available,unavailable}.example.json`、`eng/tests/conformance/normalize_frame_science_schema_test.py`、`eng/tests/unit/frame_science_*reader*` | 机器 schema 的唯一 ID/version 与文档 §9 同步；JSON Schema 检查字段/枚举/基础数值域，semantic validator 检查跨文件/模型/球面量；fixture 添加 v1 拒绝、Nside K=9/11/13、跨帧/哈希/单位对照，禁止 schema v1 继续充作正常正例。 |
+| `module_adapters.cpp::p2_sparse_layer_probe`（13038）与 P2 `weight_chain.cpp` 消费分支、P3 产品 reader | P2 正式改用 v2 reader 校验的球面 control/model；像素 sparse SNR 不充当 canonical；p2 的真实 variance/ivar 自有估计量合同继续有效，点源 GLS 权重需经 #8 的 T 与同条件验证。P3 按真实 BUNIT/线性标度/响应读取，不能 v1 fallback。 |
+
+样本和科学对拍应从新生成的原始 FITS 流执行；目前机器 schema/生产 C++ 仍是 v1，以上均为 **TARGET / NOT_RUN**，而非“已经切换”。
