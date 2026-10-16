@@ -1,0 +1,181 @@
+Support source documents; commit=dbeadb3df70373d8a456a01bfb8cbb1231367201
+
+===== docs/detail/common/shared_libraries.md | blob=67f4b33e259abbcca657de5619129ba3d7b906bc | bytes=5634 =====
+# 共享基础库
+
+跨阶段公共机制之一，对应最高设计软件架构一章的模块与 ABI 条目，以及数据对象与配置一章的精度归属与帧标识条目。
+
+## 职责
+
+共享权威基础库：HEALPix 核心（NESTED 唯一实现）+ SHA-256 + 标量精度抽象。作为全链路通用基础设施，被上层科学/IO/浏览器复用，不承载业务科学语义。
+
+## 非职责
+
+不做图像校准/星点/PSF/plate solve/测光/噪声/Drizzle/UPM/rejection/integration 等科学处理；不做 FITS/XISF/HiPS I/O（由 astro_image_io 承担）。
+
+## 接口签名
+
+| 头 | 前缀/类型 | 函数/类型(签名节选) | 要点 |
+|---|---|---|---|
+| `lib/algorithms/shared/healpix/healpix_core.h` | `acsd::healpix` | `ang2pix_nest/pix2ang_nest/nested_local_to_xy/xy_to_nested_local/parent_nest/child_nest/query_disc/neighbors/leaf_to_tile_nest` | NESTED 唯一实现；被 healpix_drizzle / astro_image_io / healpix_browser_qt 复用，全仓唯一一套（依赖单源纪律，正本 = `docs/engineering/standards/DEPENDENCY.md`） |
+| `lib/algorithms/shared/crypto/sha256.h` | `acsd::crypto` | `sha256_hex/Sha256 {update,final_hex}` | DATA-FRAME-ID-001 frame_id 唯一实现（truncated-64 SHA-256） |
+| `lib/algorithms/shared/include/astro_scalar.h` | `AstroScalarType` | `FP32/FP64, AstroScalarTraits, DISPATCH` | 双精度 ABI 标量分发 |
+| `lib/algorithms/shared/include/precision_context.h` | `PrecisionContext` | `set_scalar_type/scalar_type/is_fp32/is_fp64` | 全链路精度单例（启动写入、数据阶段只读无锁，默认 FP32） |
+
+实现文件：`lib/algorithms/shared/healpix/healpix_core.cpp`, `lib/algorithms/shared/crypto/sha256.cpp`。
+
+## 数据对象与块的读写
+
+- HEALPix `order K → nside=2^K`，`ang2pix` 内归一 `ra` 任意值 `dec∈[-90,90]`，非法 `pix2ang` 返回 `0`；NESTED leaf local 18 bits `interleave(x,y)`，FITS index `(511-x)*512+y` 由 CDS Hipsgen oracle 冻结（`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节）。
+- frame_id = truncated-64(canonical SHA-256 of science payload)（`DATA-FRAME-ID-001`）。
+- 标量精度 `FP32/FP64` 经 `aio_set_precision_mode` 跨 DLL 传递；全局 `AstroScalarType` 是**计算路径**的精度开关，**发布面** dtype 另按《ACSD 最高设计》的「精度归属」一节与 `docs/engineering/standards/NUMERIC.md` 逐数据形态归属（稠密发布面 FP32、稀疏与元数据 FP64）——两者是不同面，不互相覆盖。
+
+## 所有权与生命周期
+
+- `lib/algorithms/shared/healpix/healpix_core.h` header + `lib/algorithms/shared/healpix/healpix_core.cpp` 实现；`lib/algorithms/shared/crypto/sha256.h` + `lib/algorithms/shared/crypto/sha256.cpp` 编译单元（静态库，非纯 header-only）。
+- `Sha256` 增量对象由调用方持有，`final_hex` 为终态（`update` 的调用面随 `final_hex` 结束）；`sha256_hex` 纯函数无所有权转移。
+
+## 线程安全
+
+- `healpix_core` 无状态纯函数，线程安全无锁；
+- `PrecisionContext` 启动阶段写入、数据阶段只读无锁；跨 DLL 显式传递不依赖全局可变；
+- `Sha256` 实例非线程安全（调用方线程内使用）。
+
+## 错误处理
+
+- `nside` 非 2 的幂 → 拒绝；`pix2ang` 越界 → `(0,0)`；
+- `Sha256::final_hex` 后再 `update` → 未定义（合同约定 = `final_hex` 为终态）。
+
+## 配置项与默认值来源
+
+- `precision` (fp32/fp64) 由 `lib/infrastructure/pipeline/orchestrator/configs/stage1.schema.json` 经 orchestrator 透传。
+
+## 对应一级文档条目
+
+HEALPix 几何条目与帧标识条目，详见球面映射科学与信号面科学分册，以及数据语义分册的溯源最小集一节与逐算法推导中的球面映射算法 [4]。
+
+## 与相邻模块的关系
+
+本库被全部科学模块、输入输出层与球面浏览器复用，只提供无状态几何、哈希与精度原语，不调用任何上层模块。依赖方向是单向的，上层可以依赖本库，本库不反向依赖上层。
+
+## 调试与验证入口
+
+共享基础库的验证落点目前尚未在本库登记。帧标识与产品的一致性由日志事件合同与各模块的数据合同约束保证。
+
+## 已知限制与参考文献
+
+- 仅支持 NESTED ordering（ring 未迁移）；
+- 当前仅 Linux x86_64 字节序路径（`lib/algorithms/coverage/src/sampler.cpp` payload 字节语义）；
+- 本库无共址测试目录，上述三项验证的落点未在本库登记。
+
+## 参考文献
+
+[1] Gorski K. M., Hivon E., Banday A. J., Wandelt B. D., Hansen F. K., Reinecke M., Bartelmann M. HEALPix: A framework for high-resolution discretization and fast analysis of data distributed on the sphere. The Astrophysical Journal, 2005, 622(2): 759–771. https://doi.org/10.1086/427976
+[2] Fernique P., Allen M. G., Boch T., Burke D., Castro-Ginard A., Davidson J., Durand D., Kreckel K. Hierarchical progressive surveys: Visualisation and streaming of astronomical images and catalogues with HiPS. Astronomy and Astrophysics, 2015, 578: A114. https://doi.org/10.1051/0004-6361/201526075
+[3] Eastlake D., Jones P. US Secure Hash Algorithms (SHA and SHA-based HMAC and HKDF). RFC 6234, 2011. https://www.rfc-editor.org/rfc/rfc6234
+[4] 统一观测模型与数据对象细节页，本文common目录。
+[5] 最高设计软件架构与数据对象条目，以及工程依赖与数值标准合同。
+
+## 源文件
+
+以 `lib/algorithms/shared/` 为根的 7 件：`dirent_win.h`、`healpix/healpix_core.h`、`healpix/healpix_core.cpp`、`crypto/sha256.h`、`crypto/sha256.cpp`、`include/astro_scalar.h`、`include/precision_context.h`。
+
+===== END SOURCE =====
+
+===== docs/detail/infrastructure/troubleshooting.md | blob=1753583b7a578194fd466edc22f7d69fe976c73e | bytes=7474 =====
+# 排障手册
+
+> 上游：《ACSD 最高设计》的「命令行合同」一章（机器输出与退出码；错误传播与运行日志）、
+> `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节（错误域与退出码映射）、「落点合同」一节（日志面）。
+> 写法：`docs/engineering/governance/DOCUMENT_GOVERNANCE.md`「写法检查（人读清单）」一节（写法判据）与 AGENTS.md「文档规范」一节。
+
+## 1 何时用本文
+
+本手册只覆盖**已被登记的高风险故障**。遇到表里没有的症状，按「通用定位顺序」一节的顺序走，
+不要在本表里硬套最像的一行。
+
+每条条目的准入格式是固定的七项：症状、阶段、状态码或错误域 / 证据落点、最小复现、期望不变量、
+源码位置、文档位置与测试位置；缺项即不算合格条目。下表按第一读者（操作者）的检索需要把七项
+压成五列（症状、阶段、状态码·证据、定位、修复动作），其中「最小复现」「期望不变量」「源码位置」
+「文档位置与测试位置」四项按条目就近写在表外的正文与对应模块卡里，表内不重复；
+
+## 2 故障场景覆盖门
+
+本表覆盖 20 行高风险场景，每行都有对应的状态码、证据字段与回归测试面。
+新增一条故障场景必须同时补上：状态码、正例、负例、登记项。
+
+## 3 通用定位顺序
+
+流程先于索引——先按这五步走一遍，再回到「症状主表」一节的表里查具体条目。
+
+1. 读阶段日志。日志落点由块的 `output_dir` 决定，默认 `<output_dir>/logs`；
+   落点之外的位置（如仓库 `run/` 下）不写正式日志，不要去那里找。
+2. 匹配状态码或错误域（配置 / 输入损坏 / 数值 / IO / 内存 / 取消 / ABI 不匹配 / 退出码）。
+3. 查模块文档（`docs/detail/`）与本表。
+4. 复现：最小输入 + 期望不变量（正本在 `docs/science/`）。
+5. 定位源码符号 → 对应测试（追溯层定义见 `docs/engineering/governance/DOCUMENT_GOVERNANCE.md`）。
+
+## 4 症状主表
+
+按三个命令的顺序排（`normalize` → `mosaic` → `export`），不按内部阶段代号排——
+第一读者是操作者，他手里是三个命令。
+
+| 症状 | 阶段（命令/节点） | 状态码 / 错误域 · 证据 | 定位 | 修复动作 |
+|---|---|---|---|---|
+| orchestrator 启动报 DLL 加载失败 | 全部（启动期） | 动态链接失败 · stderr | Windows 下构建工具链不在 PATH；或三方共用件缺依赖 | 把 MSYS2 mingw64 置入 PATH 后用 `eng/build/toolchain.ps1 check` 自检 |
+| `psf` 块不存在 | normalize · PSF | 块缺失 · 阶段日志 | PSF 阶段未运行或已失败 | 查 `stop_after` 是否提前截断；重跑 PSF |
+| 校准后全 0 / 无变化 | normalize · CALIBRATE | 数值域 · 阶段日志 | 母版尺寸或数据类型不匹配 | 核对标定母版文件的尺寸与类型 |
+| platesolve RMS 异常大 | normalize · PLATESOLVE | 数值域 · 阶段日志 | OBJCTRA/DEC 初值错；SIP 阶数过高 | 修正头信息初值；降低 SIP 阶数 |
+| SNR 阶段被跳过 | normalize · NOISE | 跳过状态 · 阶段日志 | 噪声模块未运行或数据块缺失 | 确认噪声模块为当前版本并重跑 |
+| 权重全等权（ivar 失效） | normalize · NOISE | 诊断字段 `ivar_product_missing>0` | 输入帧没有 ivar 产品 | 重跑 Phase1 生成含 variance/ivar 的帧；或接受 support 回退 |
+| 候选权重为 NaN | mosaic · INTEGRATE | 输入无效状态 | 候选权重含负值/NaN/Inf | 生产侧有校验拒绝；此处说明为何会见到 |
+| stage2 权重全为 0 | mosaic · INTEGRATE | 零有效权重 | 帧无 ivar/variance 产品 ⇒ 全部样本权重为 0（`n_accepted>0 ∧ n_positive_weight==0`）。**注意这不是 support=0**——该状态下 support 仍按已接受样本的 max 发布（`docs/detail/mosaic/modules.md`） | 确认 Phase1 输出了 variance/ivar；重跑 Phase1 |
+| 接缝处出现阶跃 | mosaic · UPM | 条件结论 | 接缝压缩只在可表示域内成立，域外结论不成立 | 见 `docs/science/sky/UPM.md` 的适用域与边界声明 |
+| 星云带 / 银道面附近误检多 | normalize · 星检测 | 检出域 · 诊断 | 该区域不属星检测方法的标定适用域 | 见 `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md` 的适用域段 |
+| 排异配置被拒 | mosaic · REJECTION | 配置错误 | 归一化组合非法 | percentile 必须配 median_center；rcr 必须为 none |
+| HiPS verify 失败 | export · HIPS_WRITE | 产品校验 · 校验日志 | tile 布局或产品缺失 | 用 HiPS 读取器复读；检查 variance/ivar 字段 |
+| HiPS 出现黑洞 / 缺 tile | export · HIPS_WRITE | 计数不符 · tile 计数 | 写入未覆盖或校验步失败 | 核对 tile 计数与 `properties` 键值 |
+| Drizzle 输出全 NaN | normalize · DRIZZLE | 数值域 · 阶段日志 | WCS/SIP 病态 | 检查 CRVAL/CD/A/B 系数与 pixfrac |
+| Drizzle 极区漏 pixel | normalize · DRIZZLE | 候选计数 | 极区剪枝契约 | 见候选 oracle 与极区剪枝契约 |
+| corrupt FITS 读入 | normalize · 读取 | 输入损坏 | 文件结构校验失败 | 用 FITS 校验工具复核；见 fuzz/sanitize driver |
+| 写出中断 / 部分产品 | export · 写入 | IO 错误 + 临时残留 | 非原子写出 | 见 IO 原子性合同（临时文件 + rename 协议） |
+| Gaia 请求量暴涨 | normalize · 星表/天测 | 内存日志 · 查询计数 | 缓存键失效导致重复查询 | 查缓存键审计与缓存策略 |
+| cache 命中异常 | mosaic · UPM / Gaia | 陈旧计数 | 源哈希或键不匹配 | 见缓存策略合同 |
+| 性能下降 / 超时 | 全部 | 预算错误 · 运行期证据文件 `operation_counts.json`（随产品落盘，不是仓库内文档） | 候选效率异常或线程配置不当 | 检查候选效率与线程配置 |
+
+## 5 常用命令
+
+命令一律以仓内实际脚本为准，**不要照抄旧目录结构下的可执行文件路径**——
+那些路径在当前仓库并不存在。
+
+```bash
+# 环境自检（Windows）
+eng/build/toolchain.ps1 check
+
+# 全量构建
+eng/build/toolchain.ps1 build
+
+# 诊断：输出小 bundle（stage/error/metrics）
+# 日志目录必须是块的 output_dir 下的 logs，传错目录工具会直接返回 2
+python3 eng/tools/acsd_diagnose.py <output_dir>/logs --json diag.json
+```
+
+## 6 外部依赖与网络
+
+- 星表数据集目录（Gaia DR3 及其 SP 表）在本机以只读方式挂载，内容保持原样，不写入。
+- 所有外部进程与网络等待必须带 timeout。
+
+---
+
+> 本手册的写法判据见 `docs/engineering/governance/DOCUMENT_GOVERNANCE.md`「写法检查（人读清单）」一节。
+
+## 落地对照与参考文献
+
+本页是支撑面的排障落地手册，对应最高设计命令行合同一章的机器输出与退出码条目。定位是操作者的症状到修复路径，不定义新科学判据。数据对象是阶段日志、错误域与回归测试面。处理步骤先走通用定位顺序，再查症状主表。配置来源见各模块登记页。相邻关系是上游承接日志错误系统，下游指向各模块登记页与科学分册。调试入口是块输出目录下的日志。
+
+### 参考文献
+
+[1] 日志与错误系统落地页，本文infrastructure目录。
+[2] 工程日志错误合同，docs/engineering目录。
+
+===== END SOURCE =====

@@ -4,6 +4,7 @@ No science programs are executed. Baseline links in historical records and
 pre-existing broken links are reported separately, never counted as repaired.
 """
 from pathlib import Path
+import hashlib
 import json
 import os
 import re
@@ -88,12 +89,57 @@ def compare_json(a, b, path=''):
     return changed
 
 
+def check_source_archives():
+    """Verify exact bytes, framing and committed Git identity of source copies."""
+    count = 0
+    marker = re.compile(rb'\n===== ([^\n|]+) \| blob=([0-9a-f]{40}) \| bytes=(\d+) =====\n')
+    end = b'\n===== END SOURCE =====\n'
+    for archive in sorted((UNIT / 'docs').glob('*SOURCE.txt')):
+        if archive.name in {'PUBLIC_API_SOURCE.txt', 'RESOURCE_RECORDS_SOURCE.txt'}:
+            continue
+        raw = archive.read_bytes()
+        first = marker.search(raw)
+        assert first, f'No source entries: {archive.name}'
+        header = raw[:first.start()]
+        revision = re.search(rb'commit=([0-9a-f]{40})', header)
+        assert revision, f'No source commit: {archive.name}'
+        rev = revision[1].decode()
+        position = first.start()
+        seen = set()
+        while position < len(raw):
+            match = marker.match(raw, position)
+            assert match, f'Unparsed source framing: {archive.name}:{position}'
+            path = match[1].decode('utf-8')
+            assert path not in seen, f'Duplicate source: {archive.name}:{path}'
+            seen.add(path)
+            size = int(match[3])
+            start = match.end()
+            body = raw[start:start + size]
+            assert len(body) == size
+            actual = hashlib.sha1(b'blob ' + str(size).encode() + b'\0' + body).hexdigest()
+            assert actual == match[2].decode(), f'Source bytes changed: {path}'
+            expected = git('rev-parse', rev + ':' + path).decode().strip()
+            assert actual == expected, f'Source differs from committed object: {path}'
+            assert raw[start + size:start + size + len(end)] == end
+            position = start + size + len(end)
+            count += 1
+    resource = (UNIT / 'docs/RESOURCE_RECORDS_SOURCE.txt').read_bytes()
+    head, body = resource.split(b'===== SOURCE =====\n', 1)
+    lines = head.decode('utf-8').splitlines()
+    rev = lines[1].split('=', 1)[1]
+    size = int(lines[2].split('=', 1)[1])
+    assert len(body) == size, 'Resource source size changed'
+    assert body == git('show', rev + ':' + lines[0]), 'Resource source bytes changed'
+    return count + 2  # Special resource and PUBLIC_API archives.
+
+
 def main():
     original = git('-c', 'core.quotepath=false', 'ls-tree', '-r', '--name-only', '-z', BASELINE).decode().split('\0')[:-1]
     original_set = set(original)
     mapping = json.loads((UNIT / 'docs/PATH_MIGRATIONS.json').read_text(encoding='utf-8'))
     api_source = git('show', BASELINE + ':docs/engineering/api/PUBLIC_API.md')
     assert (UNIT / 'docs/PUBLIC_API_SOURCE.txt').read_bytes() == api_source, 'API source archive differs'
+    archived_sources = check_source_archives()
     current_docs = {p for p in original if p.startswith('docs/') and (ROOT / p).is_file()}
     current_docs.update(dest for dest, _ in mapping.values() if dest.startswith('docs/'))
     index = yaml.load((ROOT / 'docs/DOCUMENT_INDEX.yaml').read_text(encoding='utf-8'), Loader=UniqueLoader)
@@ -138,6 +184,7 @@ def main():
         after = json.loads((ROOT / path).read_text(encoding='utf-8-sig'))
         json_changes[path] = compare_json(before, after)
     report = dict(indexed_docs=len(paths), retained_module_pages=len(retained),
+                  byte_exact_archived_sources=archived_sources,
                   new_broken_markdown_links=sorted(new_bad),
                   remaining_preexisting_broken_links=sorted(current_bad),
                   metadata_string_changes=json_changes,

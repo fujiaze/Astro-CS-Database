@@ -170,3 +170,7 @@ CLI主题 `922ecfb65` 已立即推送。全文阅读benchmark两页、BACKEND、
 ### 存储形态合同与接线细节
 
 全文阅读并重写 HIPS_STORAGE_FORM 与 storage_form，保留原字段、序列化/身份、归档/索引目标和TRIM条件，完整原文保存在 STORAGE_SOURCE.txt。核对 parser、dead_config_keys、tree_hash、geometry setter与manifest、publish_finish及打洞原语；分别说明目标支持和真实分支。新增 Q29 覆盖量化/保守候选、E46–E48生产者冲突/打洞失败/几何校验问题。累计重写91篇、29项待推导；未执行归档、打洞或科学产品读取。
+
+### 共享库与排障、来源字节核对
+
+全文阅读 shared_libraries、troubleshooting 和相关公开头/真实实现，重写两页并保存 SUPPORT_SOURCE.txt。登记 E49–E51诊断器旧映射、帧身份覆盖与精度/摘要误用；未更改实现。结构检查新增来源档案边界、字节数、Git blob与原提交对象核对，46份来源正文均一致。索引167篇、25份模块内容保留、无当前Markdown断链，15份机器元数据JSON仍仅字符串迁移。累计重写93篇；尚未完成的算法长文和实验精读继续，不把这些结构检查当科学验收。
