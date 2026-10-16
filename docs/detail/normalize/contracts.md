@@ -144,9 +144,9 @@ photometry 优先消费 `CleanedPlane`，保证检测、PSF、flux 和输入像�
 
 frame_overrides 在 ingest 时按 input occurrence 一次解析，形成该帧的 masters、gain、response/QE 绑定；优先级为显式逐帧配置、block 继承、允许的真实元数据推导，来源逐项保留。滤镜头名称只是观测记录，不能替代曲线。响应 identity 包含曲线字节 hash、波长/响应单位、光子/能量积分约定与实际 QE 组合。相同 identity 可共享计算缓存，不能拿第一帧的 filter/QE 给不同 identity 的帧用。
 
-sed_response 的基础可执行输入是带 sed_id/hash/波长单位/f_lambda 单位的已归一参考谱，以及本帧响应与拟合系数。复用 photometry 的同一响应积分公开 API 得到 Q_k,ref；在科学分册的 `f_obs=a_k m_k Q_k` 约定下，F_native(u)=a_k m_k(u) Q_k,ref，再按实际像元标度求 F_applied(u)。代码中若存逆系数，须由一个显式 adapter 转换。参考谱已具有绝对归一时不再额外要求任意星等零点；若输入选择星等归一，则须有具名通带、星等系统及其零点/参考谱的可执行定义。缺这些输入的 unavailable 是数据能力状态；有完整输入仍返回 not_wired 则是实现未完成。
+sed_response 的基础可执行输入是带 sed_id/hash/波长单位/f_lambda 单位的已归一参考谱，以及本帧响应与拟合系数。复用 photometry 的同一响应积分公开 API 得到 Q_k,ref；若Q_k,ref是物理光子率，先按光度约定显式换为F_syn；在`f_obs=a_k m_k Q_k`前向模型下推得F_native，再用实际α_*得到位置F_ref。代码保存的k_photo是到F_syn尺度的逆系数，不能直接当a_k再乘一次；源位置因子、仪器空间响应与校正m的正逆关系须在一个adapter中明确，不能仅同名相乘。参考谱已具有绝对归一时不再额外要求任意星等零点；若输入选择星等归一，则须有具名通带、星等系统及其零点/参考谱的可执行定义。缺这些输入的 unavailable 是数据能力状态；有完整输入仍返回 not_wired 则是实现未完成。
 
-逐位置参考通量和模板的标度变换使用 NORMALIZE_DATA §5 的 a_ref、P' 配对，不用中心 alpha 冒充全窗空间变换。显式积分通量参考仍是合法独立路径，不能被用于绕开已配置的 sed_response。
+逐位置参考采用NORMALIZE_DATA的α_*位置参数：F_ref(u)=α_*F_native、h_ref,j=(α_j/α_*)P_j；中心α_*定义幅度标尺，逐像元α_j才描述实际模板，不能把h_ref直接换成P。实际applied总通量另求完整域Σ_all αP；窗口sum仅诊断。显式通量路径仍合法，不能绕开已配置的sed_response。
 
 ### 7.3 噪声与共同误差
 
@@ -156,17 +156,17 @@ ConditionalNoiseModel 分别承载背景/读噪/暗流、冻结参考源 Poisson
 
 ### 7.4 局部球面模型与独立读取
 
-正式工程载体依[Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。优先使用模型精确因子：source pixel index（长度 m）、球面叶索引（长度 nl）、CSR(R) [nl,m]、source diagonal variance v_j（长度 m）、实际 h=RP、背景基 Z_s、量纲/响应与 PSF/支持域模型，声明 C_ref=R diag(v)Rᵀ。只有平面条件噪声确实为 diagonal 时它才是模型内部精确表示；未建模 master/scale 等误差仍记 omitted。
+正式工程载体依[Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。优先使用模型精确因子：source pixel index（长度 m）、球面叶索引（长度 nl）、CSR(R) [nl,m]、source diagonal variance v_j（长度 m）、实际h_sphere=R h_ref、背景基 Z_s、量纲/响应与 PSF/支持域模型，声明 C_ref=R diag(v)Rᵀ。只有平面条件噪声确实为 diagonal 时它才是模型内部精确表示；未建模 master/scale 等误差仍记 omitted。
 
 小控制窗可保存显式 C_ref [nl,nl] 对照；因子 values=[v_j] 的 [m,1] 不表示派生 C 的 shape。`local-factor/v2` 分开保存源方差单位、算子单位和派生 C 单位，也分开逻辑矩阵与因子 shape。基础线性单位与 sr 幂次均需一致。v1 只经明确来源和语义的兼容适配使用，不能仅改单位标签升级。
 
-每控制点记录真实 leaf_order=log2(nside)，不是 tile order；目标 leaf=0 合法，必须有 `has_target_leaf`。CSR R 的每个非零值 \(R_{lj}=(a_{lj}/A_{\rm drop,j})/N_l\)，N_l 是同次正式 Drizzle 产出的**完整**叶归一分母；debug 或 patch 截断算子不得冒称相同 R。PSF P 和 F_ref 的 flux_estimator/单位配对，h=RP 在 sphere leaf 域的单位为 sr^-1。Z 按 [nl,n_bg] 定义，background nuisance 的估计值与单位与模型不可脱钩。
+每控制点记录真实 leaf_order=log2(nside)，不是 tile order；目标 leaf=0 合法，必须有 `has_target_leaf`。CSR R 的每个非零值 \(R_{lj}=(a_{lj}/A_{\rm drop,j})/N_l\)，N_l 是同次正式 Drizzle 产出的**完整**叶归一分母；debug 或 patch 截断算子不得冒称相同 R。PSF P 和 F_ref 的 flux_estimator/单位配对，h_sphere=R h_ref在sphere leaf域单位为sr^-1。Z 按 [nl,n_bg] 定义，background nuisance 的估计值与单位与模型不可脱钩。
 
-读者除 schema/hash/shape/索引与版本核对外，还必须重算或可复核：P 的总通量口径、h=RP、C factor 与派生单位、V_F、SNR=F_ref/√V_F、T=V_B/V_F、support/leaf 位置、scale once、含 SIP 的 WCS、frame-summary 去重。这些是科学语义而非仅“JSON 能解码”。损坏 refs/null 未经辨识的字段均不得以 availability=available 吞错。
+读者除 schema/hash/shape/索引与版本核对外，还必须重算或可复核：P 的总通量口径、h_sphere=R h_ref、C factor 与派生单位、V_F、SNR=F_ref/√V_F、T=V_B/V_F、support/leaf 位置、scale once、含 SIP 的 WCS、frame-summary 去重。这些是科学语义而非仅“JSON 能解码”。损坏 refs/null 未经辨识的字段均不得以 availability=available 吞错。
 
 ### 7.4A 秩亏球面信息求解器
 
-科学证明由[噪声分册](../../science/noise_snr/NOISE_SNR.md)拥有。用同次实际 R 和 D=diag(v)，Q=R D^1/2、W=D^-1/2 [P,Z]，取可靠分解得到 Q 的行空间正交基 V_r 或零空间正交基 N；参数信息矩阵为
+科学证明由[噪声分册](../../science/noise_snr/NOISE_SNR.md)拥有。用同次实际 R 和 D=diag(v)，Q=R D^1/2、W=D^-1/2 [h_ref,Z]，取可靠分解得到 Q 的行空间正交基 V_r 或零空间正交基 N；参数信息矩阵为
 
 \[
  M=W^\mathsf{T}V_rV_r^\mathsf{T}W
@@ -181,7 +181,7 @@ R 满列秩时等价于 A_srcᵀD^-1A_src；小零空间允许低维修正，但
 
 默认通量口径 `flux_estimator=analytic_total`。依据[PSF 分册](../../science/psf/PSF.md)的单位总通量连续 Moffat4，对实际像元面积和子像元相位求积。部分 footprint 的 \(f_{\rm enc}=\sum P_j\) 不重新归一，f_out 从实际像元集合求，不以理想圆半径代替实际边界；超1不以 clamp 掩盖。复用 PSF 库的有效模型，scheduler 不另实现无单位中心模板。
 
-生产已调用 `pixel_integrated_moffat4_profile`，并通过 PSF 库 `build_spatial_model` / `spatial_pixel_response` 在控制点混合顶点积分响应；无空间定位时的帧常宽度仍是近似。空间 alpha 由 `PrecisionFrameRequest::pixel_alpha_at` 逐窗填入 `PlanarPatchWindow::pixel_alpha`，不是整帧常量字段。参考通量、Poisson、截断窗口与实际应用模板仍须配对。每控制点保存自身包络、参数、相位和积分误差，帧级极值只作摘要。当前逐点求积诊断已经分离；空间模型的全部顶点参数、有效支持和可独立重算精度仍须验证，不能只凭 note 中三角ID/低位权重推断持久化完整。缺空间支持或响应失败按自身状态报告，不以每窗重新归一挽救。单点求积正确不等于完整跨设备参考精度已验证。当前实现还新增alpha_at_xy、reference_alpha_star及planar_template=(alpha/alpha_star)P，窗口sum只作诊断；这里报告实际接口，不替换数据合同中按完整响应域归一的科学定义。两种参考量的正式统一见Q35。
+生产已调用 `pixel_integrated_moffat4_profile`，并通过 PSF 库 `build_spatial_model` / `spatial_pixel_response` 在控制点混合顶点积分响应；无空间定位时的帧常宽度仍是近似。空间 alpha 由 `PrecisionFrameRequest::pixel_alpha_at` 逐窗填入 `PlanarPatchWindow::pixel_alpha`，不是整帧常量字段。参考通量、Poisson、截断窗口与实际应用模板仍须配对。每控制点保存自身包络、参数、相位和积分误差，帧级极值只作摘要。当前逐点求积诊断已经分离；空间模型的全部顶点参数、有效支持和可独立重算精度仍须验证，不能只凭 note 中三角ID/低位权重推断持久化完整。缺空间支持或响应失败按自身状态报告，不以每窗重新归一挽救。单点求积正确不等于完整跨设备参考精度已验证。当前alpha_at_xy、reference_alpha_star及planar_template=(alpha/alpha_star)P与正式位置参考约定一致；窗口sum只作诊断。analytic_total用于原生P/F_native，h_ref一般不归一为1，F_ref不是实际applied积分总通量。α_*缺失、近似求值或空间支持不足须明确状态；已有标量/空间链的静态实现不等于所有误差已验证。
 
 ### 7.5 发布事务
 

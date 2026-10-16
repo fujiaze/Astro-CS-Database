@@ -67,7 +67,9 @@ C++ 内部可用 RAII、`std::optional` 和 `shared_ptr<const T>`；跨 DLL 用�
 
 未选参考不从实际恒星中位通量发明 canonical reference；信号可正常产出，reference precision unavailable。保留已有 F0/source-median 路径为具名 legacy diagnostic，不能接 canonical 端口。配置扩展与迁移键见实现规格。
 
-空间标度非恒定时，参考响应和 F_ref 可随位置变化；每个控制点分别保存 F_ref。若源平面模板 P 按总积分量归一，施加 D_alpha 后，取 `a_ref(u)=sum_i alpha_i P_i`，`P'_i=alpha_i P_i/a_ref`，`F'_ref=a_ref F_ref`，则模板仍归一且 signal/covariance 各缩放一次。局部常量近似须具名并记录适用域，不能仅用中心 alpha 声称全足迹精确。
+空间标度按[噪声分册](../../science/noise_snr/NOISE_SNR.md)的位置参考约定配对：原生解析总通量F_native、单位总通量P、实际位置标度α_*=α(u)，每控制点保存`F_ref(u)=α_* F_native`及`h_planar,j=(α_j/α_*)P_j`。F_ref是位置参考幅度参数，单位与applied积分量一致；**不是一般空间场下实际applied积分总通量**。h_planar完整积分不要求1，P不按有限窗重归一，signal与covariance分别按一/二次幂变换。
+
+`reference.normalization=native_calibrated`表示所给flux为F_native，逐点由实际α_*转换；`photo_applied`表示所给flux已是位置参考参数数值，不再乘标度，不因帧级给常数而声称全域同一个实际物理源。两者保存normalization与参考ID。实际总通量另求`F_applied,total=F_native Σ_all α_jP_j`，完整域与窗口诊断`alpha_window_scale`分名；没有完整响应域时不声明已求得总量。确定性参数换算与方差/SNR关系由科学正本定义。
 
 控制点由 noise model 有效 patch 中心的确定性网格产生，网格尺寸来自现有 patch 配置，边缘/空洞用 validity 表示；没有合格 patch 的区域不虚构点。星表用于掩膜和 PSF 拟合，控制点不必位于实际恒星处。PSF 无空间支持则该点 unavailable，不用 frame median 填充。
 
@@ -99,7 +101,7 @@ writer 是唯一最终发布者。Drizzle 可以借用统一 HiPS writer 在 run
 
 | kind | 必需数值/索引载荷 | 计算意义 |
 |---|---|---|
-| psf | source pixel indices、**单位总通量的像元积分响应** P、flux_estimator、积分方法/子像元相位、f_enclosed/f_out、支持域、sphere leaf indices、h | h=R P；analytic_total 必须连续模型归一 + 实际像元求积，中心点未归一代理不具 canonical 精度 |
+| psf | source pixel indices、**原生单位总通量像元响应** P、planar_template=h_ref、source_pixel_alpha、reference_alpha_star、flux_estimator、积分/相位/包络、支持、sphere leaf indices、h_sphere | h_ref=(α/α_*)P，h_sphere=R h_ref；analytic_total限定P/F_native，不强令h_ref窗内或完整积分为1 |
 | covariance | 同一 sphere leaf 与 source pixel 顺序、维数、**显式 C_ref 或同一个精确 factor+CSR 表示**、rank/conditioning、background basis Z、随机分量/缺项 | 对称 PSD 的冻结条件模型；允许精确重建 C=R diag(v) Rᵀ，不强制落 nl×nl 数组 |
 | drizzle_operator | source pixel indices、source Ω/A、sphere leaf indices、CSR row_offsets/column_indices/coefficients、shape | R 对已缩放积分像元的真实线性映射，非另算近似几何 |
 | support | 每 patch 的 detector 边界、实际球面边界采样/面积、有效性与孔洞、leaf_order | 网格分区及模型有效域；边界曲线近似明确记录 |

@@ -231,3 +231,9 @@ CLI主题 `922ecfb65` 已立即推送。全文阅读benchmark两页、BACKEND、
 完整重读基线PHOTOMETRIC_FIT的319行，逐项核对F1–F7、尺度路线、伪代码、退化、确定性、积分缓存、复杂度、参考及未接入孔径设计。正式算法回填物理模型、nm到SI的单次换算、Akima斜率/Hermite、全部Simpson分支/误差条件、量化传播、严格双向匹配、完整固定尺度IRLS、所有退化及当前复杂度；未把历史“50%继承/11.9%/中心一阶偏差”作为已证定理恢复。新增光度detail含7个完整C签名、全部实参语义/布局、frame三种对象全部字段默认、资源/调用/状态和孔径路径，历史SOURCE不替代设计。
 
 阅读当前公开头、质量位头、frame头与完整装配、v2主实现及相关simple/旧f64、投影包装、SpectrumIntegrator/StarMatcher和孔径实现；对照合成口径/推导与路线报告（报告仅作既有证据，不把其中包络称严格上界）。已区分已修的NO_DATA/fit_ok、NaN初始化、Simpson三段与孔径框扫描；新静态差异见E69。核对Akima作者出版页、SciPy方法说明、Gaia论文入口和NIST作者原文入口；1992表格/所有旧论文尚未逐项获取全文，不称引文全验。未构建、未运行光度/真实帧，生产源码保持未改；PUBLIC_API的2325行基线整体语义复查尚未完成，191篇不能据本批宣告完成。
+
+## Issue6：位置参考、当前GLS、PSF与量化证据同步
+
+完整复读NOISE_SNR、UNIFIED_SCIENCE_MODEL、NORMALIZE_DATA、Normalize接口规格、PSF、实施地图、GAIA_QUERY以及ROUND4/RUN/ROUND7相关原文，核对当前sparse_reference显式残差实现与已有alpha调用。按本次明确授权统一F_native、F_ref=α_*F_native、F_applied,total三者及模板，保留全域归一的另一参数化，给出V_total=c²V_ref、I/T及SNR换算；h_sphere均用R h_ref，原生P保持analytic_total。Q03/Q35改记已统一语义和剩余误差，而非继续拒绝同步。
+
+Q10旧t_norm2−proj已修，历史反例保留，剩余秩阈值/误差证书分开；现代码i_f相对平方阈也明确解释。空间PSF采用同518星train414/hold104、同L1的0.0986/0.2058，旧3.5倍不当现结论；GAIA_QUANT0.21%/1.8%缺真实原样本，不能因构造能过的总体补出处。ROUND9/issue5的单位/身份生产修复截至本批fetch尚无新远端提交，仍按现代码记录，不抢改生产源。上述为语义同步，并非这几篇完整基线的再次逐项审计，更不代表191篇已经完成；本轮未重跑科学验证。

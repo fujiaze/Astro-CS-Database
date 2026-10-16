@@ -68,6 +68,8 @@ c明确标识reference-source、actual-scene或background-only条件。Canonical
 
 随机 C_random 与校准零点、乘性响应误差、背景拟合和通带混合误差 C_systematic 分开描述。光度零点是跨像素相关的共同参数，不可像像素白噪声一样按独立项逐像素相加。测得的点源 scatter 与解析条件噪声不符时，不得直接把差异归罪于随机泊松噪声。
 
+空间标度下分别命名原生总通量F_native、位置参考参数F_ref(u)=α(u)F_native和实际积分总通量F_applied,total=F_native Σ_all α_jP_j。正式参考模板h_ref,j=(α_j/α(u))P_j，球面模板R h_ref；h_ref完整积分一般不为1。F_ref、V_F与SNR配对，不能把位置参数叫实际总通量；两种确定性参数化换算、源Poisson及有限窗定义由[噪声分册](../noise_snr/NOISE_SNR.md)拥有。
+
 ## 5. 球面 Drizzle 与关联噪声
 
 线性重建的相关噪声见[1]，HEALPix的曲边与等面积性质见[2]。
