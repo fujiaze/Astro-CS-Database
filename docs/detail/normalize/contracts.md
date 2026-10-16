@@ -196,7 +196,7 @@ writer 在私有 staging 内等待所有 AIO 完成，先验证 signal、sidecar
 
 ## 9. frame-science/v2 函数级同步替换任务（#10，TARGET/NOT_RUN）
 
-唯一总合同为 [NORMALIZE_DATA §9](../../../engineering/contracts/NORMALIZE_DATA.md)。Agent 在同一实施批次完成下列**函数与机器合同**，不再设计第二条 v1 适配路径：
+唯一总合同为 [NORMALIZE_DATA §9](../../engineering/contracts/NORMALIZE_DATA.md)。Agent 在同一实施批次完成下列**函数与机器合同**，不再设计第二条 v1 适配路径：
 
 | 实际调用点 | v2 施工输入/输出及错误行为 |
 |---|---|
