@@ -14646,11 +14646,16 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     if (frames.is_array() && !frames.empty()) {
       std::map<std::string, uint64_t> counts;
       std::string first;
+      bool have_first = false;  // 未取首帧与已取得空通带是不同状态
       bool same = true;
       for (const auto& fr : frames) {
         const std::string f = fr.value("filter_passband", std::string());
-        if (first.empty()) first = f;
-        else if (f != first) same = false;
+        if (!have_first) {
+          first = f;
+          have_first = true;
+        } else if (f != first) {
+          same = false;
+        }
         counts[f] += 1;
       }
       for (const auto& kv : counts)
