@@ -311,6 +311,9 @@
 | E46 | 存储合同一处要求normalize逐批输出coverage.index.json，另一处指定其仅由mosaic发布；storage_form/coverage_index在parser白名单与dead_config_keys中分别识别/登记未接线 | 正文保留字段、身份与目标，明确生产者/消费时序冲突待统一；不能据CLI认识声称归档已写出 |
 | E47 | 当前publish_finish对PUNCH_NO_RELEASE删暂存并失败，旧detail却称跳过优化后发布；PUNCH_IO_ERROR包含post_hash_failed等验证失败但writer警告继续 | 正文说明真实分支，优化未收益、无法校验与数据不一致分别核验；本轮不改打洞或失败策略 |
 | E48 | aio_hips_set_geometry只检查非空指针、存JSON字符串，manifest直接拼写；原文由可选键推导加性兼容和几何合法过强 | setter存在与输入/同帧/WCS合法分别验证，固定36系数只是历史读数；不改geometry格式 |
+| E49 | acsd_diagnose.py把exit_code=2文本归DLL错误，仍建议旧rejection_cli、私有环境开关及旧产品回退；参数实际接受任意存在目录 | 排障页按当前错误模型说明并标工具启发式局限，不执行/修改诊断脚本 |
+| E50 | 共享库旧文把SHA实现等同frame_id全链唯一规范；当前p2_frame_id另组所选properties/原生float/support/可选SNR并截断，未自动覆盖frame_science全部模型 | 区分哈希原语、tree_hash、内容帧身份和occurrence；跨平台字节、时间字段及载荷覆盖需另核验，不改身份算法 |
+| E51 | PrecisionContext是普通字段兼容单例，旧文称全链跨DLL唯一及无锁安全；Sha256重复final实际返回全零字符串，final后update静默返回 | 正文给实际启动约定和误用行为，不将单例代替显式对象精度/ABI合同；本轮未改同步或SHA |
 
 本轮已合并远端 `5b33e0417`，保留 Normalize Round 3 的空间 PSF、空间 alpha、typed 边与实验记录。上述 E01–E15 来自合并前静态抽查，不能在新实现下无条件当作仍然存在的缺陷，也不能因提交说明宣称已解决；逐项重读新调用与消费者后更新。原始 191 篇清单继续固定基线，新增代码/记录另外登记。
 

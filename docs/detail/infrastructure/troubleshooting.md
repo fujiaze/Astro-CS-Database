@@ -1,94 +1,39 @@
 # 排障手册
 
-> 上游：《ACSD 最高设计》的「命令行合同」一章（机器输出与退出码；错误传播与运行日志）、
-> `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节（错误域与退出码映射）、「落点合同」一节（日志面）。
-> 写法：`docs/engineering/governance/DOCUMENT_GOVERNANCE.md`「写法检查（人读清单）」一节（写法判据）与 AGENTS.md「文档规范」一节。
+先确认命令、运行身份和实际输出，再沿错误向上游定位。退出码和错误域由[错误模型](../../engineering/standards/ERROR_MODEL.md)定义，日志与事件由[日志合同](../../engineering/contracts/LOG_AND_ERROR.md)和[CLI协议](../../engineering/contracts/CLI_PROTOCOL.md)解释；本页不新增科学回退或拒绝条件。
 
-## 1 何时用本文
+## 定位顺序
 
-本手册只覆盖**已被登记的高风险故障**。遇到表里没有的症状，按「通用定位顺序」一节的顺序走，
-不要在本表里硬套最像的一行。
+保存完整命令、配置、构建、输入身份、stdout JSONL、stderr、实际日志和退出码。正式输出按配置 output_dir 查找，不能假设目标 logs/ 或 log_artifacts 已在每条现有路径写出。核对 run_id、frame 与节点，再看相同运行的清单、完成状态和产物；不要把上次残留当本次成功。
 
-每条条目的准入格式是固定的七项：症状、阶段、状态码或错误域 / 证据落点、最小复现、期望不变量、
-源码位置、文档位置与测试位置；缺项即不算合格条目。下表按第一读者（操作者）的检索需要把七项
-压成五列（症状、阶段、状态码·证据、定位、修复动作），其中「最小复现」「期望不变量」「源码位置」
-「文档位置与测试位置」四项按条目就近写在表外的正文与对应模块卡里，表内不重复；
+从最先失败的节点追到公共入口、真实调用者和消费者，按同一输入建立最小复现。产品几何从产品读取；缺原始 WCS 头不是 IPV 求解失败的证据。输入缺失、计算无效、I/O失败、精度不可用和取消分别解释。恢复按[原子发布](../../engineering/contracts/ATOMIC_PUBLISH.md)处理，保留已发布独立产品，失败暂存隔离；不要先删证据再重跑。
 
-## 2 故障场景覆盖门
+## 常见症状
 
-本表覆盖 20 行高风险场景，每行都有对应的状态码、证据字段与回归测试面。
-新增一条故障场景必须同时补上：状态码、正例、负例、登记项。
+| 症状 | 首先检查 | 正本/处理方向 |
+|---|---|---|
+| 启动 DLL/后端失败 | 实际平台、架构、构建族、依赖与加载错误；不盲改 PATH | [CPU后端](../../engineering/resources/cpu/BACKEND.md)、[构建](../../engineering/build/BUILD_GRAPH.md) |
+| 块/对象缺失 | 前序是否实际发布、run/frame/type/revision、消费者寿命 | [Runtime](../../engineering/contracts/RUNTIME.md) |
+| 校准无变化/全零 | 原始值、单位、BSCALE/BZERO、母版身份/尺寸、实际应用分支 | [校准](../../science/calibration/CALIBRATION.md)、[FITS I/O](../../engineering/contracts/FITS_IO.md) |
+| WCS失败或残差异常 | IPV实际候选/匹配/解、初值和同帧几何，分别检查solver候选与科学源 | [Normalize管线](../normalize/pipeline.md) |
+| PSF/测光不可用 | 独立科学源、响应、拟合支持/状态、尺度是否恰好一次应用 | [Normalize合同](../normalize/contracts.md) |
+| 参考精度 unavailable | 参考定义、gain/噪声/协方差、支持与原因；合法signal仍可保留 | [噪声与精度](../../science/noise_snr/NOISE_SNR.md) |
+| 权重无效/为零 | 估计量单位、同域支持、传递因子T和实际接受样本 | [集成](../../science/integration/INTEGRATION.md)；不回退support/等权伪造精度 |
+| 接缝/背景阶跃 | 同一天区、真实足迹、有效重叠图、规范、乘性/响应/PSF失配 | [UPM](../../science/sky/UPM.md) |
+| 排异配置错误 | 真实枚举、样本资格与每像素路由，区分声明/实现/历史模式 | [排异](../../science/integration/REJECTION.md) |
+| HiPS缺tile/黑洞 | 清单与实际叶集合、形态/索引、有效性、写盘/校验错误 | [存储形态](storage_form.md)；缺覆盖不填零 |
+| Drizzle全无效/极区漏候选 | WCS/SIP、有效域、候选完备性和实际曲边算子 | [Drizzle](../../science/drizzle/DRIZZLE.md) |
+| Export坐标/边界异常 | 输入层级、原点、WCS/裁剪、核与覆盖，不能凭往返自证 | [Export管线](../export/pipeline.md) |
+| FITS损坏/写出中断 | 原始文件结构、大小/权限/磁盘、独立读取与发布完整性 | [AIO](aio.md)、[原子发布](../../engineering/contracts/ATOMIC_PUBLISH.md) |
+| Gaia重复查询/缓存陈旧 | 本地数据身份、键、实际调用次数、共享缓存范围 | [星表客户端](gaia_xpsd_client.md)、[缓存](../../engineering/standards/CACHE.md) |
+| 性能下降/超时 | 当前预算、输入规模、队列、worker租约、I/O与实际采样 | [性能模型](../../engineering/resources/PERFORMANCE_MODEL.md)；不以质量/资源诊断引入审批门 |
 
-## 3 通用定位顺序
+## 辅助工具及局限
 
-流程先于索引——先按这五步走一遍，再回到「症状主表」一节的表里查具体条目。
+eng/tools/acsd_diagnose.py 接受一个存在目录，可递归扫描日志与若干产物，--json 指定报告输出，--timeout 指定其外部命令超时。参数并不要求目录名为 logs；不存在才返回2。将报告写到明确的实验/诊断位置，避免覆盖原日志。默认不读取大FITS，工具摘要不能代替实际产品验证。
 
-1. 读阶段日志。日志落点由块的 `output_dir` 决定，默认 `<output_dir>/logs`；
-   落点之外的位置（如仓库 `run/` 下）不写正式日志，不要去那里找。
-2. 匹配状态码或错误域（配置 / 输入损坏 / 数值 / IO / 内存 / 取消 / ABI 不匹配 / 退出码）。
-3. 查模块文档（`docs/detail/`）与本表。
-4. 复现：最小输入 + 期望不变量（正本在 `docs/science/`）。
-5. 定位源码符号 → 对应测试（追溯层定义见 `docs/engineering/governance/DOCUMENT_GOVERNANCE.md`）。
+当前 ERROR_MAP 仍包含 exit_code=2→DLL错误、旧 rejection_cli、旧环境开关及过时科学回退建议；它按文本启发式归类，存在假阳/漏检。诊断候选原因与规范错误码不同，先核对原始错误和当前代码，不照抄自动建议。该工具扫描有限额且可能截断大日志，零命中只表示所扫范围未命中；本轮未运行工具或修改它。
 
-## 4 症状主表
+Windows环境检查和构建按[构建节点](../../engineering/build/BUILD_NODES.md)选择真实工具链，不对Qt/MSVC程序一概添加MinGW路径。诊断开关只有[ACSD_DEV_MODE](../../engineering/architecture/DEV_MODE.md)，旧私有开关提示不能作为正式使用方式。日志分享先去除凭据与敏感路径，保留可复现身份。
 
-按三个命令的顺序排（`normalize` → `mosaic` → `export`），不按内部阶段代号排——
-第一读者是操作者，他手里是三个命令。
-
-| 症状 | 阶段（命令/节点） | 状态码 / 错误域 · 证据 | 定位 | 修复动作 |
-|---|---|---|---|---|
-| orchestrator 启动报 DLL 加载失败 | 全部（启动期） | 动态链接失败 · stderr | Windows 下构建工具链不在 PATH；或三方共用件缺依赖 | 把 MSYS2 mingw64 置入 PATH 后用 `eng/build/toolchain.ps1 check` 自检 |
-| `psf` 块不存在 | normalize · PSF | 块缺失 · 阶段日志 | PSF 阶段未运行或已失败 | 查 `stop_after` 是否提前截断；重跑 PSF |
-| 校准后全 0 / 无变化 | normalize · CALIBRATE | 数值域 · 阶段日志 | 母版尺寸或数据类型不匹配 | 核对标定母版文件的尺寸与类型 |
-| platesolve RMS 异常大 | normalize · PLATESOLVE | 数值域 · 阶段日志 | OBJCTRA/DEC 初值错；SIP 阶数过高 | 修正头信息初值；降低 SIP 阶数 |
-| SNR 阶段被跳过 | normalize · NOISE | 跳过状态 · 阶段日志 | 噪声模块未运行或数据块缺失 | 确认噪声模块为当前版本并重跑 |
-| 权重全等权（ivar 失效） | normalize · NOISE | 诊断字段 `ivar_product_missing>0` | 输入帧没有 ivar 产品 | 重跑 Phase1 生成含 variance/ivar 的帧；或接受 support 回退 |
-| 候选权重为 NaN | mosaic · INTEGRATE | 输入无效状态 | 候选权重含负值/NaN/Inf | 生产侧有校验拒绝；此处说明为何会见到 |
-| stage2 权重全为 0 | mosaic · INTEGRATE | 零有效权重 | 帧无 ivar/variance 产品 ⇒ 全部样本权重为 0（`n_accepted>0 ∧ n_positive_weight==0`）。**注意这不是 support=0**——该状态下 support 仍按已接受样本的 max 发布（`docs/detail/mosaic/modules.md`） | 确认 Phase1 输出了 variance/ivar；重跑 Phase1 |
-| 接缝处出现阶跃 | mosaic · UPM | 条件结论 | 接缝压缩只在可表示域内成立，域外结论不成立 | 见 `docs/science/sky/UPM.md` 的适用域与边界声明 |
-| 星云带 / 银道面附近误检多 | normalize · 星检测 | 检出域 · 诊断 | 该区域不属星检测方法的标定适用域 | 见 `docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md` 的适用域段 |
-| 排异配置被拒 | mosaic · REJECTION | 配置错误 | 归一化组合非法 | percentile 必须配 median_center；rcr 必须为 none |
-| HiPS verify 失败 | export · HIPS_WRITE | 产品校验 · 校验日志 | tile 布局或产品缺失 | 用 HiPS 读取器复读；检查 variance/ivar 字段 |
-| HiPS 出现黑洞 / 缺 tile | export · HIPS_WRITE | 计数不符 · tile 计数 | 写入未覆盖或校验步失败 | 核对 tile 计数与 `properties` 键值 |
-| Drizzle 输出全 NaN | normalize · DRIZZLE | 数值域 · 阶段日志 | WCS/SIP 病态 | 检查 CRVAL/CD/A/B 系数与 pixfrac |
-| Drizzle 极区漏 pixel | normalize · DRIZZLE | 候选计数 | 极区剪枝契约 | 见候选 oracle 与极区剪枝契约 |
-| corrupt FITS 读入 | normalize · 读取 | 输入损坏 | 文件结构校验失败 | 用 FITS 校验工具复核；见 fuzz/sanitize driver |
-| 写出中断 / 部分产品 | export · 写入 | IO 错误 + 临时残留 | 非原子写出 | 见 IO 原子性合同（临时文件 + rename 协议） |
-| Gaia 请求量暴涨 | normalize · 星表/天测 | 内存日志 · 查询计数 | 缓存键失效导致重复查询 | 查缓存键审计与缓存策略 |
-| cache 命中异常 | mosaic · UPM / Gaia | 陈旧计数 | 源哈希或键不匹配 | 见缓存策略合同 |
-| 性能下降 / 超时 | 全部 | 预算错误 · 运行期证据文件 `operation_counts.json`（随产品落盘，不是仓库内文档） | 候选效率异常或线程配置不当 | 检查候选效率与线程配置 |
-
-## 5 常用命令
-
-命令一律以仓内实际脚本为准，**不要照抄旧目录结构下的可执行文件路径**——
-那些路径在当前仓库并不存在。
-
-```bash
-# 环境自检（Windows）
-eng/build/toolchain.ps1 check
-
-# 全量构建
-eng/build/toolchain.ps1 build
-
-# 诊断：输出小 bundle（stage/error/metrics）
-# 日志目录必须是块的 output_dir 下的 logs，传错目录工具会直接返回 2
-python3 eng/tools/acsd_diagnose.py <output_dir>/logs --json diag.json
-```
-
-## 6 外部依赖与网络
-
-- 星表数据集目录（Gaia DR3 及其 SP 表）在本机以只读方式挂载，内容保持原样，不写入。
-- 所有外部进程与网络等待必须带 timeout。
-
----
-
-> 本手册的写法判据见 `docs/engineering/governance/DOCUMENT_GOVERNANCE.md`「写法检查（人读清单）」一节。
-
-## 落地对照与参考文献
-
-本页是支撑面的排障落地手册，对应最高设计命令行合同一章的机器输出与退出码条目。定位是操作者的症状到修复路径，不定义新科学判据。数据对象是阶段日志、错误域与回归测试面。处理步骤先走通用定位顺序，再查症状主表。配置来源见各模块登记页。相邻关系是上游承接日志错误系统，下游指向各模块登记页与科学分册。调试入口是块输出目录下的日志。
-
-### 参考文献
-
-[1] 日志与错误系统落地页，本文infrastructure目录。
-[2] 工程日志错误合同，docs/engineering目录。
+旧20行症状表、命令和阶段标签完整保存于[来源档案](../../../实验/documentation-refactor/docs/SUPPORT_SOURCE.txt)，不以旧表声称相应字段、回归载体或回退当前有效。

@@ -13,7 +13,7 @@ docs/README.md	63eccbb6133aef56389641d43c55df6e243819c5	174a137a5facdd57ef36609c
 docs/detail/00_INDEX.md	63eccbb6133aef56389641d43c55df6e243819c5	da69f002147aa6d60e15c74c098ba7749496959e	3172	保留专题内容；必要导航同步	docs/detail/00_INDEX.md	已读正文；未完成逐引文/逐函数外部核验
 docs/detail/README.md	63eccbb6133aef56389641d43c55df6e243819c5	996f307b2e69ef6183b6edea6f89040a7c07d9d5	193	保留专题内容；必要导航同步	docs/detail/README.md	已读正文；未完成逐引文/逐函数外部核验
 docs/detail/common/README.md	63eccbb6133aef56389641d43c55df6e243819c5	61ed7904a6f853b98106f21bc3466b9d1c497c04	125	重写	docs/detail/common/README.md	已读；按本轮授权整理，科学重推导未执行
-docs/detail/common/shared_libraries.md	63eccbb6133aef56389641d43c55df6e243819c5	67f4b33e259abbcca657de5619129ba3d7b906bc	5634	保留当前主题归属；逐篇重写尚未完成	docs/detail/common/shared_libraries.md	已枚举；局部查阅或尚未精读
+docs/detail/common/shared_libraries.md	63eccbb6133aef56389641d43c55df6e243819c5	67f4b33e259abbcca657de5619129ba3d7b906bc	5634	重写	docs/detail/common/shared_libraries.md	已读；按本轮授权整理，科学重推导未执行
 docs/detail/common/unified_model.md	63eccbb6133aef56389641d43c55df6e243819c5	5254918740648f6ceb8b0cbf076ee9828a404b15	6394	保留专题内容；必要导航同步	docs/detail/common/unified_model.md	已读正文；未完成逐引文/逐函数外部核验
 docs/detail/common/unified_objects.md	63eccbb6133aef56389641d43c55df6e243819c5	a1bf3d172c00813d732d27edec23d34f639a082b	1968	保留专题内容；必要导航同步	docs/detail/common/unified_objects.md	已读正文；未完成逐引文/逐函数外部核验
 docs/detail/export/README.md	63eccbb6133aef56389641d43c55df6e243819c5	1e0a047a0c6cc547a8efa0ba63c163af9e62d478	313	重写	docs/detail/export/README.md	已读；按本轮授权整理，科学重推导未执行
@@ -28,7 +28,7 @@ docs/detail/infrastructure/log_and_error_system.md	63eccbb6133aef56389641d43c55d
 docs/detail/infrastructure/observability.md	63eccbb6133aef56389641d43c55df6e243819c5	4d6d0e104dc3796ee43763bb7b7be0aae75653c6	18317	重写	docs/detail/infrastructure/observability.md	已读；按本轮授权整理，科学重推导未执行
 docs/detail/infrastructure/runtime.md	63eccbb6133aef56389641d43c55df6e243819c5	673273ab53595120e9e2fc4fb4e54b3aa7dbfa35	15568	重写	docs/detail/infrastructure/runtime.md	已读；按本轮授权整理，科学重推导未执行
 docs/detail/infrastructure/storage_form.md	63eccbb6133aef56389641d43c55df6e243819c5	4e106c561812cdeee73fc508333b8776f40ebf36	30750	重写	docs/detail/infrastructure/storage_form.md	已读；按本轮授权整理，科学重推导未执行
-docs/detail/infrastructure/troubleshooting.md	63eccbb6133aef56389641d43c55df6e243819c5	64392e534627cdb7dc8e95b359deb59d9f3d9d3b	7483	保留当前主题归属；逐篇重写尚未完成	docs/detail/infrastructure/troubleshooting.md	已枚举；局部查阅或尚未精读
+docs/detail/infrastructure/troubleshooting.md	63eccbb6133aef56389641d43c55df6e243819c5	64392e534627cdb7dc8e95b359deb59d9f3d9d3b	7483	重写	docs/detail/infrastructure/troubleshooting.md	已读；按本轮授权整理，科学重推导未执行
 docs/detail/mosaic/README.md	63eccbb6133aef56389641d43c55df6e243819c5	13bdddfdcdc2388022750b9078991df570a10d40	325	重写	docs/detail/mosaic/README.md	已读；按本轮授权整理，科学重推导未执行
 docs/detail/mosaic/pipeline.md	63eccbb6133aef56389641d43c55df6e243819c5	8ee09b09d828ea788b0c35fe486a7e10c798aa3b	5234	保留专题内容；必要导航同步	docs/detail/mosaic/pipeline.md	已读正文；未完成逐引文/逐函数外部核验
 docs/detail/normalize/README.md	63eccbb6133aef56389641d43c55df6e243819c5	0e41de6b6785962b7324951ca7a4e8c36ded58c9	481	重写	docs/detail/normalize/README.md	已读；按本轮授权整理，科学重推导未执行
