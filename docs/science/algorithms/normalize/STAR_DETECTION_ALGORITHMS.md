@@ -1,434 +1,50 @@
-# Star Detection Algorithms
+# 图像盲检与引导拟合的数值方法
 
-本页补充图像盲检与候选拟合的算法步骤、参数和源码事实。Normalize 中的检测职责、对象身份及生产入口以上层[科学正本](../../normalize/NORMALIZE_SCIENCE.md)、[检测科学分册](../../detection/STAR_DETECTION.md)和[生产架构](../../../engineering/architecture/NORMALIZE_PIPELINE.md)为准；本页测试设计不表示已运行。
+本页补充[检测科学](../../detection/STAR_DETECTION.md)的数值构造。Normalize先由IPV内部候选求WCS，再以Gaia引导独立science_sources；两者不共享候选职责。真实sdet入口、字段、所有权与调用见[检测模块](../../../detail/normalize/modules/star_detection.md)。本页不授权更换检测核、拟合模型或阈值。
 
+## 噪声与阈值
 
-盲检实现位于 `lib/algorithms/star_detection/src/sdet_api.cpp`，公开参数与签名见 `lib/algorithms/star_detection/include/star_detector.h`。这些源码锚不取代科学正本或 Normalize 数据合同。
+图像单位继承输入，不能一概称原生ADU。行差分d=I_yx−I_y,x−1在局部平稳噪声下有Var(d)=2σ²(1−ρ_adj)。现存估计器逐行以median/MAD做至多3轮5σ裁剪，MAD系数1.482602218505602，取行标准差中位数再除√2。该程序与未裁剪总体方差恒等式不同，相关、有限样本、结构和选择均影响偏差；另一全帧裁剪RMS也不是同一估计量。
 
-## 1 上游 SCI 与输入输出
+盲检平滑图S上的阈值取median(I)+5σ_raw，σ_raw来自未平滑图。独立同方差与固定核下，σ_sm=σ_raw√ΣK²；连续二维高斯的1/(2σ_s√π)只是近似，不能把实际递归核σ_s=2直接当解析高斯。实际核范数与引用域见检测正本。高斯星的连续峰值衰减可用σ_p²/(σ_p²+σ_s²)解释趋势，但不直接确定99%召回阈。
 
-- 算法范围：本节记录 `sdet` 图像侧盲检；IPV 内部使用其私有候选时叫 `solver_detections`。WCS 求解后由 Gaia 投影产生的 `science_sources` 是另一类对象，不由盲检候选替代。
-- 输入: 单帧图像（`sdet` API 的 double 或 uint16 图像，`[h·w]` 行主序，单位继承输入）
-  + SDetParams 参数（`lib/algorithms/star_detection/include/star_detector.h`）。
-- 输出: 逐星 `(cx,cy,flux,mag,saturated,has_saturated)` 十数组（`double*/float*/int*`，
-  malloc 由调用方 `sdet_free_detect_ex` 释放）+ 可选 extras 列。
-- 当前 CLI 的源表入口是 `module_adapters.cpp::p1_op_star_psf_impl` 中的 Gaia-guided `sdet_detect_guided_ex_f64`；盲检 API 不是该节点的 science_sources 生产路径。IPV 对校准像元的盲检属于 WCS 节点内部。
-- 旧 orchestrator `run_stage_psf` 与 `star_det` block 仅作为历史载体/源码事实记录，不是当前 CLI 生产入口；阶段一无独立 `star-detection` 调度节点。
+## 递归平滑
 
-## 2 离散公式
+现存YvV族每维参数为
 
-（锚=sdet_api.cpp 实测；公式与源码一一对应，正文按源码照录）
+\[
+ q=\begin{cases}3.97156-4.14554\sqrt{1-0.26891\sigma_s},&\sigma_s<2.5,\\
+ 0.98711\sigma_s-0.96330,&\sigma_s\ge2.5.\end{cases}
+\]
 
-- 背景噪声（行差分族 `sdet_compute_bgnoise()`，见 `lib/algorithms/star_detection/src/sdet_api.cpp`）: 逐行差分 `d[y,x]=img[y,x]−img[y,x−1]` →
-  3 轮 5σ clip（median/MAD 迭代，MAD 含 1.482602218505602）→ 行标准差 → 行中位 → ×0.70710678118654752
-  （1/√2）。**量纲 ADU；输出量 = 单像素噪声 RMS `σ_n`。**
-  **适用域（必须随引用同写）**：对平稳、同方差像素噪声，未裁剪差分满足
-  `Var(d) = 2σ_n²(1−ρ_adj)`，`ρ_adj` 为相邻像素相关系数；因此其总体 RMS 经 `1/√2`
-  缩放为 `σ_n·√(1−ρ_adj)`。`ρ_adj=0` 仅表示不相关，不一般蕴含独立；该公式不意味着
-  median/MAD、迭代裁剪或有限样本 RMS 估计无偏。实测（合成 AR(1) 场，4096 px/行，3 帧/档）：
-  `ρ_adj` = 0 / 0.25 / 0.50 / 0.75 ⇒ `σ̂_n/σ_n` = 0.9999 / 0.8632 / 0.7031 / 0.4991，
-  与解析 `√(1−ρ_adj)` = 1 / 0.8660 / 0.7071 / 0.5000 一致到 ≤0.6%。
-  **测法**：合成 AR(1) 场，4096 px/行、3 帧/档，真值 `σ_n = 6.0 ADU`，`ρ_adj` 由场
-  生成参数直接设定（非事后拟合）。这些有限样本读数只支持该 AR(1) 构型下的对照，
-  不建立一般无偏结论；`ρ_adj=0` 档读数为 `σ̂_n/σ_n = 0.9999`，`ρ_adj=0.75` 档为
-  `0.4991`，与未裁剪公式的预测接近。
-  ⇒ 对 drizzle/重采样/插值后的帧，**必须**先用独立方法标定 `ρ_adj` 并除以 `√(1−ρ_adj)`；
-  `ρ_adj` 未标定时检测阈的 σ 基准 = 另行独立标定的估计量。
-  独立高斯构型下的有限样本读数：`σ̂_n/σ_n = 0.99792`（8 帧，真值 6.0 ADU，
-  散布 0.42%）；该构型结果不证明估计器总体无偏。
-- 全局检测阈值（`sdet_api.cpp` 调 `sdet_compute_bgnoise()` 估 `bgnoise` 于**未平滑原图**，并组装 `pr.thr = pr.bg + 5.0·bgnoise`；阈值作用面 = σ=2 平滑图；候选门槛判据、对称性门与饱和判定同在该文件）:
-  `threshold = median(img) + 5.0·bgnoise`，**单位 ADU**。
-  **量纲声明**：阈值**作用图像**是 `σ_smooth = 2.0 px` 的 YvV 平滑图（`sdet_api.cpp`），
-  而 `bgnoise` 取自未平滑原图 ⇒ 阈在平滑图噪声单位下 = `5.0/‖k‖₂ = 35.45 σ_smooth`
-  （连续 2D 高斯核 `‖k‖₂ = 1/(2σ_smooth√π) = 0.14105`）。
-  **`threshold_sigma` 是未平滑原图噪声的倍数，不是阈值实际作用图像上的显著性**；
-  引用「5σ」时**必须**声明 σ 属于哪幅图。等价地，检出**过渡点**在
-  `SNR_peak = A_fit/σ_bg` 单位下是 `SNR_peak = 5·(1 + σ_smooth²/σ_psf²)`（连续极限），
-  实测系数为 `6.22 ± 0.50`（**50% 过渡点**，§11.4 F1）。该式给出的是检出概率 0.5
-  的位置，**不是召回域下限**；召回域下限 = §11.4 F1 的逐档 **99% 召回阈表**
-  （σ_psf = 1.0 / 1.27 / 1.5 / 2.0 / 2.5 / 3.0 px 档；数值以本文件 §11.4 表
-  「99% 召回阈 `SNR_peak`」行为唯一权威，此处不复制数值以防漂移），两者**不可互换**。
-- 动态范围与饱和水平（`sdet_api.cpp`）: `bg=median(img)`，`maxi=max(img)`，
-  `dynrange=min(maxi,65535)−bg`，`minsatlevel=0.7·dynrange`，
-  `satrange=0.1·dynrange`，`locthreshold=5·bgnoise`；`norm = 65535.0f` 字面量
-  （`sdet_api.cpp`，DISP-STAR-006）。**量纲 ADU；适用域 = 以 uint16 整数 ADU 读出、
-  满阱=65535 ADU 的帧**。对已定标 float 帧，`dynrange` 的物理含义退化为
-  「帧自身 max 与 65535 的较小者减帧中位」，**不等于探测器饱和电平**；
-  该域外 `saturated` 列**必须**按 Project-defined 判据
-  `A_fit > min(max(img),65535) − median(img)` 消费；该列语义 = Project-defined 判据，探测器饱和真值另立。
-  实测（M42_M1_T2 Red 20251212@012404 校准帧，4096²，float32，max=80789.7 ADU）：
-  `dynrange=65339.0 ADU`，`saturated=1` 的检出星 94/2474，其中 53 颗 3×3 峰值
-  ≤ 65535 ADU。**测法**：生产盲检测输出逐星取 3×3 峰值与 `saturated` 列。
-  **负对照**：上述 53 颗「3×3 峰值 ≤ 65535 却被标 `saturated`」即 `norm = 65535`
-  不成立的反例 ⇒ 该列在 float 定标帧上**必须**按 Project-defined 判据消费。
-- 8-连通组分标记（O3, `sdet_find_connected_components`，见 `sdet_api.cpp`）: 阈值图 `smooth > thr` 的
-  非零像素按 **8 邻接 BFS** 标记连通分量（扫描序 y 主序发现、栈式 BFS ⇒ 平局 = 扫描序先到），
-  每分量记 `count` 与包围盒 `x0/y0/x1/y1`；释放面
-  `sdet_free_connected_components`（同文件）。复杂度 O(N)。
-- 去混叠 deblending 树（O11, `sdet_deblend_leaf`，见 `sdet_api.cpp`；设计稿 §5.11；B&A96 §4）:
-  指数间隔阈值层 `t(i) = thr·(Smax/thr)^(i/30), i=1..30` 自高向低（`SDET_DEBLEND_LEVELS=30`，`sdet_api.cpp`），
-  首个满足「≥2 枝且枝在**当前层**阈值之上的积分流量 > `delta_c·`父组分在**检出阈值**之上的总流量」
-  的层执行分裂（`SDET_DELTA_C=5e-3`，`sdet_api.cpp`；判据两侧刻意不对称 = B&A96 §4）：
-  存活枝 → 独立成分；其余像素按双变量高斯 **argmax 重分配**（`mu` = 叶峰位、
-  `sigma²` = 叶内权重二阶矩 + 0.25 下限），平局归登记序靠前者。
-  全层不满足 ⇒ 单成分（间隔 < 2σ 不可分，B&A96 §4.3，不触发即保持单星）。
-  `SDET_DEBLEND_DEPTH=8`（`sdet_api.cpp`）在现行**迭代**实现中无消费者（P-140 已登记，保留占位）。
-  产物 `SdetLeaf{pix, peak}`；`peak` 现仅供树基准与调试消费
-  （O8 冻结语义改由检测段 11×11 局部极大扫描承担，`sdet_api.cpp`）。
-- 候选饱和判定（`sdet_api.cpp`）: 3×3 邻域超阈值像素 `meanhigh`、`minhigh`；
-  饱和 ⇔ `meanhigh−bg ≥ minsatlevel` 且 `pixel0−minhigh ≤ satrange`（双条件）。
-- 非饱和亚像素质心（一阶导数，`sdet_api.cpp`）: `r0 = −0.5 − d1rl/(d1rr−d1rl)`、
-  `c0 = −0.5 − d1cu/(d1cd−d1cu)`（分母 |·|<1e−20 时取 −0.5）。
-- 饱和中心 edge-walking（`sdet_api.cpp`；独立实现 `edge_walking_center`，
-  该独立实现现仅由无调用者的 `sdet_detect_saturated_stars` 消费，见 §10）:
-  从候选中心四方向走到 `pixel ≤ sat` 边缘，饱和中心=边缘盒几何中心；
-  距边界 <2px 丢弃。
-- 二阶导数零交叉宽度/振幅（`sdet_api.cpp`；独立实现 `sdet_zero_cross_dir()` 同文件）: 对平滑图 smooth 逐方向找二阶导零交叉
-  `Sr,Sc`（平滑图 σ 估计）与 `Ar,Ac`；平滑 PSF 估计量
-  `Sr=(−srl+srr)/2`、`Ar=(Arl+Arr)/2`、`Sc=(−scu+scd)/2`、`Ac=(Acu+Acd)/2`；
-  符号约定：单侧读数 `srl/srr/scu/scd`（及 `Arl/...`）记录**有符号差分读数**，
-  距离量取正值为有效（实现 `sdet_zero_cross_dir()` 返回 `dist = |峰−零交叉| ≥ 1.0`，
-  缺失侧回落 1.0）；对称合成取两侧均值 `Sr = 0.5·(drl + drr)`（sdet_api.cpp
-  O7 段，`c.Sr = 0.5 * (drl + drr)`），同式得 `Sc`；
-  `SDET_SQRT_EXP1=√e`（`sdet_api.cpp`）。
-- 拟合盒半径（`sdet_api.cpp`）: `s_factor=√(−2·ln 0.001)=3.7172`（`SDET_S_FACTOR`）；
-  `R=max(ceil(3.7172·Sr), ceil(3.7172·Sc), 5)`，钳位 `R≤200`（`SDET_MAX_BOX_RADIUS`），
-  边界收缩 `R=max(R,1)` 且不出帧。
-- 对称性质量门（`sdet_api.cpp`）: `dA=max(|Ar|,|Ac|)/min(|Ar|,|Ac|)`、`dSr`、`dSc`
-  同构（分母 <1e−20 时 1e30）；拒绝条件 `dA>2 ∨ dSr>2 ∨ dSc>2 ∨
-  max(|Ar|,|Ac|)<locthreshold`。
-- candidate 去重（`sdet_api.cpp`）: `matchradius=max(1, floor(0.2·R))`；
-  曼哈顿距 `|Δx|+|Δy|≤matchradius` 视为重复，先到先留（扫描序 y 主序）。
-- **椭圆高斯拟合模型（检测侧冻结母函数）**（sdet_gauss_fit → sdet_lm_fit，均见 `sdet_api.cpp`，
-  自研信赖域 LM（nls_lm），7 参数）:
-  `f(x,y)=B+A·exp(−(x′²/SX+(y′/r)²/SX)/1)`，参数 `{B,A,x0,y0,SX=2σ²,fr,alpha}`，
-  `r=0.5·(cos fr+1)`，`sx=√(SX/2)`，`sy=sx·r`，`fwhm=2.3548·σ`（TWO_SQRT_2_LOG2），
-  PSF 侧 = 椭圆 Moffat4（SCI-PSF-001 [S-2]「判据与误差」一节）；同 sx 下 FWHM 相差 1.9140×，两块的 FWHM 各自独立取值（DISP-STAR-007）。
-  `theta=−alpha` 归一到 (−90°,90°]。残差坐标 `dx=x+0.5−cx`（像素中心=索引+0.5，
-  `sdet_api.cpp`）。
-- 初始化（sdet_lm_fit，见 `sdet_api.cpp`）: halfA 边界搜索（`max_val=A0+bkg0`，沿中心行列向外走到
-  `val−bkg0 ≤ A0/2`）→ `FWHMx=jj1−jj2`、`FWHMy=ii1−ii2`；`SX_init=FWHM²/4ln2`、
-  `fr_init=acos(2·roundness−1)`、`alpha_init=0`；`bkg0`=拟合窗内下半像素截尾 MAD
-  clip 后中位（sdet_gauss_fit，同文件）；`max_iter=LM_MAX_ITER_ANGLE·(饱和?3:1)`（同文件）。
-- 饱和像素 mask（`sdet_api.cpp`）: 拟合采样排除 `val ≥ sat_threshold`；
-  排除后 m≤8 → INVALID_PARAMS（`samples.size() <= NPARAMS+1`）。
-- 星等（正常星，`sdet_api.cpp`）: `mag = −2.5·log10(Σ_box(pixel − B_fit))`，box=
-  (2R+1)² 用候选 R（钳 [5,200]）与候选中心；`box_sum≤0 → mag=NaN`。
-  饱和星：原 debug 路径已随重写注销——`sdet_detect_debug`/`sdet_free_debug_maps`
-  为**死符号**（§10），`sdet_detect_saturated_stars` 现无调用者 ⇒ 该路径的
-  `mag = −2.5·log10(A_fit)`（A>0）在生产面不再产出（量纲差异登记 DISP-STAR-004）。
-- 饱和标志（`sdet_api.cpp`）: `is_saturated = (A_fit > dynrange)`；`has_saturated =
-  is_saturated`（DISP-STAR-004）。
-- 输出排序（sdet_sort_stars）: mag 升序 stable_sort，NaN 恒排末尾；
-  dedup（sdet_dedup_stars）: 饱和星与正常星 2px 网格 d²<4.0 →
-  丢正常星保饱和星；饱和星间 d²<4.0 保 r 大者；正常星间 d²≤1.0 保先者；
-  最后 `maxStars>0` 截断（`sdet_emit_records` 内）。以上两符号与 `sdet_emit_records` 均见 `sdet_api.cpp`。
+原始系数b0=1.57825+2.44413q+1.4281q²+0.422205q³，r1=2.44413q+2.85619q²+1.26661q³，r2=−1.4281q²−1.26661q³，r3=0.422205q³；B=1−(r1+r2+r3)/b0，b_i=r_i/b0。前向w_n=Bx_n+Σ_{i=1}^3b_iw_{n−i}，反向同系数；当前边界用首/末值种子。σ≤0.5或宽高小于4直通，float/double分别计算。
 
-## 3 伪代码
+q²的1.4281是当前实现值，旧文转述1.4251及“完整Triggs边界矩阵”的对应未统一。保持当前系数与边界，原文与冲激响应需后续核验；不能因名称相近自动换值或把简单末值种子当已实现全部论文边界方法。
 
-```
-sdet_detect_impl(image, w, h, params):            # sdet_api.cpp（模板双实例两处）
-  smooth   = GaussianBlur_YvV(image, sigma=2.0)   # sdet_api.cpp（Young-van Vliet IIR）
-  bgnoise  = sdet_compute_bgnoise(image)          # sdet_api.cpp 调用（行差分+3×5σ clip）
-  median   = robust_median(image)                 # sdet_api.cpp
-  thr      = median + 5·bgnoise                   # sdet_api.cpp（含 locthreshold）
-  dynrange = min(max(image), 65535) − median      # sdet_api.cpp
-  binary   = (smooth > thr)                       # O3 阈值化
-  comps    = label_8connected(binary)             # sdet_api.cpp → sdet_find_connected_components
-  leaves   = deblend_tree(comps, thr, total_flux) # sdet_api.cpp → sdet_deblend_leaf（O11，设计稿 §5.11）
-  for y,x in [r..h−r)×[r..w−r):                   # 候选扫描段
-    if max(|Ar|,|Ac|) < locthreshold: continue    # sdet_api.cpp（对称性门；guided 路径）
-    if not local_max_11x11(smooth,y,x): x+=5; continue   # sdet_api.cpp 平局决胜取左上唯一
-    (meanhigh, minhigh) = stat3x3(image, x, y, thr)      # sdet_api.cpp 原图 3×3
-    if boundary(xx±2,yy±2) 越界: continue         # sdet_api.cpp
-    if meanhigh−bg < 0.7·dynrange or pixel0−minhigh > 0.1·dynrange:
-        (r0,c0) = first_order_centroid(smooth,xx,yy)     # sdet_api.cpp 非饱和
-    else:  sat=1; (r0,c0)=edge_walking(smooth,xx,yy,sat_level)  # sdet_api.cpp 饱和
-    (Sr,Sc,Ar,Ac) = zero_cross_2nd(smooth,xx,yy,sat)     # sdet_api.cpp
-    R = max(ceil(3.7172·Sr), ceil(3.7172·Sc), 5); clamp R ≤ 200, 帧内收缩  # sdet_api.cpp
-    if dA>2 or dSr>2 or dSc>2 or max(|Ar|,|Ac|)<5·bgnoise: continue  # sdet_api.cpp
-    if exists prior candidate with |Δx|+|Δy| ≤ max(1,⌊0.2R⌋): continue  # sdet_api.cpp
-    candidates.push({x+xx偏移, y, mag_est=meanhigh, Sr, Sc, R, sat_flag})
-  sort candidates by mag_est desc（候选阶段不截断）       # sdet_api.cpp
-  parallel for c in candidates:                   # 阶段6 OpenMP dynamic（sdet_api.cpp）
-    fit = NLS_TR_LM_GAUSS(image, window=2R+1, sat_mask=c.sat, init=halfA+局部截尾MAD)
-  for (fit, c) in zip(fit_results, candidates):   # 阶段8（sdet_api.cpp）
-    if fit.status ≠ OK: drop                      # sdet_api.cpp
-    if max(sx,sy)/min(sx,sy) > maxAxisRatio: drop # sdet_api.cpp
-    if reject_star(fit) ≠ OK: drop                # sdet_api.cpp（FWHM>0.5、圆度≥0.5、
-                                                  #   RMSE=mad·1.482602218505602/A≤0.2、FWHM 上限;
-                                                  #   饱和豁免 RMSE，同文件）
-    mag = −2.5·log10(Σ_box(pixel − B_fit))（box=R, 中心=候选中心）  # sdet_api.cpp
-    saturated = (A_fit > dynrange); has_saturated = saturated       # sdet_api.cpp
-  dedup(stars); sort_by_mag_asc(stars, NaN last); 截断 maxStars   # 阶段10（sdet_api.cpp）
-  return 10×malloc 数组 (cx,cy,flux,mag,saturated,has_saturated[,extras])  # sdet_api.cpp
-```
+## 候选、分裂和初值
 
-## 4 边界/NaN/Inf
+阈值图按8邻接提取组分。现存去混叠构造采用30层指数阈值t_i=t_det(Smax/t_det)^(i/30)，相对父组分的流量比例δ_c=5e−3，至少两枝满足条件才分裂。枝流量、父流量是否扣阈底及重分配规则必须随定义给出；当前以双变量高斯argmax分配剩余像素、平局按登记序，不把它说成原论文逐项相同实现。
 
-- 候选为空（`lib/algorithms/star_detection/src/sdet_api.cpp` 的 sdet_detect 旧入口 / debug / impl 三处）: 全输出指针置 NULL，`*out_count=0`，
-  返回 0（不是错误；"未检测到星"由编排层判定，`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`
-  det_count≤0 → STAR_DETECT_FAILED）。
-- 参数无效（impl，见 `lib/algorithms/star_detection/src/sdet_api.cpp`）: handle/image/输出指针 NULL → −1；width/height ≤0 → −1
-  （C 入口 / ex / ex_f64 同式检查）。
-- 拟合失败（`lib/algorithms/star_detection/src/sdet_api.cpp`）: LM 状态≠Success 或非有限值或 A≤0 →
-  NO_CONVERGENCE，该候选丢弃（同文件），不产出 NaN 行。
-- mag NaN: 正常星 box_sum≤0；NaN 排序恒在末尾（均在 `lib/algorithms/star_detection/src/sdet_api.cpp`）。
+局部极大扫描以11×11邻域和确定平局规则选峰，半径5的边缘带另处理。一阶差分过零给中心初值；二阶差分首次零交叉给两侧距离，Sr=(d_left+d_right)/2、Sc类似，缺侧有现存回退。平滑幅度读数通过√e缩放，只有相应高斯假设下才有严格参数解释。
 
-- 饱和星拟合失败: flux/fwhm/sx/sy/theta/background/amplitude 全 0.0f 哨兵 +
-  mag=NaN（debug 路径语义；extras 读取端 get_extra_field，均在 `lib/algorithms/star_detection/src/sdet_api.cpp`）。
-- 边界: peaker 扫描域 [r,h−r)×[r,w−r)；边界检查 xx±2/yy±2；
-  R 收缩不出帧；edge-walking 距边界 <2px 丢弃（均在 `lib/algorithms/star_detection/src/sdet_api.cpp`）。
+候选拟合盒R=max(ceil(√(−2ln0.001)Sr),ceil(√(−2ln0.001)Sc),5)，上限200且按边界收缩。该高斯能量半径与实际方形窗、Moffat翼或饱和窗不是相同通量份额。候选曼哈顿去重半径max(1,floor(0.2R))与分裂树并存，不能由分裂树存在推断近邻召回已经完整。
 
-## 5 确定性与归约
+## 模型拟合、质量与输出
 
-- OpenMP 仅三处并行: 平滑/转化 `parallel for schedule(static)`（入口转换两处、bgnoise 行并行）、
-  候选拟合 `omp parallel + omp for schedule(dynamic) reduction(+:fit_ok_count)`
-  （三处均在 `lib/algorithms/star_detection/src/sdet_api.cpp`）。
-- 拟合逐候选独立、结果按索引写回；dedup/sort/maxStars 截断串行
-  （`lib/algorithms/star_detection/src/sdet_api.cpp`）→ 输出 bitwise 与线程数无关（1/N 等价）。
-- 扫描序固定（y 主序、x 递增）+ 先到先留去重 + stable_sort → 全序确定。
-- determinism=fixed_reduction_order（module.yaml 合同值）。
+检测侧模型为B+Aexp(−½[(x'/σ_x)²+(y'/σ_y)²])。现参数化SX=2σ_x²、r=(cos(fr)+1)/2、σ_y=rσ_x，θ与内部alpha符号按真实adapter转换。FWHM=2√(2ln2)σ；不能与PSF库Moffat4同名宽度互换。halfA边界搜索和局部背景初始化后调用现有信赖域LM，既有迭代/容差不是全域误差证明。
 
-## 6 时间/空间复杂度
+饱和像素可从拟合样本排除，样本不足拒绝。平顶诊断使用dynrange=min(max(I),65535)−median(I)，0.7/0.1倍的邻域条件不等于探测器饱和真值；原生阈值、校准和实际标度另保留。饱和候选的某些质量门豁免按实现解释，不能推广到所有科学消费者。
 
-- 平滑 O(N)（YvV 递归 IIR）；bgnoise O(N·clip)；peaker O(N·r²)（r=5，11×11 窗，
-  命中后 x+=5 跳步）；拟合 O(C·m·iter)（C=候选数，m=(2R+1)² 采样数）。
-- 空间: smooth/map O(N) + 候选/拟合 O(C) + 输出 O(count)。
-- maxStars 截断: 输出阶段截断 maxStars；impl 候选阶段仅排序
-  不截断——maxStars×2 预截断仅存于 debug 与
-  guided 路径（三处均在 `lib/algorithms/star_detection/src/sdet_api.cpp`）。
+拟合后质量检查包括FWHM正且大于0.5px、轴比、MAD残差/A（非饱和时阈0.2）和候选宽度相关上限。额外盲检形状门以帧候选FWHM中位参考、峰占比和四分之一峰像素数筛选；当前默认比例0.5/2.5、峰占比0.35、最少像素4，属于具体采样域政策，不适用未标定窄核或不同相位。引导路径不经过该额外门。
 
-## 7 CPU-only 后端策略（V5）
+mag由实际方形窗扣拟合背景后的和计算，非正和得到NaN；API名flux当前记录拟合振幅A，二者不能混称总通量。输出拟合后去重、按mag稳定排序、NaN置尾和maxStars截断。Gaussian定位/粗量与后续Moffat积分PSF的测量身份分别保留。
 
-- 纯 CPU；自研信赖域 LM（nls_lm，替代外部 GSL gsl_multifit_nlinear，
-  `sdet_api.cpp` 的 nls_lm 声明段）；OpenMP 线程级并行；无 SIMD 内联/ISA 分派（-march=native 于
-  `lib/algorithms/star_detection/Makefile`，非代码分支）；V7 迁移目标 acsd_p1_star_detection.dll
-  （provider/cpu_providers 见 module.yaml）。
+## 统计与独立核验
 
-## 8 参考实现/Oracle
+盲检阈值表、相位、PSF、种子、注入/匹配数及虚警分母必须绑定。零失败二项试验的一侧下界、至少299的样本条件和择阈多重比较见检测正本；旧n≥298和“经验零失败格点必定是阈”不再作为正式定义。单个宽度上的非单调有限样本读数不能单独证明不同物理区制。
 
-- 论文谱系: SExtractor 族 peaker（峰值检出）与自研信赖域 LM（`nls_lm`，
-  `sdet_api.cpp` 注释）。实现锚只说明代码路径；数值 oracle 设计见 §11.4，不据此声称行为等价或测试通过。
+核验需要噪声/相关场、冲激核、边缘、不同宽度/相位、拥挤与不等通量双星、饱和/失配、纯噪声、坐标转换及并发输出。稳定排序不证明全浮点逐位相同，库间行为相似也不证明独立真值。记录的历史读数、召回阈表、谱系备选和逐算子原文完整保存在[检测来源](../../../../实验/documentation-refactor/docs/DETECTION_SOURCE.txt)；本轮未重跑这些实验。
 
-## 9 容差来源
+## 参考资料
 
-- 亚像素质心: 一阶导/零交叉为连续估计（无 0.5px 网格量化损失），**椭圆高斯**中心
-  由自研信赖域 LM（nls_lm；XTOL/GTOL/FTOL 编译期常量）收敛；合成高斯场 oracle 容差于[D-1]设计冻结
-  冻结，取值一律按本节。检测侧高斯 / PSF 侧 Moffat4 双母函数语义与换算见 §2 与
-  DISP-STAR-007。
-- FP32 通道经 uint16 量化（DISP-STAR-001），其容差与 FP64 通道分别冻结。
-
-## 10 关联 ARC/API/TST
-
-- ARC: ARCH-001（Phase1 模块链边界）。
-- API: API-STAR-001（PUBLIC_API，sdet_* 6 导出符号：sdet_create/sdet_destroy/
-  sdet_detect_ex/sdet_detect_ex_f64/sdet_free_detect_ex/sdet_detect_guided_ex_f64，
-  与 star_detector.h 现行 SDET_EXPORT 面一致；4 个旧 CC 路径符号
-  sdet_detect/sdet_free_coords/sdet_detect_debug/sdet_free_debug_maps 已随重写
-  注销为死符号）+ 常量；编排合同
-  PHASE1_API_V1 §2 表行 `sdet_create/destroy/detect/detect_ex`（handle 级
-  并发合同）。
-- TST: 本页保留测试设计参考；是否执行及其结果必须由对应运行记录说明。
-- DATA: DATA-P1-STAR（`docs/detail/normalize/modules.md`，star_det v1 [N,6] 权威块十数组语义）。
-
-## 11 源码行为与实测记录
-
-### 11.1 ALG-STARDET-001 逐符号锚
-
-| 符号 | 锚 | 角色 |
-|---|---|---|
-| sdet_detect_impl<T> | `lib/algorithms/star_detection/src/sdet_api.cpp` | 生产核心（float/double 双实例调用点同文件） |
-| YvV 平滑 σ=2.0 | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段2 **调用面**（sdet_gaussian_blur_yvv/_d；**实现不在本文件**：`lib/algorithms/star_detection/src/sdet_image.cpp`） |
-| sdet_compute_bgnoise | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段3 行差分 FnNoise1 族 |
-| threshold=median+5·bgnoise | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段3 全局阈值（含 locthreshold） |
-| peaker 主扫描 | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段4 七步（[S-1]「物理模型」一节 候选公式锚） |
-| 候选 mag_est 降序（impl 无截断） | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段5 排序闸门 |
-| sdet_gauss_fit | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段6 采样/饱和 mask/bkg0/初始值（检测侧母函数=椭圆高斯，DISP-STAR-007） |
-| sdet_lm_fit（自研 TR-LM 7 参） | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段6 拟合主体（含 halfA 边界搜索） |
-| reject_star | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段8 质量门（含 SfError 码） |
-| StarRecord 构建+mag | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段8（含 is_saturated 与 mag 计算） |
-| sdet_dedup_stars | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段10a（语义见 [S-1]「物理模型」一节） |
-| sdet_sort_stars | `lib/algorithms/star_detection/src/sdet_api.cpp` | 阶段10b（mag 升序 NaN 末尾） |
-| 输出构造 10 数组 | `lib/algorithms/star_detection/src/sdet_api.cpp` | `sdet_emit_records`：malloc+赋值+extras |
-| sdet_detect_ex（FP32 入口） | `lib/algorithms/star_detection/src/sdet_api.cpp` | uint16→float 转换后 impl<float> |
-| sdet_detect_ex_f64（FP64 入口） | `lib/algorithms/star_detection/src/sdet_api.cpp` | impl<double> 全程双精度 |
-| sdet_create / sdet_destroy | `lib/algorithms/star_detection/src/sdet_api.cpp` | 句柄生命周期（含默认参数） |
-| edge_walking_center | `lib/algorithms/star_detection/src/sdet_api.cpp` | 独立饱和中心实现（**现仅由下一行消费**） |
-| sdet_detect_saturated_stars | `lib/algorithms/star_detection/src/sdet_api.cpp` | 半阈值 CC 饱和检测（**本文件内零调用者**；其debug入口已注销） |
-| get_extra_field / parse_extra_name | `lib/algorithms/star_detection/src/sdet_api.cpp`（两处） | extras 列解析 |
-
-SDetParams 9 字段（`lib/algorithms/star_detection/include/star_detector.h`）生产消费面（DISP-STAR-003；实测口径，`grep params\.` 于 `lib/algorithms/star_detection/src/sdet_api.cpp`）:
-
-| 字段 | sdet_api.cpp 内的消费面 |
-|---|---|
-| `maxStars` | `lib/algorithms/star_detection/src/sdet_api.cpp`：两处传入 `sdet_emit_records`，截断段同文件 |
-| `maxAxisRatio` | `lib/algorithms/star_detection/src/sdet_api.cpp`：impl 两处、guided 两处活门 |
-| `fitRadius`、`fwhmClipSigma` | **本文件内零消费面**：只出现在创建默认值与创建日志两处（`lib/algorithms/star_detection/src/sdet_api.cpp`）（原注的「auto 半径日志推导」与「debug 入口消费」两处消费面均随重写注销） |
-| `structureLayers`、`hotPixelFilterRadius`、`iterativeClipSigma`、`iterativeMaxRounds`、`medianFilterDetail` | **本文件内零消费面**：仅创建默认值（`lib/algorithms/star_detection/src/sdet_api.cpp`） |
-
-⇒ 生产 impl 在本文件内实际消费 **2/9** 字段（`maxStars`、`maxAxisRatio`）。
-**悬空引用登记**：原注点名的 `sdet_detector.cpp` 与 `sdet_get_structure_map` 在
-`git ls-files` 与 `lib/` 全库均 **0 命中**（该文件从未入库），属悬空引用。
-
-### 11.2 状态码/返回码语义
-
-- 入口级: 0=成功（含 0 星）；−1=参数无效/内存分配失败（`lib/algorithms/star_detection/src/sdet_api.cpp` 四处）。
-- 拟合级 SDET_FIT_* 四码全列: OK/INVALID_PARAMS/NO_CONVERGENCE/ITERATION_LIMIT（`lib/algorithms/star_detection/src/sdet_api.cpp`）；
-  reject_star SfError 六码 SF_OK/SF_FWHM_NEG/SF_FWHM_TOO_SMALL/
-  SF_ROUNDNESS_BELOW_CRIT/SF_RMSE_TOO_LARGE/SF_FWHM_TOO_LARGE（同文件）。
-- 编排级: 检测失败或 0 星 → 退出码 STAR_DETECT_FAILED；star_det 权威块写入失败 →
-  BLOCK_MISSING（两处均在 `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）。
-- 线程安全: handle 级互斥使用（PHASE1_API_V1 [S-1]「物理模型」一节 表行登记 handle 级 no/no）；
-  无内部锁，句柄共享面 = 单线程。
-
-### 11.3 实现差异记录（DISP-STAR-001..007）
-
-- DISP-STAR-001 历史 orchestrator FP32 通道 uint16 量化: `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` float clamp
-  到 [0,65535] 转 uint16 后进 sdet_detect_ex；PREC-105 同族精度约束；FP64
-  通道（sdet_detect_ex_f64）不降级。
-- DISP-STAR-002 全局单阈值无局部背景自适应: median+5·bgnoise 全局阈值
-  （`lib/algorithms/star_detection/src/sdet_api.cpp`）对渐变背景/星云场漏检低对比星；结构图局部背景路径不在生产
-  impl（仅该文件内两处入口保留）。**适用域判据（生产盲检测 `sdet_detect_ex_f64`，
-  真实星云帧）**：逐检出星取 11×11 邻域局部背景 `bg3`，统计落在帧中位 ±2σ_n
-  内的颗数——该子样本为空集 ⇒ 全局阈不构成该域帧的检出下限。
-  ⇒ 全局阈的**适用域 = 背景在检出尺度上空间平坦的帧**；星云/银道面场中检出集由
-  11×11 局部极大 + 3×3 邻域 + 对称性门（`dA/dSr/dSc ≤ 2` 且
-  `max(|Ar|,|Ac|) ≥ 5·bgnoise`，`lib/algorithms/star_detection/src/sdet_api.cpp`）决定，判据**必须**按此域分开声明。
-  **负对照**：平坦背景合成场上同一统计量的取值必须非空（正例），该子样本为空集
-  ⇒ 全局阈不构成星云/银道面域的检出下限；两域**必须**分开声明。读数正本尚未确立，
-  须由对抗性审核重新推导并构造反例确认。
-- DISP-STAR-003 SDetParams 9 字段消费面记录（表后注）: legacy orchestrator
-  platesolve.* 传参（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）部分字段无效；fwhmClipSigma
-  生产路径半失效。
-- DISP-STAR-004 历史 star_det 载荷中饱和星 mag 与正常星 mag 量纲不一致（振幅 vs box 流量，
-  `lib/algorithms/star_detection/src/sdet_api.cpp` 内 `rec.flux = (float)fit_results[i].A` vs `rec.mag = (box_sum > 0.0) ? -2.5f*log10f(box_sum) : NAN`）；has_saturated 恒等于 is_saturated（同文件），列语义
-  未分化（star_det v1 [5] 列承接归 P1-STAR-INT）。
-- DISP-STAR-005 检测为单实现路径（O1–O16）；`sdet_detect`/`sdet_detect_debug` 不作为入口。
-- DISP-STAR-007 检测/PSF 双母函数（列语义不可互换）：检测侧盲检内核为椭圆高斯
-  （`sdet_gaussian_f/df`，`fwhm=2.3548·sx`），PSF 侧为椭圆 Moffat4
-  （`MOFFAT4_FWHM_FACTOR=1.230310`）；同 sx 下 FWHM 报值相差 **1.9140×**，
-  解析流量比 0.902（R-3 §2.2/§2.4 实测）。因此 `star_det` 的 fwhm/flux 列与
-  PSF 块同名列**只在各自块内可比**；整改（如统一母函数或列改名）归
-  legacy star_det 与当前 p1_sources JSON 载荷不可混为一谈。
-- legacy orchestrator 线程数未接 ThreadBudget（#pragma omp 无 num_threads 注入）；取消检查点缺失（无 cancel 回调）是该旧调用面的记录。当前 CLI 的调用合同见 Normalize 数据合同与生产架构。
-
-### 11.4 测试设计参考（非运行结论）
-
-- F1 合成高斯星场（已知中心/流量/FWHM/SNR）: 亚像素质心 |Δc|≤0.3 px
-  （SNR≥20）；FWHM 相对误差 ≤10%；纯噪声场虚警 ≤0.1/千像素（发布门 = `G-P1-STAR-FP`，阈值与本条一致）
-  （专项=completeness/false positive synthetic fields）。
-  **历史合成读数：完整性按 PSF 宽度分档统计**，读数 = 逐档 99% 召回阈表（本仓实测，
-  生产 `sdet_detect_ex_f64`，默认参数，256² 单星居中，**峰值对齐像素中心**，
-  **1000 次/档**；`SNR_peak = A_fit/σ_bg`，σ_bg 为未平滑原图行差分背景噪声 RMS）：
-
-  | `σ_psf` (px) | 1.0 | 1.27 | 1.5 | 2.0 | 2.5 | 3.0 |
-  |---|---|---|---|---|---|---|
-  | FWHM (px) | 2.35 | 2.99 | 3.53 | 4.71 | 5.89 | 7.06 |
-  | 50% 过渡点 `SNR_peak` | 31.1 | 21.5 | 17.7 | 14.1 | 9.3 | 8.3 |
-  | **99% 召回阈 `SNR_peak`** | **∈[52, 65]** ⚠ | **24.0** | **20.0** | **16.0** | **12.0** | **10.0** |
-
-  **两行的定义差别（不可互换）**：50% 过渡点 = 检出概率恰为 0.5 的信噪比；
-  99% 召回阈 = 使实测召回在 **1000 次/档**下达到 **1000/1000** 的最小信噪比格点。
-  **召回域由 99% 行定义**，50% 行只定位过渡带中心。
-  **样本量**：零失败下 Clopper-Pearson 95% 下界 = `0.05^(1/n)`，要 ≥0.99 须
-  `n ≥ ln0.05/ln0.99 = 298.07`；`n = 64` 零失败只给 0.954 下界，**不足以确立
-  ≥99%**，其标定值系统性偏乐观（`σ_psf` = 1.5 / 2.5 px 各低 1 个信噪比单位，
-  `σ_psf` = 1.0 px 低 8 个）。本表取 `n = 1000`（零失败下界 0.99701）。
-  **⚠ `σ_psf = 1.0 px` 档不给点值，只给区间 [52, 65]**：1000 次/档复测确认其
-  零失败性质**非单调** —— 零失败点 65 / 66 / 71 / 74 / 76 之间夹有 999/1000、
-  998/1000、997/1000，故「54.0」只是 300 次/档下首个恰好零失败的格点、**不是
-  稳定阈**，已撤销。区间下端 52 = 使实测召回自该点起恒 ≥0.99 的最小信噪比
-  （`SNR_peak ∈ [52, 76]` 上实测 0.9940–1.0000）；上端 65 = 首次出现零失败的格点。
-  **引用该档阈必须同时报出区间**，**该档只用区间标定**。
-  其余五档在 `n = 1000` 下自阈起连续 ≥4 个格点零失败，点值稳定。
-  档间 `σ_psf` 取相邻两档中较严者（较大阈）；`σ_psf` 超出 `[1.0, 3.0] px`
-  未标定，**本表的引用域 = `[1.0, 3.0] px`**。
-  **判据可复现性（单 seed 稳定性）**：以上表为域界，对 F1 召回场换 24 个噪声 seed
-  重跑，域内召回逐个 seed 均为 100%，**判据判决翻转率 0/24**；以 64 次/档旧标定
-  为域界时翻转率 3/16 = 18.75% ⇒ 样本量是该判据可复现的必要条件。
-
-  **单参数闭式（趋势模型，非验收判据）**：`SNR_peak ≥ κ₉₉·(1 + σ_smooth²/σ_psf²)`，
-  `σ_smooth = 2.0 px`（常量见 `lib/algorithms/star_detection/src/sdet_api.cpp`）。**单参数 κ 在六档上不成立**：含
-  `σ_psf = 1.0 px`（取区间下端）时 `κ₉₉ = 7.79 ± 1.34`，逐档残差
-  −25.1% / +12.9% / +8.2% / −2.6% / +6.5% / +12.5%（最大 25.1%）；取区间上端时
-  `κ₉₉ = 8.22 ± 2.37`（最大 36.7%）。**剔除该档后 `κ₉₉ = 7.27 ± 0.45`**
-  （`σ_psf ∈ [1.27, 3.0] px` 五档），残差
-  +5.4% / +0.9% / −9.2% / −0.7% / +5.0%（**最大 9.2%**）。幂次形式
-  `a·(1 + σ_smooth²/σ_psf²)^p` 在六档上最大残差仍 >10%。
-  **单参数闭式不足以定义召回域**，验收一律用上表；闭式仅作档间趋势判断，
-  内插结果的下界 = 相邻两档的较严者。50% 行的单参数式为
-  `κ₅₀ = 6.21 ± 0.50`（六档，逐档残差 ≤12.4%）。
-
-  **适用域**：本表在 `σ_psf ∈ [1.0, 3.0] px` 且峰值对齐像素中心时成立。
-  `σ_psf = 1.0 px` 档是**唯一不服从单参数标度**的档（`κ₉₉` = 10.4–13.0 vs
-  其余五档 6.9–8.0）：该档的 `σ_smooth = 2.0 px` 比其点扩散尺度**还宽**，检出由
-  平滑主导、不由点扩散主导 ⇒ **它本来就是另一个物理区制**，不服从单参数标度是
-  应有的，不是标定错误。该档 1000 次/档实测：检出概率在 `SNR_peak ∈ [46, 76]` 上
-  在 0.9850–1.0000 之间**非单调**波动，无稳定零失败点 ⇒ 该档按**区间标定**，
-  **必须**用区间标定（闭式内插只作趋势判断），且引用时必须同时报出区间。
-  `σ_psf < 0.8 px` 时离散采样使过渡区进一步展宽（实测 50% 点 90 vs
-  连续式给 36.3），**不适用**。亚像素相位未标定；随机相位输入的引用面 = 先标定后引用。
-  **判据非退化要求（AGENTS.md §5）**：F1 的召回场**必须**包含落在过渡带内的真星
-  ——过渡带 = `10 ≤ SNR_peak < 99% 召回阈(σ_psf)`——且**必须**同时报告过渡带
-  负例的召回率，该召回率**必须**低于 99%（证明召回度量非恒真）。过渡带真星
-  **必须**在**每一档**都有域内真星（否则该档的域内召回不被行使）；过渡带负例
-  **必须**存在，总数 ≥8 且覆盖 ≥4 个 σ 档（`σ_psf = 3.0 px` 档的阈 10.0 与域下限
-  重合，其过渡带结构性为空）。仅当 `snr10` 档真星数与 `snr20` 档不同（即场中
-  存在 `10 ≤ SNR_peak < 20` 的真星）时，该门才算行使了其声明域；在
-  `σ_psf = 1.0 px`、`SNR_peak = 10` 处召回实测 0%。
-- F2 饱和/混合/边缘专项: 平台≥3px 饱和星检出且 saturated=1；饱和+正常星
-  d<2px 重叠 → 保留饱和星（dedup 语义）；边界 2px 内允许丢弃（§4 边界语义）。
-- F3 确定性: 同输入线程数 1/2/4 输出 bitwise 一致（§5）；mag 升序+NaN 末尾
-  全序断言；maxStars 截断保留最亮（`lib/algorithms/star_detection/src/sdet_api.cpp`）。
-- F4 FP64 通道 oracle: 独立 Moffat4/Gaussian 复算（B,A,x0,y0,sx,sy,theta）
-  |Δ中心|≤0.05 px、A/B 相对误差 ≤1e−3（生产 nls_lm 对独立实现，双精度）；FP32 通道
-  经 uint16 量化容差独立冻结 |Δc|≤0.5 px（DISP-STAR-001）—— 本项**只覆盖
-  FP32→uint16 量化通道**（实测 u16 量化对质心贡献 median 0.0018 / p95 0.0036 /
-  max 0.0056 px，余量约 90×，可达且未超标；R-3 [S-1]「物理模型」一节），**不构成端到端位置门**；
-  端到端绝对位置门 = **G-P1-CENTROID-1**（正例 + 负例两臂，
-  判据见 `docs/science/algorithms/common/GATES_AND_TOLERANCES.md`）。
-- F5 状态码负例: NULL/空图/0 尺寸 → −1；空场 → count=0 且 rc=0。
-- F6 回归锚: Galaxy_Center 类饱和平台场多检/漏检回归 fixture（源码教训已固化，见 `lib/algorithms/star_detection/src/sdet_api.cpp`）。本节数值是测试设计参考；实际容差与结果须由执行记录和输入载体支持。
-
-### 11.5 科学与实现的归属
-
-本页的盲检阈值、拟合和排序细节属于算法实现说明。它们不定义 IPV 的求解候选合同，也不代表 WCS 后 science_sources 的生产结果。科学对象和职责见[检测科学分册](../../detection/STAR_DETECTION.md)与[Normalize科学正本](../../normalize/NORMALIZE_SCIENCE.md)；正式载荷和消费关系见[Normalize数据合同](../../../engineering/contracts/NORMALIZE_DATA.md)。
-
-本页列出的测试值是构型化设计参考，不是准入门或通过结论；真实执行读数仍须绑定其输入与复现载体。
-
-> 本文参考的上游正本：
-> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
-> - [S-1] docs/science/detection/STAR_DETECTION.md（星点检测科学正本 SCI-P1-STAR-001）。
-> - [S-2] docs/science/psf/PSF.md（PSF 建模科学正本 SCI-PSF-001）。
-> - [S-5] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（相关历史判据登记；不覆盖现行科学正本）。
-
-## 参考文献与参考代码库（含许可证）
-
-- 阈值检测/去混叠：Bertin & Arnouts 1996, A&AS 117, 393（SExtractor）；源码 SExtractor（GPL-3.0，tag 2.8.6）scan.c（扫描/阈值）/extract.c（提取）/back.c（背景）/photom.c（测光）。
-- 质心估计：Stetson 1987, PASP 99, 191（DAOPHOT）；photutils（BSD-3-Clause）centroid_sources。
-- 椭圆高斯 LM：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, LNM 630, 105；实现对照 GSL（GPL-3.0）。
-- IIR 递归高斯平滑：Young & van Vliet 1995, Signal Processing 44, 139。
-- SNR_peak/门：docs/science/algorithms/common/GATES_AND_TOLERANCES.md [S-5]「输入输出端口」一节。
-- 检测侧椭圆高斯与 PSF 侧 Moffat4 的 FWHM 不可跨块比较（DISP-STAR-007；Moffat 1969, A&A 3, 455）。
-
-
-
----
-
-## 背景 σ 估计器的历史实现记录与实测增益
-
-- **估计量不可互换**：主 `sdet` 路径的行差分尺度 `bgnoise` 与 wrapper `StarDetector::estimate_background` 的裁剪RMS是不同估计量。后者的下述历史实测来自 `wrapper_phase1/star_detector.cpp`，不得据文件存在称其为当前 CLI 生产 consumer；当前 Normalize 消费面以上层生产 DAG 和实现差异为准。
-- **第三 σ 估计器实测增益**：合成星场（seed=20260919，n=210 帧池化）实测相对冻结式 `1.482602218505602·MAD` 的 `mean|rel err|` 增益 = **+78.47%**，bootstrap 95% CI **[+76.58%, +80.40%]**（不含 0）。**忠实性交叉验证（与增益是两件事，各自独立登记）**：C++ 探针直调生产实现 `StarDetector::estimate_background`（`lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp`）读同一批 `.f32` 帧，Python 复刻与生产实现 **270/270 帧 σ 相对偏差 = 0.0（逐位一致）**——该 270/270 描述的是「复刻↔生产」一致性，**不是**第三估计器与冻结式的一致性。**测法**：同一批帧分别用冻结式与第三估计器估计 σ，逐帧取相对误差后池化
-  `mean|rel err|`，增益 = 相对降幅；CI 由帧级 bootstrap 重采样给出。**负对照
-  （可推翻条件）**：两估计器若在同一批帧上逐帧相等，增益必须为 0；实测 CI 不含 0
-  ⇒ 两者是可区分的不同估计量。
-- **wrapper 估计器的定义与历史消费面（量纲继承图像）**：`estimate_background` 的返回值 = 2 轮 `median±3σ` 裁剪后、关于裁剪中位数的 **RMS**（`lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp`）。历史记录称其写入 `p1_sources.json:frames[].noise_sigma` 并由 noise-snr 读作 `cfg.sigma_sky_adu`；此工作文件路径不构成当前 typed 消费合同。**它与 `bgnoise`（行差分 FnNoise1）不是同一个估计量**：同帧实测 20.7384 vs 13.8148（比值 1.5012，M42_M1_T2 Red 20251212@012404）。**测法**：同一帧分别跑
-  `sdet_compute_bgnoise()`（行差分 FnNoise1，`lib/algorithms/star_detection/src/sdet_api.cpp`）与
-  `StarDetector::estimate_background`（2 轮 `median±3σ` 裁剪后 RMS），两者互不调用。
-  **负对照**：两套 σ 若可互换，同帧比值必须为 1 ⇒ 引用「σ_bg」而不点名估计器的
-  判据不可复核（比值读数正本须由对抗性审核重新推导并构造反例确认）。凡写「σ_bg」的判据**必须**
-  点名估计器。
-- **登记纪律**：本节增益数字以「度量定义 + bootstrap CI + 可复跑探针」三者齐备即引用前提；缺项数字只作过程记录。
-- **NaN fail-open 已闭合**：估计器入口逐像素 `isfinite` 归约 + 返回值检查，NaN 输入不再静默通过；负例（全 NaN patch）必须判红。
-
+Young与van Vliet 1995的递归滤波、Triggs与Sdika 2006边界处理、Bertin与Arnouts 1996提取、Stetson 1987测光、Moré 1978及MINPACK非线性求解为原文参考范围，完整著录与转引限制在来源档案。论文方法、作者软件不同版本和项目参数分别归因，30/32层、argmax分配及强最优性等细节的外部核验仍待完成，不以旧“已核验”文字替代本轮阅读证据。
