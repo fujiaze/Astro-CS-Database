@@ -43,6 +43,8 @@ REWRITTEN = {
     'docs/science/algorithms/export/HEALPIX_MAPPING.md',
     'docs/science/algorithms/normalize/STAR_PSF_ALGORITHMS.md',
     'docs/detail/infrastructure/gaia_xpsd_client.md',
+    'docs/engineering/contracts/SCHEDULER.md',
+    'docs/engineering/contracts/ASYNC_IO.md',
 }
 REWRITTEN.update(GUIDES)
 REWRITTEN.update(STANDARD_DOCUMENTS)
@@ -82,6 +84,7 @@ REVIEWED = {
     'docs/engineering/architecture/README.md',
     'docs/engineering/architecture/MODULE_MAP.md',
     'docs/engineering/standards/NUMERIC.md',
+    'docs/engineering/contracts/PIPELINE_BLOCK.md',
 }
 EXTRACTED = {
     'docs/science/calibration/CCD_DEFECT.md': 'CCD_DEFECT_OBSERVATIONS.md',

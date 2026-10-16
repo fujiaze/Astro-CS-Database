@@ -256,6 +256,8 @@
 | E28 | HEALPIX_MAPPING 列 tests/test_healpix_oracle.cpp 为实存可运行，本轮当前目录找不到该文件；共享头仍留百万点历史声明 | 正文保留历史声明身份，测试/输入/日志需回实验取证，未把不存在的文件称可复跑 |
 | E29 | PSF 旧算法页称DPSFFitResult12字段，实际头13字段；DPSF_FIT与DPSF_PSF_STATUS同值异义，旧文部分表混用 | 三种九列布局、JSON对象和两套状态域在模块正文分别列明，完整旧原文归档；本轮未改变结构体或算法 |
 | E30 | CACHE对仅本地Gaia又要求外部请求每组一次/两级落盘；CODE要求文档所有轮次永久保留，COMMENT却要求迁历史；目录指南还称已跟踪的build文档未入库 | 正文按本地缓存、机器兼容身份、正式说明与历史证据分工重写，目录导航用真实链接；没有改缓存或构建实现 |
+| E31 | SCHEDULER称探针行与CLI JSONL同格式兼容，但两schema必填字段及kind枚举不同 | 正文区分独立probe与显式stdout适配，保留机器schema不改 |
+| E32 | BoundedAsyncQueue非空error时pop立即nullopt，不排空；cancel空reason时has_error仍false；容量函数即使预算不足也至少1 | 已说明真实close/cancel/所有权与内存边界，不改队列或声明测试已过；需覆盖空原因和中断构型 |
 
 ### 远端合并后的核对范围
 

@@ -1,0 +1,180 @@
+Scheduling source documents; commit=10e78d380381e2791c83431085cc158f8f80aada
+
+===== docs/engineering/contracts/SCHEDULER.md | blob=af536fff619403143c420c942e9d295c20355e76 | bytes=6291 =====
+# 三阶段调度器合同
+
+上游：最高设计的顶层结构、三个阶段调度器、CPU 后端与资源三章。
+
+三阶段的调度形态、并行确定性口径、资源声明与探针事件 schema 的正本。线程预算的来源与并行轴
+分配见 `../architecture/DATA_FLOW.md`，命名块字段见 `PIPELINE_BLOCK.md`。
+
+机器 schema：`eng/contracts/schemas/scheduler_probe_event.schema.json`（探针事件的机器取值源）。
+
+## 总则
+
+- 三个命令 = 三个**独立进程**，各自实例化调度器与内存管线；阶段间只通过磁盘产品 + manifest + 哈希交换；
+- 调度器是阶段内的**唯一执行者**：按 DAG 调度模块、管理块生命周期、分配线程预算、处理异步预取、响应取消；
+- **统一 entrypoint**：`run(stage, config_json) -> manifest_json`，失败返回非零 rc 与显式错误域；
+- **统一 DAG 声明**：节点 = {id, operation, 入参块集合, 产出块集合, 消费块集合, 线程安全性}；调度器据此推导执行序与块回收点；
+- **模块不私建线程池**：线程数、内存上限、队列深度一律从配置/资源门读取（`../../ACSD_DESIGN.md` 「命名块内存管线与块生命周期」一节）。
+
+## 三阶段调度形态（冻结）
+
+| 阶段 | 形态 | 关键机制 | 确定性要求 |
+|---|---|---|---|
+| normalize | **异步工作流编排** | 帧内节点按 DAG 流水；多帧并行；资源空闲时异步启动独立工作流（预取下一帧 FITS、预解析星表、预建 PSF）；星表同组查询合并 + 两级缓存 | 固定 worker 数下归约顺序冻结；1/N worker **数值等价**（异步只影响顺序，归约按帧/块 ID 排序）；容差口径见 「并行确定性口径」一节 |
+| mosaic | **空间窗口并行** | 以固定大小天球窗口（tile）为调度单元；窗口内 coverage→UPM→排异→SNR² 集成顺序**固定**；窗口间无共享可变状态；输入帧块按窗口路由（只读必要切片） | 归约顺序冻结（窗口 ID、像素序）；1/N worker 数值等价（容差口径见 「并行确定性口径」一节） |
+| export | **子块流式** | 读子块 → 投影重采样 → 写 FITS；三级有界流水线 + 背压；不整幅驻留 | 输出与整幅参考路径数值一致（TAN，容差事前冻结，口径见 「并行确定性口径」一节） |
+
+### 并行确定性口径（冻结）
+
+**归约顺序冻结是结构性不变量，判据是事前冻结的浮点容差**——两者不可互换：
+
+- **结构性不变量（必须满足，判红项）**：归约顺序按帧 ID / 块 ID / 窗口 ID / 像素序固定；跨 worker **无共享浮点累加器**；异步与工作窃取只改变执行顺序，不改变结合顺序；归约量是整数/索引/mask/计数时要求**精确一致**。
+- **数值判据（浮点结果）**：1 worker 与 N worker **数值等价**，容差来源按优先级取：
+ 1. 模块科学页已冻结的三档（`../../science/algorithms/UPM_SOLVER.md`「容差来源」一节：同配置重复=位精确 + `model_hash` 逐字相同；跨 worker 数（1..N）= **rtol 1e-12**，判据 `|ΔC| ≤ 1e-12·max(|C|, C_scale)`；跨后端等价=无此合同，判据面为空）；
+ 2. 未在模块页冻结的，按 `../testing/TEST.md` 的通用浮点容差与可满足性下限规则（通用容差数值与可满足性下限的唯一正本是该文件，本合同不复述）。
+- **模块自有门可以更严**：由构造保证位精确的路径（固定槽位写回、per-thread 定序归并、整数索引归约）其共址测试仍可断言 bitwise——这是模块的更强保证，不违反本合同；**合同层不要求逐位一致**。
+- 容差在写测试前冻结；NaN/Inf/缺失的**位置与语义**必须精确一致，唯一正本同样是
+  `../testing/TEST.md` 的 NaN 与 Inf 语义一节。
+
+## 资源声明（每阶段必填）
+
+- 线程预算、内存上限（峰值工作集）、队列深度、分块/窗口/子块大小；
+- 上述参数**由配置/资源门决定**，线程数与 ISA 取自该配置/门的取值；
+- 编排参数（窗口大小、预取深度、帧并发度、工作窃取策略）的**最终取值**由性能门基于探针实测数据确定；本合同只保证机制正确与探针齐全。
+
+## 探针事件 schema（JSONL，随事件流落盘）
+
+每事件一行 JSON，字段冻结：
+
+| 字段 | 类型 | 语义 |
+|---|---|---|
+| `ts` | float | 单调时钟秒（进程内） |
+| `stage` | enum | `normalize` / `mosaic` / `export` |
+| `kind` | enum | `node_wall` / `queue_wait` / `block_birth` / `block_death` / `rss` / `io` / `worker_busy` / `cache_hit` |
+| `node` | string? | 节点 ID（`node_wall`/`queue_wait`） |
+| `block` | string? | 块名（`block_birth`/`block_death`） |
+| `bytes` | int? | 块字节数或 I/O 字节数 |
+| `value` | float | 主测度（秒 / 字节 / 比例 / 命中率） |
+| `unit` | string | `s` / `B` / `1` |
+| `frame_id` | uint64? | 帧身份（可缺） |
+| `window_id` | uint64? | 窗口/子块身份（可缺） |
+| `worker` | int? | worker 序号（`worker_busy`） |
+
+**与运行事件流的关系**：本 schema 与 `eng/contracts/schemas/jsonl_event_v1.schema.json` 兼容——
+`ts`/`kind`/`value`/`unit` 复用其字段名；`stage`/`node`/`block`/`worker`/`frame_id`/`window_id`
+在两份 schema 中都是**独立顶层字段**（本 schema 不存在 `tags` 属性，故不存在「等价展开」这种形态）。
+落地时由 observability 侧提供单一写出点，事件格式只有这一份。
+
+## 取消与原子性
+
+- SIGTERM：原子落盘语义保持，退出码 9；
+- 磁盘满：exit 10；
+- 取消点：节点间检查；取消时不写半成品产品。
+
+## 负例（必须能红）
+
+- 模块私建线程池 ⇒ 判红；
+- 1/N worker 数值差超出 「并行确定性口径」一节 冻结容差 ⇒ 判红；归约顺序随 worker 数变化（共享浮点累加器/动态归约序）⇒ 判红；
+- 探针缺 `stage`/`kind` ⇒ schema 校验判红。
+
+## 参考文献
+
+[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
+[2] 内部文档 `docs/engineering/architecture/DATA_FLOW.md`，同层相关正本。
+[3] 内部文档 `docs/engineering/contracts/PIPELINE_BLOCK.md`，同层相关正本。
+
+===== END SOURCE =====
+
+===== docs/engineering/contracts/ASYNC_IO.md | blob=0b5d7d867b600da850ab75d1ca1bc9b6197a39d2 | bytes=5948 =====
+# 有界异步 I/O 合同
+
+上游：最高设计的软件架构与 CPU 后端与资源两章。
+
+有界生产者消费者队列的容量、所有权、线程安全、取消与关闭顺序的正本。并行适用范围见
+`../standards/CONCURRENCY.md`，队列容量的预算来源见 `../architecture/DATA_FLOW.md`。
+
+关联代码：`lib/algorithms/coverage/include/astro/phase2/async_io.h`。目标：HiPS/FITS/XISF 读取与计算解耦，使用有界 producer/consumer；队列容量由 `memory_budget_bytes / item_bytes` 推导，取值有上界。
+
+## 模型
+
+- **生产者**：读取 HiPS/FITS/XISF tile / 文件块，产出 buffer 所有权对象。
+- **消费者**：计算/写入阶段消费 buffer。
+- **队列**：`astro::phase2::BoundedAsyncQueue<T>`，固定容量，满时生产者阻塞（背压），空时消费者阻塞。
+- **容量**：`bounded_queue_capacity(memory_budget_bytes, item_bytes)`；`item_bytes` 必须包含该条目在队列中持有期间的全部内存占用（buffer + 控制块）。容量下界为 1，0 不是合法取值。
+
+## Buffer 所有权
+
+- 每队列条目持有 `T` 的所有权；`T` 必须是可移动类型（`std::move` 入队）。
+- 入队后，生产者不再访问该 buffer；出队后所有权移交给消费者。
+- 消费者处理后必须显式释放或复用；已出队 buffer 的去向就此确定。
+- 同一 buffer 的读写归属唯一线程；每个 `TilePair` 等条目绑定唯一 reader 会话。
+
+## Reader 线程安全
+
+- cfitsio 同一 `AioHipsDataset*` 不保证并发读安全。
+- 因此每个 worker / 每个 reader 使用独立数据集句柄；异步 IO 池中 `io_workers` 个 worker 各自持有自己的 reader 实例。
+- 共享句柄只允许串行读取；若要在异步队列中共享，需要由 reader 层加串行锁，并计入串行时间预算（当前不采用，优先 per-worker reader）。
+
+## 异常传播
+
+- `BoundedAsyncQueue::cancel(reason)` 唤醒所有阻塞者，后续 `push/pop` 返回失败。
+- Worker 捕获读取/写入异常后调用 `cancel`，主线程通过 `error` 获得第一错误文本。
+- worker 线程的错误一律经 `cancel` 上达主线程并逐条登记；未取消且未关闭的队列对错误一律显式报告。
+
+## 取消
+
+- 已入队条目可以被丢弃（取决于消费端策略）；
+- 阻塞在 `push` 的生产者立即返回 `false`；
+- 阻塞在 `pop` 的消费者立即返回 `nullopt`；
+- 已持有的 buffer 由各自 owner 释放。
+- 取消后不可恢复，必须重建 pipeline。
+
+## Flush / Shutdown
+
+- **正常关闭**：`close`。生产者停止入队，消费者继续排空队列，直到 `pop == nullopt`。
+- **Flush**：消费者必须在计算阶段结束时保证所有已入队 buffer 被消费；对写队列，flush 表示等待所有 writer 完成并关闭文件。
+- **Shutdown**：所有 worker 线程 join 后销毁队列；析构时点 = 线程全部 join 之后。
+
+## 内存预算
+
+| 参数 | 含义 |
+|---|---|
+| `memory_budget_bytes` | 该 pipeline 可用内存预算 |
+| `item_bytes` | 单条目在队列中占用的估算字节 |
+| `capacity` | 队列条目上限 = `max(1, budget / item_bytes)` |
+
+- 队列容量不是全局内存上限；各阶段还需要自己的工作缓冲预算。
+- 用 `std::deque::size` 施加容量上界；超预算应通过背压或分块降级。
+
+## 测试要求
+
+必须覆盖：队列满背压；正常 close 排空；cancel 唤醒阻塞者并传播错误；读取失败/写入失败传导；多 worker 并发消费确定性。
+
+用例正本 = `lib/algorithms/coverage/tests/async_io_test.cpp`（含生产型 pipeline 形态的 `ReadFailureCancelsAndPropagatesNoDeadlock`、`WriteFailureStopsProducerAndPreservesError`、`BoundedQueueDeliversAllItemsInOrder`）。
+
+## 生产接入形态与当前接线状态
+
+**计算并行是现行生产形态**：每个工作线程持有独立 `AioHipsDataset*` 句柄读取，杜绝跨线程共享句柄并发读；phase2 的采样与眼睛 tile 处理由 `std::thread` 池 + Runtime lease 驱动（`sampler.cpp`：`cpu_workers = budget.max_workers`，`next_c.fetch_add(1)` 动态认领），不经过本合同的队列。
+
+**本合同（有界队列解耦）属设计面**：`BoundedAsyncQueue` 当前无生产调用点（唯一使用面 = `lib/algorithms/coverage/tests/async_io_test.cpp`）；接线后其形态为「有界预取队列 + 单一 IO 线程 / 每 worker 独立 reader」，用于隐藏读延迟并给内存占用装上界。接线状态登记面 = 已知限制台账。
+
+## 运行时判据
+
+机器判据 = `eng/tests/cli/test_parallel_queue.py`：
+
+- **无全局串行锁**：`BoundedAsyncQueue` 每实例持有独立 `mutex_`/`condition_variable`，是 per-queue 锁而非单一全局锁；header 无 `static std::mutex` / 全局锁对象（`test_06`）。
+- **I/O×compute overlap**：生产者（模拟读 I/O）与消费者（compute）并行推进，总时长贴近 I/O 下界，未被全局串行锁串行化（`test_02`、`test_03`）。
+- **有界背压**：容量 `max(1, budget/item_bytes)`；满时生产者阻塞，`size ≤ capacity` 不无界增长，可排空无死锁（`test_01`、`test_03`）。
+- **error / cancel**：生产错误 → `cancel(reason)` 唤醒 push/pop 双方，消费者经 `error`/`has_error` 收到第一错误，无死锁；取消后不可恢复（`test_04`、`test_05`）。
+- **failure drain**：生产者错误后消费者排空剩余 + 收到错误标志，不静默吞错（`test_04`）。
+- **CPU compute 不被饿死**：I/O 生产者与 compute 消费者独立队列解耦，compute 全程推进（overlap 中 consumed = N 全部完成），无 writer 饿死 compute。
+
+## 参考文献
+
+[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
+[2] 内部文档 `docs/engineering/standards/CONCURRENCY.md`，同层相关正本。
+[3] 内部文档 `docs/engineering/architecture/DATA_FLOW.md`，同层相关正本。
+
+===== END SOURCE =====
