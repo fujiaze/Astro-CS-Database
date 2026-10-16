@@ -1,6 +1,7 @@
 """Inventory baseline technical texts from Git, retaining blob identities."""
 import csv
 import json
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -29,6 +30,10 @@ REWRITTEN = {
     'docs/detail/infrastructure/observability.md',
     'docs/engineering/resources/PERFORMANCE_MODEL.md',
     'docs/engineering/resources/observability/RESOURCE_MONITORING.md',
+    'docs/engineering/build/BUILD_GRAPH.md',
+    'docs/engineering/build/BUILD_NODES.md',
+    'docs/engineering/build/RELEASE.md',
+    'docs/engineering/standards/DEPENDENCY.md',
 }
 REVIEWED = {
     'docs/science/unified/UNIFIED_SCIENCE_MODEL.md',
@@ -112,7 +117,7 @@ def main():
                    original_files_rewritten=sum(r['path'] in REWRITTEN for r in rows),
                    consolidated_sources=len(mapping),
                    extracted_appendices=len(EXTRACTED),
-                   science_questions=len(__import__('re').findall(r'^### Q\d+\b', (UNIT / 'docs/SCIENTIFIC_QUESTIONS.md').read_text(encoding='utf-8'), __import__('re').M)),
+                   science_questions=len(re.findall(r'^### Q\d+\b', (UNIT / 'docs/SCIENTIFIC_QUESTIONS.md').read_text(encoding='utf-8'), re.M)),
                    full_repository_substantive_review_complete=False)
     (UNIT / 'docs/INVENTORY_SUMMARY.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(summary, ensure_ascii=True, indent=2))

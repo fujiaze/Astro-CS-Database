@@ -237,6 +237,9 @@
 | E17 | TraceSnapshotObserver 复制构造时事件，observe 未按 run_id 过滤，active_workers 为节点数，租约取快照内最大值 | 调用者必须先限定单运行；实时订阅与真实忙碌线程尚需实现和验证，不据字段名认定已完成 |
 | E18 | 资源监控旧文 salt 为 acsd-monitor-timeseries-v1，实际 monitor.py 为 acsd-monitor-v1；公开哈希链只作一致性检查 | 已按实际序列化解释，格式和代码不改；不能把可重新生成的链当来源认证 |
 | E19 | 核心 contracts.h 仍重复声明 core::ExitCode，exit_codes.h 也有 acsd::ExitCode | 规范声明源与实际重复类型分别说明；本轮不改 ABI 或枚举 |
+| E20 | RELEASE/BUILD_NODES 将 build_source_digest 相同当“同一二进制”；实际摘要仅覆盖 gen_build_stamp.py 声明源集，未覆盖编译器/选项/外部链接库等全部输入 | 正式文档区分 configure HEAD、构建 HEAD、声明源摘要和实际二进制哈希；不修改指纹代码 |
+| E21 | 旧构建闭包表和阻断叙述已过时：gen_build_graph_doc.py 的 DOC_REL 现为正确路径，NONPROD 的 coverage 工具登记仍与根图不符；文本解析也不能代替实际配置闭包 | 旧表完整归档，正式页提供真实目标/调用定位与工具限制，未运行生成器覆盖正文或编译产品 |
+| E22 | make_*_release.py 使用旧响应曲线目录、版本回落字面量和固定生成时间；安装规则已改 config/response_curves，Windows 脚本只生成 CLI zip | 交付目标与已有材料生成器分别说明；本轮未打包、升级版本或发布 |
 
 ### 远端合并后的核对范围
 
