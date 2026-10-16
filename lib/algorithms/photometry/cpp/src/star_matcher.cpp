@@ -544,8 +544,9 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
 
     int irls_iter_count = 0;  // 阶段7: IRLS 实际迭代次数
     if (S <= 0.0) {
-        // 所有 r 相同 (S=0), 无法做 IRLS, 直接用 location 作为最终估计
-        LOG_INFO("[star_matcher] IRLS: S=0 (所有 r 相同), 跳过迭代");
+        // S=0只表示至少半数r恰好等于中位数，不代表全部相同。
+        // 保持中位数位置，并在下方仅保留等于它的众数簇。
+        LOG_INFO("[star_matcher] IRLS: MAD=0，采用中位数一致簇，剔除其它残差");
     } else {
         // IRLS 迭代
         double prev_location = location;
@@ -596,7 +597,9 @@ std::vector<StarMatch> StarMatcher::cleanAndScale(
     for (size_t k = 0; k < r_consistent.size(); ++k) {
         double r = r_consistent[k];
         double u = (S > 0.0) ? (r - location) / cS : 0.0;
-        if (S <= 0.0 || std::fabs(u) < 1.0) {
+        // 对零MAD：仅接受精确位于中位数的簇；其它样本是离群而非零噪声。
+        const bool inlier = (S > 0.0) ? (std::fabs(u) < 1.0) : (r == location);
+        if (inlier) {
             cleaned.push_back(matches[mag_consistent_idx[k]]);
             if (out_match_reasons) (*out_match_reasons)[(size_t)mag_consistent_idx[k]] = 0;
             r_inliers.push_back(r);
