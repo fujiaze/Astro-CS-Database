@@ -119,6 +119,27 @@ n_controls = 64 (64 available)  frame_snr = 14.471222195983142
 变体的 signal/sidecar 科学构型（64/64 控制点、帧摘要 SNR）逐位一致（EXPTIME 不参与
 precision 数值）。
 
+**(e) Drizzle 执行失败路径（修复后，真实生产入口）**：无显式 WCS + 无暗场 + 无
+EXPTIME 的配置（`run/P0-EXPTIME/cfg-missing.json`）在 IPV 无法派生极限星等时
+drizzle 失败 → `rc != 0` 提前返回分支正常执行：exit=2、报文
+`node drz failed: auto nsize (1x_to_2x_drizzle) failed: header 缺少 WCS 信息`，
+无 sanitizer 命中、无 UAF（`evidence/p0_drizzle_failure_fixed.log`）。
+
+**(f) §5d 帧泄漏路径（修复后，故障注入真实入口）**：
+`ACSD_VARPLANE_FAULT=drop_audit_observables`（代码内登记的可执行负例）触发
+SCI-NOISE-001 §5d fail-closed，本帧终止路径执行：exit=2、具名报文
+`node drz failed: SCI-NOISE-001 §5d provenance incomplete ... missing_fields=[…]`
+（`evidence/p0_varplane_fault_fixed.log`）。**泄漏的运行时前后对照（ASan+LSan，`detect_leaks=1`）**：
+
+| | §5d fail-closed 路径上的 LeakSanitizer 报告 |
+|---|---|
+| 修复前 | `Direct leak of 24 byte(s)` ← `aio_pipeline_frame_create`（`aio_pipeline.cpp:310`）从 `module_adapters.cpp:8717`（`p1_op_drizzle`）分配 = **PipelineFrame 本体**；`Indirect leak of 134217728 byte(s)` ← `aio_frame_add_block`（`:455`）从 `module_adapters.cpp:8740` = **data 块 134 MB**；`Indirect leak of 67108864 byte(s)` = 另一块 64 MB（`evidence/p0_varplane_fault_lsan_prefix.log`） |
+| 修复后 | **零 LeakSanitizer 报告**（`evidence/p0_varplane_fault_lsan_fixed.log`） |
+
+LSan 有效性由对照程序证明（故意 `new int[100]` 报 `detected memory leaks`）。⇒ 该泄漏
+的"前/后"是**运行时实测**（不止代码审计），且被修复的是一个每次运行泄漏约 200 MB
+的真实路径。
+
 **(d) 生产回归（正常构型）**：`run/norm-precision-test.json` 用修复后二进制重跑
 （`evidence/run_p5h_regression_after_fix.log`，exit=0）：帧摘要
 `reference_snr = 14.030187080046197` 与修复前**逐位一致**，`64/64` 控制点。
