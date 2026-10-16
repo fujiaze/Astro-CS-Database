@@ -293,3 +293,6 @@ Q10旧t_norm2−proj已修，历史反例保留，剩余秩阈值/误差证书�
 ### 原191篇实质语义补核：Gaia XPSD 模块原文第 1 篇（本批新增）
 
 完整逐行复读 `63eccbb6133aef56389641d43c55df6e243819c5:docs/detail/infrastructure/gaia_xpsd_client.md`（147行、原清单 9390 B），对照当前压缩后的 44 行以及生产 `lib/infrastructure/gaia_xpsd_client/src/gaia_client.{c,h}` 的缓存、树剪枝、create/查询接口关键段，补回现行 `docs/detail/infrastructure/gaia_xpsd_client.md §6`。恢复原文中仍有效的 TTL/字节/槽位及客户端解压缓存预算、锁序、复杂度、保守极冠 AE 条件、输入/输出与确定性试验；纠正原文的缓存 double“逐位比较”（实际上为数值 `==`）、只有 db_type/file_count 不能证明 dataset 内容身份、赤道经验 1.2 裕度未经零假阴性证明，以及性能测量未运行。该原文的有效信息已在正式模块设计有独立正文而非只留在 SOURCE。其它原191篇本批没有声称新增逐篇全文核对，下一批继续按真实 baseline 原文对照。
+
+
+**#75 生成规则精确性补注（2026-10-17）**：再次核对现有 `gen_build_stamp.py::build_stamp/render_header/write_if_different`，发现已有 header 内容包含由 `datetime.now` 产生的 `stamp_utc`；若仅新增 always-run Ninja target 会每次构建改变 header 并触发重复编译。现将正式工程合同裁定为：always-run 比较四项身份，身份相同保持原 UTC/header 字节不变；身份变化才刷新生成时间和小 TU，采样检查时间另行记录。纯文档改 HEAD 的源码摘要不变但 build_head 必须更新；不造二进制 SHA。本批只更新文档，生产构建与增量矩阵仍 **NOT_RUN**。
