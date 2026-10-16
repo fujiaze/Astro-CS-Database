@@ -1,6 +1,6 @@
 # ACSD 最高设计
 
-本文档定义 ACSD 的用户目标、三阶段产品、基本科学边界、软件架构和发行责任。**阶段一唯一完整科学链见 science/normalize/NORMALIZE_SCIENCE.md；它如何映射生产代码见 engineering/architecture/NORMALIZE_PIPELINE.md；多份旧说明的冲突裁决见 engineering/governance/NORMALIZE_CONVERGENCE.md。**它描述**目标设计**，不因某段文字存在就表示生产代码已实现。科学基础唯一解释来自 docs/science/unified/UNIFIED_SCIENCE_MODEL.md，专题公式在各 science 正本细化；现状差异记录于 docs/engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md。下级文档按三个目录组织：`docs/science/` 承载科学公式、常数、判据与推导；`docs/engineering/` 承载架构、行为合同、工程标准与 GUI 设计；`docs/detail/` 承载模块工作细节、数据对象与接口落地。开发与验收的标准动作是：审查实际代码与本文档集的偏差并消除之。
+ACSD把天文CCD/CMOS观测转换为可解释的球面科学信号，再合成马赛克并导出平面WCS FITS。本文规定用户目标、三阶段产品、科学边界、软件架构与发行责任。公式与推导由[统一科学模型](science/unified/UNIFIED_SCIENCE_MODEL.md)及专题科学分册承载；阶段一因果链见[Normalize科学模型](science/normalize/NORMALIZE_SCIENCE.md)，生产模块责任见[Normalize架构](engineering/architecture/NORMALIZE_PIPELINE.md)。实现和证据状态集中维护于[科学实施差异](engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
 ## 0. 文档权威与索引
 
@@ -31,7 +31,7 @@ flowchart TD
 
 - 只写现行设计要怎样，用自然语言讲清楚，配必要的 mermaid 图。
 - 文档间引用按论文格式（正文编号、文末参考文献），不使用机械跳转锚。
-- 文档随代码持续维护，保持自解释；文件树与 DOCUMENT_INDEX 一致，无孤儿旧文件。
+- 文档随代码持续维护，保持自解释；文件树与 DOCUMENT_INDEX 一致，无孤立正本。
 
 ---
 
@@ -49,9 +49,9 @@ ACSD 是天文 CCD/CMOS 图像标准化与 HEALPix 球面合成系统：利用 G
 
 `mosaic`：一组阶段一 HiPS → 稀疏 SNR 现场重建、面亮度精度转换、加性背景/残余相对差、排异、加权合成 → **一套只有 signal 科学图像通道的马赛克 HiPS**。计算所需方差/支持度等中间对象只留计算、诊断或运行摘要，不作为最终 HiPS 科学图像层。
 
-`export`：阶段二 HiPS signal → 目标 WCS、受控重采样 → **普通二维 FITS 信号图像**，供 PixInsight 等后期程序继续处理。仅由单信号图不能恢复完整方差或协方差。
+`export`：兼容 HiPS signal → 目标 WCS、受控重采样 → **普通二维 FITS 信号图像**，供 PixInsight 等后期程序继续处理。仅由单信号图不能恢复完整方差或协方差。
 
-三个命令独立启动、使用磁盘产品交换、互不保持跨阶段内存状态；它们的**科学主流程**是 normalize → mosaic → export。HiPS 包含标准要求的 properties、文件头、NESTED 分块及多分辨率层级，这些元数据和层级**不构成额外科学图像通道**。
+三个命令独立启动、使用磁盘产品交换、互不保持跨阶段内存状态；典型科学流程为normalize → mosaic → export。Export可独立读取满足坐标、信号单位和格式合同的HiPS，不限定由本次Mosaic生成。HiPS[3]包含标准要求的 properties、文件头、NESTED 分块及多分辨率层级，这些元数据和层级**不构成额外科学图像通道**。
 
 ---
 
@@ -68,27 +68,27 @@ ACSD 是天文 CCD/CMOS 图像标准化与 HEALPix 球面合成系统：利用 G
 
 ## 2. 核心科学链与研究问题
 
-五个研究方向服务于一个科学目标，不预先承诺它们构成五个独立原创理论；既有 P1–P5 历史实验仍保留，各自实证适用域优先于旧版功能描述。可发表贡献需由可证伪的物理结论和独立实测确定。
+五个研究方向服务于一条统一科学链。每项贡献由明确的物理问题、可证伪结论和独立实测说明，不以功能拆分数量判断科学原创性。
 
 ### 2.1 P1：Gaia DR3 XP 跨设备光度
 
-利用校准星光谱、已知/估计的滤镜+QE/总响应对匹配恒星作合成测光，解算本帧稳健零点和可辨识空间乘性场。用户可以选择跨设备和近似通带合并，甚至 3 nm/7 nm Hα；若未知天体逐像元 SED，恒星色项不能保证对发射线云气执行无偏通带变换。目标通带或混合响应规则、适用恒星颜色范围与系统误差必须明确。数学正本：science/photometry/PHOTOMETRY.md。
+Gaia XP外定标谱[6]使实际通带内的合成测光可计算。利用校准星光谱、已知/估计的滤镜+QE/总响应对匹配恒星作合成测光，解算本帧稳健零点和可辨识空间乘性场。用户可以选择跨设备和近似通带合并，甚至 3 nm/7 nm Hα；若未知天体逐像元 SED，恒星色项不能保证对发射线云气执行无偏通带变换。目标通带或混合响应规则、适用恒星颜色范围与系统误差必须明确。详细模型见[光度分册](science/photometry/PHOTOMETRY.md)。
 
 ### 2.2 P2：条件参考 SNR、噪声与协方差
 
-阶段一在明确参考通量、局部 PSF、噪声与背景自由度下估计参考点源 SNR=F_ref/σ_F。真实泊松/读噪、校准/零点共同误差和球面像素相关噪声应分开；测光 SNR 的逆方差恒等式**只针对相同点源通量被估量**，不是任意弥散像元的通用最优权。数学正本：science/noise_snr/NOISE_SNR.md。
+阶段一在明确参考通量、局部 PSF、噪声与背景自由度下估计参考点源 SNR=F_ref/σ_F。真实泊松/读噪、校准/零点共同误差和球面像素相关噪声应分开；测光 SNR 的逆方差恒等式**只针对相同点源通量被估量**，不是任意弥散像元的通用最优权。详细推导见[噪声与参考精度](science/noise_snr/NOISE_SNR.md)。
 
 ### 2.3 P3：HEALPix 球面守恒 Drizzle
 
-用源 drop 与真实目标球面像元的交叠面积构建面亮度保持的线性算子，分别验证分配通量守恒、球面曲边求积误差、像元支持和 C_out=R C_in Rᵀ。HEALPix 叶等面积不意味着用四个大圆弦构成了精确叶边界。NESTED、HiPS tile FITS 方向和层级单点实现并与独立参考对拍。数学正本：science/drizzle/DRIZZLE.md。
+HEALPix网格[1]与Drizzle重建[2]共同定义球面映射。用源 drop 与真实目标球面像元的交叠面积构建面亮度保持的线性算子，分别验证分配通量守恒、球面曲边求积误差、像元支持和 C_out=R C_in Rᵀ。HEALPix 叶等面积不意味着用四个大圆弦构成了精确叶边界。NESTED、HiPS tile FITS 方向和层级单点实现并与独立参考对拍。几何与传播见[Drizzle分册](science/drizzle/DRIZZLE.md)。
 
 ### 2.4 P4：稀疏 SNR → 稠密精度场
 
-沿用阶段一稀疏控制点，阶段二按位置现场重建同参考通量下的条件通量精度；必须建立 PSF、球面面积、相关性支持下的**点源通量方差到球面面亮度方差**转换，不能直接混淆两种估计量。研究插值（样条、IDW、双线性）、支持域、空洞、过冲、模型偏差、跨 tile 连续性以及最终叠加效率。生产参数以独立留出证据确定，不因历史默认值强行修正。数学正本：science/noise_snr/NOISE_SNR.md。
+沿用阶段一稀疏控制点，阶段二按位置现场重建同参考通量下的条件通量精度；必须建立 PSF、球面面积、相关性支持下的**点源通量方差到球面面亮度方差**转换，不能直接混淆两种估计量。研究插值（样条、IDW、双线性）、支持域、空洞、过冲、模型偏差、跨 tile 连续性以及最终叠加效率。生产参数以独立留出证据确定。详细推导见[噪声与参考精度](science/noise_snr/NOISE_SNR.md)。
 
 ### 2.5 P5：加性背景、响应差与无接缝合成
 
-阶段二在真实重叠图连通分量内拟合加性差模并处理规范自由度；光度归一与残余乘性差只各处理一次；PSF 和通带失配不得被假设为纯加性天光。降低边缘台阶必须同时保持真实星云低频结构、扩展源总通量与恒星光度。内部可以维护多种噪声、背景与排异中间对象，但最终 HiPS 只输出 signal。数学正本：science/sky/UPM.md。
+阶段二在真实重叠图连通分量内拟合加性差模并处理规范自由度；光度归一与残余乘性差只各处理一次；PSF 和通带失配不得被假设为纯加性天光。降低边缘台阶必须同时保持真实星云低频结构、扩展源总通量与恒星光度。内部可以维护多种噪声、背景与排异中间对象，但最终 HiPS 只输出 signal。规范与信号保真见[背景分册](science/sky/UPM.md)。
 
 全链科学实验同时比较解析可解场、独立数值实现、HST 结构前向合成与真实重复帧，不设与物理问题无关的流程门禁。
 
@@ -98,7 +98,7 @@ ACSD 是天文 CCD/CMOS 图像标准化与 HEALPix 球面合成系统：利用 G
 
 ### 3.1 数据对象与最终发布对象
 
-**阶段一**：可包含 signal、内部 support/coverage、variance/ivar、WCS、PSF、参考通量、frame_snr、稀疏 SNR 控制点、标定参数、有效域和 provenance；它们服务于阶段二物理估计，不强制全部以二维 HiPS 子产品形式写出。阶段一的稀疏 SNR Catalogue 与现有规整 sparse_snr_layer 必须通过单一明确格式/转换生产链衔接，不能因名字相似而视为已闭环。
+**阶段一**：可包含 signal、内部 support/coverage、variance/ivar、WCS、PSF、参考通量、frame_snr、稀疏 SNR 控制点、标定参数、有效域和 provenance；它们服务于阶段二物理估计，不强制全部以二维 HiPS 子产品形式写出。稀疏参考精度唯一正式载体为frame_science.json；Catalogue为浏览投影，规整sparse_snr_layer按合同作为兼容视图，不能成为第二份真源。
 
 **阶段二内部**：按球面位置现场重建 SNR/条件方差与面亮度精度的转换，拟合背景，执行排异及集成；支持度、方差、控制点和权重可为临时工作量或诊断。
 
@@ -121,7 +121,7 @@ ACSD 是天文 CCD/CMOS 图像标准化与 HEALPix 球面合成系统：利用 G
 - JSON 显式指定位深时以 JSON 为准。
 - 全链一套球面索引（HEALPix NESTED）与一套帧标识；星表只解析本地文件，离线、零网络。
 
-每个科学量写清单位、坐标系、归一化、精度要求与有效有限域。统一观测模型与字段正本见 detail，配置合同见 engineering。
+每个科学量写清单位、坐标系、归一化、精度要求与有效有限域。观测量与单位见[数据语义](science/unified/DATA_SEMANTICS.md)，字段和持久化结构见[Normalize数据合同](engineering/contracts/NORMALIZE_DATA.md)。
 
 ---
 
@@ -133,14 +133,14 @@ ACSD 是天文 CCD/CMOS 图像标准化与 HEALPix 球面合成系统：利用 G
 
 ### 4.2 唯一科学链与 WCS 解算责任
 
-Normalize 在同一帧上构建相互一致的几何、光度、PSF、噪声与参考精度模型；**不是只读取原始 FITS 已有的 WCS**。完整理论与实际实现分别以 science/normalize/NORMALIZE_SCIENCE.md、engineering/architecture/NORMALIZE_PIPELINE.md 为唯一横向正本，本章只固定次序与外部合同：
+Normalize 在同一帧上构建相互一致的几何、光度、PSF、噪声与参考精度模型；**不是只读取原始 FITS 已有的 WCS**。完整理论与模块责任分别由[Normalize科学模型](science/normalize/NORMALIZE_SCIENCE.md)和[生产架构](engineering/architecture/NORMALIZE_PIPELINE.md)定义，本章只固定次序与外部合同：
 
 1. 输入/校准/缺陷和背景有效性；保留 master 与像元状态。
 2. **IPV 独立 PlateSolve**：在校准像元上私有盲检 solver_detections、Gaia 星表匹配与 TAN+SIP 求解，近似指向可以来自 OBJCTRA/OBJCTDEC、FOCALLEN/XPIXSZ、配置或此前自解邻帧；**原始 FITS 无 CRVAL/CD 不是未解 WCS 的证据**。失败逐帧记录真正 unsolved 原因。
 3. 得到本帧权威 WCS 后，再用完整 WCS+SIP 把 Gaia 星点投到像素，生成独立的 **science_sources** 与空间 PSF 模型。解算器私有 star candidates 和科学测光星表不可互相冒充。
 4. Gaia XP **每帧实际通带 R_k** 测光拟合并对线性像元**恰好一次**施加比例，记录参考/混合光度约定、颜色限制、scale 状态与真实单位。
-5. 在真实 PSF、背景/噪声及逐帧响应下计算 frame reference SNR 和位置相关 canonical sparse reference-SNR control points，明确 F_ref,k、V_F、空间支持与模型完整性。旧 source/median SNR 不等于条件稀疏信息量。
-6. 由该帧已解 WCS+SIP 和已施加光度的线性面完成 HEALPix 球面 Drizzle，保留适当几何、相关噪声及 provenance；统一 writer 发布每帧 signal HiPS 和必要科学模型/控制数据。
+5. 在真实 PSF、背景/噪声及逐帧响应下建立平面条件噪声与参考模型，明确 F_ref,k、源模板、支持及模型完整性；逐源SNR及样本中位数与条件参考信息量分名。
+6. 由该帧已解 WCS+SIP 和已施加光度的线性面完成 HEALPix 球面 Drizzle，用同次实际信号算子传播模板和协方差，再完成球面 canonical sparse reference-SNR controls 与帧摘要；统一 writer 发布每帧 signal HiPS 和必要科学模型/控制数据。
 
 这是依赖顺序，不阻止 WCS 无关的噪声初估并行。调度边要靠真实 typed ports 和对象版本，不由工作文件是否碰巧出现决定。开发数据快照只是旁路，不供科学消费者读取。Normalize 不负责最终跨帧权重/接缝。
 
@@ -166,20 +166,22 @@ Normalize 在同一帧上构建相互一致的几何、光度、PSF、噪声与�
 ```
 
 - 三个命令配置同一形状：顶层块列表，每块含输出名称、运行参数、一组输入帧。
-- 一个 block 是复用共同校准母版与科学参数的组织单位，建议把需要同一 master/滤镜响应模型的帧归组；同命令可以多个 block。**这是参数/物理模型共享范围，而不是禁止不同设备或滤镜参与阶段二合成。** 同块若实际包含不同 R_k，也须按帧建模或内部拆光度子组，不能把第一帧响应强加给其它帧；现有代码的组内响应全等拒绝属于待修实现。
+- 一个 block 是复用共同校准母版与科学参数的组织单位，建议把需要同一 master/滤镜响应模型的帧归组；同命令可以多个 block。**这是参数/物理模型共享范围，而不是禁止不同设备或滤镜参与阶段二合成。** 同块若实际包含不同 R_k，也须按帧建模或内部拆光度子组，不能把第一帧响应强加给其它帧。
 - 滤镜型号/响应曲线若已知则用于 Gaia XP 绝对/颜色模型；未知型号或通带差不构成禁止跨设备合并的理由，应使用可辨识的相对标度并报告响应模型未知。缺失必要图像文件、损坏 WCS 或非法数值仍是普通输入错误。计算精度按 3.3。
 
 ### 4.4 输出合同
 
 每个有可用真实天体测量解、合法球面化信号的 light 帧对应一份独立的阶段一 HiPS 及其辅助模型/运行摘要；未解帧保留 WCS 求解与数据错误归因，不发布伪 HiPS。必要对象包括信号、WCS/坐标、参考通量及其光度尺度、帧级 SNR、稀疏 SNR 控制数据（若可估计）、PSF/噪声条件模型、可解释的有效域与处理来源；若部分科学估计不可辨识，明确报告其能力边界。不同的稀疏对象载体（SNR Catalogue、sidecar、规整重建层）必须统一生产者—消费者关系。
 
-### 4.5 运行输入检查与诊断（不设流程门禁）
+### 4.5 输入有效性与能力状态
 
 输入文件不存在、格式损坏、真实 IPV 求解失败而缺可用 WCS、或必要数值无定义时，应记录精确错误/逐帧状态，避免产出伪科学图像。**原始文件头未提供 WCS 不是错误本身**，应按初始指向、设备尺度和 Gaia 星表进行实际求解。对不同相机/滤镜、通带宽度、数据质量、控制点密度和计算资源给出解释性诊断，**不以评审、用户确认、设备一致性或科学质量分数设强制流程关卡**。
 
-科学模型的误差大小、颜色残差与支持域应保留为观测读数供用户决策，不用大量“必须全绿才能继续”的机制替代理论设计。现存预检/确认 UI 和相关自动化门禁属于后续工程调整范围；保留有实际意义的输入错误处理与产品原子性。
+科学模型的误差、颜色残差和支持域作为诊断供用户决定组合。合法信号与参考精度能力分开记录；缺精度模型不等于输入损坏，也不等于物理零方差。
 
 ---
+
+阶段一字段、能力和唯一sidecar由[Normalize数据合同](engineering/contracts/NORMALIZE_DATA.md)定义；C++消费与迁移由[接口规格](detail/normalize/contracts.md)承接。
 
 ## 5. mosaic：球面背景、稀疏精度重建与信号合成
 
@@ -195,9 +197,9 @@ Normalize 在同一帧上构建相互一致的几何、光度、PSF、噪声与�
 
 ### 5.3 稀疏 SNR 的真实含义
 
-frame_snr、sparse_snr_layer 与真实 source_snr 是不同数据对象。P4 使用固定 F_ref,k 定义的空间精度场；SNR²/F_ref,k² 严格等于参考通量方差的倒数。球面面亮度的权重还需 PSF、噪声核、像元面积、背景处理和曝光响应定义共同确定精度传递因子。仅在传递因子对被比较帧为共同正比例时可以消去。具体证明见 science/noise_snr/NOISE_SNR.md。
+frame_snr、sparse_snr_layer 与真实 source_snr 是不同数据对象。P4 使用固定 F_ref,k 定义的空间精度场；SNR²/F_ref,k² 严格等于参考通量方差的倒数。球面面亮度的权重还需 PSF、噪声核、像元面积、背景处理和曝光响应定义共同确定精度传递因子。参考源与实际场景条件须先匹配；仅当同一输出位置的T对被比较帧为共同正因子时才可在归一权重中消去。具体证明见[噪声分册](science/noise_snr/NOISE_SNR.md)。
 
-稀疏重建研究是核心方案，不以生产大幅逐像素方差图替代它；最终密集场可现场求值且只在阶段二内部存在。样条、IDW、帧级常量及其它方法应使用相同真值世界对照，而非历史默认参数独断。
+稀疏重建研究是核心方案，不以生产大幅逐像素方差图替代它；最终密集场可现场求值且只在阶段二内部存在。样条、IDW、帧级常量及其它方法使用相同真值世界对照，并报告各自支持域。
 
 ### 5.4 相对天空背景与结构保真
 
@@ -209,19 +211,21 @@ frame_snr、sparse_snr_layer 与真实 source_snr 是不同数据对象。P4 使
 
 ---
 
+背景规范、样本选择和最终归约分别见[背景](science/sky/UPM.md)、[排异](science/integration/REJECTION.md)与[集成](science/integration/INTEGRATION.md)。
+
 ## 6. export：HiPS 信号到通用平面 FITS
 
 ### 6.1 使命
 
-以**阶段二单通道信号 HiPS**为科学输入，按指定中心、像元尺寸、图像大小及 WCS 投影生成普通二维 FITS 图像，供 PixInsight 等软件的后期处理使用。阶段三不重新估算来自各原始帧的相对背景、SNR 或叠加权重。
+以兼容HiPS的信号产品为科学输入（典型来源为阶段二单通道马赛克），按指定中心、像元尺寸、图像大小及 WCS 投影生成普通二维 FITS 图像，供 PixInsight 等软件的后期处理使用。阶段三不重新估算来自各原始帧的相对背景、SNR 或叠加权重。
 
 ### 6.2 投影与重采样
 
-对输出平面每个目标像元，按独立生成的 WCS 映射到天球/HEALPix，使用已声明采样核读取/重建 HiPS 信号。研究两次几何变换对星点 FWHM、光通量、扩展源低频与噪声纹理的影响；从单信号层仅可生成**图像数据**，不得无输入协方差信息却宣称精确的最终方差或点源信息量。没有数值支持时以 NaN 表示无数据，不把零当无效。
+对输出平面每个目标像元，按符合FITS WCS标准[4,5]的独立目标WCS 映射到天球/HEALPix，使用已声明采样核读取/重建 HiPS 信号。研究两次几何变换对星点 FWHM、光通量、扩展源低频与噪声纹理的影响；从单信号层仅可生成**图像数据**，不得无输入协方差信息却宣称精确的最终方差或点源信息量。没有数值支持时以 NaN 表示无数据，不把零当无效。
 
 ### 6.3 投影算法
 
-支持注册的 WCS 投影（TAN、SIN、CAR、AIT 等依具体生产实现列明），明确适用域、极点/RA 回绕、像元中心和手性。nearest、局部线性或面积重采样的选择影响输出 PSF/噪声，应记录实际生效方法。HiPS 标准目录/坐标/元数据与 FITS 头必须可由独立读者解释。数学正本见 science/projection/HIPS_TO_FITS.md 与 science/resample/RESAMPLE.md。
+支持注册的 WCS 投影（TAN、SIN、CAR、AIT 等依具体生产实现列明），明确适用域、极点/RA 回绕、像元中心和手性。nearest、局部线性或面积重采样的选择影响输出 PSF/噪声，应记录实际生效方法。HiPS 标准目录/坐标/元数据与 FITS 头必须可由独立读者解释。投影与核的定义见[平面导出](science/projection/HIPS_TO_FITS.md)和[重采样](science/resample/RESAMPLE.md)。
 
 ---
 
@@ -230,7 +234,7 @@ frame_snr、sparse_snr_layer 与真实 source_snr 是不同数据对象。P4 使
 ### 7.1 命令树
 
 ```text
-normalize --json <config.json>      运行（输入合法性检查与诊断，不依赖审批门）
+normalize --json <config.json>      运行，读取配置并输出JSONL事件
 normalize --template [-o <path>]    生成 JSON 模板
 normalize --help
 
@@ -249,7 +253,8 @@ benchmark                           生成/更新机器画像
 
 ### 7.2 机器输出与退出码
 
-- `--json` 时 stdout 恰为一个 JSON 文档；运行事件默认走 JSONL 事件流（progress、resource、artifact、backend、final），stdout 无日志污染。
+- `normalize/mosaic/export --json <config>`中，`--json`取配置文件；运行的stdout为JSONL事件流（progress、resource、artifact、backend、final），每行独立可解析，普通日志不混入其中。
+- `--version --json`、`doctor --json`及`<command> --template --json`等非运行响应以单一JSON文档输出；同名选项按命令语境解释。具体事件和响应字段见[CLI协议](engineering/contracts/CLI_PROTOCOL.md)。
 - 退出码按失败类型区分；退出码唯一定义在 engineering 正本。
 - 取消（Ctrl-C）：协作取消、关 writer、写未完成 manifest、隔离临时产物。
 
@@ -284,7 +289,7 @@ flowchart LR
 
 - 一个运行帧承载一组命名块，每个块冻结元数据：名字、形状、类型、单位、生产者、消费者、生命周期。
 - 模块标准动作：读入参块、计算、写新块；块被其全部消费者用完后由管线显式销毁，内存立即归还。
-- 长生命周期块随帧存活到导出；短生命周期块在下游块产出后立即消耗。
+- 长生命周期块存活到本阶段最后一个声明消费者完成；短生命周期块在其消费者用完后立即消耗，不跨阶段保留内存对象。
 - 峰值内存由在途块集合与分块大小决定；缺块时显式降级并写溯源。
 
 ### 8.3 三个阶段调度器
@@ -336,7 +341,7 @@ testdata/
 
 ### 8.5 模块与 ABI
 
-- 每个可独立调度模块具备：README、模块声明、版本化公开头、单一入口、独立构建目标、共址测试。
+- 每个可独立调度模块具备：README、模块声明、版本化公开头、单一入口、独立构建目标、与模块边界对应的独立测试。
 - 跨动态库不传 STL、异常、RTTI 与编译器私有类型，第三方库隔离在动态库内部。
 - 每个生产 DAG 节点映射唯一真实模块入口。
 
@@ -367,13 +372,13 @@ testdata/
 
 ### 10.1 内部开发构建与发布构建（单一编译开关）
 
-所有阶段均使用一个**公开 CMake 编译开关** `ACSD_DEV_MODE`：默认 `OFF` 为发布构建，`ON` 为内部开发诊断构建。开发构建可通过统一探针接口，在运行时按选中的帧、HEALPix tile、ROI 和预算保存真实科学中间量快照并记录详细性能事件；发布构建不编译这些诊断实现，不接受旧环境变量旁路激活它们。
+所有阶段均使用一个**公开 CMake 编译开关** `ACSD_DEV_MODE`：默认 `OFF` 为发布构建，`ON` 为内部开发诊断构建。开发构建可通过统一探针接口，在运行时按选中的帧、HEALPix tile、ROI 和预算保存真实科学中间量快照并记录详细性能事件；发布构建不编译这些诊断实现，不接受环境变量绕过编译边界激活它们。
 
 **诊断是只读旁路，不是第二条科学数据管线**：任何正式 Normalize/Mosaic/Export 依赖、坐标、标度、算法权重和结果必须与编译开关无关。阶段二最终仍仅发布单 signal HiPS 通道。开发诊断独立落到运行工作区，不写到 HiPS `signal/` 或最终 FITS 中，也不供后续阶段读取。诊断写盘失败只影响诊断完整性，不遮蔽科学错误；正式科学产物及正式日志仍依原有错误合同处理。
 
-现有 `ACSD_PROBES` 与 `ACSD_DEV_INTERMEDIATE_CACHE/ACSD_DEV_PROBES/ACSD_DEV_CHECKPOINT` 并存、部分中间数据写后读回等属于代码待统一项；前台此处明确目标，不宣称已经落地。检查点续跑是可能改变运行路径的业务功能，不属于被动开发探针。
+正式缓存与科学spill是数据流的一部分，不由开发开关关闭。检查点续跑会改变执行路径，应按业务功能单独定义，不属于被动探针。生产实现及运行等价证据由科学实施差异记录。
 
-构建/文件生命周期权威：[engineering/architecture/DEV_MODE.md](engineering/architecture/DEV_MODE.md)；快照/计时点的统一插入规范：[engineering/standards/DIAGNOSTIC_PROBES.md](engineering/standards/DIAGNOSTIC_PROBES.md)。这不是研发审批门禁。
+构建/文件生命周期权威：[engineering/architecture/DEV_MODE.md](engineering/architecture/DEV_MODE.md)；快照/计时点的统一插入规范：[engineering/standards/DIAGNOSTIC_PROBES.md](engineering/standards/DIAGNOSTIC_PROBES.md)。
 
 ---
 
@@ -424,13 +429,13 @@ flowchart LR
 
 ---
 
-## 13. 独立科学实验与真实图像评价（不用流程门禁代替设计）
+## 13. 独立科学实验与真实图像评价
 
 ### 13.1 核心方法
 
 科学公式先从物理估计量、误差模型和可辨识性正向推导，再写算法与数据对象。实际复核通过：独立数学/高精度 Oracle、控制真值前向模拟、HST 处理后结构作**信号模板**的合成、真实 CCD/CMOS 重复帧及生产调用。结果必须有脚本、输入哈希、随机种子、量纲、实测样本量及失效域，不以恒等式/自我验证误认为独立证据。
 
-保留真实失败结果；检查对科学错误是否有判别力，重点是解释偏差、统计散度、天空梯度丢失和实际成像效果。不创建“审稿通过才能写代码”“所有检查绿才允许构建”等开发流程门禁。程序面对非法或损坏输入仍应直接报错。
+保留真实失败结果，检验方法对科学错误的判别力，解释偏差、统计散度、天空梯度损失和实际成像效果。科学评价不设研发审批关卡；非法或损坏输入按数据错误处理。
 
 ### 13.2 数据与观测实验
 
@@ -438,7 +443,7 @@ flowchart LR
 - 真实处理后的 HST FITS 用于构造含细节的信号/PSF 模板；不能把它当独立未重采样的传感器噪声真值。
 - 服务器 /testdata 中的真实原始/校准观测和 HST 成品。原始 FITS 不上传 Git，只索引必要帧属性、文件哈希、许可及使用方法。
 
-### 13.3 现有研究及其责任
+### 13.3 研究单元及其责任
 
 | 单元 | 应回答的独立科学问题 |
 |---|---|
@@ -454,28 +459,34 @@ flowchart LR
 
 从阶段一真正生成控制点和 HiPS，到阶段二真正消费并重建密集精度，再到阶段二只写单信号、阶段三正确输出平面 FITS：沿真实生产路线复跑，量化 SNR/噪声统计误差、几何/光度误差、星点与扩展源保真、异常排除和接缝。最后由使用者目视评价最终拉伸 FITS/PNG，并同时保留独立定量结果。
 
-需要观察的失败有：过度平滑、相关噪声被误判为信息增益、tile 面缝、坐标反转、PSF 膨胀、丢失星云低频、背景台阶、亮星晕圈、错误颜色补偿等。**测试是测量工具，不是审批制度**。
+需要观察的失败有：过度平滑、相关噪声被误判为信息增益、tile 面缝、坐标反转、PSF 膨胀、丢失星云低频、背景台阶、亮星晕圈、错误颜色补偿等；测试用于量化和定位这些误差。
 
-### 13.5 记录状态不是门禁
+### 13.5 结果与证据状态
 
-明确区分仅完成文档、代码存在、构建执行、模拟实测、真实帧运行和用户视觉评价；不得把旧报告的 PASS、测试数目或运行退出码当成科学证据。用户决定何时改进、检查、预览和发布，Agent 报告客观状态，不代替用户作科学判断。
+明确区分仅完成文档、代码存在、构建执行、模拟实测、真实帧运行和用户视觉评价；测试数目或运行退出码不能替代估计量与误差的独立证据。用户决定何时改进、检查、预览和发布，Agent 报告客观状态，不代替用户作科学判断。
 
 ---
 
 ## 14. 版本、打包与负责人决定
 
-根目录 VERSION 是软件版本事实源。Linux、Windows 构建与 GUI/发行包按工程文档维护，发行清单与内容哈希、可重现运行结果及主要未解决问题应透明。没有算法审核“绿灯”即自动发布的权力，也没有为了形式审批设置强制程序门禁。**最终是否预览、试用、发布、合并主分支由项目负责人决定**。任何 Agent 不能以文档改写宣称科学链路和真实 E2E 已验证。
+根目录 VERSION 是软件版本事实源。Linux、Windows 构建与 GUI/发行包按工程文档维护，发行清单与内容哈希、可重现运行结果及主要未解决问题应透明。**最终是否预览、试用、发布、合并主分支由项目负责人决定**。任何 Agent 不能以文档改写宣称科学链路和真实 E2E 已验证。
 
 ---
 
 ## 附录 A. 术语
 
-signal、variance、ivar、source_snr、frame_snr、point_information、sparse_snr_layer、support、coverage、validity、rejection、provenance、UPM、PSF、HiPS、HEALPix、WCS、projection、stacking、drizzle、GUI、STF、机器画像、运行 manifest —— 定义见 detail 与 `docs/GLOSSARY.md`。
+signal、variance、ivar、source_snr、frame_snr、point_information、sparse_snr_layer、support、coverage、validity、rejection、provenance、UPM、PSF、HiPS、HEALPix、WCS、projection、stacking、drizzle、GUI、STF、机器画像、运行 manifest —— 定义见[术语表](GLOSSARY.md)及其链接的唯一正本。
 
 ## 附录 B. 外部标准与文献
 
-- IVOA HiPS、HEALPix（Górski 2005）、FITS WCS 系列、FITS 标准、Drizzle（Fruchter & Hook 2002）；
-- 测光标定、PSF 信噪比、逆方差叠加的专项文献与开源对照（Horne 1986；Zackay & Ofek；Gaia DR3 XP 文档；SExtractor、photutils、SEP、Siril、SWarp、SCAMP、DrizzlePac、Astropy、HEALPix、Qt6 等）。
-- 文献正本与编号见 engineering 的参考文献表与各实验单元文献台账。
+[1] Górski, K. M. et al. HEALPix: A Framework for High-Resolution Discretization and Fast Analysis of Data Distributed on the Sphere. ApJ, 622, 759–771. [论文](https://arxiv.org/abs/astro-ph/0409513)。
 
-阶段一数据对象、端口、单一科学 sidecar 与兼容迁移由 [Normalize 数据合同](engineering/contracts/NORMALIZE_DATA.md) 和 [接口落地规格](detail/normalize/contracts.md) 定义。先生产平面噪声模型，Drizzle 后完成球面参考精度，再由统一 writer 发布；不把未实施的 typed 合同称为现有实现。
+[2] Fruchter, A. S., Hook, R. N. Drizzle: A Method for the Linear Reconstruction of Undersampled Images. PASP, 114, 144–152. [论文](https://arxiv.org/html/astro-ph/9808087v2)。
+
+[3] IVOA. HiPS: Hierarchical Progressive Surveys. [推荐标准](https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf)。
+
+[4] Greisen, E. W., Calabretta, M. R. Representations of world coordinates in FITS. A&A, 395, 1061–1075. [论文](https://arxiv.org/abs/astro-ph/0207407)。
+
+[5] Calabretta, M. R., Greisen, E. W. Representations of celestial coordinates in FITS. A&A, 395, 1077–1122. [论文](https://arxiv.org/abs/astro-ph/0207413)。
+
+[6] Montegriffo, P. et al. Gaia Data Release 3: External calibration of BP/RP low-resolution spectroscopic data. A&A, 674, A3. [论文](https://arxiv.org/abs/2206.06205)。

@@ -1,230 +1,34 @@
-# 模块 acsd.phase1.wcs-platesolve
+# Normalize 天体测量
 
-本页的函数/参数记录按实际源码维护；阶段一字段、生产—消费关系与迁移以 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md) 为准。未接入生产的接口不可因“冻结/通过”措辞视为已实现。
+本节点在校准像元上调用 IPV，自行盲检、匹配本地 Gaia 并求 TAN/SIP。原始 FITS 没有 CRVAL/CD 只是输入属性；实际 solved/unsolved 由求解尝试决定。[Normalize 科学正本](../../science/normalize/NORMALIZE_SCIENCE.md)规定此因果顺序，[天测分册](../../science/detection/ASTROMETRY.md)说明坐标与残差口径。
 
+## 入口、上下游与载体
 
-> **实现/历史接口参考，非阶段一独立科学正本（2026-10-14 收敛说明）**。跨模块完整 Normalize 因果与科学量以 docs/science/normalize/NORMALIZE_SCIENCE.md 为准；真实用户命令和 C++ 生产 DAG 以 docs/engineering/architecture/NORMALIZE_PIPELINE.md 及实际源码为准；旧矛盾见 docs/engineering/governance/NORMALIZE_CONVERGENCE.md。本页保留局部模块/API/数据字段的历史参考价值，但旧“唯一正本”“未编入根 CMake”“缺 WCS 需外解”“跨通带禁止”“全图 ADU/sr”“公共 F0=绝对空间 SNR”等叙述不自动有效。Agent 不得以本页重新决定科学模型；真实接口改动后由前台更新。该提示不表示本页每个公式都错误。
+[module_adapters.cpp](../../../lib/infrastructure/scheduler/src/module_adapters.cpp) 的 `p1_op_wcs` 对应 `acsd.phase1.wcs-platesolve`，输入 `calibrated`，输出 `wcs`；它调用 `ipv_solve_from_memory_with_callback_d`，不依赖下游 `science_sources`。该解供 guided sources、photometry、Drizzle 和 writer。
 
+近似指向/尺度可来自 header_pointing、config、neighbor_crval；它们只是初值。明确配置的完整 WCS 标为 `explicit_config`，不能标为 IPV 求解成功。当前结果写 `p1_wcs.json`；Runtime 对象、attempts 和版本合同见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。
 
-> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与WCS解算口径（近似指向 + 星表匹配精化）、
+## 公开 API 与字段
 
-> 科学正本：docs/science/detection/ASTROMETRY.md（SCI-WCS-001）、docs/science/algorithms/PLATESOLVE.md
-> （ALG-WCS-001，解算算法推导）、`docs/science/photometry/PHOTOMETRY.md`「平移精化」判据一节
-> 数据正本：docs/detail/registry/acsd.phase1.wcs-platesolve.md（DATA-P1-WCS 端口表，本页输入输出端口表）
-> API 正本：docs/engineering/api/PUBLIC_API.md（API-WCS-001）、API-P1-004
-> （docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）
-> 依赖：infrastructure/gaia_xpsd_client.md（星表查询与坐标语义合同）
+[ipv_api.h](../../../lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h)声明 `ipv_solve_create/destroy`、`ipv_solve_from_memory*`、`ipv_solve_from_detections_v1`、参数初始化和 inlier 读取接口。后一个入口可接外部候选，但不改变 CLI 从像元求解的实际调用。
 
-模块级事实以 `lib/algorithms/platesolve/README.md` + `module.yaml`（acsd.p1.wcs，
-迁移目标 acsd_p1_wcs.dll）为准；合同三件套（README.md / module.yaml ）
-entrypoint 未落地。现状构建 `cpp/ipv/build.ps1` / Makefile → `ipv_solver.dll`，
-未编入根 CMake 主构建。失败-置信度语义冻结：**CD 退化必须 success = 0** 并按失败
-登记。
+| 输出/输入 | 单位与合同 |
+|---|---|
+| pixels | 行主序校准图像；回调候选属于 solver 私有域 |
+| CRVAL、CD | ICRS degree、degree/pixel；几何与匹配元数据 FP64 |
+| CRPIX | FITS 一基连续参考像元；外部合法 WCS 不强制位于画幅中心 |
+| SIP | A/B 与 AP/BP 按声明阶数和 i*6+j 布局保留；不能丢畸变 |
+| rms_px、rms_arcsec、n_pairs | 内部拟合诊断，不能当留出绝对残差 |
+| success、error_msg | 成功状态和真实失败原因；不可用解不发布伪几何 |
 
-## 职责与明确非职责
+内部 `(x0,y0)` 是零基数组中心，进入 FITS/SIP 恰加一。IPV adapter 同时处理其自身坐标输出，不能再重复加半像元或一像元。`p1_wcs.json.samples[]` 的 sky 已包含 SIP；消费方不再加一次畸变。完整 SIP 反演、参考历元与 epoch propagation 依正式合同解释。
 
-Registry production 模块（唯一源 = module_adapters.cpp 的 p1_wcs_descriptor）。
-职责：从校准后像素帧做星点检测与星表匹配并解出 TAN/SIP WCS（含 SIP A/B/AP/BP
-与质量指标 `rms_px` / `rms_arcsec` / `n_pairs` / `trans_order`），正反变换一致，
-独立星表残差验证。
+## 所有权、并行与错误
 
-不做：重检测（消费 star_measurements / star_det 权威块，禁重检测）；重采样图像；
-背景/噪声估计；测光与流量定标；星表缓存管理（gaia 句柄注入）。WCS 是坐标合同，
-不是权重。
+solver 用 create/destroy 配对，result POD 和 inlier 缓冲由调用方提供；callback 视图只在调用期有效。帧级并行中 solver/detector 按 worker 隔离，Gaia 查询缓存由星表模块管理；线程预算由 Runtime 提供。
 
-## 输入输出端口、DATA、单位、坐标、invalid
+返回值与 `success` 一起检查，参数/匹配不足、CD 退化或不收敛逐帧保留原因。取消与失败由 adapter 上行，不能由 API 未声明取消参数推断长调用已经可中断。后续无合法 WCS 的帧不进入 Drizzle；合法其它帧状态单独记录。
 
-| 端口 | DATA | 必/可 | 单位 | 坐标 |
-|---|---|---|---|---|
-| `sources` | `DATA-P1-SOURCES`（编排词汇；模块权威输入 = star_measurements [N,≥15] 权威块 + star_det fallback，本页输入输出端口表） | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::PIXEL`（统一契约 index-is-center，+0.5 桥接至 IPV 接口契约） |
-| `wcs` | `DATA-P1-WCS`（本页输入输出端口表） | 可 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS`（RADESYS=ICRS / EQUINOX=2000 写回） |
+## 验证入口与实现边界
 
-输入面：检测目录（像素坐标）、参考星表匹配集（Gaia / 离线）、初始猜测（可空）、
-配置。数据形态 = detections `[n,6]` + 0.5 契约 → `IpvWcsResult` POD + inlier
-`[n,9]`。
-
-输出面：WCS（ICRS，像素中心 / 轴向 / 单位 / SIP / PV 域明确）、匹配表、残差
-统计、验证记录。编排写回 CTYPE / CRVAL / CRPIX / CD / RADESYS=ICRS /
-EQUINOX=2000 / SIP。
-
-**近似指向只作初值**：由 `wcs.init_source`（`header_pointing` / `config` /
-`neighbor_crval`）给出，仅用于星表逆映射的初值；权威 WCS 是求解器在该指向下完成
-星表匹配与稳健迭代精化后的唯一输出。解算轮次数是求解器实现细节，不是流程语义。
-
-**生产节点口径**：本节点按帧读校准后像素（`calibrated`）自行做星点检测与星表匹配
-（实现 = 注入的 sdet 检测算子句柄：module_adapters.cpp 调
-`ipv_solve_from_memory_with_callback_d`，内部单次检测 + callback 同步导出供
-PSF 复用），**不消费** `star_detection` 节点的星表，因此本节点在节点序上先于
-`star-psf`（最高设计星表引导检测口径）。上表为模块级（算法）端口合同，节点级端口以
-`module_adapters.cpp` 的 p1_wcs_descriptor 为准。
-
-invalid = NaN/coverage=0（按 DATA 合同）；求解失败 → `PLATESOLVE_FAILED`，
-不写半成品 WCS 头（orchestrator.cpp 两处）。
-
-**精度归属**：WCS 解、星表匹配与残差统计属**稀疏与元数据**面，按最高设计的
-「数据对象与配置」章内「精度归属」条取**全程双精度**；JSON 显式指定位深时以 JSON
-为准。图像面本身属**稠密大面**（单精度），进入解算前按同一读入面类型参与，两类面
-的精度归属不得互相代入。
-
-### 数值落地口径
-
-匹配与拟合的推导正本 = ALG-WCS-001；本页只记落地方式：
-
-- 匹配：像素 → 天球 → 匹配（几何 + 亮度辅助），拒绝离群；
-- 拟合：TAN 基（或按需 SIP / PV），最小二乘 + 稳健迭代；
-- 输出：CRPIX / CRVAL / CD / PC / CDELT / CTYPE，FITS 1-based 关键字、内部
-  0-based 像素中心；
-- 系统误差与随机误差分开报告（与测光一致）；
-- **二轮精化 = 平移精化**：上游 WCS 与 Gaia DR3 之间存在系统平移，设计须能覆盖
-  2″ 量级；精化的必要性取决于上游 WCS 质量，不是流程固定开销（判据与读数
-  正本 = `docs/science/photometry/PHOTOMETRY.md`「平移精化」判据一节）；
-- 经度 wrap、极点、轴手性按投影规则处理。
-
-### `p1_wcs.json` 的 `samples[]` 几何契约
-
-WCS 产物的 `samples[]` 是像素坐标与天球坐标的配对表（取样步长 = 图像长边 / 8，
-4096² 帧为 8×8 = 64 点）。**表内的 `ra`/`dec` 是完整前向映射的输出，含 `wcs.sip`
-的 A/B 修正**：它已经是最终几何，**消费方不得**再自行叠加 `wcs.sip`。
-
-- 像素口径：`samples[].x`/`y` 是内部 0-based 数组下标（像素中心 = 下标 + 0.5，
-  index-is-center）；`ra`/`dec` 由 `xp = x + 1` 的 FITS 1-based 坐标算出。
-  **消费方不得再叠加一次 `+1`**（双重桥接 = 恒定 1 px 系统偏移）。该口径由产物内
-  `pixel_origin` / `fits_pixel_origin` 两键显式声明，逐帧可核。
-- 含 SIP 时，前向映射先以 `xp − crpix1` / `yp − crpix2` 求 A、B 多项式，再以
-  `xp + A`、`yp + B` 进切平面投影；无 SIP 时退化为线性项。前向映射含 SIP 的定义
-  正本 = `docs/science/detection/ASTROMETRY.md` 的「正向与逆向」一节；解算器输出
-  含 SIP A/B/AP/BP 正本 = `docs/science/algorithms/normalize/PLATESOLVE.md` 的
-  「上游 SCI 与输入输出」一节。
-- 自洽要求：`samples[]` 的 `ra`/`dec` 必须与同一份 `wcs` 对象的 `crpix` / `crval` /
-  `cd` / `sip` 前向映射一致。
-- **自检为什么不是恒真**：交叉残差门 `forward_cross_deg` 比的是**两条独立实现**的
-  含 SIP 前向 —— 产品前向（SIP A/B 多项式叠加在线性投影之上）对独立 gnomonic
-  参考解（同样含 SIP）。两条实现必须刻意保持独立，**不得合并成一条**，否则该门
-  退化为恒真 0。但只有这条**对「漏施加 SIP」零判别力**：两边都漏照样为 0，这正是
-  该缺陷能长期隐藏的原因。因此另立一条**作用量断言**：SIP 声明非零时，「含 SIP 的
-  产品前向」与「同一 `wcs` 的无 SIP 线性前向」在同一点的角距必须 **> 1e-9 deg**，
-  否则判失败（漏施加、系数全零、阶数为 0 都会让作用量塌到 0）。下界取 1e-9 deg 的
-  依据 = 线性前向在本尺度的双精度舍入量级（实测约 1e-15 deg），1e-9 deg 高出该舍入
-  6 个量级，是安全下界；SIP 有效时场角作用量实测 `0.006919 deg = 24.91″`，高出下界
-  7 个量级。
-- **产物读数键（供事后审计）**：
-  - `max_sip_effect_deg`：SIP 实际作用量，即上述作用量断言的判据量；逐帧并入
-    `p1_wcs.json`（无 SIP 的帧取 0）。
-  - `sample_geometry`：自述 `samples[]` 的 `ra/dec` = 含 SIP A/B 的完整前向。
-  - `max_roundtrip_px`：**含 SIP 的帧上不再是小量**（实测由 8.1e-11 px 变为
-    25.77 px）—— `wcs.sky2pix` 不含 SIP 逆多项式，该往返不变量在含 SIP 时不成立。
-    该键**仅作审计读数、不是契约**；无 SIP 时 1e-6 px 往返契约仍成立（代码按含 /
-    不含 SIP 分别守卫）。任何消费方都不得把 `max_roundtrip_px` 当作含 SIP 帧的
-    1e-6 px 契约断言。
-  - `forward_cross_ref`：登记交叉门实际所用参考解的实现名（有 SIP 的帧为
-    `p1_tan_forward_reference_sip`），供审计核对参考解是否与所用映射同阶。
-- 求解失败帧不写 `wcs` 对象，也不写 `samples[]`（下游按该帧未解出 fail-closed）。
-
-两条路径（`explicit_config` 与 `ipv`）已统一到同一含 SIP 前向实现：samples 循环与
-交叉门共用同一产品前向，ipv 路径的 SIP 系数构造在采样循环之前完成。本节即该统一
-口径的契约本身；产物读数键不随路径而变。
-
-## 公共 header、核心 symbol 与生命周期
-
-模块级 API = API-WCS-001（docs/engineering/api/PUBLIC_API.md；签名头正本
-`lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h`，12 导出，生产入口 `ipv_solve_from_detections_v1`）；
-编排级 API = API-P1-004（phase session extern "C"）；生命周期
-create→validate→run→inspect→destroy。
-
-entrypoint = 检测目录 + 星表 → WCS + 匹配 + 残差；与 gaia_xpsd_client 的查询 /
-缓存 / 坐标语义合同联动。求解器状态 RAII（`ipv_solve_create` / `ipv_solve_destroy`）。
-
-### 源文件
-
-`lib/algorithms/platesolve/cpp/ipv/`（`ipv_entry.cpp` 12 导出 + 求解内核）。
-
-## Registry descriptor 与配置 schema
-
-module_id=`acsd.phase1.wcs-platesolve`（registry descriptor 口径）；模块合同
-module.yaml 登记 `acsd.p1.wcs`。execution_class=`cpu_heavy`; parallel_ok=True。
-配置 = phase config JSON：
-
-| 字段 | 默认 | 单位 | 说明 |
-|---|---|---|---|
-| `catalog` | `gaia` | —— | 星表源（gaia / 离线） |
-| `catalog_version` | —— | —— | 星表版本（必填） |
-| `tweak_order` | `tan` | —— | WCS 模型（tan / sip / pv） |
-| `max_matches` | 200 | —— | 匹配上限 |
-| `residual_gate` | —— | mas/px | 残差门（拒绝） |
-
-节点侧另接受 `initial_ra` / `initial_dec` / `focal_length` / `pixel_size` 覆盖
-（orchestrator.cpp）。
-
-## Execution class、并行轴、ThreadBudget lease、确定性
-
-`cpu_heavy`; parallel=是（资源门拒绝 heavy+serial 组合）; worker 数 =
-ThreadBudget.max_workers（唯一取值源）。帧级并行（P1-WCS-PARALLEL-01）：
-Gaia 客户端跨帧共享（查询/块缓存有锁）；sdet/ipv 按 worker 分实例，检测
-句柄分发经 ipv 线程本地覆盖；每帧只写自己下标槽，join 后按下标升序归约
-（首个硬失败/产物序/首帧 provenance 均复现串行）⇒ 与串行逐位一致。
-帧内 OpenMP（三角形投票/选星）全是 disjoint 写、无浮点归约；
-RANSAC 固定种子 42。内存：在飞每帧一份 FP64 像面（W×H×8B），受
-p1_frame_workers 内存闸门约束。
-
-确定性 = 固定顺序输出（determinism=fixed_reduction_order，ALG-WCS-001 F5
-冻结断言）。
-
-## 内存/cache/I-O/所有权
-
-cache/内存按 ALG 合同（bounded）; I-O 单 writer。
-
-所有权 = `IpvWcsResult` 由调用方分配 POD（DLL 仅写不 malloc，无堆所有权转移）；
-inlier 缓冲由调用方预分配（`ipv_get_last_inliers`）。
-
-## 错误、日志、指标、取消和 checkpoint
-
-错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
-现状返回 ret 0/1 + `error_msg[256]`（docs/engineering/api/PUBLIC_API.md 的
-「WCS 求解 C API（API-WCS-001）」章内「返回码」）：几何退化 / 星数
-不足 → ret=0 / success=0（error_msg 载因）→ 编排 `PLATESOLVE_FAILED`；
-`BLOCK_MISSING`（必需块缺失）；CD 退化坍缩按失败处理（失败-置信度语义见
-PLATESOLVE.md［A-1］）。
-
-匹配不足 / 无法收敛 → fail-closed（输出面 = 无 WCS 产物）；残差超门 → 拒绝或
-标记两态之一（"尽力拟合"属另一口径）。
-
-**负例与归零分支 N14/N15/N16（T05–T07 负向轮，星数 / CD / 空窗）**：N14 星数不足
-输入构造 = 0 星 / `< 3` 星 / 匹配对不足。预期行为 = `ret = 0` 或 `success = 0`
-且 `error_msg` 非空，编排 `PLATESOLVE_FAILED`，不写半成品 WCS 头。落盘标记 =
-`success/error_msg` + 无 WCS 产物。N15 CD 退化输入构造 = CD 矩阵退化
-（行列式 ~0 / 非有限）。预期行为 = 按失败处理（`success = 0`），禁静默坍缩。
-落盘标记 = 失败登记；静默坍缩成伪 WCS ⇒ 判红。N16 空窗输入构造 =
-拟合窗为空 / 越出图像 / 窗内全非有限。预期行为 = 参数错误 / 无数据显式返回，
-不产出参数。落盘标记 = 错误码；
-
-取消 = 协作取消（契约：宿主cancel通道 → exit 9，最高设计协作取消口径；现状缺失）；
-模块内无 checkpoint（无断点续算）。
-- **负例与归零分支 N24（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造 =
-  取消通道触发后仍在途的解算请求。预期行为 = 现状缺失如实登记为缺失，不冒充
-  已接线；残差超门只走拒绝或标记两态，不存在"尽力拟合"第三态。落盘标记 =
-  取消缺失登记 + 残差处置位；把缺失说成已生效 ⇒ 判红；
-
-## 独立 synthetic 验证命令与容差
-
-测试标识 = `TEST-P1-WCS-001`（registry descriptor 单源）；执行证据 = NOT_VERIFIED
-（未取得验收证据）；容差 = NOT_VERIFIED（同源）。测试设计 = `TEST-WCS-DESIGN-001`
-（PLATESOLVE.md［A-1］：F1合成线性场rms ≤ 0.5″ / F2 astropy SIP oracle
-≤ 1e-4 px / F3 CRPIX 不变量 / F4 失败语义负例含 CD 退化注入 / F5 bitwise 确定性 /
-F6 WcsTan roundtrip < 1e-6 deg + 独立前向交叉 ≤ 1e-9 deg），fixture 生成器注记
-容差来源。
-
-Oracle 面：
-
-- Astropy / WCSLIB 独立正反投影往返一致；
-- 注入已知 WCS 图像 → 解算残差符合理论；
-- 离群匹配拒绝测试；
-- 跨 tile 一致性（多帧同场 WCS 一致性）。
-
-## 已知限制
-
-- 缺陷登记 = PLATESOLVE.md［A-1］：CD 退化静默坍缩、AP/BP 半静默、取消点缺失、
-  三套 TAN 并存；
-- ThreadLease 未接线；协作取消现状缺失；
-- 合同三件套 entrypoint 未落地；现状构建产物 `ipv_solver.dll` 未编入根 CMake
-  主构建，目标交付形态 acsd_p1_wcs.dll 未落地；
-- 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
+[WCS 单元入口](../../../eng/tests/unit/test_wcs_plausibility.py)及[阶段一管线入口](../../../eng/tests/pipeline/test_stage_normalize.py)分别用于几何和实际调用检查。需要独立 WCS reader、留出 Gaia、非零 SIP、RA 回绕、手性、边角和真实无 WCS 头输入；内部往返自洽不证明绝对坐标正确。本页未运行这些验证，具体生产差异与已有证据边界以[实施地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)为准。

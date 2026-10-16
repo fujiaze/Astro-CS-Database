@@ -1,3 +1,1 @@
-本目录维护软件结构。全局组件与依赖方向见 ARCHITECTURE.md、DATA_FLOW.md，模块地图见 MODULE_MAP.md。**Normalize 唯一实际工程链及 C++ 归属见 [NORMALIZE_PIPELINE.md](NORMALIZE_PIPELINE.md)**，其物理定义由 [科学正本](../../science/normalize/NORMALIZE_SCIENCE.md) 拥有。ACSD_DEV_MODE 的开发诊断边界见 DEV_MODE.md，现行代码差异见 SCIENCE_IMPLEMENTATION_DELTA.md。
-
-Normalize 数据合同见 [NORMALIZE_DATA.md](../contracts/NORMALIZE_DATA.md)，实施接口见 [contracts.md](../../detail/normalize/contracts.md)。
+本目录维护[系统架构](ARCHITECTURE.md)、[数据流](DATA_FLOW.md)和[模块地图](MODULE_MAP.md)，并区分目标合同与实现事实。Normalize 从[阶段架构](NORMALIZE_PIPELINE.md)进入[数据合同](../contracts/NORMALIZE_DATA.md)；开发诊断见[开发构建](DEV_MODE.md)，实现差异见[差异地图](SCIENCE_IMPLEMENTATION_DELTA.md)。

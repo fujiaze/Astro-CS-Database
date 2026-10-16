@@ -1,270 +1,36 @@
-# 模块 acsd.phase1.star-detection
+# Normalize 科学源检测
 
-本页的函数/参数记录按实际源码维护；阶段一字段、生产—消费关系与迁移以 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md) 为准。未接入生产的接口不可因“冻结/通过”措辞视为已实现。
+本页登记检测库与八节点 `star-psf` 中的科学源生产。处理顺序与两类星点的区别由 [Normalize 科学正本](../../science/normalize/NORMALIZE_SCIENCE.md)规定；检测本身不是 WCS 已解或条件参考精度正确的证明。
 
+## 入口、调用者与消费端
 
-> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节、「节点流程」一节（星表引导检测与WCS解算）、
-「P1 通量积分拟合」一节
-> 科学正本：docs/science/detection/STAR_DETECTION.md（SCI-P1-STAR-001）、
-> docs/science/algorithms/STAR_DETECTION_ALGORITHMS.md（ALG-STARDET-001）、
-> `docs/science/algorithms/common/GATES_AND_TOLERANCES.md`「冻结门表」一节、
-> `docs/science/detection/STAR_DETECTION.md`「亚像素质心」一节（质心/矩不确定度）
-> 数据正本：docs/detail/registry/acsd.phase1.star-detection.md（DATA-P1-STAR 端口表，本页输入输出端口表）
-> API 正本：docs/engineering/api/PUBLIC_API.md（API-STAR-001）、
-> docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P1-003）
+[公开头](../../../lib/algorithms/star_detection/include/star_detector.h)及 [sdet_api.cpp](../../../lib/algorithms/star_detection/src/sdet_api.cpp)提供两类入口：
 
-模块词汇 `acsd.phase1.star-detection` 是本页文档路径与模块卡片名，不是生产端口注册表的
-`module_id`；生产端口图上承担检测 + PSF 建模的节点模块是 `acsd.phase1.star-psf`（本页
-与 `acsd.phase1.star-psf.md` 同属一张登记面，两卡各写一面职责）。模块合同
-owner = SA-P1-S15。冻结合同 = `lib/algorithms/star_detection/README.md` +
-`module.yaml`（MOD-acsd-phase1-star，dll_target=acsd_p1_star_detection.dll，
-entrypoint 未落地）；权威签名头
-`lib/algorithms/star_detection/include/star_detector.h`，生产实现
-`lib/algorithms/star_detection/src/sdet_api.cpp`（检测内核 `sdet_detect_impl`）。
-
-## 职责与明确非职责
-
-职责：检测图像中的源（星点/延展源），输出位置、质心/矩、源身份与 selection
-function / completeness 参数。权威检测范式 = **星表引导拟合**（检测定义域是星表
-位置，用本帧已解出的权威 WCS 把 Gaia 星表反向投影到像素域，只对星表位置做
-质心/PSF 拟合；拟合成功即星点，失败直接丢弃，不计虚警、不报错）。
-
-生产实现 `sdet_detect_ex` 走**全图盲检测**路径：peaker 七步候选（11×11 局部
-极大 / 3×3 meanhigh / 二阶导零交叉 Sr,Sc / 振幅 Ar,Ac / 盒半径按 3.7172·S 向上取整
-/ 对称门 / 候选去重）+ Moffat4（GSL trust-region LM，7 参数）逐候选拟合 + 饱和星
-（edge-walking 中心、A > dynrange 标记）+ mag 排序去重截断（`SDetParams.maxStars`）；
-FP32/FP64 双通道。**全图盲检测连通域路径不是权威路径**，只服务非权威的诊断/初值
-用途。
-
-不做：图像灵敏度本身；PSF 批拟合/θ 消歧（star-psf 模块）；匹配 / WCS 求解
-（wcs-platesolve / gaia 客户端）；最终测光（photometry 模块）；背景估计与
-cosmetic 校正（消费 cleaned 帧）；排异（Phase2 推断）。检测目录是下游输入，
-不直接成为科学权重。
-
-## 输入输出端口、DATA、单位、坐标、invalid
-
-| 端口 | DATA | 必/可 | 单位 | 坐标 |
-|---|---|---|---|---|
-| `image` | `DATA-P1-COSMETIC` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
-| `star_det` | `DATA-P1-STAR` | 可 | 位置 px / 通量 ADU / 星等 mag | `CoordinateFrame::PIXEL` |
-
-输入 image = FP32 通道 uint16 量化（登记见STAR_DETECTION_ALGORITHMS［A-1］）/
-FP64 通道 double 不降级，加 `SDetParams`；另有逆投影先验，取值优先级见本页
-「Registry descriptor 与配置 schema」的先验链（显式天测键 → 本帧解算产物 →
-初始指向 + 旋转 / 视向）。
-
-输出 `star_det` = FLOAT64 `[N,6]`，列 x, y, flux, mag, saturated, has_saturated；
-x/y 为 0-based double 像素坐标（像素中心 = 索引 + 0.5）、flux 为 ADU（正常星 =
-振幅 A）、mag 为 float（NaN = 无效）、saturated/has_saturated 为 int 0/1。编排
-序列化另有 `star_det_psf_compat` FLOAT32 `[N,4]`。
-
-检测、PSF、WCS、测光、SNR 的 source row 绑定同一 `frame_id` / `source_id`。
-检测路径不消费逐像素 variance/ivar。输入全 NaN / 全饱和 → 拒绝并记录，不产出
-空目录冒充成功；边界源标记边界 flag。
-
-### 数值落地口径与实现落点
-
-检测阈值的冻结定义正本 = SCI-P1-STAR-001（语义要求）、
-STAR_DETECTION_ALGORITHMS［A-1］（离散公式）、docs/science/algorithms/common/GATES_AND_TOLERANCES［A-1］（冻结门表）；
-本页只记落地方式：阈值 = 全图中位数 + 阈值倍数 × 全局背景噪声 RMS，倍数由
-`detection_threshold` 给出（默认 5.0），作用在 σ=2 平滑图上，`bgnoise` 由 FnNoise1
-行差分族估计，实现落在 `sdet_detect_ex`（`pr.thr` 由 `pr.bg` 与 `pr.bgnoise`
-推出）。该阈值**仅适用于全图盲检测路径**。质心取一阶矩，二阶矩给出形状，误差
-来自局部噪声传播；局部噪声自适应为目标态、当前未实现（GAP 登记）。
-
-两条实现路径：
-
-| 路径 | 入口符号 | 说明 |
-|---|---|---|
-| 权威（星表引导拟合） | `sdet_detect_guided_ex_f64` | 定义域 = 调用方给的星表预测位置；逐位置做饱和判定、σ 估计、椭圆高斯拟合（与盲检测同一 `sdet_gauss_fit` / 仓内自研 trust-region LM 7 参）与 `reject_star` 质量门；拟合失败直接丢弃。统计量 `SDetGuidedStats{n_predicted,n_dropped,n_fit_failed,n_rejected,n_fit_ok,n_output}` |
-| 诊断/初值（全图盲检测） | `sdet_detect_ex` / `sdet_detect_ex_f64` | 平滑（含背景统计与饱和岛预标记）→ 阈值化与 8 连通组分 → deblending 解混 → 局部极大峰 → 边缘行走与零交叉宽度 → 拟合盒/对称门 → 并行 trust-region LM 拟合 → 质量排异；保留，非权威路径 |
-
-节点侧接线在 `lib/infrastructure/scheduler/src/module_adapters.cpp` 的
-`p1_op_star_psf_impl`：星表位置由 `p1_guided_predict` 产生，逆投影经
-`pc_project_sky_to_pixel` 走**本帧权威 WCS 的完整变换（含畸变）**。锥搜索中心与视场
-尺度取自本帧解算产物 `<frame_dir>/p1_wcs.json`（`p1_guided_wcs_product_prior` 解析，
-天测可用性用与 photometry 同一判据 `p1_wcs_astrometry_usable` 确认；尺度由
-`s0 = sqrt(cd11² + cd21²) · 3600` 现场导出，`s0 > 0` 为显式检查）。显式天测键与
-`wcs.init_source` 初始指向**只参与取向先验判据 `have_explicit_wcs`，不参与预测位置**；
-本帧解算产物缺失时按本页 fail-closed 表处置（`catalog_guided` 拒绝、`auto` 显式降级）。
-极限星等复用 `ipv::estimate_mag_lim_iterative` /
-`ipv::compute_fov_density`，不另立常数。
-
-**节点序上解算先于引导检测**：`platesolve` 节点按帧自读校准后像素自行检测与
-匹配，不消费检测产物，其近似指向由 `wcs.init_source` 给出；引导检测再以该权威
-WCS 作逆投影先验。
-
-## 公共 header、核心 symbol 与生命周期
-
-模块级 API = API-STAR-001（docs/engineering/api/PUBLIC_API.md），现行 6 个导出符号：
-`sdet_create` / `sdet_destroy` / `sdet_detect_ex` / `sdet_detect_ex_f64` /
-`sdet_detect_guided_ex_f64` / `sdet_free_detect_ex`。编排级 API = API-P1-003
-（docs/engineering/api/PUBLIC_API.md「分阶段 API 面」 底层模块函数登记，一帧一次权威检测）。全量签名清单见
-docs/engineering/api/PUBLIC_API.md。
-
-`n_pred = 0` 返回 rc = 0 + count = 0（空定义域非错误）；指针参数非法返回 −1。
-
-### Production callers
-
-生产调用点 = `run_stage_psf`（PSF/STAR_MEASURE 阶段），经 orchestrator.cpp：
-`sdet_create` 参数构造、FP64/FP32 通道、权威块 `star_det` FLOAT64[N,6] 写入。
-PLATESOLVE fallback 读块，禁止重检测。
-
-### 源文件
-
-`lib/algorithms/star_detection/`（生产源 `src/sdet_api.cpp` 的 `sdet_detect_impl`、
-`src/nls_lm.cpp`）。`lib/algorithms/star_detection/wrapper_phase1/` 为 P1-003
-桥接层的独立 sigma-clip 实现，与生产 `sdet_api.cpp` 非同一算法路径（matrix
-legacy_paths 第二路径）。
-
-现状构建有两条路径：`lib/algorithms/star_detection/Makefile` → `star_detector.dll`
-（orchestrator.cpp 显式加载，失败即错）；根 CMakeLists 目标 `acsd_phase1_stars`
-（STATIC，wrapper_phase1）。
-
-## Registry descriptor 与配置 schema
-
-module_id=`acsd.phase1.star-detection`; execution_class=`cpu_heavy`;
-parallel_ok=True。
-
-节点 `star-psf` 从输入的 `star_detection` 段解析检测模式（同一键也可回退到 `wcs`
-段的 `gaia_data_dir`），**模式与输入在节点级一次解析**，逐帧不再重解析。该段是
-合法配置段：合同声明 = `eng/contracts/schemas/phase_config_normalize.schema.json`
-`#/$defs/star_detection_config`（块内与平铺两形态同面）；CLI 认键面 =
-`lib/infrastructure/cli/session_commands.h` 的 `config_fields(SessionId)`（逐会话
-字段声明，`SESSION_NORMALIZE` 为 normalize 会话）与 `lib/infrastructure/cli/parser.cpp`
-的 `session_keys()`（平铺会话键集）。**缺段不是错误**，全取编译期
-默认；段内未知键被 schema 拒（`additionalProperties: false`）。
-
-本段一切「规模/上限」类数字都由配置键与星表查询口径导出：检测定义域 =
-`star_detection.max_stars`（设计自定算力上界，非科学常数，语义正本 =
-最高设计的 normalize 节点流程一节）；拟合样本上限 = `photometry.fit.max_stars`（默认 5000）；
-交付 SNR 样本上限 = `snr.max_sources`（默认 0 = 不限，只截断交付样本行、**不**
-截断检测定义域）。三者各自只承担自己的口径，合同域正本 =
-`phase_config_normalize.schema.json`。
-
-| 字段 | 默认 | 单位 | 说明 |
-|---|---|---|---|
-| `mode` | `auto` | —— | `auto` = 有参考星表且取向先验可得时走权威路径，否则**显式降级**为 `blind_diagnostic` 并把原因写进 manifest 的 `detection_degraded_reason`；`catalog_guided` = 显式声明权威路径，前置条件不满足即 DATA fail-closed；`blind_diagnostic` = 显式声明的非权威诊断路径 |
-| `gaia_data_dir` | 无 | path | 本地 XPSD 星表目录（权威路径必需；亦可用 `wcs.gaia_data_dir`） |
-| `max_stars` | 20000 | 颗 | 检测定义域上限（按 G 星等升序取 top-N）。合同域 = [20000, 50000]，越界即 DATA 拒绝，禁静默夹取 |
-| `approx_wcs` | 无 | —— | 显式天测键 `{crval1, crval2, cd11, cd12, cd21, cd22}`，**仅服务取向先验判据**（是否有显式取向先验），**不再参与引导投影**——引导预测使用本帧权威 WCS 的完整变换（含畸变）。六键齐备时记入 `have_explicit_wcs` |
-| `rotation_deg` + `parity` | 无 / `pos` | deg / `pos\|neg` | 逆投影先验的兜底给法（无解算产物且无显式 CD 时生效）：像面相对「北向上/东向左」的旋转（逆时针为正）与镜像标志；板尺度由 `wcs.init_source` 派生的 `s0` 给出 |
-| `limiting_mag` | 由焦距/画幅/曝光派生 | mag | 显式指定极限星等；缺省时由 `ipv::estimate_mag_lim_iterative` 按 `focal_length_mm`、画幅、`EXPTIME` 迭代派生（宁多勿少） |
-| `limiting_mag_safety` | 3.0 | —— | 极限星等迭代的目标星数倍率（目标星数 = 目标星数基值 × safety）。缺省 = `ipv::IPVSolverParams::m_lim_safety` |
-| `query_radius_factor` | 0.55 | —— | Gaia 查询半径因子（查询半径 = FOV 对角线 × 因子）。缺省 = `ipv::IPVSolverParams::gaia_query_radius_factor` |
-| `limiting_mag_max_iter` | 4 | 次 | 极限星等迭代的最大 Gaia 查询次数。缺省 = `ipv::IPVSolverParams::m_lim_max_iter` |
-
-**逆投影先验是权威路径的必需输入**：星表逆投影必须知道像面取向与镜像。生产默认
-来源 = 本帧解算产物 `<frame_dir>/p1_wcs.json`（`platesolve` 节点先落盘，由 IR 的
-typed 边 `artifact:p1_wcs` 保证序）；配置的 `approx_wcs` / `rotation_deg` + `parity`
-是覆盖与兜底。两种来源都不可得时：`catalog_guided` 直接 DATA 拒绝，`auto` 显式
-降级（`detection_authoritative=false`），**权威取向只出自已解 WCS 或显式声明的
-先验**。先验来源逐帧记入 manifest 溯源（`guided_wcs_source` /
-`guided_wcs_crval1_deg` / `guided_wcs_crval2_deg`）。
-
-全图盲检测路径的键（诊断/初值，非权威）：
-
-| 字段 | 默认 | 单位 | 说明 |
-|---|---|---|---|
-| `detection_threshold` | 5.0 | σ（全局 bgnoise） | 全图盲检测专用；与 `eng/packaging/config/defaults.json#detection.threshold_sigma` 同义 |
-| `min_area` | 2 | px | 最小连通像素数。仅全图盲检测 / 连通域诊断（星表引导路径不做连通域） |
-| `deblend` | true | —— | 是否解混。仅全图盲检测 / 显式声明的可选诊断 |
-| `selection_function` | true | —— | 是否输出 selection function |
-
-## Execution class、并行轴、ThreadBudget lease、确定性
-
-`cpu_heavy`; parallel=是（资源门拒绝 heavy+serial 组合）。现状无 ThreadBudget
-接线，worker 数取进程默认 team（迁移整改点）；取消接线同样未落地。
-
-handle 级互斥使用（单 handle 单线程，无内部锁，docs/engineering/api/PUBLIC_API.md「分阶段 API 面」 底层模块函数登记表行 no/no）。
-OpenMP 四处：行差分背景噪声估计、入口像素类型转换、盲检测候选拟合（dynamic +
-reduction）、星表引导候选拟合（同款 dynamic + reduction，每线程私有 LM 工作区）。
-dedup / sort / maxStars 截断串行。
-
-确定性 = `fixed_reduction_order`，输出 bitwise 与线程数无关。
-
-## 内存/cache/I-O/所有权
-
-I-O 零文件/网络；模块不经统一 I/O 入口直接读写产物。
-
-所有权 = 输出十数组由模块 malloc，调用方唯一经 `sdet_free_detect_ex` 整组释放
-（sdet_api.cpp）；释放一律经该接口整组进行，不逐元素释放。无模块内 cache。
-
-## 错误、日志、指标、取消和 checkpoint
-
-入口 rc：0 = 成功（含 0 星空场：输出全 NULL + count = 0，非错误）；−1 = 参数无效
-/ 句柄 NULL / 分配失败（`sdet_detect_guided_ex_f64` 在 `pred_x` / `pred_y` 为 NULL
-且 `n_pred > 0` 时同样返回 −1）。拟合级 `SDET_FIT_*`（非 OK 候选丢弃）；质量门
-`reject_star` 的 `SfError` 六码。编排级 det_ret ≠ 0 或 count ≤ 0 → 退出码
-`STAR_DETECT_FAILED`（orchestrator.cpp）。错误码与退出码唯一源 =
-lib/infrastructure/cli/exit_codes.h（本页不复制数值表）。
-
-边界与丢弃：边界源标记边界 flag；距边界 < 2px 的星表预测位置允许丢弃并计入
-`n_dropped`（与全图盲检测同判据）；亮星饱和/拖线标记，不参与后续 PSF/测光默认
-路径。
-
-### 权威路径的 fail-closed 语义（DATA 域拒绝，不降级、不冒充）
-
-| 情形 | 行为 |
+| 路径 | 调用及职责 |
 |---|---|
-| `catalog_guided` 且未配置星表目录 | DATA 拒绝（点名 `gaia_data_dir`），不回退全图盲检测 |
-| 星表目录 0 个 `.xpsd` | DATA 拒绝（`gaia catalog is empty`） |
-| 星表 shard 装载失败或装载数 ≠ 条目数 | DATA 拒绝（`gaia catalog is incomplete` / `gaia_client_create failed`） |
-| 逆投影先验缺失（无本帧 `p1_wcs.json` 产物，且无 `rotation_deg`） | `catalog_guided` DATA 拒绝；`auto` 显式降级并把原因写入 manifest 的 `detection_degraded_reason` |
-| 本帧 `p1_wcs.json` 存在但天测不可用（缺 crval/CD、非有限、CD 退化） | DATA 拒绝（判据 `p1_wcs_astrometry_usable`，禁 silent default） |
-| 星表逆投影后帧内 0 星，或全部拟合被质量门拒绝 | DATA 拒绝（`0/N catalog-guided fits survived`），不回退全图盲检测冒充成功 |
-| `max_stars` 越出 [20000, 50000] | DATA 拒绝（禁静默夹取） |
+| `sdet_detect_ex` / `sdet_detect_ex_f64` | 图像盲检；IPV 用于生成私有 `solver_detections`，无已解 WCS 前提 |
+| `sdet_detect_guided_ex_f64` | 接收调用方预测位置，逐位置质心/轮廓拟合；完整 WCS 后生产 `science_sources` |
+| `sdet_create` / `sdet_destroy` | 管理检测参数/句柄；同一 handle 不并发使用 |
+| `sdet_free_detect_ex` | 成组释放输出位置、通量、标志及 extras |
 
-**对上游 WCS 的消费口径**：本块**消费 `wcs-platesolve` 的完整 WCS（含 SIP 畸变项）**，用于把参考星表逆投影到像素域；**不接受丢弃畸变的降级载体**——逆投影必须用与解算器同一套系数的完整变换，近似指向只用于锥搜索中心与视场尺度，不用于预测位置。引导路径对预测位置不做搜索（直接在该位置拟合质心与椭圆高斯），因此预测偏差必须小于星像尺度；帧角畸变可达二十余像素，丢畸变即意味着场边参考星全部检不出。
+CLI 调用链为 [module_adapters.cpp](../../../lib/infrastructure/scheduler/src/module_adapters.cpp) 的 `p1_op_star_psf_impl → p1_guided_predict → pc_project_sky_to_pixel → sdet_detect_guided_ex_f64`。投影消费本帧已解 WCS 与 SIP，近似指向仅用于搜索/初值，不能代替最终预测。该步骤属于 `acsd.phase1.star-psf`，没有另一个独立 `star-detection` 生产调度节点。
 
-**往返门口径分层**：全链往返冻结门为 `1e-4` px。畸变模型给出的是**前向**变换（天球到像素），逆方向（像素到天球）由解算器以最小二乘拟合的逆多项式或迭代反演给出，二者的表示误差不同量级：在边缘畸变达数十像素的仪器上，**逆多项式与迭代反演不得共用同一个往返数**，判据必须分层给出。因此本块不依赖逆多项式做预测，预测走前向完整变换，避免引入逆方向的表示误差。畸变模型与往返门的定义见天体测量分册。
-- **负例与归零分支 N22（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造甲 =
-  `max_stars` 取 19999 / 50001；负例输入构造乙 = 空场（0 星）输入。预期行为甲 =
-  DATA 拒绝，不静默夹取到边界。落盘标记甲 = 拒绝原因 + 越界值。预期行为乙 =
-  `rc = 0` + 输出全 NULL + `count = 0`（非错误，归零分支）。落盘标记乙 =
-  `count = 0` 空场标记；把空场当失败、或把越界静默夹取 ⇒ 判红；
+输出经 source ID 与 PSF 参数关联，供 photometry、noise、Drizzle 使用；解算候选与科学源不互相冒充。实际跨节点载体含 `p1_sources.json`，完整 typed 对象目标见[数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。
 
-manifest 顶层与逐帧记录 `detection_mode`、`detection_authoritative`、
-`detection_degraded_reason`、`star_detection_max_stars` 与 `gaia` 溯源块。
+## 输入输出合同
 
-取消 = 无模块内取消检查点（迁移整改点）；模块内无 checkpoint。
+输入图像为行主序 uint16 或 double；引导位置是 detector 像元坐标，外部 sky 为 ICRS degrees。内部数组中心遵循零基索引、FITS WCS 桥接加一；不得从头部注释中的半像元写法另造一次偏移。投影/adapter 必须按同一合同核对。
 
-## 独立 synthetic 验证命令与容差
+输出包含 x/y、flux、mag、saturated、has_saturated 和 extras；位置为 double，但既有 C API 的 flux/mag 输出数组是 float。检测 flux 的估计器身份与后续 PSF 积分通量分开，不能按相同字段名互换。
 
-`TEST-STAR-DESIGN-001`（ALG-STARDET-001，冻结测试设计与容差：合成场质心
-/ FWHM / 召回 / 虚警、饱和/混合/边缘专项、确定性 bitwise、FP64 独立 oracle、负例、
-回归锚）；可执行 `TEST-P1-STAR-001` 待建。现状无仓内可复算的共址测试套件；
-FP64 手工验证程序已退役。
+`SDetGuidedStats` 分列 predicted、dropped、fit_failed、rejected、fit_ok、output；去重/截断前后数量各有意义。单候选拟合失败可丢弃并计数；底层零预测域返回成功且 count=0，节点层再按所需下游能力判断。
 
-Oracle 面：
+## 参数、所有权与错误
 
-- 合成图像注入已知源（位置/亮度分布已知）→ 检测率、误检率、质心精度符合理论；
-- selection function 与注入分布一致；
-- 改变星表亮度分布只改变 source-SNR 摘要，不改变信息权重（跨模块验证）；
-- 1 worker vs N worker 输出一致；
-- **负例与归零分支 N03（T05–T07 负向轮，检测浮点帧两态）**：负例输入构造甲 = 浮点帧上
-  `snr.max_sources = 0`（不限）；负例输入构造乙 = 同一帧上 `snr.max_sources = K > 0`。
-  预期行为甲 = 只截断交付样本行、不截断检测定义域（`maxStars` 只管交付上限）；
-  预期行为乙 = 同甲，且交付行数 ≤ K 并落盘 `truncated` 标志与被计入样本数。落盘标记 =
-  交付样本 `truncated` 布尔 + 计入数；把样本上限解释成定义域截断 ⇒ 判红；
-- 权威路径判据 `p1star_guided`：真值位置召回与质心（|Δc| ≤ 0.3px @ SNR ≥ 20）、
-  纯噪声场虚警 ≤ 0.1/千像素（发布门 `G-P1-STAR-FP`）、定义域丢弃计数守恒、
-  1/4 线程逐位一致、定义域非退化（预测位置整体偏移后输出不落在真星上）、
-  空定义域非错误；
-- 节点级判据 `p1stardet_node_gate`：本节 fail-closed 表每条的红例 +
-  `blind_diagnostic` / `auto` 的绿例与降级落档断言 + 真实帧（testdata）权威路径与
-  盲检测的对照；上述两组判据的读数载体不在本仓可复算路径上；
-- 节点序与边保真判据（C4–C7：无幻边 / 序
-  为注册表 DAG 拓扑序 / IR 序 == 注册表声明序 / `psf` 在 `wcs` 之后且声明
-  `artifact:p1_wcs` 输入 / 非退化），含 4 条负例注入（交换 `psf` / `wcs` 序、恢复
-  幻边、移除 `psf` 的 WCS 输入），逐条必判红；其执行器不在本仓可复算路径上。
+配置 `star_detection` 提供 mode、Gaia 目录、查询/星数范围与诊断阈值；PSF 拟合样本上限和 `snr.max_sources` 交付上限不是同一个数。当前 mode 分支及可用 WCS 检查由 adapter 执行，不在库内查询星表。
 
-## 已知限制
+库返回 0 表示调用完成，-1 表示参数/分配失败；候选丢弃用统计表达。调用方必须使用成组 free，视图有效期覆盖同步调用。候选拟合可按独立位置并行，宿主提供预算；不能仅按实现循环推断不同 worker 数逐位等价。
 
-- ThreadBudget 接线与取消检查点缺失（缺陷登记 = ALG-STARDET-001），迁移
-  目标未落地；
-- dll_target = acsd_p1_star_detection.dll，entrypoint 未落地；现状生产构建走
-  `star_detector.dll` 显式加载与 `acsd_phase1_stars` 静态库两条路径；
-- `wrapper_phase1` 为非生产算法路径的桥接实现；
-- 局部噪声自适应为目标态、当前未实现；
-- 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
+## 验证入口与边界
+
+[检测科学分册](../../science/detection/STAR_DETECTION.md)说明召回、质心和选择偏差的定义。验证应以已知位置/亮度的注入场、错位预测、空域、边缘、饱和、拥挤与去重计数覆盖公开入口；[阶段一管线测试](../../../eng/tests/pipeline/test_stage_normalize.py)用于检查实际节点序。独立绝对 WCS 残差和 source SNR/参考精度仍需分别验证；当前差异统一见[实施地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。

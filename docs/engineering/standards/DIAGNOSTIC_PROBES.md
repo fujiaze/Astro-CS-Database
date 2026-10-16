@@ -1,8 +1,6 @@
 # ACSD 中间数据快照与性能探针插入规范
 
-> 工程标准正本；上游：docs/ACSD_DESIGN.md §3、§8–§10、§13 及 docs/engineering/architecture/DEV_MODE.md。已有基础设施：lib/infrastructure/observability/probes/include/acsd/probe.h、src/probe.cpp、lib/infrastructure/aio/。2026-10-14 目标规范，**实现前不声称 API/格式已存在**。
->
-> 核心约定：**一套探针身份、一条共享诊断通道、一个公开编译开关 ACSD_DEV_MODE**。所有开发快照与详细性能事件**只观察科学计算，不是科学产品、不影响执行路径、永不被后续计算读取**。Phase2 正式产品仍是一个 signal HiPS 科学图像通道。
+本文依据最高设计与开发构建架构[1,2]规定探针身份、数据格式、插入边界和资源约束。开发快照与详细性能事件通过共享诊断通道观察既有科学输出，构建能力由 ACSD_DEV_MODE 控制；正式阶段产品范围由各阶段合同规定。
 
 ## 1. 插入点及职责分层
 
@@ -206,22 +204,11 @@
 
 系统 CPU 利用率、进程 CPU 时间、I/O queue wait、页面缓存命中/物理读、各 worker busy/idle 是不同量；不得拿 `/proc/stat` 系统 iowait 归因成 ACSD 自己的块 I/O 等待。输出的 summary 需要包含运行机器、处理帧数、tile/leaf 规模、线程租约和实际可用 CPU；中位数/分位数说明按事件还是按工作量加权。
 
-## 9. 可编译的 API 形态约束（不是当前已实现函数签名）
+## 9. API 与调用约束
 
-伪接口示意（用现有 acsd/probe.h 作为性能主入口；Snapshot API 由 Agent 依现有 AIO/ABI 分层实现）：
+性能主入口为 acsd/probe.h。已有 acsd/dev_diagnostics.h 声明 SnapshotMeta、begin_run、finish_run、snapshot_image_f32、snapshot_image_f64 和 snapshot_text；调用宏为 ACSD_DEV_SNAPSHOT_IMAGE_F32、ACSD_DEV_SNAPSHOT_IMAGE_F64、ACSD_DEV_SNAPSHOT_TEXT。新增插入点复用这些接口，按真实缓冲的形状、坐标和寿命填写元数据，不另造只有文档中存在的通用 view 宏。
 
-```cpp
-void compute_weight_tile(const Input& input, MutableOutput& output) {
-#if ACSD_DEV_MODE
-  ACSD_PROBE_SCOPE("mosaic", "weight.compute_tile");
-#endif
-  compute_scientific_weights(input, output);     // 两档调用完全相同
-#if ACSD_DEV_MODE
-  ACSD_DEV_SNAPSHOT_VIEW("mosaic.weight.surface_precision",
-                         output.readonly_view()); // 示例宏，待实现
-#endif
-}
-```
+这些接口的存在不表示所有科学探针、异步队列和元数据合同已经实现；按具体调用点核验其语义和失败处理。
 
 代码约束：
 - 宏为完整语句，并保证 `ACSD_DEV_MODE=0` 下**不求值传入表达式**，尤其禁止额外为 dump 调用昂贵的 `reconstruct_dense()`；同一个输出缓冲在编译 OFF 时没有额外引用/构造/拷贝；
@@ -231,19 +218,17 @@ void compute_weight_tile(const Input& input, MutableOutput& output) {
 - 逐像元热点的 detailed event 应按确定性采样或 per-thread 聚合，不因探针采集本身超过算法耗时而误判优化方向；
 - 诊断异常不穿透科学 API；普通产品/正式日志错误仍使用正式错误模型。
 
-## 9A. 现有实现的独立审查更正：观测身份与非阻塞写盘
+## 9A. 观测身份与写盘边界
 
-> 来源：实验/engineering-evidence/acsd-science-docs-p5/SCIENCE_V2_AGENT_INDEPENDENT_REVIEW_F8C011BAD.md 的 F02、F05、F06。这是**正向目标规范**，不宣称当前 C++ 全部实现。
-
-### 9A.1 探针必须保存真正的被观测量
+### 9A.1 被观测量的单位与状态
 
 当前阶段二 writer 的内部量 flux_sum = signal × covered_area，是归一前的累加分子，不是面亮度 signal。若 probe_id 为 mosaic.integration.signal_tile，其值应是最终 signal = flux_sum / covered_area（或同义上游 signal，须与 HiPS 读回值对拍）。**禁止**把 flux_sum 直接标为 ADU/sr 和 signal。若三个量都要观察，明确分别命名 mosaic.integration.flux_sum、mosaic.integration.covered_area（单位 sr）、mosaic.integration.signal_tile（面亮度单位），说明无覆盖 NaN、真零与有限负数，检查实际 NESTED ↔ HiPS FITS-local 手性转换、F32 量化和除法次序。
 
-阶段一 normalize.noise.reference_snr 也必须依据真实 snr_caliber、gain、F_ref、PSF/noise model 写动态 metadata：upper_bound_no_gain 是源散粒项未计算的条件上界，不是绝对参考通量方差。frame_snr 快照与实际稀疏空间控制点 catalogue **不能混同**。
+阶段一 normalize.noise.reference_snr 保存真实参考、gain 来源、PSF/noise 模型及能力状态。缺 gain 不自动构成 SNR 上界；只有固定模板、观测域和估计量且遗漏项是半正定噪声加项时，才有相应条件上界[3]。frame_snr 摘要与空间控制点分别具名，兼容字段不自动成为 canonical 参考精度。
 
 ### 9A.2 快照 I/O 不应在全局锁内堵住科学热点
 
-当前 dev_diagnostics.cpp 在持有全局 mutex 时执行 FITS/JSON 写盘和 SHA-256，mosaic 的 tile 循环同步调用，违反已有“有界低干扰”目标。统一实现应当：
+当前 dev_diagnostics.cpp 的图像及文本快照入口持有全局 mutex 执行写盘；这与有界低干扰目标存在差异，不能由头文件注释宣称已经非阻塞。统一实现应当：
 
 1. 很短的临界区只进行 selector/预算/sequence 预留；没有选中或 byte-budget/queue 已满立即登记 SKIPPED_BUDGET，不等待磁盘。
 2. 在数据 view 有效时，做有界只读复制并将**有所有权**的缓冲交独立低优先 I/O worker；任何异步借用必须显式证明生命周期，不允许 use-after-free。
@@ -269,3 +254,11 @@ void compute_weight_tile(const Input& input, MutableOutput& output) {
 9. **参考旧路径**：ACSD_DEV_INTERMEDIATE_CACHE、ACSD_DEV_PROBES、ACSD_DEV_CHECKPOINT、ACSD_PROBES、ACSD_NODE_TRACE/LEASE_TRACE/P1CAP_TRACE、ACSD_UPM_PROFILE 与 ACSD_*_FAULT 逐项给出迁移/隔离结果，不必为旧 ABI 字段误删科学功能。
 
 实验按科学问题安排，不设审批式门禁。前台负责本标准后续修订；Agent 可提出有代码/实测支撑的建议，但不得自行发明第二套规范或修改统一科学模型。
+
+## 参考文献
+
+[1] [ACSD 最高设计](../../ACSD_DESIGN.md)。
+
+[2] [开发诊断构建](../architecture/DEV_MODE.md)。
+
+[3] [噪声与条件参考精度](../../science/noise_snr/NOISE_SNR.md)。

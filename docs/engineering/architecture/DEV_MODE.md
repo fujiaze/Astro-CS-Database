@@ -1,8 +1,6 @@
 # ACSD 开发诊断构建与发布构建：唯一编译开关
 
-> 工程架构正本。上游：docs/ACSD_DESIGN.md §1、§8–§10、§13；探针插入/命名/格式的规范见 docs/engineering/standards/DIAGNOSTIC_PROBES.md。2026-10-14 目标设计（**不是当前代码已全部实现的声明**）。
->
-> 本文规定**一个公开的编译期主开关**、两种构建、开发诊断的边界和科学数据通路不变量。已有旧实现的事实见文末“现状与迁移”；不把当前热路径“写盘再读回”包装成设计目标。
+本文依据最高设计[1]规定诊断构建开关、记录范围及科学数据流边界；探针身份、格式和插入方法由探针标准细化[2]。编译配置、诊断 API 存在与运行等价分别核验，实施差异由工程地图维护[3]。
 
 ## 1. 用户要求与核心不变量
 
@@ -37,15 +35,11 @@ CMake 实施时：
 - `ON` 时诊断 sink 和计时 API 由公共基础设施实现，业务模块只调用抽象接口，**不**逐模块建文件、写 JSON、打开 FITS；
 - 由同一主开关派生当前内部使用的 `ACSD_PROBES` 宏定义（若为了兼容旧头），但不能将 `-DACSD_PROBES=ON` 保留为可独立激活发布诊断的用户入口。
 
-## 3. 清理既有多开关分叉
+## 3. 编译配置与兼容名称
 
-当前仓库根 CMake 真实存在：
-- `ACSD_PROBES`：独立默认 OFF 的性能库构建选项；旧 `acsd/probe.h` 在 OFF 时宏为空，ON 时需 `ACSD_PROBE_LOG` 才写；
-- `ACSD_DEV_MODE`、`ACSD_DEV_INTERMEDIATE_CACHE`、`ACSD_DEV_CHECKPOINT`、`ACSD_DEV_PROBES`：一个主项加三个子项；
-- 仅部分 target 收到相应 compile definitions，不能据此声称三阶段探针已经一致；
-- `ACSD_NODE_TRACE` / `ACSD_LEASE_TRACE` / `ACSD_UPM_PROFILE` 等旧环境探针依然可能不受开发构建约束。
+根 CMake 已用 `ACSD_DEV_MODE` 派生 `ACSD_PROBES`、`ACSD_DEV_PROBES` 和 `ACSD_DEV_INTERMEDIATE_CACHE`，并将 `ACSD_DEV_CHECKPOINT` 固定为 OFF。保留的 `option(ACSD_PROBES ...)` 是兼容输入名称；随后的普通变量赋值决定构建分支，不能单凭这个名称认定发布诊断仍可独立启用。
 
-**目标整改**：对用户和发布打包只保留 `ACSD_DEV_MODE` 一项作为开发仪表能力选择。合并旧 ACSD_PROBES 到该主开关，尽量**复用**现有 `lib/infrastructure/observability/probes/include/acsd/probe.h`、`src/probe.cpp`、AIO I/O 与 runtime trace，不新建第二套时钟/探针库。旧子项在迁移后不再是独立 public build option；迁移过程中可暂作内部由主开关导出的别名，但绝不能让它们在主开关 OFF 时启用诊断。
+性能入口复用 `lib/infrastructure/observability/probes/include/acsd/probe.h`，快照入口为同目录 `dev_diagnostics.h`。根构建按主开关加入对应实现；各调用点的编译闭包、环境触发和科学依赖是否全部符合规范，仍要逐路径核验。编译配置的静态收敛不证明 ON/OFF 的真实运行结果已经等价。
 
 **特别区分检查点/续跑**：`ACSD_DEV_CHECKPOINT` 的旧语义是“跳过已完成帧/改变后续运行路径”。这**不是**纯被动仪表能力。若产品未来需要断点续跑，应作为单独的业务功能与数据正确性方案论证，不受诊断主开关偷偷控制。本次开发模式任务只允许“检查点内容的被动快照”，不允许借调试开关启用/禁用科学任务的跳算行为。
 
@@ -102,13 +96,18 @@ CMake 实施时：
 
 测试为科学设计及工程测量的一部分，不设置自动审批式发布门禁。任何未实现项明确写为待修代码，不因本文存在而宣称已完成。
 
-## 8. 当前源码状态与需要 Agent 一并修复的缺口
+## 8. 实现核对范围
 
-1. `CMakeLists.txt` 确有 ACSD_PROBES 与 ACSD_DEV_MODE/三个子项两条配置路径；现状不满足单开关目标。
-2. `docs/engineering/architecture/DEV_MODE.md` 旧版曾明确记录：部分 p1_calibrated/photometry 热路径先写盘再读回，编译分支可能改变缺失时的回退行为。必须先清除计算依赖分叉，不能只用 `#ifdef` 隐藏 writer。
-3. `lib/infrastructure/observability/probes/include/acsd/probe.h`、`src/probe.cpp` 已有稳态计时、线程局部批量事件的可复用实现；它不是全新未实现功能。
-4. `lib/infrastructure/scheduler/src/module_adapters.cpp`、`lib/algorithms/coverage/tools/stage2.cpp`、`lib/algorithms/drizzle/healpix_drizzle/` 等是候选快照调用点，但要按真实数据流核对对象的生命周期与坐标单位。
-5. 内部 `ACSD_NODE_TRACE/LEASE_TRACE/P1CAP_TRACE/UPM_PROFILE` 与 `ACSD_*_FAULT` 路径要统一归类；只读性能细探针进 ACSD_DEV_MODE，被动快照也进该模式；故障注入必须留在专用实验模式/测试文件，不给发布版留触发入口。
-6. 计算依赖的 checkpoint/断点续跑属于另一个产品设计问题，本轮不靠开发开关开启/关闭跳算。
+`probe.cpp` 已有稳态计时与线程局部批量事件；`dev_diagnostics.cpp` 已有快照、选择器及诊断清单。后者的图像和文本快照入口在全局互斥锁内执行同步写盘，仍与有界低干扰目标存在差异。接口注释中的非阻塞承诺必须与实际实现分别说明。
 
-实施细节、探针清单、记录格式、格式化数值/坐标的约束，唯一权威见 standards/DIAGNOSTIC_PROBES.md。代码提交/复现证据由实验/engineering-evidence/acsd-science-docs-p5/SCIENCE_V2_AGENT_TASK_PACKAGE.md 承接。
+正式阶段内文件依赖、科学 spill 与纯快照分别追踪；不能只隐藏写出代码而保留下游读取。各 `ACSD_*_TRACE`、profile 与 fault 路径按真实用途核对编译边界，不由命名前缀推断已隔离。故障注入与续跑会改变行为，应使用其独立合同，不包装为被动诊断。
+
+具体实施差异和证据范围集中在工程实施地图[3]；探针格式与调用约束由探针标准[2]维护。
+
+## 参考文献
+
+[1] [ACSD 最高设计](../../ACSD_DESIGN.md)。
+
+[2] [中间快照与性能探针标准](../standards/DIAGNOSTIC_PROBES.md)。
+
+[3] [科学设计与生产实现差异](SCIENCE_IMPLEMENTATION_DELTA.md)。

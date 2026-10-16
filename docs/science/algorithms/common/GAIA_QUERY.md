@@ -1,296 +1,68 @@
-# Gaia XPSD 查询（ALG-GAIA-001）
+# 本地 Gaia XPSD 查询算法
 
-> 上游：ACSD_DESIGN.md [D-1]「精度归属」一节（科学量与星表）、[D-1]「节点流程」一节（Phase1 节点流程）、
-> SCI-AST-001（docs/science/detection/ASTROMETRY.md，别名 SCI-WCS-001）
-> 权威源码: lib/infrastructure/gaia_xpsd_client/src/gaia_client.c（本文件全部离散公式、常量、
-> 行为边界均从该文件逐函数核对；与 lib/infrastructure/gaia_xpsd_client/README.md 的
-> 性能摘要冲突时以本文与源码为准）。
+本文说明本地星表查询的几何、记录解码、数据边界及独立检验方法。坐标与天测责任由科学正本规定[1]，查询接口的输入、返回值和所有权由公共 API 与模块说明承接[2,3]，阶段用途由 Normalize 科学链规定[5]。实际实现位于 `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c`，公开声明在同目录 `gaia_client.h`；源码用于核对行为，不高于科学定义。
 
-## 1. 科学定义（连续层面，源自 SCI-AST-001）
+## 查询对象与坐标
 
-给定查询锥（球心 `q=(RA_q, Dec_q)`，角半径 `ρ`，单位度，J2000/ICRS）与星等窗
-`[m_lo, m_hi]`，返回 XPSD 本地星表（Gaia DR3 / DR3SP）中满足
+给定 ICRS 查询方向 q、角半径 rho 和 G 星等闭区间，目标集合满足
+\[
+ \arccos(\operatorname{clamp}(q\cdot s,-1,1))\le\rho,
+ \qquad m_{\min}\le m_G\le m_{\max}.
+\]
+角度单位须按入口从度转换为弧度。星表参考历元与观测历元分别记录；ICRS 不是 J2000 历元的同义词。本查询器不执行完整自行传播、SIP 或板解；IPV 的几何候选与解算后的 Gaia-guided science_sources 也不因共享查询接口而成为同一星表。
 
-```text
-d(q, s) = acos( sin Dec_q · sin Dec_s + cos Dec_q · cos Dec_s · cos(RA_s − RA_q) ) ≤ ρ
-m_lo ≤ m_G(s) ≤ m_hi        （闭区间，两边界都包含）
-```
+当前精筛采用球面单位向量点积展开及 acos。clamp 防止舍入后超出定义域，不能恢复丢失的小角度精度。acos 在点积趋于 1 时病态，不能给所有小锥声称固定 1e-16 rad 的角距误差；极小角距需用独立 atan2/叉积或 haversine 参照测量边界误分类。
 
-的全部恒星子集。坐标 frame、`RA∈[0,360)`、`Dec∈[-90,90]` 的契约与
-`docs/science/detection/ASTROMETRY.md`「坐标参考系」一节一致；本模块不做自行消化（proper motion）、
-不做 SIP/像素投影（plate_solve 侧）、不做匹配求解。
+## XPSD 记录解码
 
-## 2. 离散公式（源码逐条对应）
-
-### 2.1 角距判定（gaia_client.c:1242-1249 / 1371-1377 / 1510-1516 / 2082-2088）
-
-实现为标量三角展开（与 2.1 式恒等，避免大 RA 差的余弦精度损失）：
-
-```text
-d_ang = cos(Dec_q)·cos(Dec_s)·( cos(RA_q)·cos(RA_s) + sin(RA_q)·sin(RA_s) )
-      + sin(Dec_q)·sin(Dec_s)
-d_ang = clamp(d_ang, -1, +1)          # 浮点域保护
-accept  ⟺  acos(d_ang) ≤ ρ·(π/180)
-```
-
-预计算 `cos/sin(RA_q), cos/sin(Dec_q), cos(ρ)`（入口一次）；每颗候选星计算
-`cos/sin(RA_s), cos/sin(Dec_s)`。
-
-### 2.2 星等解码（gaia_client.c:1222）
-
-```text
-m_G = raw_u16 × 0.001 − 1.5      # XPSD 记录偏移 +20，uint16
-m_BP = raw_u16 × 0.001 − 1.5     # 偏移 +22（仅 DR3SP）
-m_RP = raw_u16 × 0.001 − 1.5     # 偏移 +24（仅 DR3SP）
-```
-
-**量纲/单位**：`m_G/m_BP/m_RP` 单位 **mag**（沿用星表发布口径）；
-`raw_u16` 为 uint16 计数，记录偏移 +20/+22/+24 字节。**标度与零点**：
-步长 `0.001 mag/LSB`、零点 `−1.5 mag`（即 `raw=0` ⟺ `m=−1.5`）——
-两个常数都是 **XPSD 记录格式常量**，出处为格式定义本身；实现锚
-`gaia_client.c:1827`（G）、`:2138-2139`（BP/RP）。
-**适用域**：`m ∈ [−1.5, +63.9] mag`（uint16 全域）；解码为整数域有理式，
-**无饱和、无 NaN**，故星等窗边界的相等判定精确（§5 I4）。
-星等窗过滤在反投影之前（先过滤后投影，块内跳过）。
-
-### 2.3 位置解码（gaia_client.c:1212-1240）
-
-Equirectangular 树（赤道带 4 棵）：
-
-```text
-x = x0 + dx · (1/1.8e9)  deg     # dx uint32，1/1.8e9 deg = 2 µas/LSB
-y = y0 + dy · (1/1.8e9)  deg
-RA_s  = center_ra + x
-Dec_s = y
-RA_s += dra_raw · (1/3.6e8)      # dra_raw int16，偏移 +26，非 0 才加（10 µas/LSB）
-RA_s  归一到 [0,360)
-```
-
-AzimuthalEquidistant 树（极冠 2 棵，投影中心=极点，`unproject` gaia_client.c:622-646）：
-
-```text
-xr = x·(π/180), yr = y·(π/180), r = hypot(xr, yr)
-r < 1e-15  → RA_s = center_ra, Dec_s = center_dec   # 投影中心（极点）
-否则:
-  c = asin(cos r);  南冠 (center_dec < 0) 时 c = −c
-  RA_s  = center_ra + atan2(xr·sin r / r, yr·sin r / r) · (180/π)
-  Dec_s = c · (180/π)
-  RA_s 归一到 [0,360)
-```
-
-量化步长由实码 `inv_scale = 1/(3600·1000·500)` deg/LSB 定义（符号位置
-`gaia_client.c`）
-（`gaia_client.c:1282`、`:1411`、`:1550` 三处同值），即每度 1.8e9 LSB；
-1 deg = 3600″ × 10⁶ µas/″ = 3.6e9 µas，故 1 LSB = 3.6e9/1.8e9 = **2 µas**
-（等价口径：分母分解 500 LSB/mas → 0.002 mas = 2 µas）。与同代码块
-`dra_raw` 步长换算规则交叉印证：1/3.6e8 deg = 10 µas/LSB（1 deg=3.6e9 µas）。
-**禁用** 7.2 µas/LSB 这一取值：它对应 1/5e8 deg，与实码分母 1.8e9 不符
-（负例判据）。
-
-### 2.4 赤道带 bbox 剪枝（bbox_intersects gaia_client.c:648-659）
-
-节点 bbox `[ra_min,ra_max]×[dec_min,dec_max]`（由节点平面坐标 + center_ra 恢复）：
-
-```text
-若 Dec_q + ρ < dec_min 或 Dec_q − ρ > dec_max        → 拒绝
-d_ra = RA_q 超出 [ra_min,ra_max] 的距离；d_ra > 180° 时取 360° − d_ra
-|cos(Dec_q)| < 0.01                                   → 保守返回相交（经线收敛退化）
-d_ra · cos(Dec_q) > 1.2 · ρ                           → 拒绝
-```
-
-`1.2` 为经验安全裕量（RA 环绕由 `360°−d_ra` 归一处理）；该分支的
-false-negative=0 是工程保守性结论（V18R3 差分 18 查询 683,297 星一致），
-非数学证明；数学证明仅覆盖极冠分支（2.5）。
-
-### 2.5 极冠平面剪枝（polar_plane_intersects gaia_client.c:661-734）
-
-AE 投影以极点为中心：`x = θ·sin φ, y = θ·cos φ`（θ=余纬，度；φ=RA−center_ra）。
-投影平面距离 ≤ `C ×` 天球角距，`C` 双常数：
-
-```text
-C45 = (π/4)/sin(π/4) = π/(2√2) ≈ 1.11072   （cone 完全在 θ≤45° 子冠内）
-C   = π/2 ≈ 1.5708                          （全局）
-```
-
-剪枝判据（拒绝仅发生在数学必然相离时，无假阴性）：
-
-```text
-θ_q = 查询中心到本树极点的余纬（dec 越界做防御归一）
-radius < 0                    → 不剪枝（防御）
-θ_q > 45° + ρ                 → 整树拒绝（cone 完全在极冠外）
-45° < θ_q ≤ 45° + ρ           → 不剪枝（可能跨 ±45° 边界，保守）
-θ_q + ρ > 90°                 → 不剪枝（双-Lipschitz 常数失效）
-否则: 平面盘 B(q', C·ρ) 与节点矩形 [x0,x1]×[y0,y1] 不相交 → 拒绝
-      （C 按 θ_q+ρ ≤ 45° 取 C45，否则取 C）
-```
-
-编译期定义 `GAIA_POLAR_PRUNE_DISABLED` 时恒为"相交"（differential reference
-mode，仅测试用；生产编译一律保持该宏未定义）。三个搜索变体（star/spectrum/photometry）
-使用同一 predicate（gaia_client.c:1183-1192 / 1312-1321 / 1452-1460）。
-
-### 2.6 DR3SP 光谱量化解码（gaia_client.c:1378-1387）
-
-PCL `GaiaDatabaseFile::EncodedStarSPData` 记录布局（stride 384 B = 32B 头 +
-float32 fluxMin @32 + float32 fluxMul @36 + uint8 flux[343] @40 + 1B 填充）：
-
-```text
-F(λ_j) = byte_j × flux_mul + flux_min     单位 W·m⁻²·nm⁻¹
-λ_j = spectrum_start + j × spectrum_step   nm,  j = 0..spectrum_count−1
-spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
-  gaia_client_get_spectrum_params 原样输出；count=0 时查询路径回退 343）
-```
-
-无光谱文件（DR3）：`flux_min = flux_mul = 0`，`out_spectra = NULL`。
-
-### 2.7 近似与边界汇总
-
-| 项 | 性质 | 依据 |
+| 字段 | 当前记录表示 | 解码意义 |
 |---|---|---|
-| 极冠剪枝 | 数学保守（C45/C 双 Lipschitz），false_negative=0 | 本节 2.5；V18R3 属性测试 80270 例 |
-| 赤道带 bbox 1.2 裕量 | 经验保守（差分验证），非数学证明 | 2.4；memory.md |
-| Equirectangular 反投影 | 线性恒等（XPSD 格式定义，非真球面投影） | 2.3；源码 1228-1230 |
-| AE 反投影 r>90° 域 | 反射语义（asin(cos r)），由 2.5 不剪枝分支兜底 | 2.3/2.5 |
-| 星等/位置量化 | 0.001 mag / 2 µas / 10 µas LSB | 2.2/2.3 |
-| 结果上限 | 单文件 collector 200000 星静默截断（MAX_STARS_RESULT） | 源码 27, 1146, 1215 |
-| 缓存 | 精确键 double 逐位 + dataset identity + version=2；命中=同查询精确重复 | 源码 112-134, 427-472, 75 |
+| G/BP/RP | 头中相应 uint16 样本 | `m=raw*0.001-1.5` mag；BP/RP 仅在对应记录类型可用 |
+| 树内 dx/dy | uint32 与节点偏移 | `x=x0+dx/(3600*1000*500)` 度，y 同式；步长 2 微角秒 |
+| 赤经细修正 | int16 | `dra/3.6e8` 度，步长 10 微角秒 |
+| DR3SP 光谱 | float32 的 flux_min/flux_mul 与字节数组 | `F_j=byte_j*flux_mul+flux_min`，单位 W m⁻² nm⁻¹ |
+| 光谱波长 | XPSD XML 的起点、步长和样本数 | `lambda_j=start+j*step`，单位 nm |
 
-### 2.8 复杂度
+这是当前 reader 的格式解释，不代表光谱量化误差为零。浮点 `raw*0.001-1.5` 也不能仅因 raw 是整数就宣称闭区间端点比较逐位精确；应在量化步长及输入边界上验证。
 
-- 单查询：树剪枝后访问叶块 `k` 个，`O(Σ_t 树深 + k·B/stride)`，B=块字节
-  （解压 O(B)，缓存命中 O(1)）；输出构造 O(N)。
-- 文件级并行：`O((Σ_f 工作量)/W) + O(F)`（W=OpenMP workers，F≤32 文件），
-  schedule(dynamic)。
-- 缓存命中路径 O(N) 拷贝（持锁内完成，见 §4 并发）。
-- 内存：mmap 全部 XPSD（只读）+ 块缓存 ≤4GB + 每线程 scratch
-  `max(max_block_size, 65536)` + 查询缓存 ≤64 条。
+赤道带树在节点偏移后恢复 RA/Dec，并归一 RA。极冠使用以极点为中心的方位等距坐标：平面径向长度为余纬，方向由相对赤经决定；零半径单独处理。解析器必须检查记录长度、压缩块、类型和 XML 参数，不以缺字段补造物理光谱。无光谱与有光谱但数值为零是不同状态。
 
-### 2.9 误差来源（限制结论，不改 SCI 容差）
+## 树剪枝与近似范围
 
-1. 星等量化 0.001 mag 与 DR3SP 光谱 8-bit 量化（残差 median 0.21%/p95 1.8%，
-   memory.md）；
-2. 位置量化 2 µas + dra 修正 10 µas LSB；
-3. `acos` 在 ρ→0 时相对误差放大；**绝对**误差界 = double 域 ~1e-16 rad
-   （≈2e-11″）。**适用域**：ρ ≥ 1e-6°（3.6e-3″）时该绝对误差相对 ρ 占比
-   < 3e-8，可忽略；**ρ < 1e-6° 时相对误差 > 3e-8 并随 ρ→0 发散**，
-   该域下**必须**改用 haversine 或 `atan2(|a×b|, a·b)` 形式。
-   本模块生产查询半径（FOV 锥与 veto 邻域）均远大于该下界；
-   若引入小锥查询，须先按本条重做误差评估。
-4. 赤道带 bbox 1.2 裕量属保守近似（多查不少查，不漏星）；
-5. 输出行序依赖目录枚举顺序（跨平台不稳定，见 §3 输出契约）。
+`bbox_intersects` 先判断赤纬区间，再用赤经区间到查询中心的距离及 `cos(dec)` 作近似筛选；当前含 1.2 裕量和极区不剪枝分支。该裕量是实现近似，有限差分测试不能证明所有锥的零漏星。RA 回绕、较大锥和高纬需与全枚举比较。
 
-## 3. 数据与 API 契约
+`polar_plane_intersects` 在适用极冠中使用方位等距映射。局部径向伸缩为 1，切向伸缩为 theta/sin(theta)；在半球内可取 pi/2，45 度子冠取 pi/(2 sqrt(2))。查询圆锥的投影被相应放大圆盘包围后，仅当该圆盘与节点矩形不相交时才可剪枝。跨极冠边界、半球和无效半径的分支要按真实代码核对；常数的连续界不自动证明分段实现正确。
 
-- DATA 合同：DATA-GAIA-001（docs/detail/infrastructure/22_gaia_xpsd_client.md [S-4]「推导补遗」一节 输入/输出数据合同）——输入
-  XPSD 目录、输出星表行单位/dtype/shape/invalid。
-- API 合同：API-GAIA-001（docs/engineering/api/PUBLIC_API.md [S-5]「输入输出端口」一节）——
-  12 个 GAIA_EXPORT 符号、返回码、所有权、线程安全。
-- 唯一生产源符号清单与迁移映射：lib/infrastructure/gaia_xpsd_client/README.md [S-5]「输入输出端口」一节、
-  module.yaml `source_symbols`。
-- **装载 fail-closed**：目录内任一 `*.xpsd` 装载
-  失败（open/mmap/魔数/头字段非法）或条目数 > `MAX_FILES`(32) ⇒
-  `gaia_client_create[_ex]` 记录明确原因（目录 / 期望条目数 / 失败数 / 首个失败原因 /
-  `loaded_mmap_bytes` / `RLIMIT_AS`）并返回 `NULL`；**不返回残缺 client**。
-  **禁用**静默丢弃装载失败的 shard（无日志、无计数、create 仍非 NULL）——地址空间
-  受限时丢掉的恰是唯一含亮星的 shard ⇒ 参考星表静默变成"暗 shard 里最亮的 N 颗" ⇒
-  `iter_trans_solve` 全败（负例判据）。
-  成功返回的 client 恒满足 `file_count == 目录内 *.xpsd 条目数` 且
-  `file_load_fail_count == 0`（db_type 过滤导致的跳过单独计数，不算失败）；空目录
-  仍返回 `file_count=0` 的空 client（平台语义不变），上层节点须自行断言
-  `file_count > 0`（空星表 fail-closed，M42 主题）。
-- **查询 fail-closed（同批）**：查询期单星/单叶丢弃（collector 扩容失败 / 叶块解压
-  失败 / scratch 分配失败）⇒ 记账 + `stderr` 告警 + 查询返回 `-1` 且 `out_*` 置空；
-  **不返回不完整星表**。文档化截断上限 `MAX_STARS_RESULT`(200000/文件) 不属丢弃，
-  行为不变（§5 I5 不变量）。诊断面（非导出）：
-  `gaia_client_get_file_count / _get_file_entry_count / _get_file_load_fail_count /
-  _get_last_create_diagnostics / _get_last_create_error`（头文件为唯一签名源）。
+`GAIA_POLAR_PRUNE_DISABLED` 提供跳过极冠剪枝的差分参照。它只隔离这一剪枝分支，不能检验相同 reader 的解码错误、赤道剪枝或遗漏文件；独立 oracle 仍需暴力解包和球面筛选。
 
-### 3.1 plan / execute / cancel / inspect（迁移合同，acsd.catalog.gaia）
+## API、完整性与资源
 
-- `plan()`：由 file_count、db_type、Σmax_block_size、查询参数推导 work_units
-  （≈叶块数×块大小）、memory（mmap 只读 + 块缓存上限 + scratch）、并行轴
-  =文件（min 1 / max file_count workers）。当前实现未提供 plan 入口（迁移
-  缺口，CAT-GAIA-IMPL 建立 adapter）。
-- `execute()`：一次锥形查询（4 个搜索入口之一）；一个 execute 只完成本模块
-  查询，不做匹配/积分。
-- `cancel()`：当前 C API 无取消检查点（合同缺口）；迁移后取消检查点=文件
-  循环边界，由 host ThreadLease/executor 传播。
-- `inspect()`：`gaia_client_get_db_type / get_file_count / get_total_sources /
-  get_spectrum_params`（真实存在，详见 API-GAIA-001）。
+`gaia_client_create[_ex]` 装载本地目录，`gaia_client_cone_search`、`_for_solver`、`_with_spectrum`、`_with_photometry` 及按位置光谱查询各有不同输出。返回数组的释放方式及空结果取值按头文件，不向 DLL 外推断隐含分配器。
 
-## 4. 并发模型（现状，与源码一致）
+当前 `MAX_FILES=32`，单文件 collector 的 `MAX_STARS_RESULT=200000`。超结果上限意味着查询可能截断，不能继续称“全部恒星”。截断计数、装载失败、解压/分配失败和真正无结果必须区分。装载器已有失败计数与诊断，正常查询失败时应返回错误并清空输出；这些是输入完整性处理，不是科学质量准入门。
 
-- 并行：`#pragma omp parallel for schedule(dynamic)` 按文件分片；每文件独立
-  collector 与 scratch，块缓存仅被处理该文件的线程访问（单写者）。
-- 互斥：`client->cache_lock`（Win32 CRITICAL_SECTION / POSIX mutex）包裹
-  查询缓存 lookup/insert；命中路径在持锁状态下完成 O(N) 输出构造
-  （gaia_client.c:1658-1684）——命中查询串行化。
-- trace：per-query 上下文 + `#pragma omp atomic`，进程级零共享计数器写
-  （ACSD_GAIA_TRACE=1 启用，stderr 输出）。
-- 线程来源：OpenMP 默认 team（无 host ThreadLease）——迁移缺口，迁移后由
-  host executor/lease 授予线程（冻结约束 D.3/D.4）。
-- `destroy` 与在途查询并发 = UB（文档契约：调用方保证 join 后再 destroy）。
+当前查询结果缓存由 `cache_lock` 保护，命中时在锁内分配、复制返回数组；文件分片有独立 collector 和 scratch。缓存身份、容量、dataset 绑定、在途查询与 destroy 的生命周期都需核对。指针相同不证明数据内容身份；调用方须等在途调用结束再释放 client。
 
-## 5. fast/reference/oracle 与测试设计（TEST-GAIA-DESIGN-001，冻结）
+文件级并行及 trace 是实现能力，线程应受宿主预算约束，不能将 OpenMP 默认 team 等同于已接入 Runtime lease。开发 trace 的编译边界另遵循开发诊断规范[4]，不能因名字存在宣称发布版已全部隔离。
 
-> 本节为 CAT-GAIA-DOC 冻结的测试设计与容差合同。
-> 可执行测试（unit / properties / oracle / fixtures / negative / performance
-> 六组判据面）由 CAT-GAIA-TEST 建立；本文不声明任何测试已 PASS。
+## 独立检验
 
-- **合成 fixture**：固定 seed 生成微型 XPSD（≥2 文件 × 4 树，含 Equirect 与
-  AzimuthalEquidistant、LZ4 与 zlib+shuffle 两种压缩、含/不含光谱记录、极区
-  星、RA≈0/360 环绕星、mag 边界星）；生成器入 fixtures 组（不提交大二进制）。
-- **独立 oracle**：Python 参考实现——直接解包同一 fixture 数据集，暴力全枚举
-  球面角距 + 独立星等过滤；不调用被测 C 符号、不复制剪枝逻辑；解压用标准
-  zlib/lz4 库（隔离参考，非本文件 lz4_decompress/byte_unshuffle）。
-- **不变量（properties）**：
-  - I1 无假阴性：oracle 全枚举结果 ⊆ 实现结果（极区与赤道带均测；
-    GAIA_POLAR_PRUNE_DISABLED differential 模式对照）；
-  - I2 无假阳性：实现结果 ⊆ oracle 结果 ∪（量化边界容差内星）；
-  - I3 缓存等价：同 client 同参数冷路径与缓存路径输出 bitwise 一致；
-  - I4 星等窗闭区间：m=m_lo、m=m_hi 恒被包含；
-  - I5 截断上限：单文件 >200000 候选时输出恰为 200000（fixture 缩小参数验证
-    逻辑而非规模）。
-- **negative**：NULL 句柄/输出指针 → -1；坏魔数/截断文件 → create 失败或 0 结
-  果；分配故障注入（GAIA_ALLOC_TEST 包装 malloc/calloc/realloc/free，5 失败点）
-  → 无泄漏、无半状态、稳定 -1；空目录语义差异（Win NULL vs POSIX 空 client，
-  见 API-GAIA-001）按平台断言。
-- **串并行**：1/N worker 加速比（fixture 足量叶块）；64 并发查询 +
-  ACSD_GAIA_TRACE=1 无混合（V18R3 结论复验）。
-- **负例与归零分支 N13（T05–T07 负向轮，GAIA 截断）**：负例输入构造 = 单文件候选
-  > 200000（fixture 缩小参数复现逻辑而非规模）。预期行为 = 输出恰为 200000
-  （文档化截断上限 `MAX_STARS_RESULT`，不属丢弃），截断事实记账。落盘标记 =
-  输出计数 200000 + 截断记账；把超限部分静默丢弃且无记账、或返回不完整星表
-  当完整 ⇒ 判红；
-- **ISA**：baseline（无 -march）与 -march=native 输出 bitwise 一致（本模块无
-  手写 SIMD，默认 bitwise 合同）。
-- **资源**：RSS 结束回落有解释高水位；块缓存 total_memory ≤ 4GB；trace 关闭
-  时无共享热写。
-- **冻结容差（供 CAT-GAIA-TEST 引用，取值一律按本节）**：
-  - 迁移等价（直调 vs DLL）：bitwise（无 SIMD/归约顺序变化）；
-  - oracle 数值比较：位置 |Δ| ≤ 5e-10 deg（double acos 往返界）、星等
-    |Δ| ≤ 1e-9 mag（同一有理式 raw×0.001−1.5）、光谱字节恒等（整数域）；
-  - 性能阈值不在本文冻结（由 CAT-GAIA-TEST 按资源证据设定并引用本节）。
-- 每个 threshold 引用本文段落（5/2.5/2.6），测试元数据记录 commit/seed/hash。
+构造固定 seed 的微型 XPSD，覆盖赤道/极冠、RA 回绕、星等边界、不同压缩、含/不含光谱、坏魔数、截断块和分配失败。独立实现直接解包同一字节数据，用标准解压库及稳定角距全枚举，不复制剪枝逻辑。比较星身份集合及位置、星等、光谱；行序不同应按稳定身份对齐，不能误判为漏星。
 
-## 6. ID 索引
+测试还应覆盖冷/热缓存、空目录、超文件与超结果容量、并发查询、取消边界和 destroy 的合法顺序。错误注入应证明不会把残缺结果报告为完整成功。位置容差需包含记录量化、角距算法和边界政策，不以笼统 1e-12 度覆盖所有情形。
 
-- ALG-GAIA-001（本文件）；SCI 上游 SCI-AST-001；
-- DATA-GAIA-001（docs/detail/infrastructure/22_gaia_xpsd_client.md [S-4]「推导补遗」一节；星表行语义另见 `docs/science/unified/DATA_SEMANTICS.md` [S-4]「推导补遗」一节）；
-- API-GAIA-001（docs/engineering/api/PUBLIC_API.md）；
-- TEST-GAIA-DESIGN-001（本文 [U-1]「判据与误差」一节，设计冻结；可执行 TEST-GAIA-* 待
-  CAT-GAIA-TEST）。
+`eng/tests/unit/gaia_cat_test.c` 所指测试文件当前未在仓内取得；不能继续把这一登记当作可执行证据。具体 fixture、命令与输出须在对应实验记录中取得后才能引用为运行证据。模块源码中的属性测试数目或 memory 摘要不是本文重新执行的结果。星表物理与量化误差应分别评价，查询集合一致也不证明后续天测或测光正确。
 
-> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
-> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
-> - [S-1] docs/science/detection/ASTROMETRY.md（天体测量与 WCS 科学正本 SCI-AST-001）。
-> - [S-4] docs/detail/infrastructure/22_gaia_xpsd_client.md（相关科学正本）。
-> - [S-5] docs/engineering/api/PUBLIC_API.md（相关科学正本）。
-> - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。
+查询差分和属性比较的保留读数、文档来源身份及复核限制见[证据记录](../../../../实验/normalize-precision-p5/DOCUMENTATION_EVIDENCE_NOTES.md)，不把有限比较推成全域正确性。
 
-## 参考文献与参考代码库（含许可证）
+## 参考文献
 
-- Gaia 星表发布：Gaia Collaboration et al. 2016, A&A 595, A1（DR1）；2018, A&A 616, A1（DR2）；2021, A&A 649, A1（EDR3）；2023, A&A 674, A1（DR3）。**核验状态**：文章级。
-- Gaia 天体测量解：Lindegren et al. 2021, A&A 649, A2（DOI 10.1051/0004-6361/202039709）。
-- XP 光谱与外部定标：Gaia Collaboration et al. 2023, A&A 674, A1（DR3 文档）；CALSPEC（Bohlin 2014, AJ 147, 127，DOI 10.1088/0004-6256/147/6/127 —— 单作者；Bohlin, Hubeny & Rauch 2020, AJ 160, 21，DOI 10.3847/1538-3881/ab94b4）。
-- 锥搜索/球面几何：astropy（BSD-3-Clause）SkyCoord/cone search 作独立 Oracle；HEALPix 见 Górski et al. 2005。
-- 极冠平面剪枝：Project-defined（本文件 §2.5）。
+[1] [天体测量与坐标](../../detection/ASTROMETRY.md)。
+
+[2] [公共 API](../../../engineering/api/PUBLIC_API.md)。
+
+[3] [本地星表模块说明](../../../detail/infrastructure/gaia_xpsd_client.md)。
+
+[4] [开发诊断构建](../../../engineering/architecture/DEV_MODE.md)。
+
+[5] [Normalize 科学链](../../normalize/NORMALIZE_SCIENCE.md)。

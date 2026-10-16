@@ -1,34 +1,19 @@
-# Star Detection Algorithms (ALG-STARDET-001)
+# Star Detection Algorithms
 
-本页的函数/参数记录按实际源码维护；阶段一字段、生产—消费关系与迁移以 [Normalize 数据合同](../../../engineering/contracts/NORMALIZE_DATA.md) 为准。未接入生产的接口不可因“冻结/通过”措辞视为已实现。
+本页补充图像盲检与候选拟合的算法步骤、参数和源码事实。Normalize 中的检测职责、对象身份及生产入口以上层[科学正本](../../normalize/NORMALIZE_SCIENCE.md)、[检测科学分册](../../detection/STAR_DETECTION.md)和[生产架构](../../../engineering/architecture/NORMALIZE_PIPELINE.md)为准；本页测试设计不表示已运行。
 
 
-> 上游：ACSD_DESIGN.md [D-1]「节点流程」一节（Phase1 节点流程）
-
-> 上游 SCI: SCI-PSF-001（docs/science/psf/PSF.md，FROZEN 共享引用不改动）；本域冻结层
-> SCI-P1-STAR-001（[S-2]「判据与误差」一节，ALG内冻结层，共享 SCI 不改动）
-> 下游: DATA-P1-STAR（`docs/detail/registry/acsd.phase1.star-detection.md`）、API-STAR-001（PUBLIC_API）、
-> MOD-acsd-phase1-star（registry）
-> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2497 行；源文件唯一在役副本）；合同头
-> lib/algorithms/star_detection/include/star_detector.h（139 行）；取值与签名一律以本头文件为唯一来源。
-> 矩阵行: docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节 MOD-acsd-phase1-star
-> （matrix P1-STAR，legacy_paths=lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1，
-> 迁移目标 acsd_p1_star_detection.dll）。
+盲检实现位于 `lib/algorithms/star_detection/src/sdet_api.cpp`，公开参数与签名见 `lib/algorithms/star_detection/include/star_detector.h`。这些源码锚不取代科学正本或 Normalize 数据合同。
 
 ## 1 上游 SCI 与输入输出
 
-- SCI-PSF-001（PSF 拟合共享 SCI）：星检测为 PSF 拟合与 plate solve 提供候选/中心，
-  本文档只登记检测侧算法事实，不修改共享 SCI。
-- 输入: 单帧图像（生产通道 FP64 `double` 或 FP32 经 uint16 量化，`[h·w]` 行主序，ADU）
+- 算法范围：本节记录 `sdet` 图像侧盲检；IPV 内部使用其私有候选时叫 `solver_detections`。WCS 求解后由 Gaia 投影产生的 `science_sources` 是另一类对象，不由盲检候选替代。
+- 输入: 单帧图像（`sdet` API 的 double 或 uint16 图像，`[h·w]` 行主序，单位继承输入）
   + SDetParams 参数（`lib/algorithms/star_detection/include/star_detector.h`）。
 - 输出: 逐星 `(cx,cy,flux,mag,saturated,has_saturated)` 十数组（`double*/float*/int*`，
   malloc 由调用方 `sdet_free_detect_ex` 释放）+ 可选 extras 列。
-- 生产调用: `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的 run_stage_psf（PSF/STAR_MEASURE 阶段，一帧一次
-  权威检测）→ 同文件内 sdet_detect_ex / sdet_detect_ex_f64 / sdet_free_detect_ex
-  函数指针 → star_det 权威块 FLOAT64[N,6]（同一文件）。
-- descriptor acsd.phase1.star-psf（`lib/infrastructure/scheduler/src/module_adapters.cpp`）为编排层词汇，
-  不含独立 star_detection descriptor；本模块合同以 ALG-STARDET-001/DATA-P1-STAR/
-  API-STAR-001 为准。
+- 当前 CLI 的源表入口是 `module_adapters.cpp::p1_op_star_psf_impl` 中的 Gaia-guided `sdet_detect_guided_ex_f64`；盲检 API 不是该节点的 science_sources 生产路径。IPV 对校准像元的盲检属于 WCS 节点内部。
+- 旧 orchestrator `run_stage_psf` 与 `star_det` block 仅作为历史载体/源码事实记录，不是当前 CLI 生产入口；阶段一无独立 `star-detection` 调度节点。
 
 ## 2 离散公式
 
@@ -37,19 +22,20 @@
 - 背景噪声（行差分族 `sdet_compute_bgnoise()`，见 `lib/algorithms/star_detection/src/sdet_api.cpp`）: 逐行差分 `d[y,x]=img[y,x]−img[y,x−1]` →
   3 轮 5σ clip（median/MAD 迭代，MAD 含 1.482602218505602）→ 行标准差 → 行中位 → ×0.70710678118654752
   （1/√2）。**量纲 ADU；输出量 = 单像素噪声 RMS `σ_n`。**
-  **适用域（必须随引用同写）**：`Var(d) = 2σ_n²(1−ρ_adj)`，`ρ_adj` = 相邻像素
-  噪声相关系数 ⇒ 估计量 `σ̂_n = σ_n·√(1−ρ_adj)`。**仅在 `ρ_adj = 0`（相邻像素噪声
-  独立）时无偏**。实测（合成 AR(1) 场，4096 px/行，3 帧/档）：
+  **适用域（必须随引用同写）**：对平稳、同方差像素噪声，未裁剪差分满足
+  `Var(d) = 2σ_n²(1−ρ_adj)`，`ρ_adj` 为相邻像素相关系数；因此其总体 RMS 经 `1/√2`
+  缩放为 `σ_n·√(1−ρ_adj)`。`ρ_adj=0` 仅表示不相关，不一般蕴含独立；该公式不意味着
+  median/MAD、迭代裁剪或有限样本 RMS 估计无偏。实测（合成 AR(1) 场，4096 px/行，3 帧/档）：
   `ρ_adj` = 0 / 0.25 / 0.50 / 0.75 ⇒ `σ̂_n/σ_n` = 0.9999 / 0.8632 / 0.7031 / 0.4991，
   与解析 `√(1−ρ_adj)` = 1 / 0.8660 / 0.7071 / 0.5000 一致到 ≤0.6%。
   **测法**：合成 AR(1) 场，4096 px/行、3 帧/档，真值 `σ_n = 6.0 ADU`，`ρ_adj` 由场
-  生成参数直接设定（非事后拟合）。**负对照**：`ρ_adj = 0`（独立噪声）时
-  `σ̂_n/σ_n = 0.9999` 无偏（正例）；`ρ_adj = 0.75` 时 `0.4991` 低估 50.1%
-  （负例 ⇒ 该估计量在相关噪声下必须判红）。
+  生成参数直接设定（非事后拟合）。这些有限样本读数只支持该 AR(1) 构型下的对照，
+  不建立一般无偏结论；`ρ_adj=0` 档读数为 `σ̂_n/σ_n = 0.9999`，`ρ_adj=0.75` 档为
+  `0.4991`，与未裁剪公式的预测接近。
   ⇒ 对 drizzle/重采样/插值后的帧，**必须**先用独立方法标定 `ρ_adj` 并除以 `√(1−ρ_adj)`；
   `ρ_adj` 未标定时检测阈的 σ 基准 = 另行独立标定的估计量。
-  纯独立高斯噪声下实测无偏：`σ̂_n/σ_n = 0.99792`（8 帧，真值 6.0 ADU，
-  散布 0.42%）。
+  独立高斯构型下的有限样本读数：`σ̂_n/σ_n = 0.99792`（8 帧，真值 6.0 ADU，
+  散布 0.42%）；该构型结果不证明估计器总体无偏。
 - 全局检测阈值（`sdet_api.cpp` 调 `sdet_compute_bgnoise()` 估 `bgnoise` 于**未平滑原图**，并组装 `pr.thr = pr.bg + 5.0·bgnoise`；阈值作用面 = σ=2 平滑图；候选门槛判据、对称性门与饱和判定同在该文件）:
   `threshold = median(img) + 5.0·bgnoise`，**单位 ADU**。
   **量纲声明**：阈值**作用图像**是 `σ_smooth = 2.0 px` 的 YvV 平滑图（`sdet_api.cpp`），
@@ -222,9 +208,8 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp（模板双实�
 
 ## 8 参考实现/Oracle
 
-- 论文谱系: SEXTractor 族 peaker（峰值检出）与自研信赖域 LM（`nls_lm`，
-  `sdet_api.cpp` 注释）；行为等价由既有测试与 testdata 基线锁定。
-- 本文档即参考实现锚；数值 oracle 设计见 §11.4（TEST-STAR-DESIGN-001）。
+- 论文谱系: SExtractor 族 peaker（峰值检出）与自研信赖域 LM（`nls_lm`，
+  `sdet_api.cpp` 注释）。实现锚只说明代码路径；数值 oracle 设计见 §11.4，不据此声称行为等价或测试通过。
 
 ## 9 容差来源
 
@@ -244,11 +229,10 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp（模板双实�
   注销为死符号）+ 常量；编排合同
   PHASE1_API_V1 §2 表行 `sdet_create/destroy/detect/detect_ex`（handle 级
   并发合同）。
-- TST: TEST-STAR-DESIGN-001（[D-1]设计冻结）；可执行 TEST-P1-STAR-001
-  由 P1-STAR-TEST 落地。
+- TST: 本页保留测试设计参考；是否执行及其结果必须由对应运行记录说明。
 - DATA: DATA-P1-STAR（`docs/detail/registry/acsd.phase1.star-detection.md`，star_det v1 [N,6] 权威块十数组语义）。
 
-## 11 冻结附录（SRC-STAR-001 源码实测）
+## 11 源码行为与实测记录
 
 ### 11.1 ALG-STARDET-001 逐符号锚
 
@@ -298,9 +282,9 @@ SDetParams 9 字段（`lib/algorithms/star_detection/include/star_detector.h`）
 - 线程安全: handle 级互斥使用（PHASE1_API_V1 [S-1]「物理模型」一节 表行登记 handle 级 no/no）；
   无内部锁，句柄共享面 = 单线程。
 
-### 11.3 现状缺陷清单（DISP-STAR-001..007，登记不改码，整改归 P1-STAR-IMPL/INT）
+### 11.3 实现差异记录（DISP-STAR-001..007）
 
-- DISP-STAR-001 FP32 通道 uint16 量化: `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` float clamp
+- DISP-STAR-001 历史 orchestrator FP32 通道 uint16 量化: `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` float clamp
   到 [0,65535] 转 uint16 后进 sdet_detect_ex；PREC-105 同族精度约束；FP64
   通道（sdet_detect_ex_f64）不降级。
 - DISP-STAR-002 全局单阈值无局部背景自适应: median+5·bgnoise 全局阈值
@@ -314,29 +298,27 @@ SDetParams 9 字段（`lib/algorithms/star_detection/include/star_detector.h`）
   **负对照**：平坦背景合成场上同一统计量的取值必须非空（正例），该子样本为空集
   ⇒ 全局阈不构成星云/银道面域的检出下限；两域**必须**分开声明。读数正本尚未确立，
   须由对抗性审核重新推导并构造反例确认。
-- DISP-STAR-003 SDetParams 9 字段生产消费面缺口（表后注）: 编排
+- DISP-STAR-003 SDetParams 9 字段消费面记录（表后注）: legacy orchestrator
   platesolve.* 传参（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`）部分字段无效；fwhmClipSigma
   生产路径半失效。
-- DISP-STAR-004 饱和星 mag 与正常星 mag 量纲不一致（振幅 vs box 流量，
+- DISP-STAR-004 历史 star_det 载荷中饱和星 mag 与正常星 mag 量纲不一致（振幅 vs box 流量，
   `lib/algorithms/star_detection/src/sdet_api.cpp` 内 `rec.flux = (float)fit_results[i].A` vs `rec.mag = (box_sum > 0.0) ? -2.5f*log10f(box_sum) : NAN`）；has_saturated 恒等于 is_saturated（同文件），列语义
   未分化（star_det v1 [5] 列承接归 P1-STAR-INT）。
 - DISP-STAR-005 检测为单实现路径（O1–O16）；`sdet_detect`/`sdet_detect_debug` 不作为入口。
-- DISP-STAR-007 检测/PSF 双母函数（列语义不可互换）：检测侧生产内核为椭圆高斯
+- DISP-STAR-007 检测/PSF 双母函数（列语义不可互换）：检测侧盲检内核为椭圆高斯
   （`sdet_gaussian_f/df`，`fwhm=2.3548·sx`），PSF 侧为椭圆 Moffat4
   （`MOFFAT4_FWHM_FACTOR=1.230310`）；同 sx 下 FWHM 报值相差 **1.9140×**，
   解析流量比 0.902（R-3 §2.2/§2.4 实测）。因此 `star_det` 的 fwhm/flux 列与
   PSF 块同名列**只在各自块内可比**；整改（如统一母函数或列改名）归
-  P1-STAR-IMPL/P1-PSF-IMPL。
-- 线程数未接 ThreadBudget（#pragma omp 无 num_threads 注入，
-  threading_model=host_executor_lease 为合同值，接线归 P1-STAR-IMPL）；
-  取消检查点缺失（无 cancel 回调，长帧检测不可中断）并入本条整改域。
+  legacy star_det 与当前 p1_sources JSON 载荷不可混为一谈。
+- legacy orchestrator 线程数未接 ThreadBudget（#pragma omp 无 num_threads 注入）；取消检查点缺失（无 cancel 回调）是该旧调用面的记录。当前 CLI 的调用合同见 Normalize 数据合同与生产架构。
 
-### 11.4 TEST-STAR-DESIGN-001 冻结测试设计（可执行 TEST-P1-STAR-001 由 P1-STAR-TEST 落地）
+### 11.4 测试设计参考（非运行结论）
 
 - F1 合成高斯星场（已知中心/流量/FWHM/SNR）: 亚像素质心 |Δc|≤0.3 px
   （SNR≥20）；FWHM 相对误差 ≤10%；纯噪声场虚警 ≤0.1/千像素（发布门 = `G-P1-STAR-FP`，阈值与本条一致）
   （专项=completeness/false positive synthetic fields）。
-  **完整性（召回）门按 PSF 宽度分档冻结**，判据 = 逐档 99% 召回阈表（本仓实测，
+  **历史合成读数：完整性按 PSF 宽度分档统计**，读数 = 逐档 99% 召回阈表（本仓实测，
   生产 `sdet_detect_ex_f64`，默认参数，256² 单星居中，**峰值对齐像素中心**，
   **1000 次/档**；`SNR_peak = A_fit/σ_bg`，σ_bg 为未平滑原图行差分背景噪声 RMS）：
 
@@ -407,28 +389,19 @@ SDetParams 9 字段（`lib/algorithms/star_detection/include/star_detector.h`）
   端到端绝对位置门 = **G-P1-CENTROID-1**（正例 + 负例两臂，
   判据见 `docs/science/algorithms/common/GATES_AND_TOLERANCES.md`）。
 - F5 状态码负例: NULL/空图/0 尺寸 → −1；空场 → count=0 且 rc=0。
-- F6 回归锚: Galaxy_Center 类饱和平台场多检/漏检回归 fixture（源码教训已固化，见 `lib/algorithms/star_detection/src/sdet_api.cpp`）。容差冻结: 上述数值在 TEST 落地时逐项写死，
-  P1-STAR-TEST 取值一律按本节；fixture 生成器注记容差来源（本节）。
+- F6 回归锚: Galaxy_Center 类饱和平台场多检/漏检回归 fixture（源码教训已固化，见 `lib/algorithms/star_detection/src/sdet_api.cpp`）。本节数值是测试设计参考；实际容差与结果须由执行记录和输入载体支持。
 
-### 11.5 SCI-P1-STAR-001 状态声明
+### 11.5 科学与实现的归属
 
-科学专项（matrix P1-STAR 行）映射：subpixel centroid=[S-1]「物理模型」一节 一阶导/零交叉/椭圆高斯
-中心（连续估计，无网格量化）；completeness/false positive synthetic fields=
-[S-1]「判据与误差」一节F1（检测完备性/虚警由合成场验收，非解析保证；召回域按 σ_psf 分档，
-  由逐档 99% 召回阈表定义，非单一 5σ 语义）；saturation/
-blend/edge=§2 饱和双条件+edge-walking+dedup 保饱和+§4 边界丢弃；deterministic
-ordering=§5 全序确定（mag 升序+NaN 末尾+串行 dedup/sort）。共享 SCI（PSF/
-PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（编排层词汇只作对齐对象）
-（descriptor acsd.phase1.star-psf 由 P1-PSF-INT 对齐，不作冻结依据）。
+本页的盲检阈值、拟合和排序细节属于算法实现说明。它们不定义 IPV 的求解候选合同，也不代表 WCS 后 science_sources 的生产结果。科学对象和职责见[检测科学分册](../../detection/STAR_DETECTION.md)与[Normalize科学正本](../../normalize/NORMALIZE_SCIENCE.md)；正式载荷和消费关系见[Normalize数据合同](../../../engineering/contracts/NORMALIZE_DATA.md)。
 
-> 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/science/algorithms/common/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门值来源只此一表）。
+本页列出的测试值是构型化设计参考，不是准入门或通过结论；真实执行读数仍须绑定其输入与复现载体。
 
-> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> 本文参考的上游正本：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/detection/STAR_DETECTION.md（星点检测科学正本 SCI-P1-STAR-001）。
 > - [S-2] docs/science/psf/PSF.md（PSF 建模科学正本 SCI-PSF-001）。
-> - [S-5] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（相关科学正本）。
-> - [A-1] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（冻结门表分册）。
+> - [S-5] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（相关历史判据登记；不覆盖现行科学正本）。
 
 ## 参考文献与参考代码库（含许可证）
 
@@ -443,14 +416,14 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节是唯一冻结依据（�
 
 ---
 
-## 背景 σ 估计器的现行口径与实测增益
+## 背景 σ 估计器的历史实现记录与实测增益
 
-- **两级 σ 估计并存，均在役**：主路径用冻结式稳健尺度 `1.482602218505602 · MAD`；另有**第三 σ 估计器**（`star_detector.cpp` 的稳健估计路径）作为生产可达路径保留。二者不互相替代，选用由现行配置决定。
+- **估计量不可互换**：主 `sdet` 路径的行差分尺度 `bgnoise` 与 wrapper `StarDetector::estimate_background` 的裁剪RMS是不同估计量。后者的下述历史实测来自 `wrapper_phase1/star_detector.cpp`，不得据文件存在称其为当前 CLI 生产 consumer；当前 Normalize 消费面以上层生产 DAG 和实现差异为准。
 - **第三 σ 估计器实测增益**：合成星场（seed=20260919，n=210 帧池化）实测相对冻结式 `1.482602218505602·MAD` 的 `mean|rel err|` 增益 = **+78.47%**，bootstrap 95% CI **[+76.58%, +80.40%]**（不含 0）。**忠实性交叉验证（与增益是两件事，各自独立登记）**：C++ 探针直调生产实现 `StarDetector::estimate_background`（`lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp`）读同一批 `.f32` 帧，Python 复刻与生产实现 **270/270 帧 σ 相对偏差 = 0.0（逐位一致）**——该 270/270 描述的是「复刻↔生产」一致性，**不是**第三估计器与冻结式的一致性。**测法**：同一批帧分别用冻结式与第三估计器估计 σ，逐帧取相对误差后池化
   `mean|rel err|`，增益 = 相对降幅；CI 由帧级 bootstrap 重采样给出。**负对照
   （可推翻条件）**：两估计器若在同一批帧上逐帧相等，增益必须为 0；实测 CI 不含 0
   ⇒ 两者是可区分的不同估计量。
-- **第三 σ 估计器的定义与消费面（量纲 ADU）**：`estimate_background` 的返回值 = 2 轮 `median±3σ` 裁剪后、关于裁剪中位数的 **RMS**（`lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp`），写入 `p1_sources.json:frames[].noise_sigma`，并被 noise-snr 节点读作 `cfg.sigma_sky_adu`。**它与 `bgnoise`（行差分 FnNoise1）不是同一个估计量**：同帧实测 20.7384 vs 13.8148 ADU（比值 1.5012，M42_M1_T2 Red 20251212@012404）。**测法**：同一帧分别跑
+- **wrapper 估计器的定义与历史消费面（量纲继承图像）**：`estimate_background` 的返回值 = 2 轮 `median±3σ` 裁剪后、关于裁剪中位数的 **RMS**（`lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp`）。历史记录称其写入 `p1_sources.json:frames[].noise_sigma` 并由 noise-snr 读作 `cfg.sigma_sky_adu`；此工作文件路径不构成当前 typed 消费合同。**它与 `bgnoise`（行差分 FnNoise1）不是同一个估计量**：同帧实测 20.7384 vs 13.8148（比值 1.5012，M42_M1_T2 Red 20251212@012404）。**测法**：同一帧分别跑
   `sdet_compute_bgnoise()`（行差分 FnNoise1，`lib/algorithms/star_detection/src/sdet_api.cpp`）与
   `StarDetector::estimate_background`（2 轮 `median±3σ` 裁剪后 RMS），两者互不调用。
   **负对照**：两套 σ 若可互换，同帧比值必须为 1 ⇒ 引用「σ_bg」而不点名估计器的

@@ -1,248 +1,34 @@
-# 模块 acsd.phase3.writer
+# Export 平面 FITS 写出
 
-> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节与「流程」一节（投影到平面、
-> WCS直接计算生成）、「输出模式显式声明」一节与「I/O 与原子产品」一节（输出不带权重、
-> 原子提交）
-> 科学正本：docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，FROZEN，零改动；
-> 相关章节（面、真值阈与判据三节）［S-1］
-> 算法正本：docs/science/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001；
-> 错误触发锚、T1–T7与合同边界三节）；承接ALG-P3-002 / ALG-P3-004本域子面
-> 数据正本：docs/detail/registry/acsd.phase3.writer.md（DATA-P3-FITS 输出行与 HDU 合同，本页输入输出端口表）；
-> 单位定义与 BUNIT 语义 = `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」与「单位与量纲表」两节，规则项见同文件「判据与误差」一节
-> API 正本：docs/engineering/api/PUBLIC_API.md（API-P3-FITS-001，Phase3 FITS 写出
-> 公共消费面节）、docs/engineering/api/PUBLIC_API.md「分阶段 API 面」（API-P3-001，p3_session 五段
-> FROZEN 镜像）
-> 原子发布：docs/engineering/contracts/ATOMIC_PUBLISH.md（IO_003，章节「错误语义」）
-> 落地设计：`docs/detail/export/pipeline.md`「FITS 产品」一节
-> 引用文献：见文末「参考文献」（角标用全角 `［N］`，因本文正文的半角 `[...]` 已被
-> 数值域区间占用）
+writer 把重采样信号写为普通二维 WCS FITS。当前生产仅 PRIMARY signal，一个 HDU；不要求输入马赛克具有 variance/ivar，不从单信号制造不确定度。产品和单位要求见[HiPS 到 FITS 正本](../../science/projection/HIPS_TO_FITS.md)与 [Export 管线](../export/pipeline.md)。
 
-## 1 身份与合同落位
+## 实际入口与发布路径
 
-- 模块: acsd.p3.fits_writer（module_id 合同值；dll_target=
-  acsd_p3_fits_writer.dll 为迁移合同值，未落地，IMPLEMENTED 只由验收签发；
-  现状构建 = acsd_phase3_session 静态库成员）。registry 行 ID =
-  `MOD-acsd-phase3-writer`。
-- **module_status = CONTRACT_READY 语义**：实现存在（生产源实测 + 编排消费方
-  接线）且合同已冻结；模块化迁移（独立 dll / adapter / ThreadLease 接线）为迁移
-  目标（未落地）。
-- 合同落位: lib/algorithms/fits_output/ 三件套（README/module.yaml/memory.md，
-  CONTRACT_READY；schema `acsd.module-manifest/v1`）。legacy 生产源在
-  `lib/phase3_session/`（acsd_phase3_session 五源同库，其中 fits 写出源归属
-  本模块）。
-- 生产源: lib/algorithms/fits_output/p3_output.cpp + 签名头正本 p3_output.h
-  + WCS 关键字源 p3_wcs.h。
-- 合同链: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN）→
-  ALG-P3-FITS-IMPL-001（docs/science/algorithms/PHASE3_FITS_IMPL.md，兼承接
-  ALG-P3-002/004 本域子面）→ DATA-P3-FITS（本页输入输出端口表）+
-  API-P3-FITS-001（PUBLIC_API Phase3 FITS 写出公共消费面节）→ TEST-P3-WR-001
-  （设计冻结 = TEST-P3-WR-DESIGN-001，见本页「独立 synthetic 验证命令与容差」）；
-  编排面 API-P3-001（p3_session
-  五段 FROZEN）镜像不变。
-- 上游依赖: acsd_phase3_session（采样/重采样编排域）+
-  acsd_aio（aio_fits + vendored third_party/cfitsio）；depends_on_int=
-  P3-RSMP;IO-003。
+[module_adapters.cpp](../../../lib/infrastructure/scheduler/src/module_adapters.cpp) 的 `p3_op_writer` 对应 `acsd.phase3.writer`。输入 `p3_resampled.json/.bin`、`p3_wcs.json` 和 run_context，按同一 crop plan 取子窗。生产使用 `P3FitsStream` 和有界子块 scheduler 写 `output_phase3.fits`，并写 `p3_writer.json`；`unc=false`、`nplanes=1` 明确单信号。整幅 API 仍是库/故障对照能力，不能替代生产子块路径描述。
 
-## 2 职责与明确非职责
+公开头 [p3_output.h](../../../lib/algorithms/fits_output/p3_output.h)，实现 [p3_output.cpp](../../../lib/algorithms/fits_output/p3_output.cpp)。WCS/裁剪复用 [p3_wcs.h](../../../lib/algorithms/projection/p3_wcs.h)。
 
-- 职责: 把上游重采样结果写成单 HDU 的 FITS 文件
-  （仅 PRIMARY signal 数据层，无扩展 HDU）——WCS/BUNIT/provenance
-  关键字全量（SCI-P3 面）、原子发布序（tmp→`fits_flush_file`→close→
-  `fsync(fd)`→rename，
-  `lib/algorithms/fits_output/p3_output.cpp`）、失败/取消清理不发布（签名面见
-  `lib/algorithms/fits_output/p3_output.h`）、发布后 sha256 完整性锚（同上两文件，
-  严格封装）与独立重开验证 `p3_output_verify`（同上 `p3_output.cpp`）。
-- 非职责: 不做重采样/tile 读取（P3-RSMP/采样域）、不做请求解析
-  与参数拒绝清单（p3_session run 段）、不做读路径 FITS/HiPS 解析
-  （AIO/hips 域）、不改 vendored cfitsio、不改 SCI 公式（SCI-P3
-  FROZEN 零改动）。
+## API 与文件合同
 
-## 3 输入输出端口、DATA、单位、坐标、invalid
+| 接口/对象 | 语义 |
+|---|---|
+| `P3FitsStream.open` | output_path、WCS、W/H、BITPIX、BUNIT、provenance → 同目录私有临时文件 |
+| `begin_hdu/write_block/end_hdu` | plane=0 的信号子块；x0/y0 零基、w×h 行主序 f32 |
+| `publish` / `abort` | flush/close/fsync、校验/hash、原子改名，或清理临时对象 |
+| `p3_output_write_atomic` / `_ex` | 整幅缓冲入口；ex 的误差参数存在不表示本命令发布误差扩展 |
+| `P3OutputResult` | sha256、reopen_ok、coverage_ok、covered_px、total_px |
+| `P3Provenance` | 输入 hash、软件/运行身份、order、sampler 和可用性说明 |
 
-| 端口 | DATA | 必/可 | 单位 | 坐标/dtype |
-|---|---|---|---|---|
-| `resampled` | `DATA-P3-RES`（descriptor 词汇；实际承载=DATA-P3-FITS in 面） | 必 | UnitId::SURFACE_BRIGHTNESS（BUNIT，缺省 ADU） | PIXEL 行主序 f32 [W·H]，W,H∈[1,20000] |
-| `fits` | `DATA-P3-FITS` | 可 | UnitId::SURFACE_BRIGHTNESS | FITS 文件 BITPIX=-32/-64，单 HDU + sha256 |
+最终图像 BITPIX 为 -32 或 -64，由真实配置传入；WCS 的 CRVAL/CD 为 degree/degree-per-pixel，CRPIX 为 FITS 一基。裁剪用相同源子窗，CRPIX 减原点，不能重新拟合 WCS或额外插值。无有效贡献 NaN，有限零与负信号合法。
 
-- invalid 权威源=DATA-P3-FITS：signal 无覆盖=NaN（禁 ±Inf
-  伪装；NaN==NaN 回环一致 `lib/algorithms/fits_output/p3_output.cpp`）；bitpix∉{-32,-64}→PARAM（同上文件）；WCS 守卫
-  abs(dec)≤85°+四角同半球（`lib/algorithms/projection/p3_wcs.h`）。
-- 端口词汇（resampled/fits、DATA-P3-RES、UnitId/CoordinateFrame）为 descriptor
-  派生（p3_writer_descriptor），其与 DATA-P3-FITS 的对齐属迁移目标（未落地），
-  不作冻结依据。
-- **输出形态**：交付物为**裸 FITS，不压缩、不套壳**；Phase3 不产出 HiPS，不使用
-  `.hips` / `.hips.zst` 命名。输入 HiPS 产品的落盘形态由落盘名判定（裸/归档同义），
-  输入合同**不设** `storage_form` 键，出现即 REJECT。
-- **输出不需要带权重** —— 上游已完成叠加，这里只投影到平面并直接计算生成对应
-  WCS。产品形态为默认唯一的单 HDU 瘦身形态：只写 PRIMARY signal 数据层，
-  不写 COVERAGE / VARIANCE / IVAR 三层，不设形态选择开关，不留双路径。
-  其余候选面（VALIDITY、SUPPORT、
-  REJECTION、POINT_INFORMATION/W、PSF 表/图与 correlation 描述）为待实现项，
-  落盘前须先在本页「输入输出端口、DATA、单位、坐标、invalid」立输出行与 HDU 合同。
-  标准 WCS 为**直接计算生成**；DATASUM / CHECKSUM 的口径与整改登记见本页
-  「已知限制与缺陷登记（登记不改码）」。
-- **BUNIT 语义**：主 HDU 的 `BUNIT` = 输入 HiPS `signal/properties#BUNIT` 声明的
-  canonical 串（canonical 值 `ADU/sr`；写端口单位 `UnitId::SURFACE_BRIGHTNESS`，
-  落盘值 = 通量和 / 覆盖面积 = 面亮度）。缺声明时按`docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节的量纲可判条件
-  处理 —— `BUNIT = "ADU"` 要求 provenance 声明
-  `pixel_semantics = "surface_brightness"`。单位口径唯一
-  权威 = `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」与「单位与量纲表」两节。
-- **provenance**：源 product / hash、软件完整 SHA、配置、投影、核、order、近似、
-  生成时间。
-- **节点产物**：`output_phase3.fits`、`p3_writer.json`（写侧自述）、`p3_verify.json`
-  （独立复核面）。单 HDU 落盘，无扩展 HDU shape 对齐事项。
-- **out 面细节**（DATA-P3-FITS）：FITS 文件 BITPIX = -32 / -64、
-  CTYPE = `RA---TAN` / `DEC--TAN`、CUNIT = deg、BSCALE = 1 / BZERO = 0、
-  HIPSID / RUNID / ORDERSEL / SAMPLER / SWVER + HISTORY、DATASUM（32-bit）；
-  上述头卡与数据模型的依据 = FITS 标准［1］［2］。`P3OutputResult` = `sha256[65]` /
-  `coverage_ok` / `reopen_ok` / `covered_px` /
-  `total_px`。
-- **不确定度可得性（单 HDU 形态下的显式登记）**：产品为默认唯一的单 HDU 形态，
-  manifest 写 `uncertainty_available=false` + diagnostics 标红计数；**该键不是失败态**，是
-  单 HDU 产品形态的显式登记。正本 = `docs/science/unified/DATA_SEMANTICS.md`「状态与失败语义」一节
-  （禁占位 / 静默缺键 / 空输出冒充）。下游校验与 manifest 按单 HDU 预期执行。
+科学要求 BUNIT 继承实际光度尺度；当前 adapter 仍检查固定面亮度 canonical 字符串。该检查的存在不证明 response-calibrated/relative 输入单位链已闭合，相邻限制依[差异地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
-## 4 公共 header、核心 symbol 与生命周期
+## 所有权、并行与错误
 
-- 内核消费面=API-P3-FITS-001（p3_output.h 签名头正本）:
-  `p3_output_write_atomic`（声明与实现分别在 `lib/algorithms/fits_output/p3_output.h`
-  与 `lib/algorithms/fits_output/p3_output.cpp`）、`p3_output_verify`（同上两文件）
-  + 数据结构 P3Provenance/P3OutputResult/P3OutputStatus（均定义于
-  `lib/algorithms/fits_output/p3_output.h`，OK=0/PARAM=1/IO=2/CANCELLED=3）
-  + WCS 符号 p3_wcs_make/p3_wcs_pix2world/p3_wcs_world2pix/p3_wcs_fits_keywords
-  （`lib/algorithms/projection/p3_wcs.h`，ALG-P3-002 承接）。
-- 会话编排面=API-P3-001 FROZEN（`lib/phase3_session/p3_session.h` 五段
-  create/validate/run/inspect/destroy + last_error 脱敏，同一签名头）；
-  生命周期 create→validate→run→inspect→destroy，run 内经
-  p3_output_write_atomic 落盘（`lib/phase3_session/p3_session.cpp`）。
-- 不新增/不修改任何 C 头/C ABI（本页为既有符号展开冻结）。
+调用方拥有源子块，写调用期间保持有效；stream 拥有临时文件和内部状态，析构/abort 按实现清理。FITS 写句柄串行，读取/搬运可经 Runtime 预算并行；队列与在途块受配置限制。内部 coverage 可用于计数，最终不建 COVERAGE 扩展。
 
-## 5 Registry descriptor 与配置 schema
+P3OutputStatus 为 OK、PARAM、IO、CANCELLED，`p3_output_last_error` 仅诊断，不作状态真源。缺 run/hash、工作数组截断、非法几何、I/O/hash/重开失败要上行；单 signal 的 uncertainty unavailable 是能力声明。原子文件发布依[发布合同](../../engineering/contracts/ATOMIC_PUBLISH.md)，不能由最终路径存在推断全部运行成功。
 
-- descriptor（p3_writer_descriptor，编排层口径）: module_id=`acsd.phase3.writer`；
-  execution_class=`io`；parallel_ok=False；ports resampled(必)+fits(可)；
-  sci_id=SCI-P3-WR-001、alg_id=ALG-P3-004、data_id=DATA-P3-FITS、
-  api_id=API-P3-001、test_id=TEST-P3-WR-001。descriptor 派生的占位合同 ID 与
-  module_id 合同值 acsd.p3.fits_writer 的对齐属迁移目标（未落地），
-  不作冻结依据。
-- 配置=phase config JSON（键集 = API-P3-001）；无独立 schema 文件。
-- 模块注册 = `lib/infrastructure/pipeline/module_ports.registry.json` 的
-  `acsd.phase3.writer`；生产接线 =
-  lib/infrastructure/scheduler/src/module_adapters.cpp 的 `p3_op_writer`。
+## 验证入口
 
-| 字段 | 默认 | 单位 | 说明 |
-|---|---|---|---|
-| `band_height` | —— | px | 输出行带高度（内存预算） |
-| `tile_cache_mb` | —— | MB | tile 缓存上限 |
-| `compression` | `none` | —— | 压缩选项（无 / 无损；交付为裸 FITS，不套壳） |
-| `mode` | `surface_brightness` | —— | surface_brightness / point_source_flux / visualization |
-
-写入序 = 写临时文件 → flush/close/fsync → 标准 checksum → 原子 rename → 重开
-独立验证；复用 infrastructure/aio 的原子提交设施（临时文件隔离 + 校验 + fsync +
-原子 rename；**单写者前提**：同一输出路径同一时刻只有一个写者，**跨进程不取文件
-锁**）。流式：按行带 / 块执行，常驻内存以「输出宽度 × 行带高度 + tile 缓存」为
-上界；cache 只缓存，**不改变 order / 核 / 科学值**；线程预算来自 Runtime，
-**并行输出与单线程科学结果一致**。
-
-## 6 Execution class、并行轴、ThreadBudget lease、确定性
-
-- execution_class=`io`；写面无并行——cfitsio 进程级互斥 RT-008
-  （`lib/algorithms/fits_output/p3_output.cpp` 全程持 aio::cfitsio_io_mutex，与读路径
-  `lib/infrastructure/aio/src/aio_fits.cpp` 同锁），fits_write_pix 一次全帧行主序，输出
-  字节与 worker 数无关（1..N bitwise）。
-- 并行仅上游采样（`lib/phase3_session/p3_session.cpp` 的 std::thread 池，worker
-  数=budget.max_workers，同文件注释禁 hardware_concurrency；
-  本域源码 0 处 #pragma omp——`lib/infrastructure/aio/src/aio_fits.cpp` 的唯一 omp 循环属
-  AIO 域非本域）。ThreadLease/取消检查点无接线（迁移整改点）。
-- 确定性: 固定顺序输出（fits_write_pix 定序 + sha256/fdatasum
-  纯函数）；取消点=行（kernel cancelled_at_row，签名见 `lib/algorithms/fits_output/p3_output.h`；session 层
-  取消在采样循环，同 `p3_session.cpp`），写面发布序不可中断（IO_003 的
-  「发布流水线（原子语义）」）。
-- slim 透传（编排侧 `p3_op_writer`，写段保持串行确定序）：单 HDU 瘦身形态下不探测、不打开、不传播 uncertainty 子产品（variance/ivar 输入不属拒绝项，只是不输出扩展 HDU），uncertainty 恒不可用为显式登记（非失败态，下游校验与 manifest 按单 HDU 预期执行）。
-
-## 7 内存、cache、I-O、所有权
-
-- 内存: 调用方分配 signal 缓冲（O(W·H)×4B），本域不复制
-  （verify 内单 HDU 临时 vector 除外）；内存不依赖 tile 数
-  （tile 缓冲在上游，max_tiles 守卫在 `lib/phase3_session/p3_session.cpp`）。
-- I-O: 单 writer 串行（cfitsio 锁内）；磁盘临时文件
-  `<path>.<pid>.tmp` 同目录（`lib/algorithms/fits_output/p3_output.cpp` 的 make_temp_path；协议注与实测命名的差异见本页「已知限制与缺陷登记（登记不改码）」）；
-  发布后无 tmp 残留（失败/取消 unlink）。
-- 所有权: 输出文件归调用方；sha256 结果归 result 出参
-  （P3OutputResult，定义见 `lib/algorithms/fits_output/p3_output.h`）。
-
-## 8 错误、日志、指标、取消和 checkpoint
-
-- 错误: rc 语义 P3_OUT_OK=0/P3_OUT_PARAM=1/P3_OUT_IO=2/
-  P3_OUT_CANCELLED=3（`lib/algorithms/fits_output/p3_output.h`，逐触发锚=ALG-P3-FITS-
-  IMPL-001［A-1］表）；会话层映射 ACS_OK/ACS_ERR_PARAM/ACS_ERR_IO/
-  ACS_ERR_CANCELLED；g_last_err→last_error 脱敏出口（`lib/phase3_session/p3_session.h`）。
-- 失败不变量: 任一步失败 unlink(tmp)/产物，不产生完整假文件、
-  不发布无完整性锚输出；sha256 失败→IO 且删产物（`lib/algorithms/fits_output/p3_output.cpp`）。
-  取消 → 无可见半成品（临时文件隔离 + 原子 rename）。
-- 输出模式缺所需科学层 → 拒绝或明确 unavailable；BUNIT 与实际量纲不一致
-  （`bunit="ADU"` vs 面亮度口径）⇒ 必须显式失败或标注 unavailable，**声明值以
-  实际量纲为准**（`"ADU"` 只在量纲一致时使用）；>2 GiB、长 UTF-8 路径、
-  Windows CFITSIO、取消、缺 tile 必须正确处理。
-- 日志/指标: inspect JSON（`lib/phase3_session/p3_session.cpp` 的 kind/run_id/
-  exit_code/output_fits_path/sha256/order_sel_used/sampler_used/
-  coverage_stats/provenance）；无独立 metrics 通道。
-- 取消: kernel 行粒度 cancelled_at_row（session 恒 -1，见 `lib/phase3_session/p3_session.cpp`）；
-  无 checkpoint（原子写整文件单元，SCI-P3/ALG-P3-001）。
-
-## 9 独立 synthetic 验证命令与容差
-
-- 本节承载 TEST-P3-WR-001 登记面：设计冻结 = TEST-P3-WR-DESIGN-001
-  （ALG-P3-FITS-IMPL-001 T1-T7）；可执行测试待建，验收证据待补。
-  已取证的相邻读数为 4 段写出测试，引用不冒认。
-- T1 原子写: 64×48 渐变场、BITPIX=-32、prov 全字段 → rc=0、
-  coverage_ok=1、reopen_ok=1、sha256 64hex。
-- T2 独立 verify: 重开 dims/像素回环（NaN==NaN）/
-  sha256 重算一致。
-- T3 原子性: 无 .tmp 残留（filesystem 遍历替代 popen；前缀弱匹配差异
-  见本页「已知限制与缺陷登记（登记不改码）」，不误报）。
-- T4 WCS roundtrip oracle: pix→world→pix ≤1e-4 px（SCI-P3
-  真值阈 ≤1e-6 px）+ 采样值锚 100.0+0.5·32（≤1e-3）。
-- T5-T7 设计面（现状未覆盖，可执行测试待建）: 取消不落盘、
-  sha256 注入失败不产假哈希、bitpix=-64 全链。
-- **可复现轮 T05–T10 诚实化（T-EXP-01..03 对称锚）**：输出测试组 1a/1b、3b、4c 四段载体已撤，本页 T1–T4 登记为设计冻结面（TEST-P3-WR-DESIGN-001），**不可验收（载体已撤）**；完整三项划分见 ALG-P3-FITS-IMPL-001 [S-6]「Oracle」一节 T-EXP-01..03。WCS roundtrip oracle 面有效（合同紧门 1e-8 px），执行证据待补。
-- **容差登记**：WCS roundtrip ≤ 1e-8 px（SCI-P3 真值；适用域与门限由
-  `p3_wcs_applicability()` 单一事实源给出，执行测试观测阈 1e-4 px）；采样值锚
-  ≤ 1e-3；sha256 64hex；逐值精确回环（NaN == NaN 一致）。
-- 命令面（落地后冻结）: 构建产物侧的用例接入（验收证据域）。
-- Oracle 面补充：标准 FITS 验证器（checksum / 结构 / WCS）；重开独立验证内容与
-  写入一致；不同 block / cache / worker 输出科学值一致；取消 / 失败无半成品；
-  >2 GiB 与长路径测试。
-
-## 10 已知限制与缺陷登记（登记不改码）
-
-- lib/infrastructure/aio/README.md 的既有表述声称「零外部依赖、不依赖 cfitsio」，
-  与现状 vendored third_party/cfitsio（acsd_cfitsio 静态库，acsd_aio 链接）
-  矛盾；他域文件只登记不修。
-- tmp 命名：p3_output.h 协议注写 `<dir>/.<base>.<pid>.tmp`（前置点隐藏形态），
-  实测 make_temp_path 生成 `out_path.<pid>.tmp`（`lib/algorithms/fits_output/p3_output.cpp`）；同目录
-  rename 原子性语义不变，但残留检查所用前缀与实际命名不匹配（残留检查空转）；
-  命名统一属迁移目标（未落地，含用例修正）。
-- 整改项（非缺陷）: prov.manifest_hash 恒 nullptr（`lib/phase3_session/p3_session.cpp`，HISTORY
-  manifest 字段写空，SCI-P3 接线属迁移目标（未落地））；p3_output_verify
-  忽略 wcs 参数（`lib/algorithms/fits_output/p3_output.cpp` 内 `(void)wcs`，设计如此）；DATASUM 为 32-bit
-  数值校验和，不是 FITS 标准的 ASCII CHECKSUM 约定［1］（如实冻结）。
-- 其余: 见 ALG-P3-FITS-IMPL-001 合同边界；全局限制登记 =
-  artifacts/evidence/known-limitations-ledger/LIMITATIONS.md；
-  SCI-P3 FROZEN 零改动声明（本页不承载公式）。
-
-## NaN 与写端口
-
-- NaN规则（权威 = `ACSD_DESIGN.md`「逐像素排异」一节）：**样本级掩膜 + 重归一 + 覆盖级NaN + 强制计数**；
-  剔除项逐条进场级计数。无覆盖/无数据 = NaN；0 与 ±Inf 不作有效值。
-- signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
-  （`surface_brightness` / `point_source_flux` / `visualization`，最高设计「输出模式显式声明」一节）。
-
-## 参考文献
-
-- ［1］ IAU FITS Working Group. (2016). *FITS Standard*, Version 4.0.
-  永久链接 [fits.gsfc.nasa.gov/fits_standard.html](https://fits.gsfc.nasa.gov/fits_standard.html)
-- ［2］ Pence, W. D.; Chiappetti, L.; Page, C. G.; Shaw, R. A.; Stobie, E. (2010).
-  "Definition of the Flexible Image Transport System (FITS), Version 3.0".
-  *Astronomy and Astrophysics* 524, A42.
-  DOI [10.1051/0004-6361/201015362](https://doi.org/10.1051/0004-6361/201015362)
+从 `P3FitsStream`、`P3FitsVerifyStream` 及[生产 verify 卡](acsd.phase3.verify.md)进入；独立 reader 核对单 HDU、尺寸/BITPIX/WCS、真实单位、子窗像素、checksum/hash、取消/故障残留与大图资源。代码含流式路径不等于本页执行了内存/性能验证，也不等于完成科学保真或发布验收。
