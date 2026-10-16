@@ -1,0 +1,79 @@
+{
+  "product": "/tmp/issue10/run/auto_post/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha",
+  "label": "post_auto",
+  "K": 18,
+  "n_checks": 14,
+  "n_fail": 0,
+  "checks": [
+    {
+      "check": "sidecar_present",
+      "pass": true,
+      "detail": "/tmp/issue10/run/auto_post/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science.json"
+    },
+    {
+      "check": "K_determined",
+      "pass": true,
+      "detail": "K=18 candidates=[('cli_expect_K', 18), ('properties.hips_order+9', 18), ('controls[*].leaf_order', 18)]"
+    },
+    {
+      "check": "K_source_consistent[cli_expect_K]",
+      "pass": true,
+      "detail": "cli_expect_K=18 vs K=18"
+    },
+    {
+      "check": "K_source_consistent[properties.hips_order+9]",
+      "pass": true,
+      "detail": "properties.hips_order+9=18 vs K=18"
+    },
+    {
+      "check": "K_source_consistent[controls[*].leaf_order]",
+      "pass": true,
+      "detail": "controls[*].leaf_order=18 vs K=18"
+    },
+    {
+      "check": "signal.leaf_order==K",
+      "pass": true,
+      "detail": "signal.leaf_order=18 expected K=18"
+    },
+    {
+      "check": "signal.leaf_order!=K-9(bug signature)",
+      "pass": true,
+      "detail": "signal.leaf_order=18 K-9=9"
+    },
+    {
+      "check": "controls.leaf_order==K",
+      "pass": true,
+      "detail": "controls leaf_order set=[18] expected [18] (n_controls=64)"
+    },
+    {
+      "check": "controls.leaf_ipix<12*4^K",
+      "pass": true,
+      "detail": "out-of-range controls=[] n_controls=64"
+    },
+    {
+      "check": "properties.hips_order==K-9",
+      "pass": true,
+      "detail": "properties hips_order=9 expected 9"
+    },
+    {
+      "check": "signal leaf Norder dir==K-9",
+      "pass": true,
+      "detail": "Norder dirs=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] expected leaf 9"
+    },
+    {
+      "check": "hips_tile_width==512",
+      "pass": true,
+      "detail": "tile_width=512"
+    },
+    {
+      "check": "Omega(K)==(pixel_scale_rad)^2",
+      "pass": true,
+      "detail": "Omega=1.523873e-11 from_pixel_scale=1.528448e-11 rel=3.002e-03"
+    },
+    {
+      "check": "support_area_sr==N*Omega",
+      "pass": true,
+      "detail": "min/max N=785/798 worst_frac=8.496e-09"
+    }
+  ]
+}

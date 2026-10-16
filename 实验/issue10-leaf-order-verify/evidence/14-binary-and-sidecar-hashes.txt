@@ -1,0 +1,6 @@
+main HEAD: 0793b8d621bcdc98485d14994f031502c467a71c
+post binary: 16b8621a912bb3b1fdfbeda9b29b8f9c3d030cb3bfbd8500680745e77d7a67b2  (/tmp/issue10/bin/acsd_post)
+pre10 binary (temporary one-line revert, uncommitted): 66b3df4e33a8edab17fc31e3d2104a1691a5dc8da8086c1a0d4b5e88b1d7f2ed
+pre10/auto sidecar sha256: acea6fa3d3aa2f17e9b3d9dd4789bbbc3128ee2bcd843d51508d9eec3df32bf7
+post/auto  sidecar sha256: 26c32c5baf44fdb0ad605ef558fad12808f9e9697612b1564b82918fb47f4633
+note: binaries embed a STALE version stamp (ACSD_COMMIT_SHA=015a18b2...), see report §6

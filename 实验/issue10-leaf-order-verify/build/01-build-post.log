@@ -1,0 +1,24 @@
+# build command: ninja -C build/linux-sci-p5 (default all; production CLI target acsd + all libs)
+# main SHA: 0793b8d621bcdc98485d14994f031502c467a71c
+# started: 2026-10-16T15:27:51Z
+ninja: Entering directory `build/linux-sci-p5'
+[1/19] ACSD: 同步响应曲线库 → /workspace/Astro CS Database/build/linux-sci-p5/config/response_curves
+[2/19] 生成构建期指纹 build_stamp_generated.h (RUN-PROVENANCE-01)
+[3/19] Linking CXX shared library lib/algorithms/drizzle/hips/acsd_p1_hips_writer.so
+[4/19] Linking CXX shared library lib/algorithms/drizzle/acsd_p1_drizzle.so
+[5/19] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/build_stamp.cpp.o
+[6/19] Building CXX object lib/algorithms/cosmetic/CMakeFiles/acsd_p1_cosmetic.dir/__/calibration/src/master_generator.cpp.o
+[7/19] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/wcs_transform.cpp.o
+[8/19] Building CXX object CMakeFiles/acsd_calibration.dir/lib/algorithms/calibration/src/master_generator.cpp.o
+[9/19] Building CXX object lib/algorithms/calibration/CMakeFiles/acsd_p1_calibration.dir/src/master_generator.cpp.o
+[10/19] Linking CXX static library libacsd_calibration.a
+[11/19] Linking CXX shared library lib/algorithms/cosmetic/acsd_p1_cosmetic.so
+[12/19] Linking CXX static library libacsd_core.a
+[13/19] Linking CXX shared library lib/algorithms/calibration/acsd_p1_calibration.so
+[14/19] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/star_matcher.cpp.o
+[15/19] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp.o
+[16/19] Linking CXX static library libacsd_phase1_photcal.a
+[17/19] Building CXX object CMakeFiles/acsd_module_adapters.dir/lib/infrastructure/scheduler/src/module_adapters.cpp.o
+[18/19] Linking CXX static library libacsd_module_adapters.a
+[19/19] Linking CXX executable acsd
+ninja exit=0

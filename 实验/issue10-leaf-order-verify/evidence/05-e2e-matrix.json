@@ -1,0 +1,30 @@
+[
+  {
+    "case": "auto",
+    "binary": "/tmp/issue10/bin/acsd_post",
+    "exit": 0,
+    "wall_s": 292.29,
+    "config": "/tmp/issue10/run/auto/config.json"
+  },
+  {
+    "case": "k9",
+    "binary": "/tmp/issue10/bin/acsd_post",
+    "exit": -9,
+    "wall_s": 1204.78,
+    "config": "/tmp/issue10/run/k9/config.json"
+  },
+  {
+    "case": "k11",
+    "binary": "/tmp/issue10/bin/acsd_post",
+    "exit": -9,
+    "wall_s": 236.91,
+    "config": "/tmp/issue10/run/k11/config.json"
+  },
+  {
+    "case": "auto_pre10",
+    "binary": "/tmp/issue10/bin/acsd_pre10",
+    "exit": 0,
+    "wall_s": 201.08,
+    "config": "/tmp/issue10/run/auto_pre10/config.json"
+  }
+]
