@@ -135,3 +135,11 @@ writer 是唯一最终发布者。Drizzle 可以借用统一 HiPS writer 在 run
 阶段内 cache 按 `(run,frame,object,revision,input hashes)` 登记，写读统一 AIO/ArtifactStore，OFF/ON 都存在且相同。迁移必须按边一次替换 producer 和 consumer，保留读取兼容直到调用点迁完；不能先关写盘而消费者仍读目录。科学 spill 是 Runtime 内存预算行为；开发 snapshot 永远不作输入或恢复来源。
 
 reader 除 shape 还须核对：control_id/model_id 唯一；所有引用存在且 kind/domain 正确；leaf 编号在声明阶内且与 sky 坐标一致；V_F、SNR 和 F_ref 配对；available T 与 V_B/V_F 同单位同条件；frame summary 的 n_valid/面积/数值由有效 controls 得到；CRVAL/Dec、CD 非奇异与 SIP 维数合法；photometry 状态、application ID、单位和真实 signal 标度一致。JSON Schema 不表达这些物理关系或外部文件 hash，执行者在统一 reader 完成，不能把 shape 校验冒称科学验证。
+
+### 7.1B 因子 v2 与 PSF 逐控制点诊断的独立复核合同（2026-10-16）
+
+local-factor/v2 量纲一致性同时包括**线性单位自身**与立体角幂次。源 v_j 的单位为 `L²`，算子 R 的单位为 `sr^-1`，派生 C 的单位必须为 `L²/sr²`，其中 L 是该 frame 真正施加 photometric scale 后的线性 signal 单位；`adu^2` 和 `electron^2/sr^2` 即使 sr 次幂满足计算规则，也**不是**一个可直接组合的模型。reader 必须核对 base linear unit 和 sr exponent，未知转换不许仅因 sr 指数正确就接纳。
+
+每个控制点的 PSF 积分数据应根据**该控制点自己的** profile、pixel footprint 记录 f_enclosed/f_out、subpixel_phase、pixel_integration_error、PSF 参数和有效域。跨控制点的最小值/最大值只能作为帧摘要，不能冒充每一个控制点数据。representation、representation_note 与 models[] 引用应来自同一版本，写 v2 时同一模型的自由文本域不应残留 v1 的声明。
+
+已核实的实现差异：normalize_precision.cpp 当前以所有控制点的 `profile_enclosed=min(ΣP)` 给每个 support_note 写相同最小值；covariance support_note 仍写 local-factor/v1 而 writer 真实 representation 为 v2；normalize_science.cpp::reconstruct_factor_covariance 只检查 sr 幂次。Agent 应在真正 writer→reader 路径和独立负例中修复上述差异，保留正确的 C=R diag(v)Rᵀ 算法。参照 实验/normalize-precision-p5/ROUND2_INDEPENDENT_REVIEW_633FFC31.md。
