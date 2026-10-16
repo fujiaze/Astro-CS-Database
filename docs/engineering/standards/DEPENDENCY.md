@@ -1,47 +1,30 @@
 # 依赖规则
 
-上游：最高设计的软件架构一章；架构边界见 `../architecture/ARCHITECTURE.md`。
+本标准规定组件依赖方向、外部库来源与工具链配置的维护位置。项目目标见[最高设计](../../ACSD_DESIGN.md)，实际构建定位见[构建图](../build/BUILD_GRAPH.md)。
 
-依赖方向、唯一动态加载路径、第三方依赖与工具链锁定的读取面。
+## 1. 组件方向
 
-- 唯一 I/O 依赖方向：上层模块 → aio（文件级唯一 I/O 边界）；aio 不依赖
- 上层科学模块[3]。
-- 共享面（`acsd_common`，含 SHA-256 与共享 HEALPix 核心）可被任何模块依赖，依赖方向单向。
-- healpix_drizzle 依赖共享 HEALPix 核心，实现单源 = `lib/algorithms/shared/healpix/healpix_core.cpp`（CMake target `acsd_common`）。
-- phase2 依赖共享 HEALPix 核心 + aio 的产品读写面（`aio_upm` / `aio_hips_reader`）。
- ⛔ **生产构建采用无 ACR/CUDA 的链接面**（见最高设计第 1.3 节非目标：ACR/GPU 生产路由
- 生产不可达[3]）。ACR 为 `DORMANT`：保留源码与隔离测试，
- **不进生产构建/加载/路由/benchmark/发布**[3]（状态词唯一口径 = 最高设计第 12.5 节的状态阶梯[3]）。
-- 唯一动态加载路径 = 安全 loader：加载前过固定检查（CPU 特征、OS 可安全执行状态、manifest、哈希、ABI），
- 只认清单授权的绝对路径，失败只报错、不回退搜索[3]。
+科学与适配模块通过公开 API 依赖共享算法和统一 AIO；AIO 不依赖上层科学编排。共享 HEALPix、密码摘要和常用数值算法保留单一实现，调用者不复制内核。依赖图避免循环，模块经声明端口交换对象，禁止借私有文件或全局配置形成隐式依赖。
 
-- 依赖图为有向无环图；模块产品输出落块级 `output_dir`，开发/CI 过程产物落 `run/`，testdata/ 只读[3]。
-- 归档面（`lib/infrastructure/aio/healpix_db/`）不进生产构建、不重建；其内容改动一律走变更流程[2]。
-- Python 仅限带 NON_PRODUCTION_TOOL_ONLY 标记的测试/研究脚本。
+动态模块经安全 loader 加载，使用授权路径、manifest、哈希、ABI 和 CPU/OS 可执行能力核对，失败明确返回。是否存在可用数学等价 baseline，按[CPU 后端](../resources/cpu/BACKEND.md)与[安全加载](../api/abi/SECURE_LOADER.md)规定，不能把“禁止搜索其他路径”写成“任何可选后端失败都不能选合法 baseline”。
 
-## 第三方依赖与工具链锁定的读取面
+生产科学计算为 CPU，ACR/GPU 保留源码或实验也不自动进入生产加载、benchmark 或发行。归档代码按其现有归属保存，不重建它来冒充现行产品。Python 可用于构建、打包、诊断、测试和研究工具；这些用途不表示科学内核改成 Python，也不需要人为标签才能运行文档脚本。
 
-本节只规定「值在哪里、谁说了算」，不复制取值本身。
+## 2. 配置与锁定来源
 
-| 面 | 机器单一事实源 | 登记镜像 | 校验入口 |
-|---|---|---|---|
-| Windows x64 发布工具链（generator、toolset 与其版本、VS Build Tools 与 installationVersion、SDK 与 servicing bundle、CMake、C++ 标准、CRT、VS 安装位置、preset 禁面） | `eng/packaging/schemas/preset-contract.json` | `eng/packaging/windows/README.md` | 工具链锁定校验项 |
-| VS 安装组件清单 | `eng/packaging/windows/.vsconfig` | `eng/packaging/windows/README.md` | 工具链锁定校验项 |
-| 生产依赖与系统库锁定（vendored 清单与哈希、zlib/zstd/lz4、kernel32 与线程 shim、OpenMP、Threads、机器路径政策） | `eng/packaging/dependency-lock.json`（schema：`eng/packaging/schemas/dependency-lock.schema.json`） | — | 依赖与系统库锁定校验项 |
+| 对象 | 维护入口 | 核对面 |
+|---|---|---|
+| Windows preset 与工具链策略 | `CMakePresets.json`、`eng/packaging/schemas/preset-contract.json` | `eng/cmake/toolchain/verify_toolchain.py` 与实际 CMake cache/编译记录 |
+| VS 安装组件 | `eng/packaging/windows/.vsconfig` | 实际安装与选中工具链 |
+| 第三方、系统库和许可证来源 | `eng/packaging/dependency-lock.json` | 实际源码/库哈希、构建链接与 SBOM |
+| 安装文件 | `eng/cmake/install_layout.cmake`、install-tree.contract.json | 全新安装树及产物依赖 |
 
-- **工具链的定位与版本**：正式工具链（Windows = MSVC v143；Linux = GCC 或 Clang）的版本取值由上表的
- 机器单一事实源冻结；MSYS2 MinGW64 的定位是**本地开发与兼容性验证工具链**，其编译器版本同样由
- 上表机器源与依赖锁登记，标准类文档（`CODE.md`）只写定位、不复述版本号；
-- **冲突以机器源为准**：登记镜像、标准类文档与本文一律不得声明第二套取值；镜像或文档与机器源不一致时
- 按机器源订正；
-- 机器路径政策：CMake 与构建输入不得读取 `F:/`、`C:/Users/<user>`、`/home/<user>` 等机器绝对路径（fresh configure 必须可复现）；Windows 正式工具链的安装位置由 preset 显式声明，属白名单例外；MSYS2/MinGW 不作为**生产依赖来源**（生产构建的 vendored 与系统库只走依赖锁），但其工具链作为本地开发与兼容性验证工具链可用[1]；`vcpkg` 不使用，引入时须同时以 manifest 与 baseline 双重锁定并在本锁文件登记；
-- CRT 取值由 preset 合同冻结：Debug 用动态调试版 CRT，Release 与 RelWithDebInfo 用动态版 CRT，全部可执行文件、动态库与第三方一致；**静态 CRT 禁止**；
-- MSVC 侧的 zlib 由显式 cache 变量指向（默认空，不硬编码用户路径）；未提供时 cfitsio 不编译压缩路径，属已登记的降级而非缺依赖；
-- 依赖锁文件的每次复算同时产出 SBOM 输入清单；该清单是过程产物，不入库（`run/` 与构建目录不入库，见最高设计的文档权威与索引一章）[3]；构建入口与 preset 的落点见[4]。
+文档解释策略，机器配置给出具体取值，实际工具链记录证明使用事实。三者不一致时保留差异并订正责任面；机器文件不能反向改写产品目标或物理定义。vendor 注记和 README 是镜像，不另设一份版本表。
 
-## 参考文献
+## 3. 路径、CRT 与可选能力
 
-[1] 内部文档 `docs/engineering/standards/CODE.md`，代码标准，其 MUST 条款给正式工具链与 MinGW64 的定位。
-[2] 内部文档 `docs/engineering/architecture/ARCHITECTURE.md`，架构边界，同层相关正本。
-[3] 内部文档 `docs/ACSD_DESIGN.md`，最高设计，第 0 章（文档权威与索引）、第 1.3 节（非目标）、第 8 章（软件架构）与第 12.5 节（状态阶梯），上位来源。
-[4] 内部文档 `docs/engineering/build/BUILD_NODES.md`，构建节点正本，preset 与构建入口的落点。
+构建输入使用可重定位源码/依赖路径，避免个人用户目录和机器盘符。安装路径由显式参数和工具链发现确定；当前 VS preset 不固定某个个人安装目录。MinGW 可作本地兼容验证，正式 MSVC 依赖来源和验证单独报告。
+
+MSVC 动态 CRT 必须在跨边界模块与第三方间兼容；Debug 与非 Debug 的取值按 preset。显式 cache 变量选择 zlib 等外部能力，缺压缩后端只在合同允许的范围报告能力，不将不可读压缩输入静默改成成功。
+
+引入外部依赖同时记录版本、内容哈希、许可证、平台、构建方式、公开 ABI 和实际消费者。依赖锁及 SBOM 不能只覆盖包中独立 DLL 而遗漏静态嵌入库。系统库与工具链也属于复现条件，其证据随构建保存。
