@@ -575,6 +575,10 @@ bool SparseSnrReconstructor::prepare(const SparseSnrLayer& layer, std::string* e
       return false;
     }
     for (const auto& p : points_) {
+      if (!std::isfinite(p.x) || !std::isfinite(p.y)) {
+        set("scattered sparse layer control point coordinates non-finite (corrupt)");
+        return false;
+      }
       if (!positive_finite(p.snr)) {
         set("sparse layer control point SNR non-finite/non-positive (corrupt)");
         return false;
@@ -620,8 +624,9 @@ bool SparseSnrReconstructor::prepare(const SparseSnrLayer& layer, std::string* e
       const SparseSnrPoint& p = points_[idx];
       const double ex = x0_ + static_cast<double>(i) * dx_;
       const double ey = y0_ + static_cast<double>(j) * dy_;
-      if (std::fabs(p.x - ex) > tol_ || std::fabs(p.y - ey) > tol_) {
-        set("regular-grid sparse layer control point does not match declared grid (corrupt)");
+      if (!std::isfinite(p.x) || !std::isfinite(p.y) ||
+          !(std::fabs(p.x - ex) <= tol_) || !(std::fabs(p.y - ey) <= tol_)) {
+        set("regular-grid sparse layer control point non-finite or does not match declared grid (corrupt)");
         return false;
       }
       /* 非法值：非 NaN 的非有限值 / <=0（0 与负值不是合法 SNR）。 */
