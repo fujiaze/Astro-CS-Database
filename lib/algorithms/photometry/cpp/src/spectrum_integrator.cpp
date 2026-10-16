@@ -131,7 +131,17 @@ double simpson_integrate(const std::vector<double>& x, const std::vector<double>
     const int n_pts = (int)x.size();
     if (n_pts < 2 || (int)y.size() < n_pts) return 0.0;
 
-    double h = (x[n_pts - 1] - x[0]) / (n_pts - 1); // 等间距假设
+    // 复合 Simpson 权重仅适用于严格递增、近似等间距的波长网格。
+    // 非等距网格不可偷偷用平均h；返回 NaN 由光度调用方判作无效F_syn。
+    const double h = (x[n_pts - 1] - x[0]) / (n_pts - 1);
+    if (!(h > 0.0) || !std::isfinite(h)) return NAN;
+    const double spacing_tol = 1e-8 * std::max(1.0, std::fabs(h));
+    for (int i = 1; i < n_pts; ++i) {
+        const double step = x[i] - x[i - 1];
+        if (!std::isfinite(x[i]) || !std::isfinite(x[i - 1]) ||
+            !(step > 0.0) || std::fabs(step - h) > spacing_tol)
+            return NAN;
+    }
     int n_int = n_pts - 1; // 区间数
 
     double sum = 0.0;
