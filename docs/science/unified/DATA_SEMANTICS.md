@@ -100,3 +100,20 @@ Normalize 每帧唯一正式精度载体为 frame_science.json，包含 Drizzle 
 [1] FITS Working Group. [FITS标准](https://fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.pdf)。
 
 [2] IVOA. [HiPS推荐标准](https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf)。
+
+
+## 附：#8/#9/#13 的同估计量科学对接（2026-10-17，公式裁决；真实 E2E NOT_RUN）
+
+**#8 点源 Fisher 与面亮度 variance 的区别。** 在冻结参考点源的局部观测模型 `d=Fh+Zβ+ε`、`Cov(ε)=C_ref` 下，若 `C_ref` SPD 且 `Z` 满列秩，则对 nuisance profile 的有效信息量为
+
+\[
+I_F=h^TC_{ref}^{-1}h-h^TC_{ref}^{-1}Z(Z^TC_{ref}^{-1}Z)^{-1}Z^TC_{ref}^{-1}h,\qquad V_F=I_F^{-1}.
+\]
+
+病态或秩亏时须在可估计子空间求解，不能逐项使用未验证的逆；`F_ref/√V_F` 是点源 reference SNR。Drizzle/Mosaic 的实际被估计量为球面面亮度 `B`（单位 `L/sr`）。对给定线性重建/取样算子 `a`，`\widehat B=a^Td`，`V_B=a^TC_{actual}a`（需包括同一背景/相关项及有效域），最优权重 `w_B=1/V_B`，不是 `I_F`。仅在相同帧/天区/噪声条件、同一 reference 定义、且同时求得 `T=V_B/V_F`（单位 `sr^{-2}`）时，`w_B=I_F/T`；转换的条件必须保留，`T_ref` 不自动是 actual-scene 的 `T`。
+
+严格反例：两幅对 B 的无偏估计 `V_{B,A}=V_{B,B}=1`，故 oracle 最优权为 (1,1)、合成方差 1/2。点源模板分别 `h_A=(1,0)`、`h_B=(1/2,1/2)`，独立像素噪声均 1，则 `I_{F,A}=1,I_{F,B}=1/2`。直接以点源信息加权，实际 B 组合方差为 `(1+1/4)/(3/2)^2=5/9`，比 oracle 高 11.1%。这是**证明错误一般化**的解析反例，不代表已在真实星场测得 11.1%。应以独立向量/矩阵 oracle 和实际同一 Mosaic 被估计量、点源/背景 Poisson、correlation、rejection 后有效集合复算。
+
+**#9 一次尺度与 BUNIT。** 真实逐帧应用 `s'_j=α_j s_j` 时，`Var(s'_j)=α_j^2 Var(s_j)`，协方差 `C'=A C A^T`，其中 `A=diag(α)`。若 `α` 是带单位 `U_{out}/U_{in}` 的校准转换，信号单位必须同步从 `U_in` 改为 `U_out`，球面 BUNIT 为 `U_out/sr`、方差 `U_out^2/sr^2`；若 `α` 无量纲，只是相对标度，数值虽变而仍处原物理单位族，但必须声明 scale_state/normalization/reference ID，不得声称绝对 Gaia 物理标定。两种模型不可仅因“数学上都是乘数”便合并为永远 ADU/sr。检测真实 `photoapplied`、`frame_photscal`、响应物理换算、写出 HiPS FITS BUNIT、sidecar 与 Export 的单位词汇同一性；参考 source_flux 口径与 applied signal 要一次匹配，禁止双重施加。
+
+**#13 球面真源消费的必要且非充分条件。** Stage1 `frame_science/v2` 的 controls 保存 sphere sky/leaf、F_ref/V_F/conditional status/support/model refs；Stage2 reader 实际完成 hash、单位、R/h/C/Z、HEALPix 验证并通过独立空间重建算子插值到所需目标叶，才可称“消费 P1 canonical”。当前 Stage2 读取 `ACSD_SPARSE_SNR_LAYER` 是旧像素层，不是球面 GLS。即使 reader 接通，`I_F` 也只能描述点源，若不能按 #8 得到 actual-scene 的 `V_B`，不得用于生产 `inverse_variance` 面亮度权重；已有同一被估计量的 corrected variance/ivar 可独立保留。验证跨 12 face、极区、空洞、orders 9/11/13、支持域越界与加权 covariance 传播，分别报告读取成功与实际参与权重的科学条件。

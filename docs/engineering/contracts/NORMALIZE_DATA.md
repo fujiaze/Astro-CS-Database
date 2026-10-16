@@ -118,23 +118,23 @@ writer 是唯一最终发布者。Drizzle 可以借用统一 HiPS writer 在 run
 - `background_basis_shape=[nl,n_bg]`、`background_basis_unit/basis_definition`（Z 必须与被估计的 β 单位成对）、`rank/condition/solver/relative_tol` 和独立模型/hash refs；
 - `assumptions=[diagonal_planar_condition]` 及所有 `omitted_terms`，不把模型内的“精确”冒称物理世界中所有误差都已建模。
 
-同一个完成模型以 **C=R diag(v)Rᵀ** 精确重建、能与小窗显式 C 逐项对拍，才可写 `exact_factorization_of_model=true`。如果未来有平面共同母版/标度低秩项，必须使用声明了额外因子的更一般模型/新版本，不能把源噪声近似成 diagonal 后仍称全协方差已建模。已有 v1 读侧按旧含义/真实来源做严格兼容或拒绝 canonical 使用，不允许悄悄重新标记其数值单位。FrameScience v1 可以通过已有具版本的 model refs 指向 factor v2；只有发生破坏性 top-level 形状修改时才升级 frame_science schema。
+同一个完成模型以 **C=R diag(v)Rᵀ** 精确重建、能与小窗显式 C 逐项对拍，才可写 `exact_factorization_of_model=true`。如果未来有平面共同母版/标度低秩项，必须使用声明了额外因子的更一般模型/新版本，不能把源噪声近似成 diagonal 后仍称全协方差已建模。研发期错误的 frame-science/v1 与有错误科学声明的旧局部模型均不属于正式产品输入域；正式 FrameScience 顶层唯一为 v2。已知 v1 产品拒绝并从原始 FITS 重算，不做兼容、模型内容改标签、版本猜测或 +9 修补。局部模型可继续采用语义正确且可独立验证的 local-factor/v2；其版本号独立于 FrameScience 顶层版本。
 
 同一局部窗口的索引、h、C、Z 和 R 必须维数相容；CSR 数组非负几何系数及归一按实际有效样本验证。计算 `V_F` 不能先逆全帧矩阵，采用局部 SPD 解或一致的可估计子空间分解；留出/截断/窗口模型误差单独标记。每个控制点可引用自己的模型 ID，多个点确实共享同一模型时才共用 ID。跨控制点不凭同名 PSF 强加同一数值矩阵。
 
 基础局部表示足以重算控制点条件 GLS 和对应位置的 transfer。连续位置与 actual-scene 条件需真实可求值的平面 PSF/noise/geometry 模型或经过标定的重建；局部窗口不冒称全帧任意位置已精确建模。阶段二 reader 据此识别能力，保留当前 per-sample-ivar 基线。
 
-## 8. 读取兼容与工作缓存
+## 8. 正式 v2 读取与工作缓存
 
 | 输入 | 读取结果 | 禁止行为 |
 |---|---|---|
 | frame_science.json 支持的 schema | 验证形状、身份、hash、单位与模型引用后读取 | 未验证引用直接算 canonical 权重 |
-| 无 sidecar 的现有 HiPS | signal/有来源的 variance 基线照常读；canonical precision unavailable | 从 catalogue `snr_psf` 或 ACSD_FRAME_SNR 自动补 canonical |
-| v1 sparse_snr_layer 像素网格 | legacy view；只有完整 reference/units/domain/models 能经显式 adapter 验证时转为新对象 | 单靠 schema 可加载就宣称球面 C/h 完整 |
-| 不支持的新 schema | signal 可按其独立合同读；precision unavailable 并记 unsupported_schema | 猜字段/无声 T=1 |
+| 已发布 v2 帧产品缺失 sidecar | DATA_INCOMPLETE，拒绝整份 v2 产品 | 从旧 HiPS 或 catalogue 推造 precision |
+| frame-science/v1 或旧 sparse_snr_layer | UNSUPPORTED_SCHEMA，拒绝作为正式产品输入；从原始 FITS 重算 | +9 修补、迁移、兼容 adapter、静默降级 |
+| 未知 schema 或科学字段冲突 | UNSUPPORTED_SCHEMA 或 DATA_CONFLICT，拒绝产品 | 猜字段、视为合法 unavailable、无声 T=1 |
 | JSON/模型文件损坏 | 报具体数据错误，不能冒充正常 unavailable | 吞错改零或继续引用坏 hash |
 
-阶段内 cache 按 `(run,frame,object,revision,input hashes)` 登记，写读统一 AIO/ArtifactStore，OFF/ON 都存在且相同。迁移必须按边一次替换 producer 和 consumer，保留读取兼容直到调用点迁完；不能先关写盘而消费者仍读目录。科学 spill 是 Runtime 内存预算行为；开发 snapshot 永远不作输入或恢复来源。
+阶段内 cache 按 `(run,frame,object,revision,input hashes)` 登记，写读统一 AIO/ArtifactStore，OFF/ON 都存在且相同。实施时按生产调用链一次性替换 producer、reader、schema、发布及 P2/P3 消费者；不在正式版本中保留 v1 reader 或数据迁移。不得先关上游写盘而使既有生产消费者悬空。科学 spill 是 Runtime 内存预算行为；开发 snapshot 永远不作输入或恢复来源。
 
 reader 除 shape 还须核对：control_id/model_id 唯一；所有引用存在且 kind/domain 正确；leaf 编号在声明阶内且与 sky 坐标一致；V_F、SNR 和 F_ref 配对；available T 与 V_B/V_F 同单位同条件；frame summary 的 n_valid/面积/数值由有效 controls 得到；CRVAL/Dec、CD 非奇异与 SIP 维数合法；photometry 状态、application ID、单位和真实 signal 标度一致。JSON Schema 不表达这些物理关系或外部文件 hash，执行者在统一 reader 完成，不能把 shape 校验冒称科学验证。
 
@@ -150,3 +150,32 @@ local-factor/v2 量纲一致性同时包括**线性单位自身**与立体角幂
 [1] [Normalize 科学正本](../../science/normalize/NORMALIZE_SCIENCE.md)。
 
 [2] [Normalize 生产链与模块责任](../architecture/NORMALIZE_PIPELINE.md)。
+
+
+## 9. frame-science/v2 唯一冻结目标合同（Issue #10；2026-10-17）
+
+**性质：TARGET / NOT_RUN。** 截至源码基线 `d09371c7f40e`，`write_frame_science_document` 与 `read_frame_science_document` 仍硬编码 `acsd.normalize.frame-science/v1`，仓库中 `eng/contracts/schemas/normalize_frame_science.schema.json` 及两个 examples 也是 v1。此节冻结后续**同步切换**的唯一正式语义；文档已冻结**不是**已有产物 v2 已发布。机器 schema / 实例在代码 Agent 的同一原子实现提交中升级，不提前让旧 writer 与新 schema 在 main 上不匹配。
+
+### 9.1 版本、字段与单位（唯一单表）
+
+顶层必须为 `schema_id="acsd.normalize.frame-science/v2"`、`schema_version=2`、`product_role="normalize_frame"`。顶层字段集合仍以现有 JSON schema 所列 required 为基础：`run_id,frame_id,input_occurrence,source_sha256,config_sha256,software_sha,signal,wcs,photometry,reference,models,calibration,drizzle,precision,source_dimensions,exposure_seconds,exposure_source`；严禁 `additionalProperties` 冒充未指定的科学字段。v2 的 **software_sha 只能表示有来源的构建时源码 HEAD**；在 #75 身份合同落地前记录 `unverified` 而不能将 configure 期陈旧串当真实性证明。另于产品 manifest 绑定真实已加载 CLI/DLL SHA-256、build source digest、配置、输入及响应内容哈希；SHA 字段若声明为 sha256 必须是 64 位小写十六进制字符串。
+
+- `input_occurrence`：0-based、非负整数，按冻结输入序列中的每次出现分别计数；`frame_id` 唯一绑定该 occurrence，不能只取 basename；`source_sha256` 是原始 FITS 内容身份，`run_id/config_sha256` 绑定此次执行。
+- `source_dimensions=[width,height]` 为两个正整数，`exposure_seconds` 为已知时正有限数，否则在上游给出具名不可用状态，禁止 0 充当合法曝光；WCS solved 时 `crval_deg/crpix` 各二元素，`cd_deg_per_pixel` 四元素非奇异、SIP 全系数有限且索引域有效。
+- `signal`：`hips_path` 为产品根内安全相对路径，`ordering="nested"`，`tile_width=512`，`scale_state` 限 `native_calibrated|relative_scaled|response_calibrated`，`invalid_policy` 显式给出。声明数值 `linear_unit=L` 时 `bunit=L/sr`；`photometry.scale_applied` 和 `application_id` 必须与真实像素运算、variance/ivar 单位及相应响应模型一一匹配，不能无条件写 `ADU/sr`。
+- 核心几何不变量：`Nside=2^K`（正整数 2 的幂），`signal.leaf_order=K=log2(Nside)`；`tile_order=K-log2(tile_width)=K-9` 且 **tile_order 仅用于 HiPS 目录** `Norder{tile_order}`。本 512 tile 帧产品可接受的基础域为 `9<=K<=29`（还须满足生产几何、资源和 id 溢出检查）；`signal.leaf_order`、所有可用的 `precision.controls[].leaf_order`、模型 support/operator leaf order **严格相等**，不做容差或自动 +9。
+- 叶下标是 NESTED 的无符号 64-bit 整数，JSON `leaf_ipix` 必须以不带指数/前导 + 的十进制**字符串**存储，解析后满足 `0<=ipix<12*4^K`；包括 ipix=0。由同一 HEALPix oracle 求 `ang2pix_nest(K,ra,dec)`，不得拿 tile `Npix` 或局部 x/y 替代球面位置。叶立体角 `Omega_leaf=4*pi/(12*4^K)` sr；K=11 时 Nside=2048、tile_order=2，误用 2 的叶面积会相差 `4^9=262144`。
+- `precision` 在 `drizzled_sphere` 域用 float64 保存控制点；`available` 控制点的 `F_ref>0,V_F>0,SNR=F_ref/sqrt(V_F)` 有限且单位配对，模型 ID、PSF h、noise C、nuisance Z、R、支持域和 reference 定义完整；`unavailable` 给具名 reason，不能伪造 0、NaN、Inf 或空模型为可用。成功且 `precision.status=unavailable` 的 **v2 sidecar 仍必须存在**；`frame_summary` 的有效数目、非重复支持面积和加权中位数从 controls 可复算。
+- `models[]` 的 `model_id` 全局唯一，`kind/domain/representation` 与实际文件吻合；相对路径不得含上溯、绝对路径、符号链接逃逸，模型文件的实际 SHA-256 与 manifest 一致。局部 C 模型的 `v_j` 单位 `L^2`、CSR(R) 的单位 `sr^-1`、逻辑 C 单位 `L^2/sr^2`，验证 `h_s=R h_p`、`C_s=R diag(v)R^T`，并记录条件随机项/相关性缺项；支持小窗精确分解后核对 GLS。不得拿 schema 形状验收替代数值科学验收。
+
+### 9.2 发布、阶段消费与错误域
+
+`p1_op_drizzle` 在 run-private `<work>/<frame_key>/frame_science` 写入暂存文件、model refs；`p1_op_writer` 等 AIO 完成后，按 `frame_id/run_id/occurrence/source/config`、几何/单位、模型 hashes、signal tiles 和科学状态校验；**先形成不可见完整 revision，再以唯一完成指针发布**。当前 `publish_staged_frame_science` 将各文件复制、原子写 sidecar、回读；其成功并不自动证明跨多个文件的统一 revision pointer 已实现。只写出 HiPS tiles 没有 sidecar 与完成指针 = 未提交产品，不是 precision unavailable。
+
+返回语义分离：`OK_AVAILABLE`（完整发布、可用 precision）、`OK_PRECISION_UNAVAILABLE`（完整 v2 sidecar、合法 signal、有具名不可用原因）、`NOT_APPLICABLE`（原始 FITS / 尚未发布的私有暂存目录，无 sidecar 是正常工作流）、`DATA_INCOMPLETE`（声称已发布但缺 sidecar/tiles/manifest）、`UNSUPPORTED_SCHEMA`（v1、未知 schema）、`DATA_CORRUPT`（JSON、哈希、坏数值、损坏模型）、`DATA_CONFLICT`（同一帧身份、leaf 几何、模型条件、单位或状态互相矛盾）。前两个是成功能力状态；其余不得被包装成 precision unavailable。v1/旧错误产品直接拒绝；**以原始 FITS 重算，没有识别旧 K-9、无迁移/兼容/自动 +9/回退**。
+
+Stage 1 只负责正确生成与发布；Stage 2 按完成指针 → v2 reader → 验证球面模型 → 解析有效控制域，之后才可在**相同被估计量及噪声条件**下消费精度。现行 `p2_sparse_layer_probe` 仍只读取 `ACSD_SPARSE_SNR_LAYER`，不是 v2 消费；切换时删除将旧 pixel sparse view 当 canonical 的入口。Mosaic 的逐样本真实 variance/ivar 可独立成为面亮度最优权重基线；点源 `I_F=1/V_F` 不直接等于 `1/V_B`，转换须有同条件 `T=V_B/V_F`（#8），actual scene 不满足时 precision 仅供诊断、权重保持具名来源。Stage 3 读取 Stage 2/Stage 1 真正完成的正式产品及保留下来的线性单位、响应/相关误差身份；不得靠产品名猜单位或解读 v1。
+
+### 9.3 并行代码任务的确定性负例
+
+(1) `K=9,11,13` 对应 Nside 512/2048/8192、Norder 0/2/4；任何 control 的 K-9、tiles 错目录、角面积错、极区/face 边界叶映射不符 → DATA_CONFLICT。(2) 同源 FITS 出现两次，`source_sha256` 相同但 occurrence 0/1，frame_id 不得碰撞。(3) v1（包括 `leaf_order=K` 但仍标 v1）/缺 sidecar 的已完成目录 → 明确拒绝。(4) `precision.status=unavailable` 且完整 v2 sidecar → OK_PRECISION_UNAVAILABLE。(5) 修改 model 字节、交换不同帧 sidecar、把 photapplied 的 `bunit` 改成 `ADU/sr`、把 `adu^2` 与 `electron^2/sr^2` 拼接、`leaf_ipix=2^53+1` 用 JSON 浮点存 → 分别明确 DATA_CORRUPT/CONFLICT。(6) 独立真实 reader + 外部 HiPS/FITS 读回，报告 `TARGET/NOT_RUN/PASS` 各测试的实际证据，不把文档裁决写为生产通过。

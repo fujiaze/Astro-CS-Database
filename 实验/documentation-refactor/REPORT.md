@@ -277,3 +277,14 @@ Q10旧t_norm2−proj已修，历史反例保留，剩余秩阈值/误差证书�
 **关键生产信息保留**：两个 op 复用现有 `ac_calibrate_frame` 和 `ac_correct_frame` 科学算子，采用 FP32 单帧单 work unit 和每实例串行；原 `acsd.phase1.calibration/acsd.phase1.cosmetic` 是两个旧注册 module_id，而 DLL 新身份 `acsd.p1.calibration`，显式映射不改旧 IR 默认；Cosmetic 节点的 `ac_correct_columns_ex2` 坏列修复必须继续保留，不能以单个 v2 point-cosmetic op 替代整节点。传统 dark_opt 两式与配置给定 K，不引入虚构的自动优化；method=1 实际是四正交方向逆距离修复而非真正 bilinear。
 
 **范围/验证**：本批抽取参考头后，本地 GCC C11 和 G++ C++17 严格警告（`-Werror`）**编译通过**，LP64 sizeof/offsetof 与正式合同一致；Windows MSVC、DLL 链接/装载、实际 CLI、AIO、内存压力与科学数值回归 **NOT_RUN**。这不是新增可链接 ABI v2；尚未在 main 创建/修改生产 .cpp/.h。#23 科学与资源基线仍为 #24 施工前置；#19 的旧测试失败 26 failed/56 passed 需要独立分类而非计入本批成功。此批推进的是 #6 的 ARS-02 专题，仍不代表原191篇全文审计结束，Issue #6 保持 Open。
+
+
+## Issue #6 批次：#10 v2 合同、#12 Simpson、#74/#75、ARS-02 科学静态复核（2026-10-17）
+
+**读过并实质核对（本批限定）**：Issue #6 规划评论及 #8/#9/#10/#12/#13/#74/#75 正文与 #12 独立尺度反例；现行 `NORMALIZE_DATA.md`、`docs/detail/normalize/contracts.md`、`PHOTOMETRIC_FIT.md`、`DATA_SEMANTICS.md`、`PROCESS_ABI_V2.md`、`RELEASE.md`、`SCIENCE_IMPLEMENTATION_DELTA.md`；生产 `normalize_science.cpp/.h` serializer/reader/model 接口与发布、`module_adapters.cpp` 实际 p1 drizzle/precision/staging/writer、cal/cosmetic、P2 sparse probe 与 weight 入口、`normalize_precision.cpp` 捕获窗/GLS/模型、`spectrum_integrator.cpp` Simpson/cache/XPSD；根 CMake version/build-stamp、`eng/tools/gen_build_stamp.py`、`build_stamp.cpp/h`、CLI run provenance；Cal `ac_api.cpp`、`astro_calibration.h`、`module_entry.cpp`。部分大型源代码只精读点名的函数、片段，没有逐行审完整 17565 行 scheduler。
+
+**本批新增有效设计**：正式冻结 frame-science/v2 唯一几何/单位/版本、产品状态与函数级施工映射，确定不读 v1、无 +9 迁移/compat；写明当前机器 schema/writer 仍 v1 的 TARGET 实际差距。Simpson 选择等距 nm、双重相对/IEEE 误差限定、合法域、1/3+3/8 解析 oracle 与真实 Gaia XPSD 校验方法。对低 Nside 明确分段测量位置、复杂度可疑但根因未知；对构建版本戳区别现有 build_source_digest 与真实加载 binary hash，并补正 HEAD 与增量依赖。ARS-02 静态确认两真实 F32 内核、坏列 `ac_correct_columns_ex2` 和统一 DLL 双 Operation 的唯一路径；#8 Fisher/面亮度 T、#9 一次转换单位、#13 球面消费必要条件以独立反例写进正式科学正文。
+
+**原191篇审计范围声明**：本批是现行正式专题与生产代码的定向内容精读，**没有重新取出 `63eccbb6` 对应全部 191 原 blob 并逐篇全文对照**；不将上述专题自动记为“原文全文无损复核完成”，`ORIGINAL_FILES.tsv` 未给未读篇章虚增状态。既有已验证原文件/来源统计沿用前批报告；191篇余下原文、其他 246 实验文本以及高压缩四文后续逐项跨层核对仍未完结。结构、链接或 Git blob 归档正确不等于有效设计完备。
+
+**未运行/待裁决**：真实 Gaia/XPSD 输入及算法二进制复测、Nside=512/2048 的 profiling、v2 reader/writer/发布和 P2/P3 端到端、#8/#9 实际 Fisher/单位差异、MSVC C11/C++17 ABI loader/CLI E2E 均 NOT_RUN；没有更改生产 C++、JSON schema 或示例，未声称原 v1 产品已经修复。Agent 下一工程批次先实施 #10 的 **schema+writer+reader+产品验证+两下游消费** 同步切换；#12 的数学错误修补在独立批次按新规范实施；#74 先做取证，#75 先验证已有生成机制，再改接真实构建与二进制身份；ARS-02 保持 S0→同一 DLL 双 op 的已选 ABI。
