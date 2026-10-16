@@ -26,16 +26,16 @@
 | 逐帧响应 | `p1_op_photometry::p1_resolve_frame_binding` 已读取 `photometry.frame_overrides`，为逐帧拟合选择 filter/QE 并保留继承来源 | 匹配依输入路径、basename 或净化 key，第一条命中即停止；重复路径的不同 occurrence、同名冲突和冻结输入序号仍未满足严格身份合同，不能将其概括为完整 occurrence 绑定 |
 | 参考来源 | `normalize_precision.cpp::parse_reference_config` 支持 explicit_linear_flux；缺参考明确 unavailable | sed_response 明确记录积分 not_wired；不能宣称已由实际参考 SED/响应生产 F_ref,k，也不以检出星中位数补 canonical |
 | GLS 矩阵与秩 | `complete_spherical_reference` 的常规路径已对 Qᵀ 作列主元 Householder QR，投影白化模板并独立判背景秩/通量可辨识；Jacobi 对照保留平方逆公式 | m×nl 超过工作集阈值时仍回到 Jacobi oracle；两条路径的截断与边界需分别验证。不能继续写“生产只用 Jacobi”或“背景冗余必然拒绝通量” |
-| 数值子空间诊断 | `PivotedQr` 显式重算残余列范数并以相对主元门限截断；有 solver/rank/tolerance 诊断 | QR 主元门限不等于奇异值门限，背景投影后 I_F 仍以两个范数平方相减，近共线时有消去风险；主元比平方不等于谱条件数或保守上界。Jacobi 分支的负谱处理仍需单独核对 |
+| 数值子空间诊断 | `PivotedQr` 显式重算残余列范数并以相对主元门限截断；有 solver/rank/tolerance 诊断 | I_F 已改为显式残差两轮投影后取平方范数，保存响应/残差范数和 condition_estimate_method；旧范数平方相减问题不再描述该分支。QR 主元门限不等于奇异值门限，主元比平方仍不能仅凭方法名成为谱条件数或保守上界；通量残差平方与阈值的尺度、Jacobi 分支分别核对 |
 | 最终信号算子 | `build_patch_windows` 用完整捕获贡献汇总 N，设置 R=(a/A_drop)/N；Drizzle 的捕获筛选已按目标叶保存贡献 | 捕获完整性、候选遗漏和同次正式叶归一仍需独立核对；不能将局部算子自洽等同全域几何正确 |
-| 原生 gain 与 alpha | completion 已纳入 alpha²/a_ref 的源泊松项，合成非平凡常量标度有证据[5] | 生产请求只赋标量 applied_scale；空间 pixel_scale 未贯通。`a_ref=Σalpha P` 使用当前窗口，而信息模板仍取 w.profile；在截断总通量/空间标度下的配对未被现有验证覆盖 |
-| PSF 与模板 | `pixel_integrated_psf.cpp::pixel_integrated_moffat4_profile` 已实现归一椭圆 Moffat4 的像元求积；`normalize_precision.cpp::pixel_integrated_profile` 已实际调用 | 当前调用仍传帧级圆化中位 sigma，未贯通逐位置椭圆/旋转 PSF。相邻阶差仅作自检；每点包络和误差目前使用帧级极值，不能冒充该点真实诊断 |
+| 原生 gain 与 alpha | completion 已纳入 alpha²/a_ref 的源泊松项，合成非平凡常量标度有证据[5] | 生产请求已有 pixel_alpha_at，经同一 photo_spatial_m 求值，再填每窗 pixel_alpha；优先于旧 cfg.pixel_scale 和常量。真实 applied 空间场的端到端证据不能由 alpha=1 的运行替代。`a_ref=Σalpha P` 仍使用当前窗口，信息模板取 w.profile；截断总通量/空间标度的配对问题见科学问题记录 |
+| PSF 与模板 | `pixel_integrated_psf.cpp::pixel_integrated_moffat4_profile` 已实现归一椭圆 Moffat4 的像元求积；`normalize_precision.cpp::pixel_integrated_profile` 已实际调用 | 已消费逐帧 psf_params，PSF 库构建三角剖分并混合顶点积分响应；逐点包络/求积误差与帧摘要已经分离。当前模型无孔洞/跨无效区约束输入，凸包外/剖分失败仍回退帧常 sigma，不能由拟合成功行推定全部质量与空间支持合格；相邻阶差只作自检 |
 | 随机与共同误差 | 背景方差、参考源分量及 omitted_terms 已进入 completion | 生产请求固定 master_uncertainty_modelled=false；母版 Jacobian、修复相关、光度参数共同项与交叉项仍未完整求值；upper_bound 的使用须满足真实 PSD 缺项与固定模板前提 |
 | 支持与摘要 | 目标叶由中心 sky 的共享 ang2pix 取得，叶号0具显式有效性；摘要使用面积加权 log SNR 中位数 | 当前支持来自捕获邻域 Σmin(D_l,Ω_leaf)，不是一般覆盖并集，也不自动等于整个非重叠 patch 支持。当前查询半径和首次叶归属的采样选择仍影响摘要 |
-| 科学模型载荷 | h、Z 和预算内 C 已产生；预算外 writer 使用 local-factor/v2，分别声明源 v、派生 C 与 R 的单位/shape，以及 solver 和假设字段 | PSF 文件仍主要写 h，所需平面 P 未完整持久化；部分 support_note/representation_note 残留 v1，逐点诊断引用帧极值。精确因子仅对声明的对角平面模型精确，不补全遗漏相关项 |
+| 科学模型载荷 | h、Z 和预算内 C 已产生；预算外 writer 使用 local-factor/v2，分别声明源 v、派生 C 与 R 的单位/shape，以及 solver 和假设字段 | PSF 文件仍主要写 h，平面 P 的独立持久化覆盖需核验；covariance support_note 已同步 v2，逐点 PSF 诊断已分开，不能沿用旧 v1/帧极值问题概括。空间顶点与权重当前多在 note 中且精度受格式化限制；精确因子仅对声明对角模型成立，不补全遗漏相关项 |
 | 叶阶与单位 | controls 使用实际 leaf order；signal 保存 scale_state；侧车有单位字段 | `p1_op_drizzle` 仍给 signal.leaf_order 赋 k−9，与 controls 的 k 不一致；sidecar 默认 ADU/sr/adu 及 writer 固定 BUNIT 未随 applied 数值单位完整更新 |
 | 应用身份 | reader 会拒绝 scale_applied=true 却缺 application_id | 生产 fdoc 只写 scale_applied/status，没有赋 application_id；因此已标度分支不能由 native 单帧记录推断已成功发布 |
-| reader | 已恢复 SIP、leaf/order、kind/domain/representation 与状态；另有 `load_local_model_payload`、`reconstruct_factor_covariance` 和 `verify_frame_science_factor_models` 实现 | 通用 `read_frame_science_document` 尚未调用模型 verifier；独立读取仍缺真实模型 hash/重建及 h-C-Z-R、V_F/T/summary 全面核对。重建函数只检查 sr 幂次，未完整核对基础线性单位。发布器的 hash 校验不能替代读侧调用 |
+| reader | 已恢复 SIP、leaf/order、kind/domain/representation 与状态；另有 `load_local_model_payload`、`reconstruct_factor_covariance` 和 `verify_frame_science_factor_models` 实现 | 通用 `read_frame_science_document` 尚未调用模型 verifier；独立读取仍缺真实模型 hash/重建及 h-C-Z-R、V_F/T/summary 全面核对。重建函数已加入 expected_linear_unit，核对基础线性单位和平方指数；该函数修复不等于通用 reader 已调用它。发布器的 hash 校验不能替代读侧完整验证 |
 | 发布 | 发布器逐文件验证 hash、原子写模型及 sidecar、回读并返回结果 | 整帧 signal 与所有模型/sidecar 尚非同一发布事务；回读失败直接返回且未撤回已写 sidecar；writer 将该失败记为 precision 不可用，不能等同合法 unavailable 产品已完整发布 |
 | Drizzle frame 生命周期 | `p1_op_drizzle` 在 `hp_drizzle_run_phase1_hips` 返回后调用 `aio_pipeline_frame_destroy(frame)`；`aio_pipeline.cpp` 的 destroy 释放块并 delete frame | 后续 precision staging 的 exposure fallback 在原始 EXPTIME 无效时仍调用 `aio_frame_kv_get(frame,"header","EXPTIME")`，形成释放后访问路径。需在销毁前保存所需元数据或延长明确所有权；本轮仅静态定位，没有执行缺 EXPTIME 构型或修复代码 |
 

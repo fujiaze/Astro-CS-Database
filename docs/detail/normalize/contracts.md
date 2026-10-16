@@ -181,7 +181,7 @@ R 满列秩时等价于 A_srcᵀD^-1A_src；小零空间允许低维修正，但
 
 默认通量口径 `flux_estimator=analytic_total`。依据[PSF 分册](../../science/psf/PSF.md)的单位总通量连续 Moffat4，对实际像元面积和子像元相位求积。部分 footprint 的 \(f_{\rm enc}=\sum P_j\) 不重新归一，f_out 从实际像元集合求，不以理想圆半径代替实际边界；超1不以 clamp 掩盖。复用 PSF 库的有效模型，scheduler 不另实现无单位中心模板。
 
-生产已调用 `pixel_integrated_moffat4_profile`，但帧级圆化宽度不等于真实逐位置空间 PSF。参考通量、Poisson 与 spatial alpha 仍须和积分模板配对。每控制点保存自身包络、参数、相位和积分误差，不能共享帧级极值冒充逐点记录。缺空间支持或响应失败按自身状态报告，不以每窗重新归一挽救。单点求积正确不等于完整跨设备参考精度已验证。
+生产已调用 `pixel_integrated_moffat4_profile`，并通过 PSF 库 `build_spatial_model` / `spatial_pixel_response` 在控制点混合顶点积分响应；无空间定位时的帧常宽度仍是近似。空间 alpha 由 `PrecisionFrameRequest::pixel_alpha_at` 逐窗填入 `PlanarPatchWindow::pixel_alpha`，不是整帧常量字段。参考通量、Poisson、截断窗口与实际应用模板仍须配对。每控制点保存自身包络、参数、相位和积分误差，帧级极值只作摘要。当前逐点求积诊断已经分离；空间模型的全部顶点参数、有效支持和可独立重算精度仍须验证，不能只凭 note 中三角ID/低位权重推断持久化完整。缺空间支持或响应失败按自身状态报告，不以每窗重新归一挽救。单点求积正确不等于完整跨设备参考精度已验证。
 
 ### 7.5 发布事务
 

@@ -174,3 +174,7 @@ CLI主题 `922ecfb65` 已立即推送。全文阅读benchmark两页、BACKEND、
 ### 共享库与排障、来源字节核对
 
 全文阅读 shared_libraries、troubleshooting 和相关公开头/真实实现，重写两页并保存 SUPPORT_SOURCE.txt。登记 E49–E51诊断器旧映射、帧身份覆盖与精度/摘要误用；未更改实现。结构检查新增来源档案边界、字节数、Git blob与原提交对象核对，46份来源正文均一致。索引167篇、25份模块内容保留、无当前Markdown断链，15份机器元数据JSON仍仅字符串迁移。累计重写93篇；尚未完成的算法长文和实验精读继续，不把这些结构检查当科学验收。
+
+### Normalize 远端实现后的文档同步
+
+全文补读 NORMALIZE_DATA、接口规格、DATA_FLOW及上层生产架构/实施差异，阅读空间PSF完整新增源、相关远端diff、生产adapter与第三轮报告。四份文档按实际新增能力定点更新：空间PSF/alpha、逐点诊断、显式残差、因子基础单位检查和frame_science文件边；保留未满足的Runtime对象仓、SED、支持/状态和真实applied运行限制。旧正文保存 NORMALIZE_STATUS_SOURCE.txt，来源字节核对累计50份。Q30记录留出χ²及不同指标比较解释，E52–E53记录更新事实和支持边界。未改科学实现、未执行报告中的程序；清单不把定点更新当整篇重写数量。
