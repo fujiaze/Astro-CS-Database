@@ -1,0 +1,3 @@
+main HEAD: ece85ace5c3f7151f6afbd0ee1aa17abf7bedb21
+post binary: 9175527877afe054ca9b5ff89f4f41fc67dc2326e5ec9eb23dd43e4120457636
+pre-#11 binary (temporary uncommitted revert): 93a6be342bb8bcdd275d05265661045c7a37760e569d40e8b01427a18dbc6772

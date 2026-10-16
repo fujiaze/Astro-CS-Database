@@ -1,0 +1,11 @@
+[PASS] empty_halpha   exit=0 obs_filter='mixed:2_passbands' dist={'(undeclared)': 1, 'Halpha': 1} (35s)
+[PASS] halpha_empty   exit=0 obs_filter='mixed:2_passbands' dist={'(undeclared)': 1, 'Halpha': 1} (43s)
+[PASS] red_blue       exit=0 obs_filter='mixed:2_passbands' dist={'Blue': 1, 'Red': 1} (30s)
+[PASS] blue_red       exit=0 obs_filter='mixed:2_passbands' dist={'Blue': 1, 'Red': 1} (39s)
+[PASS] pem_01         exit=0 obs_filter='mixed:3_passbands' dist={'(undeclared)': 1, 'Blue': 1, 'Red': 1} (42s)
+[PASS] pem_02         exit=0 obs_filter='mixed:3_passbands' dist={'(undeclared)': 1, 'Blue': 1, 'Red': 1} (48s)
+[PASS] pem_03         exit=0 obs_filter='mixed:3_passbands' dist={'(undeclared)': 1, 'Blue': 1, 'Red': 1} (47s)
+[PASS] pem_04         exit=0 obs_filter='mixed:3_passbands' dist={'(undeclared)': 1, 'Blue': 1, 'Red': 1} (53s)
+[PASS] pem_05         exit=0 obs_filter='mixed:3_passbands' dist={'(undeclared)': 1, 'Blue': 1, 'Red': 1} (41s)
+[PASS] pem_06         exit=0 obs_filter='mixed:3_passbands' dist={'(undeclared)': 1, 'Blue': 1, 'Red': 1} (48s)
+== FAIL=0/10 ==
