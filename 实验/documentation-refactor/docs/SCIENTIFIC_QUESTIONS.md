@@ -292,6 +292,14 @@
 
 影响：Gaia候选召回、IPV成功率及参数/空星表错误归因。需要：同一真星身份下的不同响应与漏检/饱和仿真、完整匹配候选/实际求解、query/capped状态和真实帧分母。该项待统一推导，不改变选星/查询实现，不据缺WCS头否定解算能力。
 
+### Q35 完整响应积分总通量与位置标度参考的差别
+
+原文：科学NOISE_SNR第2节及NORMALIZE_DATA第5节用完整响应域a_ref=Σ_all alpha_jP_j、P'=alphaP/a_ref、F'=a_refF配对。新远端[ROUND4](../../normalize-precision-p5/ROUND4_FLUX_CONVENTION.md)及当前代码改为alpha_star=alpha(u)、h=(alpha/alpha_star)P、F_ref=alpha_star F_native，窗口sum只作诊断；报告请求正式文档改为此约定。
+
+分歧：两组(F,h)可以描述同一观测均值，但当空间alpha非恒定时，h的完整积分一般不是1，因此alpha(u)F_native不自动等于applied图像积分总通量。窗口sum不能冒充完整域归一这一点与选择位置参考约定是两个问题，不能用前者直接授权后者。邻像元近似误差被注为O(abs(m'')/8)也需核对一阶梯度项与连续求值条件。
+
+影响：F_ref命名、analytic_total、PSF归一、V_F/SNR可比性、沉淀载荷与下游transfer。需要：显式区分物理积分通量/位置参考参数、两约定转换与单位/支持、实际alpha有效域及独立模拟；不得从报告推导未经统一的新科学合同。本轮保留已拉入代码、不选约定或重写科学公式。
+
 ## 已确定设计下的实现与文档问题
 
 这些事项不需要再选物理模型，后续按确定合同实施或核实，不能混入 Q 条目作为设计授权。
@@ -364,6 +372,9 @@
 | E59 | guided库允许零源成功，p1_op_star_psf_impl却直接DATA失败；输出flux实际为Gaussian振幅，旧文多处混称积分flux/十数组同精度与Moffat拟合 | 区分库/adapter/目标能力、真实列类型与估计器，下游测光/PSF绑定另核验；不以盲检回退替代科学源 |
 | E60 | 光度长文一处称IRLS触顶必须scale=1/fit_used=0，另一处及当前cleanAndScale却无converged标志、仍发布最后location/scale；S=0也不必意味着所有r相等 | 正文分开实际停机/输出与目标能力，零散度/未知精度配状态；未修迭代或改变返回策略 |
 | E61 | 天测长文将非生产fit_sip Huber与extract_wcs_sip/robust_refine拼作同流程，称Gaia网络I/O主导、求解全单线程，与本地星表和实际投票并行不符 | 科学数值方法与模块接口分层，保留源码路径和历史表，不把命名/旧日志当当前生产性能证据 |
+| E62 | 新远端增加alpha_star模板/Poisson配对与平面载荷、PSF in-circle尺度归一/dropped_points、applied application_id及真实非恒定alpha记录，另有同样本同指标空间PSF留出 | 保留全部代码/实验，更新对应静态状态；历史E条目按所查提交解释，不以旧“未接线/未运行”概括新实现，亦不宣称本轮独立复验 |
+| E63 | 当前application_id组装用std::to_string(frame_photscal)，典型实跑k≈1.5e−17，定点小数串会失去此标量有效位；response_id仅库键，应用摘要含路径但无曲线字节hash | ID非空不等于实际标度/响应完整绑定，记录精度/碰撞风险与多帧身份来源，未改哈希或执行反例 |
+| E64 | ROUND9建议参考F_ref=a_k*m(u)*F_syn并称applied，正式规格却还需实际像元施加alpha；代码只细化sed_response缺项原因，积分核复用和完整参考链不相同 | 正式谱积分/拟合/施加责任保持，报告建议待统一，未把缺项原因当新接口授权或恢复旧执行任务 |
 
 本轮已合并远端 `5b33e0417`，保留 Normalize Round 3 的空间 PSF、空间 alpha、typed 边与实验记录。已重读新增空间PSF完整实现、相关改动与生产调用，确认E52所列路径并同步架构/实施差异及接口说明；第三轮报告全文已读，其数值本轮未重跑。E01–E15来自合并前抽查，E01的sed_response未接线、E03的basename身份、E04的signal叶阶、E07释放后EXPTIME读取本轮相应代码段仍可见；其余不自动当作仍存或已解决。E05中因子基础单位检查已增加，但通用reader是否全面调用仍须分开核对。原始191篇清单继续固定基线，新增代码/记录另外登记。
 
