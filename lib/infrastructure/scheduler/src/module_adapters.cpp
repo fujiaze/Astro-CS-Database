@@ -1055,6 +1055,13 @@ ModuleDescriptor p1_drizzle_descriptor() {
       // 产品缺少 SNR 而运行仍报成功。声明依赖边后调度器保证 snr 先落盘。
       {"snr", "DATA-P1-SNR", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
       {"stacked", "DATA-P1-STACK", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::ICRS},
+      // frame_science 暂存（注册表 p1_frame_science 输出端口; carrier=
+      // output_dir_file, 产物 = <work>/<frame_key>/frame_science/{frame_science.json,
+      // models/*.json}）。此前只有 registry 声明、descriptor/IR 缺失 ⇒ IR 无法
+      // 绑定该数据流（P4 typed Runtime 收敛项: 端口必须 descriptor/IR/registry
+      // 三处同声明, 不能只存在于注册表文本）。
+      {"frame_science", "DATA-P1-FRAMESCIENCE", false,
+       UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
   };
   d.sci_id = "SCI-P1-DRIZ-001";
   d.alg_id = "ALG-005";            // drizzle-* kernels
@@ -1073,6 +1080,15 @@ ModuleDescriptor p1_writer_descriptor() {
   d.parallel_ok = false;
   d.ports = {
       {"stacked", "DATA-P1-STACK", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::ICRS},
+      // frame_science 暂存的真实消费者（注册表 p1_frame_science 输入端口;
+      // carrier=output_dir_file）。p1_op_writer 经 publish_staged_frame_science
+      // 读回该暂存并原子发布, 不是文件约定之外的隐式流。
+      {"frame_science", "DATA-P1-FRAMESCIENCE", true,
+       UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
+      // 发布后的 frame_science 产品面（注册表 p1_frame_science_published 输出;
+      // 载体 = output_dir_file, <frame_key>/frame_science.json + models/*.json）。
+      {"frame_science_published", "DATA-P1-FRAMESCIENCE", false,
+       UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
       {"fits", "DATA-P1-FITS", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::ICRS},
   };
   d.sci_id = "SCI-P1-WR-001";
@@ -8429,6 +8445,12 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   // FIX-P1: 逐帧 k_photo (frame_key → 标量)。p1_phot.json.photscales 缺省时
   // 退回标量 photscal（向后兼容既有 B2-A14 夹具）。
   Json photscales = Json::object();
+  // PHOT-MXY-01 → P5 空间 alpha: 逐帧空间增益场 m(x,y)（p1_phot.json
+  // frames[].spatial_gain; order/coef/center/norm 全字段）。键 = 帧 file 的
+  // 净化名（与 p1_frame_key 同口径）。drizzle 参考精度链按
+  // α_j = k_photo·m(x_j,y_j) 组装逐窗 alpha（m 的求值唯一实现在
+  // calibration::photo_spatial_m; 此处只透传多项式的字段, 不复制公式）。
+  std::map<std::string, Json> spatial_gain_by_frame;
   // FAILSEM-01: 上游**逐帧判决**（p1_phot.json.frames[] → frame_key → 记录）。
   // 逐帧真相是本节点选择输入面的唯一依据; 组级 photometry_applied 只作摘要。
   Json frame_status = Json::object();
@@ -8470,8 +8492,15 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             if (fk.empty()) continue;
             frame_status[fk] = fe;
             have_frame_status = true;
+
           }
         }
+        // PHOT-MXY-01 → P5 空间 alpha: 顶部 spatial_gain 图（photometry_applied
+        // 时落盘; 键 = 帧 key, 值 = m(x,y) 多项式全字段）⇒ 逐帧 alpha 的权威源。
+        if (pj.contains("spatial_gain") && pj["spatial_gain"].is_object())
+          for (auto it = pj["spatial_gain"].begin();
+               it != pj["spatial_gain"].end(); ++it)
+            if (it.value().is_object()) spatial_gain_by_frame[it.key()] = it.value();
         have_phot_prov = true;
       } catch (const std::exception& e) {
         return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -9265,6 +9294,47 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       preq.photometry_applied = frame_applied;
       preq.applied_scale = frame_applied ? frame_photscal : 1.0;
       preq.master_uncertainty_modelled = false;  // 母版方差未传播 ⇒ 显式缺项
+      // P5 空间 alpha（NOISE_SNR §11.3; PHOT-MXY-01 语义 α_j = k_photo·m(x_j,y_j)）:
+      // 仅当本帧真的施加了空间项（applied + order>0 + status ok）时组装求值器;
+      // m() 的求值是 calibration::photo_spatial_m 的唯一实现, 此处只搬运字段。
+      // 未施加/降级（m≡1）⇒ 求值器为空 ⇒ 全帧常量 applied_scale（与施加端
+      // order==0 走未改动的 apply_photometry 逐位一致的语义相同）。
+      {
+        const auto sgit = spatial_gain_by_frame.find(p1_frame_key(lp));
+        if (sgit != spatial_gain_by_frame.end()) {
+          const Json& sg = sgit->second;
+          const int m_order = sg.value("order", 0);
+          const std::string m_status = sg.value("status", std::string());
+          const bool identifiable = sg.value("identifiable", 0) != 0;
+          if (frame_applied && m_order > 0 && m_status == "ok" && identifiable &&
+              sg.contains("coef") && sg["coef"].is_array() &&
+              sg.contains("norm") && sg["norm"].is_object()) {
+            calibration::PhotoSpatialGain field;
+            field.order = m_order;
+            const Json& coef = sg["coef"];
+            for (int j = 0; j < 5 && j < static_cast<int>(coef.size()); ++j)
+              field.coef[j] = coef[static_cast<std::size_t>(j)].get<double>();
+            const Json& ctr = sg.value("center", Json::array());
+            for (int j = 0; j < 5 && j < static_cast<int>(ctr.size()); ++j)
+              field.center[j] = ctr[static_cast<std::size_t>(j)].get<double>();
+            const Json& nz = sg["norm"];
+            field.x_ref = nz.value("x_ref", 0.0);
+            field.y_ref = nz.value("y_ref", 0.0);
+            field.x_scale = nz.value("x_scale", 1.0);
+            field.y_scale = nz.value("y_scale", 1.0);
+            const double k_photo = frame_photscal;
+            const int wpx = im.w(), hpx = im.h();
+            preq.pixel_alpha_at = [field, k_photo, wpx, hpx](std::int64_t idx) {
+              if (idx < 0 || idx >= static_cast<std::int64_t>(wpx) *
+                                            static_cast<std::int64_t>(hpx))
+                return 0.0;   // 越界 ⇒ 非正 ⇒ GLS 具名拒绝（不猜）
+              const double x = static_cast<double>(idx % wpx);
+              const double y = static_cast<double>(idx / wpx);
+              return k_photo * calibration::photo_spatial_m(field, x, y);
+            };
+          }
+        }
+      }
       {
         const Json noise_cfg0 = (doc.contains("noise") && doc["noise"].is_object())
                                     ? doc["noise"] : Json::object();
@@ -9290,6 +9360,40 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             std::string pwhy;
             preq.have_psf = acsd::phase1::precision::frame_psf_sigma_px(
                 sj, p1_frame_key(lp), &preq.psf_sigma_px, &pwhy);
+            // PSF.md §4 空间模型顶点: 本帧 psf_params 行（p1_sources.json 只含
+            // 拟合成功行 ⇒ 已过质量过滤; sx/sy/θ 的规范化在 spatial_psf 模块内）。
+            // theta 原样传入（弧度, 未规范化; 模块内做 mod π 与轴约定归约）。
+            for (const auto& fr : sj.at("frames")) {
+              std::string file = fr.value("file", std::string());
+              for (const char* pfx : {"cleaned_", "calibrated_",
+                                      "photoapplied_"}) {
+                const std::size_t n = std::strlen(pfx);
+                if (file.rfind(pfx, 0) == 0) { file = file.substr(n); break; }
+              }
+              const std::size_t dot = file.find_last_of('.');
+              if (dot != std::string::npos) file = file.substr(0, dot);
+              std::string sane;
+              for (char c : file) {
+                const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                                (c >= '0' && c <= '9') || c == '_' ||
+                                c == '-' || c == '.';
+                sane.push_back(ok ? c : '_');
+              }
+              if (sane != p1_frame_key(lp)) continue;
+              const auto rows = fr.find("psf_params");
+              if (rows == fr.end() || !rows->is_array()) break;
+              for (const auto& p : *rows) {
+                acsd::psf::PsfVertex v;
+                v.x = p.value("cx", 0.0);
+                v.y = p.value("cy", 0.0);
+                v.sx = p.value("sx", 0.0);
+                v.sy = p.value("sy", 0.0);
+                v.theta = p.value("theta", 0.0);
+                v.star_id = preq.psf_vertices.size();
+                preq.psf_vertices.push_back(v);
+              }
+              break;
+            }
           } catch (const std::exception&) { preq.have_psf = false; }
         }
       }
@@ -9455,6 +9559,9 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       if (staged.ok) {
         f_prec_doc[fi] = staged.document;
         f_prec_payloads[fi] = std::move(payloads);
+        if (!staged.psf_integration_summary.empty())
+          std::fprintf(stderr, "[drizzle_node][precision] %s\n",
+                       staged.psf_integration_summary.c_str());
         const std::string staging_dir =
             p1_work_frame_dir(doc, lp) + "/frame_science";
         f_prec_staging_dir[fi] = staging_dir;

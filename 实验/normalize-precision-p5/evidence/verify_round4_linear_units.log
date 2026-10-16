@@ -1,0 +1,28 @@
+# verify_round4（factor/v2 + §7.1B 线性单位负例）
+  write cov=1 op=1
+  [PASS] write_local_model_file both models
+  [PASS] load both model payloads
+  loaded: factor_unit=adu^2 derived=adu^2/sr^2 op_unit=sr^-1 repr-in-file check
+  [PASS] v2 unit/shape/solver fields restored without confusion
+  [PASS] logical_covariance_shape = [nl,nl] (not [m,1])
+  [PASS] factor reconstruction ok
+  rec rows=4 cols=4 sr(v)=0 sr(R)=-1 sr(C)=-2
+  [PASS] sr powers 0/-1/-2 self-consistent
+  [PASS] linear base units checked against frame signal unit (adu)
+  independent C vs reconstruction max|diff| = 0.000e+00
+  [PASS] reconstructed C == independent R diag(v) R^T (bit-identical)
+  [PASS] C diagonal = sum_j c_lj^2 v_j (analytic, bit-exact)
+  bad-unit rec ok=0 err=unit powers inconsistent: v_j has sr^-2, R has sr^-1, derived C has sr^-2 (expected 0/-1/-2)
+  [PASS] wrong factor unit rejected with a named error
+  linear-unit-mismatch rec ok=0 err=factor_variance_unit 'electron^2' is not adu^2 (base linear unit mismatch; factor and derived covariance must share the frame signal linear unit)
+  [PASS] sr powers correct but base linear unit mismatch rejected
+  unknown-frame-unit rec ok=0 err=frame signal linear unit unknown; cannot verify factor base linear units (sr exponent alone is not sufficient)
+  [PASS] unknown frame linear unit rejected (sr exponent alone insufficient)
+  dup-csr rec ok=0 err=CSR has duplicate (row,column) contributions
+  [PASS] duplicate CSR (row,column) rejected
+  verify findings=0
+  [PASS] well-formed factor/v2 product passes reader verification
+  v1 findings=1
+  [PASS] local-factor/v1 rejected as canonical without explicit adapter
+
+ALL PASS: 0 failure(s)

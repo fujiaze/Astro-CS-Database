@@ -1,0 +1,7 @@
+WARNING: VerifyWarning: Found a SIMPLE card but its format doesn't respect the FITS Standard [astropy.io.fits.hdu.hdulist]
+留出星 χ²/dof 流量分层（cleaned 帧; σ_j=√(model/g+B/g+RN²); dof=n−7）
+  flux [     200,    2000): n=25  chi2/dof median=   0.54  p90=    0.61  max=     0.82  邻星 median=0.0 max=0
+  flux [    2000,   10000): n=25  chi2/dof median=   0.89  p90=    1.41  max=     3.41  邻星 median=0.0 max=0
+  flux [   10000,   50000): n=25  chi2/dof median=   8.24  p90=   19.52  max=    27.29  邻星 median=0.0 max=1
+  flux [   50000,  300000): n=24  chi2/dof median=  63.93  p90=   98.67  max=   177.61  邻星 median=0.0 max=0
+  flux [  300000,1000000000000): n=14  chi2/dof median= 274.26  p90=  382.31  max=  5736.72  邻星 median=0.0 max=0

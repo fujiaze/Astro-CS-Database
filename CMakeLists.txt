@@ -1269,7 +1269,9 @@ add_library(acsd_p1_dpsf STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_image.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_log.cpp
   # PSF.md §4: 单位总通量像元积分响应（数学唯一实现在 PSF 库）
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/pixel_integrated_psf.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/pixel_integrated_psf.cpp
+  # PSF.md §4: 空间 Moffat4 模型（Delaunay + 重心凸组合; 凸包外不外推）
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/spatial_psf.cpp)
 target_include_directories(acsd_p1_dpsf PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src

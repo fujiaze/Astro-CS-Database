@@ -1,0 +1,71 @@
+== Part 1: independent pixel-quadrature cross-check ==
+  isotropic production sigma       max rel diff vs Simpson = 5.104e-12 (quad est err 4.16e-17)
+  [PASS] per-pixel response matches independent Simpson <1e-9 (independent Simpson quadrature vs production Gauss-Legendre)
+  rotated+subpixel phase           max rel diff vs Simpson = 3.746e-12 (quad est err 5.55e-17)
+  [PASS] per-pixel response matches independent Simpson <1e-9 (independent Simpson quadrature vs production Gauss-Legendre)
+  rotated another phase            max rel diff vs Simpson = 3.759e-12 (quad est err 5.55e-17)
+  [PASS] per-pixel response matches independent Simpson <1e-9 (independent Simpson quadrature vs production Gauss-Legendre)
+  anisotropic axis-aligned         max rel diff vs Simpson = 8.456e-12 (quad est err 3.47e-17)
+  [PASS] per-pixel response matches independent Simpson <1e-9 (independent Simpson quadrature vs production Gauss-Legendre)
+  anisotropic rotated              max rel diff vs Simpson = 1.693e-11 (quad est err 6.94e-17)
+  [PASS] per-pixel response matches independent Simpson <1e-9 (independent Simpson quadrature vs production Gauss-Legendre)
+  undersampled sigma=1 (worst seeing) max rel diff vs Simpson = 6.366e-11 (quad est err 6.30e-15)
+  [PASS] per-pixel response matches independent Simpson <1e-9 (independent Simpson quadrature vs production Gauss-Legendre)
+  undersampled anisotropic         max rel diff vs Simpson = 1.516e-10 (quad est err 7.47e-13)
+  [PASS] per-pixel response matches independent Simpson <1e-9 (independent Simpson quadrature vs production Gauss-Legendre)
+  worst over all configs: 1.516e-10
+  theta=0.00 f_enc=0.999991797910
+  [PASS] anisotropic/rotated large-window ΣP > 0.9999 (large-window flux conservation (anisotropic, rotated))
+  theta=0.70 f_enc=0.999997057106
+  [PASS] anisotropic/rotated large-window ΣP > 0.9999 (large-window flux conservation (anisotropic, rotated))
+  theta=1.90 f_enc=0.999993697389
+  [PASS] anisotropic/rotated large-window ΣP > 0.9999 (large-window flux conservation (anisotropic, rotated))
+
+== Part 2: forward photon+RN simulation vs conditional V_F ==
+  patch m=81 ΣP=0.973364041 f_out=2.664e-02 quad_err=5.55e-17
+  [PASS] 9x9 window encloses >95% of unit flux at sigma=2.21 (window physics) (large-window flux conservation (anisotropic, rotated))
+  V_F=4937.7 sqrt=70.2688 SNR_ref=14.2311 rank=81 bg_rank=0
+  explicit nl-space [M^-1]_FF=4937.7 (rel vs prod 3.68e-16)
+  [PASS] production V_F equals explicit nl-space GLS [M^-1]_FF (machine precision) (R=I, known background (background-subtracted data))
+  MC[conditional-world] n=200000: bias=-0.3379 (-0.005 sigma_VF) sd=70.1596 sqrt(V_F)=70.2688 ratio=0.99845 (se 0.1581%) coverage=0.9505
+  [PASS] conditional-world estimator unbiased within 4 MC se (R=I, known background (background-subtracted data))
+  [PASS] conditional-world MC scatter == sqrt(V_F) within 4 sigma (R=I, known background (background-subtracted data))
+  [PASS] conditional-world 95% interval coverage matches nominal (R=I, known background (background-subtracted data))
+  MC[physical-world] n=200000: bias=-0.0245 (-0.000 sigma_VF) sd=70.0741 sqrt(V_F)=70.2688 ratio=0.99723 (se 0.1581%) coverage=0.9509
+    physical-world variance rel dev = 0.5534% (1/a_ref-1 = 2.7365%)
+  [PASS] physical-world estimator unbiased within 4 MC se (R=I, known background (background-subtracted data))
+  [PASS] physical-world scatter deviates <5% from conditional V_F (a_ref window effect quantified, not gated by physics) (R=I, known background (background-subtracted data))
+  V_F=6821.33 sqrt=82.5914 SNR_ref=12.1078 rank=81 bg_rank=1
+  explicit nl-space [M^-1]_FF=6821.33 (rel vs prod 0.00e+00)
+  [PASS] production V_F equals explicit nl-space GLS [M^-1]_FF (machine precision) (R=I, constant nuisance fit)
+  MC[conditional-world] n=200000: bias=-0.4304 (-0.005 sigma_VF) sd=82.6178 sqrt(V_F)=82.5914 ratio=1.00032 (se 0.1581%) coverage=0.9501
+  [PASS] conditional-world estimator unbiased within 4 MC se (R=I, constant nuisance fit)
+  [PASS] conditional-world MC scatter == sqrt(V_F) within 4 sigma (R=I, constant nuisance fit)
+  [PASS] conditional-world 95% interval coverage matches nominal (R=I, constant nuisance fit)
+  MC[physical-world] n=200000: bias=+0.1710 (0.002 sigma_VF) sd=82.2938 sqrt(V_F)=82.5914 ratio=0.99640 (se 0.1581%) coverage=0.9506
+    physical-world variance rel dev = 0.7192% (1/a_ref-1 = 2.7365%)
+  [PASS] physical-world estimator unbiased within 4 MC se (R=I, constant nuisance fit)
+  [PASS] physical-world scatter deviates <5% from conditional V_F (a_ref window effect quantified, not gated by physics) (R=I, constant nuisance fit)
+  V_F=7377.9 sqrt=85.8947 SNR_ref=11.6422 rank=41 bg_rank=1
+  explicit nl-space [M^-1]_FF=7377.9 (rel vs prod 7.40e-16)
+  [PASS] production V_F equals explicit nl-space GLS [M^-1]_FF (machine precision) (drizzle-like sparse R (rank-deficient), nuisance fit)
+  MC[conditional-world] n=200000: bias=-0.3473 (-0.004 sigma_VF) sd=85.8808 sqrt(V_F)=85.8947 ratio=0.99984 (se 0.1581%) coverage=0.9499
+  [PASS] conditional-world estimator unbiased within 4 MC se (drizzle-like sparse R (rank-deficient), nuisance fit)
+  [PASS] conditional-world MC scatter == sqrt(V_F) within 4 sigma (drizzle-like sparse R (rank-deficient), nuisance fit)
+  [PASS] conditional-world 95% interval coverage matches nominal (drizzle-like sparse R (rank-deficient), nuisance fit)
+  MC[physical-world] n=200000: bias=+0.1384 (0.002 sigma_VF) sd=85.6097 sqrt(V_F)=85.8947 ratio=0.99668 (se 0.1581%) coverage=0.9506
+    physical-world variance rel dev = 0.6625% (1/a_ref-1 = 2.7365%)
+  [PASS] physical-world estimator unbiased within 4 MC se (drizzle-like sparse R (rank-deficient), nuisance fit)
+  [PASS] physical-world scatter deviates <5% from conditional V_F (a_ref window effect quantified, not gated by physics) (drizzle-like sparse R (rank-deficient), nuisance fit)
+
+== Part 3: frozen conditional model semantics (F_true != F_ref) ==
+  F_true=    0.0: conditional V_F=4937.7  true Var(F_hat)=3498.42 ratio=0.7085
+  [PASS] below F_ref the frozen V_F is conservative (source Poisson frozen at F_ref) (frozen conditional V_F is exact at F=F_ref, conservative below)
+  F_true=  500.0: conditional V_F=4937.7  true Var(F_hat)=4214.58 ratio=0.8535
+  [PASS] below F_ref the frozen V_F is conservative (source Poisson frozen at F_ref) (frozen conditional V_F is exact at F=F_ref, conservative below)
+  F_true= 1000.0: conditional V_F=4937.7  true Var(F_hat)=4900.82 ratio=0.9925
+  [PASS] at F_true=F_ref conditional V_F is within the a_ref window effect of the exact variance (quantified, not exact) (frozen conditional V_F is exact at F=F_ref, conservative below)
+  F_true= 2000.0: conditional V_F=4937.7  true Var(F_hat)=6215.16 ratio=1.2587
+  [PASS] above F_ref the frozen V_F understates the true variance (conditional model is not a global guarantee) (frozen conditional V_F is exact at F=F_ref, conservative below)
+
+ALL PASS: 0 failure(s)
