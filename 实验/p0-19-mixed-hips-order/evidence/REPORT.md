@@ -2,7 +2,10 @@
 
 - Issue: [#19](https://github.com/fujiaze/Astro-CS-Database/issues/19)（施工任务书评论 `6216942225`）
 - 起始 main: `cebef3ebb48772a5a891582fd0f201de3fa38792`
-- 生产代码 commit: `863228f2b`（仅 `lib/infrastructure/scheduler/src/module_adapters.cpp`）
+- 生产代码 commit: `d8cf94687`（仅 `lib/infrastructure/scheduler/src/module_adapters.cpp`；
+  在远端并发文档提交 `cebea1025` 之上 rebase 后）
+- 测试/证据 commit: `7198f50ef`、`65f49f0db`
+- 本轮报告 main: `65f49f0dbb56f8c1f75aadc55d67119d2621ded1`
 - 本轮**不实现**跨阶面积保真重采样；只做可判定的临时 fail-closed。
 
 ## 1. 改动
