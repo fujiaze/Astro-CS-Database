@@ -435,13 +435,55 @@ StagedPrecision stage_frame_precision(
   // 逐控制点求积诊断（R2-F01 审查修正: 每个控制点记录**自己的** f_enc/f_out 与
   // 求积误差; 帧级 extrema 只作摘要, 不把单一最小值写给每个控制点）。
   std::vector<acsd::psf::PixelIntegrationDiagnostics> win_diag(windows.size());
+  // 每控制点使用的 PSF 模型身份与三角定位诊断（PSF.md §4 空间模型 vs 帧常近似）。
+  std::vector<std::string> win_psf_model(windows.size());
+  std::vector<acsd::psf::SpatialResponseDiagnostics> win_spatial(windows.size());
   std::string flux_estimator = req.have_psf ? "analytic_total" : "unavailable";
+  // ── 空间 Moffat4 模型（PSF.md §4 基础完成模型）────────────────────────────
+  // 顶点 = 本帧有效星（p1_sources.json psf_params 行; 模块内做 sx>=sy 轴约定与
+  // theta mod π 归约）。剖分失败或顶点不足 ⇒ 全帧回退帧常 σ 具名近似（登记,
+  // 不冒充逐位置模型）; 凸包外的控制点逐点回退并登记（凸包外不外推）。
+  acsd::psf::DelaunayTriangulation spatial_model;
+  bool spatial_ok = false;
+  if (!req.psf_vertices.empty()) {
+    spatial_ok = acsd::psf::build_spatial_model(req.psf_vertices, &spatial_model);
+  }
   for (std::size_t wi = 0; wi < windows.size(); ++wi) {
     auto& w = windows[wi];
     const std::size_t m = w.pix_index.size();
     if (m == 0) continue;
     if (psf_ok) {
-      if (!pixel_integrated_profile(req.psf_sigma_px, w.cx_px, w.cy_px,
+      // 逐位置模型优先: 空间三角剖分重心凸组合（凸包内）; 否则帧常 σ 具名近似。
+      bool used_spatial = false;
+      if (spatial_ok) {
+        std::vector<double> px(m), py(m);
+        for (std::size_t k = 0; k < m; ++k) {
+          px[k] = static_cast<double>(w.pix_index[k] % req.width);
+          py[k] = static_cast<double>(w.pix_index[k] / req.width);
+        }
+        acsd::psf::SpatialResponseRequest sr;
+        sr.cx = w.cx_px;
+        sr.cy = w.cy_px;
+        sr.pixel_x = px.data();
+        sr.pixel_y = py.data();
+        sr.n_pixels = m;
+        sr.order = 10;
+        acsd::psf::SpatialResponseDiagnostics sd;
+        if (acsd::psf::spatial_pixel_response(spatial_model, sr, &w.profile,
+                                              &win_diag[wi], &sd) &&
+            sd.ok) {
+          used_spatial = true;
+          win_spatial[wi] = sd;
+          win_psf_model[wi] = "spatial_delaunay_barycentric";
+        } else {
+          win_psf_model[wi] =
+              "frame_constant_median_sigma_fallback_" + sd.reject;
+        }
+      } else {
+        win_psf_model[wi] = "frame_constant_median_sigma_no_spatial_support";
+      }
+      if (!used_spatial &&
+          !pixel_integrated_profile(req.psf_sigma_px, w.cx_px, w.cy_px,
                                     w.pix_index, req.width, &w.profile,
                                     &win_diag[wi])) {
         // 求积失败 ⇒ 该帧没有合法单位总通量模板 ⇒ **不得**退化为中心值近似;
@@ -660,10 +702,36 @@ StagedPrecision stage_frame_precision(
         // （R2-F01 审查修正: 帧级 extrema 只作摘要, 不冒充逐点实测）; 理想圆
         // 闭式值单独作为参考求积并列写出, 不替代真实 f_out（PSF.md §4 明示）。
         const auto& pd = win_diag[static_cast<std::size_t>(i)];
-        char note[768];
+        // 逐控制点 PSF 模型身份（PSF.md §4）: 空间三角重心凸组合 vs 帧常 σ
+        // 具名近似（含回退原因, 不把近似冒充逐位置模型）。
+        const std::string& psf_model =
+            (win_psf_model[i].empty() ? "unavailable" : win_psf_model[i]);
+        // 空间定位明细只在该控制点真的用了空间模型时落盘（回退点不写
+        // 误导性的三角/权重字段; star_ids 是顶点下标, 回退时无意义）。
+        std::string spatial_extra;
+        if (win_psf_model[i] == "spatial_delaunay_barycentric") {
+          char sb[256];
+          std::snprintf(sb, sizeof(sb),
+                        " spatial_triangle_stars=(%llu,%llu,%llu);"
+                        " spatial_lambda=(%.4f,%.4f,%.4f);"
+                        " spatial_vertex_sigma_px=[%.4f,%.4f];",
+                        static_cast<unsigned long long>(
+                            win_spatial[i].star_ids[0]),
+                        static_cast<unsigned long long>(
+                            win_spatial[i].star_ids[1]),
+                        static_cast<unsigned long long>(
+                            win_spatial[i].star_ids[2]),
+                        win_spatial[i].lambda[0], win_spatial[i].lambda[1],
+                        win_spatial[i].lambda[2],
+                        win_spatial[i].min_vertex_sigma,
+                        win_spatial[i].max_vertex_sigma);
+          spatial_extra = sb;
+        }
+        char note[1024];
         std::snprintf(note, sizeof(note),
                       "patch-center deterministic grid; leaf_order=%d;"
                       " flux_estimator=%s; psf_family=moffat4;"
+                      " psf_model=%s;"
                       " psf_sigma_px=%.6f; subpixel_phase=(%.6f,%.6f);"
                       " pixel_integration_method=gauss_legendre_tensor;"
                       " pixel_integration_order=10;"
@@ -671,9 +739,11 @@ StagedPrecision stage_frame_precision(
                       " normalization_basis=analytic_total;"
                       " f_enclosed=%.9f; f_out=%.9f;"
                       " ideal_disc_f_out_ref=%.6e;"
+                      "%s"
                       " operator_coverage_of_N_p=%.6f",
                       windows[i].leaf_order,
                       req.have_psf ? flux_estimator.c_str() : "unavailable",
+                      psf_model.c_str(),
                       req.psf_sigma_px, windows[i].cx_px, windows[i].cy_px,
                       pd.estimated_error >= 0.0 ? "reported_below"
                                                  : "not_available",
@@ -685,6 +755,7 @@ StagedPrecision stage_frame_precision(
                                                  req.psf_sigma_px),
                                       -3.0)
                            : 0.0),
+                      spatial_extra.c_str(),
                       lw.operator_coverage_fraction);
         // 求积误差单独一个可机读字段（不进自由文本 note）; 负值 = 未能估计
         q.pixel_integration_error = pd.estimated_error;

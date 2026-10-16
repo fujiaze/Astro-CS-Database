@@ -23,6 +23,7 @@
 #include "acsd/normalize_data.h"      // ReferenceDefinition / ReferenceKind / ...
 #include "acsd/sparse_reference.h"    // PlanarPatchWindow（noise 库的窗口类型）
 #include "acsd/normalize_science.h"   // LocalModelPayload / FrameScienceDocument
+#include "acsd/spatial_psf.h"         // PsfVertex（PSF.md §4 空间模型顶点）
 #include "drizzle_engine.h"   // DrizzleEngine::OverlapTarget / SourceLeafOverlap
 
 namespace acsd::phase1::precision {
@@ -65,6 +66,10 @@ struct PrecisionFrameRequest {
   bool background_constant_fit = true;  // false = known 背景（nuisance 口径）
   double psf_sigma_px = 0.0;
   bool have_psf = false;
+  // 空间 Moffat4 模型顶点（PSF.md §4 基础完成模型; p1_sources.json 的 psf_params
+  // 行, 已通过质量与空间支持检查的有效星）。空 ⇒ 无空间支持, 控制点回退到
+  // 帧常 σ 具名近似（不冒充逐位置模型; 凸包外的控制点同样回退并如实登记）。
+  std::vector<acsd::psf::PsfVertex> psf_vertices;
   int patch_grid_x = 8;
   int patch_grid_y = 8;
   bool master_uncertainty_modelled = false;
