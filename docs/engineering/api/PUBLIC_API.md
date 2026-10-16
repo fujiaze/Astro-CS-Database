@@ -125,4 +125,71 @@ C ABI 不让 C++ 异常跨库，内部转为本族状态；C++ 层使用 Result/
 
 并发验证使用同输入、同二进制、实际预算及事先说明的容差；固定索引写回不自动证明全链逐位相等。接口验证覆盖容量、别名、失败输出、配对释放、ABI 失配、逐项状态与取消后的寿命；科学结果另需独立真值，不由 AST 符号数量保证。
 
-长篇接口清单的[来源原文](../../../实验/documentation-refactor/docs/PUBLIC_API_SOURCE.txt)完整保留其字段、符号、未核实读数及历史调用描述；它是研究资料。当前模块正文和真实头负责定位，仍未逐函数验证的范围在[处置记录](../../../实验/documentation-refactor/REPORT.md)列明。发现的数学或模型问题继续进入[待推导记录](../../../实验/documentation-refactor/docs/SCIENTIFIC_QUESTIONS.md)。
+接口原文证据见[来源档案](../../../实验/documentation-refactor/docs/PUBLIC_API_SOURCE.txt)。有效现行设计由下面列出的正式模块/合同承载；来源档案只保留原始说法与证据，不能代替参数、布局或异常语义。
+
+## 8. 接口主题的唯一正式归属
+
+下表按原API主题保持可追溯职责，API编号仅为既有引用标识，不代表功能已验收。完整声明和数据语义在各主题正文；机器索引用于找文件，不反向定义科学量。
+
+| 原主题 | 正式设计的归属与必要边界 |
+|---|---|
+| API-GAIA-001 | [Gaia模块](../../detail/infrastructure/gaia_xpsd_client.md)：create/query/free、记录、容量/缓存/错误；[查询算法](../../science/algorithms/common/GAIA_QUERY.md)拥有几何与量化 |
+| API-CAL/COS-001 | [校准/缺陷模块](../../detail/normalize/modules.md#calibration)：全部主帧/校准/列/方差声明、缓冲、计数与f64实际精度；坏点/列与母版生成不是同一能力 |
+| API-STAR-001 | [检测详细设计](../../detail/normalize/modules/star_detection.md)：6完整签名、13参数、6基础/9extras、O1–O16、LM/边界/释放与身份；solver候选和science_sources分开 |
+| API-PSF-001 | [PSF模块](../../detail/normalize/modules.md#star-psf)：7完整签名、13字段结果、两种9列布局、compact回映射、两套0–3状态；不以成功前缀猜源ID |
+| API-WCS-001 | [IPV详细设计](../../detail/normalize/modules/platesolve.md)：14签名、全部参数/结果与N×6/N×9、ABI2、线程绑定、成功1；算法归PLATESOLVE |
+| API-PHOT-001 | [光度详细设计](../../detail/normalize/modules/photometry.md)：7个C声明和C++质量位/Frame装配全字段，F_syn/单位、退化、records原行、实际应用一次 |
+| API-NOISE-001 | [Noise模块](../../detail/normalize/modules.md#noise-snr)：27个声明、15种结构、配置1/模型2、floor绑定、分配/释放；球面位置参考GLS按[Normalize合同](../contracts/NORMALIZE_DATA.md)及噪声科学 |
+| API-DRZ-001 | [Drizzle模块](../../detail/normalize/modules.md#drizzle)：14完整声明、自动nside/正逆结构、异步job与capture寿命；snapshot句柄不代替正式signal算子 |
+| API-HIPS-001 | [共用writer](../../detail/infrastructure/hips_writer.md)：begin/write/finalize/abort、视图/flags/层级/错误；最终产品通道由阶段合同决定 |
+| API-COV-001 | [覆盖模块](../../detail/mosaic/modules.md#coverage)及[覆盖算法](../../science/algorithms/mosaic/PHASE2_COVERAGE.md)：两遍容量、NESTED union/order/来源与POD清零；覆盖不是权重 |
+| API-P2-SMP-001 | [采样模块](../../detail/mosaic/modules.md#sample)及[采样算法](../../science/algorithms/mosaic/PHASE2_SAMPLER.md)：frame_id/cached/halo、geometry与accepted计数、输出容量、背景统计量方差 |
+| API-P2-UPM-001 | [生产背景模块](../../detail/mosaic/modules.md#upm-fit)与[UPM库算法](../../science/algorithms/mosaic/PHASE2_UPM_IMPL.md)：sky-plane生产链、UPM库/persist/dense/source-hash分别说明，不拼接为一条链 |
+| API-P2-REJ-001 | [排异模块](../../detail/mosaic/modules.md#reject)及[排异算法](../../science/algorithms/mosaic/PHASE2_REJECTION.md)：AUTO只进plan，strided→compact经source_indices，reason与status、typed方法和大尺度mask分开 |
+| API-P2-INT-001 | [集成模块](../../detail/mosaic/modules.md#integrate)：纯reducer/权重构造分开、6态含NON_FINITE_OUTPUT，support包含接受零权样本，失败默认0不能当成功信号 |
+| API-P2-HIPS-001 | [Mosaic写出](../../detail/mosaic/modules.md#write)及[旧工具详细算法](../../science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md)：p2_op_write生产仅SIGNAL；工具配置/diagnostics/裸整数不等同CLI |
+| API-P3-PROJ-001 | [Export WCS](../../detail/export/modules.md#wcs)及[投影算法](../../science/algorithms/export/PHASE3_PROJ_IMPL.md)：descriptor/0基变换/1基CRPIX/crop/当前TAN能力；库PA参数与CLI实际传入分开 |
+| API-P3-RSMP-001 | [Export重采样](../../detail/export/modules.md#resample2)及[内核算法](../../science/algorithms/export/PHASE3_RSMP_IMPL.md)：actual order、nearest/bilinear/ex、缺tile/NaN、共享有界cache与每worker句柄分别说明 |
+| API-P3-FITS-001 | [Export writer/verify](../../detail/export/modules.md#writer)及[FITS算法](../../science/algorithms/export/PHASE3_FITS_IMPL.md)：stream/整幅、crop、临时/发布/重开、状态与hash；当前单PRIMARY信号 |
+| API-P1/P2/P3-SESSION | 以下15签名与各阶段module的session语义；进程内局部facade不与实际CLI八/七/五节点混称 |
+
+跨主题共同规范：参数计数/维数先作可表示性核对；size/version握手只适用于确有相应头字段的接口，不能替legacy POD凭空加头。字符串容量与NUL、UTF-8截断、不写失败输出、内存别名及异常边界逐族确认。err/last_error是人类文本，不解析其内容代替状态；同一进程的不同错误码命名空间可以数值相同，不构成额外错误，也不自动转换为CLI码。
+
+科学状态不等于“允许继续”：例如排异INVALID_*虽经输出status表达，调用者仍应拒绝该结果；正常无候选、NO_DATA、缺precision与坏输入分别处理。归约之前的参数/样本检查与发布之前的I/O完整性是数据责任，不是研发审批门。
+
+## 9. 三个局部会话的完整生命周期签名
+
+这些函数沿legacy common_abi_v1.h的acsd_status/acsd_span/host服务；不能与模块化ABI头混include。config/request为UTF-8字节span，count不含NUL，调用期借用并解析；host与回调/allocator寿命覆盖整个handle。create→validate→run→inspect→destroy，同句柄串行；inspect输出由host分配，调用方用同一host free。destroy后不可复用，不能凭C++诊断last_error代替状态码。
+
+```cpp
+acsd_status p1_session_create(const acsd_host_services_v1* host, acsd_handle* out);
+acsd_status p1_session_validate(acsd_handle h, const acsd_span_u8 config_json);
+acsd_status p1_session_run(acsd_handle h, const acsd_span_u8 config_json, int async_io_depth);
+acsd_status p1_session_inspect(acsd_handle h, acsd_span_u8* out_manifest_json);
+acsd_status p1_session_destroy(acsd_handle h);
+
+acsd_status p2_session_create(const acsd_host_services_v1* host, acsd_handle* out);
+acsd_status p2_session_validate(acsd_handle h, const acsd_span_u8 config_json);
+acsd_status p2_session_run(acsd_handle h, const acsd_span_u8 config_json);
+acsd_status p2_session_inspect(acsd_handle h, acsd_span_u8* out_manifest_json);
+acsd_status p2_session_destroy(acsd_handle h);
+
+acsd_status p3_session_create(const acsd_host_services_v1* host, acsd_handle* out);
+acsd_status p3_session_validate(acsd_handle h, const acsd_span_u8 request_json);
+acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json);
+acsd_status p3_session_inspect(acsd_handle h, acsd_span_u8* out_result_json);
+acsd_status p3_session_destroy(acsd_handle h);
+
+```
+
+p1只做read/calibrate/cosmetic/write，async_io_depth接受0/1/2并按预算预读，取消在帧边界；不执行完整WCS/测光/球面发布。p2是coverage/sample/UPM/可选persist，取消在阶段边界；sampler的旧“固定1 worker”注释不能覆盖实际预算路径，model要用UPM close而非sky-plane close。p3局部facade的请求/provenance和五节点生产命令各有装配路径，不因头注释“CLI直调”视为同一调用。详细数据/失败和当前差异见对应模块正文；返回ACS_ERR_*再经adapter映射，非成功时不把旧manifest或缓冲占位当完成。
+
+## 10. 并发、容量和来源的消费规则
+
+同对象与不同对象分别声明：solver/detector/session/HiPS writer/P3Sampler按实例串行；无可变共享状态的纯reducer可在独立数组上并发，不能由旧“threadsafe=no（无锁）”反推不能并发。Noise模型注册表当前已有mutex，仍不能并发销毁正在使用的同一model；ac_set_num_threads与write_pool_ensure是执行资源设置，不能当普通纯查询。
+
+大部分同步科学函数无段内cancel参数；在飞调用结束前保持全部借用。异步Drizzle job、AIO队列及stream以wait/收尾为释放界，不能因上层cancel置位提前free。worker实际来源/租约与模块内部OpenMP默认值分开报告；不再沿用旧总表虚构所有库已接内部星批/行带/迭代取消。
+
+probe/fill的需求量与已写量分开，容量不足即使rc0也不能称收齐。coverage_free是清零调用方POD，不释放其数组；sampler输出数组由调用方分配；UPM/sky-plane各自close；检测整组free；PSF分配结果free_results；Noise内部数组free；session inspect用host free。aliasing只在某接口明确支持时允许，不能由const输入推导输出可重叠。
+
+保留帧身份算法的实际内容覆盖及64位截断，不称全球唯一；response/application须绑定实际数值、单位与曲线内容。point_information=1/V_F与surface precision=1/V_B是不同估计量，通过同条件T连接；control_ivar又属于背景统计。旧weight_mode/legacy来源的接受/拒绝由当前配置合同拥有，登记词表不是生产路由，也不能恢复额外权重开关。

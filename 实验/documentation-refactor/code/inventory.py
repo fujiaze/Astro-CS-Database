@@ -23,6 +23,9 @@ UNIT = ROOT / '实验/documentation-refactor'
 # Human semantic comparisons against the fixed baseline, recorded in the
 # existing inventory. These are not inferred from length or keyword checks.
 SEMANTIC_REVIEWS = {
+    'docs/engineering/api/PUBLIC_API.md':
+        '完整2325行基线精读并逐主题对照现正式模块：Normalize完整实参/布局回填，Runtime完整类型与15会话签名回填；纠正历史路径/取消/并发/compact误述；Mosaic/Export详细接口与算法逐项语义复核仍未完成，不能据此标全篇闭合',
+
     'docs/science/algorithms/normalize/PHOTOMETRIC_FIT.md':
         '完整319行基线与现文语义对照：F1–F7模型/量纲、完整Akima/Simpson/固定尺度IRLS伪代码、误差/复杂度及参考回填science；7个完整C签名、C++装配全字段/默认/所有权/异常及孔径路径入detail/normalize/modules/photometry.md；旧b_n/效率/中心强断言留Q33；静态核生产并未运行',
     'docs/science/algorithms/normalize/PLATESOLVE.md':

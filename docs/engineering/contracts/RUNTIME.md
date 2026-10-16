@@ -66,3 +66,112 @@ RunContext 提供日志、指标、artifact、取消 token、checkpoint 和 trac
 checkpoint 标记不等于已有持久化恢复协议；恢复能力改变执行路径，须有独立版本和一致性合同。正式日志与资源观测按[可观测性](../../detail/infrastructure/observability.md)维护，ACSD_DEV_MODE 探针是旁路。
 
 接口验证分别检查 IR/registry 错误、真实工厂创建、预算不足、取消、异常归还、状态快照及 trace 与真实调用一致性。构建、局部测试和真实科学运行各自报告；本合同没有因接口声明而宣称这些验证已运行。实际限制集中在[实施差异](../architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+
+## 完整Runtime和Module声明
+
+以下为现有acsd::core公开声明。RssProbe、Result/Error、UnitId、CoordinateFrame、NodeStatus和RunContext沿已有相应合同类型；不是新的ABI或额外生命周期。RuntimeResourceBudget的字节与百分比字段分别给数值和来源，rss_probe调用期/运行期保持有效；pressure_ledger_path是观测输出，不能改变科学模型。trace的duration_ms为毫秒、workers/granted_workers为数量、时间为RFC3339，entry/call_count是实际调用观测，不是descriptor声明的执行证明。
+
+```cpp
+struct RuntimeResourceBudget {
+  uint32_t cpu_budget = 1;
+  uint64_t memory_limit_bytes = 0;
+  std::string memory_source = "none";
+  RssProbe rss_probe = nullptr;
+  uint64_t memory_available_bytes = 0;
+  uint32_t memory_budget_percent = 0;
+  std::string pressure_ledger_path;
+};
+class Runtime {
+ public:
+  virtual ~Runtime() = default;
+  virtual Result<void> load_pipeline(const std::string& ir_json,
+                                     ModuleRegistry& registry) = 0;
+  virtual Result<void> run(RunContext& ctx) = 0;
+  virtual void cancel() noexcept = 0;
+  virtual Result<std::string> inspect() = 0;
+  virtual std::vector<std::pair<std::string, NodeStatus>> node_statuses() const = 0;
+  virtual std::vector<std::pair<std::string, std::string>> node_manifests() const = 0;
+  struct NodeTrace {
+    std::string node_id;
+    std::string status;
+    std::string started_utc;
+    std::string ended_utc;
+    double duration_ms = 0.0;
+    uint32_t workers = 0;
+    std::string provider;
+    std::string error;
+    uint32_t granted_workers = 0;
+    std::string module_id;
+    std::string entry;
+    uint64_t call_count = 0;
+  };
+  virtual std::vector<NodeTrace> node_trace() const = 0;
+  virtual Result<std::string> trace_jsonl() const = 0;
+  virtual std::vector<std::string> trace_violations() const = 0;
+  virtual void set_run_id(const std::string& run_id) = 0;
+};
+struct PortDescriptor {
+  std::string name;
+  std::string data_schema_id;
+  bool is_input = true;
+  UnitId unit = UnitId::UNKNOWN;
+  CoordinateFrame coordinate = CoordinateFrame::PIXEL;
+};
+struct ModuleDescriptor {
+  std::string module_id;
+  std::string version;
+  std::string abi;
+  std::vector<PortDescriptor> ports;
+  std::string config_schema;
+  std::string execution_class;
+  bool parallel_ok = false;
+  std::string sci_id;
+  std::string alg_id;
+  std::string data_id;
+  std::string api_id;
+  std::string test_id;
+  bool validate(std::string* err) const;
+};
+struct ModulePlan {
+  std::string node_id;
+  uint64_t work_units = 0;
+  uint64_t estimated_memory_bytes = 0;
+  std::vector<std::string> parallel_axes;
+  std::vector<std::string> kernel_ids;
+  bool cpu_heavy = false;
+  uint32_t min_workers = 1;
+  uint32_t max_workers = 0;
+};
+class IModule {
+ public:
+  virtual ~IModule() = default;
+  virtual const ModuleDescriptor& descriptor() const noexcept = 0;
+  virtual Result<void> validate_config(const std::string& config_json) = 0;
+  virtual Result<ModulePlan> plan(const std::string& node_id,
+                                  const std::string& config_json) = 0;
+  virtual Result<void> execute(RunContext& ctx) = 0;
+  virtual Result<std::string> inspect() = 0;
+  virtual Result<std::string> last_manifest() = 0;
+};
+class ModuleRegistry {
+ public:
+  Result<void> register_module(const ModuleDescriptor& desc);
+  const ModuleDescriptor* find(const std::string& module_id) const;
+  size_t size() const { return modules_.size(); }
+  std::vector<std::string> module_ids() const;
+  Result<void> register_factory(const std::string& module_id,
+                                std::function<std::unique_ptr<IModule>()> factory);
+  Result<std::unique_ptr<IModule>> create(const std::string& module_id) const;
+  bool export_index_json(std::string* out) const;
+  bool has_factory(const std::string& module_id) const;
+ private:
+  std::map<std::string, ModuleDescriptor> modules_;
+  std::map<std::string, std::function<std::unique_ptr<IModule>()>> factories_;
+};
+Result<std::unique_ptr<Runtime>> create_runtime(uint32_t budget) noexcept;
+Result<std::unique_ptr<Runtime>> create_runtime(const RuntimeResourceBudget& rb) noexcept;
+```
+
+ModuleRegistry的private容器说明它拥有descriptor/工厂副本，find返回的指针借用registry状态，不跨注册变更保存；create返回新实例唯一所有权。export_index_json只写调用方string，plan的work_units取模块定义的tile/行带/样本计数、estimated_memory_bytes为字节，min/max_workers为预算请求（max0表示未声明），不是运行实授值。descriptor的parallel_ok、测试ID和schema登记本身不证明实现具备对应能力。
+
+Runtime头的run注释把ctx写成Runtime拥有，但当前CLI调用方局部创建并借用，按本合同第1节的实际寿命执行；node_trace/trace_jsonl/violations在run后读取。模组execute使用Runtime提供的上下文/租约，不读取全局scheduler，失败/取消后不留下在飞数组的悬垂借用。
