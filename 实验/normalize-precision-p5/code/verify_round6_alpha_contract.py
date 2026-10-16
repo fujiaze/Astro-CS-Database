@@ -43,8 +43,10 @@ def main() -> int:
     prec = doc.get("precision", {})
     controls = prec.get("controls", [])
     models = {m["model_id"]: m["file"]["path"] for m in doc.get("models", [])}
-    # 帧级参考归一身份: native_unscaled ⇒ 本帧 α≡1（不施加测光）
+    # 帧级参考归一身份: 只有**未施加**测光的帧才对 α≡1 作断言; 施加了（空间或
+    # 常量）标度的帧的 α 由真实 m(x,y) 决定（另见 verify_round8_real_spatial_alpha.py）。
     scale_state = doc.get("signal", {}).get("scale_state", "")
+    applied = bool(doc.get("photometry", {}).get("scale_applied", False))
     print("frame:", doc.get("frame_id"), "controls:", len(controls),
           "scale_state:", scale_state)
 
@@ -109,17 +111,20 @@ def main() -> int:
             if not mtok:
                 bad.append("support note missing alpha_window_scale")
             else:
+                # note 以 %.9g 写 alpha_window_scale（9 位有效数字）, 文本舍入
+                # 相对误差 ~1e-9 量级 ⇒ 该对拍容差取 1e-7（文本精度, 不是物理
+                # 容差; 数值本身另有 16 位精度的产品路径核对）。
                 aws = float(mtok.group(1))
                 pred = astar * float(np.sum(hp))
                 d = abs(pred - aws) / max(1e-300, abs(aws))
                 worst_scale = max(worst_scale, d)
-                if d > 1e-9:
+                if d > 1e-7:
                     bad.append("alpha_window_scale %.12g != alpha_*·Σplanar %.12g"
                                " (rel %.3e)" % (aws, pred, d))
-            # 5. α≡1 帧: 逐像元 α 与 α_* 必须都为 1
-            if scale_state == "native_uncalibrated" or scale_state == "native_calibrated":
+            # 5. 未施加标度的帧: 逐像元 α 与 α_* 必须都为 1（诚实中性）
+            if not applied:
                 if not (np.all(al == 1.0) and astar == 1.0):
-                    bad.append("α≡1 frame but alpha not identically 1")
+                    bad.append("unscaled frame but alpha not identically 1")
             if not np.all(al == 1.0):
                 alpha_nonone += 1
         if bad:

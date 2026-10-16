@@ -1,0 +1,5 @@
+frame: M42_M1_T2_flying_dutchman-20251212_012404-300S-Red controls: 57 scale_state: relative_scaled
+alpha-contract read-back: 57 ok, 0 failed, 0 skipped
+worst |h_sphere - R·planar_template| / max|h| = 2.176e-16
+worst |alpha_window_scale - alpha_*·Σplanar| rel = 3.398e-09
+controls with α_j not identically 1: 57
