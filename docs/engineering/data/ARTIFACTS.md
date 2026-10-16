@@ -1,137 +1,65 @@
-# 数据工件与产物留存
+# 数据工件
 
-上游：最高设计的 I/O 与原子产品、验证层级与四层验收两章[1]。
-标度类别与面亮度单位的推导见 `../standards/NUMERIC.md`[2]；阶段间交换与强制计数规则见
-`PHASE_PRODUCT_EXCHANGE.md`[3]。
+工件把科学对象绑定到单位、坐标、形状、有效域、所有权与序列化。物理定义以[数据语义](../../science/unified/DATA_SEMANTICS.md)为准，对象职责见[统一工程对象](../UNIFIED_OBJECTS.md)，阶段一复合字段见[Normalize 数据](../contracts/NORMALIZE_DATA.md)。本页登记承载关系，不从旧 schema 或枚举推导新的物理模型。
 
-数据工件的字段合同、不可用值的表示、逐阶段产物清单与构建产物留存策略的正本。
+## 1. 每份工件携带什么
 
-## DataArtifact schema 清单
+| 项 | 要求 |
+|---|---|
+| 身份 | run/frame/input occurrence、对象类型、revision、生产者及输入版本 |
+| 数组 | dtype、shape、axis 顺序、stride/布局、所有权与借用寿命 |
+| 物理 | 被估计量、实际单位、标度是否施加、应用身份、必要 reference/响应 |
+| 几何 | 坐标系、像元原点、WCS 或 NESTED order/ipix、tile-local 映射 |
+| 有效性 | 覆盖、掩膜、排异、模型能力与缺项分别表达 |
+| 持久化 | 格式/schema、相对路径、字节数、内容哈希、完成状态与模型引用 |
 
-| schema_id | 内容 | scalar | shape/axis | unit | coordinate | invalid | ownership | serialization |
-|---|---|---|---|---|---|---|---|---|
-| DATA-IMG-RAW-001 | raw 亮场 | f32/f64/u16 | [H,W], y,x | ADU，**标度类别 `raw_adu`**：u16 整数样本的物理值 = `BSCALE·样本 + BZERO`，即 `BSCALE/BZERO` **在读取时已施加**（实现锚 = `lib/infrastructure/aio/src/aio_fits.cpp` 的 f32/f64 两条读路径；FITS Standard 4.0 同口径）⇒ 读入后 u16 与 f32/f64 落在**同一 ADU 物理标度**上，可逐值比较 | pixel(0-based) | NaN=invalid | unique→borrowed | FITS/XISF |
-| DATA-IMG-CAL-001 | calibrated 亮场 | f32/f64 | [H,W], y,x | ADU（标度类别 `calibrated_adu`：已过 `BSCALE/BZERO`、未施加测光标度 α）；e⁻ **只在调用方另行给出 gain 换算后**才成立，换算责任方 = 消费方（本层不建模 gain，「DataArtifact schema 清单」一节 非目标） | pixel | NaN=invalid; 负值保留 | unique | FITS |
-| DATA-IMG-VAR-001 | variance（逐帧/逐帧内平面，**帧内块**） | f32/f64 | [H,W] | **量纲 `ADU^2`（像素域，无 sr 幂）；标度 = 与同帧 `data` 面同一标度**：`calibrated_adu` ⇒ ADU²；`photo_scaled_adu` ⇒ α²·ADU²（α = frame photscal，**逐帧量**，见 `../standards/NUMERIC.md` 标度词表） | pixel | **无方差信息 = 0（显式不可用，a）**；NaN/负 = 损坏（写侧 rc=−6 硬失败） | unique | FITS |
-| DATA-IMG-IVAR-001 | inverse variance（帧内块） | f32/f64 | [H,W] | **量纲 `ADU^-2`（像素域）；标度与同帧 variance 严格互倒**（`ivar = 1/variance`，有限域） | pixel | **ivar=0 = 显式不可用**（禁 `1/0→Inf`）；NaN/负 = 损坏 | unique | FITS |
-| DATA-IMG-WEIGHT-001 | quality weight | f32 | [H,W] | 无量纲[0,1] | pixel | 0=不合格 | unique | FITS |
-| DATA-IMG-SUPPORT-001 | support | f32/u8 | [H,W] | [0,1] | pixel | 0=无覆盖 | unique | FITS/HiPS |
-| DATA-IMG-MASK-001 | bad-pixel mask | u8 | [H,W] | 位掩码 | pixel | 1=坏点 | unique | FITS |
-| DATA-WCS-001 | WCS 描述 | struct | n/a | deg/px | ICRS | 无解=显式错误 | shared | header/JSON |
-| DATA-CAT-PSF-001 | PSF catalog | struct[] | [N] | px,deg,ADU | ICRS+pixel | 失败不输出伪有效 | unique | FITS/CSV |
-| DATA-CAT-PHOT-001 | photometry catalog | struct[] | [N] | **通量标度 = `calibrated_adu`（ADU）；`e⁻` 只在调用方另行给出 gain 换算后才成立，换算责任方 = 消费方**（本层不建模 gain：「DataArtifact schema 清单」一节 非目标、a「gain 不在本层建模」）；星等无量纲 | ICRS | 饱和拒=rejected_quality | unique | FITS/CSV |
-| DATA-HIPS-SIGNAL-001 | HiPS signal 数据集 | f32/f64 | HEALPix NESTED | **`ADU/sr`**（线性计数面亮度；立体角幂不可省。**标度类别 = `surface_brightness`**，逐帧乘性因子由 `PHOTSCAL`/`PHOTAPPL` 承载 —— `BUNIT` 相同**不**蕴含标度相同，见 `docs/science/unified/DATA_SEMANTICS` a/） | ICRS | NaN/support=0 | shared/persisted | HiPS |
-| DATA-HIPS-VAR-001 | HiPS variance 子产品 | f32/f64 | HEALPix NESTED tile | **`ADU^2/sr^2`（面亮度方差 = `var_num_sum/covered_area²`；立体角幂不可省，见 `../standards/NUMERIC.md` 面亮度标度律）** | ICRS | **无覆盖（covered_area≤0）= NaN（与 signal 同态）**；有覆盖但无方差信息（covered_area>0 ∧ var_num_sum≤0）= **0**（显式不可用）；负 = 损坏。编码权威 = `DATA_SEMANTICS` a | persisted | HiPS |
-| DATA-HIPS-IVAR-001 | HiPS ivar 子产品 | f32/f64 | HEALPix NESTED tile | **`sr^2/ADU^2`（= 1/variance，有限域互为倒数）** | ICRS | **无覆盖 = NaN（同 signal）**；有覆盖但无方差信息 = **0**（禁 `1/0→Inf`）；负 = 损坏。编码权威 = `DATA_SEMANTICS` a | persisted | HiPS |
-| DATA-UPM-MODEL-001 | UPM 加性模型 | double[] | [n_frame×n_cell] | ADU | control cell | NO_DATA 显式 | persisted | UPM file |
-| DATA-UPM-CONTROL-UNC-001 | control variance/ivar | f64 | [n_control] | **`ADU^2` / `ADU^-2`（像素域，无 sr 幂）；标度 = 与所消费的 Phase1 帧面同一标度**（帧已施加测光时随 `photo_scaled_adu` 一并缩放，`Var ∝ α²`）。**几何口径**：`[n_control]` 的每一元素对应一个 **control cell**（tile 内 8×8 网格的 cell，编号自 tile 原点起），不是源像素也不是 leaf ipix；**`k_corr` 放大已含在值内**（`control_variance = k_corr·(π/2)·σ_bg²/N_retained`，适用域见 `docs/science/unified/DATA_SEMANTICS` 的 `control_k_corr` 行）⇒消费侧**取用含 `k_corr` 的值**| control cell | ivar≤0→rc=2 | unique | JSON |
-| DATA-REJ-MAP-001 | rejection map | u8 | [H,W] | 位掩码 | pixel | reason code 每样本 | persisted | FITS |
-| DATA-FRAME-ID-001 | frame identity | uint64 | scalar | 无量纲 | 科学 payload 派生 | 重复拒绝 | shared | JSON/manifest |
-| DATA-P3-FITS-001 | 平面 FITS | f32/f64 | [W_out,H_out] | 面亮度(禁默认 Jy/beam) | TAN/ICRS | NaN+coverage | persisted | FITS |
-| DATA-P1-PHOTPROV-001 | Phase1 测光 provenance sidecar(p1_phot.json; B2-A14 关闭伪造 PHOTAPPL) | 无标量(标签+比例) | n/a | **逐字段量纲**：`photometry_applied`/`pixel_scaling`/`status` 等标签 = 无量纲；**`photscal`（= `k_photo`）= `[F_syn 单位]/ADU`**（F_syn 单位 = 模型通带积分辐照度 `W·m^-2·nm^-1`，见 `docs/science/photometry/PHOTOMETRY.md` 「物理量和单位」一节），**不是**无量纲、**不是**其倒数；`len(photscales)` 与 `frames[]` 的逐帧对应见 invalid 列 | n/a | 缺文件=未应用测光(允许显式 ADU 降级); schema≠DATA-P1-PHOTPROV-001 / photscal 非有限或≤0 → drizzle DATA 拒绝; PHOTAPPL=1 取显式值。该「缺文件」分支只允许是**显式**状态——CLI 链上 phot→drz 有 typed 依赖边（phot 输出端口 p1_phot → drz 输入端口 p1_phot, artifact:p1_phot），调度器保证 phot 落盘后才执行 drz，存在性判定 = typed 依赖边。**逐帧判决**：`frames[]` 逐帧记 `status ∈ {ok, fail}`，`status=fail` 必须带 `error_domain`/`error_status`（稳定错误码）/\`error\` 且 `photometry_applied=false`、不产出 `photoapplied_<base>`、不写 `degraded_reason`（失败≠降级）；`photometry_applied` 是**组级摘要**（至少一帧已施加，`pixel_scaling` ∈ applied/partial/none），逐帧真相只在 `frames[]`；不变量 `n_frames_ok + n_frames_failed == n_frames`、`len(photscales) == n_frames_applied`、`failed_frames` 与 `frames[]` 一致（一致性判据的 P3b 与 P3b-2 两条） | unique(p1_op_photometry 原子写) | JSON |
-| DATA-GAIA-001 | Gaia XPSD 星表行(C ABI 输出) | f64/i32/u8[] | [out_count]; 光谱 [out_count×spec_n] | deg,mag,W·m⁻²·nm⁻¹,nm | ICRS J2000 | out_match_idx=−1 未匹配; out_count=0 空结果合法; DR3 下 BP/RP=0 sentinel; 无光谱 flux_min/mul=0 | caller free(顶层 malloc) | in-memory(不落盘, ) |
-| DATA-COV-001 | Phase2 coverage 联合 MOC(P2CoverageResult) | u64/u64 | union_cells [K](P2MocCell: order+ipix); K=n_union_cells 标量; inputs [n_inputs] | 无量纲(order/ipix) | HEALPix NESTED 父单元(ipix<12·4^order, 去重升序) | K=0 空结果合法(rc=0); 两阶段协议第一次调用不写 union_cells/inputs | caller free(调用方分配, coverage.h) | in-memory(不落盘) |
-| DATA-UNC-001 | Phase2/Phase3 不确定度产品合同容器(DATA_SEMANTICS , 目标态) | 容器(无标量) | n/a | n/a | 跨域(见各子 schema) | 合同先行（实现随后）; unavailable 显式登记模式 | owner(DATA-001 冻结) | DATA_SEMANTICS.md |
-| DATA-P2-VAR-001 | Phase2 马赛克 variance/ivar 子产品(目标态) | f32/f64 | HEALPix NESTED 512 tile | **`ADU^2/sr^2` / `sr^2/ADU^2`**（面亮度方差/逆方差；立体角幂不可省，见 `../standards/NUMERIC.md` 面亮度标度律） | ICRS | 无有效样本=NaN(signal=NaN 同态); 非有限合成=NaN; 禁 0/±Inf 伪装 | persisted(variance/,ivar/ 目录) | HiPS(AIO_HIPS_PRODUCT_VARIANCE=8/IVAR=16) |
-| DATA-P2-REJ-001 | Phase2 rejection 产品 nused/nrej + 逐样本接受掩码 sample_mask(目标态, 诊断统计平面 + integrate 原始样本索引资格载体) | int32 + u8 | HEALPix NESTED 512 tile + 逐 tile [depth×tile_span] | 无量纲计数 + 0/1 接受位 | ICRS | 无覆盖=0(禁 −1 哨兵); sample_mask 缺失/offset 错位/frame_slots 不符/字节∉{0,1} → integrate fail-closed(禁回退像素级 accepted); 逐帧 reason 级非目标 | persisted(nused/,nrej/ 目录; AIO 位 64/32 冻结分配; files.sample_mask=p2_rejection_sample_mask.bin) | HiPS(不入 exchange science planes 枚举) |
-| DATA-P2-PROV-001 | Phase2 provenance 键组(目标态) | 64hex/uint/string/bool | 标量×5 | 无量纲 | 无(元数据) | uncertainty_available=false 显式登记非失败; 禁缺键/占位 | persisted(properties+manifest.json 双写) | HiPS properties+JSON |
-| DATA-P3-UNC-001 | Phase3 重采样 uncertainty 传播产品(目标态) | f32/f64 | [W_out,H_out] 行主序 | **`ADU^2/sr^2` / `sr^2/ADU^2`**（BUNIT 派生；立体角幂不可省） | TAN/ICRS(FITS-WCS) | 无覆盖=NaN(C=0); NaN 传播=C=1; 负/Inf=损坏显式错误; unavailable=无 HDU+manifest 标记 | persisted(单 FITS 文件 VARIANCE/IVAR 扩展 HDU) | FITS(EXTNAME=VARIANCE/IVAR, DATASUM 逐 HDU) |
-| DATA-P3-REJ-001 | Phase3 重采样**强制剔除计数**诊断统计平面（正本 = `PHASE_PRODUCT_EXCHANGE.md`[3] 的处置规则第 3 条「强制计数」，`count_field=n_rejected_nonfinite`） | int32 | W×H 一平面（独立载体 `p3_rejection.bin`） | 无量纲计数 | 输出平面像素（行主序，与 signal 同几何） | 无覆盖=0（**0 即「无」**，−1 只作无效标记）；**字段缺失 ≠ 全 0**（缺 `diagnostic_planes.n_rejected_nonfinite` 的产品判不满足 `PHASE_PRODUCT_EXCHANGE.md`[3] 的处置规则第 3 条「强制计数」，判据具名 `COUNT_FIELD_MISSING`） | unique（p3_op_writer 原子写） | 二进制（**不进** exchange science planes 枚举；manifest `diagnostic_planes.n_rejected_nonfinite` + `n_rejected_nonfinite_total` 声明；判据 = 强制剔除计数合同判据（六条 G1–G6）） |
-| DATA-HIPS-001 | HiPS 产品输入面(properties + signal tile 读路径；正文见「登记行权威锚点」一节，tile 读路径的冻结映射见 `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节) | f32(tile) + 文本(properties) | 512×512/leaf(W=hips_tile_width, leaf=HEALPix cell @hips_order) | 面亮度(BUNIT 透传, 缺省 ADU; 禁默认 Jy/beam) | HEALPix NESTED(frame=ICRS；tile 内 FITS local 映射 = `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节) | NaN=传播语义非 invalid; 缺 tile=无覆盖非错误; properties 必需键非法→显式 P3_RS_PARAM | shared(只读共享; 产品归生产方 Phase1/Phase2) | HiPS 目录树(properties + FITS tiles) |
-| DATA-TILE-001 | 单个 HiPS leaf tile 科学面(W×W FITS float tile；正文见「登记行权威锚点」一节) | f32 | [W,W] FITS local(W=512, leaf=NESTED 18 bit) | 面亮度(surface brightness; BUNIT 透传, 缺省 ADU) | HEALPix NESTED leaf + tile 内 `FITS index = (511−x)·512+y`（`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节冻结） | tile 内 NaN=传播非 invalid; 缺 tile=无覆盖非错误; 非 float/多通道/JPEG-PNG/int+BLANK=显式拒绝 | shared(sampler 只读缓存, 禁改写) | FITS tile(HiPS 目录内) |
+没有来源的单位和误差不能补成 ADU、0或1。FITS 读取施加 BSCALE/BZERO 后保存物理标度；校准值、测光应用后值、电子数和 SI 量分别具名。内部零基像元中心与 FITS WCS 一基约定只转换一次，tile-local 与 NESTED 的手性由共享实现处理。
 
-### 统一对象合同登记（DATA-001，`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节，canonical 在 eng/contracts/schemas/）
+## 2. 既有 DATA ID 与承载
 
-本表第二节：`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 的 **13** 个对象各自在 `eng/contracts/schemas/unified/<对象名>.schema.json` 有唯一 canonical 合同（`$id = https://acsd.local/schemas/unified/<对象名>/v1`）。对象身份 / 单位（含 BUNIT 语义）/ 无效值与缺失表示 / 精度 / 可否作权重一律以该 canonical schema 为准（人类可读对照 = 本文件下文「weight/value/scale/sigma/snr 歧义映射（DATA-001 登记）」一节）；本表只登记它们在 DataArtifact 面的 scalar/shape/axis/coordinate/ownership/serialization 列，**单位与无效值两列只给 canonical schema 指针**。
+下表保留既有 ID 的定位用途。相同 ID 在旧登记中有歧义时，以科学对象和具体 API 类型解释并登记迁移，不能称全部已明确。
 
-**本表 `scalar` 列的读法（同名不同义，不得与另两处互相代入）**：本列登记的是该对象在 **DataArtifact 承载面上的标量形态**，即线格式层面的载体类型，不是「该对象应归属哪一档精度」。逐对象的**应归属精度**的唯一正本是 `../UNIFIED_OBJECTS.md` 的对象对照表精度列；canonical schema 的 `precision` 属性是**值域**（取值只能是三个 token 之一），不逐对象指派档位。三个问句各答一处，读者按问句取面，不得跨面比较。
-上位锚：`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节；`../../ACSD_DESIGN.md`「文档权威与索引」一节。**判据无载体**：机器门 `eng/tests/contracts/test_unified_object_contract.py` 在仓内不存在（`eng/tests/` 只有 `conformance/` 与 `validation/` 两个子目录），故逐层一致性只有 canonical schema 自身可校验，不得写成已有门在跑。
+| ID | 对象与承载 |
+|---|---|
+| `DATA-IMG-RAW-001` | 原始亮场，[H,W] y,x；FITS/XISF 读取后的线性值 |
+| `DATA-IMG-CAL-001` | 校准图，[H,W]；保留有限负值及真实单位 |
+| `DATA-IMG-VAR-001` / `DATA-IMG-IVAR-001` | 与当前平面、标度和被估计量配对的方差/逆方差 |
+| `DATA-IMG-WEIGHT-001` | 旧表用于[0,1]质量权重，旧积分映射又用于逆方差；两者需按实际类型区分 |
+| `DATA-IMG-SUPPORT-001` / `DATA-IMG-MASK-001` | 支持与坏像元标记；状态和几何不作统计精度 |
+| `DATA-WCS-001` | WCS 描述与来源，角度单位 deg；无解显式登记 |
+| `DATA-CAT-PSF-001` / `DATA-CAT-PHOT-001` | PSF/测光源表，含坐标、真实通量单位与测量状态 |
+| `DATA-HIPS-SIGNAL-001` | signal HiPS，NESTED、实际线性单位/sr |
+| `DATA-HIPS-VAR-001` / `DATA-HIPS-IVAR-001` | 输入帧可有来源的辅助精度；单位分别为 signal 单位平方及其倒数 |
+| `DATA-UPM-MODEL-001` | 与所拟合信号同单位的加性背景模型，不能一律写探测器 ADU |
+| `DATA-UPM-CONTROL-UNC-001` | UPM control cell 统计量自身的方差/逆方差，含其相关性模型与支持 |
+| `DATA-REJ-MAP-001` | 具名拒绝原因或资格载体 |
+| `DATA-FRAME-ID-001` | 帧身份登记；内容身份与输入 occurrence 不能混用 |
+| `DATA-P3-FITS-001` | 二维 signal WCS FITS；内存行主序 [H,W]，FITS NAXIS1=W/NAXIS2=H |
+| `DATA-P1-PHOTPROV-001` | p1_phot.json 逐帧应用状态、标度与来源；组级摘要不能覆盖失败帧 |
+| `DATA-GAIA-001` | Gaia 行及光谱数组，实际坐标历元、光谱采样、单位与内存释放由 Gaia API 说明 |
+| `DATA-COV-001` | coverage 联合 MOC 单元及输入引用，调用方数组与两阶段容量协议 |
+| `DATA-HIPS-001` / `DATA-TILE-001` | HiPS properties 和 float FITS tile 的输入角色；几何/单位来自实际产品 |
+| `DATA-UNC-001` | 既有不确定度容器登记；名称存在不表示完整生产噪声模型 |
+| `DATA-P2-VAR-001` / `DATA-P3-UNC-001` | 旧辅助图像/扩展登记；不属于当前最终 Mosaic/Export 科学图像发布集合 |
+| `DATA-P2-REJ-001` / `DATA-P3-REJ-001` | 内部样本接受位、拒绝计数及诊断；具体载体以真实调用为准 |
+| `DATA-P2-PROV-001` | Mosaic 来源/能力元数据；不能凭键存在推断不确定度已验证 |
 
-| schema_id | 内容 | scalar | shape/axis | unit | coordinate | invalid | ownership | serialization |
-|---|---|---|---|---|---|---|---|---|
-| DATA-OBJ-SIGNAL-001 | signal（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：否） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/signal.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-VARIANCE-001 | variance（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：对该估计目标可以） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/variance.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-IVAR-001 | ivar（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：对该估计目标可以） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/ivar.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-SOURCE-SNR-001 | source_snr（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：不直接作帧权重） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/source_snr.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-DEPTH-M5-001 | depth_m5（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：摘要，不作权重） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/depth_m5.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-FRAME-SNR-001 | frame_snr（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/frame_snr.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-POINT-INFORMATION-001 | point_information（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：点源目标的严格权重） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/point_information.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-SPARSE-SNR-LAYER-001 | sparse_snr_layer（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：帧内精细参考） | f32|f64 | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/sparse_snr_layer.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-SUPPORT-001 | support（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：否） | f32|f64|int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/support.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-COVERAGE-001 | coverage（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：否） | f32|f64|int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/coverage.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-VALIDITY-001 | validity（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：门，不是权重） | int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/validity.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-REJECTION-001 | rejection（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：门/概率，不是 coverage） | f32|f64|int | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/rejection.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
-| DATA-OBJ-PROVENANCE-001 | provenance（`docs/detail/common/unified_model.md`「数据对象与字段歧义消解」一节 对象；可否作权重：——） | 非数值（字符串 / 键值对象 / 字符串数组，无标量数值面） | 对象文档 / 平面引用（map·scalar·control_points） | 见 canonical schema | 按对象（pixel / HEALPix NESTED / 源列表 / 元数据） | 见 canonical schema | unique（canonical owner = eng/contracts/schemas/unified/provenance.schema.json） | JSON schema + 产品载体（FITS/HiPS/JSON 由产品族决定） |
+旧完整字段表、接口分支、常量与未接线测试名称保存在[来源档案](../../../实验/documentation-refactor/docs/PRODUCTS_SOURCE.txt)。历史 ID 保留可定位性；当前阶段产品政策由[交换合同](PHASE_PRODUCT_EXCHANGE.md)唯一规定。
 
-### 登记行权威锚点
+## 3. 统一对象与机器 schema
 
-上表末两行 `DATA-HIPS-001` / `DATA-TILE-001` 是**既存** ID 的登记行，
-**不引入新语义**：两 ID 已在 `docs/science/unified/DATA_SEMANTICS.md`
-（"DATA-HIPS-001/DATA-TILE-001（HiPS properties/tile 输入面）"）、生产 descriptor
-（`lib/infrastructure/scheduler/src/module_adapters.cpp` 四处）、
-`lib/infrastructure/pipeline/module_ports.registry.json` 两处在用，并在
-`../governance/TRACEABILITY.md` 的「逐模块追溯台账（人读正本）」一节两行登记。
-**判据无载体**：仓内 `eng/tests/unit/core_pipeline_test.cpp` 与端口合同页
-`docs/detail/export/modules/resample` / `docs/detail/export/modules/projection`
-均不存在，故这两条登记不得当作已被测试集锁定。
+`eng/contracts/schemas/unified/` 的13类对象为 signal、variance、ivar、source_snr、depth_m5、frame_snr、point_information、sparse_snr_layer、support、coverage、validity、rejection、provenance。其职责、精度与当前载体见统一工程对象，机器 schema 编码形状与兼容值域，不拥有物理定义。
 
-登记行与冻结正文逐条对应，不新增/修改任何公式、单位、
-坐标系、精度或 invalid 规则。逐行正文锚点：
+Normalize 只发布一份 canonical frame_science.json；Catalogue、帧摘要和规则像素 SNR 网格是派生/兼容视图。available/unavailable 形状夹具中的假身份和哈希不能作为可消费科学产品。reader 要验证真实引用、模型单位/域与跨字段关系。
 
-- `DATA-HIPS-001`（HiPS 产品输入面）: `docs/science/PHASE3_HIPS_TO_FITS.md`
-  的输入有效域一节（properties 必需键
-  `hips_order/hips_tile_width/hips_frame/dataproduct_type=image`；NESTED
-  唯一；仅 float FITS tiles）与连续定义一节（tile=HEALPix cell @hips_order 的
-  W×W FITS float tile；tile 值=面亮度；缺 tile=无覆盖；tile 内 NaN 传播）；
-  `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节（NESTED/leaf_order 与
-  tile 内 FITS local-pixel 映射 `FITS index = (511 − x)·512 + y`；该映射由外部 HiPS
-  生成工具族冻结，writer / reader / 查询端共用同一实现）。单位口径
-  =（采样值=面亮度，BUNIT 透传缺省 `ADU`，绝不默认 Jy/beam）。
-- `DATA-TILE-001`（单 leaf tile 面）: 同上「坐标语义」一节冻结映射（tile 内
-  `FITS index = (511−x)·512+y`）与输入有效域 / 连续定义两节；descriptor 单位
-  `UnitId::SURFACE_BRIGHTNESS`、坐标 `CoordinateFrame::HEALPIX`
-  （`module_adapters.cpp`）；tile 读路径的正本即
-  `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节。
+新 typed/JSON 用显式 status、optional/null 表示未知精度。既有 variance=0/ivar=0 的 unavailable 哨兵只在 legacy adapter 解释，不能拿0当真实零方差，也不能求倒数得到 Inf。无覆盖、未知噪声、损坏输入与排异分别表示。
 
-**端口词汇面偏差（登记 finding）**：`DATA-HIPS-001` 的
-coordinate 在端口词汇面存在两个值——`CoordinateFrame::PIXEL`
-（module_adapters.cpp）与 `CoordinateFrame::HEALPIX`
-（`lib/infrastructure/scheduler/src/module_adapters.cpp` 两处）。本表按冻结正文（`docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节）登记
-HEALPix NESTED；PIXEL 一侧属端口词汇漂移（端口表只作对齐面、
-冻结依据取自冻结正文）。
+## 4. 易混字段的消费者解释
 
-## weight/value/scale/sigma/snr 歧义映射（DATA-001 登记）
+积分 reducer 消费调用方传入的 value/weight/support/accepted，不负责选择科学权重。点源 `SNR²/F_ref²` 是通量信息量，变成面亮度权重还需要同条件 T；不能把它直接写成 signal 图像的通用精度。质量因子、几何支持与 UPM 控制权也具有不同单位。
 
-`weight/scale/sigma/value/snr` 字段的逐个归属登记如下；
-消费者 API 的入口条件 = 各字段歧义已消除。
+UPM `raw_w=quality_factor×control_ivar` 和每 control 的归一化是当前实现步骤，科学统计意义回到[背景模型](../../science/sky/UPM.md)。`k_corr`、MAD一致化系数、帧 SNR、PSF宽度和角像元尺度分别引用专题，不能由一个泛称 sigma/weight 的列承载。
 
-| 字段名 | 出现位置 | 语义 | DATA ID | 歧义状态 |
-|---|---|---|---|---|
-| `weights` (integrate) | `lib/algorithms/coverage/include/astro/phase2/integrate.h` | **单一权重口径**：候选栈数值权重 = 调用方构造的逐样本逆方差 `w = SNR²/F_ref² = 1/σ_F²`（ivar 产品，或 ivar 缺失时的帧级 SNR 逆方差链），构造后先经 `p2_validate_candidate_weights`。reducer 只消费传入的 `values`/`weights`/`support`/`accepted`，**不编码 ivar/SNR 科学策略**（policy 在调用方）；`weights=nullptr` 是本 C API 的输入合同（无权重数组 ⇒ 等权），**不是可选权重口径**，生产唯一调用方恒传 `weights` | DATA-IMG-WEIGHT-001 数值权重 | 明确（无 `weight_mode` 选择键、无权重口径枚举） |
-| `weights` (rejection) | `lib/algorithms/coverage/include/astro/phase2/rejection.h` | 随样本携带到候选栈的数值权重，与 integrate 同一逐样本逆方差口径 | 同上 | 明确 |
-| `upm.robust_control_weight` | `lib/algorithms/coverage/include/astro/phase2/upm.h`、`lib/algorithms/coverage/src/upm.cpp` | UPM 控制点权重**分两个阶段**（正本 = `p2_upm_raw_weight` 与其后的 per-control 归一化）：**① 分子** `raw_w = quality_factor × control_ivar`（production，`cfg.use_ivar_weight != 0`；**几何可靠性不在分子**；`control_ivar ≤ 0`/非有限 ⇒ rc=2 显式拒绝，禁静默回退 support/SNR）；**② per-control 归一化** `w_cell = raw_w / Σ_cell(raw_w) × control_reliability`（**几何可靠性在这一步施加**）。`cfg.use_ivar_weight == 0` 的 `quality × support^p × snr²/(1+snr²) / max(unc², sigma_floor²)` 只作 ablation/诊断 | DATA-UPM-CONTROL-UNC-001 | 明确（与 integration weight 各自具名，互不混用） |
-| `support` | integrate/upm/sampler | 覆盖支撑 [0,1] | DATA-IMG-SUPPORT-001 | 明确 |
-| `scale_deg_per_px` | p3_session | 输出像元角尺度 | DATA-P3-FITS-001 s_out | 明确(单位 deg/px) |
-| `sigma` | master_generator/rejection | MAD 转 σ 的**一致化系数** 1.482602218505602 = 1/Φ⁻¹(3/4)（零均值高斯下使 MAD 与 σ 同标度的定值；来源：Rousseeuw & Croux 1993, JASA 88, 1273, DOI 10.1080/01621459.1993.10476408[4]）/ 拒绝阈值倍数 | SCI-NOISE/SCI-REJ | 明确(无量纲倍数) |
-| `snr` | CW/sampler | 区域级 SNR 权重因子 snr_v² | SCI-CW-001 | 明确(与 ivar 语义分离) |
-| `value` (integrate) | integrate.h | 候选样本值 | DATA-IMG-CAL-001 标度 | 明确 |
-| `quality` | sampler | 帧/星点质量位掩码 | SCI-CW-001 | 明确 |
-| `k_corr` | sampler.cpp | Drizzle 协方差方差放大因子：域内 = k_gauss(N_retained)×k_geo 逐帧查表；1.4 = 代码默认（域外回退） | SCI-UPM-WEIGHT-001 | 明确 |
+## 5. 所有权与发布
 
-结论：`weight` 只有两个各自具名的物理量，无选择键、无口径枚举 —— 帧间积分的
-**逐样本逆方差** `w = SNR²/F_ref² = 1/σ_F²`（integrate/rejection 共用），与 UPM 控制点的
-**raw 分子 + per-control 归一化**（`upm.robust_control_weight`）。`scale/sigma/snr/value/quality`
-均有明确 DATA/SCI 归属。消费者 API 可安全引用。
-
-## 机器校验
-
-- 产物登记表判据（DATA-001）：校验本表 schema_id 唯一、
- DATA_SEMANTICS.md 中声明的 DATA-* ID 全部在本表登记、无重复。
-
-## 参考文献
-
-[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
-[2] 内部文档 `docs/engineering/standards/NUMERIC.md`，同层相关正本。
-[3] 内部文档 `docs/engineering/data/PHASE_PRODUCT_EXCHANGE.md`，同层相关正本。
-
-[4] P. J. Rousseeuw, C. Croux. Alternatives to the Median Absolute Deviation. Journal of the American Statistical Association, 1993, 88(424): 1273-1283. https://doi.org/10.1080/01621459.1993.10476408
+大数组由 Runtime/调用方按明确合同持有，节点借用，异步任务在回收前完成或转移所有权。持久化对象通过[产物库](ARTIFACT_STORE.md)和[原子发布](../contracts/ATOMIC_PUBLISH.md)管理，跨阶段仅消费完成磁盘产品。保留过程失败与来源，真实观测 FITS 不入 Git；构建与发行材料留存见[发行合同](../build/RELEASE.md)。
