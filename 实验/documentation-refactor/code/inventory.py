@@ -45,6 +45,9 @@ REWRITTEN = {
     'docs/detail/infrastructure/gaia_xpsd_client.md',
     'docs/engineering/contracts/SCHEDULER.md',
     'docs/engineering/contracts/ASYNC_IO.md',
+    'docs/engineering/contracts/FITS_IO.md',
+    'docs/engineering/contracts/HIPS_IO.md',
+    'docs/detail/infrastructure/aio.md',
 }
 REWRITTEN.update(GUIDES)
 REWRITTEN.update(STANDARD_DOCUMENTS)
@@ -85,6 +88,8 @@ REVIEWED = {
     'docs/engineering/architecture/MODULE_MAP.md',
     'docs/engineering/standards/NUMERIC.md',
     'docs/engineering/contracts/PIPELINE_BLOCK.md',
+    'docs/detail/common/unified_objects.md',
+    'docs/detail/common/unified_model.md',
 }
 EXTRACTED = {
     'docs/science/calibration/CCD_DEFECT.md': 'CCD_DEFECT_OBSERVATIONS.md',

@@ -138,3 +138,9 @@ Runtime 续查确认：run_pipeline 使用 RuntimeResourceBudget 工厂，在调
 目录/标准主题 `10e78d380` 已立即推送。全文阅读 PIPELINE_BLOCK、SCHEDULER、ASYNC_IO，核对完整scheduler.h与async_io.h、executor注册头、两类事件schema；重写后两份合同，旧文保存在SCHEDULING_SOURCE.txt。纠正探针与stdout协议同格式、Mosaic全局拟合可按窗口完全独立、错误取消后必排空、容量最低1即满足预算等过强描述。新增E31–E32，本轮未运行或修改调度/队列。
 
 累计73份原始文件全文重写，25项待推导问题、32项工程记录。仍按清单处理超长算法、剩余工程/detail及实验正文。
+
+## FITS/HiPS与AIO续整理
+
+调度主题 `1bef89b3b` 已立即推送。全文阅读FITS_IO、HIPS_IO、AIO detail及common两份统一对象/模型页；重写前三份，区分生产物理值读取、低层存储值流式C接口、内部C++发布writer。核对fits.h全文、C接口头相关段、aio_fits.cpp实际缩放位置及发布机制，新增E33–E34。
+
+原文完整保存在IO_SOURCE.txt；正式文档不再把归档目标、纯C接口、格式库枚举和阶段发布能力混为一体。累计76份原始文件全文重写，科学问题25项、工程记录34项；检查只覆盖文档结构，不是I/O运行验证。

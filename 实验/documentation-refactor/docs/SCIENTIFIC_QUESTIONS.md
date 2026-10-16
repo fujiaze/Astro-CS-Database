@@ -258,6 +258,8 @@
 | E30 | CACHE对仅本地Gaia又要求外部请求每组一次/两级落盘；CODE要求文档所有轮次永久保留，COMMENT却要求迁历史；目录指南还称已跟踪的build文档未入库 | 正文按本地缓存、机器兼容身份、正式说明与历史证据分工重写，目录导航用真实链接；没有改缓存或构建实现 |
 | E31 | SCHEDULER称探针行与CLI JSONL同格式兼容，但两schema必填字段及kind枚举不同 | 正文区分独立probe与显式stdout适配，保留机器schema不改 |
 | E32 | BoundedAsyncQueue非空error时pop立即nullopt，不排空；cancel空reason时has_error仍false；容量函数即使预算不足也至少1 | 已说明真实close/cancel/所有权与内存边界，不改队列或声明测试已过；需覆盖空原因和中断构型 |
+| E33 | FITS_IO低层“不施加缩放”被泛称全AIO行为，生产aio_fits.cpp的native/CFITSIO分支却返回已解码物理值；纯C流式与内部C++ writer也混称统一接口 | 正文区分三层入口、缩放责任、输出部分写和状态域，避免重复BSCALE/BZERO；未改变读取代码 |
+| E34 | HIPS_IO把归档读取写成已有保证，AIO旧细节同时登记archive写读/索引/storage未接线；接口枚举还被当阶段发布集合 | 正文区分目标、实际裸读与各层能力，单signal产品政策保持；不凭文档宣称归档生产支持 |
 
 ### 远端合并后的核对范围
 
