@@ -1,0 +1,72 @@
+[
+ {
+  "variant": "valid",
+  "exit": 0,
+  "sanitizer_hits": [],
+  "sidecar": {
+   "frame": "M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-valid",
+   "exposure_seconds": 600.0,
+   "exposure_source": "input light header EXPTIME",
+   "n_controls": 64,
+   "n_available": 64,
+   "frame_snr": 14.471222195983142
+  },
+  "log": "/workspace/Astro CS Database/\u5b9e\u9a8c/normalize-precision-p5/evidence/p0_exptime_fixed_valid.log"
+ },
+ {
+  "variant": "missing",
+  "exit": 0,
+  "sanitizer_hits": [],
+  "sidecar": {
+   "frame": "M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-missing",
+   "exposure_seconds": 0.0,
+   "exposure_source": "unavailable: no EXPTIME in input light header",
+   "n_controls": 64,
+   "n_available": 64,
+   "frame_snr": 14.471222195983142
+  },
+  "log": "/workspace/Astro CS Database/\u5b9e\u9a8c/normalize-precision-p5/evidence/p0_exptime_fixed_missing.log"
+ },
+ {
+  "variant": "zero",
+  "exit": 0,
+  "sanitizer_hits": [],
+  "sidecar": {
+   "frame": "M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-zero",
+   "exposure_seconds": 0.0,
+   "exposure_source": "unavailable: no EXPTIME in input light header",
+   "n_controls": 64,
+   "n_available": 64,
+   "frame_snr": 14.471222195983142
+  },
+  "log": "/workspace/Astro CS Database/\u5b9e\u9a8c/normalize-precision-p5/evidence/p0_exptime_fixed_zero.log"
+ },
+ {
+  "variant": "negative",
+  "exit": 0,
+  "sanitizer_hits": [],
+  "sidecar": {
+   "frame": "M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-negative",
+   "exposure_seconds": 0.0,
+   "exposure_source": "unavailable: no EXPTIME in input light header",
+   "n_controls": 64,
+   "n_available": 64,
+   "frame_snr": 14.471222195983142
+  },
+  "log": "/workspace/Astro CS Database/\u5b9e\u9a8c/normalize-precision-p5/evidence/p0_exptime_fixed_negative.log"
+ },
+ {
+  "variant": "nan",
+  "exit": 0,
+  "sanitizer_hits": [],
+  "sidecar": {
+   "frame": "M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-nan",
+   "exposure_seconds": 0.0,
+   "exposure_source": "unavailable: no EXPTIME in input light header",
+   "n_controls": 64,
+   "n_available": 64,
+   "frame_snr": 14.471222195983142
+  },
+  "log": "/workspace/Astro CS Database/\u5b9e\u9a8c/normalize-precision-p5/evidence/p0_exptime_fixed_nan.log"
+ }
+]
