@@ -64,6 +64,13 @@ def main():
                         status='ACTIVE_INFORMATIVE',
                         duty='共用 HiPS writer 的视图、单位、句柄、错误与层级写出',
                         upstream='docs/engineering/contracts/HIPS_IO.md'))
+    for name, duty, upstream in [
+        ('platesolve', 'IPV完整C接口、参数/结果/回调布局、选星交接、错误和生命周期',
+         'docs/science/algorithms/normalize/PLATESOLVE.md'),
+    ]:
+        entries.append(dict(path=f'docs/detail/normalize/modules/{name}.md',
+                            status='ACTIVE_INFORMATIVE', duty=duty,
+                            upstream=upstream))
     data['doc_index']['active'] = sorted(entries, key=lambda x: x['path'])
     header = ('# ACSD 文档导航；path 相对仓库根且唯一。\n'
               '# 用途分类不表示构建、真实运行或科学结论已验证。\n'

@@ -129,6 +129,10 @@ doc_index:
     status: ACTIVE_INFORMATIVE
     duty: normalize 模块的输入输出、公开接口、所有权、错误与生产调用说明
     upstream: docs/detail/normalize/pipeline.md
+  - path: docs/detail/normalize/modules/platesolve.md
+    status: ACTIVE_INFORMATIVE
+    duty: IPV完整C接口、参数/结果/回调布局、选星交接、错误和生命周期
+    upstream: docs/science/algorithms/normalize/PLATESOLVE.md
   - path: docs/detail/normalize/modules/star_detection.md
     status: ACTIVE_NORMATIVE
     duty: 科学源检测的算子、参数、接口和生产消费说明；物理口径服从 Normalize 科学正本

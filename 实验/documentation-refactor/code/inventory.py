@@ -23,6 +23,8 @@ UNIT = ROOT / '实验/documentation-refactor'
 # Human semantic comparisons against the fixed baseline, recorded in the
 # existing inventory. These are not inferred from length or keyword checks.
 SEMANTIC_REVIEWS = {
+    'docs/science/algorithms/normalize/PLATESOLVE.md':
+        '完整基线/现文语义对照：选星4a/位次/割线、三角投票、TRANS裁剪/重匹配、SIP推导与逆网格、误差/参考保留正式science；完整14 API及所有字段/寿命补入detail/normalize/modules/platesolve.md；纠正尺度/KD复杂度/旧失败状态，未运行解算',
     'docs/detail/normalize/modules/star_detection.md':
         '完整基线/现文语义对照：O1–O16全部恢复正式detail；六签名、13参数、列身份、初值/LM重试、门、异常/寿命/复杂度及连贯例；纠正旧参数化/饱和中心/十数组；未运行检测测试，论文边界未逐式外核',
     'docs/science/algorithms/normalize/STAR_DETECTION_ALGORITHMS.md':

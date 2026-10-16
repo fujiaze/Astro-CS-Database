@@ -9,6 +9,7 @@
 | 科学量、单位与产品如何对应 | [统一模型](common/unified_model.md)、[对象引用](common/unified_objects.md) | 统一科学模型、数据语义、工程对象合同 |
 | Normalize 的节点如何交接 | [管线](normalize/pipeline.md)、[接口规格](normalize/contracts.md) | Normalize 科学正本、数据合同与工程管线 |
 | Gaia 引导检测如何实现 | [星点检测](normalize/modules/star_detection.md) | 检测、PSF 与天体测量科学分册 |
+| IPV选星、匹配及C接口怎样实现 | [天测详细设计](normalize/modules/platesolve.md) | 天测科学、PLATESOLVE与Normalize数据合同 |
 | 球面帧如何合成为马赛克 | [Mosaic 管线](mosaic/pipeline.md) | 噪声、背景、排异和集成分册 |
 | HiPS 如何导出平面文件 | [Export 管线](export/pipeline.md) | 投影与重采样分册 |
 | 运行时如何调度并回收对象 | [Runtime](infrastructure/runtime.md) | 架构、命名块、调度器和所有权合同 |
