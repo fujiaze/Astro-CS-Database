@@ -118,7 +118,15 @@ void generate_master(const float* stack, int n_frames, int w, int h,
                 }
                 float mad = median_of(work);
                 float sigma = k_sigma * mad;
-                if (sigma <= 0.0f) break;  // 无离散度，无需剔除
+                // MAD=0 只表示至少半数值落在同一点，并不意味着其余值相同。
+                // 不允许把零MAD中的离群样本带入后续算术均值。
+                if (!(sigma > 0.0f)) {
+                    if (!std::isfinite(sigma) || !std::isfinite(med)) break;
+                    for (float& v : vals) {
+                        if (!std::isnan(v) && v != med) v = NAN;
+                    }
+                    break;
+                }
 
                 // 非对称 sigma-clip：低于 median-sigma_low*sigma 或高于 median+sigma_high*sigma
                 int rejected = 0;
@@ -175,7 +183,7 @@ void generate_master(const float* stack, int n_frames, int w, int h,
 // 此类输入必须在归一化前拒绝。
 // DISP-CAL-010: 帧级 median 与 generate_master 逐像素路径同一 NaN 策略
 // (先剔 NaN 再取中位数); 全 NaN 帧 / 全 NaN 输出无有效中位数 → fail-closed。
-// ==0 (全零帧) 行为保持不变 (median→1.0 兜底, 最小爆炸半径)。
+// ==0 的零照度帧同样不能定义相对平场响应，按科学有效域拒绝。
 int generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
                           const float* bias, float* out,
                           float sigma_low, float sigma_high, int max_iter) {
@@ -229,11 +237,10 @@ int generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
                    n, static_cast<double>(frame_med));
             return AC_ERR_PARAM;
         }
-        if (frame_med == 0.0f) frame_med = 1.0f;
         // B13-R13-7: 负中位数 = 全负/多数负的退化输入, 不可归一化 (SCIENCE
         // 契约: median<=0 不归一化), 拒绝并上抛, 不产出常数 0.1 假主帧。
-        if (frame_med < 0.0f) {
-            ac_log("generate_master_flat: frame %d median<0 (%.6g) — invalid flat stack, reject",
+        if (!(frame_med > 0.0f)) {
+            ac_log("generate_master_flat: frame %d median<=0 (%.6g) — invalid flat stack, reject",
                    n, static_cast<double>(frame_med));
             return AC_ERR_PARAM;
         }
@@ -271,11 +278,10 @@ int generate_master_flat(const float* flat_stack, int n_frames, int w, int h,
                    static_cast<double>(final_med));
             return AC_ERR_PARAM;
         }
-        if (final_med == 0.0f) final_med = 1.0f;
         // B13-R13-7: 合并输出负中位数同样是退化输入 (步骤1 已放行正值帧时
         // 理论不可达; 防御性拒绝, 语义与步骤1一致)。
-        if (final_med < 0.0f) {
-            ac_log("generate_master_flat: final median<0 (%.6g) — invalid flat stack, reject",
+        if (!(final_med > 0.0f)) {
+            ac_log("generate_master_flat: final median<=0 (%.6g) — invalid flat stack, reject",
                    static_cast<double>(final_med));
             return AC_ERR_PARAM;
         }
