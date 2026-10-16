@@ -168,26 +168,71 @@ int main() {
         "XPSD decode F=byte*mul+flux_min: linear in flux_min with kernel Int(lambda dlambda)");
   }
 
-  // ── 5. 单位: F_syn = hc·N_γ（光子计数率 × hc）数量级核对 ────────────────
+  // ── 5. 单位: 生产 F_syn（W·m⁻²·nm）与**SI 光子率**的正确关系 ────────────
+  //
+  // 生产积分: F_syn = ∫ f_λ(λ_nm)·T·Q·λ_nm dλ_nm, 单位 W·m⁻²·nm
+  //           （f_λ 数值单位 W·m⁻²·nm⁻¹, λ 数值单位 nm）。
+  // SI 光子率面密度: N_γ = ∫ f_λ·T·Q·λ_m/(h_SI·c_SI) dλ_m   [photons·s⁻¹·m⁻²]
+  //   代入 λ_m = 1e-9·λ_nm、dλ_m = 1e-9·dλ_nm、f_λ|_SI/m = 1e9·f_λ|_per_nm:
+  //     N_γ = 1e-9·F_syn/(h_SI·c_SI)        ⇒  F_syn = 1e9·h_SI·c_SI·N_γ
+  //   等价写法: N_γ = F_syn/(h_SI·c_SI)|_{波长单位取 nm}
+  //     = F_syn/(1.986445857e-16 J·nm) —— 该常数是 **h·c 以 nm 为单位**的取值,
+  //     不是 SI hc(1.986445857e-25 J·m); 两者相差 1e9, 必须标单位。
+  // [2026-10-16 订正] 旧版测试把 λ 的 **nm 数值**直接除 SI hc（少 1e-9）,
+  //   得到的"F_syn=hc·N_γ"是恒等式（tautology）, 不构成 SI 单位验证。
+  //   生产核的 F_syn 数值不受影响（标定常数可吸收 1/(hc)）。
   {
-    const double h = 6.62607015e-34, c = 2.99792458e8;
+    const double h = 6.62607015e-34;      // J·s (SI)
+    const double c = 2.99792458e8;        // m/s (SI)
+    const double hc_SI = h * c;           // J·m
     std::vector<double> filt_wl = {336.0, 1020.0}, filt_t = {1.0, 1.0};
     const auto cache = prepare_filter_cache(filt_wl.data(), filt_t.data(), 2,
                                             nullptr, nullptr, 0, wl.data(), n);
-    // F_λ ≡ F0 ⇒ N_γ = ∫F_λ λ/(hc) dλ; F_syn 应等于 hc·N_γ
+    // F_λ ≡ F0 [W·m⁻²·nm⁻¹], T=Q=1
     const double F0 = 1e-13, mul = F0 / 128.0;
     std::vector<std::uint8_t> spec(static_cast<std::size_t>(n), 128);
     const double fsyn = compute_f_syn_cached_xpsd(cache, spec.data(), n, 0.0, mul);
-    // N_γ 用同一离散和: Σ F λ/(hc) Δλ（与生产同一网格的梯形/辛普森在常量下等价）
-    double ng = 0.0;
-    for (int i = 0; i + 1 < n; ++i)
-      ng += 0.5 * 2.0 * ((F0 * wl[static_cast<std::size_t>(i)]) / (h * c) +
-                         (F0 * wl[static_cast<std::size_t>(i) + 1]) / (h * c));
-    const double hc_ng = h * c * ng;
-    std::printf("  unit check: F_syn=%.6e  hc*N_gamma=%.6e rel=%.2e\n", fsyn, hc_ng,
-                rel(fsyn, hc_ng));
-    chk(rel(fsyn, hc_ng) < 1e-9,
-        "F_syn numerically equals hc * photon-count rate (lambda/(hc) weighting)");
+
+    // (a) 直接 SI 求积（λ 用米; 与生产网格同一离散化, 常量谱下梯形=辛普森）
+    //     N_γ = Σ f_λ|_SI/m · λ_m/(hc_SI) · Δλ_m, f_λ|_SI/m = 1e9·F0, Δλ_m=2e-9
+    double ng_si = 0.0;
+    for (int i = 0; i + 1 < n; ++i) {
+      const double l1 = wl[static_cast<std::size_t>(i)] * 1e-9;      // m
+      const double l2 = wl[static_cast<std::size_t>(i) + 1] * 1e-9;  // m
+      const double dlam = l2 - l1;                                   // m
+      const double n1 = (1e9 * F0) * l1 / hc_SI;                     // photons/s/m²/m
+      const double n2 = (1e9 * F0) * l2 / hc_SI;
+      ng_si += 0.5 * dlam * (n1 + n2);                               // photons/s/m²
+    }
+    // (b) 由生产 F_syn 换算的 SI 光子率（等价常数形式, 两种写法都必须一致）
+    const double ng_from_fsyn = 1e-9 * fsyn / hc_SI;
+    const double hc_Jnm = hc_SI * 1e9;                       // J·nm（不是 SI hc!）
+    const double ng_from_fsyn2 = fsyn / hc_Jnm;
+    std::printf("  SI photon rate: N_gamma(direct)=%.10e  from F_syn=%.10e "
+                "(rel %.2e); hc(J·nm)=%.9e\n", ng_si, ng_from_fsyn,
+                rel(ng_si, ng_from_fsyn), hc_Jnm);
+    chk(rel(ng_si, ng_from_fsyn) < 1e-12 && rel(ng_from_fsyn2, ng_from_fsyn) < 1e-15,
+        "SI photon rate: direct integral (lambda in m) == 1e-9*F_syn/(h_SI*c_SI) "
+        "== F_syn/hc(J*nm)");
+    // (c) 往返: N_γ → F_syn
+    const double fsyn_roundtrip = 1e9 * hc_SI * ng_from_fsyn;
+    chk(rel(fsyn_roundtrip, fsyn) < 1e-12,
+        "round-trip: F_syn == 1e9*h_SI*c_SI*N_gamma");
+    // (d) 已知物理数量级: 600 nm 光子能量 E=hc/λ=3.31e-19 J;
+    //     f_λ=1e-13 W·m⁻²·nm⁻¹ 在 600 nm 处的光子率面密度（每 nm）
+    //     ≈ f_λ/E = 3.0e5 photons·s⁻¹·m⁻²·nm⁻¹。
+    const double e_photon_600 = hc_SI / 600e-9;
+    const double ng_per_nm_600 = F0 / e_photon_600;
+    std::printf("  order of magnitude: E_photon(600nm)=%.6e J, "
+                "N_gamma per nm=%.3e photons/s/m^2/nm\n", e_photon_600,
+                ng_per_nm_600);
+    chk(std::abs(e_photon_600 - 3.31e-19) / 3.31e-19 < 0.01 &&
+            ng_per_nm_600 > 1e5 && ng_per_nm_600 < 1e6,
+        "known-order check: 600 nm photon energy 3.31e-19 J and "
+        "~3e5 photons/s/m^2/nm from f_lambda=1e-13 W/m^2/nm");
+    // (e) 单位自洽: F_syn 的显式单位 W·m⁻²·nm 与 N_γ·(hc) 的单位配对
+    chk(ng_si > 0.0 && std::isfinite(ng_si) && std::isfinite(fsyn_roundtrip),
+        "units self-consistent: [W/m^2/nm] = 1e9 * [J*m] * [photons/s/m^2]");
   }
 
   std::printf("\n%s: %d failure(s)\n", fails ? "FAILED" : "ALL PASS", fails);

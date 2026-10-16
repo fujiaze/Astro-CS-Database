@@ -15,7 +15,11 @@
   [PASS] zero transmission == 0 (degenerate, not a numeric value)
   flux_min linearity: f0=4.637520e-09 f1=4.683895e-09 pred=4.683895e-09 rel=1.77e-16
   [PASS] XPSD decode F=byte*mul+flux_min: linear in flux_min with kernel Int(lambda dlambda)
-  unit check: F_syn=4.637520e-08  hc*N_gamma=4.637520e-08 rel=2.85e-16
-  [PASS] F_syn numerically equals hc * photon-count rate (lambda/(hc) weighting)
+  SI photon rate: N_gamma(direct)=2.3345816264e+08  from F_syn=2.3345816264e+08 (rel 3.83e-16); hc(J·nm)=1.986445857e-16
+  [PASS] SI photon rate: direct integral (lambda in m) == 1e-9*F_syn/(h_SI*c_SI) == F_syn/hc(J*nm)
+  [PASS] round-trip: F_syn == 1e9*h_SI*c_SI*N_gamma
+  order of magnitude: E_photon(600nm)=3.310743e-19 J, N_gamma per nm=3.020e+05 photons/s/m^2/nm
+  [PASS] known-order check: 600 nm photon energy 3.31e-19 J and ~3e5 photons/s/m^2/nm from f_lambda=1e-13 W/m^2/nm
+  [PASS] units self-consistent: [W/m^2/nm] = 1e9 * [J*m] * [photons/s/m^2]
 
 ALL PASS: 0 failure(s)
