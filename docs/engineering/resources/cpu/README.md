@@ -1,3 +1,3 @@
-本目录是 CPU 后端与指令集变体的正本：`BACKEND.md` 是后端架构与装载信任边界，
-`ISA_VARIANTS.md` 是逐内核选路与编译隔离配方，`CAPABILITY_PROBE.md` 与 `AVX2_PROVIDER.md`
-是能力探测与变体 provider 的实现面。给做内核向量化与后端路由的开发者阅读。
+# CPU 后端
+
+[后端架构](BACKEND.md)连接基线与动态组件，[ISA 变体](ISA_VARIANTS.md)说明逐内核选路与编译隔离，[能力探测](CAPABILITY_PROBE.md)和[AVX2 provider](AVX2_PROVIDER.md)给出具体实现入口。硬件可用、性能适合和真实调用分别核验。

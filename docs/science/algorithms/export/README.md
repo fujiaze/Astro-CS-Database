@@ -1,3 +1,3 @@
-# 导出算法
+# 球面与导出算法
 
-本目录承载球面映射、HiPS 层级、平面投影与采样的算法推导。输入输出及实际能力由 [Export 管线](../../../detail/export/pipeline.md) 和对应科学正本说明。
+[HEALPix](HEALPIX_MAPPING.md)与[Drizzle 几何](DRIZZLE_GEOMETRY.md)补充球面坐标和交叠，[重采样](PHASE3_RESAMPLE.md)补充平面取样。目录内仍有[投影](PHASE3_PROJ_IMPL.md)、[重采样实现](PHASE3_RSMP_IMPL.md)、[FITS写出](PHASE3_FITS_IMPL.md)和[HiPS writer](HIPS_WRITER.md)的混合实现资料，当前调用以[Export 模块](../../../detail/export/modules.md)为入口；这些资料的全文拆分继续按原始清单记录。

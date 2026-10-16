@@ -1,5 +1,3 @@
-本目录是行为合同正本：命令行协议、日志与错误、配置、调度器、命名块、落盘形态、
-异步 I/O、所有权与生命周期、原子发布、运行清单校验、运行时公共合同。给实现与审核某一行为面
-的开发者阅读。
+# 工程合同
 
-Normalize 字段、端口、精度和逐帧产品合同见 [NORMALIZE_DATA.md](NORMALIZE_DATA.md)。
+[Normalize 数据](NORMALIZE_DATA.md)规定逐帧字段与能力；[Runtime](RUNTIME.md)、[调度](SCHEDULER.md)、[命名块](PIPELINE_BLOCK.md)与[所有权](OWNERSHIP_LIFETIME.md)规定阶段内交接。[配置](CONFIG.md)、[CLI](CLI_PROTOCOL.md)、[日志错误](LOG_AND_ERROR.md)规定外部行为；[异步 I/O](ASYNC_IO.md)、[FITS](FITS_IO.md)、[HiPS](HIPS_IO.md)、[存储形态](HIPS_STORAGE_FORM.md)、[原子发布](ATOMIC_PUBLISH.md)和[清单](MANIFEST_VERIFY.md)规定磁盘产品。

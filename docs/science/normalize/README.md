@@ -1,1 +1,3 @@
-阶段一 Normalize 的唯一横向科学正本是 [NORMALIZE_SCIENCE.md](NORMALIZE_SCIENCE.md)：统一校准、IPV 天测、Gaia 引导星表/PSF、XP 光度、参考稀疏 SNR 与球面 Drizzle 的数据和因果关系。实际代码与旧规范对照见 [工程实现链](../../engineering/architecture/NORMALIZE_PIPELINE.md) 和 [文档收敛](../../engineering/governance/NORMALIZE_CONVERGENCE.md)。
+# Normalize 科学链
+
+[NORMALIZE_SCIENCE](NORMALIZE_SCIENCE.md)连接校准、IPV、WCS后科学源/PSF、测光、条件噪声与球面完成。[阶段架构](../../engineering/architecture/NORMALIZE_PIPELINE.md)说明生产交接，[数据合同](../../engineering/contracts/NORMALIZE_DATA.md)说明字段，[实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)区分目标与代码。

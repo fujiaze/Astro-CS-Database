@@ -1,3 +1,3 @@
-本目录是资源与可观测性正本：`PERFORMANCE_MODEL.md` 是标定常数与资源判据，
-`BENCHMARK.md` 是机器画像产出，`cpu/` 与 `observability/` 是后端变体与日志监控。给做性能与
-可观测性的开发者阅读。
+# 资源与测量
+
+[性能模型](PERFORMANCE_MODEL.md)说明预算模型与测量解释，[benchmark](BENCHMARK.md)说明机器画像；[CPU 后端](cpu/README.md)与[可观测性](observability/README.md)分别解释执行能力和观测。实际读数在实验中保存。

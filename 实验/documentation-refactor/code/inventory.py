@@ -5,6 +5,8 @@ import re
 from pathlib import Path
 import subprocess
 import sys
+from rewrite_directory_guides import GUIDES
+from rewrite_standards import DOCUMENTS as STANDARD_DOCUMENTS
 
 ROOT = Path(__file__).resolve().parents[3]
 UNIT = ROOT / '实验/documentation-refactor'
@@ -42,6 +44,8 @@ REWRITTEN = {
     'docs/science/algorithms/normalize/STAR_PSF_ALGORITHMS.md',
     'docs/detail/infrastructure/gaia_xpsd_client.md',
 }
+REWRITTEN.update(GUIDES)
+REWRITTEN.update(STANDARD_DOCUMENTS)
 REVIEWED = {
     'docs/science/unified/UNIFIED_SCIENCE_MODEL.md',
     'docs/science/unified/DATA_SEMANTICS.md', 'docs/science/unified/SCIENCE_SCOPE.md',
@@ -75,6 +79,9 @@ REVIEWED = {
     'docs/science/algorithms/common/GAIA_QUERY.md',
     'docs/science/algorithms/common/NOISE_ESTIMATION.md',
     'docs/science/algorithms/common/GATES_AND_TOLERANCES.md',
+    'docs/engineering/architecture/README.md',
+    'docs/engineering/architecture/MODULE_MAP.md',
+    'docs/engineering/standards/NUMERIC.md',
 }
 EXTRACTED = {
     'docs/science/calibration/CCD_DEFECT.md': 'CCD_DEFECT_OBSERVATIONS.md',
