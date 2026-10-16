@@ -43,6 +43,10 @@ struct DelaunayTriangulation {
   std::vector<std::array<int, 3>> tris; // 顶点下标三元组
   bool ok = false;
   std::string reject;                   // ok=false 时的具名原因
+  // 数值退化被忽略/剔除的顶点数（重合点剔除 + Insert 未找到 bad 三角形的点）。
+  // >0 表示该剖分未覆盖全部输入顶点, 必须如实登记而非静默丢弃
+  // （Bowyer–Watson 审计: 极端坐标/近共圆时的可见性）。
+  int dropped_points = 0;
 
   bool empty() const { return tris.empty(); }
 };

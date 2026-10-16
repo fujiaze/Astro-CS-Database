@@ -37,18 +37,27 @@ bool barycentric(double px, double py, double x1, double y1, double x2,
 
 bool in_circumcircle(double px, double py, double x1, double y1, double x2,
                      double y2, double x3, double y3) {
-  // 行列式形式的 in-circle 测试（与面积同号取向敏感; 统一为先定向 CCW）。
-  double ax = x1, ay = y1, bx = x2, by = y2, cx = x3, cy = y3;
+  // 行列式形式的 in-circle 测试。先平移到查询点、再按最大偏移归一化:
+  // 正标量缩放不改变行列式符号, 但把量级压到 O(1) ⇒ 平台坐标量级很大时
+  // (|x| ≳ 1e150, |x|³ 溢出 double) 不再产生 inf/NaN 而静默丢点。
+  double ax = x1 - px, ay = y1 - py;
+  double bx = x2 - px, by = y2 - py;
+  double cx = x3 - px, cy = y3 - py;
+  const double s = std::max({std::abs(ax), std::abs(ay), std::abs(bx),
+                             std::abs(by), std::abs(cx), std::abs(cy)});
+  if (!(s > 0.0)) return false;   // 三点与查询点全重合（退化）
+  ax /= s; ay /= s; bx /= s; by /= s; cx /= s; cy /= s;
+  // 统一为先定向 CCW（面积符号; 退化零面积时不做交换, 由调用方/后续剪枝处理）。
   if (cross2(bx - ax, by - ay, cx - ax, cy - ay) < 0.0) {
     std::swap(bx, cx);
     std::swap(by, cy);
   }
-  const double m[3][3] = {{ax - px, ay - py, (ax - px) * (ax - px) + (ay - py) * (ay - py)},
-                          {bx - px, by - py, (bx - px) * (bx - px) + (by - py) * (by - py)},
-                          {cx - px, cy - py, (cx - px) * (cx - px) + (cy - py) * (cy - py)}};
-  const double det = m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) -
-                     m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
-                     m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+  const double a2 = ax * ax + ay * ay;
+  const double b2 = bx * bx + by * by;
+  const double c2 = cx * cx + cy * cy;
+  const double det = ax * (by * c2 - b2 * cy) -
+                     ay * (bx * c2 - b2 * cx) +
+                     a2 * (bx * cy - by * cx);
   return det > 0.0;   // 严格内（边界由 eps 收缩另行处理）
 }
 
@@ -95,6 +104,7 @@ bool build_spatial_model(const std::vector<PsfVertex>& in,
     std::string why;
     if (!canonicalize_vertex(&v, &why)) {
       // 无效顶点被剔除（登记原因不逐条返回; 调用方按质量守卫生成顶点集）。
+      ++out->dropped_points;
       continue;
     }
     // 重合点剔除（与已接受顶点的距离 < coincident_tol）。
@@ -107,6 +117,7 @@ bool build_spatial_model(const std::vector<PsfVertex>& in,
       }
     }
     if (!dup) pts.push_back(v);
+    else ++out->dropped_points;
   }
   if (pts.size() < 3) {
     out->reject = "fewer_than_3_valid_vertices";
@@ -170,7 +181,12 @@ bool build_spatial_model(const std::vector<PsfVertex>& in,
         edges.emplace_back(t[2], t[0]);
       }
     }
-    if (bad.empty()) continue;   // 数值退化: 不 Insert（点被忽略, 查询仍可用其余剖分）
+    if (bad.empty()) {
+      // 数值退化（in-circle 全 false, 例如极端坐标溢出/精确退化）: 不 Insert。
+      // 点被忽略 —— 但必须**可计数**, 不能静默（审计字段 dropped_points）。
+      ++out->dropped_points;
+      continue;
+    }
     // 从 tris 删除 bad。
     std::vector<std::array<int, 3>> keep;
     keep.reserve(tris.size());
