@@ -128,10 +128,27 @@ ReferenceDefinition parse_reference_config(const Json& snr_cfg, std::string* why
     def.flux_unit = r.value("flux_unit", std::string());
     def.normalization = r.value("normalization", std::string());
     // sed_response 需要可求值的响应积分（谱曲线 + 归一/零点）; 未接线时显式
-    // unavailable（不伪造绝对零点）。
-    def.reason = "sed_response requires evaluable response integration "
-                 "(SED curve + zero point); not wired in this build ⇒ "
-                 "precision unavailable, signal unaffected";
+    // unavailable（不伪造绝对零点）。缺失输入**逐项列出**（合同与裁决点见
+    // 实验/normalize-precision-p5/ROUND9_SED_RESPONSE_CONTRACT.md §4）:
+    //   (1) 参考 SED 身份/解析路径与按星 flux_mul/flux_min、波长网格;
+    //   (2) 响应曲线 R_k 数值本体是否落盘为产品（现仅落身份）;
+    //   (3) 零点/归一约定（A 帧相对 F_ref=a_k·m_k(u)·F_syn_ref, 或 B 绝对零点）
+    //       与 reference.normalization 取值;
+    //   (4) 参考 SED 外定标误差与拟合 a_k 参数协方差是否显式进入 V_F;
+    //   (5) 星等→通量换算所用零点常数的适用范围。
+    def.reason = "sed_response requires evaluable response integration; "
+                 "not wired in this build. Missing inputs (see "
+                 "ROUND9_SED_RESPONSE_CONTRACT.md §4): (1) reference SED "
+                 "identity/resolution path and per-star flux_mul/flux_min + "
+                 "wavelength grid; (2) whether R_k curve values are published "
+                 "as a product (only identity is recorded today); "
+                 "(3) zero-point/normalization convention (A frame-relative "
+                 "F_ref=a_k*m_k(u)*F_syn_ref, or B absolute zero point) and "
+                 "reference.normalization; (4) reference-SED external "
+                 "calibration error and fitted a_k covariance propagation "
+                 "into V_F; (5) applicability of any magnitude-to-flux zero "
+                 "point constant. explicit_linear_flux remains the only "
+                 "canonical path; precision unavailable, signal unaffected";
   } else {
     def.reason = "unknown snr.reference.kind='" + kind + "' (expected "
                  "explicit_linear_flux|sed_response) ⇒ unavailable";
