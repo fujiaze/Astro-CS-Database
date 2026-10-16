@@ -2,6 +2,7 @@
 #include "acsd/normalize_precision.h"
 
 #include <algorithm>
+#include <charconv>   // std::to_chars（无损 hexfloat 规范串化）
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -11,6 +12,7 @@
 #include <sstream>
 
 #include "acsd/io/aio_abi_v1.h"       // aio_content_hash_buffer_v1（sha256 唯一 C ABI）
+#include "crypto/sha256.h"            // acsd::crypto::sha256_hex（身份哈希, 单一实现）
 #include "healpix/healpix_core.h"     // acsd::healpix::ang2pix_nest（唯一实现）
 #include "acsd/sparse_reference.h"    // noise 库 GLS 完成
 #include "snr_estimator.h"            // legacy 诊断通道（不参与 canonical 模板）
@@ -89,6 +91,64 @@ bool file_sha256_hex(const std::string& path, std::string* out) {
   if (aio_content_hash_buffer_v1(bytes.data(), bytes.size(), hex) != 0) return false;
   *out = std::string(hex);
   return true;
+}
+
+// ── 施加标度的规范身份（见头文件口径块）────────────────────────────────────
+std::string canonical_double(double v) {
+  // hexfloat: IEEE-754 值的无损文本形式（strtod 可逐位回读）, 不经过 locale。
+  char buf[64];
+  const auto res = std::to_chars(buf, buf + sizeof(buf), v, std::chars_format::hex);
+  if (res.ec != std::errc()) {
+    // 理论上不可达（64 字节足够任何 binary64 hexfloat）; 具名退化而不是静默截断。
+    return std::string("unrepresentable");
+  }
+  return std::string(buf, res.ptr);
+}
+
+namespace {
+std::string canon_array(const char* key, const std::vector<double>& v) {
+  std::string s = "|";
+  s += key;
+  s += "=";
+  for (std::size_t i = 0; i < v.size(); ++i) {
+    if (i) s += ",";
+    s += canonical_double(v[i]);
+  }
+  return s;
+}
+}  // namespace
+
+std::string photo_application_identity(const AppliedScaleIdentity& in) {
+  std::string canon = "photoapplied/v2|frame=" + in.frame_key +
+                      "|src=" + in.input_source_sha256 +
+                      "|k=" + canonical_double(in.k_photo) +
+                      "|sg_order=" + std::to_string(in.spatial_order) +
+                      "|sg_status=" + in.spatial_status +
+                      "|sg_ident=" + (in.spatial_identifiable ? "1" : "0");
+  canon += canon_array("sg_coef", in.spatial_coef);
+  canon += canon_array("sg_center", in.spatial_center);
+  canon += canon_array("sg_norm", in.spatial_norm);
+  canon += "|filter=" + in.filter_key + "|filter_sha=" + in.filter_content_sha256;
+  canon += "|qe=" + in.qe_key + "|qe_sha=" + in.qe_content_sha256;
+  const std::string hex = acsd::crypto::sha256_hex(canon.data(), canon.size());
+  return "photoapplied:v2:" + hex.substr(0, 32);
+}
+
+std::string photo_response_identity(const std::string& filter_key,
+                                    const std::string& filter_content_sha256,
+                                    const std::string& qe_key,
+                                    const std::string& qe_content_sha256) {
+  if (filter_key.empty() && qe_key.empty()) return std::string();
+  auto part = [](const std::string& key, const std::string& sha) {
+    if (key.empty()) return std::string();
+    // 内容摘要缺失时写 none（不写假摘要; 身份退化可见）
+    return key + "@" + (sha.empty() ? std::string("none") : sha.substr(0, 12));
+  };
+  const std::string a = part(filter_key, filter_content_sha256);
+  const std::string b = part(qe_key, qe_content_sha256);
+  if (a.empty()) return b;
+  if (b.empty()) return a;
+  return a + "+" + b;
 }
 
 ReferenceDefinition parse_reference_config(const Json& snr_cfg, std::string* why) {

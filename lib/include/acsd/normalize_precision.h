@@ -42,6 +42,50 @@ bool load_run_identity(const std::string& output_dir, std::string* run_id,
                        std::string* software_sha, std::string* source_sha);
 bool file_sha256_hex(const std::string& path, std::string* out);
 
+// ── 施加标度的规范身份（photometry.application_id / response_id）─────────────
+// 正本: docs/engineering/contracts/NORMALIZE_DATA.md §2/§8（身份字段）。
+//
+// 要求（Issue #5 A）:
+//   * **无损**：任何两个不同的 IEEE-754 binary64 必须给出不同规范串。
+//     禁用 std::to_string（C++17 只有 6 位小数 ⇒ 1.524215866973e-17 变成
+//     "0.000000"，不同标度碰撞成同一身份）。
+//   * **locale 无关**：不得随 LC_NUMERIC 改变小数分隔符。
+//   * 覆盖**所有实际参与身份的量**：逐帧施加标度 k、空间场（order/status/
+//     identifiable/coef/center/norm）、输入 occurrence 内容身份、滤镜/QE 曲线
+//     身份与**内容摘要**（文件名不是曲线字节身份）。
+//   * 施加值语义：k 必须是本次实际施加的标度（不是配置声明值）；未施加测光时
+//     调用方不得构造 application_id（本函数不代判）。
+//
+// 规范串化: 定点/科学计数都不是无损的文本形式依赖格式化规则, 这里用
+// C++17 std::to_chars 的 **hexfloat**（十六进制有效数字 + p 指数）: IEEE-754
+// 值与其文本一一对应（可 strtod 逐位回读）, 且不经过 locale。
+std::string canonical_double(double v);
+
+struct AppliedScaleIdentity {
+  std::string frame_key;              // 帧键（p1_frame_key 净化后）
+  std::string input_source_sha256;    // 输入亮帧内容 sha256（occurrence 身份）
+  double k_photo = 0.0;               // 本次**实际施加**的逐帧标度
+  int spatial_order = 0;              // 0 = 未施加空间项
+  std::string spatial_status;         // ok / degraded / ...
+  bool spatial_identifiable = false;
+  std::vector<double> spatial_coef;   // 空间多项式系数（实际施加值）
+  std::vector<double> spatial_center;  // 中心化
+  std::vector<double> spatial_norm;    // [x_ref, x_scale, y_ref, y_scale]
+  std::string filter_key, filter_content_sha256;   // 曲线库键 + 文件内容
+  std::string qe_key, qe_content_sha256;
+};
+
+// 归一化身份串：photoapplied:v2:<sha256(规范串)[0:32]>（v2 = 本规范）。
+// 同一输入 ⇒ 同一 ID；任一参与量变化 ⇒ 新 ID（含极小 k 的末位变化）。
+std::string photo_application_identity(const AppliedScaleIdentity& in);
+
+// 响应身份：<filter_key>@<sha12>+<qe_key>@<sha12>（内容摘要为空时退化为
+// <key>@none, 且不写假摘要）。空 filter_key 与空 qe_key ⇒ 返回空串（未施加）。
+std::string photo_response_identity(const std::string& filter_key,
+                                    const std::string& filter_content_sha256,
+                                    const std::string& qe_key,
+                                    const std::string& qe_content_sha256);
+
 // ── 帧 PSF（Moffat4 σ 口径, PSF.md §2）──────────────────────────────────────
 // 来源 = p1_sources.json frames[frame_key].psf_params[] 的 sx/sy（PSF 块 Moffat4
 // sigma; 禁把检测块 Gaussian FWHM 当 Moffat 参数, DISP-STAR-007）。

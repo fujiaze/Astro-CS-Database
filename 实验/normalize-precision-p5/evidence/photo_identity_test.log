@@ -1,0 +1,22 @@
+compile: g++ -std=c++17 -O1 -I /workspace/Astro CS Database/lib/include -I ...
+== 施加标度身份单元测试 ==
+    sample: canonical_double(1.524215866973e-17)=1.192b0f2999925p-56
+  [PASS] canonical_double lossless (hexfloat -> strtod bit-identical, incl. denormal/-0) — 13 values
+  [PASS] canonical_double injective on distinct binary64 values
+  [PASS] two adjacent ~1e-17 scales serialize differently (the #5 defect)
+  [PASS] canonical_double locale-independent (unchanged under comma numpunct + LC_NUMERIC) — LC_NUMERIC=unavailable -> 1.192b0f2999925p-56
+    application_id(M42_M4_T2_flying_dut) = photoapplied:v2:d94b36dc897dc77606e89b26fbcf2aef
+  [PASS] identical inputs -> identical ID
+  [PASS] ID format = photoapplied:v2:<sha256[0:32]>
+  [PASS] every participating quantity changes the ID — 12 mutations, 0 missed
+    [before-fix contrast] std::to_string(k1)="0.000000" std::to_string(k2)="0.000000"
+  [PASS] pre-fix contrast: std::to_string collapses two distinct k to the same text
+    response_id = Baader 7nm H-alpha@bbbbbbbbbbbb+KAF-16803@cccccccccccc
+  [PASS] identical curve keys+content -> identical response_id
+  [PASS] same file name, different curve content -> different response_id (#5 A.3)
+  [PASS] missing content digest -> explicit @none (no fabricated digest)
+  [PASS] no filter and no QE -> empty response_id (no fabricated identity)
+  [PASS] writer accepts the identity fields
+  [PASS] writer/reader roundtrip keeps application_id/response_id verbatim — photoapplied:v2:455519fe8018488ad86ff8df6c47952b
+
+ALL PASS: 0 failure(s)
