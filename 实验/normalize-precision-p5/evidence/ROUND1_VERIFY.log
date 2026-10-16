@@ -1,0 +1,118 @@
+# 阶段一第一轮（A 批）验证运行记录
+
+分支: audit/acsd-science-docs-p5
+基线: 12204600edbad8e23ba9e8fe4cbc8427efee0bf9
+
+## 复现命令
+```bash
+g++ -std=c++17 -O2 -Ilib/include -Ilib/algorithms/noise_snr/include \
+  实验/normalize-precision-p5/code/review_950c261.cpp \
+  lib/algorithms/noise_snr/cpp/src/sparse_reference.cpp -o /tmp/acsd_gls_review
+/tmp/acsd_gls_review
+```
+
+## 1. 独立审查 F01/F03 反例 — 修复前（基线 12204600e 的同一程序）
+```
+(未保存)
+```
+
+## 2. 本轮独立验证程序 verify_round1（含 F01 逐字反例 + 独立真值 + Monte Carlo）
+```bash
+g++ -std=c++17 -O2 -Ilib/include -Ilib/algorithms/noise_snr/include \
+  实验/normalize-precision-p5/code/verify_round1.cpp \
+  lib/algorithms/noise_snr/cpp/src/sparse_reference.cpp -o /tmp/verify_round1
+/tmp/verify_round1
+```
+```
+  F01 production_VF=2.6470588235294117 oracle_VF=2.6470588235294117 rel=0.000e+00
+  [PASS] V_F equals source-space truth (F01 heteroscedastic counterexample)
+  [PASS] V_F equals 1/(P^T V^-1 P) (NOISE_SNR §11.1 identity) (F01 heteroscedastic counterexample)
+  dual nbg=0 production=546.71673504808064 source_truth=546.71673504807961 rel=1.872e-15
+  [PASS] V_F equals independent source-space closed form (dual background=known)
+  [PASS] persisted h length == nl (F03) (dual background=known)
+  [PASS] persisted C is nl x nl (F03) (dual background=known)
+  [PASS] known background => Z empty (dual background=known)
+  [PASS] persisted C == R diag(v) R^T (independent) (dual background=known)
+  [PASS] persisted h == R P (independent) (dual background=known)
+  [PASS] persisted C symmetric (dual background=known)
+  [PASS] persisted C has positive diagonal (dual background=known)
+  [PASS] covariance_rank == rank(C) == rank(R) == 3 (dual background=known)
+  dual nbg=1 production=2406.2602137020531 source_truth=2406.2602137020699 rel=6.992e-15
+  [PASS] V_F equals independent source-space closed form (dual background=constant_fit)
+  note: n_bg=1 z_size=4 (nl=4)
+  [PASS] constant_fit => Z is nl x 1 (F03) (dual background=constant_fit)
+  plane_fit availability=1 reason=flux_not_identifiable_with_background
+  [PASS] more parameters than observations => named unavailable (plane_fit unidentifiable (m=3 < ncol=4))
+  [PASS] no fabricated flux variance when unidentifiable (plane_fit unidentifiable (m=3 < ncol=4))
+  plane_ok reason= cov_rank=4
+  plane_ok production=8635289.4818074442 source_truth=8635289.4795241673 rel=2.644e-10 availability=0
+  [PASS] identifiable plane_fit is available (plane_fit identifiable (m=6))
+  [PASS] plane_fit V_F equals independent nl-space GLS (R rank-deficient) (plane_fit identifiable (m=6))
+  [PASS] plane_fit => Z is nl x 3 (F03) (plane_fit identifiable (m=6))
+  F04 alpha=0.5 production=136.67918376202016 source_truth=136.6791837620199 rel=1.872e-15
+  [PASS] alpha-scaled source Poisson = alpha^2 F_native P/g (F04 gain/alpha source Poisson)
+  F04 SNR(native)=42.76798765528369 SNR(alpha=0.5)=42.76798765528369
+  [PASS] deterministic scale leaves SNR invariant (NOISE_SNR §2) (F04 gain/alpha source Poisson)
+  [PASS] no double counting of RN/background/source (F04 gain/alpha source Poisson)
+  [PASS] double-scaled variance would give a different answer (discriminating) (F04 gain/alpha source Poisson)
+  random availability=0 reason=
+  [PASS] random heteroscedastic V_F equals source-space closed form (random heteroscedastic + Monte Carlo)
+  MC sd=20.053691 predicted sqrt(V_F)=20.081935 ratio=0.9986 (n=20000)
+  [PASS] Monte Carlo flux scatter matches predicted sqrt(V_F) (2%) (random heteroscedastic + Monte Carlo)
+  [PASS] leaf index 0 is a valid target leaf (F06 target leaf 0)
+  [PASS] leaf_ipix preserved as 0 (F06 target leaf 0)
+  [PASS] missing target leaf ⇒ unavailable (not silently 0) (F06 target leaf 0)
+  rank_def availability=0 reason= rank=1
+  [PASS] covariance_rank reports rank(C)=1 (not padded up) (rank deficiency)
+  [PASS] flux remains identifiable in the retained subspace (rank deficiency)
+  [PASS] zero template ⇒ flux not identifiable (rank deficiency)
+
+ALL PASS: 0 failure(s)
+exit=0
+```
+
+## 3. 既有单元检验（eng/tests/unit/sparse_reference_gls_test.cpp, 按新 API 更新后）
+```bash
+g++ -std=c++17 -O2 -Ilib/include -Ilib/algorithms/noise_snr/include \
+  eng/tests/unit/sparse_reference_gls_test.cpp \
+  lib/algorithms/noise_snr/cpp/src/sparse_reference.cpp -o /tmp/gls_unit
+/tmp/gls_unit
+```
+```
+  [PASS] one control produced
+  [PASS] background_known: control available
+  [PASS] reference_flux recorded
+  [PASS] V_F and SNR recorded
+  [PASS] V_F matches independent GLS oracle (<=1e-9)
+  [PASS] SNR_ref = F_ref/sqrt(V_F)
+  [PASS] gain unknown + template fixed ⇒ upper_bound caliber
+  [PASS] omitted terms: source_poisson+master
+  [PASS] surface transfer available (same source/position/condition)
+  [PASS] T = V_B/V_F with V_B from same covariance diagonal
+  [PASS] frame summary available (1 valid control)
+  [PASS] single-control summary = exp(median(log snr))
+  [PASS] constant_fit: control available
+  [PASS] background_nuisance recorded
+  [PASS] constant_fit: V_F matches GLS-with-nuisance oracle
+  [PASS] dual path (m<nl): available
+  [PASS] dual path V_F matches explicit nl-space GLS (<=1e-9)
+  [PASS] rank-deficient design ⇒ unavailable
+  [PASS] rank-deficient: no fabricated V_F/SNR
+  [PASS] rank-deficient: named reason present
+  [PASS] zero-variance window ⇒ unavailable
+  [PASS] zero-variance window: named reason (no floor creates information)
+  [PASS] no reference ⇒ precision unavailable
+  [PASS] no reference: reason propagated to control
+  [PASS] sed_response without evaluable integration ⇒ unavailable
+
+ALL PASS (failures=0)
+exit=0
+```
+
+## 4. Linux Release 构建（build/linux-sci-p5）
+```
+      |      ^~~~~~~~~~~~
+[10/11] Linking CXX static library libacsd_phase1_noise.a
+[11/11] Linking CXX executable acsd
+cmake --build build/linux-sci-p5 -j 8 : exit 0 (469 targets)
+```

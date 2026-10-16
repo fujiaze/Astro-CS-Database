@@ -1,0 +1,105 @@
+{
+ "schema": "acsd.science-v2.wcs-census/v1",
+ "testdata_root": "testdata",
+ "note": "只读 FITS 头; 缺几何的帧登记为待查, 不猜测补齐",
+ "datasets": {
+  "Galaxy_Center_T4": {
+   "n_total": 157,
+   "n_geometry_solvable": 156,
+   "n_missing_geometry": 1,
+   "n_degenerate_cd": 0,
+   "missing_examples": [
+    {
+     "path": "Galaxy_Center_T4/lights/panel1/Galaxy_Center_mosaic1_T4_flying_dutchman-20250813@010214-600S-Oiii.fts",
+     "reason": "missing CTYPE/CRVAL/CRPIX/CD keys"
+    }
+   ],
+   "degenerate_examples": []
+  },
+  "HST_M16": {
+   "n_total": 3,
+   "n_geometry_solvable": 3,
+   "n_missing_geometry": 0,
+   "n_degenerate_cd": 0,
+   "missing_examples": [],
+   "degenerate_examples": []
+  },
+  "LDN43_T2素材_flying_dutchman": {
+   "n_total": 42,
+   "n_geometry_solvable": 42,
+   "n_missing_geometry": 0,
+   "n_degenerate_cd": 0,
+   "missing_examples": [],
+   "degenerate_examples": []
+  },
+  "M42_T2T3_mosaic_Flying_dutchman": {
+   "n_total": 196,
+   "n_geometry_solvable": 166,
+   "n_missing_geometry": 30,
+   "n_degenerate_cd": 0,
+   "missing_examples": [
+    {
+     "path": "M42_T2T3_mosaic_Flying_dutchman/T3/M2/M42_M2_T3_flying_dutchman-20251126@044822-300S-Red.fts",
+     "reason": "missing CTYPE/CRVAL/CRPIX/CD keys"
+    },
+    {
+     "path": "M42_T2T3_mosaic_Flying_dutchman/T3/M2/M42_M2_T3_flying_dutchman-20251126@045410-300S-Blue.fts",
+     "reason": "missing CTYPE/CRVAL/CRPIX/CD keys"
+    },
+    {
+     "path": "M42_T2T3_mosaic_Flying_dutchman/T3/M2/M42_M2_T3_flying_dutchman-20251126@050007-600S-H-alpha.fts",
+     "reason": "missing CTYPE/CRVAL/CRPIX/CD keys"
+    },
+    {
+     "path": "M42_T2T3_mosaic_Flying_dutchman/T3/M2/M42_M2_T3_flying_dutchman-20251212@024728-300S-Green.fts",
+     "reason": "missing CTYPE/CRVAL/CRPIX/CD keys"
+    },
+    {
+     "path": "M42_T2T3_mosaic_Flying_dutchman/T3/M2/M42_M2_T3_flying_dutchman-20251212@025315-300S-Blue.fts",
+     "reason": "missing CTYPE/CRVAL/CRPIX/CD keys"
+    }
+   ],
+   "degenerate_examples": []
+  },
+  "NGC1727_T2_flying_dutchman": {
+   "n_total": 64,
+   "n_geometry_solvable": 64,
+   "n_missing_geometry": 0,
+   "n_degenerate_cd": 0,
+   "missing_examples": [],
+   "degenerate_examples": []
+  },
+  "NGC247_T2_flying_dutchman": {
+   "n_total": 68,
+   "n_geometry_solvable": 68,
+   "n_missing_geometry": 0,
+   "n_degenerate_cd": 0,
+   "missing_examples": [],
+   "degenerate_examples": []
+  },
+  "NGC55_T3_flying_dutchman": {
+   "n_total": 79,
+   "n_geometry_solvable": 79,
+   "n_missing_geometry": 0,
+   "n_degenerate_cd": 0,
+   "missing_examples": [],
+   "degenerate_examples": []
+  },
+  "NGC83_cluster_T3_Flying_Dutchman": {
+   "n_total": 72,
+   "n_geometry_solvable": 72,
+   "n_missing_geometry": 0,
+   "n_degenerate_cd": 0,
+   "missing_examples": [],
+   "degenerate_examples": []
+  },
+  "Victory_Nebula_T4_Flying_Dutchman": {
+   "n_total": 228,
+   "n_geometry_solvable": 228,
+   "n_missing_geometry": 0,
+   "n_degenerate_cd": 0,
+   "missing_examples": [],
+   "degenerate_examples": []
+  }
+ }
+}

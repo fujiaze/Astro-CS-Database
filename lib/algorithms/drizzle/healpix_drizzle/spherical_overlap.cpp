@@ -289,15 +289,47 @@ static inline bool is_inside(const Vec3T<T>& v, const Vec3T<T>& n) {
     return dot(n, v) >= T(-1e-15);
 }
 
+// P3-NORM-01/02 负例注入开关（定义在文件后部 planar_polygon_area 之后；
+// 此处前置声明，供 compute_intersection 使用）。
+static bool p3_legacy_cross_normal_fault();
+
 template <typename T>
 static Vec3T<T> compute_intersection(const Vec3T<T>& S, const Vec3T<T>& E, const Vec3T<T>& n_clip) {
-    // 边 (S→E) 所在大圆法向量
+    // S-H 线段 (S→E) 与裁剪大圆 n_clip·x = 0 的交点。
+    //
+    // P3-NORM-02: 稳定形式。
+    // 原实现用 n_edge = cross(S, E) 再 cross(n_edge, n_clip)。当 S、E 近简并时
+    // （裁剪迭代后边长可小到 ~1e-7 rad，例如小 drop 压叶公共顶点构型）|cross(S,E)|
+    // ~ 边长，而其分量是 O(1) 乘积之差（绝对误差 ~ε_mach ≈ 2.2e-16）⇒ n_edge 的
+    // 方向误差 ~ε_mach/边长，再经 cross(n_edge, n_clip) 放大，交点误差直接进入
+    // overlap/drop_area。实测（nside=8192、RA=45° 四叶公共顶点、drop=0.032"）：
+    // 该形式给出 ε = +4.1e-4，稳定形式给出 ε = +1.0e-9。
+    //
+    // 等价恒等式：d(x) = x·n_clip 在弦 S→E 上线性，零点
+    //     x = (d_S·E − d_E·S)/(d_S − d_E)，  再归一化即落在 S、E 决定的大圆上。
+    // S-H 只在 S_in ≠ E_in 时调用本函数 ⇒ d_S、d_E 异号，den = d_S − d_E 无相消，
+    // 该形式恒良态。上式的分子/分母均在 double 内计算，无近简并叉积。
+    const T dS = dot(S, n_clip);
+    const T dE = dot(E, n_clip);
+    const T den = dS - dE;
+    if (!p3_legacy_cross_normal_fault() && std::fabs((double)den) > 1e-300) {
+        Vec3T<T> I{
+            (dS * E.x - dE * S.x) / den,
+            (dS * E.y - dE * S.y) / den,
+            (dS * E.z - dE * S.z) / den,
+        };
+        const double len = std::sqrt((double)I.x * (double)I.x + (double)I.y * (double)I.y +
+                                     (double)I.z * (double)I.z);
+        if (len > 1e-300) {
+            const T inv = T(1.0 / len);
+            I.x *= inv; I.y *= inv; I.z *= inv;
+            return I;
+        }
+    }
+    // 退化回退（den 近零 / 结果非有限）：保留原叉积形式，保证行为有定义。
     Vec3T<T> n_edge = cross(S, E);
-    // 两大圆交点 (两个候选)
     Vec3T<T> cross_nc = cross(n_edge, n_clip);
     Vec3T<T> I = normalize(cross_nc);
-
-    // 选择位于 S, E 之间的那个 (dot(I, S+E) > 0)
     if (dot(I, S) + dot(I, E) < T(0)) {
         I.x = -I.x; I.y = -I.y; I.z = -I.z;
     }
@@ -1042,6 +1074,17 @@ static double planar_polygon_area(const std::vector<Vec3>& pts) {
     return planar_polygon_area_n(pts.data(), (int)pts.size());
 }
 
+// P3-NORM-01 负例注入（生产默认关闭；静态缓存 ⇒ 稳态零开销）:
+//   ACSD_DRZ_P3_FAULT=legacy_cross_normal 强制回到 "P1 × P2 叉积" 法向路径，
+//   复现小 drop 时近简并叉积的精度损失（回归门必须对该路径判红）。
+static bool p3_legacy_cross_normal_fault() {
+    static const bool en = [] {
+        const char* v = std::getenv("ACSD_DRZ_P3_FAULT");
+        return v && std::strcmp(v, "legacy_cross_normal") == 0;
+    }();
+    return en;
+}
+
 template <typename Scalar>
 DropGeometryT<Scalar> build_drop_geometry(const std::vector<Vec3T<Scalar>>& drop_corners,
                                           const std::vector<Vec3>* corners_dbl) {
@@ -1137,6 +1180,41 @@ void build_drop_geometry_into(DropGeometryT<Scalar>& g,
     }
     g.max_angle = max_angle;
 
+    // ---- P3-NORM-01: 小 drop 的边法向改用切平面偏移构造 ----
+    // 原路径 n = normalize(P1 × P2) 在 P1、P2 近简并时丢有效位：|P1 × P2| ~ θ
+    // (θ = drop 角跨度)，而其分量是 O(1) 乘积之差（绝对误差 ~ε_mach ≈ 2.2e-16）
+    // ⇒ 法向角误差 ~ε_mach/θ。该大圆距 drop 中心 θ/2，故平面位置的相对误差
+    // ~2ε_mach/θ²，直接进入 overlap/drop_area。
+    // 实测（生产探针，nside=8192、RA=45° 四叶公共顶点、pixfrac=0.8、drop=0.032"）：
+    // 四条边的平面偏移 n·c 由 [7.760822e-08, 7.725840e-08, 7.760172e-08, 7.734707e-08]
+    // （最大 0.45% 偏差）变为四个逐位相同的 7.757019e-08。
+    // 恒等式（对任意 θ 精确成立）：P_i = normalize(c + α_i)，
+    //   α_i = P_i/(P_i·c) - c，  ⇒  P1 × P2 ∝ c × (α2 - α1) + α1 × α2。
+    // 右式直接用 O(θ) 的偏移量，不再经历近简并相消。大 drop 仍走叉积路径
+    // （θ 大时叉积误差 ~ε_mach/θ 已可忽略，且避免 P·c → 0 时的除法放大）。
+    //
+    // 注意（勿把两处补丁的作用混记）：本项**单独**不足以修好该构型的 ε ——
+    // 只打本项时 ε = +5.50e-05（仍 > 1e-6 门），因为同一构型的主残差来自
+    // compute_intersection 的近简并叉积（见其处 P3-NORM-02）。两项合用后
+    // ε = -8.37e-10。二者都必须保留。
+    const bool use_tangent_normals =
+        (max_angle < 1e-3) && !p3_legacy_cross_normal_fault();
+    std::vector<Vec3> tangent_offsets;
+    if (use_tangent_normals) {
+        tangent_offsets.resize((size_t)nd);
+        for (int j = 0; j < nd; j++) {
+            Vec3 P;
+            if (corners_dbl && (int)corners_dbl->size() == nd) {
+                P = (*corners_dbl)[(size_t)j];
+            } else {
+                P = {double(drop_corners[(size_t)j].x), double(drop_corners[(size_t)j].y),
+                     double(drop_corners[(size_t)j].z)};
+            }
+            double d = P.x * cxn + P.y * cyn + P.z * czn;
+            double inv = (std::fabs(d) > 1e-12) ? 1.0 / d : 0.0;
+            tangent_offsets[(size_t)j] = {P.x * inv - cxn, P.y * inv - cyn, P.z * inv - czn};
+        }
+    }
     g.clip_normals.reserve((size_t)nd);
     g.clip_normals_d.reserve((size_t)nd);
     for (int j = 0; j < nd; j++) {
@@ -1149,9 +1227,19 @@ void build_drop_geometry_into(DropGeometryT<Scalar>& g,
             P2 = {double(drop_corners[(size_t)((j + 1) % nd)].x), double(drop_corners[(size_t)((j + 1) % nd)].y),
                   double(drop_corners[(size_t)((j + 1) % nd)].z)};
         }
-        double nx = P1.y * P2.z - P1.z * P2.y;
-        double ny = P1.z * P2.x - P1.x * P2.z;
-        double nz = P1.x * P2.y - P1.y * P2.x;
+        double nx, ny, nz;
+        if (use_tangent_normals) {
+            const Vec3& a1 = tangent_offsets[(size_t)j];
+            const Vec3& a2 = tangent_offsets[(size_t)((j + 1) % nd)];
+            const double dx = a2.x - a1.x, dy = a2.y - a1.y, dz = a2.z - a1.z;
+            nx = cyn * dz - czn * dy + (a1.y * a2.z - a1.z * a2.y);
+            ny = czn * dx - cxn * dz + (a1.z * a2.x - a1.x * a2.z);
+            nz = cxn * dy - cyn * dx + (a1.x * a2.y - a1.y * a2.x);
+        } else {
+            nx = P1.y * P2.z - P1.z * P2.y;
+            ny = P1.z * P2.x - P1.x * P2.z;
+            nz = P1.x * P2.y - P1.y * P2.x;
+        }
         if (nx * cxn + ny * cyn + nz * czn < 0.0) {
             nx = -nx; ny = -ny; nz = -nz;
         }

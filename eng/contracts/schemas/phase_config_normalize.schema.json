@@ -208,10 +208,17 @@
       "properties": {
         "patch_grid": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 2, "maximum": 4096 },
+          "items": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 4096
+          },
           "minItems": 2,
           "maxItems": 2,
-          "default": [8, 8],
+          "default": [
+            8,
+            8
+          ],
           "description": "[gx, gy] 每边 patch 数（默认 8×8，§5 冻结）。生产按画幅收缩（每 patch 仍需 ≥ min_patch_samples 个天空样本），收缩事实以诊断键 noise_patch_grid_adapted 回执；本键给出的是**上界**（大画幅保持本值）。"
         },
         "clip_sigma": {
@@ -305,7 +312,58 @@
     },
     "photometry": {
       "type": "object",
-      "description": "可选测光归一配置块（fit.enabled/gaia_data_dir/filter/qe_name/max_stars）；缺失 = 不施加（如实中性 applied=false，不伪造 1.0），消费 = p1_op_photometry。**`filters_json` / `qe_json`（文件路径语义）已退役**：代码侧读取路径已删除，本键不再被读取；滤镜与 QE 曲线改由运行时扫描 <可执行文件目录>/config/response_curves/，配置只给**名字键**（`filter` / `qe_name`，两者必填），正本 = docs/engineering/contracts/CONFIG.md 的「响应曲线库」一节。"
+      "description": "可选测光归一配置块（fit.enabled/gaia_data_dir/filter/qe_name/max_stars 与 逐帧 frame_overrides）；缺失 = 不施加（如实中性 applied=false，不伪造 1.0），消费 = p1_op_photometry。**`filters_json` / `qe_json`（文件路径语义）已退役**：代码侧读取路径已删除，本键不再被读取；滤镜与 QE 曲线改由运行时扫描 <可执行文件目录>/config/response_curves/，配置只给**名字键**（`filter` / `qe_name`，两者必填），正本 = docs/engineering/contracts/CONFIG.md 的「响应曲线库」一节。**`frame_overrides`** 按 input occurrence 绑定逐帧 filter/qe_name/master_*/gain_e_per_adu（docs/detail/normalize/contracts.md §7.2）：同块内不同 R_k 的帧 therefore 可各自声明曲线，不继承 block 第一帧；未提供的帧继承 block 并如实登记来源 block_inherit。",
+      "properties": {
+        "fit": {
+          "$ref": "#/$defs/photometry_fit"
+        },
+        "frame_overrides": {
+          "type": "array",
+          "description": "逐 input occurrence 的响应/母版/gain 覆盖；匹配键 input = 完整路径、basename 或净化后的 frame_key（按此优先级取第一条命中）。",
+          "items": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "type": "string",
+                "minLength": 1
+              },
+              "input_light": {
+                "type": "string",
+                "minLength": 1
+              },
+              "frame_key": {
+                "type": "string",
+                "minLength": 1
+              },
+              "filter": {
+                "type": "string",
+                "minLength": 1
+              },
+              "qe_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "master_bias": {
+                "$ref": "#/$defs/master_path"
+              },
+              "master_dark": {
+                "$ref": "#/$defs/master_path"
+              },
+              "master_flat": {
+                "$ref": "#/$defs/master_path"
+              },
+              "gain_e_per_adu": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "input"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
     },
     "star_detection_config": {
       "type": "object",
@@ -533,6 +591,31 @@
           "$ref": "#/$defs/algorithm_psf_model"
         }
       }
+    },
+    "photometry_fit": {
+      "type": "object",
+      "description": "生产 star_matcher 拟合通道（唯一实现 frame_photometry_fit）。",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "gaia_data_dir": {
+          "type": "string"
+        },
+        "filter": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qe_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "max_stars": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
     }
   },
   "properties": {

@@ -49,7 +49,7 @@
 
 | 参数 | 数值键 | 落点 | 依据 |
 |---|---|---|---|
-| 帧内 OpenMP 度 | `../architecture/DATA_FLOW.md` 的并行轴分配[1] | `p1_parallel_for`（`lib/infrastructure/scheduler/src/module_adapters.cpp`） | 帧级被内存压低时把剩余预算转给帧内轴；帧级未压低时退化为 1 |
+| 帧内 OpenMP 度 | `../architecture/DATA_FLOW.md` 的并行轴分配[1] | `p1_parallel_for`（`lib/infrastructure/scheduler/src/module_adapters.cpp`） | 内存或输入帧数限制帧级宽度时可使用剩余帧内预算；只有实际在飞帧数达到租约时才退化为 1 |
 | `kP1FrameBytesPerPixel`（`B`） | `frame_memory_gate.bytes_per_pixel` | `p1_memory_cap`（`lib/infrastructure/scheduler/src/module_adapters.cpp`） | 闸门系数的标定口径与实测拟合见内存模型形态 |
 | `kP1FrameMemSafetyFrac` | `frame_memory_gate.safety_frac` | 同上 | 留基础占用与运行波动；取值随帧几何与精度模式重标定 |
 | 内存预算百分比 | `memory_budget_percent` | `eng/packaging/config/runtime_resources.json` | 单一来源；准入预算 = `MemAvailable` 按该比例的派生值 |
@@ -58,22 +58,16 @@
   未消费 CMake `configure_file` 生成的配置头。该登记与实现侧现状不一致，属代码侧待订正项；
   在订正前，**唯一数值源是上表所列 JSON 键**，实现侧字面量只作镜像，不得反向覆盖。
 
-### 逐位一致性（帧内轴不进数值路径）
+### 并行等价性的验证
 
-帧内 OpenMP 轴对全部科学产物**逐位中性**：同帧并发、lease 恒定、仅改帧内轴宽度的 A/B 对照下，
-全部 `.fits` 与目录/星表类 JSON（`p1_sources` / `p1_flux` / `p1_phot` / `p1_snr` /
-`p1_psf` / `p1_products`）逐字节相同；遥测与路径类工件
-（`alloc_*` / `resource_*` / `worker_balance` / `graph/*` / `p1_final` / HiPS `properties`）
-仅差 output_dir 路径串 / 时间戳 / run_id。
-该性质与 `../../science/algorithms/DRIZZLE_GEOMETRY.md` 的 `DRIZZLE-DET-001`
-（1..16 线程预算逐位恒等）同口径；对照实验与逐档读数见 `实验/engineering-evidence/l2_performance/`。
+固定帧集、二进制与 lease，仅改变帧内轴宽度，比较 FITS 像元、科学头信息与目录/星表科学字段；遥测、路径、时间戳和 run_id 分开处理。按预定义数值容差报告差异；只有具体实验同时固定运算序、类型和浮点环境，并取得逐位对照结果时，才报告相应范围的逐位一致。Drizzle 的归约顺序见其[算法说明](../../science/algorithms/export/DRIZZLE_GEOMETRY.md)，实验记录位置为 `实验/engineering-evidence/l2_performance/`。本页的预算代数不证明并行数值等价。
 
 ## 有效并行宽度
 
 **符号**：`A` = 运行时 `MemAvailable`；`P` = 单帧像素数；`B` = `kP1FrameBytesPerPixel`；
 `L` = lease（`granted_workers`）；`K` = scratch 池上限（`drizzle_engine.cpp` 的
 `kScratchPoolCap`）；`F` = 帧级并发上限；`n` = 本次运行的输入帧数；
-`in_flight` = 帧级实际在飞数；`I` = 帧内 OpenMP 度；`W_eff` = 同时真正在算的线程数。
+`in_flight` = 帧级实际在飞数；`I` = 帧内 OpenMP 度；`W_eff` = 线程预算与暂存槽模型给出的并行宽度上限，并非实测忙碌线程数。
 
 ```
 F = min(L, floor(kP1FrameMemSafetyFrac·A / (P·B)))   // 帧级内存闸门上限
@@ -87,7 +81,9 @@ W_eff = in_flight × min(I, K)                        // drizzle 节点；K 为�
 （`thread_budget = lease`）、总并行度 `in_flight × inner_omp ≤ thread_budget`[1]；
 实现侧同式见 `lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p1_parallel_for`。
 
-**内存模型形态**：单帧驻留 = `base` + `边际字节/像素` × `in_flight`。标定口径与实测拟合如下。
+上述公式要求正租约、非空输入且内存允许至少一帧；不足时由调度器明确处理，不计算零分母。若内核线程数另有限制，`W_eff` 的第二因子还须与 `num_threads` 取最小值。
+
+**内存模型形态**：固定单帧像素数 `P` 时，总峰值驻留的经验模型为 `RSS = base + P × 边际字节/像素 × in_flight`。这不是单帧驻留公式。标定口径与报告读数如下；引用的输入、命令和输出未重新取得前，不把读数作为本次复测结果。
 
 | 项 | 值 | 性质 |
 |---|---|---|
@@ -108,11 +104,7 @@ W_eff = in_flight × min(I, K)                        // drizzle 节点；K 为�
 
 **结构性结论（与具体读数无关）**：
 
-1. **整数除法死区**：在 `in_flight = F`（前提 `F ≤ n`）下，`I = max(1, L / F)` 是整数除法，
-   `F` 一越过 `L/2` 就掉到 1 ⇒ `W_eff` 在 `F ∈ (L/2, L)` 形成**死区**（达不到满宽 `L`）；
-   满宽只在 `F = L/2`（`I = 2`）或 `F ≥ L`（`I = 1`）取到。故「`B` 越小越好」不成立，
-   标定必须实测、不能外推。`F > n` 时 `in_flight = n`，`I = max(1, L / n)` 与 `F` 无关，
-   `W_eff = n × min(I, K)` 随 `F` 增大**不再下降** —— 死区只在 `F ≤ n` 段成立。
+1. **整数除法的预算余量**：记 `m=in_flight`，则未受槽数限制的宽度为 `m × floor(L/m)`。它等于 `L` 当且仅当 `m` 整除 `L`；实际达到这一模型宽度还要求 `K` 和内核线程数不小于 `floor(L/m)`。当 `L/2 < m < L` 时帧内度为 1，宽度小于 `L`；其它区间也可能存在整数余量，不能把满宽只归结为两个档位。`F > n` 时 `m=n`，继续提高帧级上限不改变该模型。真实吞吐仍需测量。
 2. **每帧存在不可并行的串行段**（FITS 读、`hips_write`、星表查询、`wcs-platesolve`），
    见 `../architecture/DATA_FLOW.md`；该串行段是「帧级并发是手段」的**结构性**理由，
    并有本仓受控四档墙钟对照支撑（`run/P1-PARALLEL-AXIS-REDESIGN-01/REPORT.md`：
@@ -134,9 +126,7 @@ W_eff = in_flight × min(I, K)                        // drizzle 节点；K 为�
 | **当前实现的结构限制（可改）** | ① `K` 是**策略值**不是物理值（派生规则见 scratch 池上限的派生一节）；② `B` 与 `kP1FrameMemSafetyFrac` 随帧几何与精度模式重标定；③ 帧级并发受内存闸门限制；④ `hips_write` 在帧内与 `drizzle_run` **串行**；⑤ `wcs-platesolve` 无帧级并行；⑥ `inner_omp = max(1, L/in_flight)` 的整数除法使 `W_eff` 在 `in_flight ∈ (L/2, L)` 非单调（死区，见结构结论 1）；⑦ 内核效率的 stripe 收益递减拐点**待标定**（见结构结论 3） |
 | **物理/算法限制（调度参数不可改）** | ① 每帧**不可压缩的输出本体**：canonical 累加器容量不随 `K` 变；② 每帧**不可并行串行段**（FITS 读、`hips_write`、星表查询、`wcs-platesolve`）的墙钟下界；③ 逻辑核 / 物理核 / 物理内存上限共同决定 `W_eff` 的取值上界 |
 
-**结论**：在冻结的 `B` 与 `kP1FrameMemSafetyFrac` 下，帧级与帧内两轴可同时取到满宽，
-且全部科学产品**逐字节不变**（逐位中性判据见上）。目标 `W_eff` 档位的均值利用率是否可达，
-须在该档位实测判定（读数见 `实验/engineering-evidence/l2_performance/`）。
+在给定 `B` 与 `kP1FrameMemSafetyFrac` 下，能否取得预算满宽取决于实际在飞数、整数余量、内核线程数与槽数。科学产品等价性和目标档位利用率须分别用对应输入、二进制与输出检验，不能由预算公式推出（报告位置为 `实验/engineering-evidence/l2_performance/`）。
 剩余可达路径 = 让 `hips_write` 与 `drizzle_run` 重叠 + 改善内核在高 stripe 数时的效率；
 后两项属算法开发，不属编排参数标定。
 
@@ -150,10 +140,10 @@ W_eff = in_flight × min(I, K)                        // drizzle 节点；K 为�
   实现实际分配的池是 `kScratchPool = min(num_threads, kScratchPoolCap)`
   （`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`），把 `num_threads` 也纳入截断后，
   **达成满宽的充要条件是 `min(num_threads, K) ≥ inner_omp`**，等价于 `K ≥ inner_omp` 与 `num_threads ≥ inner_omp` 同时成立。
-  因此 `K` **没有唯一最小取值**：落在该可行区间内的任一取值给出同一满宽；提高 `K` 只在 `num_threads` 之上仍有富余时才可能改变结果。
+  当 `num_threads ≥ inner_omp` 时，按此整数槽数模型，达到帧内预算宽度的最小 `K` 是 `inner_omp`；更大取值不再增加该模型宽度。若 `num_threads < inner_omp`，只提高 `K` 无法补足线程限制。`K` 超过 `num_threads` 后实际池大小不再增加。
 - **充分性来源**：`K = num_threads` 且 `num_threads = inner_omp` 时，同时在飞的 scratch 份数 =
   `in_flight × inner_omp ≤ lease`（`../architecture/DATA_FLOW.md` 的轴不变式[1]），
-  故总份数与轴形态无关，不越租约。
+  故总份数不越租约；整数除法有余量时总份数随轴形态变化，不能宣称恒定。
 - **`num_threads = inner_omp` 的来源链**（逐条可核）：
   ① `drizzle_engine.h` 的 `DrizzleConfig::threads` 缺省为 `0`，其注释写明 `0 = 自动 omp_get_max_threads`；
   ② 帧级轴驱动路径上无任何赋值覆盖该缺省（`module_adapters.cpp` 内无 `cfg.threads = …`）；
@@ -161,7 +151,7 @@ W_eff = in_flight × min(I, K)                        // drizzle 节点；K 为�
   而每个帧级 worker 线程在进入 drizzle 前先执行 `omp_set_num_threads(inner_omp)`；
   `omp_get_max_threads()` 返回当前任务 `nthreads-var` 的值，故此处恰为 `inner_omp`。
   另：实现把 `kScratchPoolCap` 的缺省置为 `num_threads`，故「不设环境变量」本身就取到 `K = num_threads`，
-  它是缺省策略值而不是被论证出来的唯一最小值。
+  它是缺省策略；当 `num_threads = inner_omp` 时也恰是该模型达到帧内预算宽度的最小槽数，不由此证明全系统性能最优。
 - **适用域**：本条只覆盖**由 `p1_parallel_for` 驱动**的 drizzle 路径。不经帧级轴调用 drizzle 时，
   `omp_get_max_threads()` 取线程默认 ICV，`num_threads` 与 `inner_omp` 不必相等，本条不成立；
   此时 `K = num_threads` 成立与否取决于 `num_threads ≥ inner_omp` 是否碰巧成立，不是本条保证的。
@@ -174,13 +164,11 @@ W_eff = in_flight × min(I, K)                        // drizzle 节点；K 为�
 `K = 2` 与 `K = 4` 等价（后者被 `min(num_threads, kScratchPoolCap)` 截回），提高 `K` 无效 ——
 可见 `K = num_threads` 的收益**依赖 `in_flight` 落在哪个档**，不是单调的。
 
-**「`K` 不进数值路径」的判据**：回归锁 `p1drz_merge_pipeline_lock`
-（一组在 16 核档下直接比较 `K=2` 与 `K=num_threads` 两条路径的对照实验），
-要求逐 leaf 转储 `.canon` 与 `.norm.hiss` 的 sha256 完全一致
+**槽数对科学结果的验证要求**：对照 `K=2` 与 `K=num_threads`
+时，应固定输入与二进制，比较逐 leaf 转储 `.canon` 与 `.norm.hiss` 的科学值；若声明确定性逐位一致，还须比较 sha256
 （256×1024 高瘦帧 / 64 stripe / FP32+FP64 / `taskset` 预算 1,2,4,8,16 / 每预算两轮重复）；
 另有同二进制多档轴形态 A/B 下全部产品**逐位相同**的判据。
-**该回归锁当前无执行器**：其脚本路径在现行树中不存在，仓内只余代码注释与实验报告中的引用，
-故本条目前**由人读对抗审核判读**，不得在任何判词或台账中记为「门已执行」。
+相应复现执行器未随本文提供；只有代码注释或报告引用时不能登记为已执行。需要评估实际生产路径时，应补可取得的输入、命令与输出。
 内存代价：每份额外 scratch 的增量落实验域登记。
 
 ## 关联锚
@@ -281,12 +269,12 @@ Browser GC wide / pan / zoom / STF
 
 ## 参考文献
 
-[1] 内部文档 `docs/engineering/architecture/DATA_FLOW.md`，并行轴分配与轴不变式，帧内 OpenMP 度公式的正本。
+[1] [数据流与并行轴](../architecture/DATA_FLOW.md)。
 
-[2] 内部文档 `../standards/NUMERIC.md`，数值标准，科学浮点量的量纲与标度词表。
+[2] [数值标准](../standards/NUMERIC.md)。
 
-[3] 内部文档 `../build/BUILD_GRAPH.md`，生产构建图，受影响构建目标的反查依据。
+[3] [生产构建图](../build/BUILD_GRAPH.md)。
 
-[4] 内部文档 `docs/engineering/testing/TEST.md`，测试标准，通用浮点容差与 NaN/Inf 语义的唯一正本。
-[5] 内部文档 `docs/science/noise_snr/NOISE_SNR.md`，跨帧绝对信噪比，权重模型的科学定义。
-[6] 内部文档 `docs/ACSD_DESIGN.md`，最高设计，CPU 后端与资源一章与 I/O 与原子产品一章，上位来源。
+[4] [测试标准](../testing/TEST.md)。
+[5] [噪声与参考精度](../../science/noise_snr/NOISE_SNR.md)。
+[6] [ACSD 最高设计](../../ACSD_DESIGN.md)。

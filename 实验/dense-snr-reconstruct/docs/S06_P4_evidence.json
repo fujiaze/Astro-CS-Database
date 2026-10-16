@@ -1,0 +1,836 @@
+{
+  "schema": "acsd.s06.p4-evidence/v1",
+  "generated_by": "实验/dense-snr-reconstruct/code/s06/s06_evidence.py",
+  "task_id": "S06",
+  "paper_id": "P4",
+  "branch": "audit/acsd-science-docs-p5",
+  "task_declared_start_sha": "9f1e99f2a5ace6965b7b427743eed8c4242945df",
+  "evidence_head_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+  "source_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+  "p4_path_unchanged_between_start_and_evidence_head": true,
+  "determinism_note": "完整流水线连续两次独立运行，6 份读数 JSON 逐字节一致；probe_s06 在 OMP_NUM_THREADS=1/4/8 下逐字节一致",
+  "historical_caliber_rerun_all_pass": true,
+  "p4_path_diff_vs_start_sha": "",
+  "git_write_performed": false,
+  "worktree_status_porcelain": [
+    "?? \"\\345\\256\\236\\351\\252\\214/absolute-snr/code/s05/\"",
+    "?? \"\\345\\256\\236\\351\\252\\214/handoff/\""
+  ],
+  "result_files": {
+    "S06_A_two_objects.json": {
+      "sha256": "8f8ed37fb4108b2468ea99bc680fd6f6b12f66d91a14b2b98184005ec0b66cf7",
+      "path": "run/ACSDSDOC-02/S06/results/S06_A_two_objects.json"
+    },
+    "S06_B_overshoot.json": {
+      "sha256": "c5e9b12892c48904857f482b3bd021cf581c75054b08da7ded06220936dedd35",
+      "path": "run/ACSDSDOC-02/S06/results/S06_B_overshoot.json"
+    },
+    "S06_CAL02_three_calibers_guarded.json": {
+      "sha256": "cf8c3b8415013536c40c452a68e7fcb1ffb082c1d7f7b343ed0c633cf37e7c6d",
+      "path": "run/ACSDSDOC-02/S06/results/S06_CAL02_three_calibers_guarded.json"
+    },
+    "S06_C_holdout_cv.json": {
+      "sha256": "7184def8e1f25e8be87fa4248d29ef220cfec8f28a57122b06eb9dee78ba57a1",
+      "path": "run/ACSDSDOC-02/S06/results/S06_C_holdout_cv.json"
+    },
+    "S06_D_degenerate_states.json": {
+      "sha256": "ebe20ef4fc0a32d50c0675be0ee7efe4e14b2bc895603e6e1ddc3f2fda6659ed",
+      "path": "run/ACSDSDOC-02/S06/results/S06_D_degenerate_states.json"
+    },
+    "S06_E_idw_power_audit.json": {
+      "sha256": "0c33c4d852bb94637b3a302bbe439b1f52fc38a3b705c7ce0e6d0ad1bfd32c9c",
+      "path": "run/ACSDSDOC-02/S06/results/S06_E_idw_power_audit.json"
+    },
+    "probe_p4_results.json": {
+      "sha256": "2cc59d343a588229c4b12727a586c839e5c75e13c70fb938eecf35c10a461419",
+      "path": "run/ACSDSDOC-02/S06/results/probe_p4_results.json"
+    },
+    "probe_s06_results.json": {
+      "sha256": "553cb78c1b7a7acbc323e91fdc24b727a9c3893f75a11ab324c3387be63768de",
+      "path": "run/ACSDSDOC-02/S06/results/probe_s06_results.json"
+    }
+  },
+  "figure_files": {
+    "fig_S06_b_overshoot.png": "43f4bf03f4c82ace3b1d134f7b90e4d631af4bc5c2394f98205cea0b4657f356",
+    "fig_S06_c_arm_var_ratio.png": "aca7a7c701c97e4099159c406cda04643b11ed5861ec7777a381adc4983a9089",
+    "fig_S06_c_dense_vs_cell.png": "55526a60624dc52ce033b72b86372dc511948285e7d1b6afe656f981ad452466",
+    "fig_S06_c_domain_out_of_domain.png": "8537d03e86efa8c572cc719940bb9eb72aa19f651501ace2ca8effe4efb5618c"
+  },
+  "probe": {
+    "source": "实验/dense-snr-reconstruct/code/s06/probe_s06.cpp",
+    "source_sha256": "649195bef1540882ed8ccf60feadaf36aed8acea363e67ca894af75e9835302d",
+    "linked_library": "build/linux-sci/lib/algorithms/integration/phase2_integrate/libacsd_phase2_integrate.a",
+    "library_build_head_sha": "e31b2be66ffe37d547e67a4ba007e7257e49789d",
+    "library_equivalence_note": "lib/algorithms/integration/phase2_integrate/** is byte-identical between baseline e31b2be66 and HEAD (git diff empty); REPRO_P4.md additionally shows 167 groups / 2799 scalar fields bit-identical",
+    "n_experiments": 19
+  },
+  "scripts": {
+    "s06_a_two_objects.py": "89b18eb70987483ce2d71acc4a72c5555e70d7c2032e2fe17bf5e0ed7384f8e8",
+    "s06_b_overshoot.py": "0001acdc5b95bfe40b5ff6d82ffa15729b10d555f0a80f923cbbd37b95efe0db",
+    "s06_c_holdout_cv.py": "e0c1469c650eb7edb433bf3ed95e96eed5f233a51b4f76b01e9c58ce1763e298",
+    "s06_common.py": "1c1189efed05081416b57a10587deb9c964041a815b31fc32f6cd8fec27b28e5",
+    "s06_d_degenerate_states.py": "19b898f9c263ea7304573a718c526f4e5147a705b05923c78e3f5d03abdcd016",
+    "s06_e_idw_power_audit.py": "41c275e726beaad2b1f64cb6a68a4e09feb18aaa84111dffa5a487daf7a366a5",
+    "s06_evidence.py": "7e656899673c876132b65d6ff1a12346b4a276b7cb134fe0b706356133642ee6",
+    "s06_figures.py": "52d8c6da4a7e3af9b41a290a6112e79e69a3e12c4346a30aebb3202c9dd7ce4f"
+  },
+  "experiments": [
+    {
+      "paper_id": "P4",
+      "experiment_id": "P4-A-S06-two-objects",
+      "base_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+      "source_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+      "data_manifest_sha256": "8f8ed37fb4108b2468ea99bc680fd6f6b12f66d91a14b2b98184005ec0b66cf7",
+      "command": "python3 实验/dense-snr-reconstruct/code/s06/s06_a_two_objects.py",
+      "status": "PASS",
+      "evidence_level": "ORACLE",
+      "metrics": {
+        "E_eff_w_ref_on_scene_estimand_bright_source": {
+          "value": 31.258113010459674,
+          "unit": "dimensionless",
+          "denominator": "Var_opt = 1/sum(1/V_scene)"
+        },
+        "E_eff_w_mix_on_scene_estimand_bright_source": {
+          "value": 8283.636682405999,
+          "unit": "dimensionless",
+          "denominator": "Var_opt = 1/sum(1/V_scene)"
+        },
+        "composite_bias_rel_w_ref": {
+          "value": 32.89279273566581,
+          "unit": "dimensionless",
+          "denominator": "optimal composite (matched inverse variance)"
+        },
+        "E_eff_w_ref_zero_effect_F_scene_eq_F_ref": {
+          "value": 0.0,
+          "unit": "dimensionless",
+          "denominator": "Var_opt = 1/sum(1/V_scene) (zero-effect world)"
+        },
+        "mix_implied_variance_over_true_min": {
+          "value": 1.0865724970502558e-09,
+          "unit": "dimensionless",
+          "denominator": "V_scene(x)"
+        }
+      },
+      "negative_control": {
+        "injected_fault": "bright source F_scene=1000*F_ref: use SNR_ref-derived or mixed SNR field for a scene-flux estimand",
+        "must_fail": true,
+        "observed": "RED (E_eff(w_ref)=31.26, E_eff(w_mix)=8284)"
+      },
+      "limitations": [
+        "合成单帧象素级世界；未接生产两帧叠加路径",
+        "SNR_scene 的 P(x) 取常数 0.6，真实 PSF 分数随位置变化"
+      ]
+    },
+    {
+      "paper_id": "P4",
+      "experiment_id": "P4-C-S06-overshoot-0-2-0-0",
+      "base_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+      "source_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+      "data_manifest_sha256": "c5e9b12892c48904857f482b3bd021cf581c75054b08da7ded06220936dedd35",
+      "command": "python3 实验/dense-snr-reconstruct/code/s06/s06_b_overshoot.py",
+      "status": "PASS",
+      "evidence_level": "ORACLE",
+      "metrics": {
+        "natural_spline_max_on_0_2_0_0": {
+          "value": 2.011325955375069,
+          "unit": "node-value unit",
+          "denominator": "max over [0,3]; stationary points of the piecewise cubic"
+        },
+        "natural_spline_max_float64_interval": {
+          "value": [
+            2.0113259553750686,
+            2.0113259553750695
+          ],
+          "unit": "node-value unit",
+          "denominator": "algebraic-form float64 spread at the stationary point"
+        },
+        "overshoot_abs": {
+          "value": 0.011325955375069086,
+          "unit": "node-value unit",
+          "denominator": "max(node)=2"
+        },
+        "natural_spline_min_undershoot": {
+          "value": -0.30792014356780034,
+          "unit": "node-value unit",
+          "denominator": "min over [0,3]"
+        },
+        "frac_above_node_max": {
+          "value": 0.03852098073950963,
+          "unit": "dimensionless",
+          "denominator": "uniform grid N=2000001 on [0,3]"
+        },
+        "x_measure_above_node_max": {
+          "value": 0.115563,
+          "unit": "x units",
+          "denominator": "Lebesgue measure"
+        },
+        "pchip_max": {
+          "value": 1.9999999999985,
+          "unit": "node-value unit",
+          "denominator": "Fritsch-Carlson monotone Hermite, same nodes"
+        },
+        "scipy_vs_own_max_absdiff": {
+          "value": 9.960920976936904e-13,
+          "unit": "node-value unit",
+          "denominator": "independent oracle difference"
+        }
+      },
+      "negative_control": {
+        "injected_fault": "shape-preservation claim on a natural C2 spline: y=[0,2,0,0]",
+        "must_fail": true,
+        "observed": "RED: overshoot +1.132596e-02 above max(node); undershoot -0.307920; frac_above=0.03852; production clamps at both bounds (n_at_clip_high=32, n_at_clip_low=512 on the shifted pattern)"
+      },
+      "limitations": [
+        "1D node pattern; production operator is 2D separable and additionally clips",
+        "literal [0,2,0,0] is rejected by production prepare (zero control value); production cross-check uses the affine shift [1,3,1,1]"
+      ]
+    },
+    {
+      "paper_id": "P4",
+      "experiment_id": "P4-B-S06-out-of-domain-detectability",
+      "base_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+      "source_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+      "data_manifest_sha256": "553cb78c1b7a7acbc323e91fdc24b727a9c3893f75a11ab324c3387be63768de",
+      "command": "OMP_NUM_THREADS=4 run/ACSDSDOC-02/S06/results/probe_s06 run/ACSDSDOC-02/S06/results/probe_s06_results.json 192",
+      "status": "PASS",
+      "evidence_level": "PRODUCTION",
+      "metrics": {
+        "out_of_domain_frac_2x2": {
+          "value": 0.5555555555555556,
+          "unit": "dimensionless",
+          "denominator": "W*H = 192*192 queries (eval state machine)"
+        },
+        "out_of_domain_frac_3x3": {
+          "value": 0.4375,
+          "unit": "dimensionless",
+          "denominator": "W*H = 192*192 queries"
+        },
+        "out_of_domain_frac_full_cover_grid": {
+          "value": 0,
+          "unit": "dimensionless",
+          "denominator": "zero-effect negative (Δ=64 full cover)"
+        },
+        "n_extrapolated_values_returned": {
+          "value": 0,
+          "unit": "count",
+          "denominator": "all grid configs (production never returns an out-of-domain value)"
+        },
+        "silent_extrapolation_detected": {
+          "value": true,
+          "unit": "boolean",
+          "denominator": "claim 100% coverage vs measured in-domain fraction"
+        },
+        "domain_aware_state_out_of_domain": {
+          "value": "OUT_OF_DOMAIN_REJECTED / NOT_APPLICABLE",
+          "unit": "state token",
+          "denominator": "explicit state machine"
+        }
+      },
+      "negative_control": {
+        "injected_fault": "2x2 control grid claimed as full coverage (silent natural extrapolation)",
+        "must_fail": true,
+        "observed": "RED: measured in-domain fraction 0.444444 vs claimed 1.0; production eval rejects 20480 out-of-domain queries and returns 0 extrapolated values"
+      },
+      "limitations": [
+        "synthetic control grids; 192x192 field",
+        "hole state not expressible for regular grids (NaN is filled, not left empty)"
+      ]
+    },
+    {
+      "paper_id": "P4",
+      "experiment_id": "P4-A-F-S06-holdout-cv-six-arms",
+      "base_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+      "source_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+      "data_manifest_sha256": "7184def8e1f25e8be87fa4248d29ef220cfec8f28a57122b06eb9dee78ba57a1",
+      "command": "python3 实验/dense-snr-reconstruct/code/s06/s06_c_holdout_cv.py",
+      "status": "PASS",
+      "evidence_level": "ORACLE",
+      "metrics": {
+        "arm_var_ratio_bias_dex_table_delta16": {
+          "value": {
+            "constant": {
+              "natural_spline_clip": {
+                "var_ratio": 1.0,
+                "bias_rel": 0.0,
+                "dex_rmse": 0.0
+              },
+              "bilinear": {
+                "var_ratio": 1.0,
+                "bias_rel": 0.0,
+                "dex_rmse": 0.0
+              },
+              "idw_p1": {
+                "var_ratio": 0.9999999999999996,
+                "bias_rel": -2.4729084098037563e-18,
+                "dex_rmse": 2.5023156146241385e-16
+              },
+              "idw_p2": {
+                "var_ratio": 0.9999999999999998,
+                "bias_rel": -7.113846110394362e-19,
+                "dex_rmse": 2.507236594037335e-16
+              },
+              "constant": {
+                "var_ratio": 1.0,
+                "bias_rel": 0.0,
+                "dex_rmse": 0.0
+              },
+              "dense": {
+                "var_ratio": 1.0115474135591545,
+                "bias_rel": 0.008190314969545975,
+                "dex_rmse": 0.04590330951171183
+              }
+            },
+            "slow_linear": {
+              "natural_spline_clip": {
+                "var_ratio": 1.0000001291082705,
+                "bias_rel": 0.0019532345600855538,
+                "dex_rmse": 0.0008610870710133586
+              },
+              "bilinear": {
+                "var_ratio": 1.0000001291082705,
+                "bias_rel": 0.001953234560085558,
+                "dex_rmse": 0.0008610870710133577
+              },
+              "idw_p1": {
+                "var_ratio": 1.0108082366065518,
+                "bias_rel": 0.020199673284668995,
+                "dex_rmse": 0.045199050924349185
+              },
+              "idw_p2": {
+                "var_ratio": 1.0014578145194797,
+                "bias_rel": 0.00829250895282578,
+                "dex_rmse": 0.016644904696893604
+              },
+              "constant": {
+                "var_ratio": 1.0319989922617978,
+                "bias_rel": 0.03395222682188421,
+                "dex_rmse": 0.07756560356625133
+              },
+              "dense": {
+                "var_ratio": 1.0207810594597746,
+                "bias_rel": 0.005669922186398174,
+                "dex_rmse": 0.060748113592878406
+              }
+            },
+            "strong_gradient": {
+              "natural_spline_clip": {
+                "var_ratio": 1.0000932996310918,
+                "bias_rel": 0.014301161126603503,
+                "dex_rmse": 0.009058868234909315
+              },
+              "bilinear": {
+                "var_ratio": 1.0002881236819827,
+                "bias_rel": 0.05570692943368106,
+                "dex_rmse": 0.024877800867818305
+              },
+              "idw_p1": {
+                "var_ratio": 1.3358210136538833,
+                "bias_rel": 0.8962870173161955,
+                "dex_rmse": 0.3270406517150492
+              },
+              "idw_p2": {
+                "var_ratio": 1.0405277543549207,
+                "bias_rel": 0.34099931797266597,
+                "dex_rmse": 0.15467304632064519
+              },
+              "constant": {
+                "var_ratio": 2.1691704041111826,
+                "bias_rel": 0.43712859553075967,
+                "dex_rmse": 0.3973000816945868
+              },
+              "dense": {
+                "var_ratio": 1.0685183363848296,
+                "bias_rel": 1.3561161707363678,
+                "dex_rmse": 0.38280046613022856
+              }
+            },
+            "edge": {
+              "natural_spline_clip": {
+                "var_ratio": 1.0626434627157952,
+                "bias_rel": 0.19217365935593564,
+                "dex_rmse": 0.13660644014844264
+              },
+              "bilinear": {
+                "var_ratio": 1.065391489978952,
+                "bias_rel": 0.1840123981516097,
+                "dex_rmse": 0.13647218018065319
+              },
+              "idw_p1": {
+                "var_ratio": 1.2051626750983275,
+                "bias_rel": 0.4340824601448994,
+                "dex_rmse": 0.229844595249722
+              },
+              "idw_p2": {
+                "var_ratio": 1.079827014498148,
+                "bias_rel": 0.2838419035112747,
+                "dex_rmse": 0.16310711503418504
+              },
+              "constant": {
+                "var_ratio": 1.4702820974866118,
+                "bias_rel": 0.5909872902073313,
+                "dex_rmse": 0.3038067093001033
+              },
+              "dense": {
+                "var_ratio": 1.0876949740640736,
+                "bias_rel": 0.18986829306655603,
+                "dex_rmse": 0.15104854184736347
+              }
+            },
+            "nebula": {
+              "natural_spline_clip": {
+                "var_ratio": 1.0353188369736508,
+                "bias_rel": 0.013989352999050268,
+                "dex_rmse": 0.07774757816580252
+              },
+              "bilinear": {
+                "var_ratio": 1.0348320707719907,
+                "bias_rel": 0.03937695475031582,
+                "dex_rmse": 0.07843856329558939
+              },
+              "idw_p1": {
+                "var_ratio": 1.0530095434396927,
+                "bias_rel": 0.08097853974364513,
+                "dex_rmse": 0.1006692123518004
+              },
+              "idw_p2": {
+                "var_ratio": 1.040623405070156,
+                "bias_rel": 0.05954803346882641,
+                "dex_rmse": 0.08683272030608798
+              },
+              "constant": {
+                "var_ratio": 1.0620287012423013,
+                "bias_rel": 0.038542151819248076,
+                "dex_rmse": 0.10653116537002362
+              },
+              "dense": {
+                "var_ratio": 1.110045425869509,
+                "bias_rel": 2.233958320211058,
+                "dex_rmse": 0.5067108239823332
+              }
+            },
+            "blobs": {
+              "natural_spline_clip": {
+                "var_ratio": 1.1871805861724682,
+                "bias_rel": 0.31703826134655383,
+                "dex_rmse": 0.23521305002632195
+              },
+              "bilinear": {
+                "var_ratio": 1.1963519545978052,
+                "bias_rel": 0.24904328451692953,
+                "dex_rmse": 0.22632444936253163
+              },
+              "idw_p1": {
+                "var_ratio": 1.6949097913943323,
+                "bias_rel": 0.5698226851100083,
+                "dex_rmse": 0.34062288231936655
+              },
+              "idw_p2": {
+                "var_ratio": 1.3267100417448776,
+                "bias_rel": 0.40528562037192284,
+                "dex_rmse": 0.26802409116065995
+              },
+              "constant": {
+                "var_ratio": 2.2431789425502173,
+                "bias_rel": -0.2780988818019056,
+                "dex_rmse": 0.4602277926341948
+              },
+              "dense": {
+                "var_ratio": 2.635696757369405,
+                "bias_rel": 228.32978995066603,
+                "dex_rmse": 1.8215542598314023
+              }
+            }
+          },
+          "unit": "dimensionless / fraction / dex",
+          "denominator": "Var_opt = 1/sum(1/V_true); bias_rel = mean((Vhat-Vtrue)/Vtrue); node-level holdout at Δ=16 (train = even nodes, score = interior held-out cells)"
+        },
+        "out_of_domain_pct_2x2_3x3": {
+          "value": [
+            {
+              "field": "constant",
+              "config": "2x2",
+              "out_of_domain_pct": 55.55555555555556,
+              "naive_ood_bias_rel": 0.0
+            },
+            {
+              "field": "constant",
+              "config": "3x3",
+              "out_of_domain_pct": 43.75,
+              "naive_ood_bias_rel": 0.0
+            },
+            {
+              "field": "slow_linear",
+              "config": "2x2",
+              "out_of_domain_pct": 55.55555555555556,
+              "naive_ood_bias_rel": -0.10788059436010719
+            },
+            {
+              "field": "slow_linear",
+              "config": "3x3",
+              "out_of_domain_pct": 43.75,
+              "naive_ood_bias_rel": -0.07526239131416419
+            },
+            {
+              "field": "nebula",
+              "config": "2x2",
+              "out_of_domain_pct": 55.55555555555556,
+              "naive_ood_bias_rel": 0.2890401132628565
+            },
+            {
+              "field": "nebula",
+              "config": "3x3",
+              "out_of_domain_pct": 43.75,
+              "naive_ood_bias_rel": 0.04776426532848666
+            },
+            {
+              "field": "blobs",
+              "config": "2x2",
+              "out_of_domain_pct": 55.55555555555556,
+              "naive_ood_bias_rel": 1.1574987960284315
+            },
+            {
+              "field": "blobs",
+              "config": "3x3",
+              "out_of_domain_pct": 43.75,
+              "naive_ood_bias_rel": 0.876569054518661
+            }
+          ],
+          "unit": "percent",
+          "denominator": "matched to production eval state machine"
+        },
+        "hole_fill_bias": {
+          "value": [
+            {
+              "field": "slow_linear",
+              "bias_rel": -0.09966940501142765
+            },
+            {
+              "field": "nebula",
+              "bias_rel": 1.1807187502512109
+            }
+          ],
+          "unit": "dimensionless",
+          "denominator": "truth inside the hole cells"
+        },
+        "dense_vs_cell_vs_frame_full_data": {
+          "value": [
+            {
+              "field": "constant",
+              "delta": 64,
+              "n_nodes": [
+                3,
+                3
+              ],
+              "v_true_dynamic_range": 1.0,
+              "E_eff_frame": 1.1102230246251565e-15,
+              "E_eff_cell": 0.0013911281362863903,
+              "E_eff_dense": 0.0011598168516337992,
+              "E_eff_dense_shuffled_RED": 0.001261738310430749,
+              "dex_rmse_frame": 0.005134352120349739,
+              "dex_rmse_cell": 0.016349573547152257,
+              "dex_rmse_dense": 0.015044404964207643,
+              "n_at_node_value_bounds": 7095,
+              "n_at_node_value_bounds_note": "上界计数：包含真实相等，不是咬合次数",
+              "dense_best": false,
+              "cell_best": false,
+              "frame_best": true
+            },
+            {
+              "field": "slow_linear",
+              "delta": 64,
+              "n_nodes": [
+                3,
+                3
+              ],
+              "v_true_dynamic_range": 2.0810693138279346,
+              "E_eff_frame": 0.04486710906248348,
+              "E_eff_cell": 0.006754475185827502,
+              "E_eff_dense": 0.003038540441173687,
+              "E_eff_dense_shuffled_RED": 0.07406947261620833,
+              "dex_rmse_frame": 0.09333289472449462,
+              "dex_rmse_cell": 0.03600824298807156,
+              "dex_rmse_dense": 0.025912470608193575,
+              "n_at_node_value_bounds": 9542,
+              "n_at_node_value_bounds_note": "上界计数：包含真实相等，不是咬合次数",
+              "dense_best": true,
+              "cell_best": false,
+              "frame_best": false
+            },
+            {
+              "field": "strong_gradient",
+              "delta": 64,
+              "n_nodes": [
+                3,
+                3
+              ],
+              "v_true_dynamic_range": 41.91824523295275,
+              "E_eff_frame": 2.0732621577332173,
+              "E_eff_cell": 0.19771123667554913,
+              "E_eff_dense": 0.84978710318411,
+              "E_eff_dense_shuffled_RED": 11.690911382510446,
+              "dex_rmse_frame": 0.5734939377284585,
+              "dex_rmse_cell": 0.5811488586401998,
+              "dex_rmse_dense": 0.6584519695898355,
+              "n_at_node_value_bounds": 16630,
+              "n_at_node_value_bounds_note": "上界计数：包含真实相等，不是咬合次数",
+              "dense_best": false,
+              "cell_best": true,
+              "frame_best": false
+            },
+            {
+              "field": "edge",
+              "delta": 64,
+              "n_nodes": [
+                3,
+                3
+              ],
+              "v_true_dynamic_range": 3.640487474610697,
+              "E_eff_frame": 0.47879399065379036,
+              "E_eff_cell": 0.12162322513946888,
+              "E_eff_dense": 0.10203783864521343,
+              "E_eff_dense_shuffled_RED": 0.9701563288316277,
+              "dex_rmse_frame": 0.29313447858831426,
+              "dex_rmse_cell": 0.1702976959029021,
+              "dex_rmse_dense": 0.15047264006326008,
+              "n_at_node_value_bounds": 10815,
+              "n_at_node_value_bounds_note": "上界计数：包含真实相等，不是咬合次数",
+              "dense_best": true,
+              "cell_best": false,
+              "frame_best": false
+            },
+            {
+              "field": "nebula",
+              "delta": 64,
+              "n_nodes": [
+                3,
+                3
+              ],
+              "v_true_dynamic_range": 5.378866375772876,
+              "E_eff_frame": 0.06356839710448181,
+              "E_eff_cell": 0.05308630929299585,
+              "E_eff_dense": 0.0515912454743328,
+              "E_eff_dense_shuffled_RED": 0.06385355574781815,
+              "dex_rmse_frame": 0.48287025217850166,
+              "dex_rmse_cell": 0.48119884541407465,
+              "dex_rmse_dense": 0.4787432206960899,
+              "n_at_node_value_bounds": 6468,
+              "n_at_node_value_bounds_note": "上界计数：包含真实相等，不是咬合次数",
+              "dense_best": true,
+              "cell_best": false,
+              "frame_best": false
+            },
+            {
+              "field": "blobs",
+              "delta": 64,
+              "n_nodes": [
+                3,
+                3
+              ],
+              "v_true_dynamic_range": 53.656508040858036,
+              "E_eff_frame": 0.9331600345350228,
+              "E_eff_cell": 2.0067768069240053,
+              "E_eff_dense": 1.6728883547788809,
+              "E_eff_dense_shuffled_RED": 4.393745793153834,
+              "dex_rmse_frame": 1.6444099599371453,
+              "dex_rmse_cell": 1.8285747871022542,
+              "dex_rmse_dense": 2.1053639381423057,
+              "n_at_node_value_bounds": 14174,
+              "n_at_node_value_bounds_note": "上界计数：包含真实相等，不是咬合次数",
+              "dense_best": false,
+              "cell_best": false,
+              "frame_best": true
+            }
+          ],
+          "unit": "E_eff (dimensionless)",
+          "denominator": "Var_opt = 1/sum(1/V_true)"
+        },
+        "historical_caliber_recheck_E_cell_E_dense": {
+          "value": {
+            "analytics_structured": {
+              "E_frame": 1.1585362698229567,
+              "E_cell": 0.009028083847125057,
+              "E_dense": 0.5773934277910864
+            },
+            "hst_forward": {
+              "E_frame": 0.4158954108544801,
+              "E_cell": 0.20638366311876521,
+              "E_dense": 257128.30518877285
+            },
+            "real_frame_proxy": {
+              "E_frame": 11.817555181868984,
+              "E_cell": 0.17074257984337704,
+              "E_dense": 64586.92628184655
+            }
+          },
+          "unit": "E_eff (dimensionless)",
+          "denominator": "Var_opt = 1/sum(1/v_true); historical 0.577/0.00903 reproduced"
+        }
+      },
+      "negative_control": {
+        "injected_fault": "random permutation of oracle node values at the same grid positions",
+        "must_fail": true,
+        "observed": "RED on Δ-representable fields: dex_rmse ratio {\"slow_linear\": 114.38265522783338, \"strong_gradient\": 61.91163743265534}"
+      },
+      "limitations": [
+        "synthetic Poisson+read-noise worlds; iid noise only (no correlated-noise k_corr)",
+        "CV at Δ=16/32; at Δ≥32 the coarse train grid has ≤3 nodes (recorded per-row warning)",
+        "dense arm uses the production MAD² estimator; its node noise dominates blobs fields"
+      ]
+    },
+    {
+      "paper_id": "P4",
+      "experiment_id": "P4-C-S06-degenerate-states",
+      "base_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+      "source_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+      "data_manifest_sha256": "ebe20ef4fc0a32d50c0675be0ee7efe4e14b2bc895603e6e1ddc3f2fda6659ed",
+      "command": "python3 实验/dense-snr-reconstruct/code/s06/s06_d_degenerate_states.py",
+      "status": "PASS",
+      "evidence_level": "ORACLE+PRODUCTION",
+      "metrics": {
+        "idw_zero_distance_guard_max_rel_err": {
+          "value": 0.0,
+          "unit": "dimensionless",
+          "denominator": "node value at exact coincidence (d<1e-10)"
+        },
+        "idw_zero_distance_naive_nonfinite": {
+          "value": 6,
+          "unit": "count",
+          "denominator": "6 control-point coincidences"
+        },
+        "nan_control_fill_hole_bias_node_scale": {
+          "value": 0.5621274318094874,
+          "unit": "dimensionless",
+          "denominator": "same operator with un-masked nodes (pure fill effect)"
+        },
+        "nan_mask_silent_impute_bias": {
+          "value": -0.21536100858458088,
+          "unit": "dimensionless",
+          "denominator": "full-field truth mean (125 ADU²)"
+        },
+        "clip_bias_at_bound_minus_free": {
+          "value": -0.04114545949101392,
+          "unit": "dimensionless",
+          "denominator": "truth at pixels whose value sits on the clip bound"
+        },
+        "clip_bias_free_pixels": {
+          "value": 0.008152102430883658,
+          "unit": "dimensionless",
+          "denominator": "truth at remaining pixels"
+        },
+        "production_clip_hits_shifted_0_2_0_0_pattern": {
+          "value": {
+            "n_at_clip_high": 32,
+            "n_at_clip_low": 512,
+            "n_in_domain": 1024
+          },
+          "unit": "count",
+          "denominator": "1024 in-domain pixels"
+        },
+        "production_control_value_rejections": {
+          "value": {
+            "single_zero_value": false,
+            "single_negative_value": false,
+            "all_nan": false,
+            "partial_nan_nearest_fill": true,
+            "constant_grid_degenerates_to_frame": true
+          },
+          "unit": "boolean",
+          "denominator": "zero/negative/all-NaN control values"
+        },
+        "production_query_state_nan_inf": {
+          "value": {
+            "nan_x": "OUT_OF_DOMAIN_REJECTED",
+            "nan_y": "OUT_OF_DOMAIN_REJECTED",
+            "inf_x": "OUT_OF_DOMAIN_REJECTED",
+            "neg_x": "OUT_OF_DOMAIN_REJECTED"
+          },
+          "unit": "state token",
+          "denominator": "NaN/Inf/negative query coordinates"
+        }
+      },
+      "negative_control": {
+        "injected_fault": "clamp negative reconstruction to the control-value range and claim unbiasedness; fill NaN control points by nearest valid node and claim unbiasedness; silently impute NaN-mask pixels",
+        "must_fail": true,
+        "observed": "RED: clip-bound bias -0.0411 vs free-pixel bias 0.0082; node-scale fill bias 0.5621; silent-impute bias -0.2154; naive IDW returns 6 non-finite values at coincidences"
+      },
+      "limitations": [
+        "IDW arms are independent Python implementations (production freeze-list has no IDW)",
+        "production exposes the at-clip-bound value but not the unclipped value"
+      ]
+    },
+    {
+      "paper_id": "P4",
+      "experiment_id": "P4-F-S06-idw-power-default-split",
+      "base_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+      "source_sha": "d025932d1bfbbad68eb6aea16e4b4c348e90650f",
+      "data_manifest_sha256": "0c33c4d852bb94637b3a302bbe439b1f52fc38a3b705c7ce0e6d0ad1bfd32c9c",
+      "command": "python3 实验/dense-snr-reconstruct/code/s06/s06_e_idw_power_audit.py",
+      "status": "PASS",
+      "evidence_level": "PRODUCTION",
+      "metrics": {
+        "normative_idw_power": {
+          "value": 1.0,
+          "unit": "dimensionless",
+          "denominator": "docs/detail/registry/acsd.phase1.noise-snr.md"
+        },
+        "production_effective_idw_power": {
+          "value": 2.0,
+          "unit": "dimensionless",
+          "denominator": "snr_model block value passed explicitly to SnrEvaluator::build"
+        },
+        "drizzle_member_default": {
+          "value": 1.0,
+          "unit": "dimensionless",
+          "denominator": "snr_evaluator.h:110"
+        },
+        "phase1_estimator_writes": {
+          "value": 2.0,
+          "unit": "dimensionless",
+          "denominator": "snr_estimator.cpp:593,730,833"
+        },
+        "line_assertions_ok": {
+          "value": {
+            "drizzle_member_default_is_1p0": true,
+            "drizzle_fallback_build_is_1p0": true,
+            "drizzle_fallback_buildF64_is_1p0": true,
+            "estimator_593_writes_2p0": true,
+            "estimator_730_writes_2p0": true,
+            "estimator_833_writes_2p0": true,
+            "orchestrator_serializes_model_idw_power": true,
+            "drizzle_loader_reads_block_tail": true,
+            "drizzle_passes_explicit_value_to_build": true
+          },
+          "unit": "boolean",
+          "denominator": "9 file:line assertions"
+        }
+      },
+      "negative_control": {
+        "injected_fault": "rely on the compile-time fallback default (1.0) while the serialized model value (2.0) overrides it",
+        "must_fail": true,
+        "observed": "RED: effective production default stays 2.0 through Phase1 → orchestrator → drizzle loader → explicit build() argument; the 1.0 fallback is never reached when the snr_model block is present"
+      },
+      "limitations": [
+        "static source audit only; no runtime log of the effective value in a real product",
+        "lib/** is outside this task's write surface: finding + recommendation only, no code change"
+      ]
+    }
+  ],
+  "summary": {
+    "gates": {
+      "A_two_objects": true,
+      "B_overshoot": true,
+      "C_holdout_cv": true,
+      "D_degenerate_states": true,
+      "E_idw_power_audit_integrity": true
+    },
+    "findings_red": [
+      "natural spline overshoots node max (+1.1326e-02) and undershoots below node min (-0.307920); shape preservation requires an explicit shape-preserving operator, not a natural boundary",
+      "2x2 / 3x3 control grids: 55.5556% / 43.7500% of the field is out of the layer domain while prepare() succeeds",
+      "value-range clamping is not unbiased (clip-bound bias -0.0411 vs free-pixel +0.0082)",
+      "NaN control points are silently filled by the nearest valid node (not unbiased)",
+      "production effective idw_power = 2.0 while the normative default is 1.0 (live split)",
+      "var_ratio / E_eff is a distributional metric and is insensitive to spatial permutation of control nodes; must be reported together with a spatial-level criterion"
+    ],
+    "status": "PASS"
+  }
+}

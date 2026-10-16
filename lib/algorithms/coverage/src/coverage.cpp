@@ -1,12 +1,23 @@
 // lib/algorithms/coverage/src/coverage.cpp — Phase2 coverage union 实现（真实 AIO 接入）
 //
-// 语义（ 34A532A2...B2EB308 + wiki Phase2_Architecture）：
+// 语义（SCIENCE-V2 / UNIFIED_SCIENCE_MODEL §1「系统边界与用户选择」：
+//       **禁止以设备/通带一致性设项目级拒绝条件**）：
 // - 输入为多个 Phase1 单帧 HiPS（signal/support/snr）；
 // - 通过唯一 AIO（astro_image_io.dll aio_hips_reader）读取每帧
 // properties 与叶级 tile 列表（Moc.fits）；
-// - 兼容校验：hips_version / hips_frame / tile_width / obs_filter；
+// - 兼容校验：hips_version / hips_frame（坐标系一致性，**保留**）/ tile_width /
+//   hips_ordering；**obs_filter 不再是跨帧准入条件**——每帧真实通带身份原样
+//   登记进 P2HipsInputInfo.filter_passband，由 mosaic 侧如实记录参与帧的通带
+//   分布，不拿第一帧滤镜冒充最终混合响应（D01/D07）；
 // - target_order = min(所有输入 max leaf order)（禁止低 order 插值伪装分辨率）；
 // - Ω = MOC_1 ∪ ... ∪ MOC_N（NESTED，允许不连通分量）。
+//
+// 为何删除旧的「filter mismatch」拒绝（SCIENCE_V2_AGENT_TASK_PACKAGE §2 R1）：
+// 用户可自由合并不同相机、望远镜、焦距、曝光与不同带宽窄带。能否运算与能否
+// 无偏变换到同一通带辐射场是两个问题：前者由统一坐标/信号语义保证，后者是
+// **物理系统误差**，必须以可复核的颜色系统差与响应定义记录，而不是用一道
+// 字符串闸门把合法输入挡在外面。真实的输入损坏（缺 obs_filter 键、坐标无法
+// 统一、RING 编号、tile_width 非 512）仍然显式报错。
 #include "astro/phase2/coverage.h"
 
 #include <algorithm>
@@ -188,9 +199,8 @@ int p2_coverage_build(const char* const* hips_paths,
     std::vector<std::vector<std::uint64_t>> frame_tiles(n_inputs);
     std::vector<P2HipsInputInfo> infos(n_inputs);
     int target_order = -1;
-    std::string filter_ref;
-    std::string frame_ref;
-    bool filter_set = false;
+    std::string frame_ref;   // 坐标系基准（通带字符串不再是跨帧基准）
+    bool frame_set = false;
     for (std::uint64_t i = 0; i < n_inputs; ++i) {
         if (!hips_paths[i] || !*hips_paths[i]) {
             std::snprintf(out->error, sizeof(out->error),
@@ -207,24 +217,24 @@ int p2_coverage_build(const char* const* hips_paths,
             out->status = 1;
             return 1;
         }
-        // 兼容校验：filter/passband 全等（含显式空声明；inspect_frame 已拒"键
-        // 缺失"）。B2-A8: 旧实现只比较非空串，使一个带 filter 的帧与一个空
-        // 声明帧被并入同一 union —— 违反 coverage.h:7「同一 filter/passband」前提。
-        const std::string f = infos[i].filter_passband;
-        const std::string fr = infos[i].frame_type;
-        if (!filter_set) {
-            filter_ref = f;
+        // ── R1 (SCIENCE-V2): 通带身份**不再是**跨帧准入条件 ──────────────
+        // 每帧真实 filter/passband 身份已由 inspect_frame 原样登记进
+        // infos[i].filter_passband（供 mosaic 侧记录参与帧的通带分布）。
+        // 这里**不再**把它与首帧比较：不同滤镜/厂商/带宽/窄带的合法合并由用户
+        // 自主决定（UNIFIED_SCIENCE_MODEL §1/§3：恒星色项校准不能保证窄发射线
+        // 星云在不同通带间无偏 ⇒ 失配是物理系统误差，须如实记录而非拒绝输入）。
+        // 仍保留的真实损坏检查：
+        //   · obs_filter **键缺失** ⇒ inspect_frame 已 fail-closed（无法声明
+        //     任何通带身份）——这是输入不完整，不是"名字不同"；
+        //   · 显式空串 obs_filter ⇒ 合法的"未声明通带"身份，与其它帧并列。
+        const std::string& fr = infos[i].frame_type;
+        if (!frame_set) {
             frame_ref = fr;
-            filter_set = true;
-        } else if (f != filter_ref) {
-            std::snprintf(out->error, sizeof(out->error),
-                          "filter mismatch: %s vs %s",
-                          filter_ref.c_str(), f.c_str());
-            out->status = 1;
-            return 1;
+            frame_set = true;
         }
         // B2-A8: 跨帧坐标系必须相等（旧实现只逐帧校验 frame∈{equatorial,icrs}，
         // 不比较跨帧一致性；equatorial 与 icrs 混用会让 MOC 父聚合跨坐标系）。
+        // 这是**坐标一致性**问题，与光谱准入无关，保留。
         if (fr != frame_ref) {
             std::snprintf(out->error, sizeof(out->error),
                           "hips_frame mismatch: %s vs %s",

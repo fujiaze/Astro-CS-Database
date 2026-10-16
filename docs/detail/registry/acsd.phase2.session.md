@@ -1,49 +1,27 @@
-# 模块 acsd.phase2.session
+# Mosaic 局部模型会话
 
-> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节
+本页登记 `p2_session_*` 进程内 facade：coverage、sample、UPM build、可选 persist。完整用户 `mosaic` 命令由[七节点管线](../mosaic/pipeline.md)执行，另含 apply、reject、integrate 和最终 signal HiPS 写出；二者不能混称。
 
-> Phase2 装配会话（p2_session 函数族）登记页；权威签名头
-> lib/phase2_session/p2_session.h，实现 lib/phase2_session/p2_session.cpp。
-> 装配会话不设独立 registry descriptor：编排占位 descriptor 的 IModule 工厂
-> 经 module_adapters.cpp 的五 C ABI 声明委托本模块（RT-005）。
+## 接口与调用关系
 
-- 模块词汇：`acsd.p2.session`（装配会话词汇；五函数经 module_adapters.cpp
-  声明供 IModule 工厂委托，无独立 registry descriptor）；迁移目标
-  acsd_p2_session.dll（未落地）。
-- 层级：assembly（编排，纯 facade 直调 lib/algorithms/coverage 生产符号，不实现
-  科学公式）；构建=静态库 acsd_phase2_session（根
-  CMakeLists.txt，link acsd_contracts acsd_phase2；
-  CLI target 汇总三处）。
-- 合同：ALG-P2-SESSION-001（docs/science/algorithms/PHASE2_SESSION.md）/
-  DATA-P2-SESSION（本页合同条）/ API-P2-SESSION-001
-  （PUBLIC_API「Phase2 装配会话 C API」节）/ 编排上游 API-P2-001
-  （docs/engineering/api/PUBLIC_API.md「分阶段 API 面」，FROZEN，引用不改动）。
-- 节点：canonical 4 段 coverage→sample→upm_build→persist
-  （p2_session.cpp 四段实测；科学实现
-  委托 p2_coverage_build 两处、p2_sample_controls 两处、
-  p2_upm_build、p2_upm_save）。
-- 导出符号：SRC-P2-SESSION-001 五 C API（p2_session.h：
-  p2_session_create/validate/run/inspect/destroy）+ C++
-  诊断面 last_error（p2_session.h，非 C ABI）；展开冻结=API-P2-SESSION-001。
-- 外部输入：config JSON 键集（本页合同条：hips_paths/output_dir
-  必填，upm{max_iterations,huber_delta,smoothing_lambda}/persist_upm/
-  upm_save_path 可选；output_dir 现状 validate 必填、run 不消费，登记不改码）/
-  host services 四通道（common_abi_v1.h：
-  allocator/logger/cancel/budget）/ 输出落盘仅 upm_save_path 注入
-  （persist段单文件直写）。
-- 并发与取消：threadsafe:no（handle 级）+ reentrant:yes
-  （p2_session.h 注释锚）；取消点=阶段边界 4 检查点
-  （p2_session.h 注释锚；p2_session.cpp 四处；
-  upm 整模型不写半成品）；内部并行仅 UPM blocks
-  （cpu_workers=budget.max_workers 两处，预算驱动禁硬编码）。
-- 错误：ACS_ERR_*（PARAM/ABI_MISMATCH/NOMEM/STATE/IO/INTERNAL/
-  CANCELLED；map_rc p2_session.cpp，语义表=本页合同条）。
-- manifest 状态机：created→complete/failed（p2_session.cpp；
-  段内 running/ok/fail/cancelled；字段表=本页合同条）。
-- 已知差距（登记不改码）：API-P2-001（docs/engineering/api/PUBLIC_API.md「分阶段 API 面」）冻结段集 vs 现状四段
-  （coverage/sample/upm_build/persist），补齐属迁移目标（未落地）；
-  p2_session.h「拒未知键」与 validate 实现漂移；run 子键类型错未捕获路径。
-- 已知缺陷：编号与语义见 ALG-P2-SESSION-001 的缺陷清单（本页不另行编号）。
-- 测试：TEST-P2-SESSION-001 待建（设计冻结面 = ALG-P2-SESSION-001 TEST-DESIGN）；
-  已取证的只有静态结构断言（canonical 节点声明/facade 委托），无会话行为测试；
-  lib/phase2_session/ 下无 tests 目录。
+公开头 [p2_session.h](../../../lib/phase2_session/p2_session.h)、实现 [p2_session.cpp](../../../lib/phase2_session/p2_session.cpp)。接口为 `p2_session_create(host,out)`、`p2_session_validate(handle,config_json)`、`p2_session_run(handle,config_json)`、`p2_session_inspect(handle,out_manifest_json)`、`p2_session_destroy(handle)`，返回 `acsd_status`。C++ `acsd::phase2::last_error` 仅用于诊断。
+
+此会话直接调用 `p2_coverage_build`、采样和 `p2_upm_build/save`。CLI 经 [module_adapters.cpp](../../../lib/infrastructure/scheduler/src/module_adapters.cpp) 的 `P2NodeModule` 分节点执行，生产 fit 使用 `p2_sky_plane_build_joint`；不能因保留 P2Api 会话适配就把库 UPM 模型认作生产扣除模型。
+
+## 数据、配置与所有权
+
+| 对象 | 语义 |
+|---|---|
+| host | allocator/logger/cancel/budget，寿命覆盖 handle |
+| config | hips_paths/output_dir，局部 upm 参数与 persist_upm/upm_save_path；以本 facade validate/run 的实际消费为准 |
+| coverage、observations | 从产品枚举与采样产生；sky 为 ICRS degree，样本值继承信号单位 |
+| model | 本会话构建的 UPM 模型，调用方不能视为完整马赛克 |
+| inspect | created/complete/failed 及阶段/模型信息；不是最终 signal 发布凭据 |
+
+创建者拥有 handle，单 handle 串行，不同 handle 可独立运行。输出 JSON 经 host allocator 分配/释放；模型与缓冲由会话 RAII 持有并用相应 close/free 清理。阶段边界检查取消，UPM worker 数来自 host budget；局部会话不建立跨命令内存共享。
+
+## 错误与验证入口
+
+返回 `ACS_ERR_*`，细节由错误摘要与 manifest 说明；纯配置检查与文件/模型构建错误分开。输出路径和配置字段是否被 validate 接受不证明 run 真正消费该字段。
+
+验证从本头五函数检查生命周期、分配配对、非法类型、取消、persist/open；完整七节点检查从 [Mosaic 实现导航](../mosaic/pipeline.md)追至 CLI。科学模型由 [UPM 正本](../../science/sky/UPM.md)拥有；本页不以局部会话成功代替完整合成或无接缝实测。

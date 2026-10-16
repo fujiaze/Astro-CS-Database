@@ -1,0 +1,44 @@
+{
+  "package": "ACSD five papers P1-P5 science implementation handoff",
+  "date": "2026-10-14",
+  "repository": "https://github.com/fujiaze/Astro-CS-Database",
+  "branch": "audit/acsd-science-docs-p5",
+  "pinned_commit": "e31b2be66ffe37d547e67a4ba007e7257e49789d",
+  "mode": "documents live in connected GitHub repo; ZIP contains startup controls, tasks, methodology, references, gates, no raw FITS",
+  "files": {
+    "README.md": {
+      "bytes": 3689,
+      "sha256": "c9fb0b2bfca7351ead0a8468782324aeb2e6d25bb7c55b155f3ef02a590dc5f5"
+    },
+    "01_START_PROMPT.md": {
+      "bytes": 3498,
+      "sha256": "fe4000eb35e39b4cdd81f5ae9cdce9fa6733a070b038dcd64d392ca38964a7d5"
+    },
+    "02_TASK_MATRIX.md": {
+      "bytes": 3115,
+      "sha256": "bc9c928c8bb2105ce119f1682047760afaea9087fd18e6232b35b7a656fb80d6"
+    },
+    "03_SCIENTIFIC_ACCEPTANCE.md": {
+      "bytes": 3486,
+      "sha256": "a33ad196915816230c9f6dc40eb5729784f87dc4a6b3539694ce7e4b6f70ef4b"
+    },
+    "04_LITERATURE_GUIDE.md": {
+      "bytes": 2888,
+      "sha256": "4a145e2880b440a8d7c14f1b13b24b7ef20e4dfd804539faacbc5154633838f0"
+    },
+    "05_REPO_FILE_MAP.md": {
+      "bytes": 2135,
+      "sha256": "0f58c73b794333905c1bb5c665ecc7f8c5463f14c6fdbe19c14221bbce16ea2d"
+    },
+    "06_REPORT_TEMPLATE.md": {
+      "bytes": 2142,
+      "sha256": "589c13726189c52697396cce4ed4078e2902e69dc4eefd828a6d68c8bd65ef1e"
+    },
+    "VERIFY_BRANCH.sh": {
+      "bytes": 1354,
+      "sha256": "044941babb0bab9ad750d25d8ec5ee85b307f91db0d1f12b76b92b28620b55e8"
+    }
+  },
+  "test_execution": "NOT_RUN",
+  "production_code_changed_by_this_stage": false
+}

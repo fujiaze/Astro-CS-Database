@@ -21,15 +21,33 @@ option(ACSD_ENABLE_TSAN "Enable ThreadSanitizer (targeted, mutually exclusive wi
 # RELEASE-02 性能探针 (P1/P2 热点定位)。默认 OFF —— 关闭时探针宏展开为空语句
 # ((void)0), 不编译 probe.cpp, 链接产物中无 acsd::probe::* 符号; 既有构建与
 # 测试行为完全不变。ON 时仍需运行期环境变量 ACSD_PROBE_LOG=<path> 才产出。
-option(ACSD_PROBES "Enable low-overhead runtime performance probes (default OFF; runtime gate ACSD_PROBE_LOG)" OFF)
+#
+# DEV-MODE-001 (docs/engineering/architecture/DEV_MODE.md §2/§3): 该名字**不再是
+# 独立公开入口** —— 它由唯一公开诊断编译开关 ACSD_DEV_MODE 派生（见下方
+# `set(ACSD_PROBES ...)`）。保留 option() 只为不让历史 -DACSD_PROBES=... 命令行
+# 在 configure 期报错；其缓存值对构建图**无效**。
+option(ACSD_PROBES "DEPRECATED public entry: derived from ACSD_DEV_MODE, cannot enable diagnostics alone" OFF)
 
 # 开发模式与构建期能力边界（正本 docs/engineering/architecture/DEV_MODE.md）。
-# 一个主开关 + 三个子开关，子开关默认跟随主开关；发布打包以 -DACSD_DEV_MODE=OFF 构建。
-# 这些能力是**构建期**的：同一个能力要么在二进制里，要么不在（不做运行期开关）。
-option(ACSD_DEV_MODE               "开发模式：启用中间产物落盘/检查点/探针（发布版 OFF）" OFF)
-option(ACSD_DEV_INTERMEDIATE_CACHE "开发模式子项：中间产物落盘" ${ACSD_DEV_MODE})
-option(ACSD_DEV_CHECKPOINT         "开发模式子项：检查点与续跑" ${ACSD_DEV_MODE})
-option(ACSD_DEV_PROBES             "开发模式子项：性能探针"     ${ACSD_DEV_MODE})
+# **唯一公开诊断编译开关**：ACSD_DEV_MODE（发布打包以 -DACSD_DEV_MODE=OFF 构建）。
+# 旧三个子项（ACSD_DEV_INTERMEDIATE_CACHE / ACSD_DEV_CHECKPOINT / ACSD_DEV_PROBES）
+# 与旧 ACSD_PROBES 一律降级为内部派生变量，不再具备独立激活能力：
+#   · INTERMEDIATE_CACHE / PROBES ≡ ACSD_DEV_MODE（开发诊断能力随主开关进出二进制）；
+#   · CHECKPOINT 的"跳过已完成帧/改变运行路径"**不是**被动诊断，恒 OFF；断点续跑
+#     若成产品需求须作为独立业务功能论证，不受诊断主开关暗中控制。
+option(ACSD_DEV_MODE "Internal dev diagnostics build: passive science snapshots + detailed performance probes (default OFF)" OFF)
+
+# ── DEV-MODE-001: 单开关派生（普通变量遮蔽同名缓存值 ⇒ -D 旧开关无效）─────────
+if(ACSD_PROBES AND NOT ACSD_DEV_MODE)
+  message(STATUS
+    "ACSD_PROBES=ON ignored: performance probes are derived from ACSD_DEV_MODE "
+    "(docs/engineering/architecture/DEV_MODE.md §2). Use -DACSD_DEV_MODE=ON.")
+endif()
+set(ACSD_PROBES ${ACSD_DEV_MODE})
+set(ACSD_DEV_PROBES ${ACSD_DEV_MODE})
+set(ACSD_DEV_INTERMEDIATE_CACHE ${ACSD_DEV_MODE})
+# 检查点/续跑不属于被动诊断（DEV_MODE.md §3「特别区分检查点/续跑」）。
+set(ACSD_DEV_CHECKPOINT OFF)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -500,9 +518,10 @@ target_link_libraries(acsd_core PUBLIC acsd_contracts acsd_common Threads::Threa
 find_package(Threads REQUIRED)
 
 # ── RELEASE-02 性能探针框架接线 ─────────────────────────────────────────────
-# 单开关 ACSD_PROBES (默认 OFF)。OFF 时只提供头文件 include 面 (宏为空语句),
-# 不编译实现、不产生符号; ON 时编译 acsd_probes 静态库并把 ACSD_PROBES=1
-# 沿链接闭包传给被埋点 target。头文件: acsd/probe.h。
+# DEV-MODE-001: ACSD_PROBES 由唯一主开关 ACSD_DEV_MODE 派生（见文件头
+# `set(ACSD_PROBES ${ACSD_DEV_MODE})`）。OFF ⇒ 只提供头文件 include 面
+# (宏为空语句, 不编译实现、不产生符号); ON ⇒ 编译 acsd_probes 静态库并把
+# ACSD_PROBES=1 沿链接闭包传给被埋点 target。头文件: acsd/probe.h。
 if(ACSD_PROBES)
   add_library(acsd_probes STATIC
     lib/infrastructure/observability/probes/src/probe.cpp)
@@ -520,6 +539,36 @@ else()
   # 未定义 ACSD_PROBES 时展开为空语句, 零开销。
   add_library(acsd_probes INTERFACE)
   target_include_directories(acsd_probes INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/observability/probes/include)
+endif()
+
+# ── DEV-MODE-001: 开发诊断 sink（被动快照 + debug manifest）─────────────────
+# 正本 docs/engineering/architecture/DEV_MODE.md §2/§5/§6 与
+#      docs/engineering/standards/DIAGNOSTIC_PROBES.md §1/§6/§7。
+# 同一条规则：ACSD_DEV_MODE=OFF ⇒ 本 TU 不进任何 target、无诊断符号、无文件
+# 打开、无 env 读取；ON ⇒ sink 由本基础设施实现，业务模块只调用抽象接口
+# （不自行建文件/写 JSON/起线程）。快照落盘统一走 aio 原语（
+# aio_atomic::write_file_atomic / make_dirs），FITS 图像经 aio_fits.cpp 的
+# fits_write_file 写私有暂存名后再原子 rename。
+if(ACSD_DEV_MODE)
+  add_library(acsd_dev_diagnostics STATIC
+    lib/infrastructure/observability/probes/src/dev_diagnostics.cpp)
+  target_include_directories(acsd_dev_diagnostics PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/observability/probes/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party)
+  # 主开关沿链接闭包传播, 避免多 dynamic 库编译取值不一致 (DEV_MODE.md §2)。
+  target_compile_definitions(acsd_dev_diagnostics PUBLIC ACSD_DEV_MODE=1)
+  target_link_libraries(acsd_dev_diagnostics PUBLIC
+    Threads::Threads acsd_common acsd_aio)
+  if(NOT MSVC)
+    target_compile_options(acsd_dev_diagnostics PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
+  endif()
+else()
+  add_library(acsd_dev_diagnostics INTERFACE)
+  target_include_directories(acsd_dev_diagnostics INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/observability/probes/include)
 endif()
 
@@ -1135,7 +1184,9 @@ endif()
 add_library(acsd_phase1_noise STATIC
   lib/algorithms/noise_snr/cpp/src/noise_model.cpp
   lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp
-  lib/algorithms/noise_snr/cpp/src/snr_science.cpp)
+  lib/algorithms/noise_snr/cpp/src/snr_science.cpp
+  # NORMALIZE_DATA §6: 球面参考精度 GLS 完成（数学唯一实现在 noise 库）
+  lib/algorithms/noise_snr/cpp/src/sparse_reference.cpp)
 target_include_directories(acsd_phase1_noise PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/wrapper_phase1
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/cpp/include
@@ -1216,7 +1267,9 @@ set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_cli
 add_library(acsd_p1_dpsf STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_psf.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_image.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_log.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_log.cpp
+  # PSF.md §4: 单位总通量像元积分响应（数学唯一实现在 PSF 库）
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/pixel_integrated_psf.cpp)
 target_include_directories(acsd_p1_dpsf PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src
@@ -1367,6 +1420,9 @@ target_link_libraries(acsd PRIVATE
   acsd_p3_projection_wcs
   acsd_calibration acsd_phase2 acsd_drizzle acsd_cpu
   acsd_phase1_session acsd_phase2_session acsd_phase3_session
+  # DEV-MODE-001: 开发诊断 sink（OFF 时 INTERFACE-only; commands.cpp 的运行级
+  # 诊断根经此链接，同一条 ACSD_DEV_MODE 编译边界）。
+  acsd_dev_diagnostics
   # INT-001 W4-A9 接线步 3/3: CLI 子命令模块 target (INTERFACE, 仅 include 面;
   # normalize|mosaic|export 三子目录的扁平头名经此解析)。
   acsd_cli_subcommands
@@ -1396,6 +1452,9 @@ endif()
 # RT-005 可执行模块适配器: Phase1/2/3 session → IModule (core 不依赖会话库)
 add_library(acsd_module_adapters STATIC
   lib/infrastructure/scheduler/src/module_adapters.cpp
+  # NORMALIZE_DATA §4-§7: 球面参考精度生产接线（config→typed 输入→算法库→staging;
+  # 不含科学公式, 数学在 acsd_phase1_noise, 序列化在 acsd_normalize_science）
+  lib/infrastructure/scheduler/src/normalize_precision.cpp
   # RELEASE-02 权重链（weight-chain-report §6）: HiPS 头帧级 SNR → 逆方差权重
   # （w = SNR²/F_ref²; 纯 FP64 + std, 无第三方依赖）。直接编入本 target ——
   # 不链 acsd_phase2_integrate: 后者重复编译 upm/rejection/sampler/
@@ -1407,6 +1466,13 @@ add_library(acsd_module_adapters STATIC
 # 版本单源 = 构建期 version_generated.h (与 CLI 共用同一生成头)。
 target_include_directories(acsd_module_adapters PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
+  # PSF.md §4: 单位总通量像元积分的公共头（数学在 PSF 库, scheduler 只消费）
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/integration/normalize_science/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/cpp/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/wrapper_phase1
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party
   ${CMAKE_CURRENT_BINARY_DIR}
   # RELEASE-02 权重链公共头 (acsd/weight_chain.h)
@@ -1423,11 +1489,15 @@ target_link_libraries(acsd_module_adapters PUBLIC
   acsd_core acsd_common acsd_contracts
   acsd_phase1_session acsd_phase2_session acsd_phase3_session
   acsd_cpu acsd_drizzle acsd_p1_dpsf acsd_p1_ipv acsd_p1_sdet
+  # NORMALIZE_DATA: 球面参考精度（noise 库数学 + sidecar 序列化/读回）
+  acsd_phase1_noise acsd_normalize_science
   # RELEASE-02 FIX-P1 (P1-1): Phase1 测光定标生产库 (star_matcher Tukey-IRLS
   # → k_photo); 由 p1_op_photometry 经 frame_photometry_fit 调用。
   acsd_phase1_photcal
-  # RELEASE-02 探针 (OFF 时仅 include 面, 零开销)
-  acsd_probes)
+  # RELEASE-02 探针 (OFF 时仅 include 面, 零开销; ON 时由 ACSD_DEV_MODE 派生)
+  acsd_probes
+  # DEV-MODE-001: 开发诊断 sink（OFF 时 INTERFACE-only ⇒ 无符号/无落盘路径）
+  acsd_dev_diagnostics)
 # P1-001: 生产头 include 面（dynamic_psf/ipv/star_detector/aio_hips 直读）
 target_include_directories(acsd_module_adapters PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/include
@@ -1439,17 +1509,11 @@ target_compile_definitions(acsd_module_adapters PUBLIC AIO_ENABLE_HEALPIX=1)
 # 开发模式开关传播（正本 docs/engineering/architecture/DEV_MODE.md「开关」一节）：
 # 各能力以编译期条件包裹 —— 关闭时对应分支不编进二进制。
 # 注意：用 PUBLIC 以便同链路（acsd / session / 测试）看到同一取值，避免同 TU 语义分叉。
+# DEV-MODE-001: 定义面收敛为**一个** ACSD_DEV_MODE。旧的三个子开关与 ACSD_PROBES
+# 已降级为由主开关派生的普通变量（文件头 set()），此处不再各自下发 compile
+# definition —— 业务代码只允许判断 ACSD_DEV_MODE 这一个宏。
 if(ACSD_DEV_MODE)
   target_compile_definitions(acsd_module_adapters PUBLIC ACSD_DEV_MODE=1)
-endif()
-if(ACSD_DEV_INTERMEDIATE_CACHE)
-  target_compile_definitions(acsd_module_adapters PUBLIC ACSD_DEV_INTERMEDIATE_CACHE=1)
-endif()
-if(ACSD_DEV_CHECKPOINT)
-  target_compile_definitions(acsd_module_adapters PUBLIC ACSD_DEV_CHECKPOINT=1)
-endif()
-if(ACSD_DEV_PROBES)
-  target_compile_definitions(acsd_module_adapters PUBLIC ACSD_DEV_PROBES=1)
 endif()
 
 # RT-008 CLI Runtime client: CLI 经公开 Runtime API 驱动 pipeline（不 include session/IO 内部头）
@@ -1484,6 +1548,9 @@ add_subdirectory(lib/algorithms/resample)
 add_subdirectory(lib/algorithms/fits_output)
 add_subdirectory(lib/algorithms/integration/phase1_product)
 add_subdirectory(lib/algorithms/integration/phase2_integrate)
+# NORMALIZE_DATA §7/§8: frame_science.json 唯一 serializer/reader
+# （旧产品读取兼容 + 局部模型文件 + 原子发布; 无科学公式）
+add_subdirectory(lib/algorithms/integration/normalize_science)
 
 # ── BLD-003 模块化安装骨架: 唯一 install 规则源 (白名单 install 树) ──
 # include 于全部 target 声明之后; 本文件只允许在根 CMake 出现 (BLD-002)。

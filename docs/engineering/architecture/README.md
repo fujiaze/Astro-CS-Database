@@ -1,3 +1,1 @@
-本目录是架构正本：`ARCHITECTURE.md` 是组件职责与依赖方向，`DATA_FLOW.md` 是数据流、
-执行模型与线程预算，`MODULE_MAP.md` 是模块到目录与产物的逐行登记。给读代码前建立全局视图的
-开发者阅读。
+本目录维护[系统架构](ARCHITECTURE.md)、[数据流](DATA_FLOW.md)和[模块地图](MODULE_MAP.md)，并区分目标合同与实现事实。Normalize 从[阶段架构](NORMALIZE_PIPELINE.md)进入[数据合同](../contracts/NORMALIZE_DATA.md)；开发诊断见[开发构建](DEV_MODE.md)，实现差异见[差异地图](SCIENCE_IMPLEMENTATION_DELTA.md)。

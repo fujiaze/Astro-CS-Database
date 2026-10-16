@@ -1,3 +1,3 @@
-# registry
+# 模块接口登记
 
-模块登记正本：每个生产模块一页，含职责与明确非职责、输入输出端口与数据单位、公共头与核心符号生命周期、配置 schema、执行类与并行轴、内存与所有权、错误与取消、独立验证命令与容差、已知限制。页面事实以源码 descriptor 与模块合同为准。
+本目录按真实调用记录 Normalize、Mosaic、Export 各模块的职责、数据交接、公开接口和验证入口。科学定义以 [science 正本](../../science/README.md) 为准，生产差异集中见[科学实施差异地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。

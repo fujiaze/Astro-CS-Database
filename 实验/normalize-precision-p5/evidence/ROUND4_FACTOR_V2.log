@@ -1,0 +1,39 @@
+# local-factor/v2 版本化精确因子合同（NORMALIZE_DATA §7.1 裁决）
+
+生产 run/norm-round1-r8（同一帧同一配置, Release 构建, exit=0）:
+  sidecar models[]: {"('covariance', 'acsd.normalize.local-factor/v2')": 64, "('drizzle_operator', 'acsd.normalize.local-model/v1')": 64, "('psf', 'acsd.normalize.local-model/v1')": 64, "('support', 'acsd.normalize.local-model/v1')": 64}
+  控制点 p0_r0: V_F=5439.9640804091068 SNR=13.558198375223254 rank=627.0
+  帧摘要 reference_snr=14.708858952409543
+
+生产 covariance 模型实读字段:
+  representation                 = acsd.normalize.local-factor/v2
+  logical_covariance_shape       = [798, 798]
+  derived_covariance_unit        = adu^2/sr^2
+  covariance_condition           = reference_source
+  factor_model                   = planar_diagonal
+  factor_shape                   = [633]
+  factor_variance_unit           = adu^2
+  operator_ref                   = p0_r0.drizzle_operator
+  operator_shape                 = [798, 633]
+  operator_unit                  = sr^-1
+  leaf_ipix_order                = HEALPix_NESTED
+  exact_factorization_of_model   = True
+  assumptions                    = ['diagonal_planar_condition']
+  solver                         = pivoted_householder_qr_rowspace
+  solver_relative_tol            = 1e-10
+  solver_rank                    = 627
+  solver_condition_number        = 53108407321.23119
+  background_basis_rank          = 1
+  flux_information               = 0.00018382474318190647
+  background_basis_shape         = [798, 1]
+  background_basis_unit          = 1/sr
+  background_basis_definition    = constant_fit_unit_column
+  unit                           = adu^2/sr^2
+
+量纲自洽: v_j sr^0 × R sr^-1 × Rᵀ sr^-1 = C sr^-2（reader 强校验）
+复现: g++ -std=c++17 -O2 -Ilib/include -Ilib/algorithms/integration/normalize_science/include \
+  -Ilib/algorithms/shared/healpix -Ilib/third_party -Ilib/infrastructure/aio/src -Ilib/infrastructure/aio/include \
+  -Ibuild/linux-sci-p5 实验/normalize-precision-p5/code/verify_round4_factor_v2.cpp \
+  build/linux-sci-p5/lib/algorithms/integration/normalize_science/libacsd_normalize_science.a \
+  build/linux-sci-p5/libacsd_phase1_noise.a build/linux-sci-p5/libacsd_aio.a \
+  build/linux-sci-p5/libacsd_common.a build/linux-sci-p5/libacsd_cfitsio.a -o /tmp/f2 -lpthread

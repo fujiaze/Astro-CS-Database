@@ -1,3 +1,1 @@
-# normalize
-
-单帧标准化管线与模块：把一帧传感器观测转换为光度与天球坐标已定义、噪声可传播的球面单帧产品。
+本目录给出阶段一的[实现导航](pipeline.md)和[接口实现规格](contracts.md)；科学因果链以 [Normalize 科学正本](../../science/normalize/NORMALIZE_SCIENCE.md)为准，字段与发布合同见[数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。真实生产接线及实现边界分别由[工程架构](../../engineering/architecture/NORMALIZE_PIPELINE.md)和[差异地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)维护。
