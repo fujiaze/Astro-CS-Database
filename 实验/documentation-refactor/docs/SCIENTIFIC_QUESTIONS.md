@@ -220,6 +220,14 @@
 
 影响：位置误差、候选归属、tile/leaf比较与所谓坐标精度上界。需要：明确方向集合、各阶/边界归属政策、独立参考和量化误差与浮点误差分离；本轮不推导新的通用界，不修改坐标内核。
 
+### Q26 ISA数值误差的比较尺度与独立参考
+
+原文：[CPU来源档案](CPU_SOURCE.txt)中AVX2_PROVIDER的“baseline相对科学参考在容差内，故avx2相对baseline在容差内⇔相对科学参考在容差内”、`|a−b|/max(1,|b|)≤2e−4`及“每元素数ULP”等断言。
+
+分歧：带1量级地板的指标不是全部值域的纯相对误差，两个独立比较的同阈值结论也不能直接互相等价。FMA改变舍入，强相消、次正规、非有限、编译器优化与下游归一可能改变误差解释，共享公式源不是独立真值。
+
+影响：后端等价、基线验证传递、性能选路前的数值责任。需要：固定单位/量级/有效域、直接variant对高精度reference、相消与极值反例、ULP/绝对/相对误差分离和传播到科学估计量的预算。本轮保留2e−4既有配置，不重推界、不改kernel或选路。
+
 ## 已确定设计下的实现与文档问题
 
 这些事项不需要再选物理模型，后续按确定合同实施或核实，不能混入 Q 条目作为设计授权。
@@ -262,6 +270,9 @@
 | E34 | HIPS_IO把归档读取写成已有保证，AIO旧细节同时登记archive写读/索引/storage未接线；接口枚举还被当阶段发布集合 | 正文区分目标、实际裸读与各层能力，单signal产品政策保持；不凭文档宣称归档生产支持 |
 | E35 | cmd_verify未重算cpu_profile摘要，也未运行完整run_manifest schema；writer基础字段两项profile为null，started/finished都在收尾取now，且只flush/rename不能证明完整fsync | 正文按真实写出/验证顺序与范围说明；读取完整函数后记录，不改清单或版本策略 |
 | E36 | CLI detail将运行--json写成单JSON、-force写成越过全部检查、日志双文件/清单接线和CPU资源退出10写成已实现 | 依据command_tree/subcommand/parser/commands改写真实JSONL、结构硬检查与磁盘错误，取消不再笼统删除已发布对象；不改CLI代码 |
+| E37 | capability_detect.c实际位置含src；cap_classify的AVX-512分支检查0xE0但独立于0x6分支，文档整组策略/完整OS前提和硬件一般定义混写 | 正文给真实入口与分支范围；合成不一致XCR0证据、硬件规范前提及检测/执行安全须后续核验，本轮不改能力位或探测算法 |
+| E38 | ISA_VARIANTS两族已拆门面/计算TU，AVX2_PROVIDER仍称整TU高级旗标；BACKEND/SECURE_LOADER混写加载安全强保证和尚未实现的Windows路径 | 统一两族ABI/清单/桥、门面隔离与Windows unsupported现状；hash到dlopen竞态/依赖解析尚需独立验证 |
+| E39 | 旧MANIFEST称validate_cpu_profile无生产调用，但当前commands.cpp实际调用后还独立进入memory/backend消费；benchmark可回落用户目录且stdout是路径+verdict | 正文按新调用说明，不据前置校验失败日志推断后续绝不消费；profile与run_manifest身份记录仍待完整核验 |
 
 ### 远端合并后的核对范围
 

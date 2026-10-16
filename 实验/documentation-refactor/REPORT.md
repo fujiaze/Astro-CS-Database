@@ -150,3 +150,11 @@ Runtime 续查确认：run_pipeline 使用 RuntimeResourceBudget 工厂，在调
 I/O主题 `759541170` 已立即推送。全文阅读CONFIG、CLI_PROTOCOL、CLI detail及运行清单合同，核对完整command_tree、cmd_verify、write_run_manifest与预检/parser相关分支。重写MANIFEST_VERIFY与CLI detail，修正协议中的取消/源码镜像描述，原文保存在CLI_RECORDS_SOURCE.txt。
 
 新增E35–E36，区分doctor实际校验、未接线画像hash、收尾now时间与真实运行起止、flush/rename与持久化确认、运行JSONL与非运行单JSON。没有运行doctor、生成模板或修改CLI代码。累计78份原始文件全文重写，25项待推导与36项工程/文档记录。
+
+## CPU后端、画像与loader续整理
+
+CLI主题 `922ecfb65` 已立即推送。全文阅读benchmark两页、BACKEND、CAPABILITY_PROBE、AVX2_PROVIDER、ISA_VARIANTS和SECURE_LOADER，重写这7份正文，原文含全部历史读数/位表/测试矩阵保存在CPU_SOURCE.txt。实际核对当前CMake相关目标、AVX2查询门面、capability的classify、CLI画像生成/保存与消费及secure_loader平台分支。
+
+正式解释区分两族ABI、清单、能力位、门面/计算TU、实际路由与可构建DSO；不将共享源当独立oracle，不从两次同阈值比较推出科学误差等价。新增Q26及E37–E39，保留原数值容差与算法；没有执行benchmark、反汇编、加载或科学运行。
+
+累计85份原始文件全文重写，26项科学/数值待核验问题，39项工程记录。长篇算法、GUI/测试、部分detail/存储及实验资料继续处理。
