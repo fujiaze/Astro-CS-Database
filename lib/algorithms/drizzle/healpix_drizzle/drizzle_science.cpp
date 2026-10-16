@@ -516,10 +516,14 @@ GateVerdict gate_covariance_propagation(const DrizzleOperator& op, const double*
     const double exact = op.aperture_variance(aperture_weights, v, &diag);
     const double scale = std::max(std::fabs(exact), std::fabs(diag));
     const double tol = diag_rel_tol * std::max(scale, 1.0);
-    if (exact + tol < diag) {
-        return fail(g, "aperture exact variance < diagonal-only (PSD violation)");
+    // C=R diag(v) R^T 为PSD，只要求任何有符号孔径 w 的 w^T C w>=0。
+    // exact-diag=2 sum_{p<q} w_p w_q C_pq；背景扣除的负权重允许此差为负，
+    // 因而 diagonal-only 并非一般下界，也不能用单边差检测非零交叉协方差。
+    if (!is_finite(exact) || !is_finite(diag) ||
+        exact < -tol || diag < -tol) {
+        return fail(g, "negative or non-finite covariance quadratic form (PSD violation)");
     }
-    const bool has_offdiag = (exact - diag) > tol;
+    const bool has_offdiag = std::fabs(exact - diag) > tol;
     if (claims_diagonal_exact && has_offdiag) {
         return fail(g, "diagonal-only reduction claimed exact while off-diagonal != 0");
     }
