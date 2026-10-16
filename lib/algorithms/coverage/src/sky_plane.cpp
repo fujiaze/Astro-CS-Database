@@ -3428,6 +3428,66 @@ int p2_sky_plane_build_joint(const P2SkySample* samples, std::uint64_t n,
         mm->own_enabled = 1;
         mm->own_step_deg = cfg.own_surface_step_deg;
     }
+
+    // P5 的身份必须绑定**最终生效**模型。基础 build 的 hash 在残差场 F_k
+    // 合入前已固定；它未包含 own grids / ordered frame binding，不能用于
+    // 当前 apply 的真实性校验或 E2 多算法臂对照。这里明确版本化扩展身份，
+    // 同时覆盖无 own 的联合模型，以免相同系数重新绑定帧仍哈希相同。
+    {
+        SkyPlaneModel* mm = static_cast<SkyPlaneModel*>(m);
+        std::string bytes;
+        auto add = [&](const void* ptr, std::size_t len) {
+            bytes.append(static_cast<const char*>(ptr), len);
+        };
+        const char version[] = "acsd-sky-plane-effective-model-v2";
+        add(version, sizeof(version));
+        const std::string base_hash(mm->info.model_hash);
+        const std::uint64_t base_size = static_cast<std::uint64_t>(base_hash.size());
+        add(&base_size, sizeof(base_size));
+        add(base_hash.data(), base_hash.size());
+
+        const std::uint64_t nf = static_cast<std::uint64_t>(mm->frame_ids.size());
+        add(&nf, sizeof(nf));
+        for (std::size_t k = 0; k < mm->frame_ids.size(); ++k) {
+            add(&mm->frame_ids[k], sizeof(mm->frame_ids[k]));
+            const std::uint8_t anchor =
+                (k < mm->is_anchor.size() && mm->is_anchor[k]) ? 1u : 0u;
+            add(&anchor, sizeof(anchor));
+            const std::int32_t comp = (k < mm->comp_of_frame.size())
+                                          ? mm->comp_of_frame[k] : -1;
+            add(&comp, sizeof(comp));
+        }
+        const std::uint64_t nanchors =
+            static_cast<std::uint64_t>(mm->anchor_frame_ids.size());
+        add(&nanchors, sizeof(nanchors));
+        for (std::uint64_t id : mm->anchor_frame_ids)
+            add(&id, sizeof(id));
+
+        add(&mm->own_enabled, sizeof(mm->own_enabled));
+        add(&mm->own_step_deg, sizeof(mm->own_step_deg));
+        const std::uint64_t ngrids = static_cast<std::uint64_t>(mm->own.size());
+        add(&ngrids, sizeof(ngrids));
+        for (const SkyOwnGrid& grid : mm->own) {
+            add(&grid.nu, sizeof(grid.nu));
+            add(&grid.nv, sizeof(grid.nv));
+            add(&grid.u0, sizeof(grid.u0));
+            add(&grid.v0, sizeof(grid.v0));
+            add(&grid.step, sizeof(grid.step));
+            const std::uint64_t nvals =
+                static_cast<std::uint64_t>(grid.vals.size());
+            add(&nvals, sizeof(nvals));
+            for (double val : grid.vals) {
+                // save() 把所有非有限grid值统一写成 JSON null；
+                // 同一科学缺失状态不能被不同 NaN payload 区分身份。
+                const std::uint8_t available = std::isfinite(val) ? 1u : 0u;
+                add(&available, sizeof(available));
+                if (available) add(&val, sizeof(val));
+            }
+        }
+        const std::string hx = acsd::crypto::sha256_hex(bytes.data(), bytes.size());
+        std::snprintf(mm->info.model_hash, sizeof(mm->info.model_hash),
+                      "%s", hx.c_str());
+    }
     *out_model = m;
     // S03/P5-C：联合解的最终生效模型即旁路描述对象（覆写各次尝试留下的 payload）。
     p5_component_dump_model(m);
