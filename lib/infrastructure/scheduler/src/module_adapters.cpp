@@ -9544,11 +9544,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           if (aio_content_hash_buffer_v1(cfg_text.data(), cfg_text.size(), hex) == 0)
             fdoc.config_sha256 = std::string(hex);
         }
+        // frame_nside=2^K 指向真实HEALPix最小叶; HiPS tile order
+        // 仅在512x512 tile目录映射时为 K-9，不得写入 signal.leaf_order。
         int leaf_order = 0;
         {
           int k = 0;
           while ((1u << k) < (unsigned)frame_nside) ++k;
-          leaf_order = k - 9;
+          leaf_order = k;
         }
         fdoc.signal.leaf_order = leaf_order;
         fdoc.signal.scale_state = frame_applied ? "relative_scaled"
