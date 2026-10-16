@@ -1,14 +1,12 @@
 # HEALPix 球面 Drizzle、HiPS 层级与相关噪声
 
-> 科学正本；上游：docs/ACSD_DESIGN.md §2.3、§4.2、§6；基础量纲见 docs/science/unified/UNIFIED_SCIENCE_MODEL.md；参考 SNR 的统计语义见 docs/science/noise_snr/NOISE_SNR.md。重写日期：2026-10-14。
->
-> 本文描述**可证明的理想算子**、**实际几何/浮点近似**及**阶段二信号与阶段三投影**的边界，不以某个单次测试的高精度残差宣称全域精确。
+本分册依据[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，定义球面交叠、信号归一及相关噪声。条件参考精度见[噪声分册](../noise_snr/NOISE_SNR.md)，实现状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
 ## 1. 系统坐标与图像量
 
 输入平面 WCS 是含 SIP 等适用畸变的像元足迹映射；像素中心与边界不是同一个对象。内部天球方向采用 ICRS 单位向量/弧度，外部常见接口为 RA/Dec 度；RA 穿越 0°、极区、极赤道转折和 HEALPix 基面边界需在球面做几何处理，不能以普通经度差值直接插值。
 
-HEALPix 使用 NESTED、nside=2^K，所有叶为等立体角
+HEALPix的等面积与曲边由[1]定义。ACSD使用 NESTED、nside=2^K，所有叶为等立体角
 \[
  \Omega_{\rm leaf}=\frac{4\pi}{12\,{\rm nside}^2}.
 \]
@@ -18,7 +16,7 @@ HEALPix 使用 NESTED、nside=2^K，所有叶为等立体角
 
 ## 2. 理想 Drizzle：一份面积定义贯穿全部公式
 
-输入像元 j 的 drop 是原像元在约定的球面收缩映射下得到的 D_j（0<pixfrac≤1）。定义：
+Drizzle通过缩小足迹控制额外卷积和噪声相关[2]。输入像元 j 的 drop 是原像元在约定的球面收缩映射下得到的 D_j（0<pixfrac≤1）。定义：
 - A_j=area(D_j)：**实际**收缩 drop 球面面积；
 - Ω_j=area(未收缩源像元足迹)：真实源面积；
 - H_p：目标 HEALPix 叶的球面区域；
@@ -70,7 +68,7 @@ HEALPix 使用 NESTED、nside=2^K，所有叶为等立体角
 \]
 另外检查源/目标 footprint、面缝走向、负交叠面积、候选遗漏、浮点下溢和近零 drop。第一个量接近 0 **不能排除**源/目标几何同时采用错误曲边模型。
 
-现有 P3 数值修复在指定极端构型使分割残差由约 −3.209422×10^-3 改至 −8.370272×10^-10，1500 个实验构型旧版 218 个超过 10^-6、修复版 0 个；这仅是旧/新两种**当前几何模型的数值稳定性**对照，不是球面真实曲边和所有 nside/pixfrac/WCS 的统一误差上界。大 drop、FP32、跨面等继续独立验证，参见 实验/healpix-polar。
+几何数值研究的构型、分割残差和失效域见[球面实验报告](../../../实验/healpix-polar/REPORT_experiment.md)及[曲边推导](../../../实验/healpix-polar/docs/DERIVATIONS-P3.md)。某个近似几何模型的分割残差不是与真实曲边的误差上界。
 
 ### 3.2 独立坐标测试
 
@@ -124,11 +122,11 @@ D_p 是累计 drop 交叠面积，允许大于 Ω_leaf（多帧、多 drop 重�
 
 ## 6. HiPS NESTED 局部索引与 FITS 文件顺序
 
-Tile宽度固定为 512（2^9）时，某 tile 的 leaf 分辨率 order_leaf=order_tile+9。NESTED local 序由 (x,y) 的位交错构成，当前共享实现约定：x 占偶数位，y 占奇数位；FITS row-major 像元映射是
+Tile宽度固定为 512（2^9）时，某 tile 的 leaf 分辨率 order_leaf=order_tile+9。NESTED local 序由 (x,y) 的位交错构成，ACSD的共享坐标约定：x 占偶数位，y 占奇数位；FITS row-major 像元映射是
 \[
  \mathrm{index}_{\rm FITS}=(511-x)\cdot512+y.
 \]
-此映射是**ACSD 采用、经现有参考生产者对拍的约定**；它并非仅由 NESTED 编码和 FITS 标准分别推出的唯一 HiPS 图像排列。另一生产者与多个波段/基面需继续独立核实，不应用生产读写器相互 round-trip 的 PASS 代替独立手性检查。
+此映射是**ACSD采用的矩阵方向约定**，须与HiPS标准及独立生产者核对[3]；它并非仅由 NESTED 编码和 FITS 标准分别推出的唯一 HiPS 图像排列。独立手性检查应覆盖多个波段和基面；生产读写器的相互往返只证明内部一致性。
 
 写端/读端/export 端须共享函数而不是复制位操作公式。HEALPix 位置关系与 tile 像素矩阵排布为不同对象。需验证父子变换、跨面相邻、WCS 生成与 FITS 显示方向。
 
@@ -145,7 +143,7 @@ Tile宽度固定为 512（2^9）时，某 tile 的 leaf 分辨率 order_leaf=ord
 
 ## 8. 阶段三从 HiPS 导出平面
 
-阶段三只读取阶段二信号 HiPS，按用户设定 WCS 生成二维 FITS，用于后期处理；默认不以原始 CCD/CMOS 帧绕开 HiPS 重建。输出 WCS 由目标投影准确计算，验证投影手性、像元中心、角尺度、奇点和 RA wrap。
+阶段三读取兼容的HiPS信号产品（典型输入为阶段二马赛克），按用户设定 WCS 生成二维 FITS，用于后期处理；默认不以原始 CCD/CMOS 帧绕开 HiPS 重建。输出 WCS 由目标投影准确计算，验证投影手性、像元中心、角尺度、奇点和 RA wrap。
 
 分开两种用途：
 - **通用后期**：按明确方法重采样已有球面信号；nearest、局部线性和按区域交叠的面积重采样可作候选，参数及实际生效方法记录在元数据。
@@ -153,17 +151,14 @@ Tile宽度固定为 512（2^9）时，某 tile 的 leaf 分辨率 order_leaf=ord
 
 不能将阶段三的 bilinear 重采样造成的噪声峰度/空间频谱变化称作 Drizzle 自身的误差；Drizzle 与 export 必须在对照实验中单独打开/关闭与报告。
 
-## 9. 对应实现和独立研究
-
-- lib/algorithms/shared/healpix/healpix_core.cpp（坐标与 NESTED）；
-- lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp、spherical_overlap.cpp（交叠、累加）；
-- lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp（信号/方差输出接口）；
-- lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（HiPS 产品及父层）；
-- lib/algorithms/resample/p3_resample.cpp（阶段三重采样）；
-- 实验/healpix-polar/REPORT_paper.md 与该目录代码和证据。
-
-理论参考：Fruchter & Hook 2002；Górski et al. 2005；IVOA HiPS Recommendation 1.0；FITS Standard 4.0。引用具体算法闭式与有效域时，优先使用实验/shared/references/CORE_REFERENCES_VERIFIED.md 中核对过的原文。
-
-### 面积平均的适用条件
+## 9. 面积平均的适用条件
 
 一般情形的信号是 S_p=Σ a_jp(Ω_j/A_j)B_j / Σ a_jp(Ω_j/A_j)。只有参与该像元的 Ω_j/A_j 为共同常数时才简化为 Σa_jpB_j/Σa_jp；例如相同局部面积收缩比例的理想情形。既然真实球面上 A_j=pixfrac²Ω_j 只是近似，不能同时无条件写面积平均等式。常值场保持和分配通量守恒不依赖这一简化。科学接口必须传实际 Ω、A、a 或同一 R，不由消费者重建近似比例。
+
+## 10. 参考文献
+
+[1] Górski, K. M. et al. HEALPix: A Framework for High-Resolution Discretization and Fast Analysis of Data Distributed on the Sphere. ApJ, 622, 759–771. [论文](https://arxiv.org/abs/astro-ph/0409513)；[官方几何说明](https://healpix.sourceforge.io/html/intro_Geometric_Algebraic_Propert.htm)。
+
+[2] Fruchter, A. S., Hook, R. N. Drizzle: A Method for the Linear Reconstruction of Undersampled Images. PASP, 114, 144–152. [论文](https://arxiv.org/html/astro-ph/9808087v2)。
+
+[3] IVOA. HiPS: Hierarchical Progressive Surveys. [推荐标准](https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf)。

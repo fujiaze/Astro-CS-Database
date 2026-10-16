@@ -1,6 +1,6 @@
 # ACSD 科学范围、适用域与不可辨识量
 
-> **科学范围正本，2026-10-14 收敛版。** 解释权：docs/ACSD_DESIGN.md 与 science/unified/UNIFIED_SCIENCE_MODEL.md；阶段一唯一完整因果链在 science/normalize/NORMALIZE_SCIENCE.md。本文件只说明假设/物理限制，不重新定义校准、SNR、Drizzle 或 Mosaic 的公式。原版“跨滤镜不得直接合并”“只用 ADU/sr”“增益不建模”“只输出 HiPS 的方差图像”等文本与当前用户设计冲突，已撤销。
+本分册依据[最高设计](../../ACSD_DESIGN.md)和[统一科学模型](UNIFIED_SCIENCE_MODEL.md)，说明模型假设、可辨识域与产品边界。完整阶段一因果链见[Normalize科学正本](../normalize/NORMALIZE_SCIENCE.md)。
 
 ## 1. 系统范围
 
@@ -14,7 +14,7 @@ ACSD 从 CCD/CMOS 天体观测构建天球线性成像信号：Normalize 对每�
 
 ## 3. WCS 原始输入与解算域
 
-原始帧含有完整 FITS WCS 只是一个可观察的文件属性，**不是 Normalize 才能使用的先验条件**。IPV 可在粗指向/板尺度、Gaia 星表和实际像元的基础上独立检测求解。初始中心指向只提供 hint，不能冒充已解 WCS；只有真实求解或独立有来源、完整经验证的 explicit WCS 才能用于 Drizzle。unsolved 帧不能虚构球面位置。历史只有 header census 的结果不得称为 IPV 失败率。
+原始帧含有完整 FITS WCS 只是一个可观察的文件属性，**不是 Normalize 才能使用的先验条件**。IPV 可在粗指向/板尺度、Gaia 星表和实际像元的基础上独立检测求解。初始中心指向只提供 hint，不能冒充已解 WCS；只有真实求解或独立有来源、完整经验证的 explicit WCS 才能用于 Drizzle。unsolved 帧不能虚构球面位置。文件头普查不测量IPV成功率或失败率。
 
 ## 4. 线性信号单位与有效域
 
@@ -22,7 +22,7 @@ ACSD 从 CCD/CMOS 天体观测构建天球线性成像信号：Normalize 对每�
 
 ## 5. 随机噪声、共同母版与系统项
 
-在增益 g=e-/ADU 有已知来源时，可以描述光子散粒、读噪、暗流与校准主版方差；无 gain 时明确记录条件近似和适用域，不能假设 g=1。输入 master bias/dark/flat 有限不确定性和共享相关性时应由校准雅可比与条件协方差表示；若当前代码尚未计算，记录 unmodelled，不把它写成“按物理定律不需要”。
+在增益 g=e-/ADU 有已知来源时，可以描述光子散粒、读噪、暗流与校准主版方差；无 gain 时明确记录条件近似和适用域，不能假设 g=1。输入 master bias/dark/flat 有限不确定性和共享相关性时应由校准雅可比与条件协方差表示；未计算或缺输入时记录unmodelled，不把它写成“按物理定律不需要”。
 
 在已有光度标度 α 下随机噪声协方差按 C'=D_α C D_αᵀ；α 本身的估计不确定性、星云未知响应、跨帧系统项单独讨论，不能假装都是独立像元白噪。Drizzle 与 HiPS 重采样会引入相关噪声，邻叶不一定独立。
 
@@ -44,12 +44,8 @@ ACSD_DEV_MODE 只决定是否编入被动开发中间快照/详细性能探针�
 
 完整协方差巨矩阵、未知逐像素 SED、精确无卷积天空、对所有仪器都成立的通带变换以及自动从单幅图恢复未知探测器增益**不是已承诺可获得的科学产物**。它们可以通过经检验的局部核、外部校准、限定目标或明确估计误差近似，但不能依靠文档措辞变为已知。
 
-## 9. 唯一横向科学正本与实现状态
+## 9. 科学定义与实现状态
 
-- 全项目科学基础：science/unified/UNIFIED_SCIENCE_MODEL.md、DATA_SEMANTICS.md。
-- **阶段一横向科学链：science/normalize/NORMALIZE_SCIENCE.md。**
-- 数学专题：science/calibration、detection、psf、photometry、noise_snr、drizzle、sky、integration、projection。
-- 真实实现和改码归属：engineering/architecture/NORMALIZE_PIPELINE.md。
-- 旧 detail/normalize/pipeline.md 和 science/algorithms/normalize/* 只为接口/旧假设历史信息，不再修改全局范围。
+全项目物理模型由[统一科学模型](UNIFIED_SCIENCE_MODEL.md)和[数据语义](DATA_SEMANTICS.md)承载；阶段一因果链由[Normalize](../normalize/NORMALIZE_SCIENCE.md)统一，各专题细化公式与适用域。正式对象见[Normalize数据合同](../../engineering/contracts/NORMALIZE_DATA.md)，C++消费与迁移见[接口规格](../../detail/normalize/contracts.md)。
 
-这是科学成立域而非审批式门禁；独立实验用于证伪模型或界定误差，不靠重复 PASS 标志替代科学证据。
+生产实现与证据集中见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。独立实验可以证伪模型或界定误差；代码存在、实际运行和独立支持分别报告。

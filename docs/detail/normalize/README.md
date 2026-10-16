@@ -1,3 +1,1 @@
-阶段一实现级导航在 [pipeline.md](pipeline.md)，但它不再定义新的 Normalize 科学方案。唯一横向科学链是 [NORMALIZE_SCIENCE.md](../../science/normalize/NORMALIZE_SCIENCE.md)；C++ 模块与真实产品接线在 [NORMALIZE_PIPELINE.md](../../engineering/architecture/NORMALIZE_PIPELINE.md)。旧 module 页仅供查看当前/历史 API。
-
-具体 typed 字段、端口与迁移见 [contracts.md](contracts.md)，正式序列化由 [数据合同](../../engineering/contracts/NORMALIZE_DATA.md) 拥有。
+本目录给出阶段一的[实现导航](pipeline.md)和[接口实现规格](contracts.md)；科学因果链以 [Normalize 科学正本](../../science/normalize/NORMALIZE_SCIENCE.md)为准，字段与发布合同见[数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。真实生产接线及实现边界分别由[工程架构](../../engineering/architecture/NORMALIZE_PIPELINE.md)和[差异地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)维护。

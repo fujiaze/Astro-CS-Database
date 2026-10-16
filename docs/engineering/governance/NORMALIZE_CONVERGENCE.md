@@ -1,121 +1,90 @@
-# ACSD 阶段一设计收敛：文档权威、实际源链与已解决冲突
+# Normalize 文档权威与证据归属
 
-> **文档收敛登记，不是实验运行清单和审批门禁。** 2026-10-14 前台科学架构统一裁决；它只说明哪份资料控制什么、为什么旧叙述不可再用于改码。上游 docs/ACSD_DESIGN.md，科学主链 science/normalize/NORMALIZE_SCIENCE.md，工程主链 engineering/architecture/NORMALIZE_PIPELINE.md。实际代码静态审查版本 6a62ea10eb7f8ad8cfbdee16fa39afc4d27baf0e；之后真正代码状态以源码及独立实验为准。
+本页说明阶段一设计的唯一归属及科学结论的证据边界。最高设计固定产品和用户目标[1]；Normalize 科学正本固定估计量与因果链[2]；工程架构和数据合同固定实现责任与接口[3,4]。本页不另立科学模型，也不作为运行任务包或研发审批机制。
 
-## 1. 我们不再同时维护六份“完整 Normalize 科学设计”
+## 1. 每个主题只有一份正本
 
-长期文档权威按**物理问题与软件责任唯一归属**：
-
-| 层级 | 文件 | 唯一责任 | 与别的文件冲突时 |
-|---|---|---|---|
-| 用户目标 | docs/ACSD_DESIGN.md | 三命令、产品边界、用户自由跨设备合并、总架构 | 用户目标/阶段结果以此为准 |
-| 全项目科学 | science/unified/UNIFIED_SCIENCE_MODEL.md、DATA_SEMANTICS.md、SCIENCE_SCOPE.md | 观测模型、物理量纲、整体可辨识性 | 不单独复写每阶段节点图 |
-| **阶段一科学横向主链** | **science/normalize/NORMALIZE_SCIENCE.md** | IPV→Gaia sources/PSF→XP→SNR→Drizzle 的唯一估计量/输入输出语义 | 覆盖旧 Normalize 流程宣称 |
-| 科学专题 | science/calibration、detection/ASTROMETRY、STAR_DETECTION、psf/PSF、photometry/PHOTOMETRY、noise_snr/NOISE_SNR、drizzle/DRIZZLE | 各自数学公式、误差/适用域 | 不再次独立定义 Normalize 全链 |
-| **阶段一工程横向主链** | **engineering/architecture/NORMALIZE_PIPELINE.md** | 当前真实 C++ 节点/数据依赖、Typed 目标、模块责任 | 代码现状必须依真正调用/实验更新 |
-| 工程专册 | engineering/architecture/DEV_MODE.md、standards/DIAGNOSTIC_PROBES.md、contracts/*、api/* | 编译调试、I/O/API/ABI/运行边界 | 不修改数学模型 |
-| 旧细节/接口 | detail/normalize/pipeline.md、detail/registry/acsd.phase1.*、science/algorithms/normalize/* | 旧接口、源码锚及局部历史推导 | 与上述冲突则作为历史而非目标 |
-| 实验记录 | 实验/photometric-magnitude、absolute-snr、healpix-polar、m42-realdata、science-v2-impl | 给定代码/输入下的事实、反例和未运行项 | 不能替代目标设计，也不能被“运行成功”升级为普适结论 |
-
-旧 detail/normalize/pipeline.md 已收敛成单页导航/现状摘要，旧长文仍在 Git 历史；不用为了保留过时定义而再开新文档。旧科学研究论文与原始实验数据保留，不因架构收敛自动删除或篡改。
-
-## 2. 实际科学冲突的裁决表（不是留给 Agent 决定）
-
-| 编号 | 以前矛盾的说法 | 已确定的唯一答案 | 当前代码与科学验证状态 |
-|---|---|---|---|
-| N01 | “31 帧缺 WCS → 需要外部解算/不能进阶段一” | 原始 FITS 头没有完整 WCS 与 ACSD IPV 解析无直接等价关系；先使用阶段一自带 IPV 实际逐帧解算 | WCS solver 源码和正式节点真实存在；历史 census **没有运行 IPV**，这 31 帧是否会解出来是未知，而不是失败事实 |
-| N02 | “星点检测必须在 plate solve 前”与“Gaia 引导检测在 plate solve 后” | IPV 内部盲检 solver_detections 在解算过程中；正式 Gaia-guided science_sources 在解算后 | p1_op_wcs 和 p1_op_star_psf_impl 已分开，旧文件混称两个对象 |
-| N03 | “p1_session.cpp 已是完整 Normalize”与“mod adapters 才有 WCS/XP/Drizzle” | 用户唯一全链经 CLI 的 P1NodeModule；p1_session 只为校准/坏点局部底座或兼容 | 源码 tail 已明确后六域 unavailable；代码组织待收敛 |
-| N04 | “跨滤镜不得合并”与“用户自由选择” | 用户可以自由在 Mosaic 组合；Normalize 可按母版/响应分组，每帧真实 R_k 定标，不准拿字符串限制合法观测 | Phase2 coverage 的 filter mismatch 已移除；Phase1 PHOT_PASSBAND_IDENTITY_INCONSISTENT 仍拒同组混响应且须按物理模型重构 |
-| N05 | “母版方差固定不传播”与“必需完整误差传递” | 科学目标是雅可比及共享母版相关模型；当前未建模项状态 explicit unmodelled，不能冒充零或完整绝对 SNR | science/calibration §5.7 已修订；生产算法未据此修改 |
-| N06 | “光度系数 α 已应用”与“所有产品还是原始 ADU/sr” | 线性标度施加一次；根据真实数值单位/response 写 BUNIT/provenance。Relative scale 不等同 SI flux | P1 photoapplied 流存在，实际各分支标度与 writer 标签要对照；旧数值量级检查仅为尺度自洽 |
-| N07 | “公共 F0=一批星中位 ADU”与“各帧同 reference SED 信息可比” | 共同参考的是 SED/颜色/光度系统；给每帧匹配其 R_k 与 applied unit 的 F_ref,k，不能仅依内部 star median | 旧 p1_op_noise/snr_frame_science.cpp 的 group-common F0 有真实生产路径；canonical 模型仍待接线 |
-| N08 | “SNR Catalogue 已有所以稀疏控制点已完成” | legacy snr_psf=(A−B)/mad 与以局部 PSF/covariance 定义的 F_ref/√V_F 不同；要一个 canonical producer/schema/consumer | AIO 有 legacy Catalogue writer；真正绝对空间控制点及 P2 dense consumer 未闭合 |
-| N09 | “PSF FWHM 就代表参考信息量” | 必须使用与实际观测向量同单位的归一响应 h 和噪声/背景 nuisance；FWHM 只是参数 | 既有 PSF 模型可复用，V_F 精度算子的组合尚待证明 |
-| N10 | “所有内部 JSON 均是可用开发模式关掉的中间产物” | 同阶段实际依赖必须始终存在，开发 snapshot 只是只读旁路；工程目标 typed ports + 正式科学 spill/缓存与 dev 数据隔离 | typed DAG 边已接多处，尚有 p1_wcs/phot/snr/stack 等文件供实际消费者读 |
-| N11 | “三阶段 exit=0 和 tile 一致即证明阶段一科学已通” | E2E 证明有限功能和输入域，不能证明独立 astrometry/photometry/SNR/drizzle 物理准确性 | 8 帧 Hα 等实跑、ON/OFF tile 一致有价值，但 canonical SNR/曲边/Gaia XP 多设备尚无完整独立证明 |
-| N12 | “Phase2 单信号所以 Phase1 应删去一切辅助统计数据” | Phase1 可以发布必要 PSF/noise/ivar 与 sparse controls；Phase2 最终仅一个 signal 图像通道，二者并不矛盾 | 当前 Phase1 多层辅助产品存在；是否有科学依据按具体模型/单位判断 |
-
-以上每条中，“科学裁决”已由前台完成，不交 Agent 再重新投票；“实现状态未知/未闭合”是**真实现状**，并非新的第二设计方案。
-
-## 3. 科学可信性应该怎么表述
-
-对任一子模块用这五种**事实**标记，不把它们当审批门：
-1. DESIGNED：公式及被估计量定义明确；
-2. CODE_EXISTS：项目里确实存在函数；
-3. PROD_REACHED：真实 acsd normalize 命令调用到了该函数；
-4. PRODUCT_OBSERVED：以真实输入获得可独立读取的产品和元数据；
-5. INDEPENDENTLY_SUPPORTED：独立参考/解析/前向随机实验支持定量正确性与适用域。
-
-例如 IPV 目前至少为 CODE_EXISTS + PRODUCER_WIRED；raw-no-WCS 31 帧的 PROD_REACHED/PRODUCT_OBSERVED 仍未在提交证据中体现。头部普查仅是输入资料，不在 IPV 成功与失败这两个状态中。frame_snr HiPS 头和自身 p1_snr.json 逐位相同属于 PRODUCT_OBSERVED，不是 sparse V_F 的 INDEPENDENTLY_SUPPORTED。
-
-历史负例不删除，不让一个真实数据 smoke 的退出码覆盖理论反例。没有必要为了这五种标签再新增一个自动检查“门禁系统”。
-
-### 3.1 已上传证据对 Normalize 各段真正支持到哪里
-
-**这是对当前 GitHub 中 Agent 实跑记录/源码的独立语义复核，不是前台重跑 /testdata 得到的新实验。** 来源：实验/science-v2-impl/docs/E2E_RUN.md、SCIENCE_V2_FACT_REPORT.md、实验/engineering-evidence/DEV-MODE-01/README.md 与实际 module_adapters.cpp。数值只用于明确证据强弱，不构成新的“运行计划”。
-
-| 环节 | 已有事实 | 尚未被这些事实证明 |
+| 主题 | 正式归属 | 下级资料的用途 |
 |---|---|---|
-| 校准与坏点 | 既有节点、真实母版/帧 E2E，选定光帧校准图统计；历史修复真实参与 | 共享 master 误差/相关噪声全传播、任意设备数据域 |
-| 天体测量 IPV | 生产 p1_op_wcs 真调用 ipv；历史 DEV-MODE-01 记录一帧 wcs_source=ipv、SIP samples 几何复核 | **原始头无 WCS 的 31 帧实际 IPV 求解结果**；外部独立 Gaia held-out 全域误差及真实成功率 |
-| 科学源/PSF | 生产 p1_sources/p1_psf 对象和可调用 guided detector；一些局部源结果存在 | 所有帧 source_id 绑定/PSF 实际积分归一/独立注入回收质量 |
-| Gaia XP photometry | 真实节点产出 p1_phot、k_photo 与条件 photometric provenance；历史 P1 M42 对某类帧有残差读数 | 跨设备/通带已做可靠响应同一化、未知 SED 的无偏性、每条路径 BUNIT 与 photo scale 完全一致 |
-| noise/frame reference SNR | 8 帧 Hα E2E 中一帧 ACSD_FRAME_SNR 与 p1_snr.json 同为 14.042478467183946 | 这个数的**绝对准确性**；实跑已标记 upper_bound_no_gain，缺源泊松项 |
-| canonical sparse controls | 旧 Catalogue writer 存在，现有 HioSnrControlPoint 为 (A−B)/mad | **F_ref,k/√V_F 的真实空间控制点**；P1 canonical producer → P2 consumer，现有产物未闭合 |
-| sphere Drizzle | 已观察 8 帧逐帧 HiPS、原始仪器 ADU/球面面积量级自洽；对照 58.46 ADU/px 和 Ω≈2.0799e−11 sr 导出 2.81e12 ADU/sr 的量级 | HEALPix 真曲边/所有 WCS 畸变/相关噪声等独立误差已正确，量级正确不等于完整守恒与 PSF 无损 |
-| 产品/诊断 | 双编译构建的 1496 公共科学文件逐字节一致的 Agent 记录；阶段一至阶段三选定两帧 E2E exit=0 | 完整阶段一科学对象在所有帧具备，或多设备/无预置 WCS/缺 gain 的真实适用域普遍成立 |
+| 三命令、产品、用户自由组合 | 最高设计[1] | 解释功能，不能改写阶段边界 |
+| 完整 Normalize 科学链 | Normalize 科学正本[2] | 专题分册细化校准、天测、PSF、测光、噪声、Drizzle |
+| 生产 DAG 与模块责任 | Normalize 工程架构[3] | detail 页说明实际接口和消费方法 |
+| 类型、单位、端口、能力与 sidecar | Normalize 数据合同[4] | 实现规格[5]定位 C++、配置和迁移；schema 只描述机器形状 |
+| 目标与代码的差异 | 科学实施差异地图[6] | 集中记录可追踪符号和边界，导航页不复制全量待办 |
+| 真实执行、反例与测量 | 对应实验单元及保留证据 | 说明特定输入、源码和条件的事实，不成为第二套科学定义 |
 
-因此，**阶段一尚未通过完整独立科学链验证**是准确表述；**阶段一没有天测解算器**、**31 帧确定无法求解**则是错误表述。下一轮任何报告都应能把真实 solver 的输出与简单头部 census 分开，且把已定义模型和已得到物理独立证据分开。
+`docs/detail/normalize/pipeline.md` 是实现导航，`docs/detail/common/unified_model.md` 是公共对象的消费说明。模块登记页、算法页和机器注册表都不能凭冻结措辞或测试标签反向定义 F_ref、WCS、SNR、通带准入或最终产品。
 
-## 4. 当前代码收敛的方向（只有设计规格，暂不编写运行任务）
+## 2. 统一的科学与工程解释
 
-- 恢复统一 FrameIdentity/CalibratedPlane/AstrometrySolution/ScienceSourceCatalogue/EffectivePsfModel/PhotometricSolution/ConditionalNoiseModel/SparseReferencePrecision/DrizzleModel 的物理关系，复用已有实现与稳定数据指纹。
-- 保持 IPV 作为 WCS 计算唯一求解器；明确 solved vs explicit_config、solver_detections vs science_sources；p1_session 校准局部身份而非完整产品。
-- 同一模型目标只计算一次，逐帧 R_k 的 XP response/scale 必须与 noise F_ref,k 的单位配对；canonical sparse controls 不再用 legacy 数据无解释冒名。
-- 类型/数据所有权归对应算法模块；module_adapters.cpp 主要保留 DAG adapters 和生命周期，减少在 16000 行编排代码里逐处定义数学。
-- P1 writer 一处声明和发布长期科学 HiPS/模型，阶段内 work cache 显式管理；普通 DEV snapshot 不提供科学数据依赖。
-- 阶段二权重算法的最终选择继续暂缓；阶段一先保证提供可解释且有版本的输入科学模型。
+| 问题 | 采用的解释 |
+|---|---|
+| 原始头部没有 WCS | 只是文件属性；以 IPV 实际尝试和逐帧结果判断 solved/unsolved，不能据 census 要求外部解算 |
+| 解算候选与科学星表 | IPV 私有 solver_detections 用于几何求解；science_sources 在完整 WCS 后由 Gaia 引导，两者职责不同 |
+| block 与设备/通带 | block 是母版和模型复用范围；不同设备/滤镜由用户决定组合，每帧响应须如实绑定，不能由首帧标签替代 |
+| 光度与单位 | 线性标度施加一次，随机协方差按二次幂变化；BUNIT、参考通量、application ID 与真实数值配对 |
+| 参考源与摘要 | 共同参考是具名 SED/光度约定或显式单位通量；检出星中位数、逐源 proxy 和兼容帧级 SNR 不自动成为 canonical controls |
+| precision 完成时间 | noise 先准备平面条件模型，Drizzle 后由同一 noise 库使用实际 R 完成球面 h/C/Z、V_F 与摘要；不设置调度环 |
+| 点源与面亮度精度 | I_F=SNR²/F_ref²；w_B=I_F/T，T=V_B/V_F 有量纲且条件相同；不默认 T=1 |
+| 母版与共同误差 | Jacobian 和共享误差属于目标模型；没有测量或实现的项明确 unmodelled，不作为零或完整精度 |
+| 信号与精度能力 | 合法 signal 可以伴随 precision unavailable；损坏模型则是数据错误，不能以同一 unavailable 状态掩盖 |
+| 各阶段发布对象 | 阶段一逐帧 signal 与必要科学辅助对象；阶段二最终单 signal HiPS；阶段三平面 signal FITS |
+| 数据载体 | Runtime typed 对象和正式 AIO spill/cache 属科学路径；开发 snapshot/perf 是旁路，不能供下游取数 |
 
-这里不提供具体运行命令、测试批次、阈值打卡或 Agent 自主科研项目列表。代码由 Agent 按前台科学和工程正本实施；如果算法数学真的被独立反例否定，返回证据给前台修正唯一主文档。
+这些解释由相应正式正本承载。发现可验证反例时提供原始证据，由科学负责人修正统一定义；实现方不能独立另定参考通带、SNR 或误差模型。
 
-## 5. 下一次前台更新职责
+## 3. 状态词描述事实
 
-前台负责以上**三份主文档的数学/代码归属**，同步顶层 docs/ACSD_DESIGN.md、science README、engineering README、DOCUMENT_INDEX.yaml 和 AGENTS.md 的指向，旧 task package/第二轮运行提示暂不拥有设计权限。Agent 可以提交真实代码/源调用变化清单和事实报告，不能编辑上述主文档重新创立定义。
+文档明确规定某对象，称为“目标已定义”。源码有函数或类型，称为“代码存在”。调度分支实际连接到它，称为“静态接线存在”。有命令、输入和输出记录，才能称为“在该构型运行并观察到产品”。独立解析、外部实现、前向模拟或重复观测支持误差范围时，才陈述相应的独立科学支持。
 
-本收敛令仍未修改 C++ 与真实服务器的数据，故不作“阶段一完成”的表述。
+这些事实不能互相替代，也不是依次审批的关卡。例如 serializer/reader 都存在，不代表 reader 已核验所有引用；R 与 h/C 可写出，不代表模型的 PSF、截断、单位和母版误差完整；退出码成功不代表覆盖了所有预期输入 occurrence。
 
-## 6. 接口裁决与实施边界
+## 4. 已有证据支持的范围
 
-阶段一完整接口已由 NORMALIZE_DATA 与 detail/normalize/contracts 定稿：参考缺失不发明中位 F0；唯一 sidecar 为 frame_science.json；noise 平面生产、Drizzle 后由 noise 库完成球面 precision；已应用面和原生 gain 坐标分开；Runtime typed payload 与正式 cache 逐边迁移；每帧状态明确。
+Normalize 已有真实八节点调用、球面参考精度生产调用和 sidecar 发布调用。当前具体实现限制由差异地图[6]记录，不能沿用“只有 Catalogue writer、没有 canonical producer”或“所有类型/reader 均不存在”的概括。
 
-该规格允许执行者推进完整阶段一代码，不再限于只做结构整理。此前第 4、5 节描述的“接口待细化”工作已由这两份合同承接；多阶段执行包保持历史身份。代码、source set、port registry、AIO reader/writer、老产品 adapter 的更新由执行者完成；本次前台修改只定稿文档、schema 和形状示例，没有在 /testdata 重跑科学实验。
+独立复核[7]记录一帧原始头无 WCS 的 IPV 尝试与解，也明确该帧未施加测光。它支持这一帧确实进入自带解算器；不能推出全部无 WCS 帧成功率、独立 Gaia 留出残差，或 applied photometry 后参考精度的正确性。头部 census 继续只作为输入属性记录。
 
-新增裁决：Drizzle 的无条件面积平均简式只在 Ω/A 共同常数时成立；数据合同必须保留实际 Ω/A。外部 WCS 的 CRPIX 不强制为图像中心；Gaia 的参考历元与 ICRS 的坐标系身份分开。相关核必须 PSD，球面 R 的秩亏须按可估计子空间处理，不能用任意地板伪造精度。
+局部验证日志[8]保存异方差 GLS、背景 nuisance、秩亏、标度、leaf 0 和 Monte Carlo 对照，以及对应构建命令/结果。该证据支持给定模型下的数学修复，不自动覆盖真实逐帧响应、空间积分 PSF、完整 reader、发布事务和多平台 E2E。本文只查阅记录，没有重跑。
 
-文档定稿检查：规范索引 157 项无重复/悬空，新增本地 Markdown 链接可解析；新 frame-science schema 自身可加载，available/unavailable 两种夹具通过，9 种形状负例被拒绝。一般面积归一公式、正定相关核与秩亏线性传递做了局部数值核对。以上只验证文档/接口形状及局部数学，不是 production C++、真实 IPV 成功率或阶段一科学端到端验证。
+其它研究单元的 Gaia XP 残差、几何分割误差、插值留出、连通背景和 ON/OFF 比较按各自输入/量纲/方法继续保留。它们不因文档更新被删除，也不因局部结果相符而升级为全部阶段一科学链的独立支持。
 
-## 7. 实施后的事实复核与继续收敛
+### QR、像元积分 PSF 与因子 v2 的证据
 
-上述早期实现状态保留其版本语境，不能替代后续代码事实。`950c261be` 交付已增加生产球面精度调用、Drizzle 几何捕获与 sidecar；其真实单帧记录显示原始头无 WCS 时 IPV 实际求解成功，但该帧没有施加测光。独立复核见 `实验/normalize-precision-p5/INDEPENDENT_REVIEW_950C261.md`，其中异方差反例直接编译生产源得到 V_F=0.896928，而解析真值2.647059，已有等方差单元测试未暴露错误。前台未独立重跑计算节点原始帧。
+第二批独立复核[9]读取了 QR、PSF 与因子 v2 的源码、验证程序和生产日志。生产改动分别为：以 Qᵀ 的列主元 Householder QR 求保留行空间，分离背景秩与通量可辨识性；复用 PSF 库的单位总通量像元积分；使用 `local-factor/v2` 分离源方差与派生协方差的形状和单位。实现应保留，不能因前一基线尚未具备这些路径而回退。
 
-后续收敛维持既有八节点与 Runtime typed payload 目标。新增正式补充将 GLS 的矩阵次序/可估计子空间、最终 signal 的 R、原生 gain/alpha、PSF 积分与空间求值以及读取/发布完整性写回各自正本；不让实验包创立第二条科学权威链。`p1_session` 保留兼容 facade，不以删兼容文件替代数据链迁移。
+报告记录一帧精度段从约1594秒降至77秒，整命令墙钟从约1655秒降至138秒；两种加速分母不同。修正 PSF 归一后，显式 F_ref=1000 ADU 的条件结果约为 V_F=5439.9641、SNR=13.5582，与未归一模板下约141的结果不能混作同一个物理标度。本文查阅证据，没有独立重跑这些时间与数值。
 
-完整实施要求由上述正式正本支撑，任务范围见 `实验/normalize-precision-p5/NORMALIZE_COMPLETE_TASK_PACKAGE.md`。一帧信号输出、新对象可写与完整条件精度已验证分别报告；缺真实设备信息的 approximate 与代码仍 not_wired 也分别报告。阶段二算法切换仍暂停。
+该复核同时指出：近共线通量方向的信息相减有消去误差；QR 主元阈值与奇异值阈值不等价，主元比平方不是严格谱条件数；逐点包络不能共用帧最小值；因子读侧还需校验基础线性单位；表示说明文本应与正式格式一致。求积测试中只创建大网格而未调用/断言的部分不计作完成验证，相邻阶数差也不是严格误差上界。问题的当前实现状态在差异地图[6]更新，过程与失败证据继续留在实验单元。
 
-## 8. 第一轮 A/D 后的三项科学裁决（2026-10-15）
+子空间截断、模板求积及条件协方差误差的集中数学问题与推导保存在[数值精度推导记录](../../../实验/normalize-precision-p5/NUMERICAL_PRECISION_DERIVATION.md)。算法补充页收拢时的历史读数与来源保存在[文档证据说明](../../../实验/normalize-precision-p5/DOCUMENTATION_EVIDENCE_NOTES.md)。数学条件界、历史观测与当前生产验证分别判读，不互相代替。
 
-本次复核的分支：审查起点 12204600edbad8e23ba9e8fe4cbc8427efee0bf9，Agent 最新 d0b61a297f140935e63df24caa3a91965ebf44c3，共 5 个新提交。直接审查源代码、真值程序、evidence log 与 ROUND1_FACT_REPORT.md；前台**没有**再次执行用户服务器的真实 FITS，所以两次生产一致性、20–26 分钟的耗时和读数是 Agent 已报告且有仓内证据的观察，不是本轮重新独立测得的结果。
+真实生产链盘点[10]仍区分 typed 排序边与实际工作文件传递。空间 PSF、SED 参考、空间 alpha、母版共同项、独立 signal 扰动、多平台及开发开关对照未由这三个局部修复自动完成；少量合法帧出图也不代表完整帧集或留出天测精度已验证。
 
-| 裁决 | 单一目标与原因 | 本轮真实状态 |
-|---|---|---|
-| **N13 允许因子协方差** | 正式科学数据若假设平面条件 covariance 为 D=diag(v)，CSR R+v 是派生 C=RDRᵀ 的精确表示；不要求每窗把 nl×nl JSON 落盘。明确旧 v1 factor 的源方差与球面派生 C 单位曾错位，新 factor v2 需分别声明逻辑/物理 shape、unit、rank 与模型缺项 | 生产 v1 factor 已写 64 控制，reader 可部分识别；语义/单位还未按新合同修正 |
-| **N14 秩亏求解不靠缩小真实观测域** | 用 Q=R√D 的行空间/零空间正交投影计算 GLS Fisher 信息；选择验证过的 rank-revealing QR/SVD、保留真正选定球面叶的全部贡献，不能故意削掉噪声来换 O(m³) 的速度；背景基冗余不能自动判 F 不可辨识 | 现行手写 Jacobi 保留子空间约 20–26 分钟/帧（Agent 报告）；数学上可改算法，不意味着已有高性能代码 |
-| **N15 PSF 归一与像元积分先于宣称绝对 SNR** | Moffat4 未归一原函数值不等于单位总通量像元积分 P；正确 P_j 先连续归一再像元求积，保留真实子像元相位/有限窗 f_out 和通量估计器身份；F_ref 和条件源 Poisson 要同一口径 | **新发现的生产数值口径缺陷**；d0b61a297 的 F_ref=1000/控制 SNR=141.47/帧 SNR=153.30 只算该代码下历史可复现数据，不是经 PSF 修复的物理真值 |
+## 5. 文档维护与实施范围
 
-其它已证事实：GLS full-rank 异方差反例的新数值 V_F=2.6470588235294117 与理论吻合，源码已经把 B 的矩阵次序改正并处理 H^+²；源 R 的完整叶 N_p 和 sidecar read/write 也有实际修复。不能因此自动推断直接真实 signal 对 R 每列的扰动检查已做、source-space 标度/PSF 物理匹配全面正确、31 帧 IPV 独立留出都通过。原用户希望的是正确且简洁的科学链，而不是进一步复制 N13–N15 到十份旧 registry。
+工程与 detail 随生产代码更新接口和限制；科学正本保留物理定义的唯一解释。NORMALIZE_DATA 和实现规格已经决定八节点、参考来源、球面完成边界、唯一 frame_science.json 和能力状态，无需再由实现方自由设计。
 
-**追加需整理的实际源码问题**：sparse_reference.h 和 sparse_reference.cpp 内部分注释仍有 H^+ 与 H^+²、B 顺序互相矛盾的旧口径；normalize_precision.cpp 对 const PrecisionFrameRequest 进行 const_cast 写回窗口半径；surface factor values 的单位与 derived surface covariance 单位混标；帧支持面积跨 patch 未去重。这些由工程主链中唯一记录并交 Agent 真正修，不因此重新定义新的数学路线。
+任务包用于组织工作，实验记录保存过程，均不取得正式正本的权威。阶段一文档完善不构成切换 Mosaic 权重或跨阶段算法重构的授权；最终发布与用户视觉评价由项目负责人决定。任何收尾状态只表达实际完成和仍缺证据的范围。
 
-下一步不进入 Mosaic/Export。Agent 依据已更新 science/psf/PSF.md、science/noise_snr/NOISE_SNR.md、engineering/contracts/NORMALIZE_DATA.md、detail/normalize/contracts.md 和 architecture/NORMALIZE_PIPELINE.md 实现正确的 PSF→F_ref/V_F、因子载体、秩揭示求解，再推进 typed Runtime/SED reference/spatial PSF/校准相关误差。源程序依旧不需要在所有平台得到任意数值 PASS 才准研发；但不能把未建模、非物理模板和单位错位的数值称“conditional complete”。
+## 参考文献
 
+[1] [ACSD 最高设计](../../ACSD_DESIGN.md)。
+
+[2] [Normalize 科学正本](../../science/normalize/NORMALIZE_SCIENCE.md)。
+
+[3] [Normalize 生产链与模块责任](../architecture/NORMALIZE_PIPELINE.md)。
+
+[4] [Normalize 数据合同](../contracts/NORMALIZE_DATA.md)。
+
+[5] [Normalize 接口实现规格](../../detail/normalize/contracts.md)。
+
+[6] [科学设计与生产源码差异地图](../architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+
+[7] [球面参考精度独立复核](../../../实验/normalize-precision-p5/INDEPENDENT_REVIEW_950C261.md)。
+
+[8] [局部验证运行记录](../../../实验/normalize-precision-p5/evidence/ROUND1_VERIFY.log)。
+
+[9] [QR、PSF 与因子 v2 独立复核](../../../实验/normalize-precision-p5/ROUND2_INDEPENDENT_REVIEW_633FFC31.md)。
+
+[10] [真实生产调用链盘点](../../../实验/normalize-precision-p5/ROUND2_PRODUCTION_CHAIN.md)。

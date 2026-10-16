@@ -1,163 +1,92 @@
 # ACSD 系统架构
 
-本文是 `docs/engineering/` 架构正本，回答系统由哪些组件构成、组件之间谁调用谁、每个组件的职责边界在哪里。架构结论与 `../../ACSD_DESIGN.md` 的「软件架构」「三个命令，三个独立产品」「I/O 与原子产品」「双平台发行」四章冲突时，以最高设计为准。模块与目录的逐行登记见本目录的 `MODULE_MAP.md`；数据在阶段内与阶段之间的流动形态见 `DATA_FLOW.md`。
+本文依据最高设计[1]，定义组件责任、阶段隔离、数据与资源边界。科学量和最终产品由统一科学模型及各专题正本定义[2]；Normalize 的逐节点合同由阶段架构和数据合同细化[3–4]。本文的目标要求与静态可见实现分别说明，不以设计图代替运行证据。
 
-## 设计目标
+## 命令与产品
 
-ACSD 的架构要同时满足五个目标：
-
-- **单一全局执行顺序**：全局执行顺序与资源预算由一个组件持有，不存在第二套编排。
-- **阶段可独立重跑**：三个命令各自独立启动、独立调度、独立内存管线、独立验收；重跑等于新运行目录加新 manifest，没有断点续算。
-- **产品自带来源链**：每个产品能独立还原到源码、配置、输入与算法标识。
-- **并发不改数值**：并发度不改变科学结果，1 worker 与 N worker 在事前冻结的容差内等价。
-- **平台无关的科学计算**：算法源码在两平台间复用，平台相关代码集中在 I/O、线程与路径三处。
-
-## 组件图
+ACSD 对外一个命令行程序，提供三个平级命令。每次调用只运行一个阶段，实例化自己的调度器、内存管线和运行上下文；三个命令可独立启动、重跑和检查。其科学主流程由磁盘产品连接：
 
 ```mermaid
-flowchart TD
- CLI["acsd 唯一命令行入口"] --> RT["Pipeline Runtime 唯一执行平面"]
- RT --> REG["模块注册表"]
- RT --> CTX["RunContext 服务"]
- REG --> MOD["科学模块"]
- MOD --> DATA["类型化端口 / 命名块"]
- MOD --> CPU["CPU 后端 ABI"]
- DATA --> IO["统一 I/O 与产物库"]
- RT --> PROBE["探针与资源监控"]
+flowchart LR
+ CLI[acsd 命令行] --> N[normalize 调度器]
+ CLI --> M[mosaic 调度器]
+ CLI --> E[export 调度器]
+ N --> H1[(每帧 signal HiPS 与科学模型)]
+ H1 --> M
+ M --> H2[(单 signal 马赛克 HiPS)]
+ H2 --> E
+ E --> F[(平面 WCS FITS signal)]
 ```
 
-全局执行顺序与资源预算由 Pipeline Runtime 独占。命令行入口、I/O 层、科学模块与计算后端的调度一律经该执行平面，不存在旁路。
+Normalize 逐帧发布合法球面信号、WCS、光度/PSF/噪声模型、参考精度状态与必要控制数据。Mosaic 内部使用重建精度、背景、排异及支持对象，最终只发布一个 signal 科学图像通道。Export 消费该信号，按目标 WCS 重采样输出普通二维 FITS；单信号输入不提供重建精确方差或协方差所需的信息。
 
-## 三命令三阶段隔离
+不同设备与通带由用户选择组合。模块报告实际响应、单位、可辨识性及系统失配，不能用仪器或滤镜字符串构造准入条件。无有效 WCS、损坏输入和不可计算数值按正常数据错误处理；原始 FITS 没有 WCS 头时，Normalize 应实际尝试 IPV 求解。
 
-三个命令是三个平级独立的产品命令，不是固定顺序的流水线。
+## 组件边界
 
-| 命令 | 输入 | 输出 |
-|---|---|---|
-| `normalize` | 一组亮场帧 + 母版校准帧 + 星表目录 + JSON 配置 | 逐帧标准化 HiPS + 结构化 JSON |
-| `mosaic` | 一组合同兼容 HiPS + JSON 配置 | 马赛克 HiPS + 结构化 JSON |
-| `export` | 任一合同兼容 HiPS + JSON 配置 | 平面 WCS FITS + 结构化 JSON |
-
-- 阶段之间只通过磁盘 HiPS 产品与 manifest 交换数据，不存在跨阶段内存传递，也不存在贯穿三阶段的全局会话。用户依次运行三个命令是产品外行为，不是产品内部状态机。
-- 每个阶段实例化自己的调度器与内存管线，不共享内存、会话或运行时状态；一次调用只驱动一个阶段。
-- 每个阶段的输入面都是磁盘产品：`mosaic` 的输入与 `normalize` 是否同进程无关；`export` 的输入与上游是否为 `mosaic` 无关。
-
-## 职责边界
-
-| 组件 | 职责 | 职责外 |
-|---|---|---|
-| 命令行入口 | 命令解析、配置加载、机器画像生成、运行控制、稳定机器输出、退出码收敛 | 科学内部实现；直接调用科学内核符号；第二套编排 |
-| Pipeline Runtime | 解析管线 IR、建立有向无环图、调度模块、管理块生命周期、分配线程预算、传播取消与错误 | 把调度职责下放给 I/O 或命令行入口 |
-| 统一 I/O 与产物库 | FITS / HiPS / 索引 / 缓存读写、原子提交、产物索引 | 承担管线编排；自建阶段调度器；设定线程数 |
-| 模块注册表 | 装载模块描述、校验输入输出与配置、提供执行入口 | 自行执行 I/O、机器画像测量或线程创建 |
-| 科学模块 | 本模块科学算法、CPU 内核、模块内独立验证 | 读全局配置；创建无预算线程池；直接终止进程；写未声明文件；绕过统一 I/O；直接选择指令集变体 |
-| 计算后端 | 承载经分析确认值得向量化的内核 | 决定管线顺序；跨动态库传递标准库类型、异常或分配器所有权 |
-
-公共头的接口签名与语义是独立于本表的另一层冻结面，见 `../api/abi/ABI.md` 与 `../contracts/RUNTIME.md`。
-
-## 两层链：目标链与生产节点序
-
-每个阶段有两层链，两者不可合成一条：目标链给出科学步骤与次序约束，生产节点序给出调度单元，每个生产节点映射唯一真实模块入口。
-
-- **normalize 目标链**：`ingest → calibration → cosmetic → background → plate_solve → star_detection → psf → photometry → planar_noise → drizzle → spherical_reference → 产品验证 → 原子发布`。
-- **normalize 生产节点序**：`calibrate → cosmetic_correct → plate_solve → detect_sources → measure_flux → estimate_snr → drizzle_stack → write_hips`。
-- **mosaic 目标链**：`admit → coverage → sampling → upm → upm apply → rejection → integration → 产品验证 → 原子发布`。
-- **mosaic 生产节点序**：`coverage → sample → upm_fit → upm_apply → reject → integrate → write`。
-- **export 目标链**：`输入 HiPS 与模式声明 → WCS 计划 → 反向映射与重采样 → 流式 FITS → 独立 WCS/FITS 验证 → 原子发布`。
-
-生产节点序须是实际数据依赖的合法拓扑序，独立节点声明序不构成额外数学约束。`lib/infrastructure/pipeline/module_ports.registry.json` 是节点序与依赖边的唯一事实源，保真判据见 `../contracts/PIPELINE_BLOCK.md`。
-
-三条节点序由数据流决定，不是实现选择：
-
-- **WCS 解算只有一个节点、一个权威解**。近似指向由 `wcs.init_source`（`header_pointing` / `config` / `neighbor_crval`）给出，不是独立的解算节点；`plate_solve` 在该指向下完成星表匹配与稳健迭代精化，其输出即唯一权威 WCS。解算轮次数是求解器实现细节，不是流程语义。
-- **`plate_solve` 在 `detect_sources` 之前**。`plate_solve` 按帧读校准后像素自行做星点检测与星表匹配，不消费 `detect_sources` 的产物；星表引导检测要把星表逆投影到像素域，需要含取向的完整 WCS。
-- **测光归一化施加是 `measure_flux` 节点内的强制步骤**。归一化落到像素，施加与拟合同一步完成，实际是否 spill 由 Runtime 决定。模型不可辨识时保留合法 native/relative signal 并明确状态，不能把未知响应作为数据组合禁令。
-
-```mermaid
-flowchart TD
- A["calibrate 偏置/暗流/平场"] --> B["cosmetic_correct 坏点/宇宙线"]
- B --> C["plate_solve 星表匹配 + 稳健迭代精化"]
- C --> D["detect_sources 星表引导检测"]
- D --> E["measure_flux 测光拟合并施加归一化"]
- E --> F["estimate_snr 平面条件模型"]
- F --> G["drizzle_stack 与球面精度完成"]
- G --> H["write_hips 产品验证 + 原子发布"]
-```
-
-```mermaid
-flowchart TD
- A["coverage 重叠图 union"] --> B["sample 控制采样 + patch 估计"]
- B --> C["upm_fit 公共信号面 + 逐帧偏差"]
- C --> D["upm_apply 加性归一化"]
- D --> E["reject 逐像素排异推断"]
- E --> F["integrate 逆方差集成 + support 归约"]
- F --> G["write 产品验证 + 原子发布"]
-```
-
-## 依赖方向
-
-依赖方向的正本与第三方锁定读取面见 `../standards/DEPENDENCY.md`，此处给出本层边界条款：
-
-```text
-cli → runtime → registry → modules → cpu_backend
-cli → runtime → services (logger/metrics/resources/artifacts)
-modules → data_contracts
-io → data_contracts; io ⇏ runtime; io ⇏ modules
-```
-
-- 依赖只沿上述箭头方向：`io → runtime`、`module → cli`、`backend → pipeline` 是反向边。
-- 目录内容靠显式罗列，隐式通配收集目录一律不接受；每个模块、I/O 适配器、运行时、命令行入口、CPU provider 都是显式构建目标。
-- 唯一动态加载路径是安全装载器：加载前检查 CPU 特征、操作系统可安全执行状态、清单授权、哈希与 ABI，只认清单授权的绝对路径，失败即报错、不做搜索回退。
-- 依赖图为有向无环图。
-
-## 线程与资源预算
-
-预算、分配与嵌套并行的完整合同见 `DATA_FLOW.md`「并行轴分配」与 `../standards/CONCURRENCY.md`。本层边界条款：
-
-- 只有运行时创建全局 worker 池；计算密集节点按估算工作量获取线程租约，模块只向租约执行器投递工作。裸线程数设定、无界异步执行、私有永久线程池都不接受。
-- 生产重计算路径的并行度取自机器画像：固定单 worker 不接受；可用 CPU 数不小于 2 且工作量超过 `parallel_min_work` 时活动 worker 数必须不小于 2。
-- 每个内核的预算来源是 `../resources/PERFORMANCE_MODEL.md` 的标定常数加机器画像，模块内不硬编码线程数。
-
-## 平台与交付形态
-
-- 交付平台是 Windows 10+ amd64 与 Linux amd64 两个。运行时、I/O、科学模块与 CPU provider 作为动态库随包交付：Windows 用户面对 `acsd.exe` 加各 `dll`，Linux 用户面对 `acsd` 加各 `so`；两平台各给出一个解压目录（唯一可执行文件、各动态库、schemas、配置）。
-- 开发、构建、合成与真实数据终验在 Linux amd64 节点上完成，随后交 Windows 复验，再由负责人终审发布候选。
-- 双平台使用各自的构建配置与平台相关源码（I/O、线程、路径分开写），平台无关源码（尤其算法）尽可能复用；两平台共用同一套 C ABI 与产品 manifest。
-- Windows 官方工具链为 MSVC；球面浏览器不注册为命令行插件、不进入科学动态库清单、不进产品 manifest；未来的图形界面经稳定的命令行、JSON、退出码与产品文件调用。
-
-## 不变量
-
-以下五条是机器可核的架构不变量：
-
-1. 唯一生产入口是 `acsd`；命令树口径唯一，与 `../contracts/CLI_PROTOCOL.md`「命令树」节一致。
-2. `lib/` 是唯一源码目录；产品只落块级 `output_dir`；`testdata/` 只读。
-3. I/O 唯一入口是 `acsd_aio`；HEALPix 核心与 SHA-256 各只有一份实现。
-4. 科学语义唯一实现；参考实现与生产实现并存且不重复出现在活动路径上。
-5. 唯一命令行入口在进程内按命令拉起对应阶段的调度器：一次调用只驱动一个阶段，三个阶段各自实例化调度器与内存管线，无跨阶段进程边界。
-
-## 关键决策的理由
-
-| 决策 | 理由 |
+| 组件 | 责任与数据关系 |
 |---|---|
-| 一个入口、三个平级命令 | 用户可按需单跑一段；重跑语义简单；不存在部分完成的中间状态 |
-| 阶段间只走磁盘产品 | 产品可独立验证、可跨机迁移；避免跨阶段内存状态与隐藏耦合 |
-| 命名块作为阶段内载体 | 块的生命周期与消费者集合可静态声明，回收点可推导，峰值内存由在途块集合决定 |
-| 节点序由端口图唯一确定 | 生产节点序不靠约定；注册表是节点序与依赖边的唯一事实源，可双向核对 |
-| 并行度由画像与预算派生 | 并发度不进入科学配置；同一份科学配置可跨机复现 |
-| 指令集变体作为独立动态库 | 基线可执行文件不被高级指令旗标污染；能力预检不过时干净拒绝而不是加载即崩 |
+| 命令行 | 解析、加载配置、选择本阶段、事件流、取消与退出码；经 Runtime 驱动科学节点 |
+| 阶段 Runtime/调度器 | 构造 typed DAG、管理对象与消费者寿命、资源预算和线程租约、取消及错误传播 |
+| 科学模块 | 消费明确输入、计算本主题模型、发布新对象；数学在所属库内共享 |
+| 统一 AIO | 图像、模型、manifest 与正式缓存读写，异步队列和原子发布；不拥有科学调度 |
+| 模块描述与端口登记 | 描述生产者、消费者和入口；与实际取数及 IR 同步维护 |
+| CPU 后端 | 按可用指令与实测画像执行数学等价内核；不决定科学流程 |
+| 可观测性 | 正式日志、事件、资源读数；开发探针旁路观察科学输出 |
+| Windows GUI | Qt6/MSVC 独立外挂，通过 JSON 与命令行事件交互，复用球面浏览组件 |
+
+上述边界在一个阶段内形成唯一执行平面，不存在跨三个命令持久存活的全局会话。调度实现可复用基础设施，每次运行的预算、对象和状态独立。
+
+## 阶段内数据与所有权
+
+目标载体为 Runtime 持有的 typed 模型与命名数组块，每个对象有帧/run 身份、类型、版本、单位、坐标、有效性、来源及输入版本。生产者发布后只读；最后一个消费者完成后释放。模块不长期私藏大数组，不读全局配置，不私建无预算线程池，不绕过 AIO 写未声明文件。
+
+科学 spill/cache 是预算管理或明确恢复能力的一部分，须注册身份、版本与原子读写，发布和开发构建一致。开发 snapshot 不作下游输入或恢复来源。正式跨阶段交换仅用磁盘产品和 manifest；模型文件及 sidecar 与 signal 同帧同版本，并由统一 writer 发布。
+
+Normalize 保持八个调度节点：校准、修饰、WCS/IPV、科学源与 PSF、测光、平面噪声、Drizzle 与球面精度完成、writer。WCS 消费校准面；引导源/PSF 消费 cleaned 与已解 WCS；photometry 生成施加一次标度的面，noise 与 Drizzle 消费该面。球面 precision 由 Drizzle 提供同次几何后调用 noise 库完成，不回写上游形成循环。完整字段、端口与不可用状态见[4–5]。
+
+Mosaic 和 Export 的专题步骤由对应科学正本定义，不把现有节点命名或端口表当作数学定义。独立节点可以并行，生产调用序需满足真实因果关系。
+
+## 依赖、资源与平台
+
+依赖从 CLI 经 Runtime 到节点适配器和算法库；算法依赖公开数据合同与统一服务，AIO 和计算后端不反向驱动管线。跨 DLL 采用版本化 C ABI、POD 或 opaque handle，不传 STL、异常与隐含分配器所有权。详细边界见接口与资源合同[6–8]。
+
+一个进程的资源预算由调度器管理，CPU 可用性考虑亲和性与系统限制，帧级与帧内并发共同消费预算。缓存有容量与失效规则，队列有界并具备背压、取消和错误传播。并发度对数值的影响须按预定容差实测，不能凭线程租约存在推断结果等价。
+
+命令行支持 Windows amd64 与 Linux amd64，平台无关科学代码复用。Windows GUI 独立构建，不进入命令行科学目标。Windows 交付安装包，Linux 交付可直接使用的压缩包；内容和发布决定服从最高设计。开发诊断统一由 ACSD_DEV_MODE 编译边界控制，目标与插入规范见[9–10]。
+
+## 静态实现对应与验证边界
+
+源码可见的 Normalize 主入口为 CLI 的 `run_phase1_block`，经阶段 IR 和 Runtime 到 `P1NodeModule::execute`，再分派 `p1_op_*`。适配器表声明八个节点；`lib/phase1_session/p1_session.cpp` 的 io_read/calibrate/cosmetic/io_write 是局部校准会话，不能作为另一条完整产线。
+
+`module_adapters.cpp` 中已存在球面模型与控制点构造、私有 staging，以及 writer 对 `publish_staged_frame_science` 的调用。它们表明实现入口存在；不能仅凭调用证明数据合同所有字段、typed 生命周期、GLS 数学、完整事务和真实产品能力已成立。同阶段仍有正式工作文件消费者，迁移需逐边核对，不能按开发快照统一关闭。
+
+实现位置详见模块地图[11]；差异与证据归因分别见[12–13]。架构维护必须核对实际代码，状态说明可能随实现变化，需要具体调用和独立证据更新。文档检查不执行编译或科学实验，也不声明三阶段端到端已验证。
 
 ## 参考文献
 
-[1] FITS 工作组. FITS 标准 4.0. IAU, 2018. https://fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.pdf
+[1] [ACSD 最高设计](../../ACSD_DESIGN.md)。
 
-[2] Górski K. M., Hivon E., Banday A. J., Wandelt B. D., Hansen F. K., Reinecke M., Bartelmann M. HEALPix: A Framework for High-Resolution Discretization and Fast Analysis of Data Distributed on the Sphere. ApJ, 2005, 622: 759–771. https://doi.org/10.1086/427976
+[2] [统一科学模型](../../science/unified/UNIFIED_SCIENCE_MODEL.md)。
 
-[3] Fruchter A. S., Hook R. N. Drizzle: A Method for the Linear Reconstruction of Undersampled Images. PASP, 2002, 114: 144–152. https://doi.org/10.1086/338393
+[3] [Normalize 生产链架构](NORMALIZE_PIPELINE.md)。
 
-[4] 内部文档 `../../ACSD_DESIGN.md`，最高设计。
+[4] [Normalize 数据合同](../contracts/NORMALIZE_DATA.md)。
 
-[5] 内部文档 `MODULE_MAP.md`，模块与目录登记。
+[5] [Normalize 接口与迁移规格](../../detail/normalize/contracts.md)。
 
-[6] 内部文档 `DATA_FLOW.md`，数据流、执行与预算。
+[6] [C ABI 合同](../api/abi/ABI.md)。
 
-[7] 内部文档 `../standards/DEPENDENCY.md`，依赖方向与第三方锁定。
+[7] [调度合同](../contracts/SCHEDULER.md)。
+
+[8] [并发标准](../standards/CONCURRENCY.md)。
+
+[9] [开发构建](DEV_MODE.md)。
+
+[10] [诊断探针](../standards/DIAGNOSTIC_PROBES.md)。
+
+[11] [模块地图](MODULE_MAP.md)。
+
+[12] [实现差异](SCIENCE_IMPLEMENTATION_DELTA.md)。
+
+[13] [Normalize 收敛记录](../governance/NORMALIZE_CONVERGENCE.md)。

@@ -1,8 +1,6 @@
 # Gaia DR3 XP 跨仪器光度标定与通带差异
 
-> 科学正本；上游 docs/ACSD_DESIGN.md §2.1、§4、§5；统一线性观测模型见 docs/science/unified/UNIFIED_SCIENCE_MODEL.md。重写日期：2026-10-14。
->
-> ACSD **允许用户选择不同相机、望远镜、曝光和滤镜/带宽共同参加马赛克**。本模型提供合适的光度尺度和诊断，不以同设备/同通带作为算法准入规则，也不声称对未知的星云光谱执行了无偏色彩变换。
+本分册依据[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，定义逐帧光度响应、参考光谱、标度应用和通带差异。阶段一的生产边界见[Normalize科学链](../normalize/NORMALIZE_SCIENCE.md)，实现状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
 ## 1. 科学任务
 
@@ -17,17 +15,19 @@
 
 ## 2. 前向合成测光与响应约定
 
-给第 k 帧的系统总响应 \(R_k(\lambda)\)，包括滤镜、透镜/镜面、大气、传感器 QE 以及已选的时间/空间变化模型。定义响应时必须注明是能量响应还是光子计数响应。若 R_k 是不包含光子能量倒数的效率函数，光子计数型合成通量可写
+给第 k 帧的系统总响应 \(R_k(\lambda)\)，包括滤镜、透镜/镜面、大气、传感器 QE 以及已选的时间/空间变化模型。定义响应时必须注明是能量响应还是光子计数响应。若 R_k 是不包含光子能量倒数的效率函数，光子计数型合成响应可写
 \[
  Q_{ks}=\frac{1}{hc}\int f_{\lambda,s}(\lambda)
  R_k(\lambda)\lambda\,d\lambda,
 \]
-其中 f_{\lambda,s} 是 Gaia XP 外定标谱。若响应定义已包含 λ/(hc) 或使用能量积分，禁止再乘一次；数值实现应明确物理单位、光谱采样、插值与积分误差。Gaia XP 的有限波段覆盖、外定标误差、颜色极端源和强窄发射线都可能不满足高精度条件。
+其中 f_{\lambda,s} 是 Gaia XP 外定标谱[1,2]。若响应定义已包含 λ/(hc) 或使用能量积分，禁止再乘一次；数值实现应明确物理单位、光谱采样、插值与积分误差。Gaia XP 的有限波段覆盖、外定标误差、颜色极端源和强窄发射线都可能不满足高精度条件。
 
 第 k 帧实测恒星通量 \(f_{ks}^{\rm obs}\) 可以表示为
 \[
  f_{ks}^{\rm obs}\approx a_k\,m_k(x_s,y_s)\,Q_{ks}+\epsilon_{ks},
 \]
+当f_λ以W m⁻² nm⁻¹、波长以nm输入时，未除hc的积分∫f_λRλdλ单位为W m⁻² nm；它不是谱密度。换算波长到与h、c相容的SI单位并除hc后，Q为光子率面密度；若再含口径和曝光，须相应变更单位。按∫Rλdλ归一的带平均谱密度是另一种量，单位才与f_λ相同。响应只相差与恒星无关的常因子时，拟合系数可吸收该因子，但元数据仍须声明所选约定。已外定标的XP谱不再乘Gaia G星等因子。
+
 a_k 含口径、曝光、总体透过率与单位换算之积；如果组成因子无独立测量，**只能拟合乘积**。m_k 是小幅空间乘性响应，规定在合格参考星样本上的对数均值为零以固定与 a_k 的规范。稳健零点/IRLS 不应因为损失函数收敛而自动被视为无偏。
 
 拟合应使用独立训练/留出星，检查饱和、混叠、变星、PSF 拟合/孔径定义、星表坐标、系统响应不确定性与残差分布。空间场阶数由星点位置对基函数的数值秩、条件数及留出集决定；无支持的边缘不应默默高阶外推。基础策略允许帧级标量 m≡1。
@@ -69,11 +69,11 @@ a_k 含口径、曝光、总体透过率与单位换算之积；如果组成因�
 
 ## 5. 与阶段一 SNR 和阶段二接缝的连接
 
-参考通量 F_ref,k 必须与每帧采用的 α_k、对应 R_k 或 R_0 的约定一致。SNR 在**确定性**统一乘性缩放下无量纲不变，但反推 w_F=1/V_F 时要在统一通量单位下计算；随机标度估计的不确定性与滤镜颜色依赖不因 SNR 无量纲而消失。
+参考通量 F_ref,k 必须与每帧采用的 α_k、对应 R_k 或 R_0 的约定一致。SNR 在正的**确定性标量**缩放下，通量和标准差采用配对单位时保持不变，但反推 w_F=1/V_F 时要在统一通量单位下计算；随机标度估计的不确定性与滤镜颜色依赖不因 SNR 无量纲而消失。
 
 阶段二不应再次把 P1 的 a_k、m_k 作为新的未知增益完整拟合一遍。只有独立重复星光度证据表明残余的**差模**确实存在，才估计额外 g_k；分层比较颜色、PSF、孔径和天空位置，避免把其中的系统差当作普遍增益。
 
-星云通带差引起的形态不同，不是“可减掉的加性天光”。背景算法必须保护天体真实的低空间频率结构。有关可辨识性、断连图与扩展源保真见 science/sky/UPM.md。
+星云通带差引起的形态不同，不是“可减掉的加性天光”。背景算法必须保护天体真实的低空间频率结构。有关可辨识性、断连图与扩展源保真见[背景分册](../sky/UPM.md)。
 
 ## 6. 可证伪实验与统计误差
 
@@ -82,15 +82,18 @@ a_k 含口径、曝光、总体透过率与单位换算之积；如果组成因�
 3. 星点留出比对零点偏差、颜色斜率、空间拟合过冲及 PSF/光圈系统差；
 4. 对混合设备但相同天体真值世界，用正确与错误的响应输入比较背景校正、SNR 权重和输出低频；
 5. 不把本模型在真实帧中的观测 scatter 自己用作“误差预算上界”的组成来形成不可判错循环；测量误差和系统误差用独立来源界定；
-6. 真实 M42/Gaia XP 数据须按每帧自身 WCS、通带、曝光、图像/母版哈希重跑，不靠旧报告某一行指标声称全链通过。
+6. 真实 M42/Gaia XP 数据须按每帧自身 WCS、通带、曝光、图像/母版哈希重跑，分别记录拟合、应用、球面产品和留出评价，局部残差不代表全链已获支持。
 
-历史的 P1 实测 M42 R 帧残差约 0.0265–0.0269 mag（两个代码版本），已登记误差项的合成量比观察小。这说明有未被解释的残差来源，不能把它归结为“Gaia XP 无法使用”，也不能声称项目已达到毫米星等精度。生产色项、空间场及非线性等是否被调用须按代码和实际产品确认。
+独立合成光度的约定和保留读数见[合成通量推导](../../../实验/photometric-magnitude/docs/fsyn_convention.md)，真实观测及限制见[光度实验报告](../../../实验/photometric-magnitude/REPORT_experiment.md)。它们只支持各自输入、响应和测量条件；残差不能自动归为Gaia误差或完整误差上界。重叠测光的全局相对约束见[3]。
 
-## 7. 研究与实现位置
-
-- 实验/photometric-magnitude/REPORT_paper.md、REPORT_experiment.md、code/s04/；
-- lib/algorithms/photometry/、lib/algorithms/noise_snr/、Phase1 生产编排；
-- Gaia DR3 XP 外定标/合成测光、Padmanabhan et al. 重叠测光及相关应用研究以 实验/shared/references/CORE_REFERENCES_VERIFIED.md 为准；
-- 阶段二输出只包含一个 signal HiPS 图像层；颜色/响应元数据可以存在产品头部与运行摘要，不需额外彩色或校准图像层。
+## 7. 数据交接
 
 归一参数、每帧 response、application ID、空间参考模板和输出单位的工程表达见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。默认完整 signal 可以是 native_calibrated 或明确相对标度；未知曲线不伪造 response-calibrated 标志。
+
+## 8. 参考文献
+
+[1] Montegriffo, P. et al. Gaia Data Release 3: External calibration of BP/RP low-resolution spectroscopic data. A&A, 674, A3. [论文](https://arxiv.org/abs/2206.06205)。
+
+[2] Gaia Collaboration et al. Gaia Data Release 3: The Galaxy in your preferred colours. Synthetic photometry from Gaia low-resolution spectra. A&A, 674, A33. [论文](https://arxiv.org/abs/2206.06215)。
+
+[3] Padmanabhan, N. et al. An Improved Photometric Calibration of the Sloan Digital Sky Survey Imaging Data. ApJ, 674, 1217–1233. [论文](https://arxiv.org/abs/astro-ph/0703454)。

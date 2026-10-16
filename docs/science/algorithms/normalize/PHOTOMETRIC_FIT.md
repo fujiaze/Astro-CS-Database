@@ -1,6 +1,6 @@
 # Photometric Fit Algorithms (ALG-PHOT)
 
-本页的函数/参数记录按实际源码维护；阶段一字段、生产—消费关系与迁移以 [Normalize 数据合同](../../../engineering/contracts/NORMALIZE_DATA.md) 为准。未接入生产的接口不可因“冻结/通过”措辞视为已实现。
+本页补充记录光度拟合算法步骤、参数和源码锚。光谱、通带与通量定义见[光度科学分册](../../photometry/PHOTOMETRY.md)及[Normalize科学正本](../../normalize/NORMALIZE_SCIENCE.md)；阶段一字段和生产—消费关系见[Normalize数据合同](../../../engineering/contracts/NORMALIZE_DATA.md)。源码锚或测试设计本身不表示验证已经运行。
 
 
 > 上游：ACSD_DESIGN.md [D-1]「P1 通量积分拟合：测光校准到测光星等坐标系」一节（创新点一）、[D-1]「输出合同」一节（输出合同）
@@ -79,41 +79,40 @@ IRLS 达最大迭代仍未收敛（或 `|r_consistent| < 3` 拟合失败）。�
 
 - 排序 median/MAD 确定性；IRLS 按 r 索引固定顺序加权和，无跨样本归约。
 
-### 5.1 到达顺序不变性（正向约束）
+### 5.1 顺序、确定性与并列匹配
 
-本节把「样本序」定为**显式契约**，而非实现细节。样本序有两类来源，约束强度不同：
+样本枚举顺序会影响浮点归约与匹配实现。只有输入、浮点环境、数据类型、运算顺序和归约顺序均固定时，才以逐位相同描述重复执行；改变样本序时须按声明的数值容差比较，不能由代数等价推出逐位不变。
 
-| 到达序来源 | 是否允许进入浮点路径 | 判据（事前冻结） |
+| 到达序来源 | 当前实现事实 | 可作出的数值陈述 |
 |---|---|---|
-| **PSF 星表序**（`psf_cx/cy/flux/status` 的数组序） | 允许，且**它就是样本序本身**：匹配与 IRLS 的归约序由它唯一决定（`star_matcher.cpp` 的 `matchWithKdTree` 按 PSF 下标 `k=0..n-1` 正向查询；`cleanAndScale` 的 `r_consistent` 按同一序累积） | 置换该序 ⇒ 计数/索引/选择结果**精确一致**；IRLS 归约按 `docs/engineering/testing/TEST.md` [S-4]「推导补遗」一节 的 `C·γ_n·Σ\|terms\| + atol`（`C≤4`）判等价（[S-4]「推导补遗」一节：顺序变化仅影响 <1ulp） |
-| **Gaia 参考星表序**（`gaia_ra/dec/mag/fsyn` 的数组序） | **只作索引标号** | 置换该序 ⇒ **全输出逐位（bitwise）不变**（含 out_pixels / scale / sigma / diag / 逐星 records） |
+| **PSF 星表序**（`psf_cx/cy/flux/status` 的数组序） | `matchWithKdTree` 按 PSF 下标正向查询；`cleanAndScale` 按匹配结果顺序累积 | 同一顺序和固定数值环境下可复现；重排会改变累加顺序的，结果差异按[数值标准](../../../engineering/standards/NUMERIC.md)中的误差预算评估，本文不声称普遍小于 1 ulp 或位级不变 |
+| **Gaia 参考星表序**（`gaia_ra/dec/mag/fsyn` 的数组序） | 参与 KD-tree 构建及候选枚举 | 仅在匹配关系唯一且数值路径及归约序保持相同的条件下讨论等价；当前实现没有对精确等距匹配定义稳定 tie-break，故不保证任意重排下全输出位级不变 |
 
-理由：匹配是**集合谓词**（互为最近邻），与表的枚举序无关；`matches[]` 的输出序由 PSF 序驱动。
-故 Gaia 表序只改变索引标号，任何随它变化的结果都说明该序泄漏进了数值路径 —— 那是缺陷，不是容差问题。
+匹配谓词在无并列时定义最近邻关系；后续归约仍可能受枚举和累加顺序影响，因此顺序变化须结合实际实现与数值标准解释。
 
-**并列（exact tie）是唯一已知的例外，且当前为「未定义」**：当两颗 Gaia 星到同一 PSF 星的距离**精确相等**时，
+**并列（exact tie）是合法输入情形，但当前实现的选择未定义**：当两颗 Gaia 星到同一 PSF 星的距离**精确相等**时，
 最近邻选择退化为「KD-tree 遍历序先到者胜」（`findNearestRec` 的 `dist2 < best_dist2` 严格比较），
 而遍历序由建树时的 `std::sort` 结果决定 ⇒ **该情形下匹配伙伴随输入序变化**。
-规范口径：**并列构型不在本算法的适用域内**；调用方（星检测/星表）必须保证同一 PSF 星在匹配半径内不存在
-精确等距的 Gaia 候选。该例外的存在性由 `p1phot_determinism` 的 N1 负例锁住（判据必须能分辨它）。
+该输入不应作为调用方前置条件排除。匹配需有确定的 tie-break；当前实现未定义，作为实现差异登记于 §13.3。测试应覆盖此类并列输入。
 
 **可执行判据**（确定性组）—— 线程数扫描 1/2/4/8（I5 的显式补全）+ 两类到达序置换
 + 两个序相关负例（N1 并列 tie-break / N2 在线归约），正负例共用同一 `verdict` 函数。
 **注意与 §13.4 I5 的区别**：I5 只扫线程数、每个线程跑**完全相同的样本序**，因此**抓不到**顺序依赖；
 两者互补，不可互相替代。
 
-### 5.2 模型通带的装配契约（正向约束）
+### 5.2 模型通带身份与逐帧装配
 
 拟合的参考通量 `F_syn` 由 `T(λ)·Q(λ)·λ` 在参考星谱上合成（`docs/science/photometry/PHOTOMETRY.md` [S-1]「公式与推导」一节）。`T(λ)` 的身份是**装配输入**，不是拟合内部的自由量，故本算法层的契约是：
 
 | 项 | 约束 | 判据 |
 |---|---|---|
-| 曲线身份 | 装载到的曲线对象必须自证为请求的库键（对象 `name` 字段逐字节相等；点数与 `provenance` 声明的包络 + 逐元素指纹一致） | 不一致 ⇒ `curve_identity_mismatch`，装配期具名拒绝，不产出标度 |
-| 声明一致性 | 配置声明的通带名与 `FILTER` 关键字解析出的库键必须相等 | 不等 ⇒ `passband identity mismatch`，环境作用域拒绝 |
-| 组内唯一 | 同一次运行内各组帧只能有一条模型通带 | 某帧与组内首帧不一致 ⇒ 该帧 `PHOT_PASSBAND_IDENTITY_INCONSISTENT` |
-| 身份自述 | 拟合结果必须带回实际使用的曲线身份（库键 / 自述名 / 点数 / 波长域 / 透过率域），由调用方落进产物 provenance | 缺自述 ⇒ 该产物的引用面不含「某通带下的结果」（§2a.4 写作约束） |
+| 曲线身份 | 将实际用于该帧的滤镜与 QE 曲线身份绑定到响应记录；曲线身份不能由首帧标签推断 | 身份不可解析时如实记录响应不可用/未知；不得以“不同于首帧”作为观测准入拒绝 |
+| 逐帧响应 | 科学合同按输入 occurrence 绑定 frame override，未覆盖项依明确配置优先级继承 block 设置 | 具有不同 (R_k) 的帧分别拟合/应用各自响应；不得把 block 首帧响应强加给它们 |
+| 当前实现载体 | `module_adapters.cpp` 当前按输入路径、basename、frame_key 顺序解析首个匹配 override | 这是源码实现事实，不是完整 occurrence 身份合同；重复路径 occurrence 的严格区分仍按 Normalize 数据合同处理 |
+| 当前配置限制 | `module_adapters.cpp` 在逐帧绑定前仍要求 block-level filter 与 qe_name 非空 | 完整的逐帧 override 不能替代缺失的 block 字段；这是实现差异，不是科学准入规则 |
+| 身份自述 | 拟合/应用结果保留所用曲线身份与 `application_id`，并与真实 photo-applied plane 配对 | 仅有曲线标签或拟合成功不证明图像面已施加标度 |
 
-**为什么是装配契约而不是新的科学判据**：通带形状**不被零点吸收**（`docs/science/photometry/PHOTOMETRY.md` [S-1]「公式与推导」一节），故「用了哪条曲线」决定 `sigma_residual` 的可比性；本节只核对「用的是不是声明的那条」，**不改**任何公式、阈值、容差与权重。
+不同响应下的测量结果须按各帧 (R_k) 解释；是否共享计算可按响应身份决定，但组内相同曲线不是 Normalize 的观测准入条件。光度科学定义与用户对合并帧集的选择见[光度科学分册](../../photometry/PHOTOMETRY.md)和[Normalize科学正本](../../normalize/NORMALIZE_SCIENCE.md)。
 
 **可执行判据**（装配入口层与解析层 `[I0..I9]`）：两者都含恒真自检（正例与错误输入的判定必须互不相同）。
 
@@ -127,7 +126,7 @@ IRLS 达最大迭代仍未收敛（或 `|r_consistent| < 3` 拟合失败）。�
 
 ## 5c SIMD 安全与取消点
 
-- `r_i=log10(F_i/F_syn,i)` 逐星独立(SIMD 安全: 数组连续无别名)；IRLS 加权均值 `Σw·r/Σw` 为**固定样本序归约**(FP64, 禁重结合)——顺序变化仅影响 <1ulp, 仍冻结顺序。
+- `r_i=log10(F_i/F_syn,i)` 逐星独立(SIMD 安全: 数组连续无别名)；IRLS 加权均值 `Σw·r/Σw` 为 FP64 固定序归约。逐位复现要求浮点环境、数据类型、运算与归约顺序固定；改变顺序的差异按[数值标准](../../../engineering/standards/NUMERIC.md)和对应误差预算判断，不保证仅小于 1 ulp。
 - 取消点: IRLS 迭代间检查; 取消时返回未收敛状态不写 location/scale。
 
 ## 8 参考实现/Oracle
@@ -145,14 +144,11 @@ IRLS 达最大迭代仍未收敛（或 `|r_consistent| < 3` 拟合失败）。�
 - API: `pc_api.h: pc_calibrate_simple, pc_calibrate_simple_with_gaia`
 - TST: `TST-PHOT-*` 合成注入/鲁棒
 
-## 13 实现锚定与测试设计增补
+## 13 实现锚定与测试设计补充
 
-> 本节内容: §13.1 逐符号实现锚定、§13.2 实现事实（仅 ALG 文档事实层，
-> 不改根科学公式；SCI-PHOT-001 docs/science/photometry/PHOTOMETRY.md FROZEN
-> 共享引用不改动）、「判据与误差」一节已登记现状缺陷 DISP-PHOT-001..009、「判据与误差」一节冻结测试设计
-> TEST-PHOT-DESIGN-001、「判据与误差」一节非生产通道与待迁移符号。锚点一律给到
+本节补充当前可定位的源码锚、已登记实现差异和候选测试设计。它们不是新的科学定义，也不因编号或设计标签表示测试已执行。锚点给到
 > 文件级（`lib/algorithms/photometry/cpp/` 下的符号名），后续重构以
-> grep 重锚为准。状态词唯一口径 = `ACSD_DESIGN.md` [D-1]「状态词口径」一节；IMPLEMENTED 只由验收签发（迁移落码归 P1-PHOT-IMPL）。
+> grep 重锚为准。这里的实现锚与历史测量需分别按其调用路径和输入载体解释；不以旧任务编号或状态词代替当前生产证据。
 
 ### 13.1 逐符号实现锚定
 
@@ -231,14 +227,14 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 - 自适应星等锥搜 mag_max_arr={12,13,14,15,16}（`lib/algorithms/photometry/cpp/src/pc_api.cpp`）实际
   覆盖 mag_max 入参（DISP-PHOT-005）。
 - 构建现状=`lib/algorithms/photometry/cpp/Makefile` + `build.ps1`（photometric_calib.dll，链接
-  gaia_client.dll），未编入根 CMake 主构建（CMake 集成归 P1-PHOT-IMPL）。
-- OpenMP：F_syn 逐星 `schedule(dynamic,64)`、像素校正 `schedule(static)` 逐元素——科学结果 **bitwise 与线程数无关**。
+  gaia_client.dll）；该构建路径的集成事实不定义当前 CLI 的逐帧响应合同。
+- OpenMP：F_syn 逐星 `schedule(dynamic,64)`、像素校正 `schedule(static)` 逐元素；在同一二进制、浮点环境、输入和每星操作序固定且无跨星浮点归约时，线程数变化不改变各星的算术路径。
   **该结论的依据（逐条，缺一即不成立）**：① F_syn 按星写入**各自下标**的数组，星间无浮点归约；② 并行区内唯一的归约是**整数**计数器 `reduction(+:n_valid_fsyn)`（整数加法可结合，次序无关）；③ `location`/`scale`/`sigma_residual` 的 IRLS 归约是 `cleanAndScale` 内的**串行**循环（`star_matcher.cpp`，无 OpenMP 指令），样本序由 PSF 表序唯一决定（§5.1）；④ 像素校正是逐元素乘法（`image_corrector.cpp`）。
-  ⇒ **若在星间或样本间引入任何浮点归约**（如并行求和/并行排序），该 bitwise 保证立即失效，必须重新论证。
+  ⇒ 逐位复现还要求输入序及浮点环境固定；若改变星间/样本间浮点归约顺序，按数值标准重新评估，不预设 bitwise 保证。
 - 匹配半径 `match_radius=2.0 px` 是**像素域常数**（`lib/algorithms/photometry/cpp/src/pc_api.cpp` 五处调用点传入；默认值见 `lib/algorithms/photometry/cpp/src/star_matcher.h`）。
   **适用域**：匹配成功要求（a）该帧 WCS 的**绝对指向残差 ≪ match_radius**（像素域），且（b）`match_radius` ≳ PSF 质心不确定度。仓内真实帧的像元尺度跨 **0.9586″/px – 6.3076″/px（6.58 倍）**，同一常数对应的天球半径为 **1.92″ – 12.6″**；testdata 真实帧的 WCS 二轮精化后残余 **0.0068″**（`docs/science/photometry/PHOTOMETRY.md` [S-1]「公式与推导」一节 第 6 条）⇒ 在该帧上条件 (a) 以 ~280 倍余量成立。**跨仪器使用时必须按像元尺度复核该常数**（2.0 px 的通用性只在上述条件下成立）。
 
-### 13.3 已登记现状缺陷（DISP-PHOT-001..009，登记不改码，整改归 P1-PHOT-IMPL/INT）
+### 13.3 实现差异记录（DISP-PHOT-001..010）
 
 - **DISP-PHOT-001**: `star_matcher.cpp` 头注释与 PhotometricDiag
   注释（`photometric_calib.h` "当前无双向过滤/rejected_ambiguous
@@ -257,16 +253,15 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 - **DISP-PHOT-006**: PhotometricDiag.rejected_quality 为 invalid+mag+irls
   混合计数不可归因（`star_matcher.cpp`）；v2 per-star reject_reason
   才可区分。
-- **DISP-PHOT-007**: `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` 的双通道四调用与 registry
-  descriptor 占位 ID（`lib/infrastructure/scheduler/src/module_adapters.cpp`）双轨并存，统一归
-  P1-PHOT-INT。
+- **DISP-PHOT-007**: legacy orchestrator 的双通道调用与当前 scheduler descriptor 记录是两种载体；前者不代表当前 CLI 实际入口。
 - **DISP-PHOT-008**: Photometer 孔径/天空环全图 O(h·w) 扫描 + 背景中值
   整段排序（`lib/algorithms/photometry/wrapper_phase1/photometer.cpp`），未优化且未接管线。
 - **DISP-PHOT-009**: 帧级 QA 换算（sigma_mag/sigma_cal_rel）落位
   snr_estimator（snr_phot_cal_quality，`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`），本模块仅
   登记边界。
+- **DISP-PHOT-010**: Gaia 候选到同一 PSF 位置出现精确等距时，当前 KD-tree 最近邻比较没有稳定 tie-break；合法输入下选择可能依候选枚举次序变化。
 
-### 13.4 冻结测试设计 TEST-PHOT-DESIGN-001（容差取值即本节）
+### 13.4 测试设计参考（未据此声明运行）
 
 - fixture F1: 合成注入已知乘性偏移 k（location=log10 k 恢复，rtol 1e-4，
   SCI-PHOT-001 [D-1]）。**该 fixture 的行使域（必须如实声明）**：F1 的注入**无扰动**（`lib/algorithms/photometry/tests/p1phot/p1phot_fixtures.hpp` 以 `perturb_amp=0.0` 构造 ⇒ 全部 `r_i ≡ log10 k`），故 `S=0`，走的正是 [S-1]「参数与常数」一节 的 **S=0 直取 median 分支**；可执行测试同时断言 `robust_iterations==0` 与 `sigma==0`（`lib/algorithms/photometry/tests/p1phot/p1phot_tests_units.cpp`）。⇒ **rtol 1e-4 门只覆盖 median 通路，不覆盖 IRLS 迭代通路**；IRLS 通路的可执行门是 F2（`perturb_amp=0.02` ⇒ `S>0`）的 `|Δlocation|<0.1 dex`（宽松门）。
@@ -279,11 +274,11 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 - 不变量 I1: out_pixels=round-trip(I·scale) bitwise（f64 通道）；I2:
   sigma_residual=`median(|r_inliers−location|)/0.6744897501960817` 与逐星 records 残差一致。**该门的性质**：oracle 侧（`lib/algorithms/photometry/tests/p1phot/p1phot_oracle.hpp`）按**同一中心约定**（中心 = `location`）复算，故 I2 是**实现一致性**门（可抓编码错误），**不是定义正确性**门——若中心约定本身有误，两侧同错、门仍绿。定义口径由 §2 F4 的显式声明固定；中心约定的敏感度见 §2 F4（δ/σ 一阶偏差）。I3:
   Σdiag.rejected_*+fit_used=unique_matches；I4: records[star_id] 与输入
-  psf_star_ids 一一对应；I5: 线程数扫描（1/4/N）科学输出 bitwise 不变；
+  psf_star_ids 一一对应；I5: 线程数扫描（1/4/N）比较科学输出；逐位相等只在运算与归约序不变时作为判据，否则按 NUMERIC 的预声明容差评价；本条是测试设计，不是运行结论。
   I6: r 方向恒为 log10(F_instr/F_syn)。
 - 负面矩阵: 空指针/h·w=0/n_gaia=0/PSF 全 status≠0/锥搜失败(rc=−3)/
   handle=null(rc=−2)；断言错误码与退化登记齐全。
-- 可执行 TEST-P1-PHOT-001 由 P1-PHOT-TEST 落地后更新矩阵 test 层。
+- 本页未声明测试设计已运行；执行结果需另有输入与运行记录。
 
 **可复现轮 T05–T10 诚实化（合成三实验 3 项）**：
 
@@ -291,7 +286,7 @@ F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 
 - T-PHOT-02（step2 HST M16 真实信号模板前向仿真帧 A/B/C）：复现三件套齐备。命令同上（单步 `python3 -u 实验/photometric-magnitude/code/step2_hst_sim.py`）；seed 同上（20260921，`rng` 派生）；产物 hash 指针：同上（`run/SCI-401/logs/step2.log` + `docs/GATES.md` 判据表）。前向仿真模板来源见该单元 `REPORT_experiment.md`。
 - T-PHOT-03（step3 XP 合成通量 vs HST PHOTFLAM 绝对定标对拍）：复现三件套齐备。命令同上（单步 `python3 -u 实验/photometric-magnitude/code/step3_forward_vs_photflam.py`）；seed 同上（20260921）；产物 hash 指针：同上（`run/SCI-401/logs/step3.log` + `docs/GATES.md` 判据表）。注意 step0 外部参考数据是唯一需网络步骤（缓存 + SHA256 固定），离线复跑用缓存。
 
-### 13.5 非生产通道与待迁移符号（去留归 P1-PHOT-IMPL 登记）
+### 13.5 非生产通道与未接入符号
 
 - ABI 兼容通道保留（均在 `lib/algorithms/photometry/cpp/src/pc_api.cpp`）:
   pc_calibrate_simple、pc_calibrate_simple_f64、pc_calibrate_simple_with_gaia、

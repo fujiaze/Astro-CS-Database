@@ -1,12 +1,10 @@
 # 单信号球面 HiPS 到平面 FITS 的数值重采样
 
-> 科学正本；上游 docs/ACSD_DESIGN.md §6；输入输出边界见 science/projection/HIPS_TO_FITS.md、基础物理量见 science/unified/UNIFIED_SCIENCE_MODEL.md。重写日期 2026-10-14。
->
-> 本分册仅负责阶段三的**信号变换及其实际几何/图像质量影响**。旧版写出的“阶段三必须消费 variance/ivar、重算独立点源信息量并输出多层科学数据”不符合现行单信号产品目标；这些公式可用于内部实验/误差分析，不再被误认为最终导出文件的必需字段。
+本分册依据[最高设计](../../ACSD_DESIGN.md)与[平面导出合同](../projection/HIPS_TO_FITS.md)，定义已有球面信号的数值重采样及几何、图像质量影响。输入量见[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，实现状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
 ## 1. 重采样是已成像信号的数值表示变更
 
-输入是阶段二的一个 HiPS signal 通道，每个叶是当前混合/参考通带约定下的球面平均线性强度 B_j；输出是给定 WCS 平面网格的平均/插值信号 y_i。并无新光子输入，不会通过重复插值增加天文信息。
+输入是兼容HiPS的signal通道，典型来源为阶段二马赛克；每个叶是当前混合/参考通带约定下的球面平均线性强度 B_j；输出是给定 WCS 平面网格的平均/插值信号 y_i。并无新光子输入，不会通过重复插值增加天文信息。
 
 所有重采样核需定义：
 - 物理输入究竟为 leaf 面积平均值还是叶中心抽样值；
@@ -19,7 +17,7 @@
 
 ## 2. 球面到平面几何
 
-设 HEALPix leaf H_j，目标平面像素对应的球面足迹 Q_i，面积分别 Ω_j 和 Ω'_i。RA/Dec 来自独立 WCS 反投影，不在极点/RA 0° 处使用未处理经纬度线性相加。
+设 HEALPix leaf H_j，目标平面像素对应的球面足迹 Q_i，面积分别 Ω_j 和 Ω'_i。RA/Dec 来自符合FITS WCS标准[1,2]的反投影，不在极点/RA 0° 处使用未处理经纬度线性相加。
 
 对连续面积重采样，a_ij=area(Q_i∩H_j)，在有效区域上有：
 \[
@@ -55,7 +53,7 @@
 
 ## 5. 层级选择与两次重采样的误差分离
 
-512 像素 tile 的等面积等效尺度：s_K=√(π/3)/(512·2^K)。选择能覆盖请求输出尺度的输入 order，但该数只是面积等效标尺，不保证最坏方向采样间隔。对过采样请求，最大层级 Kmax 不改变，必须在元数据中说明放大不创造物理分辨率。
+HiPS层级遵循[3]。512 像素 tile 的等面积等效尺度：s_K=√(π/3)/(512·2^K)。选择能覆盖请求输出尺度的输入 order，但该数只是面积等效标尺，不保证最坏方向采样间隔。对过采样请求，最大层级 Kmax 不改变，必须在元数据中说明放大不创造物理分辨率。
 
 HiPS 的父层本来是从叶层再次粗化的图像，而阶段三进一步在目标 WCS 上重采样。对“输出变软”“细节晕圈”“条纹”必须测量：
 1. CCD → 球面 Drizzle 的一次算子；
@@ -68,8 +66,12 @@ HiPS 的父层本来是从叶层再次粗化的图像，而阶段三进一步在
 
 返回一个二维 FITS signal 图像，头中记录 FITS WCS、BUNIT、有效光度系统/响应说明、实际层序和采样核。NaN 表示不支持/无数据，零与负数是合法科学信号。不要要求阶段二额外发布 support/variance/ivar 来让现有 export API 通过；应按单信号产品修改阶段三消费合同。
 
-当前生产 lib/algorithms/resample/p3_resample.cpp 主要包含 nearest 与四象限 bilinear，以及可选的不确定度消费函数；并不因此说明更复杂的面积交叠模式已接入正式导出。算法需要独立验证后才能把其名称写进“已实现列表”。采样方式的选择是用户/配置行为而不是一个对研发流程的审批门禁。
+具体可用核和生产消费限制以[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)为准。独立评价在同一真值世界中分离Drizzle、层级派生和Export；几何构型与保留证据见[球面实验报告](../../../实验/healpix-polar/REPORT_experiment.md)。
 
-## 7. 研究证据
+## 7. 参考文献
 
-科学几何与方差依据：science/drizzle/DRIZZLE.md；Górski et al. 2005；Greisen & Calabretta 2002；Calabretta & Greisen 2002；IVOA HiPS Recommendation；Fruchter & Hook 2002。源代码入口：lib/algorithms/resample/p3_resample.cpp、lib/phase3_session/；数值对照由专门的真实生产 E2E 和有真值的重采样实验提供。
+[1] Greisen, E. W., Calabretta, M. R. Representations of world coordinates in FITS. A&A, 395, 1061–1075. [论文](https://arxiv.org/abs/astro-ph/0207407)。
+
+[2] Calabretta, M. R., Greisen, E. W. Representations of celestial coordinates in FITS. A&A, 395, 1077–1122. [论文](https://arxiv.org/abs/astro-ph/0207413)。
+
+[3] IVOA. HiPS: Hierarchical Progressive Surveys. [推荐标准](https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf)。

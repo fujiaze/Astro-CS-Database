@@ -1,6 +1,6 @@
 # Normalize 数据合同
 
-本合同依据 [阶段一科学模型](../../science/normalize/NORMALIZE_SCIENCE.md) 和 [阶段一架构](../architecture/NORMALIZE_PIPELINE.md)，定义阶段内类型、端口载荷和逐帧产品序列化。算法公式由 science 维护；本合同决定同一科学量怎样在代码和磁盘间保持身份。具体接口与迁移落点见 [实现规格](../../detail/normalize/contracts.md)。这些是待实现的确定规格，不表示生产代码已经具备对应类型。
+本合同依据 [阶段一科学模型](../../science/normalize/NORMALIZE_SCIENCE.md) 和 [阶段一架构](../architecture/NORMALIZE_PIPELINE.md)，定义阶段内类型、端口载荷和逐帧产品序列化。算法公式由 science 维护；本合同决定同一科学量怎样在代码和磁盘间保持身份。具体接口与迁移落点见 [实现规格](../../detail/normalize/contracts.md)。本文是确定的数据规格[1,2]。生产代码已具备部分参考/状态类型、球面 GLS、sidecar 读写及发布调用；完整 Runtime 载荷、模型求值和读取合同尚未全部满足。实现事实与限制集中见[科学实施差异地图](../architecture/SCIENCE_IMPLEMENTATION_DELTA.md)，不能把本合同的要求一概称为未实现或全部已实现。
 
 ## 1. 身份、版本与所有权
 
@@ -8,7 +8,7 @@
 
 每个阶段内对象具有 `ObjectHeader {run_id, frame_id, schema_version, revision, producer, input_revisions}`。`revision` 在当前 run 内单调增加；`input_revisions` 精确绑定上游对象，不以目录 mtime 判断新旧。生产者发布后对象只读，消费者必须核对帧、run 和上游版本。更换 WCS、标度或像素有效性使依赖它的下游对象失效并重算。
 
-Runtime 拥有帧对象仓和大数组块；节点只借用 const 输入并提交新的 owned 输出。最后一个消费者完成后回收，取消与异常同样释放。复用 `BlockFrame`、`RunContext`、AIO 的生命周期和预算，不增加私有全局对象仓。当前 `BlockFrame` 只存数值字节、`RunContext` 只存 artifact descriptor，实施时须明确扩展它们承载 typed metadata/模型句柄，不能声称其已有完整 typed 跨节点载荷。
+Runtime 拥有帧对象仓和大数组块；节点只借用 const 输入并提交新的 owned 输出。最后一个消费者完成后回收，取消与异常同样释放。复用 `BlockFrame`、`RunContext`、AIO 的生命周期和预算，不增加私有全局对象仓。当前 `BlockFrame` 的数值块和 `RunContext` 的 artifact descriptor 服务尚未构成完整 typed 对象仓；`lib/include/acsd/normalize_data.h` 的类型声明不等于这些模型已由 Runtime 跨节点传输。实施时须扩展其 metadata/模型句柄、版本与消费者生命周期。
 
 C++ 内部可用 RAII、`std::optional` 和 `shared_ptr<const T>`；跨 DLL 用现有 `acsd_head`、POD/span、host allocator 或 opaque handle，不能把 STL 类型直接放入公共 C ABI。数值大面默认 FP32，几何/稀疏/标定元数据 FP64；AIO 全局精度开关不能把稀疏值降为 FP32。
 
@@ -54,7 +54,7 @@ C++ 内部可用 RAII、`std::optional` 和 `shared_ptr<const T>`；跨 DLL 用�
 | Drizzle | identity、photoapplied、wcs、psf、noise_model | stacked、drizzle_model、sparse_reference、frame_reference |
 | writer | identity、wcs、photprov、noise_model、stacked、drizzle_model、sparse_reference、frame_reference | frame_product |
 
-保留八个生产调度节点。Drizzle 得到球面观测后调用 **noise 库**完成 `sparse_reference`/`frame_reference`，不复制 SNR 数学，不回写 noise 节点，故没有循环依赖。若增加独立 sphere-completion 调度节点，必须保持上述依赖和算法所有权；本轮实施使用八节点方案。
+保留八个生产调度节点。Drizzle 得到球面观测后调用 **noise 库**完成 `sparse_reference`/`frame_reference`，不复制 SNR 数学，不回写 noise 节点，故没有循环依赖。若增加独立 sphere-completion 调度节点，必须保持上述依赖和算法所有权；现行调度合同保持八节点方案。
 
 `planar_reference` 的量属于 `photo_applied_planar`，不能在 writer 改标签后当作 `drizzled_sphere`。生成最终控制点必须用同一次 Drizzle 的 R、`h_sphere=R h_planar`、`C_sphere=R C_planar Rᵀ` 和相应背景模板 `Z_sphere`。模型评估应使用算子/局部窗口，不要求生成全帧密集协方差矩阵。
 
@@ -73,7 +73,7 @@ C++ 内部可用 RAII、`std::optional` 和 `shared_ptr<const T>`；跨 DLL 用�
 
 控制状态为 `available` 或 `unavailable`；available 有 `accuracy=conditional_complete|approximate|upper_bound` 和 `omitted_terms`。只有确定被省略项是 PSD 随机噪声、模板/有效域固定时，缺 source Poisson 的条件 SNR 才可称 upper_bound；有未定标增益、母版或模板误差而无此保证时用 approximate。这些状态不宣称系统精度完整。
 
-帧级 reference 摘要固定为 **area-weighted median of log reference_snr** 后取 exp：各有效 patch 的真实球面支持面积为权重（patch 分区不重复计面积）；同时记录支持面积、有效点数和参考定义。摘要不替代局部 controls，不用它重缩放 controls。现有 `ACSD_FRAME_SNR` 的旧数值保持其 legacy identity；新摘要完成前不得误标为此定义。
+帧级 reference 摘要固定为 **area-weighted median of log reference_snr** 后取 exp：各有效 patch 的真实球面支持面积为权重（patch 分区不重复计面积）；同时记录支持面积、有效点数和参考定义。摘要不替代局部 controls，不用它重缩放 controls。现有 `ACSD_FRAME_SNR` 保持其 legacy identity；球面 completion 已有独立摘要 producer `summarize_frame_reference`，不能据它存在就把兼容头字段改认作此摘要。其实际支持域仍须与本节合同核对。
 
 ## 6. 精度传递和秩亏
 
@@ -81,7 +81,7 @@ C++ 内部可用 RAII、`std::optional` 和 `shared_ptr<const T>`；跨 DLL 用�
 
 局部 R 可能秩亏；不得给 C_sphere 盲加 epsilon 后报告更高信息量。在同一保留子空间内处理 h、Z 与 C：使用显式秩判定/分解，报告秩与条件数；若参数不可辨识则 precision unavailable。h 位于协方差零空间可能是精确约束，须单独建模而非默默用伪逆丢弃。基础实现只接受可验证的可估计子空间，不宣称一般精确约束解已完成。
 
-`surface_transfer` 独立于 SNR：available 时有目标 leaf、`surface_variance`、`transfer_factor=V_B/V_F`、单位和 covariance conditioning；unavailable 时只给原因。两种方差必须同源、同位置、同条件，`transfer_factor` 有量纲。有合法参考 SNR 但不能求 T 的点仍可发布；阶段二不得偷偷设 T=1。本轮不切换阶段二生产权重。
+`surface_transfer` 独立于 SNR：available 时有目标 leaf、`surface_variance`、`transfer_factor=V_B/V_F`、单位和 covariance conditioning；unavailable 时只给原因。两种方差必须同源、同位置、同条件，`transfer_factor` 有量纲。有合法参考 SNR 但不能求 T 的点仍可发布；阶段二不得偷偷设 T=1。阶段二生产权重的切换不由本合同自动授权。
 
 ## 7. 唯一正式序列化
 
@@ -95,7 +95,7 @@ writer 是唯一最终发布者。Drizzle 可以借用统一 HiPS writer 在 run
 
 ### 7.1 局部模型的基础序列化表示
 
-基础完成路径保存每控制点局部数值窗口，不为初次实施引入另一套任意核拟合算法。模型文件使用 UTF-8 JSON，首字段 `model_schema=acsd.normalize.local-model/v1`、`model_id`、`kind`、`domain`、`dtype=float64`、`unit`、`control_id`；数组元素按声明顺序排列，矩阵采用 row-major。内容 hash 来自实际文件，未知量用 null。模型较大时可由 AIO 以同字段/单位的版本化二进制载荷承载，不能序列化裸 C++ struct 或机器指针。
+基础模型保存每控制点局部数值窗口，不引入另一套任意核拟合算法。精确因子必须能按声明恢复同一 C，不能在显式矩阵标签下存短向量。`acsd.normalize.local-factor/v2` 以不同字段表达源方差、算子和逻辑协方差；显式模型用 `acsd.normalize.local-model/v1`。模型文件使用 UTF-8 JSON，包含 `model_schema`、`model_id`、`kind`、`domain`、`dtype=float64`、`unit`、`control_id`；数组元素按声明顺序排列，矩阵采用 row-major。内容 hash 来自实际文件，未知量用 null。模型较大时可由 AIO 以同字段/单位的版本化二进制载荷承载，不能序列化裸 C++ struct 或机器指针。实际 reader 的覆盖见实施差异。
 
 | kind | 必需数值/索引载荷 | 计算意义 |
 |---|---|---|
@@ -106,9 +106,9 @@ writer 是唯一最终发布者。Drizzle 可以借用统一 HiPS writer 在 run
 | scale | 参数基函数/系数、有效域、输入/输出单位、application ID、参数误差状态 | 一次标度与参考模板变换 |
 | calibration_uncertainty | master IDs、Jacobian/已有分量表示、共享源绑定、遗漏项 | 已建模误差；未测母版不补假矩阵 |
 
-**正式载体选择（2026-10-15 前台裁决）**：在生产模型明确为平面独立条件随机分量且 v_j>0 的情况下，**优先使用 CSR(R) + 逐源像元 v_j 的精确因子表示**，不要求默认写明文 nl×nl 协方差。显式矩阵只作小规模科学对照/开发可选表示。此取舍在模型假设成立时没有统计近似，减少模型体积，但**并不补回** omitted master/photometric correlation 或未知实测噪声分量。因子真实单位为 [linear_integrated_signal]²，R 单位 sr⁻¹，派生 C 单位 [linear_signal]²/sr²；三者不可共用一个 BUNIT。
+在生产模型明确为平面独立条件随机分量且 v_j>0 的情况下，优先使用 CSR(R) + 逐源像元 v_j 的精确因子表示，不要求默认写明文 nl×nl 协方差。显式矩阵用于小规模科学对照或可选表示。模型假设成立时这种表示没有统计近似，但不补回 omitted master/photometric correlation 或未知噪声分量。因子真实单位为 [linear_integrated_signal]²，R 单位 sr⁻¹，派生 C 单位 [linear_signal]²/sr²；三者不可共用一个 BUNIT。
 
-**因子格式的正式版本与读侧强约束**：既有 `acsd.normalize.local-factor/v1` 是早期实现，出现了 factor payload `values=v_j` 却把 `unit` 写为 ADU²/sr²、`matrix_shape` 写成 [m,1] 而非实际逻辑 C 的 [nl,nl] 的错位。修复时必须将**新语义**以显式新版本 `acsd.normalize.local-factor/v2` 或经证明不会误读的等价版本化 schema 表达；推荐如下不可混淆字段：
+`acsd.normalize.local-factor/v2` 分别声明以下字段，不以 `values=v_j` 的短向量 shape 和源单位代替逻辑 C 的 shape 和单位：
 
 - `logical_covariance_shape=[nl,nl]`、`derived_covariance_unit=linear_unit²/sr²`、`covariance_condition=reference_source`；
 - `factor_model=planar_diagonal`、`factor_variance=v_j`、`factor_shape=[m]`、`factor_variance_unit=linear_unit²`、`source_pixel_indices`；
@@ -136,10 +136,15 @@ writer 是唯一最终发布者。Drizzle 可以借用统一 HiPS writer 在 run
 
 reader 除 shape 还须核对：control_id/model_id 唯一；所有引用存在且 kind/domain 正确；leaf 编号在声明阶内且与 sky 坐标一致；V_F、SNR 和 F_ref 配对；available T 与 V_B/V_F 同单位同条件；frame summary 的 n_valid/面积/数值由有效 controls 得到；CRVAL/Dec、CD 非奇异与 SIP 维数合法；photometry 状态、application ID、单位和真实 signal 标度一致。JSON Schema 不表达这些物理关系或外部文件 hash，执行者在统一 reader 完成，不能把 shape 校验冒称科学验证。
 
-### 7.1B 因子 v2 与 PSF 逐控制点诊断的独立复核合同（2026-10-16）
+### 因子单位与逐控制点诊断
 
 local-factor/v2 量纲一致性同时包括**线性单位自身**与立体角幂次。源 v_j 的单位为 `L²`，算子 R 的单位为 `sr^-1`，派生 C 的单位必须为 `L²/sr²`，其中 L 是该 frame 真正施加 photometric scale 后的线性 signal 单位；`adu^2` 和 `electron^2/sr^2` 即使 sr 次幂满足计算规则，也**不是**一个可直接组合的模型。reader 必须核对 base linear unit 和 sr exponent，未知转换不许仅因 sr 指数正确就接纳。
 
 每个控制点的 PSF 积分数据应根据**该控制点自己的** profile、pixel footprint 记录 f_enclosed/f_out、subpixel_phase、pixel_integration_error、PSF 参数和有效域。跨控制点的最小值/最大值只能作为帧摘要，不能冒充每一个控制点数据。representation、representation_note 与 models[] 引用应来自同一版本，写 v2 时同一模型的自由文本域不应残留 v1 的声明。
 
-已核实的实现差异：normalize_precision.cpp 当前以所有控制点的 `profile_enclosed=min(ΣP)` 给每个 support_note 写相同最小值；covariance support_note 仍写 local-factor/v1 而 writer 真实 representation 为 v2；normalize_science.cpp::reconstruct_factor_covariance 只检查 sr 幂次。Agent 应在真正 writer→reader 路径和独立负例中修复上述差异，保留正确的 C=R diag(v)Rᵀ 算法。参照 实验/normalize-precision-p5/ROUND2_INDEPENDENT_REVIEW_633FFC31.md。
+生产逐点诊断、表示文本和单位校验的具体差异集中见[实施地图](../architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。读写检查的独立证据见[因子与 PSF 复核](../../../实验/normalize-precision-p5/ROUND2_INDEPENDENT_REVIEW_633FFC31.md)，不能据部分结构检查通过宣布全部模型可独立求值。
+## 参考文献
+
+[1] [Normalize 科学正本](../../science/normalize/NORMALIZE_SCIENCE.md)。
+
+[2] [Normalize 生产链与模块责任](../architecture/NORMALIZE_PIPELINE.md)。

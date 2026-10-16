@@ -1,15 +1,13 @@
 # ACSD 统一科学模型｜观测、精度、球面重建与最终产品
 
-> 科学正本；上游：docs/ACSD_DESIGN.md §1–§6。本文由前台统一改写，取代本文件旧版相互混合的 SNR/像素权重定义。历史推导可在 Git 历史查阅；实验结果不因本次改写而自动成为生产验证。日期：2026-10-14。
->
-> 阅读顺序：本文件 → science/noise_snr/NOISE_SNR.md → science/drizzle/DRIZZLE.md → science/sky/UPM.md → science/projection/HIPS_TO_FITS.md。各专题负责详细算法与适用域，不再另立互相冲突的基础物理量。
+本分册依据[最高设计](../../ACSD_DESIGN.md)，统一观测量、条件精度、球面算子和最终产品含义。专题推导由[Normalize](../normalize/NORMALIZE_SCIENCE.md)、[噪声](../noise_snr/NOISE_SNR.md)、[Drizzle](../drizzle/DRIZZLE.md)与[背景](../sky/UPM.md)承接；实现与证据状态见[科学实现差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
 ## 1. 系统边界与用户选择
 
 ACSD 有三个命令：
 1. normalize：原始 CCD/CMOS 观测校准、Gaia XP 参考测光、噪声与 PSF、稀疏参考 SNR 测量、球面 Drizzle，输出**每帧 HiPS 信号及其用于阶段二的辅助数据**。
 2. mosaic：在同一 HEALPix NESTED 球面网格上，重建稠密参考精度场、计算科学叠加权重、相对背景与通带差处理、排异和合成，**最终只发布一个 signal 科学图像子产品**，连同标准 HiPS 必需目录/元数据以及运行摘要。中间的支持度、方差、权重和控制点不成为最终科学图像层。
-3. export：读取合成 HiPS，按目标 WCS 重投影并输出**普通二维 FITS 信号图像**，供后期处理。不得声称从单信号图可恢复已经丢失的独立方差或精确 PSF 协方差。
+3. export：读取兼容的单信号 HiPS 产品，按目标 WCS 重投影并输出**普通二维 FITS 信号图像**，供后期处理。不得声称从单信号图可恢复已经丢失的独立方差或精确 PSF 协方差。
 
 输入可由用户任意组合不同相机、望远镜、曝光、滤镜及通带宽度。**禁止以设备/通带一致性设项目级拒绝条件**。兼容范围描述的是能够运算，而不是物理上能够无偏地变换为同一通带辐射场。质量、误差和失配信息以诊断/元数据如实揭示。不建立审批式或测试通过率式“门禁”；仍应检测数据损坏、非法几何和不可计算数值并给出错误。
 
@@ -31,7 +29,7 @@ ACSD 有三个命令：
 
 ## 3. 跨设备光度：参考通带与不可辨识部分
 
-给每次 mosaic 定义**目标响应 R_0(λ)**（可以是选定设备响应、具名标准响应或明确的相对参考）。Gaia DR3 XP 给出合格恒星的校准光谱 f_{λ,s}；合成参考量按同一响应与光子/能量计数约定计算：
+给每次 mosaic 定义**参考响应或混合响应规则**。R_0(λ)可以是选定设备响应或具名标准响应；相对参考若无已知曲线，不能把该名称当作已知R_0。Gaia DR3 XP 给出合格恒星的校准光谱 f_{λ,s}；合成参考量按同一响应与光子/能量计数约定计算：
 
 \[
  q_{ks}=\int f_{\lambda,s}(\lambda)R_k(\lambda)\lambda\,d\lambda,\qquad
@@ -63,16 +61,18 @@ ACSD 有三个命令：
 
 从完整仪器与重采样模型可推导 V_B 与 V_F 的**精度传递因子** T_k(u)：
 \[
- T_k(u) \equiv V_{B,k}(u)/V_{F,k}(u),\quad
- w_{B,k}(u)=1/V_{B,k}(u)=\big(S_k(u)/F_{\rm ref,k}\big)^2/T_k(u).
+ T_k^{(c)}(u) \equiv V_{B,k}^{(c)}(u)/V_{F,k}^{(c)}(u),\quad
+ w_{B,k}^{(c)}(u)=1/V_{B,k}^{(c)}(u)=\big(S_k^{(c)}(u)/F_{\rm ref,k}\big)^2/T_k^{(c)}(u).
 \]
-T 有面积/PSF 相关量纲，须由当前像素响应、重采样算子、有效 PSF、背景消除方式与相关噪声等计算或外部标定；不得默认为 1。当两类方差计量的单位不同，T 的单位必须显式携带，使 w_B 单位为 1/[B]²。此桥梁的具体求值与退化策略见 NOISE_SNR.md。
+c明确标识reference-source、actual-scene或background-only条件。Canonical控制点的参考源泊松项与真实场景不同，不能直接用T_ref换算实际场景权重；必须重求场景条件或验证背景主导近似。T 有面积/PSF 相关量纲，须由当前像素响应、重采样算子、有效 PSF、背景消除方式与相关噪声等计算或外部标定；不得默认为 1。当两类方差计量的单位不同，T 的单位必须显式携带，使 w_B 单位为 1/[B]²。此桥梁的具体求值与退化策略见 NOISE_SNR.md。
 
 随机 C_random 与校准零点、乘性响应误差、背景拟合和通带混合误差 C_systematic 分开描述。光度零点是跨像素相关的共同参数，不可像像素白噪声一样按独立项逐像素相加。测得的点源 scatter 与解析条件噪声不符时，不得直接把差异归罪于随机泊松噪声。
 
 ## 5. 球面 Drizzle 与关联噪声
 
-对源像元 j 缩小后的 drop 区域 D_j，真实目标 HEALPix 单元 P_p，定义交叠立体角 a_{jp}=area(D_j∩P_p)、A_drop,j=area(D_j) 与 Ω_j=未收缩源像元面积。几何核 w_{jp}=a_{jp}/A_drop,j，输出的面积归一量 N_p=Σ_j w_{jp}Ω_j，得到
+线性重建的相关噪声见[1]，HEALPix的曲边与等面积性质见[2]。
+
+对源像元 j 缩小后的 drop 区域 D_j，真实目标 HEALPix 单元 P_p，定义交叠立体角 a_{jp}=area(D_j∩P_p)、A_j=A_drop,j=area(D_j) 与 Ω_j=未收缩源像元面积。几何核 w_{jp}=a_{jp}/A_drop,j，输出的面积归一量 N_p=Σ_j w_{jp}Ω_j，得到
 
 \[
  F_p=\sum_j w_{jp}x_j,\qquad
@@ -94,9 +94,11 @@ HEALPix NESTED 的每个 leaf 等面积 Ω_p=4π/(12 nside²)，但其真实曲�
 
 ## 6. 稀疏参考 SNR → 阶段二现场精度
 
+点源检测/测光的最优组合需保留PSF与统计假设[3]；以下面亮度合成是不同的目标量。
+
 阶段一保留每帧参考通量、光度尺度、PSF/NEA、条件噪声约定、球面坐标与有效支持域，并在稀疏点测量 S_k(u)。阶段二在输出位置现场重建稠密正精度场，优先研究 log V_F（以及 log SNR 对照），而不是给所有插值结果同样的统计解释。
 
-不可把 SNR 的空间插值误差当成新的独立像素噪声；这是**估计模型误差**。需要显式支持域、孔洞、空间交叉验证、外推/退化读数，以及从 V_F 到 V_B 的精度桥梁 T。自然三次样条不保证形状保持，值域裁剪可能有偏；IDW p=1/p=2 没有因默认值而具备理论优先权，以既有 S06 留出结果继续研究参数选择。
+不可把 SNR 的空间插值误差当成新的独立像素噪声；这是**估计模型误差**。需要显式支持域、孔洞、空间交叉验证、外推/退化读数，以及从 V_F 到 V_B 的精度桥梁 T。自然三次样条不保证形状保持，值域裁剪可能有偏；IDW指数与其它模型参数由独立留出误差和最终估计偏差共同确定。
 
 在不同帧观测同一经标度定义的面亮度、无额外模型失配、且各帧随机误差相互独立时，
 \[
@@ -120,19 +122,18 @@ E_p 是已排除异常输入后的合格样本集合。如果存在跨帧共享�
 
 最终 mosaic HiPS：一个科学图像子产品 signal；内部 sample support/variance/ivar/rejection 不属于最终图像层。对无数据的 leaf 用不与零亮度混淆的明确无效表示（浮点 FITS 可使用 NaN）；文件标准要求的 HiPS properties、目录层级、WCS/坐标与测光响应声明保持完整。HiPS 层级的派生值应按面积与统计目标定义；粗尺度不是新观测，也不是重新生成一套独立白噪声。
 
-export 是既有单信号 HiPS 的平面重采样，不从单图像恢复不存在的 covariance、SNR 或仪器历史。不应把输出图像的平滑度误当成噪声物理标定。一般显示和后期模式可选择受控插值，科学评估须测试额外重采样的有效 PSF、孔径通量和噪声相关性。最终 FITS BUNIT 继承阶段二有效光度量纲与响应状态。
+export 是既有单信号 HiPS 的平面重采样，不从单图像恢复不存在的 covariance、SNR 或仪器历史。不应把输出图像的平滑度误当成噪声物理标定。一般显示和后期模式可选择受控插值，科学评估须测试额外重采样的有效 PSF、孔径通量和噪声相关性。最终FITS BUNIT继承实际输入HiPS的有效光度量纲与响应状态。
 
-## 9. 科学证据与开发纪律
+## 9. 条件信息与科学证据
 
-不新增流程关卡和审批“门禁”。对科学结论使用独立构造的解析可解场、独立数值 oracle、控制注入/阴性对照、HST 结构前向模拟、真实重复帧与生产 E2E；将执行事实与推论分开报告。历史的 PASS、条件回退或单项函数通过不能代替全链物理正确性的证明。对未实现部分明确写成待改动代码，而不通过文字称其已完成。
+Normalize采用固定参考源条件下的GLS方差。协方差半正定时区分观测子空间、精确约束与参数可辨识性；冗余背景参数不自动使通量不可估计。满列秩R并且模板/背景/协方差经同一算子传递时，条件信息保持；降采样与选择一般不保持。推导见[噪声分册](../noise_snr/NOISE_SNR.md)。
 
-已知生产差异清单和拟定代码位置由 engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md 承载；本文件是**目标科学模型**，不声称当前代码已经全部符合。
+独立证据分别回答解析量纲与恒等式、数值求积误差、随机覆盖率、真实输入适用域和生产实现是否命中；局部算术正确不等于真实全链完成。实现与运行事实由[科学实现差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)维护。
 
-## 10. 参考理论与实验入口
+## 10. 参考文献
 
-- Fruchter & Hook (2002), Drizzle: A Method for the Linear Reconstruction of Undersampled Images, PASP 114, 144–152。
-- Górski et al. (2005), HEALPix: A Framework for High-Resolution Discretization and Fast Analysis of Data Distributed on the Sphere, ApJ 622, 759–771。
-- Horne (1986), An Optimal Extraction Algorithm for CCD Spectroscopy, PASP 98, 609–617（点源估计的条件统计工具，不等同于所有 CCD 成像叠加）。
-- Zackay & Ofek (2017), How to Coadd Images? I. Optimal Source Detection and Photometry Using Ensembles of Images, ApJ 836, 187/188（按具体文章范围使用，须依实验/shared/references/CORE_REFERENCES_VERIFIED.md 核对条目）。
-- Gaia DR3 XP 的外定标与合成测光资料，查实验/shared/references/CORE_REFERENCES_VERIFIED.md。
-- 实测与失败域：实验/photometric-magnitude、实验/absolute-snr、实验/healpix-polar、实验/dense-snr-reconstruct、实验/additive-sky-seamless。
+[1] Fruchter, A. S., Hook, R. N. Drizzle: A Method for the Linear Reconstruction of Undersampled Images. PASP, 114, 144–152. [原文](https://arxiv.org/html/astro-ph/9808087v2)。
+
+[2] Górski, K. M. et al. HEALPix: A Framework for High-Resolution Discretization and Fast Analysis of Data Distributed on the Sphere. ApJ, 622, 759–771. [论文](https://arxiv.org/abs/astro-ph/0409513)与[官方几何说明](https://healpix.sourceforge.io/html/intro_Geometric_Algebraic_Propert.htm)。
+
+[3] Zackay, B., Ofek, E. O. How to Coadd Images? I. Optimal Source Detection and Photometry Using Ensembles of Images. ApJ, 836, 187. [原文](https://arxiv.org/pdf/1512.06872)。

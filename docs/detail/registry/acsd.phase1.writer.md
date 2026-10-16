@@ -1,57 +1,36 @@
-# 模块 acsd.phase1.writer
+# Normalize 帧产品发布
 
-本页的函数/参数记录按实际源码维护；阶段一字段、生产—消费关系与迁移以 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md) 为准。未接入生产的接口不可因“冻结/通过”措辞视为已实现。
+本节点检查 Drizzle 已写的逐帧 HiPS，发布科学模型与唯一 `frame_science.json`，登记帧产品。它属于 [Normalize 八节点链](../../engineering/architecture/NORMALIZE_PIPELINE.md)，并非把 stacked 另导出一张平面 FITS。
 
+## 实际入口与数据交接
 
-> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节
+[adapter](../../../lib/infrastructure/scheduler/src/module_adapters.cpp) 的 `p1_op_writer` 对应 `acsd.phase1.writer`，在 Drizzle 后执行，消费逐帧 `p1_stack.json`、已完成 HiPS 和 precision staging，产生帧摘要/产品引用。descriptor 目前仍以 `stacked → fits` 命名，不能据此改写真实球面产品身份。
 
-## 职责与明确非职责
+目标 writer 输入为同帧同版本的 WCS、photprov、noise、stacked、Drizzle 模型和参考 controls；Runtime 类型、occurrence、状态和发布范围见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)及[接口规格](../normalize/contracts.md)。
 
-Registry production 模块（唯一源 = module_adapters.cpp 的 p1_writer_descriptor）。
-职责：把叠加产品写为 FITS（WCS/provenance 关键字随写）——实现面 =
-lib/infrastructure/aio 的 `aio_write_fits`，节点登记名 = acsd_phase1_writer_v1
-（模块节点绑定表）。不做：像素算法、校准/叠加本身、静默覆盖既有产品。
+## 统一 serializer/reader 与发布 API
 
-## 输入输出端口、DATA、单位、坐标、invalid
+[normalize_science.h](../../../lib/algorithms/integration/normalize_science/include/acsd/normalize_science.h)和[实现](../../../lib/algorithms/integration/normalize_science/src/normalize_science.cpp)提供：
 
-| 端口 | DATA | 必/可 | 单位 | 坐标 |
-|---|---|---|---|---|
-| `stacked` | `DATA-P1-STACK` | 必 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::ICRS` |
-| `fits` | `DATA-P1-FITS` | 可 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::ICRS` |
+| 入口 | 输入、输出与边界 |
+|---|---|
+| `write_local_model_file(root,payload,out)` | 序列化局部模型及 hash；bool 和 ModelWriteResult |
+| `write_frame_science_document(root,doc,out)` | 唯一 sidecar serializer；未知值 null，稀疏 FP64 round-trip |
+| `read_frame_science_document(path)` | FrameScienceReadResult：ok/error、present、supported、doc、findings |
+| `publish_staged_frame_science(staging,root,out)` | 核对/复制模型 hash，原子写 sidecar 并回读；由 writer 决定调用时机 |
+| `load_local_model_payload` / `reconstruct_factor_covariance` | 读取模型，核对因子/CSR结构并在预算内重建 C；不同于 sidecar 解码 |
+| `verify_frame_science_factor_models` | 对模型引用组织因子核对；当前通用 reader 尚未调用它，不能据函数存在宣称发布回读已执行全部模型校验 |
 
-invalid = NaN/coverage=0(按 DATA 合同)。
+生产 `p1_op_writer` 有实际发布调用。sidecar 指向 signal、WCS、reference、模型、controls、summary 和状态；model refs 使用产品内相对路径/hash。sky 为 ICRS degree、CRPIX 为 FITS 一基、叶号按 NESTED 实际叶阶；F_ref/V_F/SNR 与真实单位、模板/协方差配对。精度缺项不允许用零值填满。
 
-## 公共 header、核心 symbol 与生命周期
+## 所有权、错误与实现边界
 
-节点入口 = API-P1-008（phase session extern "C"；节点登记名 acsd_phase1_writer_v1）；
-写出实现 = lib/infrastructure/aio 的 `aio_write_fits`/`aio_read_fits`（FITS/XISF 唯一
-I/O 层，原子发布按 IO-003 合同）；生命周期 create→validate→run→inspect→destroy。
+writer 是 I/O 节点，单帧产品只有一个最终发布者。输入图像/模型由 Runtime/AIO 或 staging 持有；writer 不重新估计 PSF、噪声或光度，不创建另一份 canonical 真源。JSON/FITS 工作文件仍是实际依赖，开发诊断不能供 writer 补科学数据。
 
-## Registry descriptor 与配置 schema
+合法 signal 且 precision unavailable 是完整但能力受限的产品；损坏、reader findings 与发布失败是不同状态。运行清单应枚举全部输入 occurrence 和失败/取消原因，不能仅枚举成功目录。当前逐文件 hash/原子写和回读不等于 signal+全部模型+sidecar+完成 manifest 已形成整帧事务；唯一现行差异正文见[实施地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
-module_id=`acsd.phase1.writer`; execution_class=`io`;
-parallel_ok=False; 配置=phase config JSON(按 PHASE API 文档)。
+取消与 AIO 错误按 Runtime/统一 I/O 上行；写出后存在文件不足以说明可作为完成产品消费。模型能力状态与磁盘完整性也不能互相代替。
 
-## Execution class、并行轴、ThreadBudget lease、确定性
+## 验证入口
 
-`io`; parallel=否(资源门拒绝 heavy+serial 组合); worker 数=ThreadBudget.max_workers(唯一取值源);
-确定性=NOT_VERIFIED（未取得验收证据；不写成 PASS/FAIL）。
-
-## 内存/cache/I-O/所有权
-
-cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 buffer。
-
-## 错误、日志、指标、取消和 checkpoint
-
-错误码与退出码唯一源=lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；取消=协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成 → exit 9，最高设计协作取消口径；接线以实测为准）；模块内无 checkpoint（无断点续算）。
-- **负例与归零分支 N28（T05–T07 负向轮，本卡死值与静默 scale）**：负例输入构造 =
-  目标路径已存在产品的重复写请求。预期行为 = 拒绝静默覆盖（显式失败或具名覆盖
-  位），不以新值无声代替旧值。落盘标记 = 拒绝 / 覆盖位；静默覆盖 ⇒ 判红。
-
-## 独立 synthetic 验证命令与容差
-
-测试标识=`TEST-P1-WR-001`（registry descriptor 单源）；执行证据=NOT_VERIFIED（未取得验收证据）；容差=NOT_VERIFIED（同源）。
-
-## 已知限制
-
-见 artifacts/evidence/known-limitations-ledger/LIMITATIONS.md 与 `ALG-P1-WR-001` 合同边界。
+[sidecar schema 检验](../../../eng/tests/conformance/normalize_frame_science_schema_test.py)与[生产阶段一测试](../../../eng/tests/pipeline/test_stage_normalize.py)分别检查形状和实际节点。独立验证还需模型 hash/shape/引用、读写语义、applied application ID、未知 schema、缺 sidecar 兼容，以及发布中途失败/取消后不出现伪完成产品。本页未运行测试，不以 serializer/reader 存在宣称这些合同已全部满足。

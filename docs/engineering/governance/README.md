@@ -1,1 +1,1 @@
-本目录维护文档与科学/代码责任的收敛。**Normalize 的旧设计冲突及确定裁决见 [NORMALIZE_CONVERGENCE.md](NORMALIZE_CONVERGENCE.md)**；DOCUMENT_GOVERNANCE.md 说明全项目文档层级，TRACEABILITY.md 是合同身份索引，DUAL_LINE.md 说明写域/合并原则，UNRESOLVED.md 仅登记真正没有足够证据的事项。历史“未验证”不是交给 Agent 自由设计新科学方案的授权。
+本目录说明[文档治理](DOCUMENT_GOVERNANCE.md)、[协作分工](DUAL_LINE.md)与[证据追溯](TRACEABILITY.md)。Normalize 的冲突归因见[收敛记录](NORMALIZE_CONVERGENCE.md)，尚需输入或科学裁决的事项见[未决登记](UNRESOLVED.md)。

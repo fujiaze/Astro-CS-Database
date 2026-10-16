@@ -1,56 +1,27 @@
-# 模块 acsd.phase3.properties
+# Export 产品属性读取
 
-> 上游：`docs/ACSD_DESIGN.md`「模块与 ABI」一节
+properties 节点确认输入 HiPS 的信号、几何、层级与单位，形成下游计划所用的元数据。输入来自已发布单 signal 产品；不要求 Mosaic 提供 variance/ivar/support 图像层。阶段边界见 [Export 管线](../export/pipeline.md)和[HiPS 到 FITS 正本](../../science/projection/HIPS_TO_FITS.md)。
 
-Registry production 节点（唯一源 = module_adapters.cpp 的 p3_properties_descriptor，
-节点操作 `read_properties`）。职责：从 HiPS 树读出并严格解析 properties
-（`hips_properties_parse`，lib/algorithms/coverage/hips_properties.h，
-ALG-P3-001 必需键校验、非法显式拒、无 silent default），出 `props`
-（DATA-P3-PROPS）；消费面 lib/phase3_session/p3_export.cpp。不做：信号/覆盖面
-计算、球面重采样（P3-RSMP）、WCS 计划（P3-WCS）、FITS 写盘（P3-FITS）。
+## 生产入口与交接
 
-## 输入输出端口、DATA、单位、坐标、invalid
+[adapter](../../../lib/infrastructure/scheduler/src/module_adapters.cpp) 的 `p3_op_properties` 对应 `acsd.phase3.properties`，通过 `p3n_guard_input_units`、`p3_sampler_open_ex` 及 properties parser 读取真实产品，写 `p3_props.json`。下游 WCS、resample、writer 消费其输入路径、实际最大 order、tile_width、BUNIT 与能力状态。
 
-| 端口 | DATA | 必/可 | 单位 | 坐标 |
-|---|---|---|---|---|
-| `hips` | `DATA-HIPS-001` | 必 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::HEALPIX` |
-| `props` | `DATA-P3-PROPS` | 可 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::HEALPIX` |
+公开读取入口为 [p3_resample.h](../../../lib/algorithms/resample/p3_resample.h) 的 `p3_sampler_open_ex(product_dir,out,out_order,out_bunit,err)`；底层文本解释由 [hips_properties.h](../../../lib/algorithms/coverage/hips_properties.h) / [hips_properties.cpp](../../../lib/algorithms/coverage/hips_properties.cpp)承担。不是另一个科学像素算法。
 
-invalid = properties 缺失或键非法即 fail-closed（`hips_properties_parse` 返回
-false + 错误文本），不产出半成品 props（ALG-P3-001：非法显式拒）。
+## 字段、寿命和错误
 
-## 公共 header、核心 symbol 与生命周期
+| 字段 | 语义 |
+|---|---|
+| hips_dir、hips_order | 实际读取路径和层级上限，不能只从请求复制 |
+| tile_width、ordering、frame | 512、NESTED 和可解释天球坐标；非法数据按 reader 错误上行 |
+| bunit、bunit_input | adapter 接受的 canonical 串及实际输入声明；解析结果与实时守卫分叉要报错 |
+| pixel_semantics | 球面面亮度；不是每叶积分通量 |
+| uncertainty_available/source | 当前单信号路线上 false/none；不探测并不等于证明输入从未有模型 |
 
-解析实现 = lib/algorithms/coverage/hips_properties.h 的 `hips_properties_parse`；节点入口 =
-P3NodeOp::Properties（`read_properties`，节点绑定表）；编排级 API = API-P3-001
-（docs/engineering/api/PUBLIC_API.md「export 会话生命周期合同」，phase session extern "C"）；生命周期
-create→validate→run→inspect→destroy。
+sampler 由 open 获取，在元数据读取后 close；输出字符串/JSON 由调用方持有。解析本身无内部线程预算，节点资源和取消由 Runtime 管理，文件通过 AIO。坏 properties、open 失败、非法单位/ordering/尺寸应保留具体错误；不能用猜测默认把坏产品改成兼容。
 
-## Registry descriptor 与配置 schema
+科学合同要求单位继承真实光度尺度，当前 reader/adapter 的固定 canonical 单位支持不能替代该要求。不得因某个库头含默认 ADU/sr 就给相对标度信号制造物理单位；相邻实现边界见[差异地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
-module_id=`acsd.phase3.properties`; execution_class=`cpu_heavy`;
-parallel_ok=True; 配置=phase config JSON（键集 = API-P3-001）。
+## 验证入口
 
-## Execution class、并行轴、ThreadBudget lease、确定性
-
-`cpu_heavy`; parallel=是(资源门拒绝 heavy+serial 组合); worker 数=ThreadBudget.max_workers(唯一取值源);
-确定性=NOT_VERIFIED（未取得验收证据）；解析面为纯函数（同输入同输出，无共享状态）。
-
-## 内存/cache/I-O/所有权
-
-cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 buffer。
-
-## 错误、日志、指标、取消和 checkpoint
-
-错误码与退出码唯一源=lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；取消=协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成 → exit 9，最高设计协作取消口径；接线以实测为准）；模块内无 checkpoint（无断点续算）。
-
-## 独立 synthetic 验证命令与容差
-
-测试标识=`TEST-P3-PROPS-001`（registry descriptor 单源）；执行证据=NOT_VERIFIED（未取得验收证据）；
-容差=NOT_VERIFIED（未取得验收证据；解析面按必需键集合判定，无数值容差）；
-设计依据 = docs/science/algorithms/PHASE3_RESAMPLE.md（ALG-P3-001）。
-
-## 已知限制
-
-见 artifacts/evidence/known-limitations-ledger/LIMITATIONS.md 与 `ALG-P3-001` 合同边界
-（docs/science/algorithms/PHASE3_RESAMPLE.md 的 properties 校验条款）。
+从 `p3_op_properties`、`p3_sampler_open_ex` 与 parser 进入核对缺必需键、显式非法值、NESTED/阶数、BUNIT 分叉和单信号产品。合法零/负信号无需在属性阶段拒绝；没有输入误差层也不妨碍正式导出。本页未运行测试，属性可解析不能充当 WCS 或图像保真证据。

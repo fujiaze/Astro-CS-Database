@@ -1,6 +1,6 @@
 # 统一数据对象与序列化登记
 
-物理定义来自 [DATA_SEMANTICS.md](../science/unified/DATA_SEMANTICS.md) 与科学专题。schema 定义机器形状，不能以机器 description 的历史公式反向推翻科学正本。Normalize 复合对象、字段和能力状态以 [NORMALIZE_DATA.md](contracts/NORMALIZE_DATA.md) 为准。
+物理定义来自[统一科学模型](../science/unified/UNIFIED_SCIENCE_MODEL.md)、[DATA_SEMANTICS.md](../science/unified/DATA_SEMANTICS.md)与科学专题[1,2]。schema 定义机器形状，不能以机器 description 的历史公式反向推翻科学正本。Normalize 复合对象、字段和能力状态以 [NORMALIZE_DATA.md](contracts/NORMALIZE_DATA.md) 为准。
 
 ## 科学对象
 
@@ -29,8 +29,26 @@ eng/contracts/schemas/unified/*.schema.json 保留既有对象/reader 的 v1 形
 
 ## 精度、重建与字段语义
 
-大面默认 FP32，WCS、稀疏 controls、标定参数及所有相关数值 metadata FP64。AIO 一个全局 precision mode 不能表达两者，目标按对象 dtype 处理而不修改最高设计来迁就实现。
+大面默认 FP32，WCS、稀疏 controls、标定参数及所有相关数值 metadata FP64。同一全局 precision mode 不能替代每个对象的 dtype；目标按对象分别保留精度。
 
 阶段二现场重建算法不由输入 schema 的缺省 natural_bicubic_spline 冻结。输入传测量、reference、support 和 noise/PSF 模型；实际 consumer 记录生效算子/参数与预测支持。不因 HST 名称直接切换重建方法，不凭操作员声明代替几何和留出数值证据。重建 I_F 后必须有相同条件下的 T 才能得面亮度 precision，不能直接令 w_B=SNR²/F_ref²。
 
 字段需结合明确类型表达统计量；typed ReferenceControl.reference_snr 不因含 snr 字符串而违规。模糊的是跨对象共享一个没有上下文的 weight，而不是所有有名类型内的常规字段。工作配置、机器画像和运行清单各守作用域；产品能力状态不设置形式审批门。
+
+## 产品与现有表达
+
+| 科学对象 | 正式载体或边界 | 当前代码定位 |
+|---|---|---|
+| 阶段一 reference/status/controls | Normalize 复合对象，不由独立像素网格重新定义 | `lib/include/acsd/normalize_data.h` |
+| 局部球面精度 | 同次 R 下的 h、C、Z、V_F 和 reference-source transfer | `lib/algorithms/noise_snr/include/acsd/sparse_reference.h` |
+| 唯一 sidecar | frame_science.json；模型以相对路径与 hash 关联 | `lib/algorithms/integration/normalize_science/include/acsd/normalize_science.h` |
+| 阶段二最终图像 | 一个 signal HiPS；内部精度与支持不作为最终图像层 | `module_adapters.cpp::p2_op_write` |
+| 阶段三最终图像 | 单信号平面 WCS FITS，不从单图恢复误差 | `module_adapters.cpp::p3_op_writer` |
+
+以上位置表示类型或生产调用存在，不表示所有对象已经跨节点 Runtime 传输或可被完整独立读取。现行 sidecar 的因子表示、单位/叶阶、模型读取和发布限制统一见[科学实施差异地图](architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+
+## 参考文献
+
+[1] [统一科学模型](../science/unified/UNIFIED_SCIENCE_MODEL.md)。
+
+[2] [噪声、参考 SNR 与精度重建](../science/noise_snr/NOISE_SNR.md)。

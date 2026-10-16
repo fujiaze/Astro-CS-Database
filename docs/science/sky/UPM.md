@@ -1,8 +1,6 @@
 # 跨设备球面背景、接缝与科学信号保真模型（UPM / Mosaic）
 
-> 科学正本；上游 docs/ACSD_DESIGN.md §2.1、§2.5、§5；统一观测和精度语义见 docs/science/unified/UNIFIED_SCIENCE_MODEL.md、docs/science/noise_snr/NOISE_SNR.md。重写日期：2026-10-14。
->
-> 本文解决**哪些误差可以由相对背景校正消除、哪些属于真正不可辨识的天体信号或通带/PSF 失配**。目标模型不同于当前生产中某个具体“UPM”分支的实现状态；审计见 engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md。
+本分册依据[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，定义球面相对背景、规范自由度及信号保真。精度语义见[噪声分册](../noise_snr/NOISE_SNR.md)，实现状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
 ## 1. 用户可以合并任意设备与通带
 
@@ -29,7 +27,7 @@
 - r_k 是未被 H_k 描述的通带系统差、残余乘性响应、平场/非线性和采样误差；
 - n_k 是随机噪声，按球面位置与空间相关核描述。
 
-不应通过加法补偿任意 r_k。背景分离的统计前提是多个实际观测的重叠区提供了关于 a_i−a_j 的独立约束；若没有这种约束，模型外推或正则化不能凭空制造绝对背景信息。
+不应通过加法补偿任意 r_k。重叠观测的相对定标需要处理公共模与参数规范[1]。背景分离的统计前提是多个实际观测的重叠区提供了关于 a_i−a_j 的独立约束；若没有这种约束，模型外推或正则化不能凭空制造绝对背景信息。
 
 ## 3. 重叠图与规范自由度
 
@@ -45,9 +43,9 @@
 对每个连通分量 \(\mathcal C\)，背景相对差对公共偏置自由：
 \[
  B_0(p)\to B_0(p)+g_{\mathcal C}(p),\quad
- a_k(p)\to a_k(p)-g_{\mathcal C}(p).
+ a_k(p)\to a_k(p)-[H_k g_{\mathcal C}](p).
 \]
-g 的可辨识函数空间取决于背景基函数与共同参考面，**不只是一个常数**。需要按模型参数空间判定可辨识秩与零空间，并为每个分量固定规范（例如相对参考帧、或在有共同支持的位置加权校正和为零）。指定某个参考帧为 0 是坐标选择，不是该帧物理背景恰好为 0 的观测证明。
+这里g必须属于共同退化空间：每个H_k g均可由该帧允许的背景基表示，且满足实际控制观测的相同变换。仅在H_k≈I及其近似适用时才简写a_k→a_k−g。共同零空间取决于响应、背景基和有效重叠，不能把任意空间函数都当作规范；它可能不只包含常数。需要按模型参数空间判定可辨识秩与零空间，并为每个分量固定规范（例如相对参考帧、或在有共同支持的位置加权校正和为零）。指定某个参考帧为 0 是坐标选择，不是该帧物理背景恰好为 0 的观测证明。
 
 两个无相连有效重叠边的分量，彼此绝对背景差不能从这两组数据内部恢复。弱正则锚只选一组平滑解，不产生真值。允许为用户继续生成图像，但必须保留此科学限制，不能制造“跨分量已统一”的陈述。
 
@@ -99,7 +97,7 @@ A_k 是逐帧低阶多项式/样条基，\rho 是稳健损失，σ_kc 是与**�
 
 **PSF/采样差异**通过响应建模、适当的有效 PSF 对照与采样方法处理；必要时允许用户为科学精度主动做 PSF matching，但不默认强行把所有图像退化到最差设备 PSF，以免损失高分辨率数据。用于背景控制的共同采样尺度与最终图像最佳保真尺度可以不同。
 
-过去 P5 阴性实验证明：零增益差的合成世界中，乘性求解仍能得到统计意义上的“改善”；故降低接缝 RMS 不能作为采用非恒等增益的唯一证据。生产当前 g=1 的事实与物理确认是两种不同状态。
+乘性模型须包含真值g=1的阴性对照；拟合降低接缝RMS也可能来自额外自由度、噪声过拟合或真实结构损失，不能单凭这一读数证明增益可辨识。具体对照见[增益与边界实验](../../../实验/additive-sky-seamless/docs/S07_REPORT.md)。
 
 ## 7. 接缝评估必须同时估计真实信号损失
 
@@ -117,23 +115,18 @@ A_k 是逐帧低阶多项式/样条基，\rho 是稳健损失，σ_kc 是与**�
 
 ## 8. 阶段二图像输出
 
-对每个 HEALPix 叶 p，先完成有效样本资格、背景/标度校正和异常样本剔除，再用 NOISE_SNR.md 定义的像元面亮度权重求最终 signal。没有合法数据时标 NaN，不以 0 假冒暗天区。内部支持度、精度、控制点、参数协方差和诊断可以存在于计算缓存或运行报告，但最终**一个 signal HiPS 科学图像子产品**，不自动发布 support/variance/ivar 产品层。
+对每个 HEALPix 叶 p，先完成有效样本资格、背景/标度校正和异常样本剔除，再用[噪声分册](../noise_snr/NOISE_SNR.md)定义的实际场景面亮度权重求最终 signal。没有合法数据时标 NaN，不以 0 假冒暗天区。内部支持度、精度、控制点、参数协方差和诊断可以存在于计算缓存或运行报告，但最终**一个 signal HiPS 科学图像子产品**，不自动发布 support/variance/ivar 产品层。
 
 不同通带数据即使被纳入一个 HiPS，物理响应/混合规则仍应在标准允许的元数据/随运行清单说明中如实记录；不能仅以“R 滤镜”简写精确的等效 bandpass。阶段三只重投影这个信号产品，不能从它恢复原始多设备测光差模。
 
-## 9. 下一步科学实验与代码地图
+## 9. 独立评价与参考文献
 
-已知证据：实验/additive-sky-seamless/REPORT_paper.md；docs/S07_REPORT.md；docs/S07_results/；P2 控制点相关噪声实验；P1 颜色残差与空间响应实验。注意 P5 已修复“跨独立连通分量仅全局锚一个参考”的数值问题，但这只确认目标模型中一个重要自由度，**不是最终无接缝的现实验证**。
+相对分量、加性差和扩展源的独立构型见[背景实验报告](../../../实验/additive-sky-seamless/REPORT_experiment.md)，控制统计量方差的限定见[控制方差分析](../../../实验/additive-sky-seamless/docs/control-variance-adjudication.md)。评价须同时覆盖断连图、真实低频、无增益阴性场和有增益阳性场，结果不由接缝单指标决定。
 
-优先实证：
-- 独立恒定背景+受控逐帧加性差，检查每分量差模恢复；
-- 无相连分量且无外部锚，验证不可辨识性不因弱正则被掩盖；
-- 有恒星颜色差、PSF 差、窄带星云和真实低频梯度的独立前向世界；
-- 不同背景空间频率和控制支持域、边界遗漏；
-- 仅随机噪声的阴性增益世界与有实增益的阳性世界；
-- P2/P4 精度权重误差注入如何改变背景拟合和接缝；
-- 真实 M42/M16 星云与 HST 结构模板的端到端输出效果。
+重采样相关噪声需按实际算子处理[2]；不同PSF的最优点源组合[3]不等于任意弥散像元的逆方差合成。
 
-源码：lib/algorithms/coverage/src/sky_plane.cpp、upm.cpp、sampler.cpp；lib/infrastructure/scheduler/src/module_adapters.cpp；lib/algorithms/integration/phase2_integrate。生产路线重构不靠增加机械门禁，而靠物理模型、数据含义与独立实验对照。
+[1] Padmanabhan, N. et al. An Improved Photometric Calibration of the Sloan Digital Sky Survey Imaging Data. ApJ, 674, 1217–1233. [论文](https://arxiv.org/abs/astro-ph/0703454)。
 
-参考：Padmanabhan et al. 2008（重叠观测统一相对测光）；Gaia DR3 XP 合成光度文献；Fruchter & Hook 2002；天文大尺度背景/low surface brightness 合成相关文献按实验/shared/references/CORE_REFERENCES_VERIFIED.md 再核对具体适用域。
+[2] Fruchter, A. S., Hook, R. N. Drizzle: A Method for the Linear Reconstruction of Undersampled Images. PASP, 114, 144–152. [论文](https://arxiv.org/html/astro-ph/9808087v2)。
+
+[3] Zackay, B., Ofek, E. O. How to Coadd Images? I. Optimal Source Detection and Photometry Using Ensembles of Images. ApJ, 836, 187. [论文](https://arxiv.org/pdf/1512.06872)。

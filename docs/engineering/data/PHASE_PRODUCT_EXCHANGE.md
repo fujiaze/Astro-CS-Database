@@ -16,7 +16,7 @@ HiPS 多个 Norder 是角分辨率层级，不是多个科学通道。阶段一�
 
 输入由对应运行清单枚举，读取实际产品几何、单位、状态和模型 hash，不按文件名猜天区。Normalize 可无原始 WCS，需 IPV 实际解算；已发布球面产品必须有真实可用坐标。缺精度模型与信号损坏分开报告；不同设备/滤镜不构成产品拒绝条件。
 
-新 frame-science reader 验证 schema、frame/run、reference/响应、signal unit、model refs 和实际文件 hash；无新 sidecar 的合法历史 HiPS 保持信号/variance 基线读兼容，canonical precision unavailable。不得自动把旧 frame_snr 或 Catalogue proxy 转成新球面参考精度。阶段二默认权重不在本轮更换。
+frame-science reader 应验证 schema、frame/run、reference/响应、signal unit、model refs 和实际文件 hash；这是目标读取责任，当前 reader 的实际核对范围及缺口见科学实现差异[1]。未带 canonical sidecar 的合法 HiPS 可按兼容接口读取信号及有来源的辅助量，canonical precision 明确 unavailable。frame_snr 或 Catalogue proxy 不能自动升级成球面参考精度；新增 sidecar 不代表阶段二消费者已经切换。
 
 ## 完整性与发布
 
@@ -26,4 +26,8 @@ HiPS 多个 Norder 是角分辨率层级，不是多个科学通道。阶段一�
 
 ## 当前机器合同迁移
 
-既有 phase_product_exchange.schema.json、exchange matrix、artifact registry/validator 的 v1 角色及“signal/support/variance 最小三面”记录当前接口，存在与目标单信号产品不一致的部分。执行者调整实际 reader/writer 时同步版本化机器合同与兼容 adapter，不能修改老产品字节或用新文档冒称已完成接线。旧检查的 PASS 只说明 v1 形状；更新后应接受完整但 precision unavailable 的合法产品，并识别真损坏/悬空模型。形状 schema 与模型物理检验分别进行。
+phase_product_exchange.schema.json、exchange matrix、artifact registry/validator 的 v1 角色及“signal/support/variance 最小三面”记录当前机器接口，存在与单信号目标产品不一致的部分。reader/writer 调整时同步机器合同与兼容 adapter，保持已发布产品可读，不把文档定义当作完成接线。形状检查只支持对应结构符合性；读取应接受完整但 precision unavailable 的合法产品，并识别实际损坏和悬空模型。形状 schema 与模型物理检验分别进行。
+
+## 参考文献
+
+[1] [科学设计与生产源码差异](../architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
