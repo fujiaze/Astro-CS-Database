@@ -1,146 +1,43 @@
-# gaia_xpsd_client（本地星表查询，acsd.catalog.gaia / CAT-GAIA）
+# 本地 Gaia XPSD 查询
 
-> 上游：《ACSD 最高设计》的「软件架构」一章（顶层结构；模块与 ABI；`gaia_xpsd_client/`
-> 本地星表解析）与「数据对象与配置」一章（星表只解析本地星表文件，离线、零网络）、
-> 「CPU 后端与资源」一章（缓存复用、编排连续性）
-> 科学正本：docs/science/detection/ASTROMETRY.md（SCI-AST-001）
-> 算法正本：docs/science/algorithms/GAIA_QUERY.md（ALG-GAIA-001；汇总表的「缓存」行、
-> 并发模型、测试设计、资源安排各段）
-> 数据正本：docs/science/unified/DATA_SEMANTICS.md「星表行语义」（DATA-GAIA-001）
-> API 正本：docs/engineering/api/PUBLIC_API.md（API-GAIA-001，gaia_client C API 节）
-> 架构正本：docs/engineering/architecture/ARCHITECTURE.md
-> 缓存：docs/engineering/standards/CACHE.md（Gaia 查询缓存行）
-> XPSD 本地编码合同：docs/science/algorithms/GAIA_QUERY.md「DR3SP 光谱量化解码」一节
-> 消费方：registry/acsd.phase1.wcs-platesolve.md
-> 引用文献：见文末「参考文献」（角标用全角 `［N］`）
+本模块离线解析 Gaia DR3/DR3SP 本地 XPSD，供天测与测光使用。查询几何、量化与数值风险见[Gaia 算法](../../science/algorithms/common/GAIA_QUERY.md)，坐标历元见[天体测量](../../science/detection/ASTROMETRY.md)，资源规则见[缓存](../../engineering/standards/CACHE.md)。
 
-模块级事实以 `lib/infrastructure/gaia_xpsd_client/src/gaia_client.h` 与
-`lib/infrastructure/gaia_xpsd_client/src/gaia_client.c` 为准。
+## 1. 实际入口与消费者
 
-## 1. 职责与边界
+公开头为 `lib/infrastructure/gaia_xpsd_client/src/gaia_client.h`，实现为同目录 gaia_client.c。`gaia_client_create[_ex]` 建立 client，cone_search、cone_search_for_solver、cone_search_with_spectrum、cone_search_with_photometry 和 query_spectrum_by_coords 分别返回不同字段；destroy 回收 mmap、块缓存与查询缓存。
 
-- **职责**：解析 PixInsight XPSD 格式的 Gaia DR3 / DR3SP **本地**星表文件（离线、
-  零网络），提供锥形查询（含谱 / 测光变体）与两级进程内存缓存（查询级 + 块级）、
-  坐标 / 数据集版本语义，供 platesolve 等消费；DR3SP 光谱量化解码（值 = 字节码
-  × 增益 + 偏移）与 BP / RP 测光输出；极冠保守剪枝（false_negative = 0）与赤道带
-  bbox 剪枝。
-- **不是**：不做解算（platesolve）；不做科学权重；WCS / SIP 求解与像素投影
-  （wcs-platesolve 域）；星等自适应迭代与合成光谱积分（photometry 域）；匹配
-  求解；目录整理 / 下载；线程池创建（迁移后由 host executor / ThreadLease 授予）；
-  artifact store 写入。
-- **不联网**：无网络客户端、无外部服务依赖、无在线降级路径；「network errors
-  never alter scientific identity」由**零网络 I/O** 结构性满足。
+模块 DLL 的 module_entry.c 经 acsd_module_query_v1 提供描述、配置、规划和执行适配；CLI 构建内调用与该动态入口分别核对，见[模块地图](../../engineering/architecture/MODULE_MAP.md)。IPV 使用求解候选，WCS 后测光使用位置/光谱匹配；查询器不执行板解、SIP或合成测光。
 
-## 2. 输入/输出数据合同
+## 2. 输入、输出与单位
 
-- **输入**：本地星表数据集目录 `catalog_dir`（GaiaDR3 / GaiaDR3SP 文件集，≤ 32
-  个文件，LZ4 / zlib + shuffle 数据块）；查询请求（`ra` / `dec` / `radius_deg` /
-  `mag_low` / `mag_high`，谱 / 测光变体含 `match_radius_arcsec`）、`db_type`
-  （AUTO / DR3 / DR3SP）、`max_workers`。
-- **输出**：星表行（RA / Dec 度 ICRS J2000、mag、自行、parallax、光度、
-  `source_id`，可选 343 点光谱 uint8 / 星）、数据集统计（file_count /
-  file_entry_count / fail_count，gaia_client.c 暴露面）。
-- config 键词表冻结于
-  `lib/infrastructure/gaia_xpsd_client/include/acsd/gaia/types.h`
-  （`ACSD_GAIA_CFG_KEY_*`）。
-
-## 3. 查询键、两级内存缓存与剪枝
-
-- 缓存键**精确匹配**（不做量化舍入）：`ra` / `dec` / `radius_deg` / `mag_low` /
-  `mag_high`（double 逐位）+ 数据集身份（`db_type` / `file_count`）+ 缓存键版本
-  `GAIA_CACHE_VERSION = 2`；命中 = 同一查询精确重复（实现 =
-  gaia_client.c 的 `query_cache_lookup` / `query_cache_insert` 与同文件的
-  `GAIA_CACHE_VERSION`）。
-- 两级缓存均为**进程内存**实现：
-  - **查询缓存 QueryCache**：64 条（`QUERY_CACHE_CAPACITY`），TTL 60 s，总字节
-    上限 307,200,000 B，超限按 LRU（last_access）淘汰，**事务性替换**（先全
-    分配成功再释放旧条目）+ 版本 / 过期校验失效；
-  - **块缓存 BlockCache**：8192 槽 / 文件（2 的幂），模块级总预算 4 GB
-    （`BLOCK_CACHE_MAX_MEMORY`，全部 XPSD 文件共享），内存压力淘汰 1/4 LRU；
-    XPSD 文件 mmap 只读，块按需解压缓存（解压 O(块大小)、命中 O(1)）；
-- **命中语义**：同 client 同参数的冷路径与缓存路径输出 **bitwise 一致**
-  （GAIA_QUERY.md I3 缓存等价不变量）；缓存不改变数据语义，命中与冷路径的输出
-  逐字段一致。
-- **坐标与剪枝**：J2000 坐标契约，与 platesolve 共享 TAN / SIP 坐标约定；锥形
-  查询为球面角距判定（Haversine 余弦定理）；RA 环绕与极区保守剪枝 —— 经差大于
-  180° 归一后以 cos(dec) 缩放判相交；极区 |cos(dec)| < 0.01 保守返回相交；
-  |dec| > 45° 进入极冠平面剪枝，|dec| > 85° 仍保守（false_negative = 0）；
-  数据集身份进缓存键，**数据集变更即缓存失效**。
-- **性能特征**：四叉树投影索引（非按 dec 排序的索引）；极冠剪枝可证明保守；单
-  查询复杂度 = 树深 + 命中叶块解压 + 输出构造；文件级并行；缓存命中近乎零解压。
-  性能量级参考见 `lib/infrastructure/gaia_xpsd_client/README.md` 的现状观测
-  （非合同承诺）。
-
-## 4. 配置项
-
-| 字段 | 说明 |
+| 接口对象 | 合同 |
 |---|---|
-| `op` | 操作词表：`cone_search` / `cone_search_for_solver` / `cone_search_with_spectrum` / `cone_search_with_photometry` / `query_spectrum_by_coords` |
-| `catalog_dir` | 本地星表数据集目录 |
-| `db_type` | AUTO / DR3 / DR3SP |
-| `ra` / `dec` / `radius_deg` | 锥形查询天区（deg） |
-| `mag_low` / `mag_high` | 星等窗 |
-| `match_radius_arcsec` | 谱 / 测光变体匹配半径 |
-| `max_workers` | 并行 worker 上限（并行轴 = 文件，1..file_count） |
-| `ra_list` / `dec_list` | 批量查询坐标表 |
+| data_dir/db_type | 本地目录与 AUTO/DR3/DR3SP；没有网络下载或在线回退 |
+| ra/dec/radius_deg | 天球方向与锥半径，度；有限性、范围和RA回绕按入口核对 |
+| mag_low/mag_high | G星等窗，mag；量化边界不声称逐位精确 |
+| match_radius_arcsec | 按位置光谱匹配半径，角秒 |
+| GaiaStar | ra/dec、G/BP/RP、parallax、pmra/pmdec、source_id；ICRS与历元分开解释 |
+| 光谱行与字节数组 | 样本 `flux=byte×flux_mul+flux_min`，W m⁻² nm⁻¹；波长由 get_spectrum_params 查询，不硬编码343点 |
+| out_match_idx | 与请求位置关联的索引，未匹配与空结果分别处理 |
 
-## 5. 接口/ABI
+结果容量和计数与头文件对应。无光谱不等于真实零光谱；DR3字段缺省/哨兵不能按0mag或0误差解释。星表位置的参考历元与观测时刻须在消费者保留，不能因注释写 J2000 就省略自行与历元核对。
 
-- 模块导出面 = `acsd_module_query_v1`（12 个 legacy 符号经 `-DGAIA_EXPORT=`
-  本地化）：`create` / `create_ex` / `destroy` / `cone_search` /
-  `cone_search_for_solver` / `get_db_type` / `get_file_count` /
-  `get_total_sources` / `cone_search_with_spectrum` / `query_spectrum_by_coords` /
-  `cone_search_with_photometry` / `get_spectrum_params`；签名 / 返回码 / 所有权
-  以 API-GAIA-001 为准。
-- 生命周期 = `lifecycle_v1.h` 冻结时序（`module_entry.c`）：query →
-  describe / validate_config / plan → execute。
-- platesolve 经本模块获取匹配输入；查询缓存跨查询复用。
+## 3. 缓存与并发
 
-## 6. 所有权、并发与错误
+查询键包含请求的双精度方向、半径、星等窗及当前数据集相关字段和缓存版本；具体比较方式按 query_cache_lookup 核对，不能仅凭注释称浮点逐位身份。查询缓存和块缓存为进程内存，容量、TTL、共享字节预算由代码配置；不把客户端绑定等同于完整内容哈希身份。
 
-- **所有权**：`client` create / destroy 配对；全部 `out_*` 数组由模块 malloc、
-  调用方 free；缓存条目由模块内部事务式替换（先分配成功再释放旧条目）。
-- **线程安全**：文件级 OpenMP parallel for（每文件独立 collector / scratch /
-  块缓存单写者）+ client 级缓存互斥（Win32 CRITICAL_SECTION / POSIX
-  pthread_mutex，`GaiaClient.cache_lock` 包裹查询缓存 lookup / insert）；命中
-  路径持锁完成 O(N) 输出构造；destroy 与在途查询串行执行。现状使用 OpenMP 默认
-  team（迁移后由 host ThreadLease 授予）。
-- **错误**：0 = 成功（含空结果）；−1 = 参数错误 / 分配失败 / 内部错误；`create`
-  失败返回 NULL（**平台差异**：空数据目录 Windows = NULL，POSIX = 空 client、
-  file_count = 0）；分配故障路径全 checked；cache 替换事务式。
-  数据集文件缺失 / 不可读 → 显式失败（统计面 `file_load_fail_count` /
-  `first_failed_path` 如实报出）；未知 op → PARAM（detail 100）；config 键缺失 /
-  非有限值 → detail 102 / 103；版本不匹配或过期的缓存条目 → 失效重查，**不
-  返回过期数据**。**无网络**：不存在 TIMEOUT / 网络错误码。
-- 错误码与退出码唯一源 = lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；
-  域→码映射唯一源 = `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节。
+缓存命中在 client 锁内复制结果，成本随返回行数增长。文件分片有各自 collector/scratch；外层并发调用与同一文件缓存的同步需单独验证。destroy 必须等待在途查询结束，不能凭缓存锁推断释放安全。
 
-## 7. 测试与 Oracle
+头文件已有 gaia_set_worker_lease 和 gaia_set_cancel_checkpoint 注入；文件循环检查与调用者实际接线分别核对。无注入的直调路径可使用旧OpenMP默认team，不等于所有调用已遵守Runtime租约。模块不另建私有线程池，trace遵循唯一[开发开关](../../engineering/architecture/DEV_MODE.md)。
 
-设计冻结 = `TEST-GAIA-DESIGN-001`（`docs/science/algorithms/GAIA_QUERY.md` 的测试设计一节：合成 fixture、独立 oracle、
-不变量 I1–I5、负面 / 分配注入、1/N worker、ISA bitwise、资源）；可执行
-`TEST-GAIA-*` 待建（当前无 PASS 声明）。
+## 4. 完整性、所有权与错误
 
-- 已知天区星表 → 与独立星表源交叉（位置 / 星等）；
-- **缓存复用**：同一查询精确重复命中查询缓存；冷 / 热路径输出 bitwise 一致（I3）；
-- LRU / 字节预算：超限按最近最少使用淘汰，无无限增长；块缓存总内存 ≤ 4 GB；
-- RA 环绕 / 极区剪枝无假阴性（false_negative = 0）；
-- `max_workers = 1` 与 N worker 输出一致；mmap 资源面 RSS 结束回落有可解释
-  高水位（`docs/science/algorithms/GAIA_QUERY.md` 的资源安排一节）。
+当前 MAX_FILES=32，单文件 collector 有 MAX_STARS_RESULT=200000 上限。超结果容量按已记录截断语义解释，不能把“查询成功”称所有恒星都已返回。目录装载失败、超文件数、记录损坏、解压失败、分配失败、取消和真实无结果分别报告。
 
-## 8. 已知限制
+接口结果数组由库分配，现有调用方按头/实现约定 free；跨DLL时需特别核对CRT和分配器，不把该legacy约定推广为任意模块ABI规则。client 的create/destroy成对，借用输入数组覆盖同步调用。GaiaCreateDiagnostics提供最近线程的装载计数/首个失败；快照在后续create时可能更新，调用方及时复制。
 
-- 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
+当前查询通常0成功、−1失败，空结果可成功；ABI错误码与进程退出码分别映射，不能因数值相同就套用CLI表。空目录的跨平台返回还需实际测量，上层必须检查真实装载数。错误时清空输出，不把残缺结果当完整。
 
-## 9. 源文件
+## 5. 验证
 
-- `lib/infrastructure/gaia_xpsd_client/src/gaia_client.h` 与 `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c`（唯一生产源）；
-- `lib/infrastructure/gaia_xpsd_client/module.yaml` + `README.md`（CAT-GAIA-DOC
-  冻结）；追溯行 = `MOD-acsd-catalog-gaia`。
-
-## 参考文献
-
-- ［1］ Gaia Collaboration; Vallenari, A.; et al. (2023). "Gaia Data Release 3: Summary of
-  the Content and Survey Properties". *Astronomy and Astrophysics* 674, A1.
-  DOI [10.1051/0004-6361/202243940](https://doi.org/10.1051/0004-6361/202243940)；
-  预印本 [arXiv:2208.00211](https://arxiv.org/abs/2208.00211)
+独立解包微型XPSD并球面全枚举，检查赤道/极冠、RA回绕、星等量化边界、谱解码、坏块、分配失败、容量截断、冷/热缓存和合法释放顺序。剪枝局部推导和有限差分不证明所有锥零漏星；缓存字段一致不证明数据集输入完整。具体命令、原始字节、分母和失败记录随实验保存，本页没有新运行结论。旧参数表与实现自陈完整保留于[来源档案](../../../实验/documentation-refactor/docs/SPATIAL_NOTES_SOURCE.txt)。

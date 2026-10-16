@@ -209,6 +209,23 @@ PSF 节点把已解 WCS 引导的源测量转为逐星轮廓参数。空间、�
 
 从本头文件批接口和[阶段一管线测试](../../../eng/tests/pipeline/test_stage_normalize.py)进入，检查已知轮廓恢复、非首行失败后的 compact/source ID 映射、边缘截断、饱和、空间变化及按位置积分归一。串并行、跨类型与真实模型误差需实际读数，本页不列未经复核的通过标签。
 
+### 逐星拟合实现补充
+
+原算法页的布局与调用内容集中在本节，数学轮廓、残差换算及误差解释见[Moffat4 数值方法](../../science/algorithms/normalize/STAR_PSF_ALGORITHMS.md)。
+
+| 表示 | 列序与用途 |
+|---|---|
+| 科学/oracle 参数 | B,A,x0,y0,sx,sy,theta,residual_scale,q_psf；x0/y0 为局部偏移，没有生产块写出保证 |
+| legacy orchestrator 块 | status,B,flux,cx,cy,fwhm,A,mad,eccentricity；全图坐标，mad 为截尾平均绝对残差 |
+| 当前批 ABI | B,A,cx,cy,sx,sy,theta,fwhm_x,fwhm_y；成功行 compact |
+| 当前 CLI JSON | 按 star_id 关联对象字段，不按某份九列布局直接解析 |
+
+`DPSFFitResult` 当前为13个字段，包含完整双轴参数、mad、flux、eccentricity，不能沿旧文“12字段”分配。批返回的 `DPSF_PSF_STATUS_*` 分别表示OK、拟合失败、空窗、分配失败；它们与 `DPSF_FIT_*` 的OK、未收敛、非法参数、迭代上限是不同状态域。特别是数值2和3不能跨域解释；out_status 按原检测下标，参数行按成功星下标压缩。
+
+当前拟合在 `dpsf_psf.cpp` 的 `moffat4_fit_tmpl_core` 装配有限样本、背景/振幅/宽度初值，调用 `lm_solve` 后检查参数和窗口，再派生结果。源码定位条目中的初始宽度0.15倍窗口宽、硬编码200轮/1e−8、宽度0.3下界及四候选角度回选属于该实现配置，不能把 `DPSFFitParams.maxIter/tolerance` 的声明当作它们已经由调用者控制。
+
+逐星可并行、星内有固定累加，不由此保证任意ISA/优化/worker下逐位一致。旧文按批检查取消与“没有取消点”的描述并存，应沿当前循环核对；调用者取消不表示已在飞拟合能立即中止。完整原文和历史诊断保存在[来源档案](../../../实验/documentation-refactor/docs/SPATIAL_NOTES_SOURCE.txt)，不把旧实测数字或测试名字当本轮执行结论。
+
 ## photometry
 
 **Normalize 测光与标度应用。**

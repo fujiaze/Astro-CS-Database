@@ -212,6 +212,14 @@
 
 影响：CPU 利用率、排队归因、跨并发效率及性能证据可信度。所需证据：给出每个被测量的操作定义与量纲、独立线程/队列 oracle、同一运行的实际租约时间序列、多 run 混入与旧快照负例、缺页但无块等待及抢占但无锁等待的对照，另明确完整性与来源认证的不同证据链。本轮只改解释、保留原文，不调整阈值、采样算法或科学数值。
 
+### Q25 HEALPix 离散往返与边界容差
+
+原文：[HEALPix 来源档案](SPATIAL_NOTES_SOURCE.txt)中 Postconditions 的“round-trip误差≤1e−12度”以及 oracle 的“≤1.2×hp_res+1e−9”，并声明极区角点另列退化面。
+
+分歧：任意方向→离散叶→叶中心、叶索引→中心→叶索引和连续坐标互逆并非同一个检验；原文没有清楚限定1e−12对应哪一对象。共享头中的百万点无mismatch属于历史有限集合声明，指定测试文件本轮未取得，不能代替完整误差/完备性证据。
+
+影响：位置误差、候选归属、tile/leaf比较与所谓坐标精度上界。需要：明确方向集合、各阶/边界归属政策、独立参考和量化误差与浮点误差分离；本轮不推导新的通用界，不修改坐标内核。
+
 ## 已确定设计下的实现与文档问题
 
 这些事项不需要再选物理模型，后续按确定合同实施或核实，不能混入 Q 条目作为设计授权。
@@ -244,6 +252,9 @@
 | E24 | production_store.py::publish 实际依次 rename 内容、COMPLETE manifest、hash sidecar、provenance；中断可能留下 COMPLETE 而缺后续文件，且部分 open 绕过 StoreIO | 原文“任一失败无 COMPLETE”“同一原子区”“spy证明全部读写”过强；已区分恢复完整条件、最终验证读和真实生产接线，未修代码或运行故障注入 |
 | E25 | provenance.parse_version 只取数值段，忽略预发布；revision.module 取模块 ID，revision.abi 从文档形态派生；strategy 不进摘要 | 正文说明实际绑定和摘要范围，不能声称完整 SemVer/C ABI/算法身份均已核验；不改载体 |
 | E26 | ATOMIC 旧文称 overwrite先删旧产品，实际 HipsOutputStore 已先暂存再让位旧副本并尝试恢复；C++ PublishResult 也有已可见但持久化未确认状态 | 按当前 publish_directory 与 atomic_publish.h 说明真实次序/三态，旧过强或过时结论归档；尚未验证进程崩溃、竞态及跨平台持久化 |
+| E27 | Gaia 查询缓存用 double 的 `==`，旧文称逐位比较；client数据集键含类型/文件数，不能独自认证完整内容身份 | 已按实际缓存比较和绑定范围解释；不更改缓存键和查询算法 |
+| E28 | HEALPIX_MAPPING 列 tests/test_healpix_oracle.cpp 为实存可运行，本轮当前目录找不到该文件；共享头仍留百万点历史声明 | 正文保留历史声明身份，测试/输入/日志需回实验取证，未把不存在的文件称可复跑 |
+| E29 | PSF 旧算法页称DPSFFitResult12字段，实际头13字段；DPSF_FIT与DPSF_PSF_STATUS同值异义，旧文部分表混用 | 三种九列布局、JSON对象和两套状态域在模块正文分别列明，完整旧原文归档；本轮未改变结构体或算法 |
 
 ### 远端合并后的核对范围
 

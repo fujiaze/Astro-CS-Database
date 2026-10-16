@@ -116,3 +116,11 @@ Runtime 续查确认：run_pipeline 使用 RuntimeResourceBudget 工厂，在调
 实际阅读 Python Store 的 start/publish、HipsOutputStore::publish_directory 与覆盖恢复、provenance 版本解析/摘要声明、完整 atomic_publish.h。区分 Python 语义层与 C++ 生产接线；内容/清单/sidecar多次rename不称整体事务；发布可见性、完整性与持久化分别报告。新增 E23–E26，未执行 I/O 故障注入或更改发布代码。
 
 累计34份原始文件全文重写。完整任务继续以 ORIGINAL_FILES.tsv 的实际范围推进，历史来源归档不作为余下文档精读的替代品。
+
+## 空间索引、PSF与本地星表续整理
+
+产品主题 `d21ec9b2c` 已立即推送。完整阅读公共 Gaia/噪声/诊断算法、HEALPIX_MAPPING、STAR_PSF_ALGORITHMS 和 Gaia detail，另核对完整共享HEALPix/Gaia头及PSF头、缓存比较实现。重写HEALPix数值说明、Moffat4算法说明、Gaia模块接口，PSF布局/调用细节并入已有 star-psf 模块段，原文完整存入 SPATIAL_NOTES_SOURCE.txt。
+
+保留Moffat4公式、积分与残差系数，有限样本历史读数按证据归档；科学与数学疑点只记录，未换模型。新增Q25离散往返容差及E27–E29缓存/测试载体/状态布局问题。星检测逐算子长页只部分读到，未记全文完成。
+
+累计37份原始文件全文重写、25个待推导问题、29项工程/文档记录；未完成的超长算法及其余正式和实验正文仍继续处理。

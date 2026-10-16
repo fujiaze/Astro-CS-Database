@@ -38,6 +38,9 @@ REWRITTEN = {
     'docs/engineering/data/ARTIFACT_STORE.md',
     'docs/engineering/data/PROVENANCE.md',
     'docs/engineering/contracts/ATOMIC_PUBLISH.md',
+    'docs/science/algorithms/export/HEALPIX_MAPPING.md',
+    'docs/science/algorithms/normalize/STAR_PSF_ALGORITHMS.md',
+    'docs/detail/infrastructure/gaia_xpsd_client.md',
 }
 REVIEWED = {
     'docs/science/unified/UNIFIED_SCIENCE_MODEL.md',
@@ -69,6 +72,9 @@ REVIEWED = {
     'docs/engineering/data/README.md',
     'docs/engineering/contracts/MANIFEST_VERIFY.md',
     'docs/engineering/api/abi/ABI.md',
+    'docs/science/algorithms/common/GAIA_QUERY.md',
+    'docs/science/algorithms/common/NOISE_ESTIMATION.md',
+    'docs/science/algorithms/common/GATES_AND_TOLERANCES.md',
 }
 EXTRACTED = {
     'docs/science/calibration/CCD_DEFECT.md': 'CCD_DEFECT_OBSERVATIONS.md',
