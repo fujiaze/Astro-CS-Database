@@ -1,0 +1,510 @@
+Mosaic reducer sources; commit=599637ead6fb98b89fefca4f22cdf8ea97a415e1
+
+===== docs/science/algorithms/mosaic/PHASE2_INTEGRATION.md | blob=99f200ce66605221a4f16abd1ddc3ce4d61cf972 | bytes=26325 =====
+# Phase2 Integration Algorithms（P2-INT / acsd.p2.integration）
+
+> 上游：ACSD_DESIGN.md [D-1]「信噪比重建与逆方差叠加」一节（SNR 重建与逆方差叠加）
+
+> 实现源: lib/algorithms/coverage/src/integrate.cpp（89 行，acsd_phase2 静态库成员，
+> 根 `CMakeLists.txt` 的 acsd_phase2 段）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）
+> 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-INT-001
+> （docs/science/INTEGRATION.md，FROZEN，集合
+> SCI-INT-001/002/004/008，零改动）。DATA: DATA-P2-INT（DATA_SEMANTICS
+> [S-1]「与上下游的关系」一节）。API: API-P2-INT-001（PUBLIC_API.md）。TEST: TEST-P2-INT-001
+> （MISSING，P2-INT-TEST 落地；设计冻结面=本文档[S-1]「公式与推导」一节）。
+> 本文档为 Phase2 逐像素加权积分 reducer 的算法级权威（逐符号锚 +
+> 冻结公式 + 状态语义 + 并行归约容差）；ALG-INT-001/002 ID 语义由
+> 本文件关联映射承接。
+
+## 1 目的与非目标
+
+- **目的**：逐像素候选栈加权积分 reducer——`signal = Σ wᵢxᵢ / Σ wᵢ`
+  （仅 eligible ∧ 正权重样本）+ support canonical reducer + 显式五态
+  status。实现=reducer 无知策略（policy/reducer 分离冻结）。
+- **非目标**：不决定排异/eligibility gather（SCI-REJ/P2-REJ）；不做
+  权重策略（权重=外部 numeric weights，构造在 Stage2）；不输出
+  variance/ivar 产品（ivar 为输入侧权重语义，`docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节；端口表见 `docs/detail/mosaic/modules.md`）；
+  不做马赛克编排/逆归一化（Stage2 域）；无内部并行（像素级纯函数）。
+
+## 2 符号与单位（权威=本表 + `docs/detail/mosaic/modules.md`）
+
+| 符号 | 含义 | 单位/dtype | 锚 |
+|---|---|---|---|
+| `values[i]` | 候选样本科学值 | **面亮度域**：量纲 = ADU·sr⁻¹（`ADU/sr`），即 Phase1 产物 signal 面的 canonical 串。写盘侧 fail-closed：`hiss_writer.cpp` 只接受 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}`，裸 `ADU` 判 `return -2`。f64 | `lib/algorithms/coverage/include/astro/phase2/integrate.h` |
+| `weights[i]` | 数值权重（可空=等权 1.0） | **数值域，量纲 = 1/(`values` 量纲)²**（面亮度 ⇒ `sr²/ADU²`）；物理语义（逐样本 ivar）与策略在调用方，f64 | 同上 |
+| `support[i]` | 覆盖支撑（可空=1.0） | 无量纲 [0,1]，f64 | 同上 |
+| `accepted[i]` | 排异接受掩码（可空=全接受） | u8 | 同上 |
+| `count` | 候选数 | 无量纲 u32 | 同上 |
+| `signal` | 加权积分输出 | **量纲 = `values` 的量纲**（`Σwᵢxᵢ/Σwᵢ`，本层**不改变标度类别**），f64 | 同上 |
+| `support`（输出） | canonical reducer 输出 | 无量纲 [0,1]，f64 | 同上 |
+| `n_used` | 实际参与积分样本数 | 无量纲 u32 | 同上 |
+| `wsum` | Σ wᵢ（eligible ∧ w>0） | 与 `weights` 同量纲（像素域 ⇒ ADU⁻²） | `lib/algorithms/coverage/src/integrate.cpp` |
+| `vs` | Σ wᵢxᵢ | `weights`×`values` 量纲（像素域 ⇒ ADU⁻¹） | 同上 |
+| `sup_max` | max(accepted support) —— **canonical 语义**（``lib/algorithms/coverage/src/integrate.cpp``，位于权重分支之前；约束见 [S-1]「参考文献与参考代码」一节） | 无量纲 | 同上 |
+
+> **单位口径的证据面**：本表的 `values`/`weights` 取**面亮度域**（`ADU/sr`），由三条
+> 可核证据共同锁定：
+>
+> 1. **写盘侧 fail-closed 门**：`lib/infrastructure/aio/src/hiss_writer.cpp` 的
+>    `is_frozen_sb_unit` 只接受 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}`，裸 `"ADU"` 判
+>    `return -2` ⇒ 像素域 ADU 在生产上写不出去；
+> 2. **生产硬写**：`drizzle_engine.cpp` 与 `aio_healpix_io.cpp` 均
+>    `snprintf(hmeta.bunit, …, "ADU/sr")`；
+> 3. **真实产物**：`run/` 下 121 份 signal/properties 中 29 份 `ADU/sr`、
+>    2 份 `ADU/px^2`（手工语料）、**零份裸 `ADU`**。
+>
+> ⇒ **本表按面亮度口径判读**（与`docs/science/algorithms/mosaic/PHASE2_REJECTION.md` [A-2]「逐公式定义」一节、
+> `docs/science/algorithms/PHASE2_MOSAIC_WRITE.md` 一致）。`docs/detail/mosaic/modules.md`
+> 的输入/输出端口面若给出像素域 ADU 字面读法，以本表的面亮度口径为准。
+
+权重语义（`lib/algorithms/coverage/include/astro/phase2/integrate.h` 注释冻结）: 权重是 Phase2 按该天球像素
+对应帧集合现场算出的派生量——逐样本 `ivar`（`1/ADU²`），由调用方构造
+并先经 `p2_validate_candidate_weights`（`lib/algorithms/coverage/tools/stage2.cpp`）；
+`weights=null` → 等权 1.0。reducer 只消费权重数组本身，本层不编码
+ivar/SNR 策略（SNR 只作 veto/质量门，不直接加权）。
+
+## 3 逐符号锚（integrate.cpp 89 行 / integrate.h 83 行，实测）
+
+| 符号/段 | 锚 | 语义 |
+|---|---|---|
+| p2_validate_candidate_weights | `lib/algorithms/coverage/src/integrate.cpp` | 预检：weights=null→0（合规）；任一 !finite 或 w<0→1（违规）；w==0 合法（不违规）。调用方：`lib/algorithms/coverage/tools/stage2.cpp` 两处 |
+| p2_integrate_pixel | `lib/algorithms/coverage/src/integrate.cpp` | 唯一生产入口（C ABI；声明见 `lib/algorithms/coverage/include/astro/phase2/integrate.h`） |
+| ├ null 防御 | 同上 | stack==null 或 result==null → rc=1 |
+| ├ 空栈 | 同上 | count==0 ∨ values==null → NO_CANDIDATES（rc=0） |
+| ├ eligibility 循环 | 同上 | 候选索引固定序 i=0..count-1 |
+| │ ├ accepted 计数 | 同上 | accepted 非空且为 0 → skip（不计 n_accepted） |
+| │ ├ values 非 finite | 同上 | → invalid_input |
+| │ ├ support 门 | 同上 | support 非空且（!finite 或 ≤0）→ invalid_input |
+| │ ├ n_finite 计数 | 同上 | ++n_finite |
+| │ ├ 权重门 | 同上 | w=weights?w[i]:1.0；!finite → invalid_input；w<0 → invalid_input |
+| │ ├ 零权重 | 同上 | w==0 → continue（合法零贡献；n_accepted/n_finite 已计入） |
+| │ ├ sup_max 更新 | 同上 | support 非空时 sup_max=max(sup_max,sup)——**位于权重分支（其内含 `w==0 continue`）之前**，作用域 = 通过资格门的全部 accepted 样本（canonical 语义；约束与负例判据见 §7/§11.3） |
+| │ ├ 累加 | 同上 | vs+=w*x; wsum+=w（double 固定序） |
+| │ └ n_used 计数 | 同上 | ++n_used |
+| ├ rc 同步 | 同上 | invalid_input → INVALID_INPUT（rc=0，n_used=已计数部分） |
+| ├ 无正权重分支 | 同上 | n_positive_weight==0 → status = (n_accepted==0 ? ALL_REJECTED : ZERO_VALID_WEIGHT)——**wsum==0 不做除法**；ZERO_VALID_WEIGHT 下 support 照常发布（同文件） |
+| ├ signal 计算 | 同上 | signal = vs/wsum |
+| ├ support 输出 | 同上 | support = support ? sup_max : 1.0（空支撑守恒） |
+| └ OK | 同上 | status=OK，rc=0 |
+
+| 头文件段 | 锚 | 语义 |
+|---|---|---|
+| 权重策略注释 | `lib/algorithms/coverage/include/astro/phase2/integrate.h` | stack.support_x_snr2.v1 / stack.equal.v1 |
+| support canonical 语义 | 同上 | "output support 唯一 canonical reducer：max(accepted support)" |
+| P2PixelStack | 同上 | values/weights/support/accepted 可空语义 + count |
+| P2IntegrateStatus | 同上 | OK=0/NO_CANDIDATES=1/ALL_REJECTED=2/ZERO_VALID_WEIGHT=3/INVALID_INPUT=4 |
+| P2PixelResult | 同上 | signal/support/n_used/n_candidates/n_accepted/n_finite/n_positive_weight/status |
+| 函数声明 | 同上 | p2_integrate_pixel / p2_validate_candidate_weights |
+
+## 4 状态机与返回码（五态显式、互斥、可达）
+
+| status | 值 | 触发条件（精确） | 锚 | 冻结测试证据 |
+|---|---|---|---|---|
+| OK | 0 | ≥1 正权重 eligible 样本 | `lib/algorithms/coverage/src/integrate.cpp` | synthetic_gate（signal=10.75 门）；p2004 |
+| NO_CANDIDATES | 1 | count==0 ∨ values==null | 同上 | synthetic_gate |
+| ALL_REJECTED | 2 | count>0 ∧ n_accepted==0 | 同上 | synthetic_gate（status==2，两处断言） |
+| ZERO_VALID_WEIGHT | 3 | n_accepted>0 ∧ n_positive_weight==0（全零权重 accepted） | 同上 | synthetic_gate（计数器 n_candidates=2/n_accepted=2/n_finite=2/n_positive_weight=0/n_used=0）；p2004 |
+| INVALID_INPUT | 4 | 任一 accepted 样本：values 非 finite ∨ support 非 finite/≤0 ∨ weights 非 finite/负 | 同上 | synthetic_gate（NaN support / 负权重 / 三处断言） |
+
+- rc（函数返回）与 status 正交：rc=1 仅 stack/result null（``lib/algorithms/coverage/src/integrate.cpp``）；
+  rc=0 时 status 载全部语义。**wsum==0 不做除法**（无正权重分支先行），
+  无除零/NaN 泄漏路径。
+- 状态穷尽/互斥为 SCI[S-1]「判据与误差」一节 状态穷尽门冻结面；显式计数器
+  （n_candidates/n_accepted/n_finite/n_positive_weight/n_used）供
+  状态判据自证（synthetic_gate 冻结）。
+
+## 5 逐公式定义（算法级，与 SCI [S-1]「判据与误差」一节 同构；单位见 §2）
+
+```text
+eligibility（逐候选 i，候选索引固定序）:
+  n_accepted += accepted[i]!=0
+  if (!accepted[i]) continue
+  invalid ⇔ accepted[i]!=0 ∧ (
+      !finite(values[i])
+      ∨ (support 非空 ∧ (!finite(support[i]) ∨ support[i]<=0))
+      ∨ (weights 非空 ∧ (!finite(weights[i]) ∨ weights[i]<0))
+    )
+聚合（仅通过门的样本，i 固定序）:
+  n_finite += 1
+  sup_max = max(sup_max, support[i])  # canonical max(accepted)
+  w_i = weights ? weights[i] : 1.0
+  if (w_i == 0) continue            # 零权重合法零贡献
+  vs += w_i * values[i]; wsum += w_i; n_used += 1
+输出:
+  invalid_input        → status=INVALID_INPUT（n_used=已计数）
+  n_positive_weight==0 → status = n_accepted==0
+                          ? ALL_REJECTED : ZERO_VALID_WEIGHT
+  否则                 → signal = vs / wsum
+                         support = support ? sup_max : 1.0
+                         status = OK
+（以上各步的源码位置见 `lib/algorithms/coverage/src/integrate.cpp`）
+```
+
+- 权重语义（调用方构造，本层无知）: **逐样本 `ivar`（1/ADU²），无任何
+  fallback** —— 缺失 ivar 是显式科学错误
+  （产品级 `lib/algorithms/coverage/tools/stage2.cpp` rc=7 / 像素级同文件 fail=2），
+  与 SCI-UPM [S-1]「判据与误差」一节、DATA-UNC-001（「逆方差权重，无 fallback」）、
+  DESIGN [S-1]「公式与推导」一节 一致；权重是 Phase2 按该天球像素对应帧集合现场算出
+  的派生量，SNR 只作 veto/质量门、不直接加权；
+  等权分支/weights=null → 等权 1.0（`lib/algorithms/coverage/tools/stage2.cpp`）。
+  权重面只认逐样本 ivar：`legacy_allow_weight_fallback` 不是合同键，
+  该键出现在输入中即被拒绝（`lib/infrastructure/scheduler/src/module_adapters.cpp`）；缺 ivar 乘积的样本由
+  `ivar_product_missing` 计数，全部齐备时取 1.0、否则取 0.0（`lib/algorithms/coverage/tools/stage2.cpp`）
+  ⇒ 缺失一律 fail-closed；该情形下 DATA-UNC-001 要求不写 variance/ivar 产品。
+- 本层冻结的改动面 = 空（SCI[S-1]「判据与误差」一节 逐条承接，本层为合同）: support 改 mean/sum 二次
+  聚合；w==0 改判 INVALID_INPUT；INVALID_INPUT 并入
+  ZERO_VALID_WEIGHT；在本层引入 ivar/SNR 策略；改变求和顺序。
+
+## 6 消费链与并行语义（parallel reduction tolerance 合同）
+
+- **Stage2（马赛克编排，acsd.p2.hips_writer 消费者）**:
+  权重构造 → p2_validate_candidate_weights 预检
+  （两处）→ p2_integrate_pixel 三调用点：chunk 并行路径、CPU 串行路径（注释冻结
+  "support 唯一 canonical reducer（max accepted support）由
+  p2_integrate_pixel 计算，Stage2 只消费"——**调用方的用法 = 只消费该值，不做二次
+  max/mean**）、large_scale 二次积分（以上均在 `lib/algorithms/coverage/tools/stage2.cpp`）。逆归一化
+  `area=support_out×A_cell`、`flux=signal×area`（两处，同文件）在 Stage2 域（`docs/detail/mosaic/modules.md`）。
+- **ACR 加速（`lib/algorithms/coverage/src/acr_kernels.cpp`）**: process_pixel
+  （P2PixelStack 构造、p2_integrate_pixel 调用、失败清零
+  与 Stage2 `(status==0)?signal:0` 同型）；缓冲布局 frame-major。
+- **并行边界（像素间并行、像素内串行）**: `lib/algorithms/coverage/src/integrate.cpp` 无任何
+  线程原语——单像素栈归约按候选索引固定序，无跨 worker 浮点
+  重结合。像素间并行发生在调用方: Stage2 `#pragma omp parallel
+  num_threads(workers)`（条件 `!large_scale_active &&
+  effective_cpu_workers>1`）+ `omp for schedule(static)`；ACR 两处 schedule(static)。per-thread 统计按
+  thread id 固定顺序定序归并（`lib/algorithms/coverage/tools/stage2.cpp` 注释冻结）。
+- **合同表述（matrix 专项 parallel reduction tolerance）**:
+  同输入同配置下，结果与 worker 数无关（1..N 线程 bitwise 一致）——
+  像素内无并行归约、像素间无共享累加器、统计归并定序；large_scale
+  激活强制串行。验证锚: synthetic_gate W9 LegacyLauncherEquivalent
+  （ACR launcher ↔ CPU reference 等价）；冻结容差见 §11.4。
+
+## 7 与 SCI 的对应与偏差（如实登记）
+
+- SCI [S-1]「判据与误差」一节 伪码与本文档 §5 逐行同构（eligibility/wsum/vs/
+  signal/support reducer/状态分支）。
+- **support reducer 唯一口径**: `max_{accepted} support[i]`（SCI [S-1]「判据与误差」一节、`lib/algorithms/coverage/include/astro/phase2/integrate.h`、SCI [S-1]「物理模型」一节 同文，**本口径即全部口径**）。
+  `sup_max` 更新必须置于权重分支**之前**（`lib/algorithms/coverage/src/integrate.cpp`），
+  作用域 = 通过资格门的全部 accepted 样本；零权重 accepted 样本的
+  support 必须进入 max。**禁用**把 `sup_max` 更新置于 `w==0 continue`
+  之后——会使零权 accepted 样本的 support 被静默丢弃、低估 coverage 并集
+  （负例判据见 §11.3）。回归判据 4b/4c。
+- 本层的锚一律给到文件/符号级；外部文档给出的行号区间与实测文件长度不符时，
+  以本文档 §3 为准（语义一致不受影响）。
+
+## 8 单位与 dtype 登记（唯一权威=`docs/detail/mosaic/modules.md`）
+
+- signal: ADU（f64 输出；写盘 f32/f64 由 Stage2 precision 决定）；
+  weights: 1/ADU²（本层仅数值域，与无量纲量各自独立）；support: 无量纲
+  [0,1]；计数: 无量纲 u32/u64。全浮点 IEEE double 域（核内），
+  无 long double/复数。
+- 整数登记量（status/counters）bitwise 确定；浮点仅 vs/wsum 累加
+  与 signal 除法三步。
+
+## 9 边界与退化（SCI [S-1]「判据与误差」一节 逐条实现现状）
+
+| 条件 | 行为 | 实现锚 |
+|---|---|---|
+| count==0 / values==null | NO_CANDIDATES | `lib/algorithms/coverage/src/integrate.cpp` |
+| stack/result null | rc=1（status 不变） | 同上 |
+| 非 finite values/support/weights、w<0 | INVALID_INPUT | 同上 |
+| w==0（部分） | 合法零贡献（signal 与移除该样本等价） | 同上 |
+| w==0（全部 accepted） | ZERO_VALID_WEIGHT（不做除法） | 同上 |
+| n_accepted==0 | ALL_REJECTED | 同上 |
+| support 全空（null） | support=1.0（空支撑守恒） | 同上 |
+| n_used | = n_positive_weight（=通过门正权样本数） | 同上 |
+
+## 10 已冻结禁改清单（本层不可接受变化）
+
+1. 五态枚举 name/value/顺序（`lib/algorithms/coverage/include/astro/phase2/integrate.h`）。
+2. support canonical reducer 语义 = max(accepted support)（`lib/algorithms/coverage/include/astro/phase2/integrate.h`
+   文本口径；`sup_max` 更新位置 = `lib/algorithms/coverage/src/integrate.cpp`，位于权重分支之前，
+   **语义解释与更新位置均取上列值**）。
+3. 零权重=合法零贡献（`lib/algorithms/coverage/src/integrate.cpp` / SCI[S-1]「判据与误差」一节）。
+4. 候选索引固定序归约（确定性合同，[S-1]「与上下游的关系」一节）。
+5. policy/reducer 分离（本层不引入权重策略；weights 数组外置）。
+6. 调用方对 pr.support 的用法 = 只消费（`lib/algorithms/coverage/tools/stage2.cpp`
+   注释冻结；ACR 同型）。
+
+## 11 冻结附录（SRC-P2-INT-001 源码实测）
+
+### 11.1 逐符号锚
+
+见 [S-1]「公式与推导」一节 表（锚=`grep`/read 实测；锚一律给到文件/符号级）。
+
+### 11.2 返回码/状态码语义
+
+- rc: 0=语义由 status 承载；1=stack/result null（`lib/algorithms/coverage/src/integrate.cpp`）。
+- status: [S-1]「参数与常数」一节 表（五态互斥显式；wsum==0 无除法路径）。
+- 并发合同: reentrant=yes（无全局/静态可变状态，纯函数）；
+  threadsafe=no（无内部锁，并发由调用方像素划分）；internal_parallel
+  =none；取消点=无（ThreadLease 接线迁移保持取消点=无，
+  与 DISP-COV-005 同构）。
+
+### 11.3 support reducer 冻结约束与负例判据
+
+- **约束（`DISP-P2INT-001` 面）**：`sup_max` 更新必须位于权重分支**之前**（``lib/algorithms/coverage/src/integrate.cpp``；权重分支内含
+  `if (w == 0.0) continue;`），作用域 = 通过资格门的全部
+  accepted 样本；零权重 accepted 样本的 support 必须进入 max，与 ``lib/algorithms/coverage/include/astro/phase2/integrate.h``
+  的 `max(accepted support)` 冻结语义一致。回归判据见 4b/4c。
+- **禁用**把 `sup_max` 更新置于 `w == 0` 分支之后——会使零权 accepted 样本的 support
+  被静默丢弃，低估 coverage 并集。**负例判据**：输入 `{support=0.2,0.3,0.9}`、
+  `{w=1,1,0}`、全 accepted，必须输出 `support=0.9`；置于分支之后的实现输出
+  `support=0.3` ⇒ 判红（证明该判据有判别力）；两臂 `signal` 逐位相同（=11），
+  即 support 与 signal 正交。
+- **约束（`DISP-P2INT-002` 面）**：`docs/science/integration/INTEGRATION.md` [S-1]「判据与误差」一节、`docs/detail/mosaic/modules.md`的错误/边界面
+  与 ``lib/algorithms/coverage/include/astro/phase2/integrate.h`` 的文本口径必须同为 `max_{accepted} support[i]`，
+  **该口径即唯一口径**。
+
+### 11.4 TEST-P2-INT-DESIGN-001 冻结测试设计（可执行 TEST-P2-INT-001 由 P2-INT-TEST 落地）
+
+- **F1常量场门**: `values[i]=C`（多权重组合
+  equal/snr²/support_x_snr2/ivar 形状）→ `signal==C`
+  （max_abs==0，rtol 0）；与权重分布无关。
+  **判据非退化声明**：常量场门对任何满足 `ΣwᵢC/Σwᵢ` 的实现恒真，
+  **对权重口径错误无判别力**（把 support 当 ivar、把 SNR² 当 ivar 都照样通过）。
+  故 F1 必须与下述 **F1b 权重判别门**成对使用，单独用 F1 不构成权重正确性的证据。
+- **F1b 权重判别门（非退化）**: 构造**非均匀权重 + 非常量场**：
+  `values = {1, 2, 4}`、`weights = {1, 1, 2}`、全 accepted、support 全 1
+  → 断言 `signal == (1·1 + 1·2 + 2·4)/4 = 2.75`（bitwise，rtol 0）；
+  再构造 `weights = {1, 1, 0}`（含零权重）→ 断言 `signal == 1.5` 且 `n_used == 2`。
+  负例（能红）：把权重整列替换为常数或按 support 替代，`signal` 必须偏离 2.75/1.5。
+  该门对「权重被静默替换/降级」有判别力，是 F1 的补集。
+- **F2 零权重门**（SCI [S-1]「判据与误差」一节 零权重惰性）: 含 w=0 样本（含
+  零权重 accepted 且 support 不同的样本）→ signal 与移除该样本
+  bitwise 等价；n_accepted/n_finite 计入、n_used/n_positive_weight
+  不计；全零权重 → ZERO_VALID_WEIGHT 且计数器五元组精确断言
+  （synthetic_gate 先例）。
+- **F3 状态穷尽门**: 五态互斥覆盖 + p2_validate_candidate_weights
+  负/NaN/Inf/null 各一例 + w<0/非 finite values/support/weights
+  → INVALID_INPUT + rc=1 null 栈。
+- **F4 支撑门**: `support=max(accepted)` 与暴力 max 等价
+  （rtol 0）；support=null → 1.0；NaN/≤0 support → INVALID_INPUT。
+- **F5 DISP-P2INT-001 回归门**: 构造零权重 accepted 样本
+  （support 高于正权样本）→ 断言输出 support=全局 max（按 header
+  注释口径）。
+- **F6 Python 参考 Oracle**（SCI[S-1]「判据与误差」一节）: NumPy 对同
+  values/weights/support/accepted 复算 signal/support/status/
+  全计数器，`rtol 1e-12`。
+- **F7 并行一致性门**（§6）: 同输入 1..N 线程（Stage2 路径
+  workers∈{1,2,4}）signal/support bitwise 一致（无 rtol——像素内
+  无并行归约）；ACR launcher ↔ CPU reference 等价（W9 先例
+  synthetic_gate）；per-thread 统计 thread id 定序归并
+  幂等。
+- 冻结容差汇总: F1/F1b/F2/F4/F5/F7 = bitwise/rtol 0；F6 = rtol 1e-12
+  （NumPy 参考域）；无其他容差（本层禁引入 epsilon）。
+  **适用域**：rtol 0 只在归约顺序完全一致时可达——F1/F1b 的期望值用同一 `i=0..count-1`
+  固定序、同一 `vs/wsum` 双累加器复算；跨编译器/跨 FMA 契约的复算必须降到 rtol 1e-12
+  并在报告中声明所用域。F1 的「与权重分布无关」指**结果与权重分布无关**（常量场恒真），
+  **不**指「任何权重下的舍入都相同」——容差依据 = 上列的固定序复算口径。
+
+### 11.5 SCI 层状态声明（本域零 SCI 改动）
+
+- 积分语义权威已有 FROZEN SCI: SCI-INT-001（docs/science/
+  INTEGRATION.md，集合 SCI-INT-001/002/004/008）。**共享 SCI 引用
+  不改动**（P1-WCS SCI-WCS-001=共享 docs/science/detection/ASTROMETRY.md、P2-COV
+  SCI-UPM-001/SCI-INT-001、P2-HIPS SCI-UPM/INT/REJ 同构）。
+- matrix P2-INT 行 science_id=SCI-P2-INT-001（descriptor 占位词汇）
+  的语义映射由本节声明——**SCI-P2-INT-001 ⇒ SCI-INT-001**
+  （docs/science/INTEGRATION.md，矩阵 science_doc=
+  docs/science/INTEGRATION.md，MOD-acsd-phase2-integrate 行）。
+  SCI 公式语义不在此重复定义，
+  两处冲突时以 docs/science/ 为准并回改本文档（方向 = 从 docs/science/ 到本文档）。
+  ALG-INT-001/002（SCI[S-1]「判据与误差」一节）⇒ 本文档 [S-1]「公式与推导」一节 算法定义承接。
+- 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor acsd.phase2.integrate
+  由 P2-XX-INT 对齐，不作冻结依据）。
+
+## 12 关联 ID 映射（本文件承接）
+
+- `ALG-P2-INT-001` = 本文档整体（逐符号锚 [S-1]「公式与推导」一节；矩阵 P2-INT 行
+  algorithm_id）。
+- `ALG-INT-001`（SCI[S-1]「判据与误差」一节, p2_integrate_pixel 加权均值+max reducer）
+  ⇒ 本文档 [S-1]「公式与推导」一节；`ALG-INT-002`（p2_validate_candidate_weights）
+  ⇒ 本文档 [S-1]「公式与推导」一节（``lib/algorithms/coverage/src/integrate.cpp``）。两 ID 为共享 SCI 层 ALG 词汇，本文件不
+  抢注、不重复登记（INDEX.yaml ALG-INT-001 path 绑定本文件后，
+  经[S-1]语义承接）。
+- `INTEGRATION_ZERO_WEIGHT_CONTRACT`（冻结名，`lib/algorithms/coverage/include/astro/phase2/integrate.h` 注释）
+  = [S-1]「判据与误差」一节 零权重条款 + [S-1]冻结项。
+
+## 13 追溯
+
+- 实现: lib/algorithms/coverage/src/integrate.cpp（89 行）+
+  lib/algorithms/coverage/include/astro/phase2/integrate.h（83 行）。
+- 合同: DATA-P2-INT（`docs/detail/mosaic/modules.md`）/ API-P2-INT-001
+  （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，[S-4]「推导补遗」一节 设计冻结）。
+- 交叉: `docs/detail/mosaic/modules.md`（手写合同页）+
+  lib/algorithms/integration/ 三件套。
+- 消费者: stage2.cpp（`docs/detail/mosaic/modules.md` 域）/ acr_kernels.cpp
+  （ACR 域）/ `lib/infrastructure/scheduler/src/module_adapters.cpp` descriptor 占位。
+
+## 14 SIMD 安全、取消点与复杂度
+
+- **SIMD 安全与并行边界**：eligibility 判定与 `vs/wsum` 累加在单像素栈内进行
+  （元素数 ≤ `n_frames`，连续无别名）；归约按**候选索引固定序**（FP64，禁重结合）
+  ⇒ 像素内为串行语义，并行只发生在像素之间。`support = max` 是选择而非归约，
+  向量化不改变结果。
+- **取消点**：kernel 自身无内部取消点（并发合同见 §11.2，纯函数、reentrant）。
+  取消由调用方在**像素行带**粒度执行——取消时该行带的 `P2PixelResult` 不落盘，
+  行带为原子单元。
+- **复杂度**：每像素 O(k)，`k` 为该像素的候选数。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/integration/INTEGRATION.md（集成科学正本 SCI-INT-001）。
+> - [S-4] docs/detail/mosaic/modules.md（相关科学正本）。
+> - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。
+> - [A-2] docs/science/algorithms/mosaic/PHASE2_REJECTION.md（排异算法分册）。
+
+## 参考文献与参考代码库（含许可证）
+
+- 加权均值/逆方差聚合：教科书级（Bevington & Robinson 2003；Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42, DOI 10.1017/S0370164600014346 【出版年双源登记】本仓取 1935 = 论文出版年：一手依据 = 纸本合卷 Proc. R. Soc. Edin. Vol. LV 逐字「Read March 4, 1935」与「Issued separately March 6, 1935」（Internet Archive dli.ernet.7410）；另一源 CrossRef 与 Cambridge Core 卷期页记 1936 = **合卷印年**（同卷扉页逐字「VOL. LV. / 1934-1935 / MCMXXXVI」）。**结论：不改数字，保留 1935**；双源差异在此登记，不按错处理。）。**差异**：本层不编码 ivar 语义（§7）。
+- 最优叠加/信息保持：Zackay & Ofek 2017, ApJ 836, 187/188。**边界**：Naylor 1998, MNRAS 296, 339 是**最优源提取**（"An optimal extraction algorithm for imaging photometry"），**不是**最优叠加/信息保持的来源，引用时不得据此宣称叠加最优性。
+- support=max：Project-defined（§5）；与 SCI-INT [S-1]「判据与误差」一节 同构。
+- 并行归约容差：IEEE 754-2019；Higham 2002。
+
+===== END SOURCE =====
+
+===== docs/science/algorithms/mosaic/UPM_SOLVER.md | blob=e5832b88baa62b864df701ae539086b12cc9c2d2 | bytes=9923 =====
+# UPM Solver Algorithms (ALG-UPM)
+
+> 上游：ACSD_DESIGN.md [D-1]「信号面（UPM）」一节（信号面与统一相对模型）
+> 行号与并行表述按源码实测登记；实现级合同见 ALG-P2-UPM-IMPL-001 (docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md)
+> 本分册的公式与容差锚定 UPM 内核（`lib/algorithms/coverage/src/upm.cpp`）的 M+C
+> 求解；**生产扣除链不由该内核承载**——生产施加 = `calibrated = raw − δ_k`
+> （逐帧相对公共连续信号面的低阶偏差，见 `docs/science/sky/UPM.md` 与
+> PHASE2_SAMPLER 的施加路径一节）。
+
+## 1 上游 SCI 与输入输出
+
+- 上游: `SCI-UPM-001..010, SCI-UPM-WEIGHT-001, SCI-UPM-PERSIST-001`
+- 输入: control观测 P2ControlObservation[] + P2UpmConfig (robust/weight/anchors/连通分量)
+- 输出: Model C[frame][control] + frame_index + frame_id_by_index + components + hash
+
+## 2 离散公式
+
+```text
+F1: w_UPM = quality·control_ivar（绝对式，ADU⁻²，唯一生产式）或
+    qf·support^p·snr²/(1+snr²)/unc²（非生产：use_ivar_weight=0 的 ablation/诊断域）
+    天光控制点的被估量是**变化的背景电平**，SNR² 在该处不是有效逆方差代理，
+    生产一律取 control_ivar，SNR 只作 veto/质量门（docs/science/sky/UPM.md[S-1]「公式与推导」一节）
+    control_ivar=1/(k_corr·π/2·σ²/N_retained)，定义域 1 < k_corr
+    （k_corr=1 ⇔ 忽略相关，p2_upm_control_variance 显式拒 rc=2；k_corr<1 拒 rc=1
+    ）
+F2: w_cell = w_UPM / Σ_cell w_UPM · control_reliability（份额式，无量纲，实锚 `lib/algorithms/coverage/src/upm.cpp` 归一化注释），
+    Σ_cell w_cell = control_reliability；求解器实际消费的就是它）
+F3: Huber IRLS (标准无量纲残差, 对齐 `lib/algorithms/coverage/src/upm.cpp` 的 Huber rho/IRLS 段):
+    z = r/sigma_eff; r = value − M − C; sigma_eff=max(|uncertainty|,sigma_floor)
+    loss(z)=0.5z² if |z|≤δ else δ(|z|−0.5δ);  w(z)=1 if |z|≤δ else δ/|z|
+    δ=1.345 (无量纲, 单位=sigma_eff), iterative reweight + 弱零锚 + 平滑
+F4: 内核求值 calibrated = raw − C(frame, leaf) 双线性 8×8（分块、仅供 fit 侧与诊断，不在生产扣除链上；
+    生产扣除 = raw − δ_k，δ_k 为每帧相对公共连续信号面的低阶偏差，见 PHASE2_SAMPLER §5.11）
+F5: 連通分量 gauge = min frame_id per component, harmonic continuation 单帧区
+F6: hash = SHA256(C), persist: sparse json + dense cache materialize, 1e-12等价
+```
+
+来源（实测复核）: `lib/algorithms/coverage/src/upm.cpp`（冻结头注释 / Huber rho·w / Huber IRLS / `p2_upm_build` / raw weight / per-control 归一化 / sparse persist）、`lib/algorithms/coverage/src/sampler.cpp`（control_variance·control_ivar，k_corr 承接 ALG-UPM-CONTROL-IVAR-001）
+
+## 3 伪代码
+
+```text
+function p2_upm_build(observations, cfg):
+  p2_upm_raw_weight(obs,cfg) → w if cfg.use_ivar else ablation
+  if control_ivar≤0/nonfinite → rc=2 fail
+  w_norm = w/Σw · geom per-control
+  collect frames(set) → cell/control → 连通分量 (min frame_id gauge)
+  Huber IRLS (w_norm, 弱零锚, 平滑) → C
+  hash SHA256(C) → save sparse json / dense cache
+```
+
+## 4 边界/NaN/Inf
+
+| 条件 | 行为 |
+|---|---|
+| control_ivar≤0/nonfinite | rc=2 build fail |
+| k_corr<1（越域：N_eff>N_retained 物理不可达） | rc=1（`p2_upm_control_variance`）/ rc=7（`p2_upm_ma_build` provenance） |
+| frame_id重复 | 去重, persist同长校验 |
+| NaN weight | INVALID_INPUT |
+| 无观测 | NO_DATA |
+| 迭代耗尽（未达 tolerance） | `p2_upm_build` rc 仍 0；只读访问器 `p2_upm_convergence` 报 `converged=0`（M7-H-101，收敛结论以 `converged` 为准，rc=0 只表构建成功） |
+
+## 5 确定性与归约
+
+- 求解串行reference; **无 OpenMP**（实测 grep `#pragma omp` 于 upm.cpp 零命中）。并行=std::thread 池五段（均在 `lib/algorithms/coverage/src/upm.cpp`）: raw+归一化聚合、Huber w、M 更新、C 更新逐帧 CG、dense materialize (kChunk=16); worker-local 分块 + 按 tid 升序合并（确定性三档见[S-1]「判据与误差」一节：同配置重复位精确；跨 worker 数 1e-12，非位精确——`compute_raw` 的 per-control 求和结合顺序随 worker 数变化）, worker 数=cfg.cpu_workers (Runtime lease 唯一来源, `lib/phase2_session/p2_session.cpp`; 无 hardware_concurrency 硬件探测, 同 `upm.cpp`); IRLS 迭代顺序固定。
+
+## 6 复杂度
+
+- IRLS O(iter·(obs+K log K)) K=controls
+
+## 7 CPU-only 后端策略（V5）
+
+- 仅 CPU：IRLS 求解串行为确定性 reference；块级(C frame×control)求值可 worker pool（按 affinity, **线程数取自 benchmark profile**）, 控制索引固定顺序归约；dense/sparse 1e-12 等价门保留(实现自检, 非跨后端)。
+
+## 5c SIMD 安全与取消点
+
+- 残差/Huber 权重逐观测独立(SIMD 安全: 数组连续无别名)；加权法方程累加=**观测索引固定序归约**(FP64, 禁重结合)；弱零锚为固定行附加, 与并行无关。
+- 取消点: IRLS 迭代间检查; 取消时不写 Model/persist, 返回未完成状态(半成品 hash 不产生)——模型原子性以整模型为单元。
+
+## 8 参考实现/Oracle
+
+- dense==sparse 1e-12; G1空间真值; PR-UPM绑定门; UPMW-001..007权重门
+
+## 9 容差来源
+
+- 1e-12 (dense/sparse)，预冻结；
+- **跨 worker 数（1..N）= 1e-12 绝对容差**（实测 ΔC_max=2.22e-15 ≈ 1 ulp @10 ADU，
+  见 `docs/science/sky/UPM.md` [S-1]「公式与推导」一节）；**同配置重复 = 位精确 +
+  `model_hash` 逐字相同**（`synthetic_gate.cpp` CON-009 门）；门的等价面 = 同配置重复（跨后端等价不在门内）。
+
+## 10 关联 ARC/API/TST
+
+- API: upm.h: p2_upm_build/calibrate_block/raw_weight; API 面=API-P2-UPM-001 (PUBLIC_API.md 尚未落页, 登记于ALG-P2-UPM-IMPL-001 [S-1]「判据与误差」一节）
+- TST: PR-UPM-001..010, UPMW-001..007; TEST-P2-UPM-001/002 设计冻结=ALG-P2-UPM-IMPL-001 [S-1]「判据与误差」一节
+- 实现级合同: docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md (ALG-P2-UPM-IMPL-001, 逐符号锚/DISP 登记/DISP-P2UPM-001..004)
+
+## 11 数据布局
+
+- 输入：control observations（`value, uncertainty, snr_available` per control），帧 ivar 产品；
+  `frame_id[i]` 与 `control_by_id[control_id]` 索引（`lib/algorithms/coverage/src/upm.cpp`）。
+- 图：frame-control 二分图邻接 + 连通分量（`lib/algorithms/coverage/src/upm.cpp`），每分量独立 gauge（参考帧=最小 frame_id,
+  C=0）；无观测几何节点用 sentinel（`SIZE_MAX`, 同上文件）。
+- 解：`M` per control（公共场）、`C[frame][control]` 校正；双线性 8×8 θ_f（每帧 θ）；
+  `w[i]=raw_w[i]⊗huber_w`（`lib/algorithms/coverage/src/upm.cpp`）。
+- 权重/字典：`raw_w` per-control 归一化 + `control_ivar`；弱零锚 `zero_anchor_weight=1e-3`。
+- 持久化：`parameter_rows[index] ↔ frame_id_by_index[index]` 同长无重复（`SCI-UPM-PERSIST-001`）；
+  `g_model_floor`/绑定仅由稳定 frame_id 决定（`aio_upm.cpp`）。
+- 内存：O(n_ctrl + n_frame·n_ctrl)；双线性 θ = O(8×8·frame) 量级。
+
+## 12 误差预算
+
+- FP64 全链路；Huber IRLS 坐标下降稳态收敛（`lib/algorithms/coverage/src/upm.cpp`）。
+- 弱零锚 `0.001`：正则化偏移 <~0.1%；帧绑定幂等门：`save→open` 重开值 `max_abs==0`
+  （dense/sparse `1e-12` 等价门）；`k_corr` = k_gauss(N_retained)×k_geo 两因子几何查表
+  （公式与查表由 P3 单元 实验/healpix-polar 承载；
+  1.3883 = 标定几何专属单次 MC 实测值（带 1.27–1.43），冻结 1.4 在声明域两端
+  低估 32%/约 2 倍，仅作实现记录与域外回退；证据源 `control_median_mc_test`
+  **已注册（可复跑）**）。
+- `control_variance=k_corr·(π/2)·σ_bg²/N_retained`，`control_ivar=1/var`；污染观测经
+  `sigma_eff=max(|uncertainty|,sigma_floor)` 与无量纲 δ=1.345 强降权（`lib/algorithms/coverage/src/upm.cpp` 的 Huber rho/IRLS 段；δ 默认见同文件）。
+- 误差排序：**数值 FP64(≪1e-12) ≪ 科学/统计容差(k_corr 查表回退, 控制噪声) ≪ 门禁**。
+- 各 F 映射：`F1`→`p2_upm_raw_weight`/`p2_upm_normalized_weights`（`UPMW-001..003`）；
+  `F3`→`lib/algorithms/coverage/src/upm.cpp`（Huber，δ 默认同文件，`UPMW-*`）；`F4`→`p2_upm_calibrate_block`；
+  `F5`→分量 gauge（同上文件）。
+
+> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
+> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
+> - [S-1] docs/science/sky/UPM.md（信号面科学正本 SCI-UPM-001）。
+> - [S-4] 实验/healpix-polar/docs/DERIVATIONS-P3.md（相关科学正本）。
+> - [A-1] docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md（UPM 实现级合同分册）。
+> - [S-5] 实验/healpix-polar/（实验单元读数）。
+
+## 参考文献与参考代码库（含许可证）
+
+- Huber IRLS：Huber 1964, Ann. Math. Statist. 35, 73；Huber & Ronchetti 2009, Robust Statistics 2nd ed., Wiley。
+- 弱零锚：Tikhonov 1963, Soviet Math. Dokl. 4, 1035（正则化弱零锚的原始出处）。
+- 多帧相对定标：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）；Padmanabhan et al. 2008, ApJ 674, 1217。
+- 稀疏信号面样条（目标表示）：Duchon 1977；Wahba 1990。
+- var(median)≈πσ²/(2N)：Hoaglin et al. 1983（SCI-UPM [S-1]「判据与误差」一节）；实证比值读数（N=5 的 Var(median)/渐近式直接定征）正本 = `实验/healpix-polar/docs/audit/kcorr/tables.md` [S-5]「输入输出端口」一节。
+- k_corr 为 k_gauss(N)×k_geo 两因子几何查表（P3 单元承载）；MC 证据源 control_median_mc_test 可复跑；域外回退值与实现记录 = `实验/healpix-polar/docs/DERIVATIONS-P3.md` [S-4]「推导补遗」一节。
+
+===== END SOURCE =====

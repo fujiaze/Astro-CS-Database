@@ -178,3 +178,7 @@ CLI主题 `922ecfb65` 已立即推送。全文阅读benchmark两页、BACKEND、
 ### Normalize 远端实现后的文档同步
 
 全文补读 NORMALIZE_DATA、接口规格、DATA_FLOW及上层生产架构/实施差异，阅读空间PSF完整新增源、相关远端diff、生产adapter与第三轮报告。四份文档按实际新增能力定点更新：空间PSF/alpha、逐点诊断、显式残差、因子基础单位检查和frame_science文件边；保留未满足的Runtime对象仓、SED、支持/状态和真实applied运行限制。旧正文保存 NORMALIZE_STATUS_SOURCE.txt，来源字节核对累计50份。Q30记录留出χ²及不同指标比较解释，E52–E53记录更新事实和支持边界。未改科学实现、未执行报告中的程序；清单不把定点更新当整篇重写数量。
+
+### Mosaic 归约与旧UPM算法卷
+
+全文读 UPM_SOLVER 与 PHASE2_INTEGRATION，核对完整integrate头/实现、真实p2_op_integrate和背景库/生产调用，重写两页为数值方法补充；真实API/六态/计数与并发补入模块正文。旧正文完整保存在 MOSAIC_REDUCERS_SOURCE.txt，来源核对累计52份。Q31记录控制方差/弱锚/归一统计疑点，E54–E56记录过期五态与生产路径、真实计数和无效值分工。累计重写95篇，原模块内容仍保留；未运行科学测试或改求解/归约实现。
