@@ -1,3 +1,3 @@
-# 模块接口登记
+# 模块阅读入口
 
-本目录按真实调用记录 Normalize、Mosaic、Export 各模块的职责、数据交接、公开接口和验证入口。科学定义以 [science 正本](../../science/README.md) 为准，生产差异集中见[科学实施差异地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+模块的接口、数据交接和实现限制集中在 [Normalize](../normalize/modules.md)、[Mosaic](../mosaic/modules.md)、[Export](../export/modules.md) 与[共用 HiPS writer](../infrastructure/hips_writer.md)。从[细节索引](../00_INDEX.md)选择阶段和基础设施，科学定义仍由专题正本拥有。

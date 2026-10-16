@@ -9,14 +9,14 @@
 > （docs/science/REJECTION.md，FROZEN，集合
 > SCI-REJ-001..008，零改动；descriptor 占位 SCI-P2-REJ-001 ⇒
 > SCI-REJ-001映射声明见[S-1]「判据与误差」一节）。共享 L2: ALG-REJ-001
-> （本文件方法核与数据布局节承接，方法核与数据布局见本文件逐公式定义一节）。DATA: DATA-P2-REJ（`docs/detail/registry/acsd.phase2.reject.md`）。API:
+> （本文件方法核与数据布局节承接，方法核与数据布局见本文件逐公式定义一节）。DATA: DATA-P2-REJ（`docs/detail/mosaic/modules.md`）。API:
 > API-P2-REJ-001（PUBLIC_API.md）。TEST: TEST-P2-REJ-001（设计冻结
 > 面=本文档 [S-4]「推导补遗」一节；可执行落地归 P2-REJ-TEST）。迁移目标
 > acsd_p2_rejection.dll 为矩阵合同值（MISSING），由 P2-REJ-IMPL
 > 建立，本文件不声明 IMPLEMENTED；descriptor 占位
 > module_id=acsd.phase2.reject（module_adapters.cpp:705-724）由
 > P2-XX-INT 对齐，不作冻结依据。
-> 关联: DATA=DATA-P2-REJ（docs/detail/registry/acsd.phase2.reject.md）；API=API-P2-REJ-001（docs/engineering/api/PUBLIC_API.md 末节）；MOD 页=docs/detail/registry/acsd.phase2.reject.md（手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
+> 关联: DATA=DATA-P2-REJ（docs/detail/mosaic/modules.md）；API=API-P2-REJ-001（docs/engineering/api/PUBLIC_API.md 末节）；MOD 页=docs/detail/mosaic/modules.md（手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
 
 ## 1 目的与非目标
 
@@ -33,7 +33,7 @@
   session 依赖（无状态纯函数）；不做瞬变/卫星语义区分（SCI [S-1]「主题与目标」一节
   非目标）；单帧无排异（n=1 进 UNDERDETERMINED 白名单）。
 
-## 2 符号与单位（权威=本表 + `docs/detail/registry/acsd.phase2.reject.md` + SCI [S-4]「推导补遗」一节）
+## 2 符号与单位（权威=本表 + `docs/detail/mosaic/modules.md` + SCI [S-4]「推导补遗」一节）
 
 | 符号 | 含义 | 单位/dtype | 锚 |
 |---|---|---|---|
@@ -220,7 +220,7 @@ profile 合法集 = {acsd_adaptive_pixel(生产默认, Astro Celestial Sphere Da
   depth；acsd_adaptive_pixel=逐输出像素几何 N 映射（上表）；与 WBPP
   档界的差异及其依据见 docs/science/REJECTION.md——canonical/adaptive
   区别仅在 nominal 来源，h:227-239/:241-259 冻结注释。
-  生产布局与现行语义详见 `docs/detail/registry/acsd.phase2.reject.md`
+  生产布局与现行语义详见 `docs/detail/mosaic/modules.md`
 ```
 
 ### F2 eligibility gather（p2_collect_candidate_stack :1372-1455；core :1311-1346）
@@ -513,11 +513,11 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   冻结两符号；compat 仅测试/旧调用（h:299 冻结注释"生产 Stage2
   不再调用"）。
 
-## 8 单位与 dtype 登记（唯一权威=`docs/detail/registry/acsd.phase2.reject.md`）
+## 8 单位与 dtype 登记（唯一权威=`docs/detail/mosaic/modules.md`）
 
 - kernel 工作域全浮点 IEEE f64（gather 按 `value_dtype` 分派 f32/f64 源→f64 提升，
   :1386-1401）；无 long double/复数。**单位逐项**（权威 = SCI REJECTION §3
-  + `docs/detail/registry/acsd.phase2.reject.md`）：`values` = 面亮度 **ADU·sr⁻¹**；
+  + `docs/detail/mosaic/modules.md`）：`values` = 面亮度 **ADU·sr⁻¹**；
   `weights` = **(ADU·sr⁻¹)⁻²**；`support` 无量纲 [0,1]（仅作资格门，不进统计）；
   `frame_ids` 无量纲 u64；`reasons` u8；计数/iterations u32；`status` int。
 - MINMAX 判定直接用原始域值（:2150 分派 stack->values）；PERCENTILE
@@ -681,7 +681,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   F7 = rtol 1e-12（Python 参考域）；large_scale=mask 精确。本层
   禁引入其他 epsilon（ESD tie 1e-15、RCR isEqual rel 1e-8、winsor
   收敛 5e-4·σ 为实现内部冻结常数，非门容差）。
-- 登记面: 本节容差同步登记于 docs/detail/registry/acsd.phase2.reject.md §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED，承载 TEST-P2-REJ-001 登记锚）。
+- 登记面: 本节容差同步登记于 docs/detail/mosaic/modules.md §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED，承载 TEST-P2-REJ-001 登记锚）。
 
 ### 11.5 SCI 层状态声明（本域零 SCI 改动）
 
@@ -724,14 +724,14 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 - 实现: lib/algorithms/coverage/src/rejection.cpp（2965 行）+
   lib/algorithms/coverage/include/astro/phase2/rejection.h（602 行）（实测）。
-- 合同: DATA-P2-REJ（`docs/detail/registry/acsd.phase2.reject.md`）/ API-P2-REJ-001
+- 合同: DATA-P2-REJ（`docs/detail/mosaic/modules.md`）/ API-P2-REJ-001
   （PUBLIC_API.md）/ TEST-P2-REJ-001（设计冻结 VERIFIED=registry
   承载页 §独立验证节；可执行落地归 P2-REJ-TEST + EVIDENCE）。
-- 交叉: `docs/detail/registry/acsd.phase2.reject.md`（手写合同页）+
+- 交叉: `docs/detail/mosaic/modules.md`（手写合同页）+
   lib/algorithms/rejection/ 三件套
   （README/module.yaml/memory.md，按 lib/algorithms/integration/ 先例新建；
   lib/algorithms/coverage/ 三件套已被 P2-COV 占用）。
-- 消费者: stage2.cpp（[S-1]「与上下游的关系」一节；`docs/detail/registry/acsd.phase2.write.md` 编排域）/
+- 消费者: stage2.cpp（[S-1]「与上下游的关系」一节；`docs/detail/mosaic/modules.md` 编排域）/
   acr_kernels.cpp（ACR 域）/ P2-005 语义 id/解析面判据/
   排异/积分生产 Oracle 组/ module_adapters.cpp:704-720
   descriptor 占位。
@@ -741,14 +741,14 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 ## 14 合同落位
 
-- DATA-P2-REJ = docs/detail/registry/acsd.phase2.reject.md：输入
+- DATA-P2-REJ = docs/detail/mosaic/modules.md：输入
   eligibility/gather/kernel 三层 + P2RejectionDecision 输出 +
   八态状态机 + 单位/确定性唯一权威；与 [S-4]「推导补遗」一节 DATA-P2-INT 的消费
   边界 = accepted mask → P2PixelStack.accepted。
 - API-P2-REJ-001 = docs/engineering/api/PUBLIC_API.md 末节：
   planning/eligibility/gather/kernel/large_scale 导出符号冻结；
   compat p2_reject_stack 冻结两符号；与 API-P2-001 编排面并存。
-- MOD = `docs/detail/registry/acsd.phase2.reject.md`（手写合同页
+- MOD = `docs/detail/mosaic/modules.md`（手写合同页
   重写；TEST 登记面承载）+ lib/algorithms/rejection/
   三件套（README/module.yaml CONTRACT_READY entrypoint=MISSING/
   memory.md，按 lib/algorithms/integration/ 先例）。
@@ -757,7 +757,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   SCI 权威永远在 docs/science/（方向 = 从 docs/science/ 到本文档）。
 - 缺陷联动: DISP-P2REJ-001..004 同时登记于 registry 页与
   module.yaml known_defects；本文件 [S-1]「参考文献与参考代码」一节 为权威表述。
-- docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节 MOD-acsd-phase2-reject 行:
+- docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节 MOD-acsd-phase2-reject 行:
   science_id=SCI-REJ-001（映射 [S-5]「输入输出端口」一节）/
   algorithm_id=ALG-P2-REJ-001（本文件）/data_id=DATA-P2-REJ/
   api_id=API-P2-REJ-001/src_id=SRC-P2-REJ-001（src_path=lib/
@@ -765,7 +765,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   p2_reject_stack_ex,p2_collect_candidate_stack,
   p2_eligibility_filter,p2_large_scale_apply,
   p2_rejection_semantic_id）/test_id=TEST-P2-REJ-001
-  （test_path=docs/detail/registry/acsd.phase2.reject.md::
+  （test_path=docs/detail/mosaic/modules.md::
   TEST-P2-REJ-001，设计冻结 VERIFIED + 可执行 MISSING 双
   statement）——由主控写入，本节仅声明预期终态。
 
@@ -773,7 +773,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 - **输入**：每像素候选栈 `values[]`、`weights[]`、`support[]`、`accepted[]`、`frame_id[]`，打包在 `P2EligibilityGatherInput`（`lib/algorithms/coverage/include/astro/phase2/rejection.h`）。布局为**帧主序**：`value_stride = support_stride = chunk_pixels`，元素寻址 `gidx = s·stride + pixel`，`s` 为帧槽序号、`pixel` 为该子域像素序号；kernel 与 ACR 共享同一布局。
 - **规划层**：`p2_reject_plan_resolve` 以 `n`（该输出像素的 nominal contributors，一次解析）路由到 method，request 与 plan 两处结构同源；同一 `n` 的 method 解析结果唯一（§5 F1）。
-- **布局单位**：`values` = 面亮度 ADU·sr⁻¹；`weights` = (ADU·sr⁻¹)⁻²；`support` 无量纲 [0,1]；`frame_id` 无量纲 u64。单位权威 = `docs/science/integration/REJECTION.md` [S-1]「判据与误差」一节 与 `docs/detail/registry/acsd.phase2.reject.md` 的单位/dtype 面。
+- **布局单位**：`values` = 面亮度 ADU·sr⁻¹；`weights` = (ADU·sr⁻¹)⁻²；`support` 无量纲 [0,1]；`frame_id` 无量纲 u64。单位权威 = `docs/science/integration/REJECTION.md` [S-1]「判据与误差」一节 与 `docs/detail/mosaic/modules.md` 的单位/dtype 面。
 - **输出**：reject plan（method + 阈值）、per-sample reason（`P2_REASON_*`）、stack status（`P2_STATUS_*`）。large_scale 结构按两种形态给出——**trail 生长**（被拒掩膜的连通分量达标后作 Chebyshev 半径扩张）与 **compact 不生长**（cosmic 形态，分量不达标时原样保留）。
 - **内存**：候选栈占用 O(n)；逐像素拒绝就地完成；无整帧副本。
 
@@ -806,8 +806,8 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/integration/REJECTION.md（排异科学正本 SCI-REJ-001）。
-> - [S-4] docs/detail/registry/acsd.phase2.reject.md（相关科学正本）。
-> - [S-5] docs/engineering/governance/TRACEABILITY.md（相关科学正本）。
+> - [S-4] docs/detail/mosaic/modules.md（相关科学正本）。
+> - [S-5] docs/engineering/governance/DOCUMENT_GOVERNANCE.md（相关科学正本）。
 > - [A-1] docs/science/algorithms/mosaic/PHASE2_INTEGRATION.md（集成算法分册）。
 > - [U-1] docs/science/unified/DATA_SEMANTICS.md（相关科学正本）。
 

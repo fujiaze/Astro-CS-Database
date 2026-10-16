@@ -14,11 +14,11 @@
 | 运行时如何调度并回收对象 | [Runtime](infrastructure/runtime.md) | 架构、命名块、调度器和所有权合同 |
 | 产品如何读写与发布 | [统一 I/O](infrastructure/aio.md)、[存储形态](infrastructure/storage_form.md) | 产品交换、I/O 与原子发布合同 |
 | 如何查看事件及排查失败 | [可观测性](infrastructure/observability.md)、[日志错误](infrastructure/log_and_error_system.md)、[排障](infrastructure/troubleshooting.md) | 日志、事件和错误合同 |
-| 模块有哪些入口及消费者 | [模块登记目录](registry/) | 工程模块地图、公开接口及端口注册表 |
+| 模块有哪些入口及消费者 | [Normalize](normalize/modules.md)、[Mosaic](mosaic/modules.md)、[Export](export/modules.md)、[HiPS writer](infrastructure/hips_writer.md) | 工程模块地图、公开接口及端口注册表 |
 
 ## 阶段与模块说明的分工
 
-阶段管线页描述节点顺序、输入输出和交接责任。接口规格描述字段、单位、寿命及调用约定。模块登记页定位具体入口、依赖和实现限制，引用上层定义，不重新建立另一套科学对象或产品政策。
+阶段管线页描述节点顺序、输入输出和交接责任。接口规格描述字段、单位、寿命及调用约定。各阶段模块正文集中说明具体入口、依赖和实现限制，引用上层定义，不重新建立另一套科学对象或产品政策。
 
 同一模块可能存在独立工具、兼容 facade 与调度入口；文档需要标明当前调用者，不能把工具 main、descriptor 名称和真实生产路径视为同一件事。接口设计、源码静态存在、实际运行及独立科学验证分别说明。实施差异统一在工程实施地图维护 [3]。
 

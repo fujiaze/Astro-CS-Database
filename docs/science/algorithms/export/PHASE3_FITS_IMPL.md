@@ -12,7 +12,7 @@
 > lib/algorithms/fits_output/p3_output.h（176 行）+ WCS 关键字源
 > lib/algorithms/projection/p3_wcs.h；
 > API: API-P3-FITS-001（PUBLIC_API.md「Phase3 FITS 写出公共消费面」节）；
-> DATA: DATA-P3-FITS（`docs/detail/registry/acsd.phase3.writer.md`）；MOD: acsd.p3.fits_writer
+> DATA: DATA-P3-FITS（`docs/detail/export/modules.md`）；MOD: acsd.p3.fits_writer
 > （MODULE_MIGRATION_MATRIX P3-FITS 行）；TEST: TEST-P3-WR-001
 > （设计冻结面=本文档 [S-4]「推导补遗」一节 + registry 手写页，可执行 MISSING 归
 > P3-FITS-TEST）。
@@ -405,13 +405,13 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 - ALG-P3-FITS-IMPL-001 = 本文件（实现级合同；upstream SCI-P3-001 +
   ALG-P3-001 + ALG-P3-002 + ALG-P3-004，PHASE3_RESAMPLE.md [A-1]「离散公式」一节
   推导权威不重复）。
-- DATA-P3-FITS = docs/detail/registry/acsd.phase3.writer.md（in signal f32[W·H] ADU /
+- DATA-P3-FITS = docs/detail/export/modules.md（in signal f32[W·H] ADU /
   coverage f32{0,1} / out FITS BITPIX/WCS/BUNIT/checksum 唯一权威）。
 - API-P3-FITS-001 = PUBLIC_API.md「Phase3 FITS 写出公共消费面」
   （p3_output_write_atomic/p3_output_verify 符号级冻结 + 会话编排
   p3_session 五段镜像 API-P3-001 不变）。
 - TEST-P3-WR-001 = 登记面 TEST-P3-WR-DESIGN-001 设计冻结 VERIFIED
-  （本文件关联章节 + docs/detail/registry/acsd.phase3.writer.md）；可执行
+  （本文件关联章节 + docs/detail/export/modules.md）；可执行
   MISSING 归 P3-FITS-TEST。
 - MOD-acsd-phase3-writer / acsd.p3.fits_writer /
   acsd_p3_fits_writer.dll（合同值未建，P3-FITS-IMPL）；
@@ -420,16 +420,16 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 ## 17 追溯
 
-- MATRIX 行：MOD-acsd-phase3-writer（`docs/engineering/governance/TRACEABILITY.md`「逐模块追溯台账（人读正本）」一节
+- MATRIX 行：MOD-acsd-phase3-writer（`docs/engineering/governance/DOCUMENT_GOVERNANCE.md`「逐模块追溯台账（人读正本）」一节
   的 P3-FITS 行）；合同落位=lib/algorithms/fits_output/ 三件套 + 本文件
-  + `docs/detail/registry/acsd.phase3.writer.md`（registry 手写页）+ PUBLIC_API API-P3-FITS-001 节。
+  + `docs/detail/export/modules.md`（registry 手写页）+ PUBLIC_API API-P3-FITS-001 节。
 - 冻结红线：SCI-P3 冻结面（`docs/science/`、`PHASE3_RESAMPLE.md` 的公式与容差）
   不得因实现偏差被反向修改；实现偏差一律登记（本文件缺陷登记一节）不改SCI。
 
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/projection/HIPS_TO_FITS.md（投影导出科学正本 SCI-P3-001）。
-> - [S-4] docs/detail/registry/acsd.phase3.writer.md（相关科学正本）。
+> - [S-4] docs/detail/export/modules.md（相关科学正本）。
 > - [S-5] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（相关科学正本）。
 > - [A-1] docs/science/algorithms/export/PHASE3_RESAMPLE.md（重采样施工规格分册）。
 

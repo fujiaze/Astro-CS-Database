@@ -132,7 +132,7 @@ lib/algorithms/resample/p3_resample.h 全部公共符号（ALG-P3-003 施工面 
   [S-1]「公式与推导」一节的**G3（order 选择）与 G4（leaf 采样）** 为本域子面；本合同承接
   其全部公式（零改动，等价性核对见[S-1]「公式与推导」一节）。G1/G2（投影）属
   ALG-P3-PROJ-IMPL-001，G5（FITS 写）属 writer 域，不在本合同。
-- DATA 层: 输出张量语义 = DATA-P3-RES（docs/detail/registry/acsd.phase3.resample2.md
+- DATA 层: 输出张量语义 = DATA-P3-RES（docs/detail/export/modules.md
   [S-5]「输入输出端口」一节，本任务新建）；输入 properties/tile 语义 = DATA-HIPS-001/
   DATA-TILE-001（[S-5]「输入输出端口」一节冻结）。
 - API 层: 公共消费合同 = API-P3-RSMP-001（docs/engineering/api/PUBLIC_API.md
@@ -345,7 +345,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 | DISP-P3RSMP-004 | provenance.missing_tiles 恒 nullptr（缺 tile 聚合上报未接线；SCI[S-1]「判据与误差」一节 要求记 missing） | `lib/phase3_session/p3_session.cpp` | SCI[S-1]「判据与误差」一节 | P3-RSMP-IMPL/INT |
 | DISP-P3RSMP-005 | acsd_p3_resample.dll 未建（entrypoint 缺失） | 全仓无该 target | 矩阵 dll_target | P3-RSMP-IMPL |
 | DISP-P3RSMP-006 | **强制计数的产品承载面未冻结**：DATA-002 [S-1]「判据与误差」一节冻结了计数**字段名** `n_rejected_nonfinite`（按原因分类、per-pixel、mandatory），但**未**冻结 Phase3 产品里的承载面（`phase3_planar_fits_v1` 最小平面集 = signal/support/mask，plane_id 枚举 `{signal,support,variance,ivar,mask,sparse_snr}` 无计数字段；`p3_resampled.json` 的 `planes` 列表亦无）。内核面已按冻结字段名暴露（`P3SampleRejection`），**产品承载面不自行发明** | `eng/contracts/data/phase_product_exchange.schema.json`（无 `invalid_handling`/`count_field` 键，与DATA-002 [S-1]「判据与误差」一节「机器形态」声明不一致）；`eng/contracts/schemas/unified/rejection.schema.json` 仅有可选 `rejected_sample_count`；DATA-P2-REJ-001 登记（`docs/engineering/data/ARTIFACTS.md`，Phase2 诊断平面 `nrej/nused` 通道，语义为 P2 排异原因计数，非本规则） | DATA-002 [S-6]「判据与误差」一节规则三；ALG-P3-003 [S-6]「输入输出端口」一节 G4 | 待合同域登记：候选 =（a）逐像素诊断平面（沿用 [S-6]「输入输出端口」一节 诊断平面通道，不入 science planes 枚举）；（b）`p3_resampled.json` 聚合键（drizzle 先例 `lib/algorithms/drizzle/src/module_entry.cpp` 的 `"n_rejected_nonfinite"`）；（c）provenance 计数。三者均需合同域登记后才可落产品 |
-| DISP-P3RSMP-007 | **C（coverage）语义的唯一正本 = `docs/detail/registry/acsd.phase3.resample2.md`**：Phase3 侧执行口径 = ALG-P3-003 [S-5]「输入输出端口」一节 G4 / [S-5]「输入输出端口」一节 与 [S-5]「输入输出端口」一节「C 只判足迹内有无 tile 像素，值 NaN 不改 C」（零合格样本 ⇒ `S=NaN` ∧ `C=1`）；[S-5]「输入输出端口」一节「C=1 ⇔ 足迹内存在**有限** tile 像素」与 DATA-002 [S-1]「判据与误差」一节规则二「零合格样本 ⇒ signal=NaN ∧ **support≤0**」按 [S-1]「判据与误差」一节正本订正 | 本层零合格样本输出 `S=NaN` 且 `C=1`（四角上游 support≤0），与 [S-1]「判据与误差」一节一致 | ALG-P3-003 [S-1]「物理模型」一节 G4/[S-1]「参数与常数」一节；DATA-P3-RES（`docs/detail/registry/acsd.phase3.resample2.md`）；DATA-002 [S-5]「输入输出端口」一节 规则 2 | 合同域登记面：[S-5]「输入输出端口」一节 与 [S-5]「输入输出端口」一节 的表述按 [S-5]「输入输出端口」一节 正本收敛（订正动作落合同域） |
+| DISP-P3RSMP-007 | **C（coverage）语义的唯一正本 = `docs/detail/export/modules.md`**：Phase3 侧执行口径 = ALG-P3-003 [S-5]「输入输出端口」一节 G4 / [S-5]「输入输出端口」一节 与 [S-5]「输入输出端口」一节「C 只判足迹内有无 tile 像素，值 NaN 不改 C」（零合格样本 ⇒ `S=NaN` ∧ `C=1`）；[S-5]「输入输出端口」一节「C=1 ⇔ 足迹内存在**有限** tile 像素」与 DATA-002 [S-1]「判据与误差」一节规则二「零合格样本 ⇒ signal=NaN ∧ **support≤0**」按 [S-1]「判据与误差」一节正本订正 | 本层零合格样本输出 `S=NaN` 且 `C=1`（四角上游 support≤0），与 [S-1]「判据与误差」一节一致 | ALG-P3-003 [S-1]「物理模型」一节 G4/[S-1]「参数与常数」一节；DATA-P3-RES（`docs/detail/export/modules.md`）；DATA-002 [S-5]「输入输出端口」一节 规则 2 | 合同域登记面：[S-5]「输入输出端口」一节 与 [S-5]「输入输出端口」一节 的表述按 [S-5]「输入输出端口」一节 正本收敛（订正动作落合同域） |
 
 ## 12 TEST-P3-RSMP-DESIGN-001 设计冻结（登记面 VERIFIED）
 
@@ -392,7 +392,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   （¬isfinite 样本必须计数暴露）；**零填替代**（零合格样本必须 NaN）；
   **用未重归一的几何权重传播方差**（DATA-002 [S-1]「判据与误差」一节规则一）。
 - DISP 台账: [S-1]「判据与误差」一节表七项（DISP-P3RSMP-001..007）。006 = 强制计数产品承载面未冻结
-  → 登记面 = 合同域；007 = C 语义以 `docs/detail/registry/acsd.phase3.resample2.md` 为唯一正本 → 订正动作
+  → 登记面 = 合同域；007 = C 语义以 `docs/detail/export/modules.md` 为唯一正本 → 订正动作
   登记面 = 合同域。
 
 ## 14 SCI 层零改动声明
@@ -405,7 +405,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/projection/HIPS_TO_FITS.md（投影导出科学正本 SCI-P3-001）。
-> - [S-5] docs/detail/registry/acsd.phase3.resample2.md（相关科学正本）。
+> - [S-5] docs/detail/export/modules.md（相关科学正本）。
 > - [S-6] docs/engineering/data/ARTIFACTS.md（相关科学正本）。
 > - [A-1] docs/science/algorithms/export/PHASE3_RESAMPLE.md（重采样施工规格分册）。
 > - [U-1] docs/science/unified/DATA_SEMANTICS.md（数据语义正本）。

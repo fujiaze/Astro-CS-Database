@@ -28,10 +28,10 @@
   占位 SCI-P2-REJ-001⇒SCI-REJ-001 映射声明于
   docs/science/algorithms/PHASE2_REJECTION.md §11.5，占位 ID 不入合同）
   → ALG-P2-REJ-001（docs/science/algorithms/PHASE2_REJECTION.md）
-  → DATA-P2-REJ（`docs/detail/registry/acsd.phase2.reject.md`「输入输出端口、DATA、单位、坐标、invalid」一节）/ API-P2-REJ-001
+  → DATA-P2-REJ（`docs/detail/mosaic/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）/ API-P2-REJ-001
   （PUBLIC_API Phase2 rejection 公共消费面节）→
   TEST-P2-REJ-001（登记面=设计冻结 VERIFIED，承载于
-  docs/detail/registry/acsd.phase2.reject.md §独立 synthetic
+  docs/detail/mosaic/modules.md §独立 synthetic
   验证节 + ALG 文档 §11.4 TEST-P2-REJ-DESIGN-001 F1-F8 容差；
   可执行测试 MISSING 归 P2-REJ-TEST，不冒认）。
 
@@ -92,7 +92,7 @@
 
 可执行 `TEST-P2-REJ-001` MISSING（P2-REJ-TEST 建立，不冒认）；
 登记面=TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED，承载于
-docs/detail/registry/acsd.phase2.reject.md §独立 synthetic
+docs/detail/mosaic/modules.md §独立 synthetic
 验证节 + ALG-P2-REJ-001 §11.4 F1-F8 容差（F1-F6/F8 bitwise/枚举/
 计数精确、F7 rtol 1e-12、large_scale mask 精确）。现状相邻证据
 （引用不冒认）：eng/tests/backend/
@@ -105,10 +105,10 @@ eng/tests/unit/p2_rejection_test.cpp（P2-005）。
 - SCI：docs/science/REJECTION.md（SCI-REJ-001，FROZEN T107
   2026-08-23，零改动）
 - ALG：docs/science/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）
-- DATA：`docs/detail/registry/acsd.phase2.reject.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P2-REJ）
+- DATA：`docs/detail/mosaic/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P2-REJ）
 - API：docs/engineering/api/PUBLIC_API.md API-P2-REJ-001；
   API-P2-001（编排层既有）
-- 模块页：docs/detail/registry/acsd.phase2.reject.md
+- 模块页：docs/detail/mosaic/modules.md
 
 ## 已知限制（DISP-P2REJ，登记不改码，整改归 P2-REJ-IMPL/TEST）
 

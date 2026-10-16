@@ -171,17 +171,17 @@
       "old_contract_face": [
         "docs/science/unified/DATA_SEMANTICS.md:133（§9 ID 定义节，:135 状态 CONTRACT_READY）",
         "docs/engineering/api/PUBLIC_API.md:102",
-        "docs/detail/registry/acsd.phase1.calibration.md:23（端口 calibrated）",
-        "docs/detail/registry/acsd.phase1.cosmetic.md:34（端口 calibrated）",
-        "docs/detail/registry/acsd.phase1.drizzle.md:35（端口 calibrated）",
-        "docs/detail/registry/acsd.phase2.resample.md:22（端口 calibrated）",
-        "docs/detail/registry/acsd.phase1.calibration.md:8/:53"
+        "docs/detail/normalize/modules.md（端口 calibrated）",
+        "docs/detail/normalize/modules.md（端口 calibrated）",
+        "docs/detail/normalize/modules.md（端口 calibrated）",
+        "docs/detail/mosaic/modules.md（端口 calibrated）",
+        "docs/detail/normalize/modules.md/:53"
       ],
       "new_index_added_by_DATA001": [
         "eng/contracts/data/contract_index.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-CAL'",
         "eng/contracts/data/contract_index.yaml#legacy_contract_id_map"
       ],
-      "evidence": "Phase1 校准端口（docs/detail/registry/acsd.phase1.calibration.md「输入输出端口、DATA、单位、坐标、invalid」一节）输入 frames（ADU，NaN 直传）+ 输出 calibrated（ADU，可负不 clamp）= 声明单位与像素语义的科学估计量本身 → UNIFIED_MODEL §2 的 signal；该端口表只有这两面，明确不出 variance/ivar/coverage。",
+      "evidence": "Phase1 校准端口（docs/detail/normalize/modules.md「输入输出端口、DATA、单位、坐标、invalid」一节）输入 frames（ADU，NaN 直传）+ 输出 calibrated（ADU，可负不 clamp）= 声明单位与像素语义的科学估计量本身 → UNIFIED_MODEL §2 的 signal；该端口表只有这两面，明确不出 variance/ivar/coverage。",
       "note": "master_bias/master_dark/master_flat 属标定参考帧（flat 为无量纲归一参考），不是 14 个科学对象之一；本 ID 的契约主体（calibrated frame）归 signal。",
       "deprecated_at_change": "CHG-2026-09-16-DATA001",
       "retire_after_change": "OWNER_DECISION",
@@ -205,14 +205,14 @@
       "old_contract_face": [
         "docs/science/unified/DATA_SEMANTICS.md:180（§10 ID 定义节，:182 状态 CONTRACT_READY）",
         "docs/engineering/api/PUBLIC_API.md:152/:177",
-        "docs/detail/registry/acsd.phase1.cosmetic.md:35（端口 cleaned）/:38-40（权威名说明）",
-        "docs/detail/registry/acsd.phase1.cosmetic.md:12"
+        "docs/detail/normalize/modules.md（端口 cleaned）/:38-40（权威名说明）",
+        "docs/detail/normalize/modules.md"
       ],
       "new_index_added_by_DATA001": [
         "eng/contracts/data/contract_index.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COS'",
         "eng/contracts/data/contract_index.yaml#legacy_contract_id_map"
       ],
-      "evidence": "Phase1 cosmetic 端口（docs/detail/registry/acsd.phase1.cosmetic.md「输入输出端口、DATA、单位、坐标、invalid」一节）输出 cleaned（修复帧，ADU，可负不 clamp），该端口表只有 calibrated/cleaned 两面，mask 不作产品面（variance/ivar/coverage 也不在本层）→ 契约主体是 signal；坏点掩码不是 validity/rejection 产品。",
+      "evidence": "Phase1 cosmetic 端口（docs/detail/normalize/modules.md「输入输出端口、DATA、单位、坐标、invalid」一节）输出 cleaned（修复帧，ADU，可负不 clamp），该端口表只有 calibrated/cleaned 两面，mask 不作产品面（variance/ivar/coverage 也不在本层）→ 契约主体是 signal；坏点掩码不是 validity/rejection 产品。",
       "note": "本 ID 是 DATA-P1-COSMETIC 的权威名（后者为 descriptor 占位）；registry :38-40 明写「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。",
       "deprecated_at_change": "CHG-2026-09-16-DATA001",
       "retire_after_change": "OWNER_DECISION",
@@ -234,9 +234,9 @@
       ],
       "superseded_by": "DATA-P1-COS",
       "old_contract_face": [
-        "docs/detail/registry/acsd.phase1.cosmetic.md:39（descriptor 占位名说明）",
-        "docs/detail/registry/acsd.phase1.star-psf.md:33（端口 cleaned）",
-        "docs/detail/registry/acsd.phase1.star-detection.md:38（端口 image）"
+        "docs/detail/normalize/modules.md（descriptor 占位名说明）",
+        "docs/detail/normalize/modules.md（端口 cleaned）",
+        "docs/detail/normalize/modules.md（端口 image）"
       ],
       "new_index_added_by_DATA001": [
         "eng/contracts/data/contract_index.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COSMETIC'",
@@ -278,8 +278,8 @@
       "old_contract_face": [
         "docs/science/unified/DATA_SEMANTICS.md:226（§11 ID 定义节，:228 状态 CONTRACT_READY）",
         "docs/engineering/api/PUBLIC_API.md:214",
-        "docs/detail/registry/acsd.phase1.drizzle.md:7（upstream 引用）/:39（模块级数据合同说明）",
-        "docs/detail/registry/acsd.phase1.hips-writer.md:7/:34（端口 stacked）",
+        "docs/detail/normalize/modules.md（upstream 引用）/:39（模块级数据合同说明）",
+        "docs/detail/infrastructure/hips_writer.md/:34（端口 stacked）",
         "docs/detail/healpix_drizzle.md:32/:62"
       ],
       "new_index_added_by_DATA001": [
@@ -311,7 +311,7 @@
       "new_index_added_by_DATA001": [
         "eng/contracts/data/contract_index.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
       ],
-      "evidence": "全仓无独立定义节：只出现在编排/descriptor 端口编目与交叉引用链中，指向「PSF 拟合结果中的 sources 列（star_id/x/y/flux）」。docs/detail/registry/acsd.phase1.star-psf.md「输入输出端口、DATA、单位、坐标、invalid」一节（sources 端口）明确该块列语义由 star-psf 域端口合同承接，且要求「只经 star_id 关联」，未定义为跨阶段产品合同；基线 docs/engineering/data/ARTIFACTS.md 与基线 eng/contracts/data/contract_index.yaml（ecf6ad6f）对该 ID 均为零命中。",
+      "evidence": "全仓无独立定义节：只出现在编排/descriptor 端口编目与交叉引用链中，指向「PSF 拟合结果中的 sources 列（star_id/x/y/flux）」。docs/detail/normalize/modules.md「输入输出端口、DATA、单位、坐标、invalid」一节（sources 端口）明确该块列语义由 star-psf 域端口合同承接，且要求「只经 star_id 关联」，未定义为跨阶段产品合同；基线 docs/engineering/data/ARTIFACTS.md 与基线 eng/contracts/data/contract_index.yaml（ecf6ad6f）对该 ID 均为零命中。",
       "note": "判定：旧契约面无 canonical 对应（属编排端口编目名，非 14 个科学数据对象之一）。其携带的 flux 物理量在 signal 面（star-psf 端口输出面：flux = ADU 的 Moffat4 解析积分），但 catalog 行集合本身不构成单一对象合同。",
       "deprecated_at_change": "CHG-2026-09-16-DATA001",
       "retire_after_change": "OWNER_DECISION",
@@ -331,15 +331,15 @@
         "docs/engineering/api/PUBLIC_API.md:1447/:1556/:1701",
         "docs/detail/phase2_samp.md:74/:76/:189",
         "docs/detail/phase2_upm.md:52/:73/:90/:101/:249",
-        "docs/detail/registry/acsd.phase2.sample.md:62/:64/:164",
-        "docs/detail/registry/acsd.phase2.upm-fit.md:46"
+        "docs/detail/mosaic/modules.md/:64/:164",
+        "docs/detail/mosaic/modules.md"
       ],
       "new_index_added_by_DATA001": [
         "eng/contracts/data/contract_index.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P2-SMP'",
         "eng/contracts/data/contract_index.yaml#legacy_contract_id_map"
       ],
-      "evidence": "docs/detail/registry/acsd.phase2.sample.md「输入输出端口、DATA、单位、坐标、invalid」一节冻结的是 P2ControlObservation / 逐样本列与 accept/reason 值域（accept / reason u8 0..5 逐观测承载），即 control 观测表与采样决定，不是 14 个对象中的任何一个：既不是 signal/variance/ivar（无单位与像素语义的科学估计量），也不是 validity/rejection（accept/reason 是采样态，UPM 权重由 docs/detail/registry/acsd.phase2.reject.md 与 docs/detail/registry/acsd.phase2.upm-fit.md 两页承接）。",
-      "note": "判定：无 canonical 对象对应；采样列的最终科学产品归 docs/detail/registry/acsd.phase2.upm-fit.md（DATA-P2-UPM，control cell 参数）与 docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」一节的产品合同，两者都不在 UNIFIED_MODEL §2 的 14 对象内。",
+      "evidence": "docs/detail/mosaic/modules.md「输入输出端口、DATA、单位、坐标、invalid」一节冻结的是 P2ControlObservation / 逐样本列与 accept/reason 值域（accept / reason u8 0..5 逐观测承载），即 control 观测表与采样决定，不是 14 个对象中的任何一个：既不是 signal/variance/ivar（无单位与像素语义的科学估计量），也不是 validity/rejection（accept/reason 是采样态，UPM 权重由 docs/detail/mosaic/modules.md 与 docs/detail/mosaic/modules.md 两页承接）。",
+      "note": "判定：无 canonical 对象对应；采样列的最终科学产品归 docs/detail/mosaic/modules.md（DATA-P2-UPM，control cell 参数）与 docs/science/unified/DATA_SEMANTICS.md「方差与逆方差的三态编码」一节的产品合同，两者都不在 UNIFIED_MODEL §2 的 14 对象内。",
       "deprecated_at_change": "CHG-2026-09-16-DATA001",
       "retire_after_change": "OWNER_DECISION",
       "retire_note": "依 docs/ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
@@ -357,14 +357,14 @@
         "docs/science/unified/DATA_SEMANTICS.md:86（§8 ID 定义节，:88 状态 CONTRACT_READY）",
         "docs/engineering/api/PUBLIC_API.md:71",
         "docs/engineering/data/ARTIFACTS.md:29（登记行）",
-        "docs/engineering/governance/TRACEABILITY.md §9 第 2 行（DATA=DATA-GAIA-001, VERIFIED）",
+        "docs/engineering/governance/DOCUMENT_GOVERNANCE.md §9 第 2 行（DATA=DATA-GAIA-001, VERIFIED）",
         "docs/detail/infrastructure/22_gaia_xpsd_client.md:23/:40"
       ],
       "new_index_added_by_DATA001": [
         "eng/contracts/data/contract_index.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
       ],
       "evidence": "docs/science/unified/DATA_SEMANTICS.md「星表行语义」一节 = Gaia XPSD 星表输入与星表行；单位 deg/mag/W·m⁻²·nm⁻¹，坐标 ICRS J2000，dtype f64/i32/u8[]，in-memory 不落盘。它是外部星表服务的 C ABI 行契约，不含 14 个对象中任何一个的单位/像素语义（无 ADU 估计量、无方差/逆方差、无 coverage/validity 产品）。",
-      "note": "判定：无 canonical 对象对应；旧面命中在 docs/science/unified/DATA_SEMANTICS.md「星表行语义」一节、PUBLIC_API.md:71、DATA_ARTIFACTS.md:29、docs/detail/infrastructure/22_gaia_xpsd_client.md:23/:40 与 docs/engineering/governance/TRACEABILITY.md §9 第 2 行；基线 eng/contracts/data/contract_index.yaml（ecf6ad6f）对该 ID 零命中，继续作为星表服务合同存在，不进统一对象链。",
+      "note": "判定：无 canonical 对象对应；旧面命中在 docs/science/unified/DATA_SEMANTICS.md「星表行语义」一节、PUBLIC_API.md:71、DATA_ARTIFACTS.md:29、docs/detail/infrastructure/22_gaia_xpsd_client.md:23/:40 与 docs/engineering/governance/DOCUMENT_GOVERNANCE.md §9 第 2 行；基线 eng/contracts/data/contract_index.yaml（ecf6ad6f）对该 ID 零命中，继续作为星表服务合同存在，不进统一对象链。",
       "deprecated_at_change": "CHG-2026-09-16-DATA001",
       "retire_after_change": "OWNER_DECISION",
       "retire_note": "依 docs/ACSD_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"

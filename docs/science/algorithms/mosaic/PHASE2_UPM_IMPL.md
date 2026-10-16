@@ -11,7 +11,7 @@
 > lib/algorithms/coverage/include/astro/phase2/upm.h（453 行，实测）；
 > API: API-P2-UPM-001（矩阵词汇；PUBLIC_API.md尚未落页）；
 > DATA: DATA-P2-UPM / DATA-P2-COR；MOD: acsd.p2.upm
-> （docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节 :21/:22 两行）；TEST: TEST-P2-UPM-001/002
+> （docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节 :21/:22 两行）；TEST: TEST-P2-UPM-001/002
 > （设计冻结面=本文档 [S-4]「推导补遗」一节，可执行 MISSING 归 P2-UPM-TEST）。
 
 ## 1 目的与非目标
@@ -154,10 +154,10 @@ function calibrate_block(model, frame_id, leaves, in, out, n):   # :2717-2751（
     module_adapters.cpp:676）⇒ **SCI-UPM-001**；
   - `SCI-P2-UPM-002`（apply descriptor sci_id，module_adapters.cpp:696）
     ⇒ **SCI-UPM-001**；
-  - `ALG-P2-UPM-001`（fit 行 algorithm_id，docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节:22）
+  - `ALG-P2-UPM-001`（fit 行 algorithm_id，docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节:22）
     ⇒ **ALG-UPM-001**（docs/science/algorithms/UPM_SOLVER.md，推导权威）+
     **ALG-P2-UPM-IMPL-001**（本文件，实现级合同）；
-  - `ALG-P2-UPM-002`（apply 行，docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节:21）⇒
+  - `ALG-P2-UPM-002`（apply 行，docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节:21）⇒
     **ALG-UPM-001** + **ALG-P2-UPM-IMPL-001**。
   - SCI/公式语义不在此重复定义，两处冲突时以 docs/science/ 为准并
     回改本文档（方向 = 从 docs/science/ 到本文档）；descriptor 词汇 acsd.phase2.upm-fit/
@@ -533,12 +533,12 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 - TEST：TEST-P2-UPM-001（fit 面）/ TEST-P2-UPM-002（apply 面）
   ——设计冻结=本文档[S-1]「公式与推导」一节；可执行 MISSING 归 P2-UPM-TEST。
 - MOD：acsd.p2.upm（fit/apply 两模块页
-  docs/detail/registry/acsd.phase2.upm-fit.md /
+  docs/detail/mosaic/modules.md /
   acsd.phase2.upm-apply.md）。
 
 ## 17 追溯
 
-- 矩阵行：MOD-acsd-phase2-upm-fit（docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节:22，
+- 矩阵行：MOD-acsd-phase2-upm-fit（docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节:22，
   SCI-P2-UPM-001/ALG-P2-UPM-001/DATA-P2-UPM/TEST-P2-UPM-001）与
   MOD-acsd-phase2-upm-apply（:21，SCI-P2-UPM-002/ALG-P2-UPM-002/
   DATA-P2-COR/TEST-P2-UPM-002）。
@@ -552,7 +552,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 > 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
 > - [D-1] docs/ACSD_DESIGN.md（最高设计）。
 > - [S-1] docs/science/sky/UPM.md（信号面科学正本 SCI-UPM-001）。
-> - [S-4] docs/engineering/governance/TRACEABILITY.md（相关科学正本）。
+> - [S-4] docs/engineering/governance/DOCUMENT_GOVERNANCE.md（相关科学正本）。
 > - [A-1] docs/science/algorithms/mosaic/UPM_SOLVER.md（UPM 求解器分册）。
 
 ## 参考文献与参考代码库（含许可证）
@@ -563,7 +563,7 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 - 稀疏信号面样条（目标表示）：Duchon 1977；Wahba 1990。
 - 共轭梯度（C 更新）：Hestenes & Stiefel 1952, J. Res. NBS 49, 409。
 - var(median)≈πσ²/(2N)：Hoaglin et al. 1983。
-- ［3］ `docs/detail/registry/acsd.phase2.upm-fit.md`（fit 模块登记页：参考通量报告字段的合同面）。
+- ［3］ `docs/detail/mosaic/modules.md`（fit 模块登记页：参考通量报告字段的合同面）。
 
 
 

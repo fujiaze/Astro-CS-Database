@@ -1,10 +1,6 @@
-# ACSD 文档索引
-# 覆盖 Git 跟踪的 docs 全部文件，包含 README 与本索引；外部依据由正文链接。
-# path 相对仓库根且唯一；duty 是职责，upstream 是拥有相关定义的上层或主题正本。
-# status 表示文档用途：ACTIVE_NORMATIVE 正式定义，ACTIVE_INFORMATIVE 导航或参考，
-# GENERATED 生成说明，ARCHIVED_NON_NORMATIVE 存档；不表示构建、运行或科学已验证。
-# science 与 engineering 同级，detail 为二级实施细节；算法补充资料服从主题正本。
-# 下游引用按需要从实际跟踪集提取，不在索引内手抄缩写清单或引用计数。
+# ACSD 文档导航；path 相对仓库根且唯一。
+# 用途分类不表示构建、真实运行或科学结论已验证。
+# science 与 engineering 同级，detail 说明实际接口与实施。
 doc_index:
   schema_rev: '3'
   coverage: Git 跟踪的 docs 全部文件，含目录 README 和索引自身；根章程、代码、工程机器合同与实验单元由正文链接，不进入本集合。
@@ -14,8 +10,8 @@ doc_index:
     duty: 最高设计：用户目标、三命令、产品边界、软件架构和发行责任
     upstream: 无上游
   - path: docs/DOCUMENT_INDEX.yaml
-    status: ACTIVE_NORMATIVE
-    duty: 全文档唯一地图：Git 跟踪 docs 文件的职责、上游与用途分类
+    status: ACTIVE_INFORMATIVE
+    duty: 当前 docs 文件的职责与阅读导航，不定义设计或验证状态
     upstream: docs/ACSD_DESIGN.md
   - path: docs/GLOSSARY.md
     status: ACTIVE_INFORMATIVE
@@ -53,6 +49,10 @@ doc_index:
     status: ACTIVE_INFORMATIVE
     duty: docs/detail/export 目录职责与阅读入口
     upstream: docs/detail/README.md
+  - path: docs/detail/export/modules.md
+    status: ACTIVE_INFORMATIVE
+    duty: export 模块的输入输出、公开接口、所有权、错误与生产调用说明
+    upstream: docs/detail/export/pipeline.md
   - path: docs/detail/export/pipeline.md
     status: ACTIVE_INFORMATIVE
     duty: 单 signal HiPS 到普通 WCS FITS 的实施边界与生产入口导航
@@ -81,6 +81,10 @@ doc_index:
     status: ACTIVE_NORMATIVE
     duty: Windows GUI 复用的 Qt6/OpenGL 球面与 HiPS 浏览组件
     upstream: docs/engineering/gui/GUI_DESIGN.md
+  - path: docs/detail/infrastructure/hips_writer.md
+    status: ACTIVE_INFORMATIVE
+    duty: 共用 HiPS writer 的视图、单位、句柄、错误与层级写出
+    upstream: docs/engineering/contracts/HIPS_IO.md
   - path: docs/detail/infrastructure/log_and_error_system.md
     status: ACTIVE_NORMATIVE
     duty: 日志与错误系统详细设计（LOG-004）：层次架构、数据对象、落点与 output_dir 的关系、生命周期、与 manifest/provenance 和 observability 各面的关系
@@ -105,6 +109,10 @@ doc_index:
     status: ACTIVE_INFORMATIVE
     duty: docs/detail/mosaic 目录职责与阅读入口
     upstream: docs/detail/README.md
+  - path: docs/detail/mosaic/modules.md
+    status: ACTIVE_INFORMATIVE
+    duty: mosaic 模块的输入输出、公开接口、所有权、错误与生产调用说明
+    upstream: docs/detail/mosaic/pipeline.md
   - path: docs/detail/mosaic/pipeline.md
     status: ACTIVE_INFORMATIVE
     duty: Mosaic 单 signal 目标的实施边界、节点调用与证据导航
@@ -117,6 +125,10 @@ doc_index:
     status: ACTIVE_NORMATIVE
     duty: Normalize C++ 接口、现有文件落点、配置和逐边迁移规格
     upstream: docs/engineering/contracts/NORMALIZE_DATA.md
+  - path: docs/detail/normalize/modules.md
+    status: ACTIVE_INFORMATIVE
+    duty: normalize 模块的输入输出、公开接口、所有权、错误与生产调用说明
+    upstream: docs/detail/normalize/pipeline.md
   - path: docs/detail/normalize/modules/star_detection.md
     status: ACTIVE_NORMATIVE
     duty: 科学源检测的算子、参数、接口和生产消费说明；物理口径服从 Normalize 科学正本
@@ -127,133 +139,8 @@ doc_index:
     upstream: docs/engineering/architecture/NORMALIZE_PIPELINE.md
   - path: docs/detail/registry/README.md
     status: ACTIVE_INFORMATIVE
-    duty: docs/detail/registry 目录职责与阅读入口
+    duty: 模块说明的阶段导航，接口正文位于各阶段 modules 与共用 writer
     upstream: docs/detail/README.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase1.calibration.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase1.calibration 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase1.cosmetic.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase1.cosmetic 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase1.drizzle.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase1.drizzle 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase1.hips-writer.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase1.hips-writer 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase1.noise-snr.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase1.noise-snr 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase1.photometry.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase1.photometry 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase1.session.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase1.session 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase1.star-detection.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase1.star-detection 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase1.star-psf.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase1.star-psf 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase1.wcs-platesolve.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase1.wcs-platesolve 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase1.writer.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase1.writer 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase2.coverage.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase2.coverage 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase2.integrate.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase2.integrate 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase2.reject.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase2.reject 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase2.resample.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase2.resample 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase2.sample.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase2.sample 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase2.session.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase2.session 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase2.upm-apply.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase2.upm-apply 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase2.upm-fit.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase2.upm-fit 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase2.write.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase2.write 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase3.properties.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase3.properties 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase3.resample2.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase3.resample2 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase3.verify.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase3.verify 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase3.wcs.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase3.wcs 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
-    notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
-  - path: docs/detail/registry/acsd.phase3.writer.md
-    status: ACTIVE_INFORMATIVE
-    duty: acsd.phase3.writer 的模块接口、端口和实现位置参考
-    upstream: docs/engineering/architecture/MODULE_MAP.md
     notes: 模块页需与当前公开头、descriptor、IR 和真实调用核对；不拥有独立科学定义。
   - path: docs/engineering/README.md
     status: ACTIVE_INFORMATIVE
@@ -265,7 +152,7 @@ doc_index:
     upstream: docs/science/unified/DATA_SEMANTICS.md
   - path: docs/engineering/api/PUBLIC_API.md
     status: ACTIVE_NORMATIVE
-    duty: 公共 API 合同：分层、错误模型、API 规则、C ABI 规则、分阶段 API 面与符号登记
+    duty: 公共接口分层、语义、所有权、错误和并发规则；实际头及模块正文导航
     upstream: docs/ACSD_DESIGN.md
   - path: docs/engineering/api/README.md
     status: ACTIVE_INFORMATIVE
@@ -370,7 +257,7 @@ doc_index:
     upstream: docs/science/normalize/NORMALIZE_SCIENCE.md；docs/engineering/architecture/NORMALIZE_PIPELINE.md
   - path: docs/engineering/contracts/OWNERSHIP_LIFETIME.md
     status: ACTIVE_NORMATIVE
-    duty: 所有权与生命周期合同：句柄所有权、输出缓冲语义、线程局部状态
+    duty: 调用方与库分配、句柄释放、异步借用、取消及消费者寿命
     upstream: docs/ACSD_DESIGN.md
   - path: docs/engineering/contracts/PIPELINE_BLOCK.md
     status: ACTIVE_NORMATIVE
@@ -382,7 +269,7 @@ doc_index:
     upstream: docs/engineering/README.md
   - path: docs/engineering/contracts/RUNTIME.md
     status: ACTIVE_NORMATIVE
-    duty: 运行时与模块公共合同：公共头冻结签名面、模块生命周期、线程租约、边界规则
+    duty: Runtime、registry、模块、RunContext 与线程租约的实际接口和目标边界
     upstream: docs/ACSD_DESIGN.md
   - path: docs/engineering/contracts/SCHEDULER.md
     status: ACTIVE_NORMATIVE
@@ -410,11 +297,7 @@ doc_index:
     upstream: docs/engineering/README.md
   - path: docs/engineering/governance/DOCUMENT_GOVERNANCE.md
     status: ACTIVE_NORMATIVE
-    duty: 文档权威、唯一正本、引用与索引、语义复核和自动辅助
-    upstream: docs/ACSD_DESIGN.md
-  - path: docs/engineering/governance/DUAL_LINE.md
-    status: ACTIVE_NORMATIVE
-    duty: 设计、实施和独立复核的职责与任务文件分工；并发修改协调
+    duty: 文档归属、写法、协作分工、追溯、索引和证据维护
     upstream: docs/ACSD_DESIGN.md
   - path: docs/engineering/governance/NORMALIZE_CONVERGENCE.md
     status: ACTIVE_INFORMATIVE
@@ -424,10 +307,6 @@ doc_index:
     status: ACTIVE_INFORMATIVE
     duty: docs/engineering/governance 目录职责与阅读入口
     upstream: docs/engineering/README.md
-  - path: docs/engineering/governance/TRACEABILITY.md
-    status: ACTIVE_NORMATIVE
-    duty: 定义到实现和独立证据的追溯；合同 ID 导航及证据强度边界
-    upstream: docs/ACSD_DESIGN.md
   - path: docs/engineering/governance/UNRESOLVED.md
     status: ACTIVE_NORMATIVE
     duty: 待核实数值与实施问题、已定设计边界和所需证据导航
@@ -516,10 +395,6 @@ doc_index:
     status: ACTIVE_NORMATIVE
     duty: 开发科学中间量快照与性能细探针的插入身份/测量口径/数据格式/坐标单位/采样预算/AIO/线程与失败隔离规范
     upstream: docs/ACSD_DESIGN.md
-  - path: docs/engineering/standards/DOCUMENTATION.md
-    status: ACTIVE_NORMATIVE
-    duty: 科学、工程与细节文档的内容、引文、表达和状态区分标准
-    upstream: docs/engineering/governance/DOCUMENT_GOVERNANCE.md
   - path: docs/engineering/standards/ERROR_MODEL.md
     status: ACTIVE_NORMATIVE
     duty: 错误模型标准：三层语义与两层互斥判据、违规判据、硬错误类别、错误域、阶段 ID、进程退出码与 error-sensitive 模块要件

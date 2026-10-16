@@ -1,7 +1,7 @@
 # aio（I/O 与原子提交）
 
 > 上游：《ACSD 最高设计》的「I/O 与原子产品」一章与「软件架构」一章（顶层结构：aio 模块位；模块与 ABI）
-> 数据正本：docs/detail/registry/acsd.phase1.drizzle.md（帧内命名块表，仅作引用；
+> 数据正本：docs/detail/normalize/modules.md（帧内命名块表，仅作引用；
 > DATA-HIPS-SIGNAL-001 等 HiPS tile 语义）、docs/engineering/contracts/CONFIG.md
 > 合同面：docs/engineering/contracts/HIPS_STORAGE_FORM.md（「体积削减（裸形态）」一节归档容器不打洞、
 > 「形态的输入配置与输出清单字段」一节形态事实登记落点）、docs/engineering/contracts/ATOMIC_PUBLISH.md
@@ -138,7 +138,7 @@
   `lib/infrastructure/aio/include/aio_pipeline.h` 的「标准块定义表」**（aio 是
   文件级唯一 I/O 边界，块词表属 aio 的内存块合同）；其它文档只作引用 ——
   编排层的 6 个名字**不是块词表**，而是 `stage_trace.jsonl` 的**跟踪子集**；
-  docs/detail/registry/acsd.phase1.drizzle.md 的「帧内命名块」表**只作引用**。当前实现状态：标准块定义
+  docs/detail/normalize/modules.md 的「帧内命名块」表**只作引用**。当前实现状态：标准块定义
   表**尚未收录** `variance` 块；`aio_pipeline.h` **仍允许**未列出的自定义块名；
   「块名 ∉ 标准表 ⇒ 判红」这条不变量当前无自动兜底，核对责任在对抗性审查。
 - `PipelineStageFn` 签名 = `const input / output / params` + `error_msg` /

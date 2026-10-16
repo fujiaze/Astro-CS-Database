@@ -1,9 +1,13 @@
-# ACSD 科学正本阅读入口
+# 科学模型与方法
 
-首先阅读 [最高设计](../ACSD_DESIGN.md)、[统一模型](unified/UNIFIED_SCIENCE_MODEL.md)、[数据语义](unified/DATA_SEMANTICS.md) 与 [适用域](unified/SCIENCE_SCOPE.md)。**Normalize 的唯一横向科学因果链**是 [normalize/NORMALIZE_SCIENCE.md](normalize/NORMALIZE_SCIENCE.md)，不是目录下各旧算法分册的多套拼接。
+科学阅读从[统一观测模型](unified/UNIFIED_SCIENCE_MODEL.md)、[量与单位](unified/DATA_SEMANTICS.md)及[适用域](unified/SCIENCE_SCOPE.md)开始。专题分册拥有各自估计量和推导，算法补充资料解释数值方法，真实实现与证据由[实施差异](../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)对照。
 
-阶段一按因果关系阅读：[校准](calibration/CALIBRATION.md) → [IPV 天测的物理几何](detection/ASTROMETRY.md) → [Gaia 引导星点](detection/STAR_DETECTION.md) 与 [PSF](psf/PSF.md) → [Gaia XP 光度](photometry/PHOTOMETRY.md) → [参考 SNR](noise_snr/NOISE_SNR.md) → [球面 Drizzle](drizzle/DRIZZLE.md)。IPV 在解算过程中先私有盲检候选星，并不要求原始 FITS 已有 WCS；这个 solver 候选目录不同于求解后用于科学测光的 Gaia 引导目录。
+| 科学链 | 阅读顺序 |
+|---|---|
+| 单帧标准化 | [Normalize](normalize/NORMALIZE_SCIENCE.md) → [校准](calibration/CALIBRATION.md)与[缺陷](calibration/CCD_DEFECT.md) → [天测](detection/ASTROMETRY.md) → [科学源](detection/STAR_DETECTION.md)和[PSF](psf/PSF.md) → [测光](photometry/PHOTOMETRY.md) → [条件噪声](noise_snr/NOISE_SNR.md) → [Drizzle](drizzle/DRIZZLE.md) |
+| 球面马赛克 | [精度与重建](noise_snr/NOISE_SNR.md) → [背景差模](sky/UPM.md) → [排异](integration/REJECTION.md) → [集成](integration/INTEGRATION.md) |
+| 平面导出 | [HiPS 格式](formats/HIPS_TILE_FORMAT.md) → [目标 WCS](projection/HIPS_TO_FITS.md) → [数值采样](resample/RESAMPLE.md) |
 
-阶段二：参考精度空间重建仍见 [NOISE_SNR](noise_snr/NOISE_SNR.md)，相对天空在 [UPM](sky/UPM.md)，最终合成见 [INTEGRATION](integration/INTEGRATION.md)。阶段二最终**仅一个 signal 科学通道的 HiPS**，但阶段一可保留科学必需的 PSF/噪声/稀疏控制辅助对象。阶段三 [HiPS → FITS](projection/HIPS_TO_FITS.md)、[重采样](resample/RESAMPLE.md)。
+IPV 在求解中盲检的几何候选与 WCS 后 Gaia 引导的科学源有不同职责；参考通量精度、场景面亮度方差和背景控制方差分别定义。阶段一保留必要模型，阶段二最终只发布 signal HiPS，阶段三输出普通信号 FITS。
 
-代码实现结构与当前真实功能分离阅读：[阶段一工程实现](../engineering/architecture/NORMALIZE_PIPELINE.md) 和 [文档收敛与事实](../engineering/governance/NORMALIZE_CONVERGENCE.md)。旧 science/algorithms/normalize 与 detail/registry 可作为源码定位/历史接口，不拥有与 Normalize 科学正本冲突的第二套物理定义。历史 P1–P5 实验按自身输入/方法保留原结论，不自动升级为当前 E2E 证明。
+[算法资料](algorithms/README.md)中仍有实现说明与历史诊断，阅读时按上层正本判断适用范围；本轮没有将未逐篇核对的资料宣称为已重写。[待推导问题](../../实验/documentation-refactor/docs/SCIENTIFIC_QUESTIONS.md)集中保存科学与数学疑点，历史实验保持证据身份。

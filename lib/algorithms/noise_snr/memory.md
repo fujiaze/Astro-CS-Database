@@ -24,10 +24,10 @@
 - docs/science/algorithms/NOISE_ESTIMATION.md §13 增补（ALG-NOISE-001..003 逐符号
   源码锚定 + §13.3 DISP-NOISE-001..009 + §13.4 TEST-NOISE-DESIGN-001
   冻结容差）。
-- `docs/detail/registry/acsd.phase1.noise-snr.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P1-NOISE）。
+- `docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P1-NOISE）。
 - docs/engineering/api/PUBLIC_API.md API-NOISE-001 节（snr_estimator.h 7 noise
   导出现状 C API）。
-- docs/detail/registry/acsd.phase1.noise-snr.md 事实修订（front-matter
+- docs/detail/normalize/modules.md 事实修订（front-matter
   upstream 更正 + 引言块，占位 ID 收敛声明）。
 
 ### 源码核对结论（摘要，行号以实测为准）
@@ -70,7 +70,7 @@
   acsd_hips/acsd_drizzle/acsd_calibration 先例不同——CMake
   集成归 P1-NOISE-IMPL。
 - **冻结文档行号锚系统性偏移（实测复核）**：任务书与已冻结文档
-  （ALG §13.1 锚表、PUBLIC_API API-NOISE-001、`docs/detail/registry/acsd.phase1.noise-snr.md`「输入输出端口、DATA、单位、坐标、invalid」一节）
+  （ALG §13.1 锚表、PUBLIC_API API-NOISE-001、`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）
   给出的行号整体错位（如 7 导出头文件 :138-144 实为 :143-149、
   default_config :307-316 实为 :333-345、门面 :318-332 实为 :348-365、
   free :425-438 实为 :431-444；部分锚如 g_model_floor :32、fill floor
@@ -95,7 +95,7 @@
   ports: fluxes→DATA-P1-FLUX(ELECTRON/ICRS) 入、snr→DATA-P1-SNR
   (DIMENSIONLESS/ICRS) 出——占位 ID 对齐归 P1-NOISE-INT，不得反向作为
   冻结依据；port DATA 编目（DATA-P1-FLUX/DATA-P1-SNR）为编排层词汇，
-  模块合同 DATA 层=DATA-P1-NOISE（`docs/detail/registry/acsd.phase1.noise-snr.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
+  模块合同 DATA 层=DATA-P1-NOISE（`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）。
 
 ### 纪律记录
 
@@ -106,7 +106,7 @@
 - 无 git commit/push（子 agent 不提交）；写入一律 LF（Windows CRLF
   仓库，core.autocrlf=false，不动 .gitattributes）。
 - 新建/修改仅限 4 文件：lib/algorithms/noise_snr/README.md、module.yaml、
-  memory.md、docs/detail/registry/acsd.phase1.noise-snr.md（仅
+  memory.md、docs/detail/normalize/modules.md（仅
   front-matter upstream 更正 + `---` 后插引言块，其余正文不动）。
 
 ### 待后续任务

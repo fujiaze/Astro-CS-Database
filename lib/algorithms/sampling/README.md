@@ -29,10 +29,10 @@
   docs/science/algorithms/PHASE2_SAMPLER.md §11.4，占位 ID 不入合同）
   → ALG-P2-SMP-001（docs/science/algorithms/PHASE2_SAMPLER.md，兼承接
   ALG-UPM-CONTROL-IVAR-001 方差子面）
-  → DATA-P2-SMP（`docs/detail/registry/acsd.phase2.sample.md`「输入输出端口、DATA、单位、坐标、invalid」一节）/ API-P2-SMP-001
+  → DATA-P2-SMP（`docs/detail/mosaic/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）/ API-P2-SMP-001
   （PUBLIC_API Phase2 sampling 公共消费面节）→
   TEST-P2-SMP-001（登记面=设计冻结 TEST-P2-SMP-DESIGN-001 VERIFIED，
-  承载于 docs/detail/registry/acsd.phase2.sample.md §独立 synthetic
+  承载于 docs/detail/mosaic/modules.md §独立 synthetic
   验证节 + ALG 文档 §11.3 F1-F9 容差；可执行测试 MISSING 归
   P2-SAMP-TEST，不冒认）。
 
@@ -91,7 +91,7 @@
 
 可执行 `TEST-P2-SMP-001` MISSING（P2-SAMP-TEST 建立，不冒认）；
 登记面=TEST-P2-SMP-DESIGN-001 设计冻结 VERIFIED，承载于
-docs/detail/registry/acsd.phase2.sample.md §独立 synthetic
+docs/detail/mosaic/modules.md §独立 synthetic
 验证节 + ALG-P2-SMP-001 §11.3 F1-F9 容差（F1-F6/F8-F9
 bitwise/解析/计数精确，F2 角点 exact 插值 rtol 1e-12、F3-F5
 rtol 1e-12、F4 atol 1e-9 deg）。
@@ -102,10 +102,10 @@ rtol 1e-12、F4 atol 1e-9 deg）。
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN T106
   2026-08-23，零改动）
 - ALG：docs/science/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）
-- DATA：`docs/detail/registry/acsd.phase2.sample.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P2-SMP）
+- DATA：`docs/detail/mosaic/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P2-SMP）
 - API：docs/engineering/api/PUBLIC_API.md API-P2-SMP-001；
   API-P2-001（编排层既有）
-- 模块页：docs/detail/registry/acsd.phase2.sample.md
+- 模块页：docs/detail/mosaic/modules.md
 
 ## 已知限制（DISP-P2SMP，登记不改码，整改归 P2-SAMP-IMPL/TEST）
 

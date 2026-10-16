@@ -8,7 +8,7 @@
 > SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，只读引用）。
 > 实现源（逐公式锚定）: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
 > （合同头 lib/infrastructure/aio/include/aio_hips.h）。
-> 数据语义权威: docs/detail/registry/acsd.phase1.hips-writer.md（DATA-P1-HIPS；上游 docs/detail/registry/acsd.phase1.drizzle.md 的 DATA-P1-DRZ、
+> 数据语义权威: docs/detail/infrastructure/hips_writer.md（DATA-P1-HIPS；上游 docs/detail/normalize/modules.md 的 DATA-P1-DRZ、
 > [S-5]「输入输出端口」一节 DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001、[S-6]「输入输出端口」一节 FITS 局部像素映射、[S-6]「输入输出端口」一节 帧身份）。
 > HiPS 1.0/1.4 外部参照: IVOA HiPS 推荐（Fernique et al. 2015）、HEALPix 算法
 > （Górski et al. 2005）——经 SCI-P3-001 收录的文献锚，本文件不另立外部断言。
@@ -172,7 +172,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   （M2a-H-3）**：support 是 a/A_cell_k 的钳后值，Σa>A_cell_k 时父级真实覆盖
   面积**不可由产物复原**（sup=1 丢失倍数信息）；该情形逐像素计数写入
   properties 与 manifest（`acsd_support_clamped_pixels` 叶级钳制像素数
-  （叶级与层级两处计数键，均在同文件）；`docs/detail/registry/acsd.phase2.write.md` 同款声明）
+  （叶级与层级两处计数键，均在同文件）；`docs/detail/mosaic/modules.md` 同款声明）
   约定。FITS cards ORDERING=NESTED + NSIDE=2^(k+9)（k = 该 hierarchy 阶，
   nside_k = 2^(k+9) 与叶级 ilog2 语义一致；**不是 tile 阶**——tile 宽恒 512=2^9，
   故 k 阶的 NSIDE 比叶级 nside 低 2(K−k) 个数量级）。三处 scatter 同 (2a) 式
@@ -396,7 +396,7 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
   HEALPIX_MAPPING.md 索引卡，lib/algorithms/shared/healpix 权威实现——healpix_drizzle
   内 healpix_core.h 为 DEPRECATED shim，healpix_stack 系列函数全仓零调用
   已死代码化）。
-- 下游/合同：DATA-P1-HIPS（`docs/detail/registry/acsd.phase1.hips-writer.md`）、API-HIPS-001
+- 下游/合同：DATA-P1-HIPS（`docs/detail/infrastructure/hips_writer.md`）、API-HIPS-001
   （PUBLIC_API.md）、API-P1-007（编排级 hp_drizzle_run_hips 区间）、
   ARCH-001、IO-003（发布合同，对齐不越权）、SCI-P3-001（读侧消费）。
 - 模块：MOD-acsd-phase1-hips-writer（lib/algorithms/drizzle/hips/README.md、module.yaml、
@@ -413,8 +413,8 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
 > - [S-1] docs/science/drizzle/DRIZZLE.md（守恒映射科学正本）。
 > - [S-2] docs/science/unified/科学范围 [S-2]「处理链」一节。
 > - [S-3] docs/science/projection/HIPS_TO_FITS.md（投影导出科学正本）。
-> - [S-5] docs/detail/registry/acsd.phase1.hips-writer.md（相关科学正本）。
-> - [S-6] docs/detail/registry/acsd.phase1.drizzle.md（相关科学正本）。
+> - [S-5] docs/detail/infrastructure/hips_writer.md（相关科学正本）。
+> - [S-6] docs/detail/normalize/modules.md（相关科学正本）。
 
 ## 参考文献与参考代码库（含许可证）
 

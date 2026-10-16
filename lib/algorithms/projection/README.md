@@ -23,7 +23,7 @@
 > 并登记 acsd_p3_projection_wcs STATIC + 共址 eng/tests/p3wcs/**；
 > 会话消费点 p3_session.cpp 的 include 同步改新址。
 > 文档口径见 docs/science/algorithms/PHASE3_PROJ_IMPL.md §15（v3 冻结口径 + §15.9
-> v1 偏差表）、docs/detail/registry/acsd.phase3.wcs.md。
+> v1 偏差表）、docs/detail/export/modules.md。
 
 ## 1 身份
 
@@ -100,7 +100,7 @@
 - ALG(承接): [docs/science/algorithms/PHASE3_RESAMPLE.md](../../docs/science/algorithms/PHASE3_RESAMPLE.md)（ALG-P3-002 施工规格，公式零改动）
 - DATA: [docs/science/unified/DATA_SEMANTICS.md](../../docs/science/unified/DATA_SEMANTICS.md) §28
 - API: [docs/engineering/api/PUBLIC_API.md](../../docs/engineering/api/PUBLIC_API.md)
-- 模块页（registry 手写页）: docs/detail/registry/acsd.phase3.wcs.md
+- 模块页（registry 手写页）: docs/detail/export/modules.md
 
 ## 6 实测偏差登记（不改码，详见 ALG-P3-PROJ-IMPL-001 §10）
 

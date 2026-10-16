@@ -136,4 +136,4 @@
 
 [2] 内部文档 `docs/engineering/build/BUILD_NODES.md`，构建节点、工具链与构建入口。
 
-[3] 内部文档 `docs/engineering/governance/TRACEABILITY.md`，追溯规范与证据层登记。
+[3] 内部文档 `docs/engineering/governance/DOCUMENT_GOVERNANCE.md`，追溯规范与证据层登记。

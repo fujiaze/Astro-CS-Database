@@ -24,7 +24,7 @@
 - docs/engineering/api/PUBLIC_API.md 追加 API-DRZ-001 节。
 - docs/detail/healpix_drizzle.md、docs/detail/registry/
   acsd.phase1.drizzle.md 事实修订。
-- docs/engineering/governance/TRACEABILITY.md §9 P1-DRZ 行原地更新
+- docs/engineering/governance/DOCUMENT_GOVERNANCE.md §9 P1-DRZ 行原地更新
   （七层 VERIFIED + EVID-MISSING，行序不变）。
 - 源码事实采集底稿（不入库）：run/local/agent_p1_drz_doc/
   source_facts.md（11 节，全行号实测）。

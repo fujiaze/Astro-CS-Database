@@ -14,11 +14,11 @@
 > 实现源（唯一权威生产源）: lib/algorithms/coverage/tools/stage2.cpp（2015 行实测；入口 main :112）。
 > 公式与默认容差以 SCI 层为权威，本文只登记实现锚点与实现自带语义；
 > no root science formula change（w_UPM / signal / sup_max / rejection 判据一律不改）。
-> 下游: DATA-P2-INT / DATA-P2-RES（DATA-P2-HIPS，`docs/detail/registry/acsd.phase2.write.md`）、
+> 下游: DATA-P2-INT / DATA-P2-RES（DATA-P2-HIPS，`docs/detail/mosaic/modules.md`）、
 > API-P2-001（docs/engineering/api/PUBLIC_API.md）+ PUBLIC_API Phase2 mosaic write 节、
 > 模块 MOD-acsd-phase2-hips-writer（registry 现状实测 acsd.phase2.write.md =
 > MOD-acsd-phase2-write，二者对齐归P2-HIPS-INT。
-> 矩阵行: docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节（module_id=acsd.phase2.write 现状域）。
+> 矩阵行: docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节（module_id=acsd.phase2.write 现状域）。
 
 ## 1 上游 SCI 与输入输出
 
@@ -414,7 +414,7 @@ main(stage2.json, CLI overrides):
   是 stage2 侧编排与集成语义，writer 域合同不在此重登记）。
 - DATA: DATA-P2-INT（integrated，registry acsd.phase2.integrate.md:43）、
   DATA-P2-RES（mosaic，acsd.phase2.write.md:23）；逐字段唯一权威见
-  `docs/detail/registry/acsd.phase2.write.md`。
+  `docs/detail/mosaic/modules.md`。
 - API: API-P2-001（docs/engineering/api/PUBLIC_API.md，FROZEN，所有权/并发合同）+
   PUBLIC_API Phase2 mosaic write 节（生产入口 = `acsd phase2 run` 编排；
   本节登记其底层写出实现 lib/algorithms/coverage/tools/stage2.cpp）。
@@ -496,7 +496,7 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
   （实测 MOD-acsd-phase2-write / acsd.phase2.write.md，execution_class=io）。
 - DATA_SEMANTICS现状止于DATA-COV-001；DATA-P2-HIPS为新增登记位
   （DATA-P2-INT/DATA-P2-RES 现定义于
-  docs/engineering/governance/TRACEABILITY.md「逐模块追溯台账（人读正本）」一节与 registry acsd.phase2.integrate.md:43/
+  docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节与 registry acsd.phase2.integrate.md:43/
   acsd.phase2.write.md:23）。
 - `acsd-stage2` CLI 条目不在生产入口面；生产入口 = `acsd phase2 run`，
   本文档登记其底层写出实现
@@ -512,7 +512,7 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
 > - [S-2] docs/science/integration/INTEGRATION.md（集成科学正本）。
 > - [S-3] docs/science/integration/REJECTION.md（排异科学正本）。
 > - [S-4] docs/science/unified/科学范围 [S-4]「处理链」一节。
-> - [S-6] docs/engineering/governance/TRACEABILITY.md（相关科学正本）。
+> - [S-6] docs/engineering/governance/DOCUMENT_GOVERNANCE.md（相关科学正本）。
 
 ## 参考文献与参考代码库（含许可证）
 

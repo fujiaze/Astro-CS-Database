@@ -18,7 +18,7 @@
 ## 身份与合同
 
 - MOD ID：`MOD-acsd-phase3-writer`（registry 行 ID 沿用，手写合同页
-  `docs/detail/registry/acsd.phase3.writer.md`）；module_id：
+  `docs/detail/export/modules.md`）；module_id：
   `acsd.p3.fits_writer`（MODULE_MIGRATION_MATRIX P3-FITS 行权威值；
   任务指派文字 acsd.p3.fits 与矩阵冲突——矩阵为权威依据，落位决策
   记录于 memory.md 与本 README）；dll_target：
@@ -34,10 +34,10 @@
   → ALG-P3-FITS-IMPL-001（docs/science/algorithms/PHASE3_FITS_IMPL.md，
   P3-FITS-DOC 新建；兼承接既有 ALG-P3-002（输出 WCS，PHASE3_RESAMPLE
   G1/G2）与 ALG-P3-004（FITS 写，G5）的施工规格本域子面）
-  → DATA-P3-FITS（`docs/detail/registry/acsd.phase3.writer.md`「输入输出端口、DATA、单位、坐标、invalid」一节）/ API-P3-FITS-001（PUBLIC_API
+  → DATA-P3-FITS（`docs/detail/export/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节）/ API-P3-FITS-001（PUBLIC_API
   Phase3 FITS 写出公共消费面节）→ TEST-P3-WR-001（登记面=设计冻结
   TEST-P3-WR-DESIGN-001 VERIFIED，承载于
-  docs/detail/registry/acsd.phase3.writer.md §独立 synthetic
+  docs/detail/export/modules.md §独立 synthetic
   验证节 + ALG 文档 §TEST-DESIGN 容差；可执行测试 MISSING 归
   P3-FITS-TEST，不冒认）。
 
@@ -115,12 +115,12 @@
 ## 关联文档
 
 - 合同权威：docs/science/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001）
-- 数据语义：`docs/detail/registry/acsd.phase3.writer.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P3-FITS）
+- 数据语义：`docs/detail/export/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节（DATA-P3-FITS）
 - API 面：docs/engineering/api/PUBLIC_API.md「Phase3 FITS 写出公共消费面
   （API-P3-FITS-001）」
 - SCI：docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN，零改动）
 - 模块页（registry 手写页）：
-  docs/detail/registry/acsd.phase3.writer.md
+  docs/detail/export/modules.md
 - 元数据：module.yaml（31 个顶层键，CONTRACT_READY，entrypoint=MISSING；
   2026-09-16 实测 `python3 -c "import yaml;print(len(yaml.safe_load(open('lib/algorithms/fits_output/module.yaml'))))"`）、
   memory.md（任务决策与实测锚）

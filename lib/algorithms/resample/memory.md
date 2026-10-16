@@ -32,7 +32,7 @@
   （module_adapters.cpp:300-318 phase3_descriptor，P2 模板复制残留，
   ports hips/tile、alg_id=ALG-P3-RES-001 占位）**不在本任务触碰**，
   留给 P3-RSMP-INT 对齐处理；registry 页手写化
-  （docs/detail/registry/acsd.phase3.resample2.md，原 GENERATED
+  （docs/detail/export/modules.md，原 GENERATED
   风格改 ACTIVE_INFORMATIVE 手写合同页，照 acsd.phase3.writer.md/
   acsd.phase3.wcs.md 先例），模块总页新建 docs/detail/registry/
   phase3_rsmp.md。

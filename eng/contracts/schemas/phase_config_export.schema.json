@@ -123,7 +123,7 @@
             "point_source_flux",
             "visualization"
           ],
-          "description": "输出模式必须显式（docs/ACSD_DESIGN.md §6.3:496）；默认 surface_brightness 见 docs/detail/registry/acsd.phase3.writer.md:45"
+          "description": "输出模式必须显式（docs/ACSD_DESIGN.md §6.3:496）；默认 surface_brightness 见 docs/detail/export/modules.md"
         },
         "wcs": {
           "$ref": "#/$defs/export_wcs"
@@ -152,7 +152,7 @@
             "cea",
             "zea"
           ],
-          "description": "投影选择，缺省 TAN（docs/ACSD_DESIGN.md §6.3:493-495；docs/detail/registry/acsd.phase3.wcs.md:37）"
+          "description": "投影选择，缺省 TAN（docs/ACSD_DESIGN.md §6.3:493-495；docs/detail/export/modules.md）"
         },
         "center_deg": {
           "type": "array",
@@ -191,7 +191,7 @@
         },
         "rotation_deg": {
           "type": "number",
-          "description": "旋转角（若用 CD）；默认 0（docs/detail/registry/acsd.phase3.wcs.md:41）"
+          "description": "旋转角（若用 CD）；默认 0（docs/detail/export/modules.md）"
         },
         "crpix_px": {
           "type": "array",
@@ -205,7 +205,7 @@
               "type": "number"
             }
           ],
-          "description": "参考像素（FITS 1-based）；缺省=中心（docs/detail/registry/acsd.phase3.wcs.md:38）"
+          "description": "参考像素（FITS 1-based）；缺省=中心（docs/detail/export/modules.md）"
         }
       }
     },
@@ -293,7 +293,7 @@
         "nearest",
         "bilinear"
       ],
-      "description": "采样核（CLI --help 字段说明：nearest|bilinear，缺省 bilinear）；重采样方差传播语义见细节实施面的第三阶段分册（docs/detail/registry/acsd.phase3.resample2.md）与科学正本（docs/science/noise_snr/NOISE_SNR.md）"
+      "description": "采样核（CLI --help 字段说明：nearest|bilinear，缺省 bilinear）；重采样方差传播语义见细节实施面的第三阶段分册（docs/detail/export/modules.md）与科学正本（docs/science/noise_snr/NOISE_SNR.md）"
     },
     "longitude_parity": {
       "enum": [

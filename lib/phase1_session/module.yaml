@@ -110,7 +110,7 @@ notes: >-
   科学与算法，科学权威=SCI-CAL-001（docs/science/calibration/CALIBRATION.md）+
   ALG-CAL-001..006 / ALG-COS-001..005（algorithm_contracts 仅引用既有
   冻结 ALG，不新设装配算法；INDEX.yaml 无 ALG-P1-SESSION 条目，决策见
-  控制报告）。四段编排与 manifest/artifact schema 权威=`docs/detail/registry/acsd.phase1.session.md`「输入输出端口、DATA、单位、坐标、invalid」一节
+  控制报告）。四段编排与 manifest/artifact schema 权威=`docs/detail/normalize/modules.md`「输入输出端口、DATA、单位、坐标、invalid」一节
   （DATA-P1-SESSION）；入口符号/时序/并发合同权威=PUBLIC_API.md
   API-P1-SESSION；编排级上游合同=API-P1-001（docs/engineering/api/PUBLIC_API.md，
   FROZEN）。

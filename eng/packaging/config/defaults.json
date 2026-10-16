@@ -816,7 +816,7 @@
       "key": "sparse_snr.density",
       "value": null,
       "unit": "点/度²",
-      "constraint": "启用稀疏层时的控制点密度；单位见 docs/detail/registry/acsd.phase1.noise-snr.md（该表默认列为 ——，无权威数值）",
+      "constraint": "启用稀疏层时的控制点密度；单位见 docs/detail/normalize/modules.md（该表默认列为 ——，无权威数值）",
       "authority_status": "pending_authority",
       "source": null,
       "source_ref": null,
@@ -840,10 +840,10 @@
       "unit": "1",
       "constraint": "枚举 token ∈ {dense, sparse_reconstruct, frame_reconstruct}；默认 sparse_reconstruct = Phase2 默认消费 Phase1 稀疏控制点 SNR 层重建稠密 SNR（马赛克各帧天光/光污染空间分布不同 ⇒ 帧级标量精度不足）。三条路径全部保留供论文精度对比；SP-0（实测 Var_p 比值）为诊断量、不作默认开关。承载字段 = phase_config mosaic 的 snr_path（值域唯一事实源 = eng/contracts/schemas/phase_config_mosaic.schema.json）",
       "authority_status": "owner_adjudicated",
-      "source": "锚 snr.path；docs/detail/registry/acsd.phase1.noise-snr.md（Phase2 默认消费稀疏层 ⇒ snr_path = sparse_reconstruct，不再按 SP-0 判据决定；三条路径保留、JSON 可显式指定；SP-0 降为诊断量；docs/detail/registry/acsd.phase1.noise-snr.md（snr_path 默认 sparse_reconstruct；三条路径的适用域由 实验/absolute-snr 给出；取值域、缺省与登记正本见 docs/detail/registry/acsd.phase2.integrate.md 的配置表行））",
+      "source": "锚 snr.path；docs/detail/normalize/modules.md（Phase2 默认消费稀疏层 ⇒ snr_path = sparse_reconstruct，不再按 SP-0 判据决定；三条路径保留、JSON 可显式指定；SP-0 降为诊断量；docs/detail/normalize/modules.md（snr_path 默认 sparse_reconstruct；三条路径的适用域由 实验/absolute-snr 给出；取值域、缺省与登记正本见 docs/detail/mosaic/modules.md 的配置表行））",
       "source_ref": {
         "id": "snr.path",
-        "path": "docs/detail/registry/acsd.phase2.integrate.md",
+        "path": "docs/detail/mosaic/modules.md",
         "quote": "| `snr_path` | `sparse_reconstruct` | —— | SNR 重建路径（`dense` / `sparse_reconstruct` / `frame_reconstruct`）；权重口径**无对应键** |",
         "sha256": "be1e5e8177c3b6d0",
         "value_text": "sparse_reconstruct"
@@ -854,13 +854,13 @@
         "schema": "eng/contracts/schemas/phase_config_mosaic.schema.json",
         "pointer": "#/$defs/mosaic_config/properties/snr_path"
       },
-      "note": "键名依据：docs/ACSD_DESIGN.md §4.3:381（Phase2 消费面；§3.3 经多块形态收口后为 CLI 平铺键集，不含 snr_path）与 docs/detail/UNIFIED_MODEL.md、docs/detail/registry/acsd.phase1.noise-snr.md 均写 snr_path；未落地的命名提议 algorithm_snr_path 已统一为 snr_path。本键是 defaults.json 的 SNR 域默认值命名空间，与 phase_config 的 snr 块（P8-SNR-LINUX：gain_e_per_adu/read_noise_e 等噪声模型参数，normalize 面）不同类、不同层，不互为同名同义。enum_token/enum_target 是「默认值 → 字段取值域」的唯一登记（机器门断言 token ∈ snr_path enum）。"
+      "note": "键名依据：docs/ACSD_DESIGN.md §4.3:381（Phase2 消费面；§3.3 经多块形态收口后为 CLI 平铺键集，不含 snr_path）与 docs/detail/UNIFIED_MODEL.md、docs/detail/normalize/modules.md 均写 snr_path；未落地的命名提议 algorithm_snr_path 已统一为 snr_path。本键是 defaults.json 的 SNR 域默认值命名空间，与 phase_config 的 snr 块（P8-SNR-LINUX：gain_e_per_adu/read_noise_e 等噪声模型参数，normalize 面）不同类、不同层，不互为同名同义。enum_token/enum_target 是「默认值 → 字段取值域」的唯一登记（机器门断言 token ∈ snr_path enum）。"
     },
     {
       "key": "scalar_gate.rd",
       "value": null,
       "unit": "unspecified",
-      "constraint": "标量降级鲁棒离散门；权威面未给单位与数值（docs/detail/registry/acsd.phase1.noise-snr.md 默认列与单位列均为 ——）",
+      "constraint": "标量降级鲁棒离散门；权威面未给单位与数值（docs/detail/normalize/modules.md 默认列与单位列均为 ——）",
       "authority_status": "pending_authority",
       "source": null,
       "source_ref": null,
@@ -871,12 +871,12 @@
       "key": "scalar_gate.trend",
       "value": null,
       "unit": "unspecified",
-      "constraint": "标量降级系统趋势门；权威面未给单位与数值（docs/detail/registry/acsd.phase1.noise-snr.md 默认列与单位列均为 ——）",
+      "constraint": "标量降级系统趋势门；权威面未给单位与数值（docs/detail/normalize/modules.md 默认列与单位列均为 ——）",
       "authority_status": "pending_authority",
       "source": null,
       "source_ref": null,
       "pending_task": "SCI-RES-01/R-002（标量门判据与阈值）",
-      "note": "同上；字段名取自 docs/detail/registry/acsd.phase1.noise-snr.md（scalar_gate_trend）。"
+      "note": "同上；字段名取自 docs/detail/normalize/modules.md（scalar_gate_trend）。"
     },
     {
       "key": "paths.gaia_root",

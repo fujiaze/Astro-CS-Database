@@ -18,7 +18,7 @@
 # 两行：MOD-acsd-phase2-upm-fit / MOD-acsd-phase2-upm-apply）。
 # 一个 manifest 只能一个 id，本文件 id 取 MOD-acsd-phase2-upm-fit；
 # apply 对应 MOD-acsd-phase2-upm-apply，其 ports/ids 见
-# docs/detail/registry/acsd.phase2.upm-apply.md 与本目录
+# docs/detail/mosaic/modules.md 与本目录
 # README.md §fit/apply descriptor 现状；本 manifest 其余字段
 # （module_id / dll_target 等）用域值 acsd.p2.upm /
 # acsd_p2_upm.dll（MODULE_MIGRATION_MATRIX P2-UPM 行）。
