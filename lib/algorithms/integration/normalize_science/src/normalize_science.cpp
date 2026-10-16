@@ -214,6 +214,15 @@ bool write_local_model_file(const std::string& product_root,
       !payload.support_note.empty()) {
     m["support_note"] = payload.support_note;
   }
+  if (payload.kind == LocalModelKind::kPsf) {
+    // 空间标度合同（NOISE_SNR §2 总通量口径）: values = h_sphere =
+    // R·(α/α_*)·P; planar_template 与 α_j、α_* 使独立读者可复核同一定义,
+    // 并核对 α_j 与 photometry spatial_gain 记录一致。常量 α 时
+    // planar_template == P（逐位退化, 不改变既有 canonical 数值语义）。
+    m["planar_template"] = payload.planar_template;
+    m["source_pixel_alpha"] = payload.source_pixel_alpha;
+    m["reference_alpha_star"] = payload.reference_alpha_star;
+  }
   if (payload.kind == LocalModelKind::kSupport) {
     // PSF.md §4: 求积误差必须是可机读数字; 负值表示"未能估计"而不是 0 误差。
     m["pixel_integration_error"] = payload.pixel_integration_error;
@@ -1347,6 +1356,11 @@ LocalModelLoadResult load_local_model_payload(const std::string& product_root,
     p.csr_column_indices = m["csr_column_indices"].get<std::vector<std::int32_t>>();
   if (m.contains("csr_coefficients") && m["csr_coefficients"].is_array())
     p.csr_coefficients = m["csr_coefficients"].get<std::vector<double>>();
+  if (m.contains("planar_template") && m["planar_template"].is_array())
+    p.planar_template = m["planar_template"].get<std::vector<double>>();
+  if (m.contains("source_pixel_alpha") && m["source_pixel_alpha"].is_array())
+    p.source_pixel_alpha = m["source_pixel_alpha"].get<std::vector<double>>();
+  p.reference_alpha_star = m.value("reference_alpha_star", 0.0);
   out.ok = true;
   return out;
 }

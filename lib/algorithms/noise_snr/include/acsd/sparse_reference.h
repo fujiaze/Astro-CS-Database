@@ -62,9 +62,28 @@ struct PlanarPatchWindow {
   std::vector<double> pix_a_drop;        // A_drop,j: 收缩 drop 面积 (sr)
   // 逐像元确定性标度 α_j = applied/native（空间 alpha; PHOT-MXY-01 语义
   // α_j = k_photo·m(x_j,y_j)）。**长度必须与 pix_index 对齐**; 空 ⇒ 全窗取
-  // cfg.plane_scale 常量。用于 §11.3 源泊松 α_j²/a_ref 配对与有效 gain
-  // g_eff = g·a_ref/α_j²。帧级数组由调用方按窗口映射后填入。
+  // cfg.plane_scale 常量。帧级数组由调用方按窗口映射后填入。
+  //
+  // 空间 alpha 的两处作用（NOISE_SNR §2 总通量口径, 2026-10-16 订正后的
+  // 自洽模型, 推导与验证见 实验/normalize-precision-p5/ROUND4_FLUX_CONVENTION.md）:
+  //   1) 源泊松 Var_src,j = α_j²·F_native·P_j/g = F_ref·α_j²·P_j/(g·α_*) ;
+  //   2) 信号模板 h_j = (α_j/α_*)·P_j（模板必须承载同一空间标度, 不能只改方差）;
+  // α_* = reference_alpha_star 是**参考源位置 u=(cx_px,cy_px) 处声明的标度**
+  // （α_*(u)=α(u)）, F_ref = α_*·F_native 是该位置参考源在 applied 面的总通量。
+  // α_* 不随窗口截断重新归一; Σ_all P=1（analytic_total）保持, 有限窗 ΣP<1
+  // 的真实截断由 f_enclosed/f_out 逐点登记, 不用窗 sum 重新定义总通量。
+  // 有效 gain 语义: g_eff,j = g·α_*/α_j²（只表示该数组单位, 不覆盖设备原生 gain）。
   std::vector<double> pixel_alpha;
+  // α_*(u): 参考源位置 u（= 本窗 cx_px/cy_px）处的确定性标度。0 ⇒ 未设置
+  // （pixel_alpha 非空时必须 > 0, 否则该控制点具名拒绝; pixel_alpha 为空时
+  // 退化为常量 cfg.plane_scale, 与 α_j ≡ α_* 的标量模型一致）。
+  double reference_alpha_star = 0.0;
+  // 本控制点的参考通量参数 F_ref(u)（与模板 h 配对的积分通量尺度）。0 ⇒ 未设置
+  // ⇒ 用 cfg.reference.flux（帧级常量; 常量 α 或 photo_applied 声明的口径）。
+  // 空间 α 场 + native_calibrated 声明时, 由接线方按 F_ref(u) = α_*·F_native
+  // = f_ref·(α_*/k_photo) 逐点填写（NORMALIZE_DATA §5「每个控制点分别保存 F_ref」;
+  // NOISE_SNR §2 总通量口径）。
+  double reference_flux = 0.0;
   // 稀疏算子三元组（同一几何路径导出; 与生产 signal 的 R 逐项同源）
   std::vector<int> op_pix;               // 像元槽位 (0..m-1)
   std::vector<int> op_leaf;              // 叶槽位 (0..nl-1)
@@ -95,10 +114,13 @@ struct SphericalCompletionConfig {
   bool master_uncertainty_modelled = false;  // false ⇒ omitted_terms 记 master_uncertainty
   bool template_fixed = true;       // 模板/有效域固定（upper_bound 的前提）
   double support_rank_tol = 1e-10;  // 秩判定相对容差
-  // ── 标度面事实（NOISE_SNR §11.3 / PHOTOMETRY §4）────────────────────────
+  // ── 标度面事实（NOISE_SNR §2 总通量口径 / PHOTOMETRY §4）──────────────────
   // plane_scale = α = applied/native（确定性线性标度; =1 表示未施加测光）。
-  // 源泊松项在 applied 面为 α_j²·F_native·P_j/g；以 F_applied 表示时
-  // = α_j·F_applied·P_j/g，等价有效 gain g_eff = g·a_ref/α_j²。
+  // 源泊松项在 applied 面为 α_j²·F_native·P_j/g; 以参考位置 u 的 applied
+  // 总通量 F_ref = α_*·F_native 表示时为 F_ref·α_j²·P_j/(g·α_*), 其中
+  // α_* = 参考位置标度（窗口级 PlanarPatchWindow::reference_alpha_star）。
+  // α_j ≡ α（常量）时 α_* = α, 泊松项退化为 α·F_ref·P_j/g —— 与
+  // NOISE_SNR §2 标量公式 V' = α·F'·P/g 一致, 无窗口 sum 因子。
   // 原生 gain 的设备来源保留在 gain_provenance, 不被有效 gain 覆盖。
   double plane_scale = 1.0;
   // 逐像元 α_j（空间标度 D_alpha）; 空 ⇒ 全窗取常量 plane_scale。
@@ -117,7 +139,13 @@ struct SphericalCompletionResult {
     std::string control_id;
     std::vector<std::int64_t> pix_index;   // 源像元下标
     std::vector<double> profile;           // P ( planar )
-    std::vector<double> h_sphere;          // h = R P（长度 nl; 1/sr）
+    // 平面模板 h_j = (α_j/α_*)·P_j（与 F_ref 配对; α_* = reference_alpha_star）。
+    // 常量 α 时逐位退化为 P。仅当 applied 面确实施加了空间标度才与 profile 不同。
+    std::vector<double> planar_template;
+    std::vector<double> source_pixel_alpha;      // α_j（与 pix_index 对齐）
+    double reference_alpha_star = 0.0;           // α_*(u)（参考源位置声明标度）
+    double reference_window_scale = 0.0;         // Σ_j α_j·P_j（窗口诊断, 不参与归一）
+    std::vector<double> h_sphere;          // h = R·(α/α_*)·P（长度 nl; 1/sr）
     std::vector<double> source_variance;   // v_j（长度 m; C=R diag(v) Rᵀ 的精确因子）
     std::vector<double> covariance;        // C = R diag(v) Rᵀ（nl×nl row-major; 仅预算内）
     std::vector<double> z_sphere;          // Z_sphere（nl×n_bg row-major）
@@ -208,7 +236,10 @@ struct JacobiOracleResult {
 };
 
 // v_override 为空时使用 w.variance（即调用方已把参考源 Poisson 等并入的方差）。
+// h_override 非空时以其作为平面通量模板列 A_src[:,0]（生产路径传入
+// (α_j/α_*)·P_j, 与 QR 路径同一模板; 空 ⇒ 用 w.profile）。
 JacobiOracleResult spherical_reference_jacobi_oracle(
-    const PlanarPatchWindow& w, int n_bg, const std::vector<double>& v_override);
+    const PlanarPatchWindow& w, int n_bg, const std::vector<double>& v_override,
+    const std::vector<double>* h_override = nullptr);
 
 }  // namespace acsd::normalize

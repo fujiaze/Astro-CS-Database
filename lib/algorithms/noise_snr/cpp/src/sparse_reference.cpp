@@ -4,8 +4,12 @@
 //       NORMALIZE_SCIENCE.md §7/§12。公式:
 //   y = F h + Z β + n,  C 为参考源通量条件下冻结的条件协方差
 //   V_F = [(A^T C^{-1} A)^{-1}]_{FF},  A = [h, Z]
-//   h = R P, C = R C_planar R^T, Z = R Z_planar  (R = 同一次 Drizzle 的实际算子)
+//   h = R·(α/α_*)·P, C = R C_planar R^T, Z = R Z_planar  (R = 同一次 Drizzle 的实际算子)
 //   SNR_ref,k(u) = F_ref,k / sqrt(V_F,k(u))
+// 空间标度（NOISE_SNR §2 总通量口径, 2026-10-16 订正）:
+//   E[y_j] = α_j·F_native·P_j = F_ref·(α_j/α_*)·P_j,  F_ref = α_*·F_native
+//   Var_src,j = α_j²·F_native·P_j/g = F_ref·α_j²·P_j/(g·α_*)
+//   α_* = 参考源位置 u 的声明标度（不随窗口截断重归一; Σ_all P = 1 保持）
 // 秩亏按可估计子空间处理: 显式秩判定 (Jacobi 特征分解), 报告秩与条件数;
 // 参数不可辨识 ⇒ unavailable, **不盲加 epsilon、不用伪逆制造信息量**。
 #include "acsd/sparse_reference.h"
@@ -421,6 +425,16 @@ SphericalCompletionResult complete_spherical_reference(
   }
 
   const double f_ref = *cfg.reference.flux;
+  // 每控制点的参考通量参数 F_ref(u)（NOISE_SNR §2 总通量口径）。帧级声明经
+  // 接线方换算到输入面后为常量 f_ref; 空间 α 场 + native_calibrated 声明时,
+  // 参考源（原生总通量 F_native = f_ref/k_photo）在位置 u 的 applied 总通量为
+  // α_*(u)·F_native, 由窗口级 reference_flux 逐点提供。未提供 ⇒ f_ref 原值
+  // （常量 α 或 photo_applied 口径; 与模板 h 的配对在两种口径下都自洽）。
+  auto f_ref_of = [&](const acsd::normalize::PlanarPatchWindow& w) -> double {
+    return (std::isfinite(w.reference_flux) && w.reference_flux > 0.0)
+               ? w.reference_flux
+               : f_ref;
+  };
   int n_bg = 0;
   switch (cfg.background) {
     case BackgroundNuisance::kKnown: n_bg = 0; break;
@@ -443,6 +457,7 @@ SphericalCompletionResult complete_spherical_reference(
     const acsd::normalize::PlanarPatchWindow& w = windows[window_index];
     const std::size_t m = w.pix_index.size();
     const int nl = static_cast<int>(w.leaf_ipix.size());
+    const double f_ref_pt = f_ref_of(w);   // 本控制点的参考通量参数（见上）
     ReferenceControl ctrl;
     ctrl.control_id = w.control_id;
     ctrl.source_x0 = w.cx_px;
@@ -483,12 +498,18 @@ SphericalCompletionResult complete_spherical_reference(
       continue;
     }
 
-    // 平面源泊松条件（NOISE_SNR §11.3 / PHOTOMETRY §4）:
+    // 平面源泊松条件（NOISE_SNR §2 总通量口径 / PHOTOMETRY §4;
+    // 推导与独立验证见 实验/normalize-precision-p5/ROUND4_FLUX_CONVENTION.md）:
     //   v_j 已是（调用方换算到 applied 数组标度的）blank-sky 方差 = α_j²·原生方差;
     //   参考源泊松期望在**原生** gain g 下为 F_native·P_j/g，施加确定性标度后
-    //   为 α_j²·F_native·P_j/g。以 applied 面的 F_applied 表示时该分量写作
-    //   α_j·F_applied·P_j/g（等价有效 gain g_eff = g·a_ref/α_j²）。
+    //   为 α_j²·F_native·P_j/g。参考源位于 u=(cx_px,cy_px)，其 applied 面总通量
+    //   F_ref = α_*·F_native（α_* = reference_alpha_star 为该位置声明标度）:
+    //     Var_src,j = α_j²·F_native·P_j/g = F_ref·α_j²·P_j/(g·α_*)。
+    //   α_j ≡ α 常量时 α_* = α ⇒ Var_src = α·F_ref·P_j/g（NOISE_SNR §2 标量公式,
+    //   无窗口 sum 因子; α=1 时逐位退化为 F_ref·P_j/g）。
     //   原生 gain 的设备来源保留在 cfg.gain_provenance, 不被有效 gain 覆盖。
+    //   有效 gain（数组单位语义）: g_eff,j = g·α_*/α_j²。
+    //   同一空间标度同时进入**信号模板** h_j = (α_j/α_*)·P_j（见下）, 不能只修方差。
     const double alpha_const =
         std::isfinite(cfg.plane_scale) && cfg.plane_scale > 0.0 ? cfg.plane_scale
                                                                 : 1.0;
@@ -520,7 +541,21 @@ SphericalCompletionResult complete_spherical_reference(
         continue;
       }
     }
-    // a_ref(u) = Σ_j α_j·P_j（NORMALIZE_DATA §5 的空间标度配对归一）
+    // α_*(u): 参考源位置 declared 标度。空间 α 场必须显式提供（调用方按同一
+    // α 模型在 u=(cx_px,cy_px) 求值）; 常量 α 场（无 pixel_alpha）取 alpha_const。
+    // 缺失或非正 ⇒ 具名拒绝（不猜、不用窗口均值代替声明位置）。
+    double alpha_star = alpha_const;
+    if (alpha_src != nullptr) {
+      if (!(w.reference_alpha_star > 0.0) || !std::isfinite(w.reference_alpha_star)) {
+        fail_point("reference_alpha_star_missing");
+        out.precision.controls.push_back(ctrl);
+        continue;
+      }
+      alpha_star = w.reference_alpha_star;
+    }
+    // 窗口诊断: a_ref(u) = Σ_j α_j·P_j（**只登记**, 不参与总通量归一 ——
+    // NOISE_SNR §2「局部窗口只截取 P', 不重算总通量归一」; PSF.md §3 有限窗
+    // 保留单位总通量模板, ΣP<1 是真实截断, 由 f_enclosed/f_out 逐点报告）。
     double a_ref = 0.0;
     for (std::size_t j = 0; j < m; ++j) a_ref += alpha[j] * std::max(0.0, w.profile[j]);
     if (!(a_ref > 0.0) || !std::isfinite(a_ref)) {
@@ -530,6 +565,14 @@ SphericalCompletionResult complete_spherical_reference(
     }
     const bool gain_known =
         std::isfinite(cfg.gain_e_per_adu) && cfg.gain_e_per_adu > 0.0;
+    // 平面信号模板 h_j = (α_j/α_*)·P_j（NOISE_SNR §2: E[y_j] = α_j·F_native·P_j
+    // = F_ref·h_j, F_ref = α_*·F_native）。空间标度必须与源泊松项进入同一模板;
+    // α_j ≡ α_* 常量时逐位退化为 P_j。负 profile 钳 0（坏像元不进模板）。
+    std::vector<double> hplanar(m, 0.0);
+    for (std::size_t j = 0; j < m; ++j) {
+      const double pj = std::max(0.0, w.profile[j]);
+      hplanar[j] = (alpha[j] / alpha_star) * pj;
+    }
     // 窗口算子截断: 窗口像素对目标叶完整 N_p 的覆盖不足 ⇒ 随机贡献被省略,
     // 不得声称完整（NOISE_SNR §11.2「随机方差不能被省略后称完整」）。
     double n_p_full = 0.0;
@@ -584,10 +627,12 @@ SphericalCompletionResult complete_spherical_reference(
       }
       if (gain_known) {
         const double pj = std::max(0.0, w.profile[j]);
-        // applied 面源泊松 = α_j²·F_native·P_j/g, F_native = F_applied/a_ref
-        // ⇒ (α_j²/a_ref)·F_applied·P_j/g。α_j 恒为 α 时化简为 α·F_applied·P_j/g
-        // （NOISE_SNR §11.3 逐字）; α=1 时逐位退化为 F_applied·P_j/g。
-        vj += (alpha[j] * alpha[j] / a_ref) * (f_ref * pj / cfg.gain_e_per_adu);
+        // applied 面源泊松 = α_j²·F_native·P_j/g, F_native = F_ref/α_*
+        // ⇒ (α_j²/α_*)·F_ref·P_j/g。α_j ≡ α 时化简为 α·F_ref·P_j/g
+        // （NOISE_SNR §2 标量公式）; α=1 时逐位退化为 F_ref·P_j/g。
+        // 无 a_ref 窗口 sum 因子: 总通量口径不随窗口截断重定义。
+        vj += (alpha[j] * alpha[j] / alpha_star) *
+               (f_ref_pt * pj / cfg.gain_e_per_adu);
       }
       if (!std::isfinite(vj)) {
         fail_point("nonfinite_local_variance");
@@ -610,21 +655,24 @@ SphericalCompletionResult complete_spherical_reference(
     }
     (void)vmax;
 
-    // 模板在源空间的存在性（h = R P 的信息等价像; P=0 ⇒ 无模板）
+    // 模板在源空间的存在性（h = R·(α/α_*)P 的信息等价像; h=0 ⇒ 无模板）
     double pnorm = 0.0;
-    for (double p : w.profile) pnorm += p * p;
+    for (double p : hplanar) pnorm += p * p;
     if (!(pnorm > 0.0) || !std::isfinite(pnorm)) {
       fail_point("template_outside_drizzle_support");
       out.precision.controls.push_back(ctrl);
       continue;
     }
 
-    // ── 球面 GLS: 秩亏安全的源空间投影（NOISE_SNR §11.4 裁决）────────────────
-    // 被估计量 y = F h + Z β + n, h = R P, C = R V Rᵀ, V = diag(v_j)（v_j 已含
-    // 冻结参考源 Poisson 与 blank-sky 分量, 与输入面同标度）。
+    // ── 球面 GLS: 秩亏安全的源空间投影（NOISE_SNR「半正定协方差、观测秩与参数秩」
+    // 与「Drizzle 的条件信息传递」两节）────────────────
+    // 被估计量 y = F h + Z β + n, h = R·(α/α_*)·P, C = R V Rᵀ, V = diag(v_j)
+    // （v_j 已含冻结参考源 Poisson 与 blank-sky 分量, 与输入面同标度）。
+    // α/α_* 同时进入模板 h 与源泊松项（NOISE_SNR §2 总通量口径; 见文件头推导）。
     //
-    // §11.4 行/零空间投影定理（可独立复算的代数恒等式）:
-    //   Q = R D^{1/2}（nl×m）, W = D^{-1/2} A_src, A_src = [P, Z_planar]
+    // 行/零空间投影定理（可独立复算的代数恒等式）:
+    //   Q = R D^{1/2}（nl×m）, W = D^{-1/2} A_src, A_src = [h, Z_planar]
+    //   h_j = (α_j/α_*)·P_j（通量列; 常量 α 时 = P_j）
     //   M = A_srcᵀ Rᵀ(RDRᵀ)⁺R A_src = Wᵀ V_r V_rᵀ W
     // V_r = Q 的行空间正交基 ⇒ 等价 M = WᵀW − (NᵀW)ᵀ(NᵀW)（N = 零空间基）。
     // 满列秩 (r=m) 时 V_rV_rᵀ = I ⇒ M = A_srcᵀD⁻¹A_src，与 §11.1 恒等式逐位一致。
@@ -662,7 +710,9 @@ SphericalCompletionResult complete_spherical_reference(
       // 正确性优先于速度, 并在 solver 名字里如实反映（不冒充已用 QR）。
       const double kDenseQrBudget = 6.0e7;
       if (static_cast<double>(m) * static_cast<double>(nl) > kDenseQrBudget) {
-        const JacobiOracleResult jr = spherical_reference_jacobi_oracle(w, n_bg, v);
+        // Jacobi oracle 与 QR 路径共用同一平面模板 hplanar（α 结构一致）。
+        const JacobiOracleResult jr =
+            spherical_reference_jacobi_oracle(w, n_bg, v, &hplanar);
         if (!jr.ok || !(jr.flux_variance > 0.0) ||
             !std::isfinite(jr.flux_variance)) {
           fail_point("operator_rank_deficient");
@@ -685,12 +735,13 @@ SphericalCompletionResult complete_spherical_reference(
           out.precision.controls.push_back(ctrl);
           continue;
         }
-        // W = D^{-1/2} A_src（m × ncol, row-major）
+        // W = D^{-1/2} A_src（m × ncol, row-major）; 通量列 = 平面模板
+        // h_j = (α_j/α_*)·P_j（与 F_ref 配对, NOISE_SNR §2 总通量口径）。
         std::vector<double> w_mat(static_cast<std::size_t>(m) * ncol, 0.0);
         for (int j = 0; j < static_cast<int>(m); ++j) {
           const double inv_sqrt = 1.0 / std::sqrt(v[static_cast<std::size_t>(j)]);
           w_mat[static_cast<std::size_t>(j) * ncol + 0] =
-              w.profile[static_cast<std::size_t>(j)] * inv_sqrt;
+              hplanar[static_cast<std::size_t>(j)] * inv_sqrt;
           for (int c = 1; c < ncol; ++c) {
             const double planar =
                 (c == 1) ? 1.0 : (c == 2) ? w.src_x[static_cast<std::size_t>(j)]
@@ -827,9 +878,9 @@ SphericalCompletionResult complete_spherical_reference(
     ctrl.status.availability = PrecisionAvailability::kAvailable;
     ctrl.status.accuracy = accuracy_pw;
     ctrl.status.omitted_terms = omitted_pw;
-    ctrl.reference_flux = f_ref;
+    ctrl.reference_flux = f_ref_pt;   // 与控制点模板 h 配对的 F_ref(u)
     ctrl.flux_variance = v_f;
-    ctrl.reference_snr = f_ref / std::sqrt(v_f);
+    ctrl.reference_snr = f_ref_pt / std::sqrt(v_f);
     ctrl.support_area_sr = support_total;
     // covariance_rank / condition_number 指 **C_sphere 的保留子空间**
     // （detail §7.4: 与参数信息矩阵的秩分名, 不偷换意义）。condition_number 是
@@ -874,14 +925,19 @@ SphericalCompletionResult complete_spherical_reference(
     lw.control_id = w.control_id;
     lw.pix_index = w.pix_index;
     lw.profile = w.profile;
-    // h_sphere = R P（长度 nl; 单位 1/sr）。旧实现把平面 P（长度 m）标成球面 h。
+    lw.planar_template = hplanar;
+    lw.source_pixel_alpha = alpha;
+    lw.reference_alpha_star = alpha_star;
+    lw.reference_window_scale = a_ref;
+    // h_sphere = R·h, h = (α/α_*)·P（长度 nl; 单位 1/sr）。旧实现把平面 P
+    // （长度 m）标成球面 h。空间标度与源泊松项使用同一 h。
     lw.h_sphere.assign(static_cast<std::size_t>(nl), 0.0);
     for (std::size_t k = 0; k < w.op_c.size(); ++k) {
       const int l = w.op_leaf[k];
       const int j = w.op_pix[k];
       if (l < 0 || l >= nl || j < 0 || static_cast<std::size_t>(j) >= m) continue;
       lw.h_sphere[static_cast<std::size_t>(l)] +=
-          w.op_c[k] * w.profile[static_cast<std::size_t>(j)];
+          w.op_c[k] * hplanar[static_cast<std::size_t>(j)];
     }
     // v_j（C = R diag(v) Rᵀ 的精确源空间因子; 长度 m, linear_unit²/sr² 的因子）
     lw.source_variance = v;
@@ -1059,7 +1115,8 @@ FrameReferenceSummary summarize_frame_reference(
 // [(M⁻¹)]_FF。与生产 QR 行空间投影是**不同代码路径**; 满列秩时两者同为
 // A_srcᵀD⁻¹A_src（NOISE_SNR §11.1/§11.4）。verify 程序对拍二者。
 JacobiOracleResult spherical_reference_jacobi_oracle(
-    const PlanarPatchWindow& w, int n_bg, const std::vector<double>& v_override) {
+    const PlanarPatchWindow& w, int n_bg, const std::vector<double>& v_override,
+    const std::vector<double>* h_override) {
   JacobiOracleResult out;
   const int m = static_cast<int>(w.pix_index.size());
   const int nl = static_cast<int>(w.leaf_ipix.size());
@@ -1073,6 +1130,10 @@ JacobiOracleResult spherical_reference_jacobi_oracle(
   for (double x : v) {
     if (!std::isfinite(x) || x <= 0.0) return out;
   }
+  // 平面通量模板: 生产路径传入 h_j = (α_j/α_*)·P_j（与 QR 路径同一模板）;
+  // 显式调用方（旧 verify/单窗口调用）默认 w.profile。
+  const std::vector<double>* hcol = h_override;
+  if (hcol != nullptr && hcol->size() != w.pix_index.size()) return out;
   // H = V^{1/2} RᵀR V^{1/2}
   std::vector<double> g(static_cast<std::size_t>(m) * m, 0.0);
   {
@@ -1105,11 +1166,12 @@ JacobiOracleResult spherical_reference_jacobi_oracle(
       hmat[static_cast<std::size_t>(j) * m + j2] *=
           sj * std::sqrt(v[static_cast<std::size_t>(j2)]);
   }
-  // A_src = [P, Z_planar]（m × ncol）
+  // A_src = [h, Z_planar]（m × ncol; h = (α/α_*)·P 或调用方覆盖）
   std::vector<double> a_src(static_cast<std::size_t>(m) * ncol, 0.0);
   for (int j = 0; j < m; ++j) {
     a_src[static_cast<std::size_t>(j) * ncol + 0] =
-        w.profile[static_cast<std::size_t>(j)];
+        (hcol != nullptr ? (*hcol)[static_cast<std::size_t>(j)]
+                         : w.profile[static_cast<std::size_t>(j)]);
     for (int c = 1; c < ncol; ++c) {
       a_src[static_cast<std::size_t>(j) * ncol + c] =
           (c == 1) ? 1.0

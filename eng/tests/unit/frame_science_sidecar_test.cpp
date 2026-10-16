@@ -128,6 +128,11 @@ int main() {
       p.values = {0.6, 0.4};            // P
       p.matrix_rows = 1;                 // h (1 叶 × 2 像元)
       p.matrix_cols = 2;
+      // 空间标度合同（NOISE_SNR §2 总通量口径）: h = (α/α_*)·P 逐项落盘,
+      // round-trip 必须逐位保持（独立读侧重算的输入）。
+      p.planar_template = {0.59, 0.41};  // h_j = (α_j/α_*)·P_j
+      p.source_pixel_alpha = {1.02, 0.97};
+      p.reference_alpha_star = 1.0;
     } else if (kind == LocalModelKind::kCovariance) {
       p.values = {0.5, 0.25, 0.25, 0.5}; // C (2×2 row-major)
       p.matrix_rows = 2;
@@ -216,6 +221,23 @@ int main() {
     check(rd.doc.precision.controls[0].leaf_ipix == ctrl.leaf_ipix ||
               true,  // reader 侧 leaf_ipix 以字符串回填, 见 ReferenceControl 注释
           "round-trip: leaf_ipix preserved (decimal string, no double rounding)");
+    // 空间标度合同 round-trip（NOISE_SNR §2: psf 模型必须带 h=(α/α_*)P 的
+    // 平面模板、逐像元 α_j 与参考位置 α_*, 否则独立读者无法复核 α 约定）。
+    for (const auto& ref : rd.doc.models) {
+      if (ref.kind != LocalModelKind::kPsf) continue;
+      const auto lm = load_local_model_payload(root, ref.path);
+      check(lm.ok, "psf model reload: readable");
+      check(lm.payload.planar_template.size() == 2 &&
+                lm.payload.planar_template[0] == 0.59 &&
+                lm.payload.planar_template[1] == 0.41,
+            "round-trip: psf planar_template (α/α_*)·P exact FP64");
+      check(lm.payload.source_pixel_alpha.size() == 2 &&
+                lm.payload.source_pixel_alpha[0] == 1.02 &&
+                lm.payload.source_pixel_alpha[1] == 0.97,
+            "round-trip: psf source_pixel_alpha exact FP64");
+      check(lm.payload.reference_alpha_star == 1.0,
+            "round-trip: psf reference_alpha_star exact FP64");
+    }
   }
 
   // ── 旧产品兼容: 无 sidecar ⇒ precision unavailable, 不否定 signal ──────────

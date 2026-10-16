@@ -8451,6 +8451,11 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   // α_j = k_photo·m(x_j,y_j) 组装逐窗 alpha（m 的求值唯一实现在
   // calibration::photo_spatial_m; 此处只透传多项式的字段, 不复制公式）。
   std::map<std::string, Json> spatial_gain_by_frame;
+  // 上游实际装载的系统响应身份（p1_phot.json.passband_identity: 滤镜库键 +
+  // 曲线文件 + QE 库键/文件）。用于 frame_science 的 photometry.response_id /
+  // application_id（NORMALIZE_DATA §2/§8: 施加标度必须能追溯到真实响应身份）。
+  std::string phot_response_filter_key, phot_response_filter_src;
+  std::string phot_response_qe_key, phot_response_qe_src;
   // FAILSEM-01: 上游**逐帧判决**（p1_phot.json.frames[] → frame_key → 记录）。
   // 逐帧真相是本节点选择输入面的唯一依据; 组级 photometry_applied 只作摘要。
   Json frame_status = Json::object();
@@ -8501,6 +8506,18 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           for (auto it = pj["spatial_gain"].begin();
                it != pj["spatial_gain"].end(); ++it)
             if (it.value().is_object()) spatial_gain_by_frame[it.key()] = it.value();
+        // 真实响应身份（实际装载曲线, 不是配置声明名）
+        if (pj.contains("passband_identity") &&
+            pj["passband_identity"].is_object()) {
+          const Json& pbi = pj["passband_identity"];
+          phot_response_filter_key = pbi.value("resolved_library_key", std::string());
+          phot_response_filter_src = pbi.value("curve_source", std::string());
+          if (pbi.contains("qe") && pbi["qe"].is_object()) {
+            phot_response_qe_key =
+                pbi["qe"].value("resolved_library_key", std::string());
+            phot_response_qe_src = pbi["qe"].value("curve_source", std::string());
+          }
+        }
         have_phot_prov = true;
       } catch (const std::exception& e) {
         return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -9332,6 +9349,12 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
               const double y = static_cast<double>(idx / wpx);
               return k_photo * calibration::photo_spatial_m(field, x, y);
             };
+            // 连续坐标版（同一 α 场）。m(x,y) 是连续低阶多项式 ⇒ 参考源位置 u
+            // 处的声明标度 α_*(u) 直接求值, 无最近像元近似
+            // （NOISE_SNR §2 总通量口径; h=(α/α_*)P 与源泊松共用该 α_*）。
+            preq.alpha_at_xy = [field, k_photo](double x, double y) {
+              return k_photo * calibration::photo_spatial_m(field, x, y);
+            };
           }
         }
       }
@@ -9539,6 +9562,40 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                                                : "native_unscaled";
         fdoc.photometry.scale_applied = frame_applied;
         fdoc.photometry.parameter_uncertainty = "unmodelled";
+        // 应用身份（NORMALIZE_DATA §2/§8: scale_applied 必须与其 application ID、
+        // 单位、signal 标度一致）。由**本次实际施加**的标度事实确定性构造:
+        // 帧 key + 标量 k_photo + 空间场(order/coef/norm, 若施加) + 通带/QE 曲线
+        // 身份。同一施加 ⇒ 同一 ID; 更换曲线或重拟合标度 ⇒ 新 ID（下游据此判失效）。
+        // 只表达"施加了什么", 不伪造未测的光度解算 revision。
+        if (frame_applied) {
+          std::string canon = "photoapplied|frame=" + p1_frame_key(lp) +
+                              "|k=" + std::to_string(frame_photscal);
+          const auto sgit2 = spatial_gain_by_frame.find(p1_frame_key(lp));
+          if (sgit2 != spatial_gain_by_frame.end()) {
+            const Json& sg2 = sgit2->second;
+            canon += "|sg_order=" + std::to_string(sg2.value("order", 0));
+            canon += "|sg_status=" + sg2.value("status", std::string());
+            canon += "|sg_ident=" + std::to_string(sg2.value("identifiable", 0));
+            canon += "|sg_coef=" + sg2.value("coef", Json::array()).dump();
+            canon += "|sg_norm=" + sg2.value("norm", Json::object()).dump();
+            canon += "|sg_center=" + sg2.value("center", Json::array()).dump();
+          }
+          canon += "|filter=" + phot_response_filter_key +
+                   "|filter_src=" + phot_response_filter_src +
+                   "|qe=" + phot_response_qe_key +
+                   "|qe_src=" + phot_response_qe_src;
+          const std::string app_hash =
+              acsd::crypto::sha256_hex(canon.data(), canon.size());
+          fdoc.photometry.application_id = "photoapplied:" + app_hash.substr(0, 32);
+          // 响应身份 = 实际装载的滤镜库键 + QE 库键（均来自已装载曲线, 不是配置
+          // 声明名; 曲线本体由运行时扫描集提供）。
+          if (!phot_response_filter_key.empty()) {
+            fdoc.photometry.response_id =
+                phot_response_qe_key.empty()
+                    ? phot_response_filter_key
+                    : phot_response_filter_key + "+" + phot_response_qe_key;
+          }
+        }
         fdoc.photometry.reason =
             frame_applied
                 ? "per-frame k_photo applied upstream; scale uncertainty not"
