@@ -1,0 +1,668 @@
+[1/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/drvrnet.c.o
+[2/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/fits_hcompress.c.o
+[3/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/drvrfile.c.o
+[4/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/checksum.c.o
+[5/550] Building CXX object CMakeFiles/acsd_common.dir/lib/algorithms/shared/crypto/sha256.cpp.o
+[6/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcol.c.o
+[7/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/edithdu.c.o
+[8/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/buffers.c.o
+[9/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/drvrmem.c.o
+[10/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcoll.c.o
+[11/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/eval_l.c.o
+[12/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcols.c.o
+[13/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcold.c.o
+[14/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcole.c.o
+[15/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcolb.c.o
+[16/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/fits_hdecompress.c.o
+[17/550] Building CXX object CMakeFiles/acsd_common.dir/lib/algorithms/shared/healpix/healpix_core.cpp.o
+[18/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcoli.c.o
+[19/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/editcol.c.o
+[20/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcolk.c.o
+[21/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/grparser.c.o
+[22/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcolsb.c.o
+[23/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/iraffits.c.o
+[24/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/eval_f.c.o
+[25/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/pliocomp.c.o
+[26/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/modkey.c.o
+[27/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcoluk.c.o
+[28/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcolui.c.o
+[29/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcolj.c.o
+[30/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcold.c.o
+[31/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcolb.c.o
+[32/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcoll.c.o
+[33/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcols.c.o
+[34/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getkey.c.o
+[35/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcoli.c.o
+[36/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcolu.c.o
+[37/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcolk.c.o
+[38/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcole.c.o
+[39/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcolsb.c.o
+[40/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/group.c.o
+[41/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/scalnull.c.o
+[42/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcolui.c.o
+[43/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/cfileio.c.o
+[44/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/swapproc.c.o
+[45/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/simplerng.c.o
+[46/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcoluk.c.o
+[47/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/getcoluj.c.o
+[48/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcolj.c.o
+[49/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/zcompress.c.o
+[50/550] Linking CXX static library libacsd_common.a
+[51/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcol.c.o
+[52/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/zuncompress.c.o
+[53/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/wcsutil.c.o
+[54/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/ricecomp.c.o
+[55/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putcoluj.c.o
+[56/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/wcssub.c.o
+[57/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/histo.c.o
+[58/550] Building CXX object CMakeFiles/acsd_aio.dir/lib/infrastructure/aio/src/aio_compressor.cpp.o
+[59/550] Building CXX object CMakeFiles/acsd_aio.dir/lib/infrastructure/aio/src/aio_abi.cpp.o
+[60/550] Building CXX object CMakeFiles/acsd_hips.dir/lib/infrastructure/aio/src/aio_tile_geometry.cpp.o
+[61/550] Building CXX object CMakeFiles/acsd_aio.dir/lib/infrastructure/aio/src/aio_log.cpp.o
+[62/550] Building CXX object CMakeFiles/acsd_aio.dir/lib/infrastructure/aio/src/aio_api.cpp.o
+[63/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/fitscore.c.o
+[64/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/putkey.c.o
+[65/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/region.c.o
+[66/550] Building CXX object CMakeFiles/acsd_hips.dir/lib/infrastructure/aio/src/hiss_tile_model.cpp.o
+[67/550] Building CXX object CMakeFiles/acsd_aio.dir/lib/infrastructure/aio/src/aio_pipeline.cpp.o
+[68/550] Building CXX object CMakeFiles/acsd_hips.dir/lib/infrastructure/aio/src/hiss_codec.cpp.o
+[69/550] Building CXX object CMakeFiles/acsd_hips.dir/lib/infrastructure/aio/src/hiss_transform.cpp.o
+[70/550] Building CXX object CMakeFiles/acsd_aio.dir/lib/infrastructure/aio/src/aio_xisf.cpp.o
+[71/550] Building CXX object CMakeFiles/acsd_hips.dir/lib/infrastructure/aio/src/hiss_common.cpp.o
+[72/550] Building CXX object CMakeFiles/acsd_aio.dir/lib/infrastructure/aio/src/aio_sysinfo.cpp.o
+[73/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/quantize.c.o
+[74/550] Building CXX object CMakeFiles/acsd_identifiability.dir/lib/algorithms/coverage/src/identifiability.cpp.o
+[75/550] Building CXX object CMakeFiles/acsd_calibration.dir/lib/algorithms/calibration/src/photometry_apply.cpp.o
+[76/550] Building CXX object CMakeFiles/acsd_hips.dir/lib/infrastructure/aio/src/hiss_stream_writer.cpp.o
+[77/550] Linking CXX static library libacsd_identifiability.a
+[78/550] Building CXX object CMakeFiles/acsd_calibration.dir/lib/algorithms/calibration/src/calibrator.cpp.o
+[79/550] Building CXX object CMakeFiles/acsd_calibration.dir/lib/algorithms/calibration/src/ac_api.cpp.o
+[80/550] Building CXX object CMakeFiles/acsd_aio.dir/lib/infrastructure/aio/src/aio_fits.cpp.o
+[81/550] Building CXX object CMakeFiles/acsd_calibration.dir/lib/algorithms/calibration/src/master_generator.cpp.o
+[82/550] Building CXX object CMakeFiles/acsd_hips_properties.dir/lib/algorithms/coverage/hips_properties.cpp.o
+[83/550] Building CXX object lib/algorithms/projection/CMakeFiles/acsd_p3_projection_wcs.dir/p3_wcs.cpp.o
+[84/550] Building CXX object CMakeFiles/acsd_phase2.dir/lib/algorithms/coverage/src/block.cpp.o
+[85/550] Building CXX object CMakeFiles/acsd_hips.dir/lib/infrastructure/aio/src/hips/aio_hips_reader.cpp.o
+[86/550] Building CXX object CMakeFiles/acsd_hips.dir/lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp.o
+[87/550] Linking CXX static library libacsd_hips_properties.a
+[88/550] Building CXX object CMakeFiles/acsd_phase2.dir/lib/algorithms/coverage/src/integrate.cpp.o
+[89/550] Building CXX object CMakeFiles/acsd_phase1_wcs.dir/lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp.o
+[90/550] Building CXX object CMakeFiles/acsd_hips.dir/lib/infrastructure/aio/src/hiss_reader.cpp.o
+[91/550] Building CXX object CMakeFiles/acsd_calibration.dir/lib/algorithms/calibration/src/cosmetic_corrector.cpp.o
+[92/550] Building CXX object CMakeFiles/acsd_phase1_noise.dir/lib/algorithms/noise_snr/cpp/src/snr_science.cpp.o
+[93/550] Building CXX object CMakeFiles/acsd_hips.dir/lib/infrastructure/aio/src/hiss_writer.cpp.o
+[94/550] Building CXX object CMakeFiles/acsd_phase2.dir/lib/algorithms/coverage/src/coverage.cpp.o
+[95/550] Building CXX object CMakeFiles/acsd_phase1_noise.dir/lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp.o
+[96/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/imcompress.c.o
+[97/550] Building CXX object CMakeFiles/acsd_phase1_phot.dir/lib/algorithms/photometry/wrapper_phase1/photometer.cpp.o
+[98/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp.o
+[99/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_angle.cpp.o
+[100/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_kvector.cpp.o
+[101/550] Building CXX object CMakeFiles/acsd_phase1_stars.dir/lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp.o
+[102/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_distortion.cpp.o
+[103/550] Building CXX object CMakeFiles/acsd_phase2.dir/lib/algorithms/coverage/src/stage2_common.cpp.o
+[104/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_itertrans.cpp.o
+[105/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp.o
+[106/550] Building CXX object CMakeFiles/acsd_phase2.dir/lib/algorithms/coverage/src/rejection.cpp.o
+[107/550] Building CXX object CMakeFiles/acsd_phase1_noise.dir/lib/algorithms/noise_snr/cpp/src/noise_model.cpp.o
+[108/550] Linking CXX static library lib/algorithms/projection/libacsd_p3_projection_wcs.a
+[109/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_sip.cpp.o
+[110/550] Building CXX object CMakeFiles/acsd_phase1_noise.dir/lib/algorithms/noise_snr/cpp/src/sparse_reference.cpp.o
+[111/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_polygon.cpp.o
+[112/550] Building CXX object lib/algorithms/resample/CMakeFiles/acsd_p3_rsmp.dir/p3_rsmp_units.cpp.o
+[113/550] Building CXX object CMakeFiles/acsd_hips.dir/lib/infrastructure/aio/src/hips/aio_hips_writer.cpp.o
+[114/550] Building CXX object lib/algorithms/resample/CMakeFiles/acsd_p3_rsmp.dir/p3_rsmp_kernel_registry.cpp.o
+[115/550] Building CXX object lib/algorithms/resample/CMakeFiles/acsd_p3_rsmp.dir/p3_rsmp_covariance.cpp.o
+[116/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp.o
+[117/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_robust_refine.cpp.o
+[118/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp.o
+[119/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_triangle.cpp.o
+[120/550] Building CXX object lib/algorithms/resample/CMakeFiles/acsd_p3_rsmp.dir/p3_rsmp_failclosed.cpp.o
+[121/550] Building CXX object CMakeFiles/acsd_p1_ipv.dir/lib/algorithms/platesolve/cpp/ipv/src/ipv_ransac.cpp.o
+[122/550] Building C object CMakeFiles/acsd_p1_ipv.dir/lib/infrastructure/gaia_xpsd_client/src/gaia_client.c.o
+[123/550] Building CXX object lib/algorithms/resample/CMakeFiles/acsd_p3_rsmp.dir/p3_rsmp_propagation.cpp.o
+[124/550] Building CXX object lib/algorithms/resample/CMakeFiles/acsd_p3_rsmp.dir/p3_rsmp_operator.cpp.o
+[125/550] Building C object CMakeFiles/acsd_cfitsio.dir/lib/infrastructure/aio/third_party/cfitsio/eval_y.c.o
+[126/550] Linking C static library libacsd_cfitsio.a
+[127/550] Linking CXX static library libacsd_aio.a
+[128/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/artifact.cpp.o
+[129/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/cpu_budget.cpp.o
+[130/550] Building CXX object CMakeFiles/acsd_phase2.dir/lib/algorithms/coverage/src/sampler.cpp.o
+[131/550] Building CXX object lib/algorithms/resample/CMakeFiles/acsd_p3_rsmp.dir/p3_resample.cpp.o
+[132/550] Building CXX object lib/algorithms/fits_output/CMakeFiles/acsd_p3_fits_output.dir/p3_output.cpp.o
+[133/550] Building CXX object CMakeFiles/acsd_hips.dir/lib/infrastructure/aio/src/aio_upm.cpp.o
+[134/550] Linking CXX static library libacsd_hips.a
+[135/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/block_frame.cpp.o
+[136/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/memory_budget.cpp.o
+[137/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/export_stream.cpp.o
+[138/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/logging.cpp.o
+[139/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/build_stamp.cpp.o
+[140/550] Linking CXX static library libacsd_calibration.a
+[141/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/mosaic_window.cpp.o
+[142/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/checkpoint.cpp.o
+[143/550] Building CXX object CMakeFiles/acsd_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp.o
+[144/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/normalize_workflow.cpp.o
+[145/550] Building CXX object CMakeFiles/acsd_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/poly_clip.cpp.o
+[146/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/plan_estimator.cpp.o
+[147/550] Building CXX object CMakeFiles/acsd_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp.o
+[148/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/module.cpp.o
+[149/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/scheduler.cpp.o
+[150/550] Building CXX object CMakeFiles/acsd_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_hips_api.cpp.o
+[151/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/memory_pressure.cpp.o
+[152/550] Building CXX object CMakeFiles/acsd_cpu.dir/lib/infrastructure/benchmark/backend_host/cpu_features.cpp.o
+[153/550] Building CXX object CMakeFiles/acsd_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/reverse_drizzle.cpp.o
+[154/550] Building CXX object CMakeFiles/acsd_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.cpp.o
+[155/550] Building CXX object CMakeFiles/acsd_cpu.dir/lib/infrastructure/benchmark/backend_host/baseline_backend.cpp.o
+[156/550] Building CXX object CMakeFiles/acsd_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp.o
+[157/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/artifact_store.cpp.o
+[158/550] Building CXX object CMakeFiles/acsd_cpu.dir/lib/infrastructure/benchmark/backend_host/host_services.cpp.o
+[159/550] Building CXX object CMakeFiles/acsd_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp.o
+[160/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/block_flow.cpp.o
+[161/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/pipeline.cpp.o
+[162/550] Building CXX object CMakeFiles/acsd_cpu.dir/lib/infrastructure/benchmark/backend_host/bench_harness.cpp.o
+[163/550] Linking CXX static library libacsd_phase1_wcs.a
+[164/550] Linking CXX static library libacsd_phase1_phot.a
+[165/550] Building CXX object CMakeFiles/acsd_cpu.dir/lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp.o
+[166/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/canonical_hash.cpp.o
+[167/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/context.cpp.o
+[168/550] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/wcs_transform.cpp.o
+[169/550] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/image_corrector.cpp.o
+[170/550] Building CXX object CMakeFiles/acsd_cpu.dir/lib/infrastructure/benchmark/backend_host/backend_loader.cpp.o
+[171/550] Building CXX object CMakeFiles/acsd_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp.o
+[172/550] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/pc_api.cpp.o
+[173/550] Linking CXX static library libacsd_phase1_noise.a
+[174/550] Linking CXX static library libacsd_phase1_stars.a
+[175/550] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/runtime.cpp.o
+[176/550] Linking CXX static library libacsd_p1_ipv.a
+[177/550] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/star_matcher.cpp.o
+[178/550] Building CXX object CMakeFiles/acsd_p1_dpsf.dir/lib/algorithms/psf/src/dpsf_log.cpp.o
+[179/550] Building CXX object CMakeFiles/acsd_p1_dpsf.dir/lib/algorithms/psf/src/pixel_integrated_psf.cpp.o
+[180/550] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp.o
+[181/550] Building CXX object CMakeFiles/acsd_drizzle.dir/lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp.o
+[182/550] Building CXX object CMakeFiles/acsd_p1_sdet.dir/lib/algorithms/star_detection/src/sdet_log.cpp.o
+[183/550] Building CXX object CMakeFiles/acsd_p1_dpsf.dir/lib/algorithms/psf/src/dpsf_image.cpp.o
+[184/550] Building CXX object CMakeFiles/acsd_p1_sdet.dir/lib/algorithms/star_detection/src/nls_lm.cpp.o
+[185/550] Building CXX object CMakeFiles/acsd_p1_dpsf.dir/lib/algorithms/psf/src/spatial_psf.cpp.o
+[186/550] Building CXX object CMakeFiles/acsd_p1_dpsf.dir/lib/algorithms/psf/src/dpsf_psf.cpp.o
+[187/550] Linking CXX static library lib/algorithms/resample/libacsd_p3_rsmp.a
+[188/550] Linking CXX static library lib/algorithms/fits_output/libacsd_p3_fits_output.a
+[189/550] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/spatial_gain.cpp.o
+[190/550] Linking CXX static library libacsd_core.a
+[191/550] Linking CXX static library libacsd_drizzle.a
+[192/550] Linking CXX static library libacsd_p1_dpsf.a
+[193/550] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp.o
+[194/550] Linking CXX static library libacsd_phase1_photcal.a
+[195/550] Building CXX object CMakeFiles/acsd_p1_sdet.dir/lib/algorithms/star_detection/src/sdet_image.cpp.o
+[196/550] Building CXX object CMakeFiles/acsd_cpu.dir/lib/infrastructure/benchmark/backend_host/profile_store.cpp.o
+[197/550] Building CXX object CMakeFiles/acsd_cpu.dir/lib/infrastructure/benchmark/backend_host/profile_gen.cpp.o
+[198/550] Building CXX object CMakeFiles/acsd_module_adapters.dir/lib/algorithms/integration/phase2_integrate/src/variance_propagation.cpp.o
+[199/550] Building CXX object CMakeFiles/acsd_phase2.dir/lib/algorithms/coverage/src/upm.cpp.o
+[200/550] Building CXX object CMakeFiles/acsd_cpu.dir/lib/infrastructure/benchmark/backend_host/cpu_routing.cpp.o
+[201/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/acsd_orchestrator_jsv.dir/third_party/json-schema-validator/smtp-address-validator.cpp.o
+[202/550] Building CXX object CMakeFiles/acsd_module_adapters.dir/lib/algorithms/integration/phase2_integrate/src/weight_chain.cpp.o
+[203/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/acsd_orchestrator_jsv.dir/third_party/json-schema-validator/json-uri.cpp.o
+[204/550] Building C object CMakeFiles/acsd_cpuprov_common.dir/lib/infrastructure/benchmark/cpu/common/src/capability_detect.c.o
+[205/550] Building CXX object CMakeFiles/acsd_cpu.dir/lib/infrastructure/benchmark/backend_host/worker_advisor.cpp.o
+[206/550] ACSD: 同步响应曲线库 → /workspace/Astro CS Database/build/asan/config/response_curves
+[207/550] Building CXX object CMakeFiles/acsd_phase2.dir/lib/algorithms/coverage/src/sky_plane.cpp.o
+[208/550] Linking CXX static library libacsd_phase2.a
+[209/550] Building CXX object CMakeFiles/acsd_p1_sdet.dir/lib/algorithms/star_detection/src/sdet_api.cpp.o
+[210/550] Linking CXX static library libacsd_p1_sdet.a
+[211/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/acsd_infra_orchestrator.dir/src/dll_loader.cpp.o
+[212/550] Building CXX object CMakeFiles/acsd_cpu.dir/lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp.o
+[213/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/acsd_orchestrator_jsv.dir/third_party/json-schema-validator/json-patch.cpp.o
+[214/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/acsd_infra_orchestrator.dir/src/cli_command.cpp.o
+[215/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/acsd_orchestrator_jsv.dir/third_party/json-schema-validator/json-schema-draft7.json.cpp.o
+[216/550] Linking CXX shared library providers/acsd_cpu_avx2.so
+[217/550] Linking CXX shared library providers/acsd_cpu_avx512.so
+[218/550] Linking CXX shared library providers/acsd_cpuprov_baseline.so
+[219/550] Linking CXX shared library providers/acsd_cpuprov_avx2.so
+[220/550] Linking CXX shared library providers/acsd_cpuprov_avx512.so
+[221/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/acsd_infra_orchestrator.dir/src/logger.cpp.o
+[222/550] Building CXX object CMakeFiles/acsd_phase2_session.dir/lib/phase2_session/p2_session.cpp.o
+[223/550] Building CXX object CMakeFiles/acsd_phase3_session.dir/lib/phase3_session/p3_session.cpp.o
+[224/550] Linking CXX static library libacsd_phase3_session.a
+[225/550] Linking CXX static library libacsd_phase2_session.a
+[226/550] Building CXX object CMakeFiles/acsd_cli_process.dir/lib/infrastructure/cli/process.cpp.o
+[227/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/acsd_infra_orchestrator.dir/src/checkpoint.cpp.o
+[228/550] Building CXX object CMakeFiles/acsd_phase1_session.dir/lib/phase1_session/p1_session.cpp.o
+[229/550] Linking CXX static library libacsd_phase1_session.a
+[230/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/acsd_orchestrator_jsv.dir/third_party/json-schema-validator/string-format-check.cpp.o
+[231/550] Building CXX object CMakeFiles/acsd_cpu.dir/lib/infrastructure/benchmark/backend_host/bench_report.cpp.o
+[232/550] Building CXX object CMakeFiles/acsd.dir/lib/infrastructure/cli/process.cpp.o
+[233/550] Building C object eng/tests/conformance/noop/CMakeFiles/acsd_noop.dir/src/noop_module.c.o
+[234/550] Linking CXX static library libacsd_cpu.a
+[235/550] Building CXX object CMakeFiles/acsd.dir/lib/infrastructure/cli/main.cpp.o
+[236/550] Building C object lib/infrastructure/gaia_xpsd_client/CMakeFiles/acsd_catalog_gaia.dir/src/module_entry.c.o
+[237/550] Building CXX object CMakeFiles/acsd_io_adapter.dir/lib/infrastructure/aio/io/src/io_adapter.cpp.o
+[238/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/src/module_entry.cpp.o
+[239/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/healpix_drizzle/wcs_sip.cpp.o
+[240/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/healpix_drizzle/poly_clip.cpp.o
+[241/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/healpix_drizzle/fits_reader.cpp.o
+[242/550] Building C object lib/infrastructure/gaia_xpsd_client/CMakeFiles/acsd_catalog_gaia.dir/src/gaia_client.c.o
+[243/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/healpix_drizzle/hp_drizzle_hips_api.cpp.o
+[244/550] Building CXX object CMakeFiles/acsd_module_adapters.dir/lib/infrastructure/scheduler/src/normalize_precision.cpp.o
+[245/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/healpix_drizzle/reverse_drizzle.cpp.o
+[246/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/aio_api.cpp.o
+[247/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/aio_log.cpp.o
+[248/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/aio_compressor.cpp.o
+[249/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/healpix_drizzle/spherical_overlap.cpp.o
+[250/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/healpix_drizzle/snr_evaluator.cpp.o
+[251/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/aio_xisf.cpp.o
+[252/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/aio_fits.cpp.o
+[253/550] Building CXX object CMakeFiles/acsd_cli_runtime.dir/lib/infrastructure/cli/runtime_client.cpp.o
+[254/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/aio_tile_geometry.cpp.o
+[255/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/aio_pipeline.cpp.o
+[256/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/healpix_drizzle/hp_drizzle_api.cpp.o
+[257/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/hiss_codec.cpp.o
+[258/550] Building CXX object CMakeFiles/acsd.dir/lib/infrastructure/cli/parser.cpp.o
+[259/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/hiss_common.cpp.o
+[260/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/hiss_tile_model.cpp.o
+[261/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/hips/aio_hips_reader.cpp.o
+[262/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/hiss_transform.cpp.o
+[263/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/shared/crypto/sha256.cpp.o
+[264/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/healpix/aio_healpix_io.cpp.o
+[265/550] Building CXX object lib/algorithms/integration/normalize_science/CMakeFiles/acsd_normalize_science.dir/src/normalize_science.cpp.o
+[266/550] Linking CXX static library lib/algorithms/integration/normalize_science/libacsd_normalize_science.a
+[267/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/hiss_stream_writer.cpp.o
+[268/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/buffers.c.o
+[269/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/checksum.c.o
+[270/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/shared/healpix/healpix_core.cpp.o
+[271/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/drvrnet.c.o
+[272/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/hiss_reader.cpp.o
+[273/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/drvrfile.c.o
+[274/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/healpix_drizzle/drizzle_engine.cpp.o
+[275/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/drvrmem.c.o
+[276/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/edithdu.c.o
+[277/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/fits_hcompress.c.o
+[278/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/acsd_infra_orchestrator.dir/src/json_config.cpp.o
+[279/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/eval_l.c.o
+[280/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/hiss_writer.cpp.o
+[281/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/editcol.c.o
+[282/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/healpix_drizzle/astro_sphere_sink.cpp.o
+[283/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/fits_hdecompress.c.o
+[284/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcol.c.o
+[285/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/cfileio.c.o
+[286/550] Building CXX object CMakeFiles/acsd.dir/lib/infrastructure/cli/runtime_client.cpp.o
+[287/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/eval_f.c.o
+[288/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcolb.c.o
+[289/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/acsd_orchestrator_jsv.dir/third_party/json-schema-validator/json-validator.cpp.o
+[290/550] Linking CXX static library lib/infrastructure/pipeline/orchestrator/cpp/libacsd_orchestrator_jsv.a
+[291/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcoll.c.o
+[292/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcold.c.o
+[293/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcole.c.o
+[294/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcoli.c.o
+[295/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcols.c.o
+[296/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcolk.c.o
+[297/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/grparser.c.o
+[298/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcolsb.c.o
+[299/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcoluk.c.o
+[300/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcolui.c.o
+[301/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcolj.c.o
+[302/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/pliocomp.c.o
+[303/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getkey.c.o
+[304/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/iraffits.c.o
+[305/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/modkey.c.o
+[306/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcolb.c.o
+[307/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/group.c.o
+[308/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcold.c.o
+[309/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcole.c.o
+[310/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcoll.c.o
+[311/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/getcoluj.c.o
+[312/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcoli.c.o
+[313/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcolu.c.o
+[314/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcolk.c.o
+[315/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcols.c.o
+[316/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcol.c.o
+[317/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcolsb.c.o
+[318/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcolui.c.o
+[319/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/histo.c.o
+[320/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/fitscore.c.o
+[321/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/simplerng.c.o
+[322/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/hips/aio_hips_writer.cpp.o
+[323/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/scalnull.c.o
+[324/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcolj.c.o
+[325/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/swapproc.c.o
+[326/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcoluk.c.o
+[327/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/ricecomp.c.o
+[328/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/wcssub.c.o
+[329/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/zuncompress.c.o
+[330/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/zcompress.c.o
+[331/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/wcsutil.c.o
+[332/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putcoluj.c.o
+[333/550] Building CXX object lib/algorithms/calibration/CMakeFiles/acsd_p1_calibration.dir/src/ac_api.cpp.o
+[334/550] Building CXX object lib/algorithms/calibration/CMakeFiles/acsd_p1_calibration.dir/src/calibrator.cpp.o
+[335/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/putkey.c.o
+[336/550] Building CXX object lib/algorithms/cosmetic/CMakeFiles/acsd_p1_cosmetic.dir/__/calibration/src/calibrator.cpp.o
+[337/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/region.c.o
+[338/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/acsd_infra_orchestrator.dir/src/orchestrator.cpp.o
+[339/550] Building CXX object lib/algorithms/calibration/CMakeFiles/acsd_p1_calibration.dir/src/master_generator.cpp.o
+[340/550] Building CXX object lib/algorithms/cosmetic/CMakeFiles/acsd_p1_cosmetic.dir/src/module_entry.cpp.o
+[341/550] Building CXX object lib/algorithms/cosmetic/CMakeFiles/acsd_p1_cosmetic.dir/__/calibration/src/ac_api.cpp.o
+[342/550] Building CXX object lib/algorithms/calibration/CMakeFiles/acsd_p1_calibration.dir/src/module_entry.cpp.o
+[343/550] Building CXX object lib/algorithms/cosmetic/CMakeFiles/acsd_p1_cosmetic.dir/__/calibration/src/master_generator.cpp.o
+[344/550] Building CXX object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/src/aio_publish.cpp.o
+[345/550] Building CXX object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/shared/crypto/sha256.cpp.o
+[346/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/quantize.c.o
+[347/550] Building CXX object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/src/module_entry.cpp.o
+[348/550] Building CXX object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/src/aio_log.cpp.o
+[349/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/drvrnet.c.o
+[350/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/checksum.c.o
+[351/550] Building CXX object lib/algorithms/calibration/CMakeFiles/acsd_p1_calibration.dir/src/cosmetic_corrector.cpp.o
+[352/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/drvrfile.c.o
+[353/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/buffers.c.o
+[354/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/edithdu.c.o
+[355/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/fits_hcompress.c.o
+[356/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/drvrmem.c.o
+[357/550] Building CXX object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/shared/healpix/healpix_core.cpp.o
+[358/550] Building CXX object lib/algorithms/cosmetic/CMakeFiles/acsd_p1_cosmetic.dir/__/calibration/src/cosmetic_corrector.cpp.o
+[359/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcol.c.o
+[360/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/eval_l.c.o
+[361/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/editcol.c.o
+[362/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/fits_hdecompress.c.o
+[363/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcold.c.o
+[364/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcolb.c.o
+[365/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/eval_f.c.o
+[366/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcoll.c.o
+[367/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcole.c.o
+[368/550] Building CXX object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/src/hips/aio_hips_reader.cpp.o
+[369/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/cfileio.c.o
+[370/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcols.c.o
+[371/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcoli.c.o
+[372/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/imcompress.c.o
+[373/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcolk.c.o
+[374/550] Building CXX object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/src/aio_upm.cpp.o
+[375/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcolsb.c.o
+[376/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcolui.c.o
+[377/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/grparser.c.o
+[378/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/pliocomp.c.o
+[379/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcolj.c.o
+[380/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/iraffits.c.o
+[381/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcoluk.c.o
+[382/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/modkey.c.o
+[383/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getkey.c.o
+[384/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcolb.c.o
+[385/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcold.c.o
+[386/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcole.c.o
+[387/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcoluj.c.o
+[388/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcoli.c.o
+[389/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcoll.c.o
+[390/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcols.c.o
+[391/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcolu.c.o
+[392/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/fitscore.c.o
+[393/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/group.c.o
+[394/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcolk.c.o
+[395/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcolsb.c.o
+[396/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcolui.c.o
+[397/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcol.c.o
+[398/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcolj.c.o
+[399/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/simplerng.c.o
+[400/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/scalnull.c.o
+[401/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/swapproc.c.o
+[402/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcoluk.c.o
+[403/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/zcompress.c.o
+[404/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/zuncompress.c.o
+[405/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/wcsutil.c.o
+[406/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/histo.c.o
+[407/550] Linking CXX static library lib/infrastructure/pipeline/orchestrator/cpp/libacsd_infra_orchestrator.a
+[408/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/ricecomp.c.o
+[409/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcoluj.c.o
+[410/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/wcssub.c.o
+[411/550] Building CXX object lib/infrastructure/aio/product_io/CMakeFiles/acsd_product_io.dir/src/sha256.cpp.o
+[412/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putkey.c.o
+[413/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/region.c.o
+[414/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/__/infrastructure/aio/product_io/src/sha256.cpp.o
+[415/550] Building CXX object lib/infrastructure/aio/product_io/CMakeFiles/acsd_product_io.dir/src/bunit.cpp.o
+[416/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/quantize.c.o
+[417/550] Building CXX object lib/infrastructure/aio/product_io/CMakeFiles/acsd_product_io.dir/src/atomic_publish.cpp.o
+[418/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/__/infrastructure/aio/product_io/src/bunit.cpp.o
+[419/550] Building C object lib/algorithms/drizzle/CMakeFiles/acsd_p1_drizzle.dir/__/__/infrastructure/aio/third_party/cfitsio/eval_y.c.o
+[420/550] Building CXX object lib/infrastructure/aio/product_io/CMakeFiles/acsd_product_io.dir/src/product_io.cpp.o
+[421/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/__/infrastructure/aio/product_io/src/atomic_publish.cpp.o
+[422/550] Building CXX object lib/infrastructure/aio/product_io/CMakeFiles/acsd_product_io.dir/src/fits.cpp.o
+[423/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/psf/src/psf_information.cpp.o
+[424/550] Building CXX object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/src/hips/aio_hips_writer.cpp.o
+[425/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/noise_snr/cpp/src/information_weight.cpp.o
+[426/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/imcompress.c.o
+[427/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/calibration/src/calibration_covariance.cpp.o
+[428/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/__/infrastructure/aio/product_io/src/fits.cpp.o
+[429/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/__/infrastructure/aio/product_io/src/product_io.cpp.o
+[430/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/shared/healpix/healpix_core.cpp.o
+[431/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/drizzle/healpix_drizzle/spherical_overlap_science.cpp.o
+[432/550] Building CXX object lib/infrastructure/aio/product_io/CMakeFiles/acsd_product_io.dir/src/hips_manifest.cpp.o
+[433/550] Building CXX object lib/infrastructure/aio/product_io/CMakeFiles/acsd_product_io.dir/src/provenance.cpp.o
+[434/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/src/variance_propagation.cpp.o
+[435/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/drizzle/healpix_drizzle/drizzle_science.cpp.o
+[436/550] Building CXX object lib/infrastructure/pipeline/orchestrator/cpp/CMakeFiles/orchestrator_legacy_cli.dir/src/main.cpp.o
+[437/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/coverage/src/identifiability.cpp.o
+[438/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/product_io/src/sha256.cpp.o
+[439/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/photometry/cpp/src/psfsw.cpp.o
+[440/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/src/weight_chain.cpp.o
+[441/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/__/infrastructure/aio/product_io/src/hips_manifest.cpp.o
+[442/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/__/infrastructure/aio/product_io/src/provenance.cpp.o
+[443/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/coverage/src/coverage.cpp.o
+[444/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/product_io/src/bunit.cpp.o
+[445/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/__/__/drizzle/healpix_drizzle/spherical_overlap.cpp.o
+[446/550] Building C object lib/algorithms/drizzle/hips/CMakeFiles/acsd_p1_hips_writer.dir/__/__/__/infrastructure/aio/third_party/cfitsio/eval_y.c.o
+[447/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/psf/src/psf_information.cpp.o
+[448/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/product_io/src/atomic_publish.cpp.o
+[449/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/noise_snr/cpp/src/information_weight.cpp.o
+[450/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/calibration/src/calibration_covariance.cpp.o
+[451/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/product_io/src/fits.cpp.o
+[452/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/product_io/src/product_io.cpp.o
+[453/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/drizzle/healpix_drizzle/spherical_overlap_science.cpp.o
+[454/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/shared/crypto/sha256.cpp.o
+[455/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/coverage/src/rejection.cpp.o
+[456/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/shared/healpix/healpix_core.cpp.o
+[457/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/drizzle/healpix_drizzle/drizzle_science.cpp.o
+[458/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/buffers.c.o
+[459/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/photometry/cpp/src/psfsw.cpp.o
+[460/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/checksum.c.o
+[461/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/drvrnet.c.o
+[462/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/drvrfile.c.o
+[463/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/drvrmem.c.o
+[464/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/edithdu.c.o
+[465/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/editcol.c.o
+[466/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/eval_l.c.o
+[467/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/product_io/src/provenance.cpp.o
+[468/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/fits_hcompress.c.o
+[469/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/src/hips/aio_hips_reader.cpp.o
+[470/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/product_io/src/hips_manifest.cpp.o
+[471/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/drizzle/healpix_drizzle/spherical_overlap.cpp.o
+[472/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcol.c.o
+[473/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/cfileio.c.o
+[474/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/eval_f.c.o
+[475/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/coverage/src/sampler.cpp.o
+[476/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcold.c.o
+[477/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/fits_hdecompress.c.o
+[478/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcolb.c.o
+[479/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcole.c.o
+[480/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcoll.c.o
+[481/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcoli.c.o
+[482/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcols.c.o
+[483/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcolk.c.o
+[484/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcolsb.c.o
+[485/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcolui.c.o
+[486/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcolj.c.o
+[487/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcoluk.c.o
+[488/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/grparser.c.o
+[489/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getkey.c.o
+[490/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/pliocomp.c.o
+[491/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/iraffits.c.o
+[492/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/getcoluj.c.o
+[493/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/modkey.c.o
+[494/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcolb.c.o
+[495/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcold.c.o
+[496/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/group.c.o
+[497/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/fitscore.c.o
+[498/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcole.c.o
+[499/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcoll.c.o
+[500/550] Building CXX object CMakeFiles/acsd.dir/lib/infrastructure/cli/commands.cpp.o
+In file included from /usr/include/c++/14/functional:59,
+                 from /workspace/Astro CS Database/lib/third_party/nlohmann/json.hpp:33,
+                 from /workspace/Astro CS Database/lib/infrastructure/cli/commands.cpp:27:
+In constructor ‘std::function<_Res(_ArgTypes ...)>::function(std::function<_Res(_ArgTypes ...)>&&) [with _Res = bool; _ArgTypes = {char}]’,
+    inlined from ‘std::__detail::_State<_Char_type>::_State(std::__detail::_State<_Char_type>&&) [with _Char_type = char]’ at /usr/include/c++/14/bits/regex_automaton.h:149:4,
+    inlined from ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_subexpr_begin() [with _TraitsT = std::__cxx11::regex_traits<char>]’ at /usr/include/c++/14/bits/regex_automaton.h:281:24:
+/usr/include/c++/14/bits/std_function.h:405:42: warning: ‘*(std::function<bool(char)>*)((char*)&__tmp + offsetof(std::__detail::_StateT, std::__detail::_State<char>::<unnamed>.std::__detail::_State_base::<unnamed>)).std::function<bool(char)>::_M_invoker’ may be used uninitialized [-Wmaybe-uninitialized]
+  405 |       : _Function_base(), _M_invoker(__x._M_invoker)
+      |                                      ~~~~^~~~~~~~~~
+In file included from /usr/include/c++/14/regex:65,
+                 from /workspace/Astro CS Database/lib/infrastructure/cli/jsonl.h:23,
+                 from /workspace/Astro CS Database/lib/infrastructure/cli/commands.cpp:58:
+/usr/include/c++/14/bits/regex_automaton.h: In member function ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_subexpr_begin() [with _TraitsT = std::__cxx11::regex_traits<char>]’:
+/usr/include/c++/14/bits/regex_automaton.h:279:17: note: ‘__tmp’ declared here
+  279 |         _StateT __tmp(_S_opcode_subexpr_begin);
+      |                 ^~~~~
+In member function ‘bool std::_Function_base::_M_empty() const’,
+    inlined from ‘std::function<_Res(_ArgTypes ...)>::operator bool() const [with _Res = bool; _ArgTypes = {char}]’ at /usr/include/c++/14/bits/std_function.h:574:25,
+    inlined from ‘std::function<_Res(_ArgTypes ...)>::function(std::function<_Res(_ArgTypes ...)>&&) [with _Res = bool; _ArgTypes = {char}]’ at /usr/include/c++/14/bits/std_function.h:407:6,
+    inlined from ‘std::__detail::_State<_Char_type>::_State(std::__detail::_State<_Char_type>&&) [with _Char_type = char]’ at /usr/include/c++/14/bits/regex_automaton.h:149:4,
+    inlined from ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_subexpr_begin() [with _TraitsT = std::__cxx11::regex_traits<char>]’ at /usr/include/c++/14/bits/regex_automaton.h:281:24:
+/usr/include/c++/14/bits/std_function.h:247:37: warning: ‘*(const std::_Function_base*)((char*)&__tmp + offsetof(std::__detail::_StateT, std::__detail::_State<char>::<unnamed>.std::__detail::_State_base::<unnamed>)).std::_Function_base::_M_manager’ may be used uninitialized [-Wmaybe-uninitialized]
+  247 |     bool _M_empty() const { return !_M_manager; }
+      |                                     ^~~~~~~~~~
+/usr/include/c++/14/bits/regex_automaton.h: In member function ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_subexpr_begin() [with _TraitsT = std::__cxx11::regex_traits<char>]’:
+/usr/include/c++/14/bits/regex_automaton.h:279:17: note: ‘__tmp’ declared here
+  279 |         _StateT __tmp(_S_opcode_subexpr_begin);
+      |                 ^~~~~
+In constructor ‘std::function<_Res(_ArgTypes ...)>::function(std::function<_Res(_ArgTypes ...)>&&) [with _Res = bool; _ArgTypes = {char}]’,
+    inlined from ‘std::__detail::_State<_Char_type>::_State(std::__detail::_State<_Char_type>&&) [with _Char_type = char]’ at /usr/include/c++/14/bits/regex_automaton.h:149:4,
+    inlined from ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_subexpr_end() [with _TraitsT = std::__cxx11::regex_traits<char>]’ at /usr/include/c++/14/bits/regex_automaton.h:290:24:
+/usr/include/c++/14/bits/std_function.h:405:42: warning: ‘*(std::function<bool(char)>*)((char*)&__tmp + offsetof(std::__detail::_StateT, std::__detail::_State<char>::<unnamed>.std::__detail::_State_base::<unnamed>)).std::function<bool(char)>::_M_invoker’ may be used uninitialized [-Wmaybe-uninitialized]
+  405 |       : _Function_base(), _M_invoker(__x._M_invoker)
+      |                                      ~~~~^~~~~~~~~~
+/usr/include/c++/14/bits/regex_automaton.h: In member function ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_subexpr_end() [with _TraitsT = std::__cxx11::regex_traits<char>]’:
+/usr/include/c++/14/bits/regex_automaton.h:287:17: note: ‘__tmp’ declared here
+  287 |         _StateT __tmp(_S_opcode_subexpr_end);
+      |                 ^~~~~
+In member function ‘bool std::_Function_base::_M_empty() const’,
+    inlined from ‘std::function<_Res(_ArgTypes ...)>::operator bool() const [with _Res = bool; _ArgTypes = {char}]’ at /usr/include/c++/14/bits/std_function.h:574:25,
+    inlined from ‘std::function<_Res(_ArgTypes ...)>::function(std::function<_Res(_ArgTypes ...)>&&) [with _Res = bool; _ArgTypes = {char}]’ at /usr/include/c++/14/bits/std_function.h:407:6,
+    inlined from ‘std::__detail::_State<_Char_type>::_State(std::__detail::_State<_Char_type>&&) [with _Char_type = char]’ at /usr/include/c++/14/bits/regex_automaton.h:149:4,
+    inlined from ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_subexpr_end() [with _TraitsT = std::__cxx11::regex_traits<char>]’ at /usr/include/c++/14/bits/regex_automaton.h:290:24:
+/usr/include/c++/14/bits/std_function.h:247:37: warning: ‘*(const std::_Function_base*)((char*)&__tmp + offsetof(std::__detail::_StateT, std::__detail::_State<char>::<unnamed>.std::__detail::_State_base::<unnamed>)).std::_Function_base::_M_manager’ may be used uninitialized [-Wmaybe-uninitialized]
+  247 |     bool _M_empty() const { return !_M_manager; }
+      |                                     ^~~~~~~~~~
+/usr/include/c++/14/bits/regex_automaton.h: In member function ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_subexpr_end() [with _TraitsT = std::__cxx11::regex_traits<char>]’:
+/usr/include/c++/14/bits/regex_automaton.h:287:17: note: ‘__tmp’ declared here
+  287 |         _StateT __tmp(_S_opcode_subexpr_end);
+      |                 ^~~~~
+In constructor ‘std::function<_Res(_ArgTypes ...)>::function(std::function<_Res(_ArgTypes ...)>&&) [with _Res = bool; _ArgTypes = {char}]’,
+    inlined from ‘std::__detail::_State<_Char_type>::_State(std::__detail::_State<_Char_type>&&) [with _Char_type = char]’ at /usr/include/c++/14/bits/regex_automaton.h:149:4,
+    inlined from ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_backref(std::size_t) [with _TraitsT = std::__cxx11::regex_traits<char>]’ at /usr/include/c++/14/bits/regex_automaton.tcc:173:29:
+/usr/include/c++/14/bits/std_function.h:405:42: warning: ‘*(std::function<bool(char)>*)((char*)&__tmp + offsetof(std::__detail::_StateT, std::__detail::_State<char>::<unnamed>.std::__detail::_State_base::<unnamed>)).std::function<bool(char)>::_M_invoker’ may be used uninitialized [-Wmaybe-uninitialized]
+  405 |       : _Function_base(), _M_invoker(__x._M_invoker)
+      |                                      ~~~~^~~~~~~~~~
+In file included from /usr/include/c++/14/bits/regex_automaton.h:400:
+/usr/include/c++/14/bits/regex_automaton.tcc: In member function ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_backref(std::size_t) [with _TraitsT = std::__cxx11::regex_traits<char>]’:
+/usr/include/c++/14/bits/regex_automaton.tcc:171:15: note: ‘__tmp’ declared here
+  171 |       _StateT __tmp(_S_opcode_backref);
+      |               ^~~~~
+In member function ‘bool std::_Function_base::_M_empty() const’,
+    inlined from ‘std::function<_Res(_ArgTypes ...)>::operator bool() const [with _Res = bool; _ArgTypes = {char}]’ at /usr/include/c++/14/bits/std_function.h:574:25,
+    inlined from ‘std::function<_Res(_ArgTypes ...)>::function(std::function<_Res(_ArgTypes ...)>&&) [with _Res = bool; _ArgTypes = {char}]’ at /usr/include/c++/14/bits/std_function.h:407:6,
+    inlined from ‘std::__detail::_State<_Char_type>::_State(std::__detail::_State<_Char_type>&&) [with _Char_type = char]’ at /usr/include/c++/14/bits/regex_automaton.h:149:4,
+    inlined from ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_backref(std::size_t) [with _TraitsT = std::__cxx11::regex_traits<char>]’ at /usr/include/c++/14/bits/regex_automaton.tcc:173:29:
+/usr/include/c++/14/bits/std_function.h:247:37: warning: ‘*(const std::_Function_base*)((char*)&__tmp + offsetof(std::__detail::_StateT, std::__detail::_State<char>::<unnamed>.std::__detail::_State_base::<unnamed>)).std::_Function_base::_M_manager’ may be used uninitialized [-Wmaybe-uninitialized]
+  247 |     bool _M_empty() const { return !_M_manager; }
+      |                                     ^~~~~~~~~~
+/usr/include/c++/14/bits/regex_automaton.tcc: In member function ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_backref(std::size_t) [with _TraitsT = std::__cxx11::regex_traits<char>]’:
+/usr/include/c++/14/bits/regex_automaton.tcc:171:15: note: ‘__tmp’ declared here
+  171 |       _StateT __tmp(_S_opcode_backref);
+      |               ^~~~~
+In constructor ‘std::function<_Res(_ArgTypes ...)>::function(std::function<_Res(_ArgTypes ...)>&&) [with _Res = bool; _ArgTypes = {char}]’,
+    inlined from ‘std::__detail::_State<_Char_type>::_State(std::__detail::_State<_Char_type>&&) [with _Char_type = char]’ at /usr/include/c++/14/bits/regex_automaton.h:149:4,
+    inlined from ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_repeat(std::__detail::_StateIdT, std::__detail::_StateIdT, bool) [with _TraitsT = std::__cxx11::regex_traits<char>]’ at /usr/include/c++/14/bits/regex_automaton.h:263:24:
+/usr/include/c++/14/bits/std_function.h:405:42: warning: ‘*(std::function<bool(char)>*)((char*)&__tmp + offsetof(std::__detail::_StateT, std::__detail::_State<char>::<unnamed>.std::__detail::_State_base::<unnamed>)).std::function<bool(char)>::_M_invoker’ may be used uninitialized [-Wmaybe-uninitialized]
+  405 |       : _Function_base(), _M_invoker(__x._M_invoker)
+      |                                      ~~~~^~~~~~~~~~
+/usr/include/c++/14/bits/regex_automaton.h: In member function ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_repeat(std::__detail::_StateIdT, std::__detail::_StateIdT, bool) [with _TraitsT = std::__cxx11::regex_traits<char>]’:
+/usr/include/c++/14/bits/regex_automaton.h:257:17: note: ‘__tmp’ declared here
+  257 |         _StateT __tmp(_S_opcode_repeat);
+      |                 ^~~~~
+In member function ‘bool std::_Function_base::_M_empty() const’,
+    inlined from ‘std::function<_Res(_ArgTypes ...)>::operator bool() const [with _Res = bool; _ArgTypes = {char}]’ at /usr/include/c++/14/bits/std_function.h:574:25,
+    inlined from ‘std::function<_Res(_ArgTypes ...)>::function(std::function<_Res(_ArgTypes ...)>&&) [with _Res = bool; _ArgTypes = {char}]’ at /usr/include/c++/14/bits/std_function.h:407:6,
+    inlined from ‘std::__detail::_State<_Char_type>::_State(std::__detail::_State<_Char_type>&&) [with _Char_type = char]’ at /usr/include/c++/14/bits/regex_automaton.h:149:4,
+    inlined from ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_repeat(std::__detail::_StateIdT, std::__detail::_StateIdT, bool) [with _TraitsT = std::__cxx11::regex_traits<char>]’ at /usr/include/c++/14/bits/regex_automaton.h:263:24:
+/usr/include/c++/14/bits/std_function.h:247:37: warning: ‘*(const std::_Function_base*)((char*)&__tmp + offsetof(std::__detail::_StateT, std::__detail::_State<char>::<unnamed>.std::__detail::_State_base::<unnamed>)).std::_Function_base::_M_manager’ may be used uninitialized [-Wmaybe-uninitialized]
+  247 |     bool _M_empty() const { return !_M_manager; }
+      |                                     ^~~~~~~~~~
+/usr/include/c++/14/bits/regex_automaton.h: In member function ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_repeat(std::__detail::_StateIdT, std::__detail::_StateIdT, bool) [with _TraitsT = std::__cxx11::regex_traits<char>]’:
+/usr/include/c++/14/bits/regex_automaton.h:257:17: note: ‘__tmp’ declared here
+  257 |         _StateT __tmp(_S_opcode_repeat);
+      |                 ^~~~~
+In constructor ‘std::function<_Res(_ArgTypes ...)>::function(std::function<_Res(_ArgTypes ...)>&&) [with _Res = bool; _ArgTypes = {char}]’,
+    inlined from ‘std::__detail::_State<_Char_type>::_State(std::__detail::_State<_Char_type>&&) [with _Char_type = char]’ at /usr/include/c++/14/bits/regex_automaton.h:149:4,
+    inlined from ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_alt(std::__detail::_StateIdT, std::__detail::_StateIdT, bool) [with _TraitsT = std::__cxx11::regex_traits<char>]’ at /usr/include/c++/14/bits/regex_automaton.h:251:24,
+    inlined from ‘void std::__detail::_Compiler<_TraitsT>::_M_disjunction() [with _TraitsT = std::__cxx11::regex_traits<char>]’ at /usr/include/c++/14/bits/regex_compiler.tcc:103:18:
+/usr/include/c++/14/bits/std_function.h:405:42: warning: ‘*(std::function<bool(char)>*)((char*)&__tmp + offsetof(std::__detail::_StateT, std::__detail::_State<char>::<unnamed>.std::__detail::_State_base::<unnamed>)).std::function<bool(char)>::_M_invoker’ may be used uninitialized [-Wmaybe-uninitialized]
+  405 |       : _Function_base(), _M_invoker(__x._M_invoker)
+      |                                      ~~~~^~~~~~~~~~
+/usr/include/c++/14/bits/regex_automaton.h: In member function ‘void std::__detail::_Compiler<_TraitsT>::_M_disjunction() [with _TraitsT = std::__cxx11::regex_traits<char>]’:
+/usr/include/c++/14/bits/regex_automaton.h:246:17: note: ‘__tmp’ declared here
+  246 |         _StateT __tmp(_S_opcode_alternative);
+      |                 ^~~~~
+In member function ‘bool std::_Function_base::_M_empty() const’,
+    inlined from ‘std::function<_Res(_ArgTypes ...)>::operator bool() const [with _Res = bool; _ArgTypes = {char}]’ at /usr/include/c++/14/bits/std_function.h:574:25,
+    inlined from ‘std::function<_Res(_ArgTypes ...)>::function(std::function<_Res(_ArgTypes ...)>&&) [with _Res = bool; _ArgTypes = {char}]’ at /usr/include/c++/14/bits/std_function.h:407:6,
+    inlined from ‘std::__detail::_State<_Char_type>::_State(std::__detail::_State<_Char_type>&&) [with _Char_type = char]’ at /usr/include/c++/14/bits/regex_automaton.h:149:4,
+    inlined from ‘std::__detail::_StateIdT std::__detail::_NFA<_TraitsT>::_M_insert_alt(std::__detail::_StateIdT, std::__detail::_StateIdT, bool) [with _TraitsT = std::__cxx11::regex_traits<char>]’ at /usr/include/c++/14/bits/regex_automaton.h:251:24,
+    inlined from ‘void std::__detail::_Compiler<_TraitsT>::_M_disjunction() [with _TraitsT = std::__cxx11::regex_traits<char>]’ at /usr/include/c++/14/bits/regex_compiler.tcc:103:18:
+/usr/include/c++/14/bits/std_function.h:247:37: warning: ‘*(const std::_Function_base*)((char*)&__tmp + offsetof(std::__detail::_StateT, std::__detail::_State<char>::<unnamed>.std::__detail::_State_base::<unnamed>)).std::_Function_base::_M_manager’ may be used uninitialized [-Wmaybe-uninitialized]
+  247 |     bool _M_empty() const { return !_M_manager; }
+      |                                     ^~~~~~~~~~
+/usr/include/c++/14/bits/regex_automaton.h: In member function ‘void std::__detail::_Compiler<_TraitsT>::_M_disjunction() [with _TraitsT = std::__cxx11::regex_traits<char>]’:
+/usr/include/c++/14/bits/regex_automaton.h:246:17: note: ‘__tmp’ declared here
+  246 |         _StateT __tmp(_S_opcode_alternative);
+      |                 ^~~~~
+[501/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcols.c.o
+[502/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcoli.c.o
+[503/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcolk.c.o
+[504/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcolu.c.o
+[505/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcolsb.c.o
+[506/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcolui.c.o
+[507/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcoluk.c.o
+[508/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcol.c.o
+[509/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcolj.c.o
+[510/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/simplerng.c.o
+[511/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/scalnull.c.o
+[512/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/swapproc.c.o
+[513/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/histo.c.o
+[514/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/zcompress.c.o
+[515/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putcoluj.c.o
+[516/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/wcsutil.c.o
+[517/550] Linking C shared library libacsd_runtime.so
+[518/550] Linking CXX static library libacsd_io_adapter.a
+[519/550] Linking C shared library libacsd_io.so
+[520/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/wcssub.c.o
+[521/550] Linking CXX shared library acsd_cpu_baseline.so
+[522/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/zuncompress.c.o
+[523/550] Linking CXX static library libacsd_cli_process.a
+[524/550] Linking C shared library eng/tests/conformance/noop/acsd_noop.so
+[525/550] Linking C shared library lib/infrastructure/gaia_xpsd_client/acsd_catalog_gaia.so
+[526/550] 生成 providers/providers.manifest.json (provider ABI: acsd_provider_query_v1)
+FAILED: providers/providers.manifest.json /workspace/Astro CS Database/build/asan/providers/providers.manifest.json 
+cd "/workspace/Astro CS Database/build/asan" && /usr/bin/python3 "/workspace/Astro CS Database/eng/tools/gen_provider_manifests.py" --repo "/workspace/Astro CS Database" --build-dir "/workspace/Astro CS Database/build/asan" --providers-dir "/workspace/Astro CS Database/build/asan/providers" --family provider --out "/workspace/Astro CS Database/build/asan/providers/providers.manifest.json" --compiler GNU-14.2.0 --commit b1f4fd72e662495de86178e295f3085ee6edb3df
+==1844554==ASan runtime does not come first in initial library list; you should either link runtime to your application or manually preload it with LD_PRELOAD.
+[527/550] 生成 providers/backends.manifest.json (实测 sha256 + 能力位)
+FAILED: providers/backends.manifest.json /workspace/Astro CS Database/build/asan/providers/backends.manifest.json 
+cd "/workspace/Astro CS Database/build/asan" && /usr/bin/python3 "/workspace/Astro CS Database/eng/tools/gen_provider_manifests.py" --repo "/workspace/Astro CS Database" --build-dir "/workspace/Astro CS Database/build/asan" --providers-dir "/workspace/Astro CS Database/build/asan/providers" --isa-only --out "/workspace/Astro CS Database/build/asan/providers/backends.manifest.json" --compiler GNU-14.2.0 --commit b1f4fd72e662495de86178e295f3085ee6edb3df
+==1844552==ASan runtime does not come first in initial library list; you should either link runtime to your application or manually preload it with LD_PRELOAD.
+[528/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/ricecomp.c.o
+[529/550] Linking CXX shared library lib/algorithms/calibration/acsd_p1_calibration.so
+[530/550] Linking CXX shared library lib/algorithms/drizzle/acsd_p1_drizzle.so
+[531/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/putkey.c.o
+[532/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/region.c.o
+[533/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/quantize.c.o
+[534/550] Building CXX object lib/algorithms/integration/phase1_product/CMakeFiles/acsd_phase1_product.dir/src/phase1_product.cpp.o
+[535/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/imcompress.c.o
+[536/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/src/aio_upm.cpp.o
+[537/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/src/phase2_integrate.cpp.o
+[538/550] Building C object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/__/infrastructure/aio/third_party/cfitsio/eval_y.c.o
+[539/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/phase1_product/src/phase1_product.cpp.o
+[540/550] Building CXX object lib/algorithms/integration/phase2_integrate/CMakeFiles/acsd_phase2_integrate.dir/__/__/coverage/src/upm.cpp.o
+[541/550] Building CXX object CMakeFiles/acsd_module_adapters.dir/lib/infrastructure/scheduler/src/module_adapters.cpp.o
+ninja: build stopped: subcommand failed.
+BUILD_EXIT=1

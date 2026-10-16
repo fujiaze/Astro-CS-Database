@@ -1,0 +1,5 @@
+[1/4] ACSD: 同步响应曲线库 → /workspace/Astro CS Database/build/asan/config/response_curves
+[2/4] Linking CXX static library libacsd_module_adapters.a
+[3/4] Linking CXX static library libacsd_cli_runtime.a
+[4/4] Linking CXX executable acsd
+EXIT=0

@@ -9203,6 +9203,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
               " plane (frame " + frame_path + "): missing_fields=" + miss.dump() +
               " -- 缺任一项即视为该帧的方差面不可审计, 按 §8 fail-closed"
               " (不得静默出片)"));
+          // 所有权：这是本帧的终止路径，必须先释放 frame（AIO 所有权）；
+          // 否则该帧的块与像素缓冲永久泄漏（异常路径泄漏审计发现）。
+          aio_pipeline_frame_destroy(frame);
+          frame = nullptr;
           return;
         }
       }
@@ -9439,7 +9443,23 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         &res, precision_mode, geom_text.empty() ? nullptr : geom_text.c_str(),
         snr_sidecar.c_str(), prec_targets.empty() ? nullptr : &prec_targets,
         prec_targets.empty() ? nullptr : &prec_overlaps);
+    // ── 所有权边界：frame 的所有元数据必须在 destroy **之前**取出 ─────────────
+    // aio_pipeline_frame_destroy 释放块并 delete frame（AIO 拥有该对象）；
+    // destroy 之后任何 aio_frame_*(frame, ...) 都是 use-after-free。曝光时间
+    // fallback 的第二来源是 frame header KV，原先在 destroy 之后才读
+    // （输入亮帧头无有效 EXPTIME 时可达）——这里在 frame 仍合法时一次性取出并
+    // 存为局部值，后续 precision staging 只用局部量。优先级/语义不变：
+    // 输入亮帧头 EXPTIME 优先，其次 frame header EXPTIME。
+    double frame_header_exptime = 0.0;
+    {
+      const char* expt = aio_frame_kv_get(frame, "header", "EXPTIME");
+      if (expt != nullptr && expt[0] != '\0') {
+        const double v = std::atof(expt);
+        if (std::isfinite(v) && v > 0.0) frame_header_exptime = v;
+      }
+    }
     aio_pipeline_frame_destroy(frame);
+    frame = nullptr;   // 显式失效：本帧后续路径不得再触碰该句柄（防回归）
     if (rc != 0) {
       // §10 原子产品 + §7.2 退出码表「10 = 磁盘写满/写盘失败」:
       // 磁盘满必须按**失败本身**归类上抛。aio 在失败瞬间(清理临时产物之前)
@@ -9485,7 +9505,8 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         }
         fdoc.source_dimensions = {im.w(), im.h()};
         // 曝光时长: 优先输入亮帧头（真实观测记录; drizzle 的 frame header 不带
-        // EXPTIME ⇒ 从 lp 自身元数据读）, 其次 data 块 header KV。
+        // EXPTIME ⇒ 从 lp 自身元数据读）, 其次 **destroy 之前已取出的** frame
+        // header EXPTIME 局部值（见上方所有权边界注释; 不得在此触碰 frame）。
         double expt_s = 0.0;
         std::string expt_src;
         {
@@ -9496,12 +9517,9 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             expt_src = "input light header EXPTIME";
           }
         }
-        if (!(expt_s > 0.0)) {
-          const char* expt = aio_frame_kv_get(frame, "header", "EXPTIME");
-          if (expt && expt[0] && std::atof(expt) > 0.0) {
-            expt_s = std::atof(expt);
-            expt_src = "drizzle frame header EXPTIME";
-          }
+        if (!(expt_s > 0.0) && frame_header_exptime > 0.0) {
+          expt_s = frame_header_exptime;
+          expt_src = "drizzle frame header EXPTIME";
         }
         if (expt_s > 0.0) {
           fdoc.exposure_seconds = expt_s;
