@@ -10528,6 +10528,74 @@ static void p2_parallel_for(uint32_t workers, uint64_t n, Fn&& body) {
     if (e) std::rethrow_exception(e);
 }
 
+// ── P0-19（Issue #19）混阶 hips_order 的 fail-closed 最小校验（唯一实现）──────
+// 输入注册面把每帧 HiPS 真实 tile order K 记在 P2HipsInputInfo.max_leaf_order
+// （字段名沿用；语义 = HiPS properties `hips_order`，**不是**科学叶阶 K+9）。
+// p2_coverage_build 的 MOC union 在父网格上允许跨阶（coverage.cpp 几何保持原样），
+// 但当前生产链未实现面积保真球面重采样：下游 sample/upm_apply/reject/integrate
+// 仍按相同 tile_ipix / tile 内 FITS local index 当同一球面像元（Issue #19 生产
+// 证据 4/5/6），高分辨率帧的天球坐标还会错误地按最低 order 的 nside 求值。
+// 因此跨阶必须在写 coverage artifact / 进入像元混合之前 fail-closed。
+//
+// 本函数是 producer（p2_op_coverage）与 consumer（p2_coverage_from_artifact /
+// p2_op_upm_apply / p2_op_write）共用的**同一**判据与同一条具名错误。
+// 返回 true = 全部同阶（含 n<=1）；false = 存在 >=2 个不同 order，*err 为具名
+// 错误。诊断与输入排列无关：conflict order 集合升序，逐输入明细按 (order,path,
+// frame_id) 规范化排序后输出。
+bool p2_hips_order_uniform(const P2HipsInputInfo* infos, size_t n,
+                           std::string* err) {
+  std::vector<int> distinct;
+  distinct.reserve(n);
+  for (size_t i = 0; i < n; ++i) distinct.push_back(infos[i].max_leaf_order);
+  std::sort(distinct.begin(), distinct.end());
+  distinct.erase(std::unique(distinct.begin(), distinct.end()), distinct.end());
+  if (distinct.size() <= 1) return true;
+  std::string msg =
+      "mixed hips_order unsupported without spherical resampling";
+  msg += ": distinct orders={";
+  for (size_t k = 0; k < distinct.size(); ++k) {
+    if (k) msg += ",";
+    msg += std::to_string(distinct[k]);
+  }
+  msg += "}; inputs=[";
+  std::vector<std::string> entries;
+  entries.reserve(n);
+  for (size_t i = 0; i < n; ++i) {
+    entries.push_back(std::to_string(infos[i].max_leaf_order) + "|" +
+                      std::string(infos[i].hips_path) + "|" +
+                      std::string(infos[i].frame_id));
+  }
+  std::sort(entries.begin(), entries.end());
+  for (size_t i = 0; i < entries.size(); ++i) {
+    if (i) msg += ",";
+    msg += entries[i];
+  }
+  msg += "]";
+  if (err) *err = msg;
+  return false;
+}
+
+// 从 coverage artifact 的 frames[] 提取逐帧真实 order 并复用同一最小校验。
+// 供**不经** p2_coverage_from_artifact 的 artifact 消费点（p2_op_upm_apply /
+// p2_op_write 直接 p2_read_json 读 p2_coverage.json）使用，防止旧版/外部
+// artifact 绕过生产准入。frames 缺失/非数组 ⇒ 无可判（保持这些消费点的既有
+// 语义，不新造拒绝面）。
+bool p2_coverage_artifact_orders_uniform(const Json& cov_doc,
+                                         std::string* err) {
+  const auto& frames = cov_doc["frames"];
+  if (!frames.is_array() || frames.empty()) return true;
+  std::vector<P2HipsInputInfo> infos(frames.size());
+  for (size_t i = 0; i < frames.size(); ++i) {
+    std::memset(&infos[i], 0, sizeof(infos[i]));
+    std::snprintf(infos[i].hips_path, sizeof(infos[i].hips_path), "%s",
+                  frames[i].value("hips_path", "").c_str());
+    std::snprintf(infos[i].frame_id, sizeof(infos[i].frame_id), "%s",
+                  frames[i].value("frame_id", "").c_str());
+    infos[i].max_leaf_order = frames[i].value("max_leaf_order", 0);
+  }
+  return p2_hips_order_uniform(infos.data(), infos.size(), err);
+}
+
 // coverage artifact → P2CoverageResult 重建（sample 节点消费上游 typed artifact;
 // inputs/union_cells 由调用方 vector 持有, 仅视图指向）
 struct P2CoverageView {
@@ -10570,6 +10638,11 @@ bool p2_coverage_from_artifact(const Json& cov_doc, P2CoverageView* view,
     std::snprintf(info.frame_type, sizeof(info.frame_type), "%s",
                   fr.value("frame_type", "").c_str());
   }
+  // P0-19(Issue #19) 消费端第二防线：旧版/外部 coverage artifact 可能携带混阶
+  // max_leaf_order（绕过 p2_op_coverage 的生产准入后被直接喂给 p2_op_sample）。
+  // 与生产入口复用同一最小校验；不伪造/mutate 原始 order。
+  if (!p2_hips_order_uniform(view->inputs.data(), view->inputs.size(), err))
+    return false;
   view->cells.clear();
   for (const auto& c : cells) {
     P2MocCell mc{};
@@ -10662,6 +10735,18 @@ Result<void> p2_op_coverage(const Json& doc, Json* man) {
     st["status"] = "fail";
     return Result<void>::fail(Error(ErrorDomain::DATA,
         std::string("p2_coverage_build failed (fill): ") + cov.error));
+  }
+  // ── P0-19 (Issue #19): 跨阶 fail-closed ──────────────────────────────────
+  // 此处是**发布 coverage artifact 与全部后续科学产品之前**的准入点；infos[] 由
+  // 第二次 p2_coverage_build 回填，max_leaf_order = 各帧真实 HiPS hips_order。
+  // MOC 覆盖集合的跨阶 union 数学合法（coverage.cpp 不改），但下游按同名
+  // tile/local index 混合会造成天球位置错配，且当前未实现面积保真重采样 ⇒
+  // 至少两个不同 order 时返回具名 DATA/INPUT 错误，禁止写出 p2_coverage.json。
+  std::string cov_order_err;
+  if (!p2_hips_order_uniform(infos.data(), infos.size(), &cov_order_err)) {
+    st["status"] = "fail";
+    (*man)["error_kind"] = "input";
+    return Result<void>::fail(Error(ErrorDomain::DATA, cov_order_err));
   }
   st["status"] = "ok";
   st["n_inputs"] = cov.n_inputs;
@@ -11742,6 +11827,13 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "coverage artifact missing (signal surface eval needs target_order): " +
           out_dir + "/p2_coverage.json"));
+    // P0-19(Issue #19): 本节点按 coverage target_order 反推叶级 nside 并对各帧
+    // **原生 tile/local index** 求天球坐标（下方 pix2ang_nest）——这是与
+    // p2_coverage_from_artifact 并列的独立像元映射入口。复用同一最小校验，
+    // 拒绝旧版/外部混阶 artifact 绕过 coverage 生产准入。
+    std::string cov_order_err;
+    if (!p2_coverage_artifact_orders_uniform(cov_doc, &cov_order_err))
+      return Result<void>::fail(Error(ErrorDomain::DATA, cov_order_err));
     const int target_order = cov_doc.value("target_order", -1);
     if (target_order < 0 || target_order > 20)
       return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -14377,6 +14469,15 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   if (!p2_read_json(cov_path, &cov_doc))
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "upstream coverage artifact missing: " + cov_path));
+  // P0-19(Issue #19): 发布端闸门。write 本身不做像元合并，但它直接读
+  // p2_coverage.json 并发布最终 HiPS/manifest；外部混阶 artifact 若配上被
+  // 构造的 integrated 产物，会绕过 coverage/sample/upm_apply 的准入而落盘
+  // "complete" 产品。复用同一最小校验，确保**最终无 complete 混阶发布**。
+  {
+    std::string cov_order_err;
+    if (!p2_coverage_artifact_orders_uniform(cov_doc, &cov_order_err))
+      return Result<void>::fail(Error(ErrorDomain::DATA, cov_order_err));
+  }
   const int target_order = cov_doc.value("target_order", 0);
   if (target_order < 0 || target_order > 20)
     return Result<void>::fail(Error(ErrorDomain::DATA,
