@@ -1,3 +1,3 @@
-# common
+# 公共细节
 
-跨阶段公共机制：统一观测模型、统一数据对象与共享基础库，供三条管线共同引用。
+[统一对象引用](unified_objects.md)和[模型到接口](unified_model.md)连接科学正本、工程类型与消费者；[共享库](shared_libraries.md)说明公共实现和复用。

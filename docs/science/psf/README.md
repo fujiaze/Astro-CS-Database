@@ -1,3 +1,3 @@
-# psf
+# PSF
 
-点扩散函数（Point Spread Function，PSF）建模的科学正本：轮廓模型、尺度口径、解析通量与拟合残差标度，以及这些量对下游测光、噪声估计与天测的约束。面向需要引用 PSF 形状定义、参数单位与适用域的读者。
+[PSF分册](PSF.md)定义轮廓、全通量、像元积分与空间适用域；[数值方法](../algorithms/normalize/STAR_PSF_ALGORITHMS.md)解释拟合和残差尺度。[模块接口](../../detail/normalize/modules.md#star-psf)说明实际数组和状态域。

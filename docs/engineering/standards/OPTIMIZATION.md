@@ -1,25 +1,9 @@
-# 优化标准
+# 性能优化
 
-上游：最高设计的 CPU 后端与资源一章[1]；标定常数与有效宽度模型见
-`../resources/PERFORMANCE_MODEL.md`[2]。
+优化从实际profile出发，保持科学定义、精度与有效域。预算和测量口径见[性能模型](../resources/PERFORMANCE_MODEL.md)，CPU能力及后端见[后端架构](../resources/cpu/BACKEND.md)。
 
-优化只能从实测剖面出发、只改实现不改精度档位的工程正本。
+固定机器、输入、配置、二进制/构建身份与工作量，区分计算、I/O、锁、分配和串行段，按真实墙钟占比选目标。候选包括空间索引替代全对比较、scratch复用、重复tile读取、层级重建与浏览器映射缓存；这些只是待实测方向，不能据清单声称瓶颈已确认。
 
-候选（profile 后按 wall time 排序）：
+候选实现有相同科学对象的独立reference/oracle，检查信号、几何、PSF、噪声/控制与能力状态，再比较耗时、内存、读写和散度。至少重复并报告样本数与分位数，快照和探针自身开销另列。优化失败与无安全收益的尝试也保存，不只留最快一次。
 
-```text
-sampler tolerance 邻域：cell×all-cell → per-tile grid 索引
-cross-tile adjacency：boundary pairwise → HEALPix neighbor/space bin
-catalogue proximity：control×catalogue → HEALPix bucket / kd-tree
-UPM CG：scratch buffer 复用，避免每步 vector 分配
-Stage1/2 重复 FITS tile I/O
-hierarchy 重建
-browser：screen→sky→HEALPix 每像素映射；STF 变化不重新采样
-```
-
-重写依据 = 实测 profile；速度增益只从实现面获取，精度档位保持不变。
-
-## 参考文献
-
-[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
-[2] 内部文档 `docs/engineering/resources/PERFORMANCE_MODEL.md`，同层相关正本。
+不要为提高利用率改变精度、掩膜、迭代停止或模型；有意改变算法时按科学问题单独研究。快路径域外明确拒绝或走已定义的等价路径，不能静默降质。收益和回退随目标数据域解释，不用吞吐改善替代科学验证。

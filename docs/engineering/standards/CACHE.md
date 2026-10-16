@@ -1,40 +1,28 @@
-# 缓存策略
+# 缓存与科学暂存
 
-上游：最高设计的软件架构与 CPU 后端与资源两章。
+缓存复用已定义结果；正式cache/spill属于科学执行的数据依赖，与[开发快照](../architecture/DEV_MODE.md)分开。缓存关闭或失效后仍按同一科学定义重算，不从快照副本取数。
 
-生产缓存的清单与「容量、身份、失效、线程模型」四要素的正本。
+## 必备合同
 
-本清单只登记生产缓存。满足「容量 + 身份 + 失效 + 线程模型」四要素的对象才可成为缓存[1]。HiPS Browser 属工具分类（非发布[1]），其页面级瓦片缓存不在本清单。
+每个缓存明确容量和在飞字节、输入/配置/算法身份、失效、线程与所有权、生命周期、命中/重算/失败状态。键包含使数值结果改变的全部条件；路径可作定位，但路径或指针相同不足以认证内容。TTL只限制时效，不能替代版本/内容身份。
 
-## 缓存清单
+| 缓存 | 当前定位与需核对事项 |
+|---|---|
+| UPM dense文件 | model/source hash、目标阶、格式和容量；打开时检查来源，拒绝陈旧或损坏内容 |
+| Gaia查询 | gaia_client.c的方向/半径/星等窗、类型/文件数及版本比较；客户端绑定、TTL和内存预算分别核对 |
+| Gaia解压块 | client共享预算、文件/块身份、淘汰、mmap及在途借用 |
+| Drizzle目标几何 | spherical_overlap.h的线程私有LRU；每run的NSIDE/模型绑定和clear需核对 |
+| Export tile/负缓存 | p3_resample.cpp的输入产品、层级/tile、容量、缺块状态和跨运行失效 |
+| 浏览器tile/显示缓存 | 工具/UI消费者自己的容量与寿命；不冒充科学输入缓存 |
 
-| 缓存 | 容量 | 身份 | 失效 | 线程 |
-| --- | --- | --- | --- | --- |
-| UPM dense cache（文件） | 受磁盘限制 | model_hash + target_order | 打开时 source_hash 校验，stale = 2 | 单写 / 并发读安全 |
-| Gaia 查询缓存 | 有界 / 键化 | 查询键精确匹配（`query_cache_lookup`，`lib/infrastructure/gaia_xpsd_client/src/gaia_client.c`：ra/dec/radius/mag_low/mag_high + db_type/file_count + version） | 事务性替换 + 键校验 | 互斥 |
-| Drizzle geometry cache | 8192（LRU；`lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.h` `TargetGeomCache(capacity=8192)` 默认，侵入式双向链表 LRU + unordered_map 索引，命中路径 O(1)） | target ipix（`TargetPixelGeometry {center,boundary4}`） | 每次 drizzleTiled run 起始 clear，随模型 / NSIDE 重建 | 线程私有（thread_local 仅本线程；命中/未命中 `hits`/`misses` 可观测） |
+该表是定位，不固定各实现的全部容量常量；实际值、配置与内存画像由模块说明和运行记录给出。有限缓存不等于总驻留有界，还要计解码scratch、在飞I/O和外借对象。
 
-## 规则
+## 失效与并发
 
-- cache 必须具备容量、身份、失效与线程模型四要素；
-- stale cache 必须拒绝（返回显式状态）；重算结果经显式状态标记后方为有效；
-- cache 键只由目标身份与配置版本决定，与路径、容器遍历顺序无关。
+变更输入内容、模型、标度、WCS、参考或序列化版本时按对应依赖失效。单写多读、线程私有或互斥的方案由具体对象说明，命中路径返回借用view或独立副本要明确。destroy与在途读串行化；淘汰只回收无消费者的数据。
 
-## 机器判据
+冷/热路径对同一身份给出相同科学值，比较保留有效域和缺项；损坏缓存明确报错或按已定义状态重算，不能静默当正常命中。数值地板、模型选择或迭代次数不能由缓存是否命中偷偷改变。
 
-缓存身份 / 失效 / 线程模型的可核面[1] = `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c`（查询键与事务性替换）、`lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.h`（LRU 容量与线程私有）、`lib/algorithms/resample/p3_resample.cpp`（P3 tile 负缓存与热缓存，见 `../architecture/DATA_FLOW.md`[2]）。偏差登记面 = 已知限制台账。
+## 验证与边界
 
-## 外部查询合并判据
-
-对外部星表服务的同组查询，一次运行内的**外部请求计数为 1**：查询在客户端侧合并，缓存为两级（运行内复用 + 落盘复用）。
-
-- 该计数是 L2 合成性能验收的缓存复用判据（`../testing/VALIDATION_EVIDENCE.md`[3]），与命中率一同归档；
-- 判定看的是**外部请求数**而不是缓存命中率：命中率高而外部请求数大于 1，说明查询未合并，属性能缺陷；
-- 两级缓存各自满足本文件「缓存清单」的四要素；失效策略不得让外部请求数随帧数线性增长。
-
-## 参考文献
-
-[1] 内部文档 `docs/ACSD_DESIGN.md，最高设计`，上位来源。
-[2] 内部文档 `docs/engineering/architecture/DATA_FLOW.md`，管线数据流，缓存与并行的架构侧正本。
-
-[3] 内部文档 `docs/engineering/testing/VALIDATION_EVIDENCE.md`，验证证据标准，外部请求计数的归档口径。
+测试同身份重复、每类依赖变化、容量/淘汰、负缓存、错误恢复与并发释放；记录命中、解压、实际读字节和内存峰值。ACSD Gaia仅本地读取，旧“外部请求每组一次、两级落盘网络缓存”不适用当前模块；本地读取次数不等同外部网络请求。原文保存于[来源档案](../../../实验/documentation-refactor/docs/STANDARDS_SOURCE.txt)。

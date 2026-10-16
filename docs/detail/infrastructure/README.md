@@ -1,3 +1,3 @@
-# infrastructure
+# 基础设施
 
-运行时与支撑面的落地设计：调度执行、命令行入口、输入输出与原子提交、机器画像、可观测性、日志错误、排障、产品存储形态、星表客户端与球面浏览器。
+[Runtime](runtime.md)负责执行与寿命，[CLI](cli.md)连接配置和事件，[AIO](aio.md)与[存储形态](storage_form.md)负责读写，[可观测性](observability.md)与[日志系统](log_and_error_system.md)说明诊断。[星表](gaia_xpsd_client.md)、[机器画像](benchmark.md)、[浏览器](hips_browser.md)和[排障](troubleshooting.md)各按实际入口阅读。
