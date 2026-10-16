@@ -379,31 +379,129 @@ tile 变换可在 Runtime 预算下并行写独立槽，实际 writer 句柄按�
 
 **Mosaic 局部模型会话。**
 
-本页登记 `p2_session_*` 进程内 facade：coverage、sample、UPM build、可选 persist。完整用户 `mosaic` 命令由[七节点管线](pipeline.md)执行，另含 apply、reject、integrate 和最终 signal HiPS 写出；二者不能混称。
+本节是局部会话五函数、数据与生命周期的正式详细设计；[调用算法](../../science/algorithms/mosaic/PHASE2_SESSION.md)给出顺序与核验条件。它组装 coverage→sample→UPM build→可选 UPM persist。用户 `mosaic` 的[七节点生产链](pipeline.md)由 `P2NodeModule` 执行，生产背景用 sky-plane；局部会话的 `ACS_OK` 只表示局部步骤结束，manifest 明确为 `partial`。
 
-### 接口与调用关系
+### 公开声明和所有参数
 
-公开头 [p2_session.h](../../../lib/phase2_session/p2_session.h)、实现 [p2_session.cpp](../../../lib/phase2_session/p2_session.cpp)。接口为 `p2_session_create(host,out)`、`p2_session_validate(handle,config_json)`、`p2_session_run(handle,config_json)`、`p2_session_inspect(handle,out_manifest_json)`、`p2_session_destroy(handle)`，返回 `acsd_status`。C++ `acsd::phase2::last_error` 仅用于诊断。
+头为 [p2_session.h](../../../lib/phase2_session/p2_session.h)，实现为 [p2_session.cpp](../../../lib/phase2_session/p2_session.cpp)，基础类型来自 [common_abi_v1.h](../../../lib/include/acsd/common_abi_v1.h)。下列是实际 C 链接声明；头含 `cstdint`，不能凭 C 链接声明纯 C 编译可用。
 
-此会话直接调用 `p2_coverage_build`、采样和 `p2_upm_build/save`。CLI 经 [module_adapters.cpp](../../../lib/infrastructure/scheduler/src/module_adapters.cpp) 的 `P2NodeModule` 分节点执行，生产 fit 使用 `p2_sky_plane_build_joint`；不能因保留 P2Api 会话适配就把库 UPM 模型认作生产扣除模型。
+```cpp
+acsd_status p2_session_create(const acsd_host_services_v1* host, acsd_handle* out);
+acsd_status p2_session_validate(acsd_handle h, const acsd_span_u8 config_json);
+acsd_status p2_session_run(acsd_handle h, const acsd_span_u8 config_json);
+acsd_status p2_session_inspect(acsd_handle h, acsd_span_u8* out_manifest_json);
+acsd_status p2_session_destroy(acsd_handle h);
+namespace acsd::phase2 { std::string last_error(acsd_handle h); }
+```
 
-### 数据、配置与所有权
-
-| 对象 | 语义 |
+| 参数/返回对象 | 完整语义 |
 |---|---|
-| host | allocator/logger/cancel/budget，寿命覆盖 handle |
-| config | hips_paths/output_dir，局部 upm 参数与 persist_upm/upm_save_path；以本 facade validate/run 的实际消费为准 |
-| coverage、observations | 从产品枚举与采样产生；sky 为 ICRS degree，样本值继承信号单位 |
-| model | 本会话构建的 UPM 模型，调用方不能视为完整马赛克 |
-| inspect | created/complete/failed 及阶段/模型信息；不是最终 signal 发布凭据 |
+| `host` | 借用只读服务表，顶层 `struct_size==sizeof(acsd_host_services_v1)`、`abi_version==ACS_ABI_VERSION_V1`；其 allocator/logger/cancel/budget 及 user_data 寿命覆盖全部调用、inspect 输出的释放和 destroy |
+| `out` | 调用方的 handle 槽；成功写入内部 `SessionState*` 的 opaque 表示。失败不保证清槽，调用方先置空 |
+| `h` | 仅接受本族 create 的存活句柄；null 返回 PARAM（last_error 返回空串），不验证伪造指针、别族句柄或二次 destroy |
+| `config_json` | 借用字节 span，`data!=null,count>0`；按 count 构造 UTF-8 JSON 文本，不要求尾 NUL，不保留输入指针。当前代码没有检查 span.head 的 size/version |
+| `out_manifest_json` | 调用方 span 槽。成功由 host allocator 分配 `dump(2).size()+1` 字节、16 字节对齐，拷贝尾 NUL；返回 count **不含**该 NUL。调用方经同一 host allocator.free 释放，不能普通 free；当前实现只填 data/count，未填 head |
+| `last_error(h)` | C++ 按值字符串诊断；不能跨稳定 C ABI，内容可能含路径，不作脱敏已完成保证；不替代 manifest 与返回码 |
 
-创建者拥有 handle，单 handle 串行，不同 handle 可独立运行。输出 JSON 经 host allocator 分配/释放；模型与缓冲由会话 RAII 持有并用相应 close/free 清理。阶段边界检查取消，UPM worker 数来自 host budget；局部会话不建立跨命令内存共享。
+宿主必须提供实际可用的 allocator.alloc/free；create 只检顶层 ABI，并未逐回调验证。logger.log 与 cancel.is_cancelled 可空。不同 handle 可重入，同一 handle 包括 inspect/last_error/destroy 必须串行；不得销毁在途调用。SessionState 自身通过本库 new/delete，跨边界的 inspect 缓冲通过 host allocator。
 
-### 错误与验证入口
+### 配置键、类型与消费范围
 
-返回 `ACS_ERR_*`，细节由错误摘要与 manifest 说明；纯配置检查与文件/模型构建错误分开。输出路径和配置字段是否被 validate 接受不证明 run 真正消费该字段。
+validate 只做内存内 JSON 检查，没有产品 I/O，也不修改科学模型；它会改变 last_error，因此不是线程安全的只读查询。
 
-验证从本头五函数检查生命周期、分配配对、非法类型、取消、persist/open；完整七节点检查从 [Mosaic 实现导航](pipeline.md)追至 CLI。科学模型由 [UPM 正本](../../science/sky/UPM.md)拥有；本页不以局部会话成功代替完整合成或无接缝实测。
+| 键 | validate 判据 | run 实际消费 |
+|---|---|---|
+| `hips_paths` | 必需、非空数组、每项 string；不拒空字符串/重复路径 | 顺序复制到局部 paths，再构造借用 `const char*[]`，作为两个域的输入顺序 |
+| `output_dir` | 必需、string；未检查非空、可写 | 本局部 run 不使用，不据此写马赛克 |
+| `upm` | 若有须 object；未检查子键类型、值域或未知子键 | 只读 max_iterations(int)、huber_delta(double)、smoothing_lambda(double) |
+| `persist_upm` | 未作类型/组合检查 | 缺省 false；只有值为 true **且**有 upm_save_path 才进入 persist |
+| `upm_save_path` | 未作类型/组合检查 | 进入 persist 后 get<string>，传给 p2_upm_save |
+| 其它键 | 当前不拒；不是白名单验证 | 未消费者静默忽略，包括拼错科学键 |
+
+因此不能沿用旧“拒未知键、无 silent default”的实现声明。宿主应先作符合工程配置合同的完整类型/组合验证，再 validate/run；`run` 本身未调用 validate。用户要求 persist 却缺路径时，当前会静默跳过，正式调用方须显式判错，不能报告已持久化。CLI 配置生产者的 output_dir 注入不等于本 facade 消费输出目录；CLI 正式入口以七节点链为准。
+
+### 域配置的完整赋值
+
+采样配置由 `p2_sampler_default_config()` 单一来源返回，再设置 `sc.cpu_workers=int(host->budget.max_workers)`；本会话不透传采样科学配置。UPM 先 `P2UpmBuildConfig uc{}`，再依次赋值如下，未列字段保持零：
+
+```cpp
+uc.robust_loss = 0;           // Huber
+uc.snr_weight_mode = 0;       // 兼容字段；不能由此声称 SNR 已成为背景精度
+uc.huber_delta = 1.345;
+uc.max_iterations = 100;
+uc.tolerance = 1e-6;
+uc.target_order = int(cov.target_order);
+uc.sigma_floor = 1e-3;
+uc.zero_anchor_weight = 1e-3;
+uc.grid = sc.control_grid_per_tile;
+uc.support_power = 1.0;
+uc.use_ivar_weight = 1;
+uc.control_reliability = 1.0;
+uc.cpu_workers = int(host->budget.max_workers);
+// 若 upm 对象有下列键，依次覆盖对应项：
+// max_iterations, huber_delta, smoothing_lambda
+```
+
+`tolerance_relative` 保持0，因此此入口用绝对停止阈值；生产 sky-plane 或其它入口的相对阈值不能套到本会话。sigma_floor、zero_anchor_weight、support_power、use_ivar_weight、control_reliability 等并不能通过本会话同名 JSON 键覆盖。signal 的实际单位随产品：sigma_floor 与观测 uncertainty 同单位，不能固定称“原始 ADU”；在巨大面亮度标度上绝对阈值可小于可表示间隔，实际是否停机取决于更新与数值尺度，不能从旧某次100迭代未收敛外推全部输入不可能收敛。Huber 1.345 的高斯效率解释及控制方差/权重的适用域由 [UPM](../../science/sky/UPM.md)拥有，固定经验地板不构成误差校准。
+
+### 数据流、分配与释放
+
+1. create 保留 host 指针，初始化 `kind="acsd_phase2_session"`、`stages=[]`、ran=false；只有诊断/manifest 是 handle 持久状态。
+2. run 用局部 `paths/hips/inputs/cells/obs/nodes` 保存数据。coverage probe 的 inputs=null；按 n_union_cells 分配至少1个 cell，inputs 按路径数分配，第二遍回填。coverage 不校验调用方数组容量，输入产品须冻结在同一快照。
+3. sample probe 得 n_obs/n_controls；各分配至少1个元素，再用真实容量 fill，随后 obs.resize(n_obs)。nodes 只用于几何输出，build 入口收到的是 obs，不收到 nodes 数组。
+4. build 得 opaque UPM model；info 失败不让 build 失败。persist 是保存该模型，不是 HiPS writer。正常、persist取消、save失败都显式 p2_upm_close。
+5. 函数返回时所有局部 vector 回收。`p2_coverage_free` 仅清 coverage POD，不释放 vector；它的 RAII guard 只在第二次 coverage 成功后建立。早于该点失败仍由 vector 析构清理，并非“每次失败都恰调一次 free”。
+6. model 没有 RAII guard；在成功 build 后 JSON 类型异常、序列化或分配抛异常时，不能保证 close。destroy 只 delete SessionState，**不持有可供事后补关的 model**。正常路径的显式释放不能代替全异常寿命保证。
+
+host 的 budget.max_workers 分别注入 sampler 和 UPM，两个段顺序执行。本层不创建线程、不调用 budget.acquire/release；域内资源行为须独立核对，参数传入不证明 Runtime lease 已逐层遵守。旧头“sampler=1、内部仅UPM并行”已过时。0→1等 worker 归一由各域负责。
+
+### 返回码、异常与取消
+
+| 返回码 | 当前触发 |
+|---|---|
+| ACS_OK=0 | 局部成功；或 `build rc==0 && model==null` 进入失败分支后 map_rc(0) 的异常组合，不能只看返回码 |
+| ACS_ERR_PARAM=1 | null句柄/必要输出、空span、JSON语法错；validate 非object/缺键/类型错；域 rc=1 |
+| ACS_ERR_ABI_MISMATCH=2 | create host空或顶层size/version不符 |
+| ACS_ERR_NOMEM=3 | SessionState 的 nothrow new 或 inspect host alloc 返回null；不能据此声称全部std分配均被捕获 |
+| ACS_ERR_IO=4 | persist 保存失败，error_kind="output" |
+| ACS_ERR_CANCELLED=6 | coverage/sample/upm_build或实际进入的persist段入口取消 |
+| ACS_ERR_STATE=7 | 域 rc=2 |
+| ACS_ERR_INTERNAL=70 | 域其它非0/1/2 rc |
+
+map_rc 对所有非0域错误写 last_error=`what rc=n` 和 error_kind="input"；并未区分具体输入I/O。validate 只捕获 parse_error；run 只在 parse 段 catch全部，后续 get/类型访问、vector/JSON操作及域异常没有完整 C 异常屏障。上游预检不能替代库边界防护，也不能把未捕获异常称为 ACS_ERR_INTERNAL。
+
+取消在段入口轮询：不进入 persist 就没有末尾persist取消点；长采样/求解不由本层中断。persist 取消先close，未开始save；不等于保存过程事务性、整产品原子发布或所有失败无半文件。模型保存及 [原子发布](../../engineering/contracts/ATOMIC_PUBLISH.md)各自验证。
+
+### manifest 全字段与状态机
+
+```text
+create → kind + stages=[]
+validate失败 → last_error（不清理原 manifest）
+首次run局部成功 → status=partial, n_inputs, n_obs, availability
+首次run失败 → inspect据last_error补status=failed,error
+首次run取消且无last_error → stage cancelled；inspect可仍补status=created
+```
+
+| 范围 | 字段及内容 |
+|---|---|
+| 顶层 | kind、stages、成功时n_inputs/n_obs/status/availability；persist成功时artifacts[]；map_rc/save失败时error_kind；inspect失败时error |
+| 每个stage | name、status（running/ok/fail/cancelled）；这是事件追加数组，同一name可能多条，不是互斥节点快照 |
+| coverage ok | n_inputs、n_union_cells、target_order |
+| sample ok | n_obs、n_controls、accepted_obs、overlap_controls |
+| upm_build ok | info成功时control_count、observation_count、component_count、target_order及非空model_hash；info失败仅ok |
+| persist ok | path，并将同路径加入artifacts[] |
+| fail | coverage/upm_build含rc；sample含rc及fill时err；persist不含域rc，last_error另存 |
+| availability | coverage/sample/upm_fit=available，upm_apply/reject/integrate/write=unavailable；只描述本facade |
+
+逐帧 frame_id、模型内部诊断和域stderr不由本manifest完整承载；host日志有预算、coverage/sample计数。重复 run 没有 reset ran/last_error/stages，前一次partial之后失败或取消可能保留旧成功状态，调用方应每次运行创建新handle并检查完整返回和产物。inspect 输出既不是冻结科学误差模型，也不是最终马赛克完成凭据。
+
+### 调用计数、复杂度与验证范围
+
+正常未取消路径：coverage_build×2、coverage_free×1、sampler_default×1、sample_controls×2、upm_build×1、upm_info×1、upm_save×0或1、upm_close×1；失败前缀按上述寿命分析裁剪，不要求未到达的调用发生。禁止各生产子节点重新调用整个session；当前注册工厂的七节点已各自委托 P2 operation。
+
+时间为两遍coverage、两遍sample与一次build/可选save之和；不是一次扫描。峰值额外内存包括路径、N份input、K union cells、J观测、G节点和模型；probe的域临时工作集另计。域算法、采样拒绝、迭代与存储复杂度由各专题拥有，不能以四段常数个节点声称 O(1)。
+
+核验应覆盖各函数参数/host分配配对、所有JSON负例和persist组合、每段取消、probe错误但计数非0、fill容量、info失败、rc0空model、重复run/旧error污染及异常后模型清理。装配键/计数用精确比较，科学数值误差归独立域真值；当前静态构建目标是 `acsd_phase2_session`，不假定独立DLL或旧命名测试存在。本轮只读源码与文档，未构建/执行会话或真实HiPS。
 
 ## resample
 
