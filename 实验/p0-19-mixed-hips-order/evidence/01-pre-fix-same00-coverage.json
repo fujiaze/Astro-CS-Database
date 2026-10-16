@@ -1,0 +1,35 @@
+{
+  "entry": "p2_coverage_build",
+  "frames": [
+    {
+      "filter_passband": "Halpha",
+      "frame_id": "ord0_halpha",
+      "frame_type": "equatorial",
+      "hips_path": "/tmp/p019/fx/ord0_halpha",
+      "max_leaf_order": 0,
+      "n_tiles": 1
+    },
+    {
+      "filter_passband": "Halpha",
+      "frame_id": "ord0_halpha",
+      "frame_type": "equatorial",
+      "hips_path": "/tmp/p019/fx/ord0_halpha",
+      "max_leaf_order": 0,
+      "n_tiles": 1
+    }
+  ],
+  "hips_paths": [
+    "/tmp/p019/fx/ord0_halpha",
+    "/tmp/p019/fx/ord0_halpha"
+  ],
+  "n_inputs": 2,
+  "n_union_cells": 1,
+  "schema": "DATA-P2-COV",
+  "target_order": 0,
+  "union_cells": [
+    {
+      "ipix": 0,
+      "order": 0
+    }
+  ]
+}
