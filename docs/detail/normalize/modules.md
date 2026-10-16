@@ -443,3 +443,23 @@ cleanAndScale先质量/通量/星等筛选，参考不足3返回无拟合、scal
 sigma_residual是内点对location的绝对残差中位尺度，内点不足2与实际零散度都可能编码0。noise的后续质量换算不替所有消费者自动消歧，不能把0当未知误差已测为零。rejected_quality当前混合多类拒绝，v2逐星reason与输入映射另核对，不将计数名称等同独立原因。
 
 后续实际施加面、application_id、单位、spatial_gain与方差二次幂必须和该次fit配对；拟合成功、输出指针非空及样本残差小分别不是整帧校准完成。独立真值、并列配对、退化、触顶、曲线误用和真实写读验证按[数据合同](../../engineering/contracts/NORMALIZE_DATA.md)进行，本轮未运行。
+
+## Cosmetic 接口与修复状态补充
+
+当前生产p1_op_cosmetic在module_adapters.cpp中调用ac_correct_frame及ac_correct_columns_ex2，底层实现lib/algorithms/calibration/src/cosmetic_corrector.cpp，公开头astro_calibration.h，C入口src/ac_api.cpp。方法公式见[缺陷算法](../../science/algorithms/normalize/COSMETIC_ALGORITHMS.md)，完整旧表保留于[来源档案](../../../实验/documentation-refactor/docs/COSMETIC_SOURCE.txt)。
+
+坏点API输入行主序data、同几何可选dark/bias、宽高、hot/cold_sigma、method/max_structure_size；out由调用方分配，坏点计数指针可空。data和out应使用不重叠缓冲，当前原语从data读邻域、并行写out，未承诺原地或部分重叠安全。没有内部取消点，调用方在安全边界停止，不能提前回收图像/母版。
+
+dark缺失或hot_sigma≤0关闭热检测，bias/cold同理；开启而零检出是另一合法状态。hot/cold计数是结构过滤后的候选数，可能重叠，也不说明每个候选已成功改值。manifest应同时保留配置、来源、启停/退化、标记和修复事实，不能仅凭out_hot=out_cold=0给“已修复”或“关闭”。
+
+库内method=0为中位，其余值进方向IDW；当前CLI解析除已认BILINEAR外回落中位，局部session另有非法值错误处理。三个调用面的行为分别解释，不把库else分支当正式配置词表。坏点mask非零为坏，与accepted极性相反，转换由明确adapter承担。
+
+ac_correct_frame参数基本错误返回AC_ERR_PARAM，普通路径调void内核后返回AC_OK。当前所读包装没有完整异常转换，维数乘法/分配失败/NaN与边界检查不能由rc=0推断已验证。f64转接把输入/母版转float，运算后回double；没有检测/没有坏点时也可能损失double低位，不宣称真FP64恒等。
+
+坏列族包含ac_correct_columns、其f64变体、ac_detect_bad_columns_from_master、ex/ex2三源仲裁及ac_column_variance_inflate。col_mask按列，0干净、1已修、2仅标记；source_mask和各路标记/修复/抑制计数分别保留。SCALE_DEGENERATE、FRAME_TOO_SMALL、EDGE_ONE_SIDED、NO_ANCHOR与WIDE_DEFECT为该族状态位，不直接当CLI错误码或科学精度等级。
+
+neighbor_k当前检测判据未读取，max_seg_len才控制段宽；不能据配置名声明邻域搜索已生效。ex2合并science/dark/bias并记录来源及宽标记预算，legacy session仅调用坏点路径，不等同完整CLI坏列能力。
+
+column_variance_inflate只对修复列写当前方差记账，κ非正/非有限时不写，输出初始化责任须由调用者明确。out_w2_mean按列平均，out_px_inflated当前实际赋n_cols，名称不是像素分母；用作报告需说明真实单位。它未读取两锚方差或相关项，其估计解释见Q36。科学对象应保留修复及模型缺项，数值填补不恢复独立光子观测。
+
+验证覆盖启停/零检出、母版身份与尺寸、MAD退化、镜像边界、长段/单侧/无锚、别名、f64舍入、状态/计数与异方差传播。本轮仅源码和文档核对，未执行修复或异常注入。
