@@ -1,212 +1,43 @@
-# aio（I/O 与原子提交）
+# 统一 AIO
 
-> 上游：《ACSD 最高设计》的「I/O 与原子产品」一章与「软件架构」一章（顶层结构：aio 模块位；模块与 ABI）
-> 数据正本：docs/detail/normalize/modules.md（帧内命名块表，仅作引用；
-> DATA-HIPS-SIGNAL-001 等 HiPS tile 语义）、docs/engineering/contracts/CONFIG.md
-> 合同面：docs/engineering/contracts/HIPS_STORAGE_FORM.md（「体积削减（裸形态）」一节归档容器不打洞、
-> 「形态的输入配置与输出清单字段」一节形态事实登记落点）、docs/engineering/contracts/ATOMIC_PUBLISH.md
-> （IO_002 读合同、IO_003 原子发布）
-> API 正本：docs/engineering/api/PUBLIC_API.md（API-AIO-001..）
-> 科学 ID：SCI-DRZ-014/016（产品语义）
-> 精度：docs/engineering/resources/PERFORMANCE_MODEL.md（FP64 reference）
-> 落盘形态说明：docs/detail/infrastructure/storage_form.md
-> 引用文献：见文末「参考文献」（角标用全角 `［N］`）
+AIO提供正式图像/模型/清单的读写边界。科学库消费声明对象，不直接开文件；[FITS](../../engineering/contracts/FITS_IO.md)、[HiPS](../../engineering/contracts/HIPS_IO.md)、[原子发布](../../engineering/contracts/ATOMIC_PUBLISH.md)和[存储形态](../../engineering/contracts/HIPS_STORAGE_FORM.md)分别拥有工程语义。
 
-## 1. 职责与边界
+## 1. 接口层与消费者
 
-- **职责**：FITS / XISF / AHPIX / HiPS / manifest 的**唯一 I/O 边界**：读、写、
-  校验、原子提交、缓存；zstd / lz4 压缩；UPM 模型文件容器（`aio_upm` sparse /
-  dense）；`PipelineFrame` / 引擎；**形态解析**（裸 HiPS 在役；zstd 归档包读侧属
-  待实现项，见下文「已知限制」）。
-- **不是**：不做科学计算（几何 / 统计）；不做重采样 / 投影；不写 `testdata/`。
-  Phase1/2/3 复用同一套 AIO（reader / writer 只有这一套）。
-- **形态解析层**：按落盘名判定形态并向上层提供统一读语义 —— 裸 `<name>.hips/`
-  直接按路径读（现行读路径）；归档形态 `<name>.hips.zst`（按产品级索引定位表
-  `pread` 单帧解压交付瓦片、覆盖查询走不压缩索引、不解压整包、不落中间文件）
-  的**读侧未接线**：`storage_form` 在生产写出侧与读侧均无读取点，归档形态的读
-  路径属待实现项。调用方（Phase2 / Phase3）读面消费裸形态。
+| 位置 | 实际责任 |
+|---|---|
+| `aio/include` 与 `aio/src` | AIOImageData、PipelineFrame、FITS/XISF、HiPS reader/writer、UPM、压缩和系统I/O；由CLI节点及浏览器调用 |
+| `lib/include/acsd/io/aio_abi_v1.h` | 版本化C ABI握手、状态域及内容哈希复核；不表示所有读写已经统一到该面 |
+| `aio/io/include/acsd/io` | FITS流式与HiPS输入C接口，opaque句柄、POD和调用方缓冲 |
+| `aio/product_io/include/astro/aio` | 内部C++发布、FITS、单位、清单和provenance工具 |
+| `aio/runtime/artifact_store`、`aio/io/*.py` | Python Store及发布语义层，与C++生产接线分别核对 |
 
-### Production callers
+第三方类型封装在其接口内部，外部C ABI不传STL、异常或编译器私有对象。各层状态码、分配器和支持域按真实头，不因都叫AIO就相互代用。
 
-所有科学模块、编排层、Phase2（`aio_upm` / `aio_hips_reader`）、浏览器组件
-（hips reader）。
+## 2. PipelineFrame与所有权
 
-## 2. 权威依据
+PipelineFrame是命名块容器，标准块声明在aio_pipeline.h；自定义块仍可存在，运行时typed复合对象按[命名块合同](../../engineering/contracts/PIPELINE_BLOCK.md)。frame内块不等于跨节点Runtime对象仓已完整实现。
 
-- 《ACSD 最高设计》的「软件架构」一章（顶层结构：aio 模块位）、「I/O 与原子产品」一章
-  （aio 是文件级唯一 I/O 边界）、「CPU 后端与资源」一章（原子发布的本期例外如实登记）
-- 机器可校验 schema：`eng/contracts/schemas/*.schema.json`（全部数据产品）
+`aio_frame_add_block_move`成功后接管约定分配的buffer，调用方不再释放或访问。输入借用、输出接管、视图有效期与destroy成对；销毁frame会释放块和frame本体，后续header/KV访问也不合法。精度staging的疑似释放后使用见[实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
-## 3. 输入输出数据合同
+## 3. 图像读取与产品元数据
 
-- **输入**：FITS / HiPS / manifest 路径、数据对象（signal / variance /
-  coverage / ...）、配置。
-- **输出**：原子提交的产品目录 / 文件 + manifest + 校验记录。
-- **HiPS tile 精度**：`AioHipsDataType` 枚举 `AIO_HIPS_FLOAT32 = 0` /
-  `AIO_HIPS_FLOAT64 = 1`（lib/infrastructure/aio/include/aio_hips.h）透传至
-  `aio_hips_product_begin` 的 `data_type`，写盘 `BITPIX -32 / -64` 对应 CFITSIO
-  `TFLOAT / TDOUBLE`（src/hips/aio_hips_writer.cpp）。**科学精度优先 FP64
-  reference，FP32 仅显式等价路径**（见 docs/engineering/resources/PERFORMANCE_MODEL.md）。
-- **UPM sparse format** = `acsd-upm-v2`（DATA-UPM-MODEL-001）。
+生产fits_read_file的native/CFITSIO读分支施加BSCALE/BZERO，返回实际物理标度；低层流式存储值读面另有缩放责任，不能重复施加。FITS像元、BUNIT、WCS/原点及shape保持配对，未知单位不能补ADU。HiPS读取使用共享NESTED/FITS局部映射，缺tile和真零分别表达。
 
-## 4. 形态与原子提交
+`aio_hips_set_geometry`接收几何JSON字符串，writer把实际设置的对象写进逐帧清单；没设置就不伪造geometry。字段的像元原点、SIP和叶阶依[Normalize数据](../../engineering/contracts/NORMALIZE_DATA.md)及存储合同解释，不能只看清单键存在认定几何正确。
 
-- 形态（docs/detail/infrastructure/storage_form.md）：归档形态 = 产品在 stage 内先按裸
-  形态写出并逐瓦片校验，再按成员边界切分为独立 zstd 帧串接；归档、索引、完成
-  manifest 依次 fsync 后原子落位，**manifest 最后落**；
-- **形态来源与登记**：Phase1 的落盘形态由输入配置键 `storage_form`
-  （`archive` 默认 / `bare`；键缺失或留空 ⇒ 默认 + warn）选定（合同
-  `phase_config_normalize.schema.json` `#/$defs/storage_form`；CLI 可达面 =
-  lib/infrastructure/cli/parser.cpp 的 `session_keys` +
-  `session_commands.h` 的 `config_fields`）。该键在**生产写出侧无读取点**，
-  **现行产出 = 裸形态**：按形态落盘（裸 / 归档两形态、逐成员独立 zstd 帧）、
-  产品级索引 `<name>.hips.index.json` 与完成清单 `manifest.json` 的 `storage`
-  段（`storage_form` / `index_path` / `index_sha256` / `archive_sha256` /
-  `archive_bytes` / `tree_hash`）的写出均为**待实现项**；形态事实登记落点的合同
-  口径见 docs/engineering/contracts/HIPS_STORAGE_FORM.md「形态的输入配置与输出清单字段」一节；
-- 所有产品：临时文件 / 目录 + 校验 + fsync + 原子 rename 提交；
-- **逐帧 HiPS 产品集清单的加性 `geometry` 对象**：阶段一逐帧产品集清单
-  `<output_dir>/<frame_key>/manifest.json` 由 `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`
-  的组装块拼文本写出；解算几何（含 SIP）经公开 C 面
-  `aio_hips_set_geometry(AioHipsProductSet*, const char* geometry_json)`（**取字符串**，
-  不在公开 C 面引入 JSON 类型依赖）设置后，在该组装块以 `"geometry": <json>` **加性**写出；
-  **未设置 ⇒ 该键整体不出现**，清单其余部分逐字节不变。字段面 = `ctype1/2`、`crval1/2`、
-  `crpix1/2`、`cd11/cd12/cd21/cd22`、`pixel_origin`（恒 `0`，0-based 数组下标）、
-  `sip{a,b,ap,bp,order,ap_order}`；`format_version` **保持 1**（加性、读侧无未知键拒绝）。
-  键名**不得**与 §30.3 双写的四个 provenance 键同名（清单取键函数 `json_scalar` 是朴素
-  文本搜索，非 JSON 解析）。口径正本 = docs/engineering/contracts/HIPS_STORAGE_FORM.md
-  「逐帧 HiPS 产品集清单 `manifest.json#geometry`（加性）」一节；机器事实源 =
-  `eng/contracts/schemas/hips_storage_form.schema.json#/$defs/manifest_geometry`；
-- **裸形态体积削减（文件系统打洞）**：`aio_sparse_punch.h` 是打洞机制的**唯一
-  实现** —— 只对 4 KiB 对齐的**字面全零**块调
-  `fallocate(FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE)`（Windows：
-  `FSCTL_SET_SPARSE` + `FSCTL_SET_ZERO_DATA`，64 KiB 对齐），打洞后丢页缓存
-  **读回复算**整文件 `sha256`；不一致 ⇒ 硬错误、不发布；卷不支持 ⇒
-  `trim = skipped(reason)` 的 warn 后照常发布。判据是**字节级**（`-0.0` 与 NaN
-  的位型含非零字节 ⇒ 不可打洞）。打洞在 `write_fits_atomic` 内、`fsync` 之后与
-  原子 rename 之前完成；**归档容器不做打洞**（docs/engineering/contracts/HIPS_STORAGE_FORM.md「体积削减（裸形态）」一节）；
-- **发布终态恰有三态**：① **已发布且持久化已确认**
-  （`PublishDurability::kDurable`：`status = kOk`、`renamed = true`、rename 后
-  目录 fsync 成功）；② **已发布但持久化未确认**（`kNotDurable`：目标**已可见且
-  不可回滚** —— rename 后目录 fsync 失败（`status = kErrIo`），或本平台无目录
-  fsync 等价物 / 调用方显式关闭 `fsync_directory`（`status = kOk`））；
-  ③ **未发布**（`kNotPublished`：rename 未发生，或 rename 后验证失败且撤销成功
-  ⇒ 目标根无正式产品）。判据 = `PublishResult::durability`（与 `status` 正交；
-  恒等式 `renamed == (durability != kNotPublished)`；`PublishStatus` 数值域
-  0..15/70/71 仍由 `static_assert` 冻结，本态**不新增取值**）；
-  **调用方处置：② 不得回滚删除**（产品已可见，删掉即毁掉已发布对象）、**不得
-  静默当成功**（该目录项在崩溃后可能消失），须显式可见（日志 / manifest 标注
-  「持久化未确认」）并允许对父目录重跑 fsync 确认；只有 ③ 才按「无正式产品」
-  清理 / 重发；
-- **单写者前提**：跨进程不取文件锁，同一产品路径同一时刻只允许一个写者（双写者
-  同目标 = 原子 rename 的 last-writer-wins）；并发读安全，并发写由调用方在更高
-  层串行化。
-- **发布尾部后台并行（发布池）**：单文件步序不动（临时写 → 校验 → fsync → 打洞 →
-  原子 rename → 父目录 fsync），但**多个产物文件的发布尾部彼此独立**，串行等待把
-  写段变成瓶颈：本机实测单文件 `fsync` 延迟与文件大小无关（延迟型而非带宽型），
-  并发后吞吐可扩展数倍。因此内容仍由调用线程写进私有临时文件（写入时序与语义
-  不变），尾部四步交 aio 内部一个有界工作池执行；对调用线程而言，文件一交给 aio
-  即视为卸载，可继续生产下一瓦片。并发度 = `min(16, 硬件并发)`，环境键
-  `ACSD_IO_PUBLISH_WORKERS` 可覆盖（`0` = 关闭池、退回全同步路径）。
-- **排空是硬前置**：完成 manifest 是「全部产物已原子发布」的唯一标记，故
-  `finalize` 在写 manifest 之前必须排空发布池（产品 → 排空 → manifest），
-  排空失败即 fail-closed、不留孤儿临时文件。`finalize` 自身也会写产物（各层聚合
-  瓦片、properties、SNR 等），故排空在 `finalize` 入口与 manifest 之前各做一次。
-- **发布池不缓冲文件内容**：队列里每个任务只持有临时路径与目标路径两个串，
-  内存增量与并发度成正比、与文件大小无关；池不改变任何科学值。
+UPM sparse模型与dense缓存以其API读写，打开核对版本、来源和checksum。缓存合法性、科学有效域与统计解释分开。
 
-## 5. 配置项
+## 4. 发布尾部与存储形态
 
-| 字段 | 默认 | 单位 | 说明 |
-|---|---|---|---|
-| `cache_mb` | —— | MB | 缓存上限 |
-| `fsync` | true | —— | 原子提交 fsync |
-| `checksum` | true | —— | DATASUM / CHECKSUM |
-| `compression` | —— | —— | 压缩级别（zstd / lz4，块级） |
-| `order` | —— | —— | HiPS order 参数 |
+HiPS writer的write_fits_atomic使用私有tmp、验证/持久化、可选字面全零打洞、rename及目录确认。打洞前后字节必须一致，NaN和−0.0不可按浮点等于0判断可打洞；不支持卷记录跳过。它是裸文件体积优化，不改变科学值或启用TRIM。
 
-无全局 config（模块不读全局配置）。发布池并发度是运行期资源绑定，不是配置键：
-环境键 `ACSD_IO_PUBLISH_WORKERS`（缺省 `min(16, 硬件并发)`，`0` = 关闭池）。
+发布池可后台处理文件尾部，任务持临时/目标路径，调用方仍要在最终清单前等待所有任务完成。`ACSD_IO_PUBLISH_WORKERS`是运行资源绑定，不能推导计算预算已覆盖或整个进程总线程有界；实际I/O线程、排队和驻留另记录。失败和取消保留真实持久化状态，不一律宣称目标不存在。
 
-## 6. 接口/ABI
+归档`.hips.zst`、产品级索引和storage清单是明确设计目标；当前生产裸形态与未接线部分见实施差异。原文的archive默认、已有reader、文件枚举和未实现说明曾混在一起，完整保留于[来源档案](../../../实验/documentation-refactor/docs/IO_SOURCE.txt)。
 
-- 公共读写 API（C ABI 版本化，`API-AIO-001..`），供 lib/infrastructure/cli、
-  scheduler 与科学模块调用；是**唯一允许触碰磁盘产品**的模块。符号族 =
-  `aio_fits` / `aio_xisf` / `aio_hips_reader` / `aio_hips_writer` / `aio_upm` /
-  `aio_compressor` / `aio_pipeline`。
-- **`PipelineFrame`** = 纯命名块容器（按块名索引）。**块词表的唯一登记处 =
-  `lib/infrastructure/aio/include/aio_pipeline.h` 的「标准块定义表」**（aio 是
-  文件级唯一 I/O 边界，块词表属 aio 的内存块合同）；其它文档只作引用 ——
-  编排层的 6 个名字**不是块词表**，而是 `stage_trace.jsonl` 的**跟踪子集**；
-  docs/detail/normalize/modules.md 的「帧内命名块」表**只作引用**。当前实现状态：标准块定义
-  表**尚未收录** `variance` 块；`aio_pipeline.h` **仍允许**未列出的自定义块名；
-  「块名 ∉ 标准表 ⇒ 判红」这条不变量当前无自动兜底，核对责任在对抗性审查。
-- `PipelineStageFn` 签名 = `const input / output / params` + `error_msg` /
-  `error_capacity`（可为 NULL，> 0 保证 NUL 终止 / 截断）；
-  `aio_frame_add_block_move` 为 move 语义（成功接管后调用方不持有 `aio_alloc`
-  的 buffer）。
+## 5. 并发、错误与验证
 
-## 7. 错误、日志、指标、取消和 checkpoint
+reader/writer句柄默认单调用串行，不同worker各持独立会话。异步复制/借用明确寿命，文件发布和数组回收完成后才关闭所属运行。磁盘、格式、权限、取消、缺块和能力不可用分别返回，错误沿Runtime到CLI；普通日志与开发诊断见[日志系统](log_and_error_system.md)。
 
-- 错误类别 = IO / CONFIG / INPUT_CORRUPT；`aio_upm_last_error` 提供消息；
-  dense stale cache = rc 2；
-- 哈希 / 格式不匹配 → 拒绝读取；
-- 缺 tile / 非有限 → validity 标记，不以零填充；
-- 取消 → 无半成品；
-- I/O 错误 → exit 7（退出码唯一源 = lib/infrastructure/cli/exit_codes.h；域→码
-  映射唯一源 = docs/engineering/contracts/LOG_AND_ERROR.md「错误对象与退出码映射」一节）；
-- **日志落点** = 块级 `log_dir`（默认 `<output_dir>/logs`），节点事件经
-  observability 汇聚（《ACSD 最高设计》的「命令行合同」一章）；落点之外的位置（含 `run/`、源码树目录、
-  安装目录、用户家目录、进程 CWD 相对路径）均不在处置面内，判据见
-  docs/engineering/contracts/LOG_AND_ERROR.md。日志内容 = 错误类别 + 消息。
-
-## 8. 执行类、并行轴、ThreadBudget lease、确定性
-
-- 性能特征：流式读写；compression 块级；HiPS 写**先 tile 后 properties**；
-- 线程：独立句柄可并行；同一句柄顺序访问；dense cache 写 / 读分离；
-- 发布池线程是**IO 线程**（绝大部分时间等在 `fsync` 上，不占计算预算），
-  与计算侧 ThreadBudget lease 分离：lease 约束的是算线程，池约束的是在途发布
-  数；池的线程数由硬件并发导出，可用环境键收窄以限制并发落盘；
-- 缓存：**无进程级缓存**（读路径为句柄级）；缓存只缓存不改变科学值，容量有界、
-  可失效；
-- 确定性：只读路径 = 校验 + 哈希重算，无求和序变化。
-
-## 9. 测试与 Oracle
-
-- 原子提交测试：中途失败 / 取消无半成品；
-- 重开独立验证与写入一致；
-- 哈希 / 校验失败拒绝读取；
-- 缓存正确性（不改变科学值）；
-- 长路径、>2 GiB、Windows/Linux 双平台；
-- 现状执行面（相邻证据，引用不冒认）：`hiss_correctness`、
-  `pipeline_frame_contract`、`checksum`、`drizzle_integration`、fuzz / sanitize
-  driver、Python oracle（`hips_mapping_oracle`）；`test_precision_dual.cpp` 覆盖
-  FP64 精度 oracle（DATA_TYPE FLOAT32/FLOAT64 双模式：`precision_mode` /
-  `signal_dtype` 元数据与 `acsd_signal_dtype` 一致性）。
-
-## 10. 已知限制
-
-- UPM sparse 走 temp + rename 原子写（IO_003）；
-- HiPS tile 与其余 FITS 产物**同走** `write_fits_atomic` 的私有临时文件 + 校验 +
-  fsync + 打洞 + 原子 rename 路径（临时名形如 `<name>.fits.tmp.<pid>.<seq>`，
-  取号原子、并发不重名）；发布池只改变尾部执行时机，不改变该步序。
-- 归档形态的写出与读取、产品级索引与完成清单 `storage` 段写出未落地，生产只落
-  裸形态；
-- 标准块定义表未收录 `variance` 块，且块名越表无自动兜底；
-- 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
-
-## 11. 源文件
-
-`lib/infrastructure/aio/include/` 与 `lib/infrastructure/aio/src/`。
-
-## 12. 参考文献
-
-- ［1］ IAU FITS Working Group. (2016). *FITS Standard*, Version 4.0.
-  永久链接 [fits.gsfc.nasa.gov/fits_standard.html](https://fits.gsfc.nasa.gov/fits_standard.html)
-- ［2］ Pence, W. D.; Chiappetti, L.; Page, C. G.; Shaw, R. A.; Stobie, E. (2010).
-  "Definition of the Flexible Image Transport System (FITS), Version 3.0".
-  *Astronomy and Astrophysics* 524, A42.
-  DOI [10.1051/0004-6361/201015362](https://doi.org/10.1051/0004-6361/201015362)
-- ［3］ IVOA. (2017). *HiPS - Hierarchical Progressive Survey*, Version 1.0,
-  IVOA Recommendation, 19 May 2017.
-  永久链接 [ivoa.net/documents/HiPS](https://www.ivoa.net/documents/HiPS/)
+验证覆盖真实生产入口、缩放一次、双类型、长路径/大文件、同名并发、缺块、hash/checksum、部分写、取消、写满、覆盖及持久化。独立读取器检查格式，独立几何/科学真值检查数值；本轮仅重写与静态定位，没有执行这些用例。
