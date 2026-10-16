@@ -48,6 +48,6 @@ provenance 保存上述来源字段，并与输入/配置、工具链和实际�
 已有 `eng/tools/gen_build_stamp.py`、`acsd::core::build_stamp()` 与 CLI `build_run_provenance`，不能再重造一套 source-digest 算法。**修复对象**是构建时更新依赖、产品消费者接线及真实已加载 executable/DLL SHA-256。五层身份的数学/可审计定义与正负验收见 [实施差异地图 §6](../architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
 - Git commit 只标识版本控制快照；dirty+内容身份只标识声明源集；`ACSD_COMMIT_SHA` 是 configure 时 HEAD，不能参与“这份科学产品由此构建”的唯一指认。
-- 新构建期规则每次构建低成本检查 HEAD、Git 索引成员及受控生成输入，生成文件内容相同时不更新 mtime，只重编小型 `build_stamp.cpp`；依赖集合应与脚本计算摘要的声明集合相同，新增/删除源码能触发重新配置。明确区分 `build_source_digest` 和 `build_config_digest`，不把二者任一冒充真实二进制 hash。
+- 新规则以 **always-run、低成本 stamp-check target** 在每次 Ninja 构建先核 HEAD、dirty、Git 索引成员与受控输入，再让 `build_stamp.cpp` 编译；检查器比较 `head_sha/dirty/source_digest/configure_head_sha` 的规范化身份值，**相同时沿用上次 `stamp_utc` 并绝不重写 header**，改变身份时才采新 UTC 并改写。现有 `gen_build_stamp.py` 每次 `datetime.now` 并把 `ACSD_BUILD_STAMP_UTC` 编入 header，原样挂 always-run 会每轮不必要重编，须在同次代码实现修正；检查时间如需逐次记录须与编译身份分离。CMake 源构建列表变化时按显式输入重新配置，声明摘要的源集和检查的依赖成员必须一致；仅需重编小型 stamp TU，不重编整仓。明确区分 `build_source_digest` 和 `build_config_digest`，不把二者任一冒充真实二进制 hash。
 - 完整已发布科学产品需要 manifest 验证实际加载的 CLI/DLL 文件内容身份；若路径或装载身份变化无法复核，则字段为 `unverified` 且不可写“verified executable”。留存 hash 算法、读取错误、外部依赖与证据采样时间。
 - 旧 frame-science/v1 研发产品按 #10 拒绝、原始 FITS 重算。不设计版本戳驱动的 v1 转换或旧 schema 复原；当前尚未执行增量构建矩阵与两平台 DLL 核验：**NOT_RUN**。
