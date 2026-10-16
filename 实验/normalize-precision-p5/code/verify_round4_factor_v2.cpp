@@ -26,7 +26,9 @@ int main(){
   cov.exact_factorization_of_model=true;
   cov.solver="pivoted_householder_qr_rowspace"; cov.solver_relative_tol=1e-10;
   cov.solver_rank=4; cov.solver_condition_number=1234.5;
+  cov.condition_estimate_method="pivot_norm_ratio_squared";
   cov.background_basis_rank=1; cov.flux_information=2.5e-4;
+  cov.flux_response_norm=0.05; cov.flux_residual_norm=std::sqrt(2.5e-4);
   cov.n_bg=1; cov.random_components={"background"}; cov.omitted_terms={"master_uncertainty"};
   cov.unit="adu^2/sr^2";
   op.kind=LocalModelKind::kDrizzleOperator; op.control_id="p0_r0";
@@ -54,16 +56,24 @@ int main(){
       lc.payload.covariance_condition=="reference_source" &&
       lc.payload.solver=="pivoted_householder_qr_rowspace" &&
       lc.payload.solver_rank==4 &&
-      lc.payload.flux_information>0.0,
+      lc.payload.condition_estimate_method=="pivot_norm_ratio_squared" &&
+      lc.payload.flux_information>0.0 &&
+      lc.payload.flux_response_norm>0.0 &&
+      lc.payload.flux_residual_norm>0.0 &&
+      std::abs(lc.payload.flux_residual_norm*lc.payload.flux_residual_norm-
+               lc.payload.flux_information)<1e-15,
       "v2 unit/shape/solver fields restored without confusion");
   chk(lc.payload.logical_covariance_rows==4 && lc.payload.logical_covariance_cols==4,
       "logical_covariance_shape = [nl,nl] (not [m,1])");
-  auto rec=reconstruct_factor_covariance(lc.payload,lo.payload,1u<<20);
+  auto rec=reconstruct_factor_covariance(lc.payload,lo.payload,1u<<20,"adu");
   chk(rec.ok,"factor reconstruction ok");
   std::printf("  rec rows=%d cols=%d sr(v)=%g sr(R)=%g sr(C)=%g\n",rec.rows,rec.cols,
               rec.factor_unit_sr_power,rec.operator_unit_sr_power,rec.derived_unit_sr_power);
   chk(rec.factor_unit_sr_power==0 && rec.operator_unit_sr_power==-1 &&
       rec.derived_unit_sr_power==-2, "sr powers 0/-1/-2 self-consistent");
+  chk(rec.linear_unit_checked && rec.factor_linear_unit=="adu^2" &&
+      rec.derived_linear_unit=="adu^2",
+      "linear base units checked against frame signal unit (adu)");
   // 独立重算 C = R diag(v) Rᵀ（第三条路径, 直接由 CSR 三元组构造）
   std::vector<double> C(16,0.0);
   for (int l=0;l<4;++l){
@@ -100,15 +110,32 @@ int main(){
   // 负例: 单位不自洽 ⇒ 必须拒绝
   {
     LocalModelPayload bad=lc.payload; bad.factor_variance_unit="adu^2/sr^2";
-    auto r2=reconstruct_factor_covariance(bad,lo.payload,1u<<20);
+    auto r2=reconstruct_factor_covariance(bad,lo.payload,1u<<20,"adu");
     std::printf("  bad-unit rec ok=%d err=%s\n",(int)r2.ok,r2.error.c_str());
     chk(!r2.ok,"wrong factor unit rejected with a named error");
+  }
+  // 负例（NORMALIZE_DATA §7.1B）: sr 幂次 0/-1/-2 全部正确, 但线性单位与帧
+  // signal 单位不是同一个 L（electron^2 vs adu）⇒ 必须拒绝（旧 reader 会放过）
+  {
+    LocalModelPayload bad=lc.payload;
+    bad.factor_variance_unit="electron^2";
+    bad.derived_covariance_unit="electron^2/sr^2";
+    auto r2=reconstruct_factor_covariance(bad,lo.payload,1u<<20,"adu");
+    std::printf("  linear-unit-mismatch rec ok=%d err=%s\n",(int)r2.ok,r2.error.c_str());
+    chk(!r2.ok && r2.error.find("linear")!=std::string::npos,
+        "sr powers correct but base linear unit mismatch rejected");
+  }
+  // 负例: 帧 signal 线性单位未知 ⇒ 不许仅凭 sr 指数接纳
+  {
+    auto r2=reconstruct_factor_covariance(lc.payload,lo.payload,1u<<20,"");
+    std::printf("  unknown-frame-unit rec ok=%d err=%s\n",(int)r2.ok,r2.error.c_str());
+    chk(!r2.ok,"unknown frame linear unit rejected (sr exponent alone insufficient)");
   }
   // 负例: CSR 重复贡献
   {
     LocalModelPayload badop=lo.payload;
     badop.csr_column_indices={0,0,1,2,2,3,3,0};
-    auto r2=reconstruct_factor_covariance(lc.payload,badop,1u<<20);
+    auto r2=reconstruct_factor_covariance(lc.payload,badop,1u<<20,"adu");
     std::printf("  dup-csr rec ok=%d err=%s\n",(int)r2.ok,r2.error.c_str());
     chk(!r2.ok,"duplicate CSR (row,column) rejected");
   }
