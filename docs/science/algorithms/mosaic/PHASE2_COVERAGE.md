@@ -1,408 +1,105 @@
-# Phase2 Coverage Union Algorithms (ALG-COV-001)
+# 球面产品覆盖并集与层级聚合
 
-> 上游：ACSD_DESIGN.md [D-1]「固定科学流程」一节程）
+本页从[统一科学模型](../../unified/UNIFIED_SCIENCE_MODEL.md)、[背景模型](../../sky/UPM.md)及[Mosaic管线](../../../detail/mosaic/pipeline.md)定义输入产品的几何并集和离散父聚合。完整六个C函数、五种结构、实际字段/容量/错误见[Coverage详细设计](../../../detail/mosaic/modules.md#coverage)。coverage是几何登记，support是样本支撑，validity/accepted是数据资格，三者独立；它们都不凭名称取得统计逆方差意义。
 
-> 上游 SCI: SCI-UPM-001（docs/science/sky/UPM.md，FROZEN，共享引用不改动）；
-> 三概念分离权威=SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，共享引用不改动）；
-> 处理链位置=SCI-SCOPE-001 §处理链第 5 步（coverage union 为 Phase2 首节点）。
-> 本域零SCI层改动。
-> 下游: DATA-COV-001（`docs/detail/mosaic/modules.md`）、API-COV-001（PUBLIC_API）、
-> MOD-acsd-phase2-coverage（registry）
-> 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（455 行，复测）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/coverage.h（172 行，同上）；取值与签名一律以本头文件为唯一来源。
-> 矩阵行: docs/engineering/governance/DOCUMENT_GOVERNANCE.md「逐模块追溯台账（人读正本）」一节
-> MOD-acsd-phase2-coverage（matrix P2-COV，legacy_paths=lib/algorithms/coverage coverage
-> sources，迁移目标 acsd_p2_coverage.dll，module_id=acsd.p2.coverage）。
+## 集合模型、层级与分辨率
 
-## 1 上游 SCI 与输入输出
+每帧已发布HiPS在本地产品层级提供一组NESTED tile单元T_f。对order o的像元单元C(o,p)，p∈[0,12·4^o)，NESTED每级将父单元分为四子单元，子号可写p_child=4p_parent+q、q∈{0,1,2,3}。连续退s级即parent(p,s)=floor(p/4^s)=p>>(2s)，这是整数精确包含关系，不依赖天空小角近似。
 
-- SCI-UPM-001（UPM 共享 SCI）：coverage union 天区 Ω 是 UPM 控制采样
-  （"控制点布置于整个 coverage union"，`lib/algorithms/coverage/src/sampler.cpp`）与联合
-  加性模型的范围前提；Ω 与逐帧 tile 覆盖数为几何量，不进入任何科学权重。
-- 三概念分离（本模块合同红线，登记为负向条款，见 [S-1]「参考文献与参考代码」一节）：`coverage` = 几何
-  球面集合量（本模块唯一产物）；`support` = 逐像素覆盖支撑 [0,1]（样本级，
-  SCI-INT-001 [S-2]「物理模型」一节，P2PixelStack.support，仅作 eligibility 与 canonical
-  reducer `max`，integrator 语义）；`validity` = 数据有效性标志（finite/
-  accepted/排异接受掩码语义，SCI-INT-001 [S-2]「判据与误差」一节 valid(i)）。三者各自独立、各自具名，
-  本模块不生产 support/validity，也不消费之（coverage.cpp 无任何 support/
-  accepted 输入，实测 inspect_frame（`lib/algorithms/coverage/src/coverage.cpp`）只读 properties 与 Moc.fits
-  tile 列表）。
-- 输入: N 个 Phase1 单帧 HiPS 目录路径 `const char* const*`（signal 子目录
-  语义，`aio_hips_open(path, AIO_HIPS_RD_SIGNAL)`；signal 子目录下
-  properties + Moc.fits，AIO 侧 `lib/infrastructure/aio/src/hips/aio_hips_reader.cpp`）。
-- 输出: `P2CoverageResult` POD（`lib/algorithms/coverage/include/astro/phase2/coverage.h`）= 逐帧元信息
-  P2HipsInputInfo[N]（同头）+ union MOC 叶级 cell 数组
-  P2MocCell[K]（同头）+ target_order + status/error。
-- 下游消费: sampler（p2_sample_controls / p2_sample_controls_cached，impl 消费 `n_union_cells` / `union_cells[0]` / 逐 cell ipix，
-  `lib/algorithms/coverage/src/sampler.cpp`）、编排 session（`lib/phase2_session/p2_session.cpp` 的 coverage
-  阶段两次调用 + manifest 登记 n_union_cells/target_order）、stage2 正式入口
-  （`lib/algorithms/coverage/tools/stage2.cpp`）、registry descriptor（`lib/infrastructure/scheduler/src/module_adapters.cpp`）。
-- descriptor acsd.phase2.coverage（`lib/infrastructure/scheduler/src/module_adapters.cpp`）为编排层
-  词汇，端口 calibrated→coverage 坐标登记 PIXEL 与球面 MOC 实际语义不符，
-  以本合同为准修订，P2-COV-INT 对齐；冻结依据唯一 = 本合同。
+当前ACSD的properties.hips_order与AIO枚举Npix用于tile层级；512×512 tile的像元叶阶是tile_order+9。coverage的max_leaf_order沿旧名保存hips_order，target_order也是该tile层级；下游sampler以target_order+9求像元中心。文档、产品schema和标准互操作时须检查各自定义，不能从变量名把两个order混为一谈。
 
-## 2 离散公式
+现策略选o_target=min_f(o_f)，构造
 
-（锚=coverage.cpp 实测；公式与源码一一对应，正文按源码逐字照录）
+\[
+ U=\bigcup_f\{p\mathbin{\gg}2(o_f-o_{\rm target}):p\in T_f\},
+ \qquad\Omega_{\rm tile}=\bigcup_{p\in U}C(o_{\rm target},p).
+\]
 
-- properties 解析（static parse_props，文件作用域 static，非匿名 ns，均见 `lib/algorithms/coverage/src/coverage.cpp`）: 逐行
-  `key=value`（首个 `=` 分割），`#` 开头行跳过，两端空白
-  trim（lambda）；重复键后值覆盖前值（`kv[k]=v`）。
-- 每帧叶级 tile 收集（inspect_frame，匿名 namespace，同文件）: `aio_hips_open`（失败
-  → "aio_hips_open failed: %s" + AIO last_error）；
-  `aio_hips_get_properties` 8192 B 缓冲；
-  `hips_order=geti("hips_order",-1)`（缺失/负→"missing hips_order"）；
-  tile_width 必须为 512（"unsupported
-  tile_width=%d"）；`hips_version` 缺失拒绝；
-  `hips_frame` ∈ {equatorial, icrs}（"unsupported
-  hips_frame=%s"）。
-  **合法集的依据与适用域（正向约束）**：
-  (i) `tile_width = 512` 是本仓**产品约定**（与本模块 writer/reader 及
-  `lib/algorithms/shared/healpix/healpix_core.h` 的 `tile_width = 2^shift`
-  （shift=9）一致），**不是** IVOA HiPS 1.0 的强制值——IVOA HiPS 1.0 §4.4.1
-  的 `hips_tile_width` 合法值是 2 的幂，允许其它 tile 宽。故本模块合法域的正确
-  表述是「本产品线冻结 tile_width=512」；域外（如 256）判红属**产品约定拒绝**，
-  **表述口径 = 「产品约定拒绝」**。
-  (ii) `hips_frame ∈ {equatorial, icrs}` 同为**产品约定**：IVOA HiPS 1.0 §4.4.1
-  的 `hips_frame` 标准值域是 {equatorial, galactic, ecliptic}，本模块额外接受
-  `icrs` 而拒绝 `galactic`/`ecliptic`。`equatorial` 与 `icrs` 在本仓语义等价
-  （同一天球系、J2000 参考架），列为两个取值是**输入兼容性**需要，不是两个不同的
-  坐标系；下游一律按 ICRS/J2000 消费。域外（galactic/ecliptic）判红属**未实现**，
-  **表述口径 = 「未实现」**。
-- filter/passband 身份（inspect_frame 与 build 两段，同文件）: `obs_filter`
-  **键缺失 → rc=1 "missing obs_filter property ..."**（fail-closed）；
-  键存在时（含空串）其值进入 `P2HipsInputInfo.filter_passband` 并在 build 层
-  做跨帧**全等**比较（§2 filter 公式）；空串参与全等比较，键缺失在 inspect_frame
-  层一律拒绝（DISP-COV-003）。
-- tile 编号方案（inspect_frame，同文件）: `hips_ordering` 存在且 ≠ "NESTED"
-  → rc=1 "unsupported hips_ordering=%s (NESTED required)"（fail-closed）；本模块
-  union 父聚合 `t>>2s` 与下游 NESTED 消费只在 NESTED 语义下成立。缺省键（AIO
-  写侧恒写 NESTED）登记为空串。
-- 每帧最高叶 order: `max_leaf_order = hips_order`（P2HipsInputInfo 回填
-  ，语义=该 HiPS signal 子目录 properties 声明的叶级 order）。
-- target_order（`lib/algorithms/coverage/src/coverage.cpp`，逐帧 min 同文件）:
-  `target_order = min(f.max_leaf_order, f∈[0,N))`
-  （冻结语义：分辨率取最低输入 order，插值不产生新分辨率，`lib/algorithms/coverage/include/astro/phase2/coverage.h` 注释；全部
-  输入同 order 时即该 order）。
-- filter/passband 一致性（build 见 `lib/algorithms/coverage/src/coverage.cpp`）: 基准 = 首帧 `filter_passband`
-  （无论空串与否）；后续帧 `filter ≠ filter_ref` →
-  "filter mismatch: %s vs %s" rc=1。**空串参与全等比较**，
-  （键缺失已在 inspect_frame 层拒绝）。
-- 跨帧坐标系一致性（build，同文件）: `hips_frame` 必须逐帧相等；
-  equatorial 与 icrs 混用 → "hips_frame mismatch: %s vs %s" rc=1（逐帧校验
-  ∈{equatorial,icrs} 之外还须比较跨帧一致性）。
-- union MOC 父单元聚合（`lib/algorithms/coverage/src/coverage.cpp`）:
-  对每帧叶级 tile t（hips_order = f.max_leaf_order）与目标
-  order o=target_order，令 `s = f.max_leaf_order − o`，
-  `cell(t) = t >> (2·s)`（实现 `ip >> (2 * shift)`，NESTED 父索引；2·s 为
-  z-order 二维象限移位粒度；s 在同处计算）。
-  `Ω_cellset = ⋃_{f∈[0,N)} { t>>(2·s_f) : t ∈ MOC_f(hips_order_f) }`
-  （逐帧 append）→ `std::sort` → `std::unique` 原地去重
-  → K=|Ω_cellset|。
-  输出 cell 的 order 字段统一=target_order，ipix=去重后父索引；
-  n_inputs/target_order 同处回填。
-  性质: Ω 允许不连通分量（`lib/algorithms/coverage/include/astro/phase2/coverage.h`）；任意两输入重叠区当且仅当
-  父单元索引重合时合并——`constant overlap`（逐 cell 覆盖帧数恒定域）
-  由去重后的并集 + 逐帧 tile 集合在下游（sampler/UPM）按需计算，本模块
-  不输出 depth/重叠计数（§10 负向条款）。
-- 越界守卫: 首个 union cell ipix 必须 < `12·4^order`（NESTED 象限总数；
-  sampler 侧断言 `lib/algorithms/coverage/src/sampler.cpp`，本模块自身不重复校验）。
+输出对U升序去重，所有cell.order=o_target。min是当前分辨率/执行政策，不是由集合论必然推出的唯一目标阶；不把更细插值说成新增观测信息。
 
-## 3 伪代码
+当输入细tile仅覆盖某个粗父单元的一部分时，父聚合输出覆盖整个父单元，因此Ω_tile相对精细足迹可能是**外包络**。不同细tile映到同父并不能证明两帧有真实像元重叠。已有tile也可能含NaN/内孔/support不足，几何并集不能充当背景可用重叠图或有效像元并集；这些由sampler逐位置确认。
 
-（coverage.cpp 的 p2_coverage_build 结构直译；两次调用协议，见 [S-1]「参数与常数」一节）
+该接口输出单一order的cell集合，并非完整多阶MOC规范化器。一般MOC可用多阶紧凑表达同一天区；本函数没有把四兄弟继续合成任意多阶最小表示，也没有输出intersection/depth/missing-tiles层。若要定义覆盖深度n(p)=Σ1[p∈Ω_f]或交集∩Ω_f，应保留逐帧集合另算，不能从去重U独自恢复。
+
+## 产品解释与输入有效域
+
+inspect_frame经统一AIO打开signal产品，读取properties与tile列表，不读信号值去重新检测星点、拟合WCS或Drizzle。当前入口要求：
+
+| 属性 | 当前行为及科学解释 |
+|---|---|
+| hips_order | atoi转换后非负，AIO另有0–29范围检查；严格词法和跨消费者安全上限另核 |
+| hips_tile_width | 必须512，是当前产品实现约定，不能表述为IVOA禁止其它2次幂宽度 |
+| hips_version | 非空；不是严格版本协商，更不能拿属性字符串冒充标准编号 |
+| hips_frame | 单帧接受equatorial/icrs，跨帧按字符串全等；不执行坐标系转换，自行/历元不由ICRS名称解决 |
+| hips_ordering | 显式声明必须NESTED；缺键当前登记空串，AIO已有NESTED解释，不能假装测得ordering |
+| obs_filter | 键必须存在，空串表示未声明；值不同允许混合，原文“跨帧filter全等拒绝”已过时 |
+
+每帧通带身份保留给最终响应说明；星光通带差/未知星云SED属于模型解释限制，不是覆盖集合无法求并集。不能以首帧filter替全马赛克物理响应。当前frame字符串全等是软件检查，equatorial/icrs两名的兼容归一要在正式adapter决定，不能由本页悄悄放宽实现。
+
+parse_props按换行拆、首个等号分key/value，首字符#跳过；两端只去空格和尾CR，重复键后值覆盖前值，非通用完整properties语法。8192字节缓冲、atoi宽松解析、字符串截断及AIO错项跳过均需对损坏输入独立检验。返回0只证明当前检查通过，不证明所有物理元数据充分。
+
+## 完整离散步骤与两遍协议
 
 ```text
-p2_coverage_build(hips_paths, n_inputs, out):
-  if out == nullptr: return 1                                 # coverage.cpp
-  保存调用方 inputs/union_cells 指针 → memset(out) → 恢复指针   # coverage.cpp
-  if hips_paths == nullptr or n_inputs == 0:
-      error="no inputs"; return 1                             # coverage.cpp（status 未置位，DISP-COV-001）
-  frame_tiles/infos 分配；target_order=-1                      # coverage.cpp
-  for f in 0..n_inputs-1:                                      # coverage.cpp
-      if path NULL/空: error="empty path at index %llu", rc=1  # coverage.cpp
-      rc=inspect_frame(path, &info_f, &tiles_f)                # coverage.cpp
-      (失败: error 转述)
-      if rc: error 转述, status=1, rc=1                        # coverage.cpp
-      f=info_f.filter; fr=info_f.frame_type
-      if 未设基准→基准=f, frame基准=fr           # coverage.cpp (全等, 无空串豁免)
-      elif f≠基准: status=1, rc=1               # coverage.cpp filter mismatch
-      elif fr≠frame基准: status=1, rc=1         # coverage.cpp hips_frame mismatch
-      target_order = min(target_order, info_f.max_leaf_order)  # coverage.cpp
-  if target_order<0: error="no valid inputs", rc=1             # coverage.cpp（防御分支）
-  for f: for t in tiles_f: append t>>(2·(order_f−target_order))# coverage.cpp
-  sort + unique（升序去重）                                     # coverage.cpp
-  n_inputs/target_order/n_union_cells 回填                     # coverage.cpp
-  union_cells 非空时逐 cell 回填(order,ipix)                    # coverage.cpp
-  inputs 非空时回填 infos；status=0; return 0                  # coverage.cpp
+build(paths,N,out):
+  if out null: return 1
+  save out.inputs and out.union_cells
+  memset(out); restore both pointers
+  if paths null or N==0: error="no inputs"; return 1  # status currently stays 0
+  allocate frame_tiles[N] and infos[N]; target=-1; frame_ref unset
+  for f=0..N-1:
+    reject null/empty path with status1
+    open signal via AIO; reject failed open/properties/required fields
+    collect each successful tile_ipix; current failed per-tile reads are skipped
+    save path/basename/filter/frame/ordering and tile count
+    if frame_ref unset: frame_ref=frame
+    else require frame==frame_ref
+    target = minimum valid input hips_order seen
+  require target>=0
+  append each p >> (2*(o_f-target)) from every frame
+  sort all appended integers, unique -> U
+  set out.n_inputs=N, target_order=target, n_union_cells=|U|
+  if out.union_cells not null: write all |U| cells (target,p)
+  if out.inputs not null: write all N frame infos
+  status=0; return 0
 ```
 
-## 4 两次调用协议（容量查询）与内存所有权
+先以空指针probe得N/K，再分配后fill；每次全量重扫且没有快照缓存。**build不保存或校验调用者给的容量**，若两遍间输入增长或缓冲不够会直接越界写，不能把协议称容量安全。调用者必须冻结产品快照并提供足量缓冲；改接口/容量保护属生产实现后续工作，记录E71。结构基本错误返回与status不同，消费者不能仅看status。
 
-- 第一次调用: `out->union_cells=NULL`（capacity query）→ 返回
-  `n_union_cells=K` 且不写 cell 数组（条件回填）；调用方分配
-  `K` 个 P2MocCell 后第二次调用获得数据（头注释 `lib/algorithms/coverage/include/astro/phase2/coverage.h`；实测
-  每次调用完整重新扫描全部输入，无缓存，inputs 指针同理两阶段回填）。
-- P2CoverageResult/P2MocCell/P2HipsInputInfo 全部为调用方分配（`lib/algorithms/coverage/include/astro/phase2/coverage.h` 注释）；
-  `p2_coverage_free` 仅 `memset(out,0)` 清零 POD（`lib/algorithms/coverage/src/coverage.cpp`）——不释放任何堆内存，无所有权转移（与 PHASE2_API_V1 [S-1]「主题与目标」一节 所有权
-  图行 `Coverage: build/调用方持有/p2_coverage_free/只读借用` 一致，
-  `docs/engineering/api/PUBLIC_API.md`）。
-- 重复调用幂等: 同输入两次 build 结果 bitwise 一致（纯函数式扫描，无
-  全局状态；错误路径通过 `aio_hips_reader_last_error()` 转述 AIO 层原因）。
+独立缓冲无所有权转移，free仅清POD；完整尺寸、字符串容量、资源及其余五个函数分支由detail拥有。主入口并无内部取消或通用异常屏障；所有std容器分配都不能由C链接自动获得不抛异常保证。
 
-## 5 边界/NaN/Inf/invalid
+## 辅助分类和边界归属
 
-- `hips_paths=NULL ∨ n_inputs=0` → rc=1 "no inputs"（`lib/algorithms/coverage/src/coverage.cpp`；
-  status 字段未置 1，DISP-COV-001）。
-- 路径 NULL/空 → rc=1 "empty path at index %llu"（`lib/algorithms/coverage/src/coverage.cpp`）。
-- AIO 打开/properties 失败 → rc=1，error 含 AIO 层 last_error（同文件）。
-- `hips_order` 缺失/负 → rc=1；`hips_tile_width≠512` → rc=1；
-  `hips_version` 缺失 → rc=1；`hips_frame∉
-  {equatorial,icrs}` → rc=1（以上四段同文件）。
-- `obs_filter` 键缺失 → rc=1（"missing obs_filter property"，同文件）。
-- `hips_ordering` 显式声明且 ≠ "NESTED" → rc=1（同文件）。
-- filter mismatch（全等比较，含空串）→ rc=1；跨帧
-  `hips_frame` 不等 → rc=1（两处同文件）。
-- 输出 MOC cell 升序且唯一（sort+unique，同文件）；K=0 仅当全部输入
-  MOC 为空（AIO 层 tiles 空数组），无显式错误（如实登记）。
-- 单位/坐标: path 字符串；order/ipix 无量纲整数；NESTED equatorial/ICRS
-  球面索引（frame 校验保证），无角度量。
+coverage_support_classify先看coverage_known/support_known；任一未知就是UNAVAILABLE，否则coverage0为UNCOVERED，之后按有效帧支撑计数和min_support_frames分SUPPORTED/UNSUPPORTED。unknown不能零填成“已知无覆盖/支撑”，支撑阈只决定资格，不产权重。
 
-## 6 复杂度与误差来源
+boundary_owner用同一父移位取唯一owner；leaf_shift须0–31，非法UINT64_MAX只是错误哨兵，不验证leaf_ipix物理有效。deterministic_reduction_order对输入集合升序去重；它有真正capacity参数，空间不足返回错误且回真实需求，与build的未检查行为分开。
 
-- 时间: O(Σ|MOC_f|) 每帧读盘 + O(K log K) 排序去重（`lib/algorithms/coverage/src/coverage.cpp`）；两次
-  调用协议下整链 ×2（实测语义，无缓存）；内存 O(max|MOC_f|+K)
-  uint64。磁盘 I/O 为唯一外部依赖（properties + Moc.fits，8192 B
-  properties 缓冲，同文件）。
-- 误差来源: 无浮点运算——全链路整数集合运算，bitwise 确定；
-  target_order 截断（混合 order 输入时低 order 决定全局分辨率）为设计
-  保守选择（禁伪装分辨率，`lib/algorithms/coverage/include/astro/phase2/coverage.h`），不构成数值误差。
-- 确定性: 固定归约序（输入数组序→逐帧 append→sort），输出与线程数无关
-  （单线程实现，无 OpenMP pragma，coverage.cpp 全文实测 0 处）；
-  determinism=fixed_reduction_order（module.yaml 合同值）。
+weight_source_token_reject只作18个禁用来源token的ASCII忽略大小写全等拒绝，不合成权重，未命中也不证明新来源科学正确。点源I_F、背景control_ivar与面亮度精度的定义由[噪声分册](../../noise_snr/NOISE_SNR.md)拥有，不能把旧头注释w=SNR²/F_ref²直接当任意面亮度权重；support/帧覆盖数只提供几何/资格。
 
-## 7 合同负向条款（科学红线，P2-COV 专项）
+## 复杂度、精度与边界
 
-- **no use as implicit scientific weight**（matrix P2-COV 专项）: 本模块
-  输出（union MOC/target_order/逐帧 tile 计数）是几何登记量，**用途 = 几何登记与分组，本量不**
-  被任何下游作为科学权重、统计权重或置信度使用；科学权重唯一冻结公式
-  `w_abs = quality × control_ivar`（绝对式），`w_cell = w_abs / Σ w_abs × reliability`（份额式）
-  （docs/science/sky/UPM.md「公式与推导」一节），其中 support 仅
-  eligibility/coverage 语义（sky/UPM.md[S-1]「公式与推导」一节注释行
-  "禁 production 乘 star SNR / snr²/(1+snr²) / support^p；support 仅
-  eligibility/coverage"）、canonical reducer=max（SCI-INT-001 [S-1]「判据与误差」一节，
-  "覆盖并集保守下界"）——该式的输入 = 三项冻结因子，coverage 帧数/N_cover 只作几何登记、不进入该式、不替代
-  control_ivar。
-- **coverage/support/validity 三概念分离**（matrix P2-COV 专项）: 本模块
-  只生产 coverage（几何集合）；support 样本级 [0,1]（SCI-INT-001 [S-2]「物理模型」一节）
-  与 validity（有效/接受标志，SCI-INT-001 [S-2]「判据与误差」一节）不在本模块合同域；任何
-  把 union cell 数、n_tiles、覆盖帧数当作 support 数值或 validity
-  判定的消费均违反本合同。
-- **不做**: 不重新校准/PlateSolve/PSF/DR3SP/Drizzle（`lib/algorithms/coverage/include/astro/phase2/coverage.h`）；
-  不读 signal/support/snr 像素数据（只读 properties/Moc.fits）；不做
-  帧间交集/差集运算（只 union，[S-1]「物理模型」一节）；不输出 depth/overlap 计数产品
-  （§10）；不输出 HiPS（写盘归 P2-HIPS）；不跨滤镜统一（filter mismatch
-  显式拒绝（`lib/algorithms/coverage/src/coverage.cpp`）；UPM 侧"不跨滤镜统一（filter 分组由调用方保证）"
-  SCI-UPM-001 [S-1]「主题与目标」一节 同构）。
-- **registry 端口语义修订**: descriptor 端口 coverage 坐标
-  CoordinateFrame::PIXEL（`lib/infrastructure/scheduler/src/module_adapters.cpp`，出端口 coverage DATA-P2-COV/
-  DIMENSIONLESS/PIXEL）与 NESTED 球面 MOC 实际不符，以本合同（HEALPix NESTED / equatorial/ICRS）为准，
-  P2-COV-INT 对齐修正，不改生产码（入端口 calibrated=DATA-P2-CAL/
-  ADU/PIXEL，同一文件，像素语义对路径输入仅名义）。
+令T=Σ_f|T_f|为去重前总tile数、K=|U|，N为输入帧数。一次读盘/收集O(T+N)，排序O(T log T)，不是O(K log K)；frame_tiles与待排union都在内存中，峰值O(T+N)，不是O(max_f|T_f|+K)。两遍总工作约两次扫描/排序；AIO目录/MOC的内部成本另计，不能用固定8192字节解释全部I/O内存。
 
-## 8 参考实现/Oracle
+在合法order和索引范围内父移位/排序没有浮点误差，集合值可精确比较；外包络分辨率误差、MOC/目录不完整、缺tile、未知ordering和产品读取错误是不同误差。整数精确不证明足迹物理正确，等长数组也不证明同run/天区。
 
-- Oracle 设计（独立于被测符号，不复制 [S-1]「物理模型」一节 公式）:
-  - Python/astropy 参考: 对合成 HiPS 树（固定 seed 生成 properties +
-    Moc.fits）用 astropy_healpix/astropy.io.fits 独立读 MOC，按
-    NESTED 父移位 `t >> 2s` 重算 union 集合与 target_order，与
-    p2_coverage_build 输出集合严格相等（整数精确，无浮点容差）。
-  - 解析解: 两个同 order 相邻 tile → K=2；同一 tile 双帧 → K=1
-    （union 幂等）；混合 order 7/8 单 tile → K=1 且 target_order=7。
-  - 负例: 空输入/NULL 路径/filter mismatch/tile_width 512 以外/
-    frame 非法 → rc=1 且 error 载因。
-- 既有可执行测试:
-  lib/algorithms/coverage/tests/synthetic_gate.cpp `Phase2Coverage.RealHipsUnion`
-  （真实 HiPS 三帧 T2/T3/t4_crop union/target_order=7/
-  filter=Red/两阶段协议/cells[0].order=7）与
-  `Phase2Coverage.FilterMismatchRejected`（坏路径 rc≠0）；
-  两测试依赖 Fatduck 本地路径 F:/... 环境缺失时 GTEST_SKIP
-  （均在同一测试文件）——P2-COV-TEST
-  必须建立不依赖本机真实数据的合成 fixture（TEST-COV-DESIGN-001 F1）。
+NESTED合法o,p要求0≤p<12·4^o且位移<64；下游像元阶又加9，不能只借AIO的tile_order≤29就保证后续位移安全。主build未逐项重核tile编号，sampler已有首项/逐cell检查不能反证上游所有路径安全。输入和所有中间对象计数须可表示，所有失败明确记录。
 
-## 9 容差来源
+模块当前串行，独立对象可重入；同样输入快照下集合/排序与枚举顺序无关，不据此声称未知文件改动、读取错误或跨平台原始POD填充字节也逐位相同。保序/跨worker比较应按语义字段，非对未初始化padding做memcmp。
 
-- 集合运算整数精确: union/target_order/ipix 无浮点，容差=0（bitwise
-  相等），无经验容差；任何"近似union"实现都违反[D-1]几何定义。
-- 数值域容差仅存在于 AIO 读取层（tile 计数完整性由 Moc.fits 决定），
-  本模块对 AIO 层的信任边界 = `aio_hips_open` rc 与
-  `aio_hips_reader_last_error` 透传（同一 `coverage.cpp`）。
-- 上述容差在 P2-COV-TEST 落地时逐项写死（TEST-COV-DESIGN-001 [D-1]），
-  取值一律按本节；fixture 生成器须注记容差来源（本节）。
+## 独立验证和既有证据
 
-## 10 关联 ARC/API/TST
+参考实现直接用独立FITS/MOC reader枚举构造的产品与天空方向，检验NESTED父包含和集合，而不是复制生产读盘/解析路径。两侧都照抄同一移位式只验证实现一致，另需astropy-healpix或HEALPix原库按sky检查父子方向与手性。
 
-- API-COV-001（docs/engineering/api/PUBLIC_API.md）: p2_coverage_build/free
-  2 导出 + 两阶段协议 + P2CoverageResult 所有权。
-- DATA-COV-001（docs/detail/mosaic/modules.md）: 输入 HiPS 树
-  与输出 MOC/逐帧元信息的单位/dtype/shape/invalid 唯一权威。
-- API-P2-001（docs/engineering/api/PUBLIC_API.md，FROZEN）: 逐函数
-  并发五字段（p2_coverage_build/free: yes/no(独立对象)/none/无/TST-COV-*）
-  + 所有权图（`docs/engineering/api/PUBLIC_API.md`）——编排级合同，与本节
-  并行不互斥。
-- ARC-001（CPU 自适应资源合同；现行 CPU 后端设计见 docs/engineering/resources/cpu/BACKEND.md）: cpu_heavy 资源类、
-  单线程（internal_parallel=none）与 host_executor_lease 合同值依据。
-- TST: TEST-COV-DESIGN-001（[S-5]「输入输出端口」一节，P2-COV-TEST 落 TEST-P2-COV-001）。
+解析例：同阶相邻两个单元给K2；重复同单元双帧给K1；混阶7/8只在细cell的父号等于粗cell时K1且target7，否则K2。不同细cell同父但精细不相交的反例检验“粗同父不证明真实重叠”。空合法tile表给K0，输入空列表是错误，二者分开。
 
-## 11 冻结附录（SRC-COV-001 源码实测）
+原F1–F6设计仍有价值：固定seed2–8帧/混阶3–8/断连与跨面；probe/fill及重复；缺属性/非512/非法frame/显式RING；单输入与空MOC；所有错误的rc/status；同快照不同枚举/worker及I/O成本。当前不同filter/空filter合法，不延用旧filter-mismatch负例；新增两遍变化/小容量、越界order、tile读取失败和异常资源负例。只有已存在且实际执行的测试才报告通过。
 
-### 11.1 ALG-COV-001 逐符号锚
+旧RealHipsUnion和FilterMismatchRejected、target7、Fatduck本机路径/GTEST_SKIP与源码行数都属于当时登记；当前所查树没有lib/algorithms/coverage/tests目录，不能把它们当现成可运行测试。原始任务/测试登记全文保留[既有来源档案](../../../../实验/documentation-refactor/docs/MOSAIC_REDUCERS_SOURCE.txt)，本轮未构建或执行Coverage/真实HiPS；科学几何与接口静态核对分别报告。
 
-| 符号 | 锚 | 角色 |
-|---|---|---|
-| p2_coverage_build | `lib/algorithms/coverage/src/coverage.cpp` | 唯一生产入口（C ABI，声明见 `lib/algorithms/coverage/include/astro/phase2/coverage.h`） |
-| p2_coverage_free | `lib/algorithms/coverage/src/coverage.cpp` | POD 清零释放语义（null 与 memset 两处同文件） |
-| inspect_frame | `lib/algorithms/coverage/src/coverage.cpp` | 匿名 namespace 内部链接，每帧校验+tile 收集 |
-| parse_props | `lib/algorithms/coverage/src/coverage.cpp` | 文件作用域 static，properties KV 解析 |
+## 标准、原始论文和参考代码
 
-结构事实: 独立 `extern "C"` 块内 `#include "aio_hips_reader.h"`
-  （AIO 头自带 C 链接声明，双保险属维护歧义，
-并入 DISP-COV-005 整改域）；
-头文件 aio_hips_reader.h 落位 `lib/infrastructure/aio/include/`（根 `CMakeLists.txt` 的
-acsd_phase2 include 目录第 3 项，实测）。
-
-P2HipsInputInfo 7 字段（`lib/algorithms/coverage/include/astro/phase2/coverage.h`）生产消费面（回填与消费均在 `lib/algorithms/coverage/src/coverage.cpp`）: hips_path、
-frame_id（路径基名截断，见 DISP-COV-002）、
-max_leaf_order、n_tiles、filter_passband、
-frame_type（回填 hips_frame）；frame_id 64 B /
-filter_passband 64 B / frame_type 32 B 截断上限（`lib/algorithms/coverage/include/astro/phase2/coverage.h` +
-strncpy 截断语义）。
-
-P2CoverageResult 7 字段（`lib/algorithms/coverage/include/astro/phase2/coverage.h`）: n_inputs/inputs/
-n_union_cells/union_cells/target_order/status/error（512 B）。
-status 语义: 0=ok；错误路径部分分支置 1（`lib/algorithms/coverage/src/coverage.cpp` 四处），
-"no inputs" 分支未置（DISP-COV-001）。
-
-### 11.2 状态码/返回码语义
-
-- rc: 0=成功（含 K=0 空 union）；1=失败（error[512] 载因，`lib/algorithms/coverage/include/astro/phase2/coverage.h`）。
-- 失败路径 status: 1（`lib/algorithms/coverage/src/coverage.cpp` 四处显式）或 0（"no inputs" 分支
-  未置，DISP-COV-001；memset 在该分支之前执行，error
-  strncpy 在其后写入——error 字段有效，status 与 rc 不一致的仅此
-  分支）。
-- 并发合同（API-P2-001行一）: reentrant=yes / threadsafe=no
-  （独立对象）/ internal_parallel=none / 取消点=无 / TST-COV-*；
-  实测支撑: 无全局可变状态、无锁、单线程（[S-1]「与上下游的关系」一节）。
-
-### 11.3 现状缺陷清单（DISP-COV-001..005，登记不改码，整改归 P2-COV-IMPL/INT）
-
-- DISP-COV-001 `no inputs` 分支 status 不一致: `hips_paths==nullptr ∨
-  n_inputs==0` 时仅 strncpy error 后 return 1（`lib/algorithms/coverage/src/coverage.cpp`），`out->status`
-  保持 memset 后的 0——rc=1 与 status=0 并存，
-  违反 status/return 同步惯例（对照该文件四处错误分支均置 1）；
-  调用方若只看 status 会误判成功。整改: 统一 status=1（P2-COV-IMPL）。
-- **两个 frame_id 的命名区分（各自具名，正向约束）**：
-  (i) **coverage frame_id**（本模块，路径基名截断，64 B 上限）：仅作本模块输入
-  登记与 union 分组键，**不保证跨 run 稳定**、**不保证唯一**；
-  (ii) **sampler/UPM frame_id**（内容 SHA-256 truncated-64，
-  `docs/science/algorithms/PHASE2_SAMPLER.md` [S-6]「输入输出端口」一节-FRAME-ID-001）：唯一持久化绑定键
-  （manifest / UPM `parameter_rows ↔ frame_id`）。两者同名不同物：任何跨模块引用
-  frame_id 的地方**必须**写明是哪一种；把 (i) 当 (ii) 使用会使持久化绑定在
-  重命名/换根目录后失效。
-- DISP-COV-002 frame_id 取基名截断: `base.find_last_of("/\\")` 后
-  substr（`lib/algorithms/coverage/src/coverage.cpp`）以 `/` 或 `\` 基名为 frame_id，跨平台
-  分隔符混用时截断点漂移；64 B 上限截断（strncpy + `lib/algorithms/coverage/include/astro/phase2/coverage.h` 的 `frame_id[64]`）后
-  唯一性可能退化（两长同名基名碰撞）——UPM frame 绑定/持久化引用该
-  id（`lib/algorithms/coverage/memory.md`「W4 UPM 完整化：真实内容哈希」），碰撞风险
-  如实登记；整改: 内容哈希派生 id（P2-COV-IMPL，与 UPM SHA-256 设施
-  对齐）。
-- DISP-COV-003（现状）: `obs_filter` **键缺失** fail-closed（inspect_frame，见 `lib/algorithms/coverage/src/coverage.cpp`）；
-  build 层对全部帧做**全等**比较（含空串）——空 filter 一律不静默放行
-  （违背「同一 filter/passband」兼容前提 `lib/algorithms/coverage/include/astro/phase2/coverage.h`）；
-  (c) 跨帧 `hips_frame` 相等；(d) `hips_ordering` 非 NESTED 拒绝
-  （均在 `lib/algorithms/coverage/src/coverage.cpp`）。真实 filter/ordering 负例见
-  `test_10_coverage_requires_filter_and_nested_ordering` 用例。
-- DISP-COV-004 overlap/intersection/missing-tiles 产品缺失（合同范围
-  缺口，非公式错误）: matrix P2-COV 专项要求 union/intersection/
-  missing tiles/constant overlap 四语义；现状仅 union（`lib/algorithms/coverage/src/coverage.cpp`）+
-  target_order，无逐 cell depth map（每 cell 覆盖帧数）、无交集
-  Ω_1∩…∩Ω_N、无缺失 tile 列表输出——下游 sampler/UPM 现以逐帧
-  tile 集合自行推导，且 UPM 侧 geometric_reliability 权重因子
-  （SCI-UPM-001 [S-1]「物理模型」一节）与覆盖度关联的乘数实现恒 1.0（乘数未生效，
-  R3-A 已登记，PUBLIC_API.md API-UPM-001 DISP-UPM-003）——本模块
-  不以 depth 产品补齐该缺口（不改生产码），语义澄清: 覆盖度几何
-  （本模块）≠ 权重因子（UPM 层），修正归 P2-UPM-IMPL 域；
-  P2-COV-IMPL 是否增补 depth/intersection 只读辅助导出由其 TASK_RESULT
-  登记（属合同扩展，非本冻结层）。
-- DISP-COV-005 extern "C" 内 include + 两阶段全量重扫: AIO 头包含于
-  独立 extern "C" 块（`lib/algorithms/coverage/src/coverage.cpp` 的 include 段，AIO 头自带 C 链接声明，双保险属维护
-  歧义）；
-  两阶段协议每次调用全量重扫全部输入（[S-1]「参数与常数」一节，实测无缓存），大 N 输入
-  ×2 I/O 开销——记录为性能/卫生整改项（P2-COV-IMPL），非科学错误。
-- 线程数未接 ThreadBudget: 单线程实现天然满足 determinism，但
-  threading_model=host_executor_lease（module.yaml 合同值）的
-  ThreadLease/取消检查点无接线（P2-COV-IMPL 整改点，同 DISP-WCS-005
-  先例）；阶段级取消点由编排 session 提供（`lib/phase2_session/p2_session.cpp`，
-  含取消检查），模块内无取消检查点（API-P2-001行一 取消点=无，
-  一致）。
-
-### 11.4 TEST-COV-DESIGN-001 冻结测试设计（可执行 TEST-P2-COV-001 由 P2-COV-TEST 落地）
-
-- F1 合成 HiPS union oracle: 固定 seed 生成 2-8 帧 properties+Moc.fits
-  （order 3-8 混合、含不连通分量/跨象限 tile），astropy 独立重算 union
-  集合+target_order 与 p2_coverage_build 输出集合严格相等（bitwise，
-  §9）；专项=union/missing tiles（缺 tile 的 cell 在帧 tile 集合
-  补集中显式断言）。
-- F2 两阶段协议: union_cells=NULL 容量查询 → 分配 → 二次调用数据
-  一致；K 与 sort+unique 后集合大小严格相等；重复两次 build 输出
-  bitwise 相等（幂等，§4）。
-- F3 兼容校验负例: hips_order 缺失/tile_width≠512/hips_version 缺失/
-  hips_frame 非法/filter mismatch（双方非空）→ rc=1 且 error 载因
-  （§5）；F5 扩展: 空 filter 静默放行现状断言为 DISP-COV-003 行为
-  锚（整改后本断言翻转为拒绝——P2-COV-IMPL 同步更新）。
-- F4 边界: 单输入（N=1，union=自身父聚合）；K=0 空 MOC（rc=0 如实）；
-  越界断言 ipix < 12·4^target_order（NESTED 象限总数，sampler 侧先例
-  `lib/algorithms/coverage/src/sampler.cpp`）。
-- F5 负例/错误通道: NULL out/NULL paths/n_inputs=0 → rc=1；rc 与
-  status 一致性断言（DISP-COV-001 整改门：整改后 status 必须同步=1）。
-- F6 确定性/资源: 同输入两次调用 bitwise 一致；单线程断言（无
-  parallel axis）；I/O 次数 = 2×帧数 ×（properties+MOC）上界登记
-  （DISP-COV-005 整改基线）。容差冻结: F1-F6 全部整数/bitwise 断言，
-  无数值容差；fixture生成器注记容差来源（[S-1]「判据与误差」一节）。
-
-### 11.5 SCI 层状态声明（本域零 SCI 改动）
-
-- 覆盖度几何语义已有 FROZEN 权威：SCI-UPM-001（docs/science/
-  sky/UPM.md）[S-1]「主题与目标」一节 目的句「在多帧覆盖并集上」、
-  SCI-INT-001（docs/science/integration/INTEGRATION.md [S-1]「判据与误差」一节）
-  support「覆盖并集保守下界」、SCI-SCOPE-001 §处理链第 5 步
-  「coverage union → 控制采样 → …」。三者均**共享 SCI 引用不改动**
-  （P1-WCS SCI-WCS-001=共享 docs/science/detection/ASTROMETRY.md 同构）。
-- 本域不新建 docs/science/ 冻结层文档：matrix P2-COV 行
-  science_id=SCI-P2-COV-001 的语义映射由本节声明——
-  SCI-P2-COV-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=sky/UPM.md [S-1]「主题与目标」一节
-  覆盖并集 + INTEGRATION.md [S-1]「判据与误差」一节 support/validity 分离 + 科学范围 [S-3]「假设与适用域」一节，矩阵 science_doc=docs/science/sky/UPM.md
-  （MOD-acsd-phase2-coverage 行）。
-  三概念分离/union 离散公式/负向条款的算法定义权威=ALG-COV-001
-  （本文档[S-1]「公式与推导」一节），SCI 公式语义不在此重复定义，两处冲突时以
-  docs/science/ 为准并回改本文档（方向 = 从 docs/science/ 到本文档）。
-- 本节是唯一冻结依据（编排层词汇只作对齐对象；descriptor acsd.phase2.coverage
-  由 P2-COV-INT 对齐，不作冻结依据）。
-
-> 本文引用上游正本（论文式编号，正文引用处均已改为自然语言节名，不再使用跨文档 §N 跳转）：
-> - [D-1] docs/ACSD_DESIGN.md（最高设计）。
-> - [S-1] docs/science/sky/UPM.md（信号面科学正本 SCI-UPM-001）。
-> - [S-2] docs/science/integration/INTEGRATION.md（集成科学正本 SCI-INT-001）。
-> - [S-3] docs/science/unified/SCIENCE_SCOPE.md（科学范围正本）。
-> - [E-1] docs/engineering/resources/cpu/BACKEND.md（工程正本）。
-> - [A-1] docs/science/algorithms/mosaic/PHASE2_SAMPLER.md（采样算法分册）。
-> - [S-9] docs/science/unified/UNIFIED_SCIENCE_MODEL.md（相关科学正本）。
-> - [S-5] docs/science/algorithms/common/GATES_AND_TOLERANCES.md（冻结门表分册）。
-> - [S-6] docs/engineering/api/PUBLIC_API.md（工程 API 正本）。
-
-## 参考文献与参考代码库（含许可证）
-
-- 球面交叠/覆盖几何：Project-defined（本文件 §2/§7）；独立几何 Oracle 可用 astropy-healpix（BSD-3-Clause）与 Górski et al. 2005, ApJ 622, 759。
-- 连通分量分解：Tarjan 1972, SIAM J. Comput. 1, 146（DOI 10.1137/0201010）；Hopcroft & Tarjan 1973, Comm. ACM 16, 372。
-- coverage 非权重：统一科学模型 [S-9]「公式与推导」一节 与 `docs/detail/mosaic/modules.md`「职责与明确非职责」一节；权威语义在本文件 §7 负向条款。
-- MOC 域表达：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。
+1. Górski K. M. et al. (2005), *HEALPix: A Framework for High-Resolution Discretization and Fast Analysis of Data Distributed on the Sphere*, ApJ622,759–771，[论文](https://arxiv.org/abs/astro-ph/0409513)。对应层次等面积像元与NESTED；源码见[HEALPix项目](https://healpix.sourceforge.io/)，独立使用时冻结版本及许可。
+2. Fernique P. et al., [IVOA HiPS 1.0，2017-05-19](https://www.ivoa.net/documents/HiPS/)：层级产品和存储标准；本库tile_width512/坐标实现域只是当前实现政策。
+3. Fernique P. et al., [IVOA MOC 2.0，2022-07-27](https://www.ivoa.net/documents/MOC/)：多阶覆盖表达。基线引用MOC1.0的历史仍保留，当前固定单阶tile集合不自动取得全部MOC2.0的时空/规范化能力。
+4. [astropy-healpix](https://astropy-healpix.readthedocs.io/en/latest/)与[Astropy FITS](https://docs.astropy.org/en/stable/io/fits/)为独立读取/sky对照，冻结版本、ordering和单位，采用时核对BSD类许可证。集合结果与AIO使用同库的自读自写不是同等级证据。
+5. Tarjan (1972), SIAM J. Comput.1,146（DOI10.1137/0201010）及Hopcroft & Tarjan (1973), CACM16,372属于图连通算法参考；本coverage模块不执行背景重叠图分量求解，引用不能当它已完成连通性/可辨识性证明。
