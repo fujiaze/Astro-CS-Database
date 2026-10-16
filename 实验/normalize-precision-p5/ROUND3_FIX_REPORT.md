@@ -271,3 +271,50 @@ p1_sources.json 提取本帧 psf_params 顶点（p1_sources 只含拟合成功�
 −8% V_F / +4% SNR_ref at ctrl0; 帧摘要 −4.6%）是 PSF 模型保真度变化, 不是
 求解器变化; 空间模型的模板失配已达留一法定量（0.135 L1）, 但 SED 参考通带
 与 master covariance 尚未闭合, 参考精度保持 approximate 定位不变。
+
+## 9. P5 空间 alpha（NOISE_SNR §11.3; PHOT-MXY-01 语义 α_j = k_photo·m(x,y)）
+
+接线（三段, 一份公式）:
+- `PlanarPatchWindow::pixel_alpha`（noise 库, 逐窗, 与 pix_index 对齐; 空 ⇒
+  常量 cfg.plane_scale）。GLS 的 alpha 来源优先级: 窗口级 pixel_alpha > 旧
+  cfg.pixel_scale（保留单窗口兼容）> 常量。
+- `PrecisionFrameRequest::pixel_alpha_at` 求值器（帧级, 按源像元下标;
+  空 ⇒ 常量 applied_scale）。stage_frame_precision 逐窗就地求值映射, 不要
+  求调用方预生成整帧 α 数组（4096² 帧省 134 MB; 下标非法 ⇒ 0 ⇒ 具名拒绝）。
+- drizzle 节点: p1_phot.json 顶部 spatial_gain 图（photometry_applied 时落
+  盘; 键=帧 key, 值=m(x,y) 多项式）⇒ 仅当 applied + order>0 + status==ok +
+  identifiable 时组装 α_j = k_photo·m(x_j,y_j); m() 的求值是
+  calibration::photo_spatial_m 的唯一实现（不复制公式）。
+
+验证（code/verify_round5_spatial_alpha.cpp, ALL PASS, evidence/…log）:
+- 常量 α ≡ k 与标量 plane_scale 口径**逐位一致**（rel=0; 接线兼容）
+- 线性梯度场 α_j = k(1+g·x̃): 生产 V_F 与闭式
+  I_F = Σ P_j²/v_j, v_j = blank + F·α_j²·P_j/(g·a_ref), a_ref = Σα_jP_j
+  一致到机器精度（rel=0; a_ref=1.953017261）
+- 条件模型世界 MC 200k: 无偏（0.002σ）、散度比 0.99859±0.00016、95% 覆盖
+  0.9503; 与独立 nl 空间显式 GLS 一致（rel 6.4e-16）
+- 负例: α 非正 / 长度不匹配 ⇒ 具名 unavailable, 不造 V_F
+- 生产 E2E（run_p5e_spatial_alpha.log, exit=0）: 本帧 photometry 通道缺席
+  （α 恒 1）⇒ 求值器为空 ⇒ 结果与 p5d 逐位一致（接线对未测光帧零影响）。
+  **带测光的帧上空间 α 的 E2E 证据 = NOT_RUN**（run/norm-precision-test.json
+  未配置 photometry; 需要一台有 Gaia 定标且启用 spatial_gain 的帧集——
+  真实输入需求已登记, 不用无测光帧伪造该证据）。
+
+## 10. UNRESOLVED: sed_response 参考链（前台输入需求ROUND2 执行结论的 P5 末项）
+
+现状（如实登记, 不强行交付）: parse_reference_config 对 sed_response 只解析
+sed_id/response_id/flux_unit/normalization, 随后置 unavailable 并给具名原因
+（"requires evaluable response integration; not wired in this build"）。缺的三
+项输入均有明确定义但本仓未接线:
+1. **参考 SED 曲线**: Gaia DR3 XP 合成谱（仓内 gaia/GaiaDR3SP xpsd 已由
+   photometry 节点装载 20 条; 但 sed_response 需要的"参考星表各源的谱 +
+   参考星等/零点"解析路径未写）。
+2. **逐帧系统响应 R_k(λ)**: photometry 节点已解析滤镜/QE 曲线身份
+  （p1_phot.json 的 filter_curve_*/qe_* 键）但**响应曲线本体不落盘**
+   ⇒ drizzle 参考链无 R_k 可积分。
+3. **零点/归一合同**: 参考星等 → F_ref 的换算约定（能量响应 vs 光子计数
+   响应, PHOTOMETRY §4 要求显式声明）未在前台正本中给出可执行定义。
+⇒ 需要前台提供: (a) sed_response 的 F_ref 计算合同（哪个积分核、哪个零
+点、误差传播口径）; (b) 响应曲线是否落盘为产品（data_id/位置）; (c) 参考
+星等输入格式。在此之前 reference kind=explicit_linear_flux 是唯一 canonical
+路径, F_ref=1000 ADU 属显式数值参考通量, 不是 Gaia XP 跨设备绝对标度。

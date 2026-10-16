@@ -60,6 +60,11 @@ struct PlanarPatchWindow {
   std::vector<double> src_y;             // 像元 y
   std::vector<double> pix_omega;         // Ω_j: 未收缩源像元球面面积 (sr)
   std::vector<double> pix_a_drop;        // A_drop,j: 收缩 drop 面积 (sr)
+  // 逐像元确定性标度 α_j = applied/native（空间 alpha; PHOT-MXY-01 语义
+  // α_j = k_photo·m(x_j,y_j)）。**长度必须与 pix_index 对齐**; 空 ⇒ 全窗取
+  // cfg.plane_scale 常量。用于 §11.3 源泊松 α_j²/a_ref 配对与有效 gain
+  // g_eff = g·a_ref/α_j²。帧级数组由调用方按窗口映射后填入。
+  std::vector<double> pixel_alpha;
   // 稀疏算子三元组（同一几何路径导出; 与生产 signal 的 R 逐项同源）
   std::vector<int> op_pix;               // 像元槽位 (0..m-1)
   std::vector<int> op_leaf;              // 叶槽位 (0..nl-1)

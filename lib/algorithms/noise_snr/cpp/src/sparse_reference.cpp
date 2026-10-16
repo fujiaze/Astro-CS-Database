@@ -493,19 +493,27 @@ SphericalCompletionResult complete_spherical_reference(
         std::isfinite(cfg.plane_scale) && cfg.plane_scale > 0.0 ? cfg.plane_scale
                                                                 : 1.0;
     std::vector<double> alpha(m, alpha_const);
-    if (!cfg.pixel_scale.empty()) {
-      if (cfg.pixel_scale.size() != m) {
+    // 空间 alpha 的两个来源（按优先级）:
+    //   1) 窗口级 w.pixel_alpha（调用方按本窗像元映射的帧级 α 场; P5 接线）;
+    //   2) cfg.pixel_scale（旧调用方的单窗口口径; 保留兼容, 长度须 = m）。
+    const std::vector<double>* alpha_src = nullptr;
+    if (!w.pixel_alpha.empty())
+      alpha_src = &w.pixel_alpha;
+    else if (!cfg.pixel_scale.empty())
+      alpha_src = &cfg.pixel_scale;
+    if (alpha_src != nullptr) {
+      if (alpha_src->size() != m) {
         fail_point("pixel_scale_length_mismatch");
         out.precision.controls.push_back(ctrl);
         continue;
       }
       for (std::size_t j = 0; j < m; ++j) {
-        if (!std::isfinite(cfg.pixel_scale[j]) || !(cfg.pixel_scale[j] > 0.0)) {
+        if (!std::isfinite((*alpha_src)[j]) || !((*alpha_src)[j] > 0.0)) {
           fail_point("nonfinite_pixel_scale");
           alpha.clear();
           break;
         }
-        alpha[j] = cfg.pixel_scale[j];
+        alpha[j] = (*alpha_src)[j];
       }
       if (alpha.empty()) {
         out.precision.controls.push_back(ctrl);

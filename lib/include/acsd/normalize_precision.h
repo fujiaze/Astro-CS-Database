@@ -78,9 +78,12 @@ struct PrecisionFrameRequest {
   //   applied_scale = α。var_plane 以**同一数组标度**给出（= α²·原生 ADU²）。
   bool photometry_applied = false;
   double applied_scale = 1.0;
-  // 逐像元标度 α_j（= applied/native; 空间 alpha）。空 ⇒ 全帧常量 applied_scale。
-  // 用于 NOISE_SNR §11.3 的源泊松有效 gain g_eff = g·a_ref/α_j²。
-  std::vector<double> pixel_scale;
+  // 逐像元标度 α_j（= applied/native; 空间 alpha, PHOT-MXY-01 语义
+  // α_j = k_photo·m(x_j,y_j)）。**求值器**（输入源像元下标, 输出 α_j）; 空 ⇒
+  // 全帧取常量 applied_scale。用于 NOISE_SNR §11.3 的源泊松有效 gain
+  // g_eff = g·a_ref/α_j²。m() 的唯一实现在 calibration::photo_spatial_m
+  // （由调用方组装, 本单元不复制公式）。
+  std::function<double(std::int64_t)> pixel_alpha_at;
   std::string gain_provenance = "unavailable";
   double pixel_scale_arcsec = 1.0; // 输入像元角尺度（query_disc 半径估计用）
 };
