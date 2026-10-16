@@ -558,14 +558,10 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         for (uint32_t local : tp->touched) {
             if (local >= n_leaf || local >= tp->pixels.size()) continue;
             const auto& acc = tp->pixels[local];
-            // support 面积比 uint8 量化 (旧容器 finalize_support 同式):
-            //   u8 = lround(255·clamp(sumArea/A_cell, 0, 1))
-            double S = (double)acc.sumArea / a_cell;
-            if (S < 0.0) S = 0.0;
-            if (S > 1.0) S = 1.0;
-            long q = std::lround(255.0 * S);
-            if (q < 0) q = 0;
-            if (q > 255) q = 255;
+            // 正式 HiPS 科学support使用连续 covered_area；不可在 signal / var
+            // 的归一分母之前量化到 uint8。否则 S<1/510 的合法小覆盖
+            // 会被舍入为0并抹去信号；边缘叶常量面亮度也不再守恒。
+            // 历史可视化支持图若需要 u8，须在独立展示边界再做量化。
             // 面亮度换算因子 k = sumArea/sumNorm = D_p/N_p。
             // N_p = Σ_j w_jp·A_pixel,j 是面亮度归一分母（单位 sr, 与覆盖球面面积同量纲;
             // 符号表 = docs/science/drizzle/DRIZZLE.md §符号表、字段锚 = astro_sphere_sink.h:29）。
@@ -582,8 +578,8 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                                               (double)acc.sumNorm);
             // signal = 累计通量(折算后), HiPS 产品位深 float32 (旧 writer 的显式窄化)
             flux_buf[local] = (float)((double)acc.sumFlux * k);
-            // covered_area = (u8/255)·A_cell (旧 writer 的面积比连续缩放)
-            area_buf[local] = (float)(((double)q / 255.0) * a_cell);
+            // 科学 covered_area 用真实未量化球面面积，与 k 的分子同源。
+            area_buf[local] = (float)acc.sumArea;
             // variance 分子 Σ v_j·w_jp² (ADU², SCI-DRZ-014 §5); writer 归约
             // variance = var_num_sum/covered_area²、ivar = 1/variance (§12.2/§4a)。
             // 方差与信号共用同一归一分母 ⇒ 同步乘 k² (pixfrac=1 时 k≡1 逐位不变)。
