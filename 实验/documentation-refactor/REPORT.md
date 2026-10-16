@@ -288,3 +288,8 @@ Q10旧t_norm2−proj已修，历史反例保留，剩余秩阈值/误差证书�
 **原191篇审计范围声明**：本批是现行正式专题与生产代码的定向内容精读，**没有重新取出 `63eccbb6` 对应全部 191 原 blob 并逐篇全文对照**；不将上述专题自动记为“原文全文无损复核完成”，`ORIGINAL_FILES.tsv` 未给未读篇章虚增状态。既有已验证原文件/来源统计沿用前批报告；191篇余下原文、其他 246 实验文本以及高压缩四文后续逐项跨层核对仍未完结。结构、链接或 Git blob 归档正确不等于有效设计完备。
 
 **未运行/待裁决**：真实 Gaia/XPSD 输入及算法二进制复测、Nside=512/2048 的 profiling、v2 reader/writer/发布和 P2/P3 端到端、#8/#9 实际 Fisher/单位差异、MSVC C11/C++17 ABI loader/CLI E2E 均 NOT_RUN；没有更改生产 C++、JSON schema 或示例，未声称原 v1 产品已经修复。Agent 下一工程批次先实施 #10 的 **schema+writer+reader+产品验证+两下游消费** 同步切换；#12 的数学错误修补在独立批次按新规范实施；#74 先做取证，#75 先验证已有生成机制，再改接真实构建与二进制身份；ARS-02 保持 S0→同一 DLL 双 op 的已选 ABI。
+
+
+### 原191篇实质语义补核：Gaia XPSD 模块原文第 1 篇（本批新增）
+
+完整逐行复读 `63eccbb6133aef56389641d43c55df6e243819c5:docs/detail/infrastructure/gaia_xpsd_client.md`（147行、原清单 9390 B），对照当前压缩后的 44 行以及生产 `lib/infrastructure/gaia_xpsd_client/src/gaia_client.{c,h}` 的缓存、树剪枝、create/查询接口关键段，补回现行 `docs/detail/infrastructure/gaia_xpsd_client.md §6`。恢复原文中仍有效的 TTL/字节/槽位及客户端解压缓存预算、锁序、复杂度、保守极冠 AE 条件、输入/输出与确定性试验；纠正原文的缓存 double“逐位比较”（实际上为数值 `==`）、只有 db_type/file_count 不能证明 dataset 内容身份、赤道经验 1.2 裕度未经零假阴性证明，以及性能测量未运行。该原文的有效信息已在正式模块设计有独立正文而非只留在 SOURCE。其它原191篇本批没有声称新增逐篇全文核对，下一批继续按真实 baseline 原文对照。

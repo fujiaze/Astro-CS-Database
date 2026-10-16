@@ -41,3 +41,31 @@
 ## 5. 验证
 
 独立解包微型XPSD并球面全枚举，检查赤道/极冠、RA回绕、星等量化边界、谱解码、坏块、分配失败、容量截断、冷/热缓存和合法释放顺序。剪枝局部推导和有限差分不证明所有锥零漏星；缓存字段一致不证明数据集输入完整。具体命令、原始字节、分母和失败记录随实验保存，本页没有新运行结论。旧参数表与实现自陈完整保留于[来源档案](../../../实验/documentation-refactor/docs/SPATIAL_NOTES_SOURCE.txt)。
+
+
+## 6. 原始 191 篇内容保全：缓存、剪枝及对象寿命的函数级复核（2026-10-17）
+
+本节从 `63eccbb6:docs/detail/infrastructure/gaia_xpsd_client.md` 原文 147 行逐项归纳，经现行 `src/gaia_client.{c,h}` 关键函数与 [Gaia 查询算法](../../science/algorithms/common/GAIA_QUERY.md) 对照，恢复当前正文曾省略但仍有实现依据的边界细节。**以下为静态源码合同，不是新执行的 PASS；旧原文的“已证明零漏星/缓存逐位等价”主张在缺独立 oracle 时不能照抄。**
+
+### 6.1 两级缓存的真实限制及准确性
+
+| 对象/函数 | 从旧文恢复、经现行代码核实的事实 | 风险/未被证明的属性 |
+|---|---|---|
+| `query_cache_lookup/insert`（`gaia_client.c` 819/869） | 当前 `GAIA_CACHE_VERSION=2`；64 条槽位；TTL=60 s；字节预算 `64*200000*3*sizeof(double)=307200000` B，仅 3 列 RA/Dec/mag；按 last_access 时间做 LRU，先分配复制新三数组，确认成功后淘汰并插入；内存压力可不缓存 | 使用 `==` 逐项比较输入 `double`，**不是 bitwise** 比较：`-0.0==+0.0`，NaN 不会命中；不能仅凭原注释宣称逐位 identity。输出缓存另需冷/热实测 bitwise 及负零/NaN 的语义裁决 |
+| 同一 QueryCache 身份 | 比较 `ra/dec/radius/mag_low/mag_high` 数值、`db_type_detected` 和 `file_count`，并检查版本/过期。query result 是内部缓存持有的三列数组，由调用链在锁内复制后才能给调用者长期使用 | `db_type + file_count` **不等于星表内容身份**：相同文件数但文件内容改变时，键本身无法区分。进程内 client 若绑定不可变数据集应明确此先验，并通过新建 client/内容哈希切换，不能无依据写“任意数据集变更即缓存失效” |
+| `block_cache_init/lookup/insert`（596/672/772） | 每个 XPSD 文件一个开放寻址哈希表，8192 槽；`BlockCacheBudget` 对同一 GaiaClient 下全部文件共享 **4 GiB** 总数据预算；file `bc_lock` 后获得 budget lock，预留总字节时不跨文件偷取其他锁，已满则可拒绝缓存回到 scratch；内存压力在本文件内淘汰大约 1/4 LRU | 不能再按旧的“每文件 4 GiB”推算共享内存，亦不等于包含 mmap/collector/并行 scratch 的全进程 4 GiB 硬上限；跨文件实际压力、高并发锁序需可执行验证 |
+| 装载/输出（`create_ex`，各 collector） | `MAX_FILES=32`；超过或部分文件装载失败须具名拒绝不完整数据集；每文件 `MAX_STARS_RESULT=200000` 是查询截断边界，不能把成功返回说成“全集” | 内部发生损坏叶/解压错误须由 drop ledger fail-closed；独立真实 XPSD 负例及调用者是否检查错误，尚未在本批重测 |
+
+旧原文所述“查询缓存命中 O(1)”不准确：当前 `query_cache_lookup` 最多线性查 64 槽，命中还需由外围锁内复制 O(N_result)；`block_cache_lookup` 为线性探测哈希，均摊可能 O(1)、最坏 O(8192)。此外查询数组的 malloc/free 生存期、client destroy 与在途查询等待必须由调用者匹配，不能把 cache_lock 误当销毁时自动 quiescence。
+
+### 6.2 球面剪枝：哪些界可严谨声明
+
+赤道 `bbox_intersects`（`gaia_client.c` 1054）先比赤纬区间、再计算 RA差（大于180°则取 `360-dra`），`cos(dec)<0.01` 时不进一步剪枝；否则 `dra*cos(dec)>1.2*radius` 时拒绝。这里的 **1.2 是经验裕度**，未从一般球面矩形严格推导零假阴性，不能把旧文「整个实现必无假阴性」作为已证明结论。
+
+极冠 `polar_plane_intersects`（约1108）选择以对应极点为中心的 Azimuthal Equidistant 映射，局部径向伸缩 1、切向伸缩 `θ/sin θ`；在 `θ≤π/4` 子冠用 `C45=π/(2√2)`，否则在半球使用 `C90=π/2` 对查询圆投影给出保守包含半径。边界 `θ_q>45°+r` 时整个极冠不交，`45°<θ_q≤45°+r` 保守不剪；若 `θ_q+r>90°` 也不采用已越出证明域的常数。原文 `|dec|>85°` 属旧描述，当前有效域应以真实 theta 与分支为准；这些局部数学保证**不代替**极冠树布局正确性/解码正确性/赤道路径证明。定义 `GAIA_POLAR_PRUNE_DISABLED` 可只关闭极冠剪枝作 differential reference，最终仍要另写独立全叶枚举 oracle 对照。
+
+### 6.3 实际 API/配置与验证任务
+
+原 147 行的五类操作继续是 `cone_search`、`cone_search_for_solver`、`cone_search_with_spectrum`、`cone_search_with_photometry`、`query_spectrum_by_coords`；输入目录/DB 类型、角度/星等窗口及 match 半径是 C 客户端的真实负担。恢复的确切模块层原则：`gaia_client_create[_ex]` 成功之后由调用者负责 destroy；输出由模块分配、调用方按现有 C 约定释放；各调用返回成功、空结果、目录缺失/加载失败、解码失败、取消、分配失败须区分。文档不将 v1 `acsd_module_query_v1` 同步调用与待实施 ARS-02 v2 的 operation 表混合。
+
+独立回归包含：固定目录与文件内容 hash，测试冷/热、TTL边界、64槽、307200000 B 预算、跨文件 4 GiB 预算及压力、同文件多查询/多线程和 destroy；同样文件数但变更字节的 dataset 反例；RA 359.9→0.1、极冠 44.8°+1° 跨界、极点、宽半径、bbox 经验裕度反例搜寻与完整枚举比较。真实 XPSD 数据/多线程/故障注入在本批均 **NOT_RUN**。原文中的文献 DOI 与科学模型仍在现行算法科学页与原始 blob 中保留；本节不把每条引用已全文核查作为本批成果。
