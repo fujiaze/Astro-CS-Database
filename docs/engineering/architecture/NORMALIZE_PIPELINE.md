@@ -43,7 +43,7 @@ flowchart LR
 
 图中是合同要求的科学依赖；sphere completion 在 Drizzle 节点内调用 noise 库，不增加调度环。当前 `p1_*_descriptor` 已声明 WCS→sources/photometry/Drizzle、photprov→noise/Drizzle、sources/SNR→Drizzle 等排序边。但跨节点取数仍读取工作区 `p1_wcs.json`、`p1_sources.json`、`p1_phot.json`、`p1_snr.json`、平面 FITS 和逐帧 `p1_stack.json`。声明 typed port 并不等于这些边已承载 Runtime 类型对象。
 
-光度实际读取 sources 所指的 cleaned 面，descriptor 仍声明 calibrated；光度施加与 Drizzle 选面还须按逐帧 provenance 核对。noise descriptor 的 `fluxes` 仅用于合成 IR，生产 noise 没有对应读取点。独立 `psf` 输出尚无完整显式消费者；部分参数随 sources 工作文件传递。新增球面 precision 也主要经 Drizzle 局部向量与 staging 传给 writer，尚未成为注册端口上的独立模型载荷。
+光度实际读取 sources 所指的 cleaned 面，descriptor 仍声明 calibrated；光度施加与 Drizzle 选面还须按逐帧 provenance 核对。noise descriptor 的 `fluxes` 仅用于合成 IR，生产 noise 没有对应读取点。独立 `psf` 输出尚无完整显式消费者；部分参数随 sources 工作文件传递。球面 precision 经 Drizzle 局部向量与 staging 传给 writer，descriptor 与实际 CLI IR 已补 frame_science 输出/输入边；载体仍是 output_dir 工作文件，不等于 Runtime 已传输完整 typed 模型或完成消费者 lease。
 
 目标是 Runtime 管理、发布后只读的有名对象；路径仅用于 AIO spill、正式缓存或产品定位。对象键绑定 run、输入 occurrence、对象类型、revision 与输入版本。`BlockFrame`/`RunContext` 的数值块和 artifact 服务可复用，但当前没有完整的 metadata/model typed 对象仓和消费者 lease。具体接口及逐边迁移由实现规格承载[3]。
 
@@ -61,7 +61,7 @@ flowchart LR
 
 `lib/include/acsd/normalize_data.h` 已声明参考、状态、控制点和摘要等类型；`lib/algorithms/noise_snr/include/acsd/sparse_reference.h` 与其实现已有球面 GLS；`lib/algorithms/integration/normalize_science/` 已有 serializer、reader 和发布函数。不能继续将这些接口统称为未实现，也不能由它们的存在推断完整数据合同已满足。
 
-当前 canonical 可执行参考路径为 `explicit_linear_flux`。`parse_reference_config` 对 `sed_response` 明确记录响应积分未接线；逐帧 response/SED 与 Runtime 完整迁移仍受实现限制。PSF 接线目前将全帧参数压为标量宽度，不能代表目标的逐位置像元积分模型。实际限制及可追踪符号集中在差异地图[4]，不在本页复制待办台账。
+当前 canonical 可执行参考路径为 `explicit_linear_flux`。`parse_reference_config` 对 `sed_response` 明确记录响应积分未接线；逐帧 response/SED 与 Runtime 完整迁移仍受实现限制。PSF 已从逐帧 psf_params 构建空间三角模型，逐控制点求积；无三角支持时仍回退具名帧常宽度。空间 alpha 已按窗口求值，支持空洞、回退状态和总通量配对的合同覆盖仍需核对。实际限制及可追踪符号集中在差异地图[4]，不在本页复制待办台账。
 
 ## 4. 产品发布与能力状态
 
@@ -83,7 +83,7 @@ flowchart LR
 
 像元积分 PSF 由 `lib/algorithms/psf` 提供；适配器传位置、参数和像元足迹，不能另存未归一中心轮廓。噪声库从同一 R、P、v 和背景模型计算可辨识的通量分量。数值求解可以使用可靠 QR/SVD 或等价子空间实现，不能为了加速静默截断选定叶的真实随机贡献。逐点模型与帧摘要分别记录，科学状态不由求解器成功标志代替。
 
-生产已具备逐输入响应绑定、QR 投影、像元积分 PSF 和因子 v2 的实现路径；当前真实覆盖与剩余差异统一见[实施地图](SCIENCE_IMPLEMENTATION_DELTA.md)。typed Runtime、参考 SED 积分、空间 PSF/alpha 和共同误差的完成状态分别核对，不从局部数值修复推断八节点整体闭合。独立审查与运行记录保留在收敛文档[6]及其引用的实验单元，不在架构正文复制历史耗时和 SNR。
+生产已具备逐输入响应绑定、QR 投影、像元积分 PSF 和因子 v2 的实现路径；当前真实覆盖与剩余差异统一见[实施地图](SCIENCE_IMPLEMENTATION_DELTA.md)。typed Runtime、参考 SED 积分、空间模型的支持/误差状态、applied 空间 alpha 的真实运行和共同误差分别核对，不从局部数值修复推断八节点整体闭合。独立审查与运行记录保留在收敛文档[6]及其引用的实验单元，不在架构正文复制历史耗时和 SNR。
 
 ## 参考文献
 

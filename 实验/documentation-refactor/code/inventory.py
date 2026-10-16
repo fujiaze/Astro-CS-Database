@@ -104,6 +104,9 @@ REVIEWED = {
     'docs/detail/common/unified_model.md',
     'docs/engineering/contracts/CONFIG.md',
     'docs/engineering/contracts/CLI_PROTOCOL.md',
+    'docs/engineering/contracts/NORMALIZE_DATA.md',
+    'docs/detail/normalize/contracts.md',
+    'docs/engineering/architecture/DATA_FLOW.md',
 }
 EXTRACTED = {
     'docs/science/calibration/CCD_DEFECT.md': 'CCD_DEFECT_OBSERVATIONS.md',
