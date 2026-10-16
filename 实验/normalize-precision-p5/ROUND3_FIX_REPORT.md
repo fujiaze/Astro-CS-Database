@@ -175,3 +175,63 @@ Part 2/3, 9×9 窗 ΣP=0.9734）:
 秩虚高 ~80、V_F 假差至 2.8e-4。改为 Q 的 thin SVD（奇异值噪声底 ~ε·σmax）后
 63/64 一致。教训: 秩判定截止必须高于所用分解的数值噪声底; 与生产 QR 对拍时应
 使用同尺度（σ 而非 σ²）且高于噪声底的截止。
+
+## 6. 真实留出星复核（ROUND2 执行结论第 1 项(3), M42 T2/M4, 518 颗拟合星）
+
+程序: `code/verify_round5_holdout_stars.py`（参数审计+响应失配+孔径测光）,
+`code/verify_round5_holdout_residuals.py`、`code/verify_round5_holdout_chi2.py`、
+`code/verify_round5_holdout_chi2_binned.py`（χ²/dof 分层）。日志在 evidence/。
+
+### 6.1 生产 σ 口径核实（R2-F05 的事实基础）
+
+`frame_psf_sigma_px` = sqrt(上中位数(sx)·上中位数(sy)) = **2.211089299**,
+与生产日志 2.211089 逐位一致（Python 平均中位数给 2.209696, 差异纯属中位数
+约定）。但逐星分布揭示: sx std=22.8%、sy std=19.5%、椭率中位 0.66——
+生产"圆对称帧常模型"是**具名近似**（PSF.md §2.3 允许）, 不是逐位置 PSF。
+flux ≡ 2π·A·sx·sy/3 逐位成立（拟合内部自洽）。
+
+### 6.2 圆模型 vs 逐星椭圆模型的响应失配（257 颗留出星, 729 像元/星）
+
+- 逐点相对差: median=0.470, p90=0.617, max=9.67
+- 窗内包络 ΣP 差: median=4.5e-5, p90=2.4e-4, max=7.4e-3
+- 高椭率半 median=0.541 vs 低椭率半=0.368（对椭星系统性失配）
+
+⇒ per-pixel 模板形状失配很大（总通量归一由 2πsx·sy 吸收, 所以 ΣP 差小）。
+这是生产参考 SNR 当前真实承受的 PSF 模型误差, 也是 P5 空间 PSF 的量化依据。
+
+### 6.3 孔径测光与残差（40 颗最亮留出星, cleaned 帧实像素）
+
+- 孔径测光 (r=2.5√(sx·sy)) vs 解析总通量: median −3.4%, 与圆 Moffat4 在
+  2.5σ 处的窗外份额 (1+2.34)⁻³=2.7% 一致 ⇒ **通量标度无异常**, 差别是
+  孔径截断（已知效应, 不是求解器缺陷）。
+- χ²/dof 分层（σ_j=√(model/g+B/g+RN²), dof=n−7; 无窗内邻星, 中位 0 颗）:
+
+| flux bin (ADU) | n | χ²/dof median | 结论 |
+|---|---|---|---|
+| 200–2000（含 F_ref=1000 人群） | 25 | **0.54** | 模型+噪声自洽（略保守） |
+| 2000–10000 | 25 | **0.89** | 自洽 |
+| 10000–50000 | 25 | 8.24 | 开始失配 |
+| 50000–300000 | 24 | 63.9 | 失配 |
+| ≥300000（Trapezium 核） | 14 | 274 | 严重失配（数据呈 2×2 平台结构, 混合星/丝状结构, 单 Moffat4 无法表示; 该帧无硬饱和, max=70526） |
+
+⇒ **F_ref=1000 ADU 参考人群的 PSF 模板 + Poisson/RN 噪声模型经过真实留出
+数据验证（χ²/dof≈0.5–0.9）**；亮星失配是疏散星团核的已知观测条件（复杂
+结构）, 不是求解器缺陷。χ²/dof<1（ faint 端 0.54）说明噪声模型偏保守约
+35%——对参考精度是安全方向, 登记待前台裁定是否需要收紧。
+
+## 7. P4 typed Runtime 端口收敛（第一边: drz→wr frame_science）
+
+载体合同（PIPELINE_BLOCK.md, 前台裁决 FINAL-07）: 阶段内唯一载体是
+output_dir 文件约定, 无内存块传递 ⇒ typed 迁移 = descriptor/IR/registry
+三处同声明 + 消费者真实读取, 不是新建传载荷机制。本轮闭合第一边:
+
+- registry: drz `p1_frame_science` output / wr `p1_frame_science` input +
+  `p1_frame_science_published` output（**此前已声明**）
+- block_flow 规格 `eng/contracts/block_flow/stage_block_flow.json`: 边已存在
+- descriptor（本轮补）: drz 增 output `frame_science`（DATA-P1-FRAMESCIENCE,
+  DIMENSIONLESS/ICRS）; wr 增 input `frame_science` + output
+  `frame_science_published`
+- IR（本轮补）: drz outputs 增 `{"frame_science","artifact:p1_frame_science"}`,
+  wr inputs 同步 ⇒ 调度图可见该数据流（此前只存在于注册表文本）
+- 验证: `pytest eng/tests/integration/test_registry_code_parity.py` 失败集与
+  基线**逐条一致**（12 项既有, 0 新增）; 生产 E2E exit=0（见 run_p5c.log）。
