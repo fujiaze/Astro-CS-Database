@@ -1,102 +1,27 @@
-# hips_browser（HiPS 浏览器组件，acsd.hips_browser / healpix_browser_qt）
+# HiPS 浏览组件
 
-> 上游：《ACSD 最高设计》的「软件架构」一章（顶层结构：hips_browser 基建目录；模块与 ABI）、
-> 「项目定位」一章（非目标：Alpha 不含 GUI）、「export：投影导出」一章（`visualization` 模式标注
-> 「不可测量」）
-> 数据正本：docs/detail/infrastructure/hips_writer.md（DATA-HIPS-001 端口表，读侧复用；
-> 依赖 DATA-HIPS-*）
-> 读侧：infrastructure/aio.md（读侧复用 aio，不复制 reader）
-> 引用规范：[IVOA HiPS 1.0 Recommendation](https://www.ivoa.net/documents/HiPS/)
-> （IVOA 2017；渲染与层级切分规范）
+模块目录为 lib/infrastructure/hips_browser/，现有实现 healpix_browser_qt 位于其同名子目录。它是[Windows GUI](../../engineering/gui/GUI_DESIGN.md)可复用的 Qt6/OpenGL 浏览组件，独立构建，不进入科学命令计算链。产品 GUI 的发布目标由最高设计决定，不能用旧“Alpha 不含 GUI”限制当前设计。
 
-**模块名与实现名**：模块名 = `hips_browser`（基建目录
-`lib/infrastructure/hips_browser/`）；实现名 = `healpix_browser_qt`（Qt6 +
-OpenGL，STF 显示，可选构建），落地目录 =
-`lib/infrastructure/hips_browser/healpix_browser_qt/`。两者指同一模块。
+## 输入、输出与数据流
 
-## 1. 职责与边界
+输入为只读 HiPS 产品及元数据，科学 signal 与诊断辅助层按各自语义显示；文件格式能力不意味着 mosaic 应发布辅助科学通道。输出为屏幕图像、导航坐标、显示状态与诊断，显示变换不回写科学数组或改变测量值。产品和错误合同见[HiPS I/O](../../engineering/contracts/HIPS_IO.md)及[AIO](aio.md)。
 
-- **职责**：GUI 可视化组件，浏览 HiPS 产品（渲染、缩放、导航）与工程诊断。
-- **不是**：**不进产品 manifest、不参与 CLI 命令、不定义科学结果**；不参与科学
-  处理链；是可选的、独立于发行清单的可视化工具（地位 = 可选组件）。无科学 ID
-  （展示层）。
+读取/解码 tile → 缓存 → 球面到视口采样 → 浮点显示缓冲 → 显示变换 → Qt/OpenGL 绘制。STF 编辑应复用已有浮点视口，避免重做解码和几何采样；视点或产品变化才更新对应上游。GL 和界面对象在所属线程使用，后台任务只交付有明确寿命的数据，过期结果按代次丢弃。
 
-## 2. 权威依据
+## 真实入口与所有权
 
-- 《ACSD 最高设计》的「项目定位」一章（非目标：Alpha 不含 GUI）、「软件架构」一章（顶层结构：hips_browser 基建目录）
-- [IVOA HiPS 1.0 Recommendation](https://www.ivoa.net/documents/HiPS/)（IVOA 2017；渲染与层级切分规范）
+子目录 CMakeLists.txt 是独立工程；app/main.cpp、app/browser_cli.cpp 为各自入口，app/main_window.* 连接界面，widgets/ 维护视图。core/browser_backend.*、hips_browser_backend.*、hips_sky_view.*、gl_renderer.* 与 stf_engine.* 实现读取、采样与显示。其构建复用共享算法源，不能因此称为第二份独立科学 oracle。
 
-## 3. 输入/输出数据合同
+core/stf_engine.h 的 DisplayTransformState 保存模式、锁定、黑白点、中间调、曲线、压缩和 generation。UI 编辑状态，renderer 消费；异步快照不越过持有对象寿命。Qt parent-child 只管理相应 QObject，原生缓冲与后台任务仍需各自所有权和退出等待。
 
-- **输入**：HiPS 产品（signal/variance/coverage/...，只读）。
-- **输出**：可视化（渲染图像、导航状态、诊断视图）。
-- 参考：`docs/detail/infrastructure/hips_writer.md`（DATA-HIPS-001 端口表：HiPS 产品数据合同，读侧复用）。
+## 显示有效域与实现限制
 
-## 4. 算法与公式要点
+显示的目标是按有效覆盖/有限信号选样，合法负值和零值不能仅因符号被当无覆盖。不同 auto/global/view 路径需分别核对。当前 STFEngine::auto_stretch 实际按 data[i] > no_data_value 过滤，头文件默认阈值为零，再 sort 取分位与中位数；它不是旧正文所称的 finite && support>0、nth_element 和完整 MAD 守卫链。
 
-- 渲染：按 HiPS order / tile 加载、LOD、颜色映射（诊断用，不冒充测量）；
-- 导航：平移 / 缩放 / 坐标读出；
-- 可视化允许显示型降级，**但产物只作显示面**（《ACSD 最高设计》的「export：投影导出」一章：`visualization`
-  模式标注「不可测量」）；
-- 读侧复用 aio，不复制 reader。
-- **渲染架构**：HiPS tile decode/cache → float viewport buffer → display transform/STF → Qt paint。STF 改变**只重做 display transform**，不重新 sky→HEALPix 采样 / FITS decode（`docs/engineering/standards/OPTIMIZATION.md` 的「STF 变化不重新采样」条款）。
-- **唯一显示变换状态**：`core/stf_engine.h` 的 `DisplayTransformState`（mode = AutoGlobal/AutoView/Manual；locked；black；white；midtones；curve；compression；generation）。UI（MainWindow / STFPanel / STFBar）只编辑 state；renderer（`HipsSkyView::rasterize`）只消费 state；任何变更 `generation+1`（丢弃过期异步结果用）。状态字段唯一：分散的 `preset_` / `auto_range_` / `auto_view_` / `stf_locked_` / `manual_*` 字段与 MainWindow 的重复 `stf_locked_` / `hips_auto_range_` 均不存在。
-- **robust signal auto stretch 链路**：
-  ```text
-  finite && support>0 → (全 dataset 或 viewport) 采样 →
-  median/MAD 污染守卫 → 分位 black/white → asinh/MTF
-  ```
-  `STFEngine::get_preset` 由数据 min / max 与分位裁剪点构造显示变换，`normalize()` 归一到 [0,1]；MTF 曲线 `STFEngine::mtf(x, m)`；复杂度 O(n)，用 `std::nth_element` 选分位、不整排序。**显示拉伸不改变数据**（只读）。
-- **Auto Global**（默认）：一次扫描全部 leaf tiles（每 tile 均匀采样，进程内缓存，一次会话只扫一次）后取分位；p99 被极端亮星/卫星线污染时退回 MAD 剔除后重算。**Auto View**（可选）：当前 viewport，debounce + 后台 worker。`--stf-mode global|view` 切换；菜单 Auto Stretch / Reset STF / Lock STF；CLI 另有 `--lock-stf`，诊断用 `--stf-bench` 与 `--stf-lock-probe`。
-- **support 层固定 linear [0,1]**：显示面不走 signal 的 STF。
-- **HEALPix 位置/层级映射全部委托共享 `acsd::healpix` core**（无第二套手写实现；`query_disc` / `ud_grade` 为构建在 canonical 之上的工具）。
-- 性能特征：tile cache + 异步 I/O。线程：Qt 主线程 + 后台 tile I/O；GL 单线程。
+因此该入口存在排除合法非正值、未显式排除正无穷的静态风险。是否由调用者预过滤、哪些显示路径可达，必须沿实际调用与输入验证；本轮登记问题，不修改显示算法。空样本与近零范围的默认参数也不能解释成观测成功。
 
-## 5. 配置项
+signal 拉伸与 support 等诊断层显示分别定义；显示参数不是科学校准参数。坏产品、缺 tile、读取失败和不支持能力明确显示状态，不用伪图像冒充完整覆盖。坐标由共享 HEALPix 实现提供，屏幕坐标、像元基址及天球角单位在交互接口明确。
 
-| 字段 | 默认 | 单位 | 说明 |
-|---|---|---|---|
-| `lod_max_order` | —— | —— | 最大渲染 order |
-| `color_map` | `inferno` | —— | 调色板 |
+## 验证
 
-## 6. 接口/ABI
-
-- 独立可执行 / 组件；不进入 `acsd` 命令树；模块落点 =
-  `lib/infrastructure/hips_browser/healpix_browser_qt/`（`app/` 的 `main.cpp`
-  （GUI 入口 `main`）/ `browser_cli.cpp`（命令行入口 `main`）/ `main_window.cpp`；
-  `core/` 的 `browser_backend.cpp` / `hips_browser_backend.cpp` /
-  `hips_sky_view.cpp` / `healpix_math.cpp` / `gl_renderer.cpp`）。
-- 头面 = `include/healpix_browser_core.h`（core 面）+ `core/` 下的
-  `stf_engine.h`、`hips_sky_view.h`、`gl_renderer.h`、`browser_backend.h` + Qt 层
-  `widgets/abstract_view.h` 与 `widgets/abstract_view.cpp`、
-  `widgets/hips_view.h` 与 `widgets/hips_view.cpp`、
-  `widgets/sphere_view.h` 与 `widgets/sphere_view.cpp`、
-  `app/main_window.h` 与 `app/main_window.cpp`、
-  `app/stf_bar.h` 与 `app/stf_bar.cpp`、
-  `app/stf_panel.h` 与 `app/stf_panel.cpp`。
-- 读侧走 aio（HiPS tiles 经 `astro_image_io` 读面）。
-- 所有权：Qt parent-child；renderer 只读共享。
-
-## 7. 错误与边界
-
-- 产品不可读 / 损坏 → 明确报错（状态显示），**不渲染伪图像**；
-- 显示拉伸不改变数据（只读）；
-- 非产品构建（不打包进发布 manifest）。
-
-## 8. 测试与 Oracle
-
-- 读侧复用 aio 的验证面；
-- STF engine 单测面；
-- 渲染正确性（已知产品 → 期望像素值）；
-- 导航 / 坐标读出测试；
-- 视觉验收按《ACSD 最高设计》的「验证层级与四层验收」一节的 L4 清单执行；
-- 与科学产品隔离验证（不写产品、不影响测量路径）。
-
-## 9. 已知限制
-
-- Alpha 不含 GUI（《ACSD 最高设计》的「项目定位」一章）；本组件是可选工具，不进产品 manifest；
-- 全局限制登记 = artifacts/evidence/known-limitations-ledger/LIMITATIONS.md。
-
-## 10. 源文件
-
-`lib/infrastructure/hips_browser/healpix_browser_qt/`。
+用已知像素与坐标核对读取、导航、STF 参数、显示重绘缓存、陈旧任务丢弃、退出等待和源值不变；覆盖全负、含零、全无效、正无穷与极动态范围。真实渲染、截图和 Windows 集成分别提供证据。本轮未运行浏览器；旧 CLI 开关、性能和可选发行声明完整保存在[来源档案](../../../实验/documentation-refactor/docs/GUI_SOURCE.txt)，不能据原表宣称当前可达或已验证。
