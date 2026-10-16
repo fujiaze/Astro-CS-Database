@@ -473,6 +473,228 @@ int main() {
           "named reason");
   }
 
+  // ── 5b. 近共线数值稳定性（NOISE_SNR §11.6 审查修正的实测证据）────────────────
+  // 构造 P = γ·1 + δ·u（u 不在 span(1,x,y)）⇒ 通量方向**接近**背景列空间。
+  // R 满列秩 ⇒ r=m, V_rV_rᵀ=I, 于是 I_F 的闭式（D⁻¹ 内积, 与生产路径独立）:
+  //   I_F = δ²·[uᵀD⁻¹u − (ZᵀD⁻¹u)ᵀ(ZᵀD⁻¹Z)⁻¹(ZᵀD⁻¹u)],  Z=[1,x,y]
+  // 第一轮实现以 ‖t‖²−proj 两个 ~0.8 量级的数相减得到 ~3e-9 的 I_F, 消去误差
+  // 把相对精度压到 ~1e-7; 显式正交残差实现必须达到机器精度（<1e-13 相对）。
+  g_case = "near-collinear flux: explicit residual vs subtraction cancellation";
+  {
+    PlanarPatchWindow w = make_full_col_rank(0);   // m=6, nl=10, R 满列秩
+    const int m = 6;
+    const std::vector<double> u = {+1.0, -1.0, +0.5, -0.5, +0.25, -0.25};
+    const double gamma = 0.9;    // 背景方向主幅度（使 ‖t‖² ~ 0.8）
+    const double delta = 1e-4;   // 通量离背景列空间的残余（可辨析但极近）
+    for (int j = 0; j < m; ++j)
+      w.profile[static_cast<std::size_t>(j)] =
+          gamma + delta * u[static_cast<std::size_t>(j)];
+    SphericalCompletionConfig cfg;
+    cfg.reference = make_ref(500.0);
+    cfg.background = BackgroundNuisance::kPlaneFit;   // n_bg=3 ⇒ Z=[1,x,y]
+    cfg.gain_e_per_adu = 0.9;
+    const auto r = complete_spherical_reference({w}, cfg);
+    const auto& c = r.precision.controls[0];
+    check(c.status.availability == PrecisionAvailability::kAvailable,
+          "near-collinear (not exactly collinear) flux remains available");
+    check(c.flux_variance.has_value(), "V_F reported for near-collinear flux");
+    // v_j 与生产同式: variance_j + F_ref·P_j/g（α=1, a_ref=ΣP; §11.3）
+    std::vector<double> v(m);
+    double a_ref = 0.0;
+    for (int j = 0; j < m; ++j) a_ref += std::max(0.0, w.profile[static_cast<std::size_t>(j)]);
+    for (int j = 0; j < m; ++j)
+      v[static_cast<std::size_t>(j)] =
+          w.variance[static_cast<std::size_t>(j)] +
+          500.0 * w.profile[static_cast<std::size_t>(j)] / (0.9 * a_ref);
+    check(a_ref > 0.0, "a_ref = sum(P) > 0 (reference scale well-formed)");
+    // 闭式 I_F（投影信息 of u, D⁻¹ 内积, 3×3 正规方程独立求解）
+    const int nz = 3;
+    std::vector<double> z(static_cast<std::size_t>(m) * nz);
+    for (int j = 0; j < m; ++j) {
+      z[static_cast<std::size_t>(j) * nz + 0] = 1.0;
+      z[static_cast<std::size_t>(j) * nz + 1] = w.src_x[static_cast<std::size_t>(j)];
+      z[static_cast<std::size_t>(j) * nz + 2] = w.src_y[static_cast<std::size_t>(j)];
+    }
+    auto dinv_mul = [&](const std::vector<double>& x) {
+      std::vector<double> y(m);
+      for (int j = 0; j < m; ++j)
+        y[static_cast<std::size_t>(j)] =
+            x[static_cast<std::size_t>(j)] / v[static_cast<std::size_t>(j)];
+      return y;
+    };
+    auto dot = [&](const std::vector<double>& a, const std::vector<double>& b) {
+      double s = 0.0;
+      for (int j = 0; j < m; ++j)
+        s += a[static_cast<std::size_t>(j)] * b[static_cast<std::size_t>(j)];
+      return s;
+    };
+    const std::vector<double> dv = dinv_mul(u);
+    const double uqu = dot(u, dv);
+    std::vector<double> gz(nz * nz, 0.0), gzu(nz, 0.0);
+    for (int a = 0; a < nz; ++a) {
+      std::vector<double> za(m);
+      for (int j = 0; j < m; ++j)
+        za[static_cast<std::size_t>(j)] = z[static_cast<std::size_t>(j) * nz + a];
+      for (int b = 0; b < nz; ++b) {
+        std::vector<double> zb(m);
+        for (int j = 0; j < m; ++j)
+          zb[static_cast<std::size_t>(j)] = z[static_cast<std::size_t>(j) * nz + b];
+        gz[static_cast<std::size_t>(a) * nz + b] = dot(za, dinv_mul(zb));
+      }
+      gzu[static_cast<std::size_t>(a)] = dot(za, dv);
+    }
+    // Gauss-Jordan 解 (ZᵀD⁻¹Z) c = ZᵀD⁻¹u（增广列布局: [G | I | g], 行宽 2nz+1）
+    const int stride = 2 * nz + 1;
+    std::vector<double> aug(static_cast<std::size_t>(nz) * stride, 0.0);
+    for (int a = 0; a < nz; ++a) {
+      for (int b = 0; b < nz; ++b)
+        aug[static_cast<std::size_t>(a) * stride + b] =
+            gz[static_cast<std::size_t>(a) * nz + b];
+      aug[static_cast<std::size_t>(a) * stride + nz + a] = 1.0;
+      aug[static_cast<std::size_t>(a) * stride + 2 * nz] = gzu[static_cast<std::size_t>(a)];
+    }
+    for (int col = 0; col < nz; ++col) {
+      int piv = col; double best = std::abs(aug[static_cast<std::size_t>(col) * stride + col]);
+      for (int rr = col + 1; rr < nz; ++rr) {
+        const double x = std::abs(aug[static_cast<std::size_t>(rr) * stride + col]);
+        if (x > best) { best = x; piv = rr; }
+      }
+      if (piv != col)
+        for (int k = 0; k < stride; ++k)
+          std::swap(aug[static_cast<std::size_t>(col) * stride + k],
+                    aug[static_cast<std::size_t>(piv) * stride + k]);
+      const double d = aug[static_cast<std::size_t>(col) * stride + col];
+      for (int k = 0; k < stride; ++k)
+        aug[static_cast<std::size_t>(col) * stride + k] /= d;
+      for (int rr = 0; rr < nz; ++rr) {
+        if (rr == col) continue;
+        const double f = aug[static_cast<std::size_t>(rr) * stride + col];
+        if (f == 0.0) continue;
+        for (int k = 0; k < stride; ++k)
+          aug[static_cast<std::size_t>(rr) * stride + k] -=
+              f * aug[static_cast<std::size_t>(col) * stride + k];
+      }
+    }
+    double quad_form = 0.0;
+    for (int a = 0; a < nz; ++a)
+      quad_form += gzu[static_cast<std::size_t>(a)] *
+                   aug[static_cast<std::size_t>(a) * stride + 2 * nz];
+    const double i_u = uqu - quad_form;          // u 的投影信息
+    const double i_f_closed = delta * delta * i_u;
+    std::printf("  delta=%.0e closed I_F=%.12g  production I_F=%.12g\n",
+                delta, i_f_closed, r.windows.empty() ? -1.0
+                                                     : r.windows[0].flux_information);
+    check(i_u > 0.0, "u has positive projected information (test well-formed)");
+    if (!r.windows.empty()) {
+      const double got = r.windows[0].flux_information;
+      // 精度底: t 经 QR 正交变换到达 r 维行空间, 每项引入 ~ε·‖w‖ 舍入;
+      // ‖e‖ ~ 8e-6 ⇒ ‖e‖² 的相对舍入底 ~ε·‖t‖/‖e‖ ~ 1e-11。1e-10 阈值仍比
+      // 朴素相减法（本次实测 1.4e8 相对误差）好 18 个数量级。
+      check(rel(got, i_f_closed) < 1e-10,
+            "production I_F matches closed form at the QR-rounding floor "
+            "(explicit residual; no cancellation)");
+      check(r.windows[0].flux_residual_norm > 0.0 &&
+                r.windows[0].flux_response_norm > 0.0,
+            "‖t‖ and ‖e‖ diagnostics recorded (NOISE_SNR §11.6)");
+      check(std::abs(r.windows[0].flux_residual_norm *
+                         r.windows[0].flux_residual_norm - got) <
+                1e-18 * std::max(1.0, got),
+            "‖e‖² == I_F (residual-norm consistency)");
+      check(r.windows[0].flux_response_norm >
+                10.0 * r.windows[0].flux_residual_norm,
+            "near-collinearity visible: ‖t‖ ≫ ‖e‖");
+      // 朴素相减法（第一轮实现形状）在同一可达精度下的量级演示: 用与生产相同
+      // 的正交基构造顺序, 只是把相减留到最后一步。
+      std::vector<double> t(m), zw(m * nz);
+      for (int j = 0; j < m; ++j) {
+        t[static_cast<std::size_t>(j)] =
+            w.profile[static_cast<std::size_t>(j)] /
+            std::sqrt(v[static_cast<std::size_t>(j)]);
+        for (int a = 0; a < nz; ++a)
+          zw[static_cast<std::size_t>(j) * nz + a] =
+              z[static_cast<std::size_t>(j) * nz + a] /
+              std::sqrt(v[static_cast<std::size_t>(j)]);
+      }
+      std::vector<double> basis(nz * m, 0.0);
+      int zr = 0;
+      for (int a = 0; a < nz; ++a) {
+        std::vector<double> q(zw.begin() + static_cast<std::ptrdiff_t>(a) * m,
+                              zw.begin() + static_cast<std::ptrdiff_t>(a + 1) * m);
+        for (int pass = 0; pass < 2; ++pass)
+          for (int b = 0; b < zr; ++b) {
+            double d = 0.0;
+            for (int j = 0; j < m; ++j)
+              d += q[static_cast<std::size_t>(j)] *
+                   basis[static_cast<std::size_t>(b) * m + j];
+            for (int j = 0; j < m; ++j)
+              q[static_cast<std::size_t>(j)] -=
+                  d * basis[static_cast<std::size_t>(b) * m + j];
+          }
+        double rn = 0.0;
+        for (double x : q) rn += x * x;
+        rn = std::sqrt(rn);
+        if (!(rn > 0.0)) continue;
+        for (int j = 0; j < m; ++j)
+          basis[static_cast<std::size_t>(zr) * m + j] =
+              q[static_cast<std::size_t>(j)] / rn;
+        ++zr;
+      }
+      double tn2 = 0.0, proj = 0.0;
+      for (double x : t) tn2 += x * x;
+      for (int b = 0; b < zr; ++b) {
+        double d = 0.0;
+        for (int j = 0; j < m; ++j)
+          d += t[static_cast<std::size_t>(j)] *
+               basis[static_cast<std::size_t>(b) * m + j];
+        proj += d * d;
+      }
+      const double naive = tn2 - proj;
+      const double naive_rel = std::abs(naive - i_f_closed) / i_f_closed;
+      std::printf("  naive t_norm2-proj=%.12g  rel err vs closed=%.3e "
+                  "(production rel=%.3e)\n",
+                  naive, naive_rel, rel(got, i_f_closed));
+      check(naive_rel > 1e-9,
+            "naive subtraction loses >=9 digits here (why the fix was needed)");
+      check(rel(got, i_f_closed) < 1e-9 * naive_rel,
+            "production residual is orders of magnitude more accurate");
+    }
+    // 秩门限敏感度（§11.6「检查 near-null 方向/秩门限敏感度」的如实记录）:
+    // 本点的 I_F/‖t‖² ≈ 1.3e-9。判据 I_F > rank_tol·‖t‖² 因此:
+    //   tol=1e-12 / 1e-10（默认） ⇒ available, 且 I_F 逐位相同（无 near-null 跨越）;
+    //   tol=1e-8                          ⇒  numerically indistinguishable from
+    //   背景 span ⇒ 具名 unavailable（不造 V_F）。这不是缺陷: 该点条件
+    //   V_F≈1.5e10（SNR_ref≈8e-3）本已不可测; 容差语义必须随 solver 诊断落盘。
+    for (double tol : {1e-12, 1e-10, 1e-8}) {
+      SphericalCompletionConfig c2 = cfg;
+      c2.support_rank_tol = tol;
+      const auto r2 = complete_spherical_reference({w}, c2);
+      if (!r2.precision.controls.empty() &&
+          r2.precision.controls[0].status.availability ==
+              PrecisionAvailability::kAvailable) {
+        check(!r2.windows.empty(),
+              "available control has its local window payload");
+        if (!r2.windows.empty()) {
+          std::printf("  tol=%.0e rank=%d I_F=%.12g V_F=%.6g\n", tol,
+                      r2.windows[0].solver_rank,
+                      r2.windows[0].flux_information,
+                      *r2.precision.controls[0].flux_variance);
+          check(rel(r2.windows[0].flux_information,
+                    r.windows[0].flux_information) < 1e-12,
+                "I_F identical across rank_tol below the point's own "
+                "I_F/‖t‖² (no near-null crossing)");
+        }
+      } else {
+        std::printf("  tol=%.0e unavailable reason=%s\n", tol,
+                    r2.precision.controls[0].status.reason.c_str());
+        check(tol == 1e-8 &&
+                  r2.precision.controls[0].status.reason ==
+                      "flux_direction_inside_background_span" &&
+                  !r2.precision.controls[0].flux_variance.has_value(),
+              "tol above the point's I_F/‖t‖² ⇒ named unavailable, no V_F");
+      }
+    }
+  }
+
   // ── 6. Monte Carlo: 真实 C_y = R D Rᵀ 下的 GLS 散度 == sqrt(V_F) ───────────
   g_case = "Monte Carlo flux scatter vs predicted sqrt(V_F)";
   {

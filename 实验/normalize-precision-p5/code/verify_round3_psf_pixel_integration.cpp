@@ -14,16 +14,43 @@ int main(){
   // (2) 圆盘闭式 f_out
   std::printf("f_out(σ=3,a=6)=%.17g  closed=%.17g\n",moffat4_closed_form_f_out_disc(3,6),std::pow(1+36.0/18,-3));
   chk(std::abs(moffat4_closed_form_f_out_disc(3,6)-std::pow(3.0,-3))<1e-15,"closed-form disc f_out");
-  // (3) 解析真值: 像素中心在源心的 5x5 网格, 理论全平面份额 = 1
-  //     用"远离源心的大网格"检验 f_enc → 1（收敛, 逐位不漏 flux）
+  // (3) 解析真值: 像素中心在源心的大网格, 单位总通量模板的全平面积分 → 1
+  //     （第一轮审查: 该块此前只建点数组、未调用求积也未断言, 不计为实测;
+  //      现在真正调用生产接口, 核对 f_enc → 1 的**窗截断包络**: 方形邻域
+  //      [−h−0.5, h+0.5]² 包含半径 h+0.5 的圆盘 ⇒ f_enc ≥ 1 − disc_f_out(h+0.5),
+  //      且 f_enc ≤ 1; 窗越大截断越小, 序列单调。）
   {
-    PixelIntegrationRequest r; r.sx=r.sy=3.0; r.theta=0; r.cx=r.cy=0; r.order=12;
-    std::vector<double> px,py; int W=201;
-    for(int y=-W/2;y<=W/2;++y)for(int x=-W/2;x<=W/2;++x){px.push_back(x);py.push_back(y);}
-    r.pixel_x=px.data();r.pixel_y=py.data();r.n_pixels=px.size();
-    std::vector<double> P; PixelIntegrationDiagnostics d;
-
-    
+    double prev_fout = 1e9;
+    for (int W : {61, 201}) {
+      PixelIntegrationRequest r; r.sx=r.sy=3.0; r.theta=0; r.cx=r.cy=0; r.order=12;
+      std::vector<double> px,py; int half=W/2;
+      for(int y=-half;y<=half;++y)for(int x=-half;x<=half;++x){px.push_back(x);py.push_back(y);}
+      r.pixel_x=px.data();r.pixel_y=py.data();r.n_pixels=px.size();
+      std::vector<double> P; PixelIntegrationDiagnostics d;
+      const bool okc=pixel_integrated_moffat4_profile(r,&P,&d);
+      chk(okc && P.size()==px.size(),
+          "large centered grid: integration succeeded with per-pixel output");
+      if(!okc) continue;
+      // 半宽 half px、σ=3 ⇒ 窗包含半径 half+0.5 的圆盘 ⇒ f_out ≤ disc_f_out(half+0.5)
+      const double env=moffat4_closed_form_f_out_disc(3.0,half+0.5);
+      std::printf("  %dx%d: f_enc=%.15f f_out=%.3e disc_envelope(half+0.5)=%.3e\n",
+                  W,W,d.f_enclosed,d.f_out,env);
+      chk(d.f_enclosed<=1.0 && d.f_enclosed>=1.0-env,
+          "unit-flux template f_enc within [1-envelope, 1] (window truncation only)");
+      chk(d.f_out>0.0 && d.f_out<=env*(1.0+1e-9),
+          "f_out = 1 - f_enc positive and bounded by the disc envelope "
+          "(no clamp to fake 100%)");
+      chk(d.estimated_error>=0.0 && d.estimated_error<1e-12,
+          "quadrature self-error estimate reported and small on large grid");
+      chk(d.f_out<prev_fout,
+          "larger window ⇒ smaller truncation (monotone convergence to 1)");
+      prev_fout=d.f_out;
+      // 逐点非负有界（单位总通量响应 ∈ [0,1]）
+      bool pmax_ok=true; double pmax=0.0;
+      for(double v:P){ if(!(v>=0.0)||v>1.0) pmax_ok=false; pmax=std::max(pmax,v);}
+      chk(pmax_ok && pmax<=1.0,
+          "per-pixel unit-flux responses in [0,1]");
+    }
   }
   // (4) 圆盘窗 f_enc 与解析闭式 1-(1+a²/2σ²)^{-3} 对比（像素化误差随像元变小收敛）
   for (double sigma : {1.0, 3.0}) {
