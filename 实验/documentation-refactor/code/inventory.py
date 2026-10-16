@@ -23,6 +23,8 @@ UNIT = ROOT / '实验/documentation-refactor'
 # Human semantic comparisons against the fixed baseline, recorded in the
 # existing inventory. These are not inferred from length or keyword checks.
 SEMANTIC_REVIEWS = {
+    'docs/science/algorithms/mosaic/PHASE2_SESSION.md':
+        '完整402行基线/现文对照及当前会话全源码复读：有效拓扑、配置、5API、完整manifest/返回码、所有权/异常/取消、调用计数/复杂度/验证转入正式Mosaic detail；更新partial及生产独立工厂，历史任务入既有SOURCE；未运行',
     'docs/science/algorithms/mosaic/PHASE2_COVERAGE.md':
         '完整408行基线/现文逐项对照：保留集合/父聚合推导、全部伪代码、协议/几何域、复杂度/误差/Oracle与参考；6接口5结构/所有参数/容量/资源归正式Mosaic detail；纠正旧filter政策、tile阶、复杂度和假容量保护，历史任务/失效测试入既有SOURCE；未运行',
 
@@ -40,6 +42,7 @@ SEMANTIC_REVIEWS = {
 }
 
 REWRITTEN = {
+    'docs/science/algorithms/mosaic/PHASE2_SESSION.md',
     'AGENTS.md', 'README.md', 'docs/README.md', 'docs/ACSD_DESIGN.md',
     'docs/science/algorithms/mosaic/PHASE2_COVERAGE.md',
     'docs/science/README.md', 'docs/engineering/README.md',

@@ -393,6 +393,8 @@
 
 | E71 | Coverage build只保存输入/union指针后memset，未保存或校验容量，第二遍重扫K后直写；tile_ipix读取错误跳过；max_leaf_order实际hips_order/tile层级，像元叶阶+9；旧复杂度误用去重K且漏所有frame_tiles驻留 | science/detail已写真实两遍/快照与容量风险、TlogT/O(T+N)、外包络不等真实重叠、六接口/五结构；保留代码不修。旧filter全等政策按现代码删除，no-input的rc1/status0与无完整C异常屏障仍记录；下游order+9有效域、tile错误完整性需实现方独立负例核验 |
 
+| E72 | 局部p2_session原文complete与当前partial矛盾；旧每失败必free不实（guard在coverage fill成功后）；model仅run局部且无RAII；run未validate/无完整异常屏障；rc0空model走失败仍map_rc(0)；重复run不清ran/error/stages；inspect只写span.data/count不写head | 正式detail已保存全部接口/字段/配置和真实分支，修正旧持有模型/生产七节点factory声明。首次取消inspect可created、旧成功后失败可保留partial、persist缺path静默跳过仍存在；host nested回调/ABI、异常泄漏、容量快照及标度依赖停止阈值需实现方独立核验。生产源码未改，未运行；原“ADU·sr⁻¹上绝对阈值必不可达”改为有条件舍入风险，不把历史单次max_iter当普遍结论 |
+
 本轮已合并远端 `5b33e0417`，保留 Normalize Round 3 的空间 PSF、空间 alpha、typed 边与实验记录。已重读新增空间PSF完整实现、相关改动与生产调用，确认E52所列路径并同步架构/实施差异及接口说明；第三轮报告全文已读，其数值本轮未重跑。E01–E15来自合并前抽查，E01的sed_response未接线、E03的basename身份、E04的signal叶阶、E07释放后EXPTIME读取本轮相应代码段仍可见；其余不自动当作仍存或已解决。E05中因子基础单位检查已增加，但通用reader是否全面调用仍须分开核对。原始191篇清单继续固定基线，新增代码/记录另外登记。
 
 ## 本轮证据边界

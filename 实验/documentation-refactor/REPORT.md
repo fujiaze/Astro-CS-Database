@@ -253,3 +253,7 @@ Q10旧t_norm2−proj已修，历史反例保留，剩余秩阈值/误差证书�
 基线与现行差异仅为导航，因此按同一408行全文逐项精读，另完整读coverage.h/coverage.cpp、AIO/sampler层级消费者相关段、Mosaic管线与UPM上层。保留NESTED父包含推导、并集/外包络、全伪代码、所有错误和两遍协议、复杂度、输入属性、几何/支撑/有效性分名、F1–F6有效检验意图与参考。6完整函数/5结构和每项容量/参数/所有权进入Mosaic正式detail；不是回档案找API。历史全过程追加同一MOSAIC_REDUCERS_SOURCE，按其固定599637e源blob逐字保留，未新建来源体系。
 
 订正原文已过时filter全等拒绝、tile阶误作像元阶、KlogK与漏驻留内存、所有异常已捕获等；当前未检查填充容量/跳过tile错误的静态风险见E71，未修改生产源码。原混阶例增加必要父号条件，粗父重合不证明真实有效重叠。官方HiPS1.0/MOC2.0入口已核，未宣称已阅读全文标准/参考库；未构建/运行Coverage。191篇其余长卷与跨层复读仍继续，原始清单100→101仅表示重写分类，不能当语义闭合完成数。
+
+### Issue6 批次：局部Mosaic session全语义对照
+
+完整复读63eccbb6的PHASE2_SESSION 402行（现文仅链接改动）与当前p2_session.h/cpp全文、基础ABI头及真实工厂注册；上层最高设计、science/engineering/detail索引、Mosaic管线、集成与维护规范已读，UPM沿用此前全文阅读。旧有效设计逐项归modules.md#session：五完整声明、所有参数/span布局/host握手、全部配置及默认、完整manifest/partial能力表、调用顺序/计数、分配/释放/并行/取消、错误和验证负例。算法页保留完整顺序伪代码与复杂度归属，旧任务原文追加同一SOURCE（固定原archive revision精确blob）。当前模型仅run局部且无RAII、partial状态、独立七节点工厂等纠正历史误述；E72记录异常/重复run/rc0空模型等静态风险，不改生产代码。只作静态/文档检查，未运行科学或ABI测试；191篇完整语义对照仍未完成。
