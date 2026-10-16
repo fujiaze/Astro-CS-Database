@@ -20,6 +20,15 @@ from rewrite_cosmetic import DOCUMENTS as COSMETIC_DOCUMENTS
 ROOT = Path(__file__).resolve().parents[3]
 UNIT = ROOT / '实验/documentation-refactor'
 
+# Human semantic comparisons against the fixed baseline, recorded in the
+# existing inventory. These are not inferred from length or keyword checks.
+SEMANTIC_REVIEWS = {
+    'docs/detail/normalize/modules/star_detection.md':
+        '完整基线/现文语义对照：O1–O16全部恢复正式detail；六签名、13参数、列身份、初值/LM重试、门、异常/寿命/复杂度及连贯例；纠正旧参数化/饱和中心/十数组；未运行检测测试，论文边界未逐式外核',
+    'docs/science/algorithms/normalize/STAR_DETECTION_ALGORITHMS.md':
+        '完整基线/现文语义对照：观测模型、差分与平滑推导、Jacobian/TR-LM/通量及误差补入science，逐算子/API归detail；历史召回/增益留研究记录，参考版本/许可与随机分配差异已核作者代码；未执行数值验证',
+}
+
 REWRITTEN = {
     'AGENTS.md', 'README.md', 'docs/README.md', 'docs/ACSD_DESIGN.md',
     'docs/science/README.md', 'docs/engineering/README.md',
@@ -159,6 +168,8 @@ def main():
             dest, action, reading = name, '更新轻量导航', '结构解析与路径核对；不评价科学'
         else:
             dest, action, reading = name, '保留当前主题归属；逐篇重写尚未完成', '已枚举；局部查阅或尚未精读'
+        if name in SEMANTIC_REVIEWS:
+            reading = SEMANTIC_REVIEWS[name]
         rows.append(dict(path=name, baseline_commit=commit, git_blob=blob, bytes=int(size),
                          disposition=action, destination=dest, review_scope=reading))
     target = UNIT / 'docs/ORIGINAL_FILES.tsv'
