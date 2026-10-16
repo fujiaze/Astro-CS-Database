@@ -1,0 +1,505 @@
+{
+  "n_scanned": 31,
+  "n_bug_signature": 29,
+  "n_error": 0,
+  "rows": [
+    {
+      "sidecar": "run/norm-noref-test/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science.json",
+      "product_root": "run/norm-noref-test/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha",
+      "software_sha": "c90bc27490d0489c934f17a2d740e9f841315d48",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "9544f676d6098a81476a045bceb74f1b13217f35a8fb3fff1be53fdde128558c",
+      "size_bytes": 5358
+    },
+    {
+      "sidecar": "run/norm-noref-test/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science/frame_science.json",
+      "product_root": "run/norm-noref-test/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science",
+      "software_sha": "c90bc27490d0489c934f17a2d740e9f841315d48",
+      "signal_leaf_order": 9,
+      "true_K": 9,
+      "K_source": "sidecar.signal.leaf_order",
+      "controls_leaf_orders": [],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": false,
+      "sha256": "9544f676d6098a81476a045bceb74f1b13217f35a8fb3fff1be53fdde128558c",
+      "size_bytes": 5358
+    },
+    {
+      "sidecar": "run/norm-round1-r2/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science/frame_science.json",
+      "product_root": "run/norm-round1-r2/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science",
+      "software_sha": "12204600edbad8e23ba9e8fe4cbc8427efee0bf9",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "7fbe742ce3c93fcb41d2a9a8d7633cc90cf729908e5f7cebb108cec56c398fb1",
+      "size_bytes": 155013
+    },
+    {
+      "sidecar": "run/C-PHOT-SPATIAL-E2E/out/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red/frame_science.json",
+      "product_root": "run/C-PHOT-SPATIAL-E2E/out/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "58d28d751ed43be1663608368f8c7ab288464496cd800f321ac7d5f865b677f0",
+      "size_bytes": 140004
+    },
+    {
+      "sidecar": "run/C-PHOT-SPATIAL-E2E/work/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red/frame_science/frame_science.json",
+      "product_root": "run/C-PHOT-SPATIAL-E2E/work/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red/frame_science",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "58d28d751ed43be1663608368f8c7ab288464496cd800f321ac7d5f865b677f0",
+      "size_bytes": 140004
+    },
+    {
+      "sidecar": "run/norm-precision-test/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science.json",
+      "product_root": "run/norm-precision-test/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "2b4221bb4d3fcde34acc3a21e90cdf65a39a637352440d349e0867da56e19808",
+      "size_bytes": 155121
+    },
+    {
+      "sidecar": "run/norm-precision-test/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science/frame_science.json",
+      "product_root": "run/norm-precision-test/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "2b4221bb4d3fcde34acc3a21e90cdf65a39a637352440d349e0867da56e19808",
+      "size_bytes": 155121
+    },
+    {
+      "sidecar": "run/norm-round1-r7/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science.json",
+      "product_root": "run/norm-round1-r7/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha",
+      "software_sha": "df9ba0e27a08dc93462a6c9ee4376ea1f954f18f",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "340a10325902737d0f183afcd7c8b7b203b3d60b2e2e4a5c85af66575b42609d",
+      "size_bytes": 155077
+    },
+    {
+      "sidecar": "run/norm-round1-r7/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science/frame_science.json",
+      "product_root": "run/norm-round1-r7/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science",
+      "software_sha": "df9ba0e27a08dc93462a6c9ee4376ea1f954f18f",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "340a10325902737d0f183afcd7c8b7b203b3d60b2e2e4a5c85af66575b42609d",
+      "size_bytes": 155077
+    },
+    {
+      "sidecar": "run/norm-precision-dev/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science.json",
+      "product_root": "run/norm-precision-dev/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha",
+      "software_sha": "c90bc27490d0489c934f17a2d740e9f841315d48",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        null
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "5b7b92fcbf208efdddd828cd63f99460dec27c7c9454b19fbad4e06d53d75b5e",
+      "size_bytes": 153490
+    },
+    {
+      "sidecar": "run/norm-precision-dev/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science/frame_science.json",
+      "product_root": "run/norm-precision-dev/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science",
+      "software_sha": "c90bc27490d0489c934f17a2d740e9f841315d48",
+      "signal_leaf_order": 9,
+      "true_K": 9,
+      "K_source": "sidecar.signal.leaf_order",
+      "controls_leaf_orders": [
+        null
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": false,
+      "sha256": "5b7b92fcbf208efdddd828cd63f99460dec27c7c9454b19fbad4e06d53d75b5e",
+      "size_bytes": 153490
+    },
+    {
+      "sidecar": "run/norm-round1-r4/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science.json",
+      "product_root": "run/norm-round1-r4/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha",
+      "software_sha": "12204600edbad8e23ba9e8fe4cbc8427efee0bf9",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "4d5e3a8ce343925d5ec4fea08dba1ecd35fe0c5c3fe07daf75646a75bc18904b",
+      "size_bytes": 155013
+    },
+    {
+      "sidecar": "run/norm-round1-r4/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science/frame_science.json",
+      "product_root": "run/norm-round1-r4/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science",
+      "software_sha": "12204600edbad8e23ba9e8fe4cbc8427efee0bf9",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "4d5e3a8ce343925d5ec4fea08dba1ecd35fe0c5c3fe07daf75646a75bc18904b",
+      "size_bytes": 155013
+    },
+    {
+      "sidecar": "run/P0-EXPTIME/wcswork-nan/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-nan/frame_science/frame_science.json",
+      "product_root": "run/P0-EXPTIME/wcswork-nan/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-nan/frame_science",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "d4bcbf9f24494e9082e807ecf0b27e4dd3193dcbe1fb7b33a1ea0d7be9347e78",
+      "size_bytes": 152283
+    },
+    {
+      "sidecar": "run/P0-EXPTIME/wcsout-missing/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-missing/frame_science.json",
+      "product_root": "run/P0-EXPTIME/wcsout-missing/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-missing",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "e716fd029d0761a5223c360c11b4077935e9566c136bcbfd9538332ca218ac10",
+      "size_bytes": 152291
+    },
+    {
+      "sidecar": "run/P0-EXPTIME/wcswork-negative/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-negative/frame_science/frame_science.json",
+      "product_root": "run/P0-EXPTIME/wcswork-negative/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-negative/frame_science",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "f01111ad764371a608026dc9d041d65b85f7fc6cb3f5aa15f3d43fca7a0ab28e",
+      "size_bytes": 152293
+    },
+    {
+      "sidecar": "run/P0-EXPTIME/wcswork-zero/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-zero/frame_science/frame_science.json",
+      "product_root": "run/P0-EXPTIME/wcswork-zero/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-zero/frame_science",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "8f50534ad8d361fd915d216d9af2219e3b734ff516f71936baae35942ec50a76",
+      "size_bytes": 152285
+    },
+    {
+      "sidecar": "run/P0-EXPTIME/wcsout-nan/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-nan/frame_science.json",
+      "product_root": "run/P0-EXPTIME/wcsout-nan/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-nan",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "d4bcbf9f24494e9082e807ecf0b27e4dd3193dcbe1fb7b33a1ea0d7be9347e78",
+      "size_bytes": 152283
+    },
+    {
+      "sidecar": "run/P0-EXPTIME/wcsout-valid/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-valid/frame_science.json",
+      "product_root": "run/P0-EXPTIME/wcsout-valid/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-valid",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "24d572b57ee1c14741a1ee40626a868e29ff5ce7a0b1df6fa5ce690fc4c17537",
+      "size_bytes": 152270
+    },
+    {
+      "sidecar": "run/P0-EXPTIME/wcsout-negative/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-negative/frame_science.json",
+      "product_root": "run/P0-EXPTIME/wcsout-negative/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-negative",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "f01111ad764371a608026dc9d041d65b85f7fc6cb3f5aa15f3d43fca7a0ab28e",
+      "size_bytes": 152293
+    },
+    {
+      "sidecar": "run/P0-EXPTIME/wcswork-missing/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-missing/frame_science/frame_science.json",
+      "product_root": "run/P0-EXPTIME/wcswork-missing/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-missing/frame_science",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "e716fd029d0761a5223c360c11b4077935e9566c136bcbfd9538332ca218ac10",
+      "size_bytes": 152291
+    },
+    {
+      "sidecar": "run/P0-EXPTIME/wcswork-valid/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-valid/frame_science/frame_science.json",
+      "product_root": "run/P0-EXPTIME/wcswork-valid/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-valid/frame_science",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "24d572b57ee1c14741a1ee40626a868e29ff5ce7a0b1df6fa5ce690fc4c17537",
+      "size_bytes": 152270
+    },
+    {
+      "sidecar": "run/P0-EXPTIME/wcsout-zero/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-zero/frame_science.json",
+      "product_root": "run/P0-EXPTIME/wcsout-zero/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha.EXPTIME-zero",
+      "software_sha": "015a18b263f7da5573bc3df2676a542dcf87ebd0",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "8f50534ad8d361fd915d216d9af2219e3b734ff516f71936baae35942ec50a76",
+      "size_bytes": 152285
+    },
+    {
+      "sidecar": "run/norm-round1-r1/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science.json",
+      "product_root": "run/norm-round1-r1/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha",
+      "software_sha": "12204600edbad8e23ba9e8fe4cbc8427efee0bf9",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "27b51cc5a8e2623604dfcf3e43b0eef680adcf8a4ab7f07163f370221b426e9b",
+      "size_bytes": 155013
+    },
+    {
+      "sidecar": "run/norm-round1-r1/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science/frame_science.json",
+      "product_root": "run/norm-round1-r1/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science",
+      "software_sha": "12204600edbad8e23ba9e8fe4cbc8427efee0bf9",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "27b51cc5a8e2623604dfcf3e43b0eef680adcf8a4ab7f07163f370221b426e9b",
+      "size_bytes": 155013
+    },
+    {
+      "sidecar": "run/norm-round1-r8/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science.json",
+      "product_root": "run/norm-round1-r8/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha",
+      "software_sha": "df9ba0e27a08dc93462a6c9ee4376ea1f954f18f",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "b9e615a6e9b86d8e00a191d5c8f6afaaa7e01235f8ffa081ab3695d7baadf7e2",
+      "size_bytes": 155077
+    },
+    {
+      "sidecar": "run/norm-round1-r8/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science/frame_science.json",
+      "product_root": "run/norm-round1-r8/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science",
+      "software_sha": "df9ba0e27a08dc93462a6c9ee4376ea1f954f18f",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "b9e615a6e9b86d8e00a191d5c8f6afaaa7e01235f8ffa081ab3695d7baadf7e2",
+      "size_bytes": 155077
+    },
+    {
+      "sidecar": "run/norm-round1-r5/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science.json",
+      "product_root": "run/norm-round1-r5/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha",
+      "software_sha": "12204600edbad8e23ba9e8fe4cbc8427efee0bf9",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "33d9ff161808bd81a30a5e5745bd5e79dc2889c373036cc9e2777490779e1445",
+      "size_bytes": 155089
+    },
+    {
+      "sidecar": "run/norm-round1-r5/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science/frame_science.json",
+      "product_root": "run/norm-round1-r5/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science",
+      "software_sha": "12204600edbad8e23ba9e8fe4cbc8427efee0bf9",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "33d9ff161808bd81a30a5e5745bd5e79dc2889c373036cc9e2777490779e1445",
+      "size_bytes": 155089
+    },
+    {
+      "sidecar": "run/norm-round1-r6/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science.json",
+      "product_root": "run/norm-round1-r6/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha",
+      "software_sha": "df9ba0e27a08dc93462a6c9ee4376ea1f954f18f",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "properties.hips_order+9",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": 9,
+      "signal_leaf_norder": 9,
+      "bug_signature_K-9": true,
+      "sha256": "3cc5e92af83706f434cd0e4bbff2e8e52017cc94194ea20151e75c2a413c4d50",
+      "size_bytes": 155077
+    },
+    {
+      "sidecar": "run/norm-round1-r6/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science/frame_science.json",
+      "product_root": "run/norm-round1-r6/work/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha/frame_science",
+      "software_sha": "df9ba0e27a08dc93462a6c9ee4376ea1f954f18f",
+      "signal_leaf_order": 9,
+      "true_K": 18,
+      "K_source": "controls[*].leaf_order",
+      "controls_leaf_orders": [
+        18
+      ],
+      "properties_hips_order": null,
+      "signal_leaf_norder": null,
+      "bug_signature_K-9": true,
+      "sha256": "3cc5e92af83706f434cd0e4bbff2e8e52017cc94194ea20151e75c2a413c4d50",
+      "size_bytes": 155077
+    }
+  ],
+  "software_sha_distribution": {
+    "c90bc27490d0489c934f17a2d740e9f841315d48": 4,
+    "12204600edbad8e23ba9e8fe4cbc8427efee0bf9": 7,
+    "015a18b263f7da5573bc3df2676a542dcf87ebd0": 14,
+    "df9ba0e27a08dc93462a6c9ee4376ea1f954f18f": 6
+  }
+}

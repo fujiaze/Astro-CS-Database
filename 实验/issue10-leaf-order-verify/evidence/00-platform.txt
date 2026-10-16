@@ -1,0 +1,7 @@
+Linux Agent 6.12.107+deb13-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.12.107-1 (2026-08-29) x86_64 GNU/Linux
+
+g++ (Debian 14.2.0-19) 14.2.0
+cmake version 3.31.6
+1.12.1
+16
+--- preset ---

@@ -1,0 +1,64 @@
+{
+  "pre": "/tmp/issue10/run/auto_pre10/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha",
+  "post": "/tmp/issue10/run/auto/out/M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha",
+  "sidecar_sha256": {
+    "pre": "acea6fa3d3aa2f17e9b3d9dd4789bbbc3128ee2bcd843d51508d9eec3df32bf7",
+    "post": "26c32c5baf44fdb0ad605ef558fad12808f9e9697612b1564b82918fb47f4633"
+  },
+  "sidecar_diffs": [
+    {
+      "path": ".config_sha256",
+      "pre": "234ac0df120663333c386f6adda76b9a6d4e46eaf883c6e950262b3bdd94640b",
+      "post": "585516d26e6a5027ffa749ccf76c9a4a8c9c73279f3883098670646177bdfb2c"
+    },
+    {
+      "path": ".run_id",
+      "pre": "60c768b440b6",
+      "post": "5f33ad20d1fb"
+    },
+    {
+      "path": ".signal.leaf_order",
+      "pre": 9,
+      "post": 18
+    }
+  ],
+  "sidecar_identical": false,
+  "science_summary": {
+    "precision.frame_summary.reference_snr": {
+      "pre": 14.028668592958622,
+      "post": 14.028668592958622
+    },
+    "precision.frame_summary.supported_area_sr": {
+      "pre": 7.724817007663182e-07,
+      "post": 7.724817007663182e-07
+    },
+    "precision.frame_summary.n_valid": {
+      "pre": 64,
+      "post": 64
+    }
+  },
+  "n_controls": {
+    "pre": 64,
+    "post": 64
+  },
+  "control_diffs": [],
+  "controls_identical": true,
+  "signal_files": {
+    "n_pre": 188,
+    "n_post": 188,
+    "only_pre": [],
+    "only_post": [],
+    "changed": [
+      "properties"
+    ],
+    "n_changed": 1
+  },
+  "signal_identical": false,
+  "properties_diffs": [
+    {
+      "key": "hips_creation_date",
+      "pre": "2026-10-16T16:11:25Z",
+      "post": "2026-10-16T15:43:22Z"
+    }
+  ]
+}
