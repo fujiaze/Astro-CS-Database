@@ -8456,6 +8456,8 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   // application_id（NORMALIZE_DATA §2/§8: 施加标度必须能追溯到真实响应身份）。
   std::string phot_response_filter_key, phot_response_filter_src;
   std::string phot_response_qe_key, phot_response_qe_src;
+  // 曲线文件内容 sha256（身份绑定字节内容, 不是文件名; 见 identity 调用点）
+  std::string phot_response_filter_sha, phot_response_qe_sha;
   // FAILSEM-01: 上游**逐帧判决**（p1_phot.json.frames[] → frame_key → 记录）。
   // 逐帧真相是本节点选择输入面的唯一依据; 组级 photometry_applied 只作摘要。
   Json frame_status = Json::object();
@@ -8517,6 +8519,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                 pbi["qe"].value("resolved_library_key", std::string());
             phot_response_qe_src = pbi["qe"].value("curve_source", std::string());
           }
+          // 曲线**内容**摘要（Issue #5 A.3: 文件名/库键不是曲线字节身份; 同名文件
+          // 内容更新必须改变响应身份）。一次/运行, 不逐帧重复 I/O; 读失败留空 ⇒
+          // 身份串退化写 @none（可见, 不写假摘要）。
+          acsd::phase1::precision::file_sha256_hex(phot_response_filter_src,
+                                                   &phot_response_filter_sha);
+          acsd::phase1::precision::file_sha256_hex(phot_response_qe_src,
+                                                   &phot_response_qe_sha);
         }
         have_phot_prov = true;
       } catch (const std::exception& e) {
@@ -9581,38 +9590,53 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         fdoc.photometry.scale_applied = frame_applied;
         fdoc.photometry.parameter_uncertainty = "unmodelled";
         // 应用身份（NORMALIZE_DATA §2/§8: scale_applied 必须与其 application ID、
-        // 单位、signal 标度一致）。由**本次实际施加**的标度事实确定性构造:
-        // 帧 key + 标量 k_photo + 空间场(order/coef/norm, 若施加) + 通带/QE 曲线
-        // 身份。同一施加 ⇒ 同一 ID; 更换曲线或重拟合标度 ⇒ 新 ID（下游据此判失效）。
-        // 只表达"施加了什么", 不伪造未测的光度解算 revision。
+        // 单位、signal 标度一致）。由**本次实际施加**的标度事实确定性构造, 规范串化
+        // 走 acsd::phase1::precision::photo_application_identity（Issue #5 A）:
+        //   * 浮点用无损 hexfloat（旧 std::to_string(frame_photscal) 把 1.524215866973e-17
+        //     写成 "0.000000" ⇒ 不同标度可碰撞成同一身份）;
+        //   * 覆盖所有参与量: k_photo + 空间场(order/status/identifiable/coef/center/norm)
+        //     + 输入 occurrence 内容 sha256（同名不同输入不再同身份）
+        //     + 滤镜/QE 的库键**与曲线文件内容 sha256**（文件名不是曲线字节身份）。
+        // 同一施加 ⇒ 同一 ID; 任一参与量变化 ⇒ 新 ID。只表达"施加了什么", 不伪造
+        // 未测的光度解算 revision。
         if (frame_applied) {
-          std::string canon = "photoapplied|frame=" + p1_frame_key(lp) +
-                              "|k=" + std::to_string(frame_photscal);
+          acsd::phase1::precision::AppliedScaleIdentity ident;
+          ident.frame_key = p1_frame_key(lp);
+          ident.input_source_sha256 = light_sha;   // 输入 occurrence 内容身份
+          ident.k_photo = frame_photscal;          // 实际施加值（不是配置声明）
           const auto sgit2 = spatial_gain_by_frame.find(p1_frame_key(lp));
           if (sgit2 != spatial_gain_by_frame.end()) {
             const Json& sg2 = sgit2->second;
-            canon += "|sg_order=" + std::to_string(sg2.value("order", 0));
-            canon += "|sg_status=" + sg2.value("status", std::string());
-            canon += "|sg_ident=" + std::to_string(sg2.value("identifiable", 0));
-            canon += "|sg_coef=" + sg2.value("coef", Json::array()).dump();
-            canon += "|sg_norm=" + sg2.value("norm", Json::object()).dump();
-            canon += "|sg_center=" + sg2.value("center", Json::array()).dump();
+            ident.spatial_order = sg2.value("order", 0);
+            ident.spatial_status = sg2.value("status", std::string());
+            ident.spatial_identifiable = sg2.value("identifiable", 0) != 0;
+            auto pull = [&sg2](const char* key, std::vector<double>* out) {
+              const Json& arr = sg2.contains(key) ? sg2.at(key) : Json::array();
+              if (!arr.is_array()) return;
+              for (const auto& x : arr)
+                if (x.is_number()) out->push_back(x.get<double>());
+            };
+            pull("coef", &ident.spatial_coef);
+            pull("center", &ident.spatial_center);
+            // norm 是对象 {x_ref,x_scale,y_ref,y_scale}: 展平成定序数组
+            const Json& nrm = sg2.contains("norm") ? sg2.at("norm") : Json::object();
+            if (nrm.is_object()) {
+              for (const char* k : {"x_ref", "x_scale", "y_ref", "y_scale"})
+                ident.spatial_norm.push_back(
+                    nrm.contains(k) && nrm[k].is_number() ? nrm[k].get<double>() : 0.0);
+            }
           }
-          canon += "|filter=" + phot_response_filter_key +
-                   "|filter_src=" + phot_response_filter_src +
-                   "|qe=" + phot_response_qe_key +
-                   "|qe_src=" + phot_response_qe_src;
-          const std::string app_hash =
-              acsd::crypto::sha256_hex(canon.data(), canon.size());
-          fdoc.photometry.application_id = "photoapplied:" + app_hash.substr(0, 32);
-          // 响应身份 = 实际装载的滤镜库键 + QE 库键（均来自已装载曲线, 不是配置
-          // 声明名; 曲线本体由运行时扫描集提供）。
-          if (!phot_response_filter_key.empty()) {
-            fdoc.photometry.response_id =
-                phot_response_qe_key.empty()
-                    ? phot_response_filter_key
-                    : phot_response_filter_key + "+" + phot_response_qe_key;
-          }
+          ident.filter_key = phot_response_filter_key;
+          ident.filter_content_sha256 = phot_response_filter_sha;
+          ident.qe_key = phot_response_qe_key;
+          ident.qe_content_sha256 = phot_response_qe_sha;
+          fdoc.photometry.application_id =
+              acsd::phase1::precision::photo_application_identity(ident);
+          // 响应身份 = 实际装载的曲线库键 + **曲线内容摘要**（同名文件内容更新 ⇒
+          // 身份随之改变; 摘要缺失时写 @none, 不写假摘要）。
+          fdoc.photometry.response_id = acsd::phase1::precision::photo_response_identity(
+              phot_response_filter_key, phot_response_filter_sha,
+              phot_response_qe_key, phot_response_qe_sha);
         }
         fdoc.photometry.reason =
             frame_applied
