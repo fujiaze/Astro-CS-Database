@@ -80,10 +80,15 @@ struct PrecisionFrameRequest {
   double applied_scale = 1.0;
   // 逐像元标度 α_j（= applied/native; 空间 alpha, PHOT-MXY-01 语义
   // α_j = k_photo·m(x_j,y_j)）。**求值器**（输入源像元下标, 输出 α_j）; 空 ⇒
-  // 全帧取常量 applied_scale。用于 NOISE_SNR §11.3 的源泊松有效 gain
-  // g_eff = g·a_ref/α_j²。m() 的唯一实现在 calibration::photo_spatial_m
-  // （由调用方组装, 本单元不复制公式）。
+  // 全帧取常量 applied_scale。用于 NOISE_SNR §2 的源泊松
+  // Var_src,j = F_ref·α_j²·P_j/(g·α_*) 与信号模板 h_j = (α_j/α_*)·P_j,
+  // 其中 α_* 为参考源位置 u（控制点）处的声明标度。m() 的唯一实现在
+  // calibration::photo_spatial_m（由调用方组装, 本单元不复制公式）。
   std::function<double(std::int64_t)> pixel_alpha_at;
+  // 连续坐标版 α 求值器（(x,y) → α; 与 pixel_alpha_at 同一 α 场）。参考源
+  // 位置 u 通常落在像元之间, α_* 由它在 u 连续求值得到; 缺省时退化为
+  // pixel_alpha_at 的最近像元近似（并在 support note 登记）。
+  std::function<double(double, double)> alpha_at_xy;
   std::string gain_provenance = "unavailable";
   double pixel_scale_arcsec = 1.0; // 输入像元角尺度（query_disc 半径估计用）
 };

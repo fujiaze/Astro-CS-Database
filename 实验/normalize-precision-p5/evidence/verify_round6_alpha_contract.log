@@ -1,0 +1,5 @@
+frame: M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha controls: 64 scale_state: native_calibrated
+alpha-contract read-back: 64 ok, 0 failed, 0 skipped
+worst |h_sphere - R·planar_template| / max|h| = 3.443e-16
+worst |alpha_window_scale - alpha_*·Σplanar| rel = 4.990e-10
+controls with α_j not identically 1: 0
