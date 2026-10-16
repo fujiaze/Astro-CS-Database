@@ -1,0 +1,66 @@
+# verify_round2（含新增近共线数值稳定性用例 5b）
+# build: g++ -std=c++17 -O2 ... libacsd_phase1_noise.a
+  nbg=0 prod=554.06084537545973 truth=554.06084537545985 oracle=554.06084537582296 rel_tr=2.052e-16 rel_or=6.556e-13
+    kernel: I_F=0.00180485592575  direct ΣP²/v=0.00180485592575  rel=3.604e-16
+    diag: solver=pivoted_householder_qr_rowspace rank=6 bg_rank=0 I_F=0.001804855926 V_F=1/I_F=554.0608454
+  [PASS] full column rank ⇒ available (full-col-rank, background=known)
+  [PASS] V_F equals A_src^T D^-1 A_src identity (NOISE_SNR §11.1) (full-col-rank, background=known)
+  [PASS] V_F equals independent Jacobi+Explicit-H^+2 oracle (full-col-rank, background=known)
+  [PASS] solver recorded as pivoted Householder QR row-space (full-col-rank, background=known)
+  nbg=1 prod=1969.549519617482 truth=1969.5495196174822 oracle=1969.5495195736482 rel_tr=1.154e-16 rel_or=2.226e-11
+    kernel: I_F=0.000507730316014  direct ΣP²/v=0.00180485592575  rel=7.187e-01
+    diag: solver=pivoted_householder_qr_rowspace rank=6 bg_rank=1 I_F=0.000507730316 V_F=1/I_F=1969.54952
+  [PASS] full column rank ⇒ available (full-col-rank, constant_fit)
+  [PASS] V_F equals A_src^T D^-1 A_src identity (NOISE_SNR §11.1) (full-col-rank, constant_fit)
+  [PASS] V_F equals independent Jacobi+Explicit-H^+2 oracle (full-col-rank, constant_fit)
+  [PASS] solver recorded as pivoted Householder QR row-space (full-col-rank, constant_fit)
+  nbg=2 prod=49588.306156324819 truth=49588.306156323932 oracle=49588.306160632135 rel_tr=1.790e-14 rel_or=8.686e-11
+    kernel: I_F=2.01660447293e-05  direct ΣP²/v=0.00180485592575  rel=9.888e-01
+    diag: solver=pivoted_householder_qr_rowspace rank=6 bg_rank=3 I_F=2.016604473e-05 V_F=1/I_F=49588.30616
+  [PASS] full column rank ⇒ available (full-col-rank, plane_fit)
+  [PASS] V_F equals A_src^T D^-1 A_src identity (NOISE_SNR §11.1) (full-col-rank, plane_fit)
+  [PASS] V_F equals independent Jacobi+Explicit-H^+2 oracle (full-col-rank, plane_fit)
+  [PASS] solver recorded as pivoted Householder QR row-space (full-col-rank, plane_fit)
+  prod=615.01882372412285 oracle=615.01882372412263 nl_truth=615.0188237241224 rank_oracle=3 rel=3.697e-16 rel_nl=7.394e-16
+  [PASS] rank deficient but flux identifiable ⇒ available (rank-deficient (rank(R)=3 < m=5))
+  [PASS] rank-deficient V_F equals Jacobi+Explicit-H^+2 oracle (different path) (rank-deficient (rank(R)=3 < m=5))
+  [PASS] rank-deficient V_F equals explicit nl-space C_y^-1 GLS (third path) (rank-deficient (rank(R)=3 < m=5))
+  [PASS] covariance_rank == rank(C_sphere) == 3 (not padded to m) (rank-deficient (rank(R)=3 < m=5))
+  [PASS] LocalWindow records solver_rank=3 (rank-deficient (rank(R)=3 < m=5))
+  availability=0 reason=
+  [PASS] background collinearity does not auto-imply flux unidentifiable (rank-deficient + collinear background, flux still identifiable)
+  [PASS] V_F reported although full parameter matrix is singular (rank-deficient + collinear background, flux still identifiable)
+  bg_basis_rank=2 I_F=2.6129e-05
+  [PASS] effective background basis rank < declared columns (rank-deficient + collinear background, flux still identifiable)
+  [PASS] flux information I_{F|beta} > 0 recorded (rank-deficient + collinear background, flux still identifiable)
+  availability=1 reason=flux_direction_inside_background_span
+  [PASS] flux inside background span ⇒ unavailable (flux direction inside background span ⇒ unavailable)
+  [PASS] no fabricated V_F/SNR (flux direction inside background span ⇒ unavailable)
+  [PASS] named reason (flux direction inside background span ⇒ unavailable)
+  [PASS] near-collinear (not exactly collinear) flux remains available (near-collinear flux: explicit residual vs subtraction cancellation)
+  [PASS] V_F reported for near-collinear flux (near-collinear flux: explicit residual vs subtraction cancellation)
+  [PASS] a_ref = sum(P) > 0 (reference scale well-formed) (near-collinear flux: explicit residual vs subtraction cancellation)
+  delta=1e-04 closed I_F=6.4640670652e-11  production I_F=6.46406706515e-11
+  [PASS] u has positive projected information (test well-formed) (near-collinear flux: explicit residual vs subtraction cancellation)
+  [PASS] production I_F matches closed form at the QR-rounding floor (explicit residual; no cancellation) (near-collinear flux: explicit residual vs subtraction cancellation)
+  [PASS] ‖t‖ and ‖e‖ diagnostics recorded (NOISE_SNR §11.6) (near-collinear flux: explicit residual vs subtraction cancellation)
+  [PASS] ‖e‖² == I_F (residual-norm consistency) (near-collinear flux: explicit residual vs subtraction cancellation)
+  [PASS] near-collinearity visible: ‖t‖ ≫ ‖e‖ (near-collinear flux: explicit residual vs subtraction cancellation)
+  naive t_norm2-proj=0.00895391706383  rel err vs closed=1.385e+08 (production rel=7.882e-12)
+  [PASS] naive subtraction loses >=9 digits here (why the fix was needed) (near-collinear flux: explicit residual vs subtraction cancellation)
+  [PASS] production residual is orders of magnitude more accurate (near-collinear flux: explicit residual vs subtraction cancellation)
+  [PASS] available control has its local window payload (near-collinear flux: explicit residual vs subtraction cancellation)
+  tol=1e-12 rank=6 I_F=6.46406706515e-11 V_F=1.54701e+10
+  [PASS] I_F identical across rank_tol below the point's own I_F/‖t‖² (no near-null crossing) (near-collinear flux: explicit residual vs subtraction cancellation)
+  [PASS] available control has its local window payload (near-collinear flux: explicit residual vs subtraction cancellation)
+  tol=1e-10 rank=6 I_F=6.46406706515e-11 V_F=1.54701e+10
+  [PASS] I_F identical across rank_tol below the point's own I_F/‖t‖² (no near-null crossing) (near-collinear flux: explicit residual vs subtraction cancellation)
+  tol=1e-08 unavailable reason=flux_direction_inside_background_span
+  [PASS] tol above the point's I_F/‖t‖² ⇒ named unavailable, no V_F (near-collinear flux: explicit residual vs subtraction cancellation)
+  sd=24.887364 sqrt(V_F)=24.799573 ratio=1.0035 (n=200000)
+  MC se=0.1581% (4-sigma band 0.6325%)
+  [PASS] Monte Carlo scatter within 4 sigma of predicted sqrt(V_F) (Monte Carlo flux scatter vs predicted sqrt(V_F))
+  solver=pivoted_householder_qr_rowspace rank=6 rel_tol=1e-10 cond=39116.1 bg_rank=1 I_F=0.00050773
+  [PASS] solver/rank/rel_tol/condition/background_rank/I_F all recorded (solver diagnostics completeness)
+
+ALL PASS: 0 failure(s)

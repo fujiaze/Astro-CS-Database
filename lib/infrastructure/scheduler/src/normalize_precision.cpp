@@ -432,28 +432,22 @@ StagedPrecision stage_frame_precision(
   // 模板足迹半径: 本单元局部推导（与 build_patch_windows 同一函数, 同一口径）。
   const double template_radius = precision_window_radius_px(req);
   bool psf_ok = req.have_psf;
-  double profile_enclosed = 1.0;        // ΣP 的最小值（跨控制点; ≤1）
-  double psf_quad_error = 0.0;          // 求积阶自检误差最大值
-  bool psf_quad_error_known = false;
+  // 逐控制点求积诊断（R2-F01 审查修正: 每个控制点记录**自己的** f_enc/f_out 与
+  // 求积误差; 帧级 extrema 只作摘要, 不把单一最小值写给每个控制点）。
+  std::vector<acsd::psf::PixelIntegrationDiagnostics> win_diag(windows.size());
   std::string flux_estimator = req.have_psf ? "analytic_total" : "unavailable";
-  for (auto& w : windows) {
+  for (std::size_t wi = 0; wi < windows.size(); ++wi) {
+    auto& w = windows[wi];
     const std::size_t m = w.pix_index.size();
     if (m == 0) continue;
     if (psf_ok) {
-      acsd::psf::PixelIntegrationDiagnostics diag;
       if (!pixel_integrated_profile(req.psf_sigma_px, w.cx_px, w.cy_px,
-                                    w.pix_index, req.width, &w.profile, &diag)) {
+                                    w.pix_index, req.width, &w.profile,
+                                    &win_diag[wi])) {
         // 求积失败 ⇒ 该帧没有合法单位总通量模板 ⇒ **不得**退化为中心值近似;
         // 控制点由 GLS 侧记 unavailable（不用未归一模板冒充 analytic_total）。
         psf_ok = false;
         break;
-      }
-      if (diag.estimated_error >= 0.0) {
-        psf_quad_error = std::max(psf_quad_error, diag.estimated_error);
-        psf_quad_error_known = true;
-      }
-      if (std::isfinite(diag.f_enclosed)) {
-        profile_enclosed = std::min(profile_enclosed, diag.f_enclosed);
       }
     } else {
       // 无 PSF ⇒ 模板缺失 ⇒ 该控制点由 GLS 侧记 unavailable（不用虚构 P）
@@ -468,6 +462,33 @@ StagedPrecision stage_frame_precision(
       if (!std::isfinite(v) || v < 0.0) v = 0.0;  // 不可用/损坏 ⇒ 0（GLS 具名拒绝）
       w.variance[j] = v;
     }
+  }
+  // 帧级 PSF 求积摘要（R2-F01: extrema 只作**帧摘要**; 逐控制点自己的
+  // f_enclosed/f_out/求积误差已在上方各自窗口落盘, 不用单一最小值冒充逐点值）
+  {
+    double fmin = 1.0, fmax = 0.0, fsum = 0.0, emax = 0.0;
+    int n = 0;
+    bool err_known = false;
+    for (const auto& d : win_diag) {
+      if (std::isfinite(d.f_enclosed)) {
+        fmin = std::min(fmin, d.f_enclosed);
+        fmax = std::max(fmax, d.f_enclosed);
+        fsum += d.f_enclosed;
+        ++n;
+      }
+      if (d.estimated_error >= 0.0) {
+        emax = std::max(emax, d.estimated_error);
+        err_known = true;
+      }
+    }
+    char sbuf[320];
+    std::snprintf(sbuf, sizeof(sbuf),
+                  "psf_pixel_integration frame summary: n_controls=%d "
+                  "f_enclosed[min,mean,max]=[%.9f,%.9f,%.9f] "
+                  "max_pixel_integration_error=%s",
+                  n, fmin, n > 0 ? fsum / static_cast<double>(n) : 0.0, fmax,
+                  err_known ? std::to_string(emax).c_str() : "not_available");
+    out.psf_integration_summary = sbuf;
   }
 
   // ── GLS 完成（数学唯一实现在 noise 库）────────────────────────────────────
@@ -561,9 +582,12 @@ StagedPrecision stage_frame_precision(
         q.solver = lw.solver;
         q.solver_relative_tol = lw.solver_relative_tol;
         q.solver_rank = lw.solver_rank;
+        q.condition_estimate_method = lw.solver_condition_estimate_method;
         q.solver_condition_number = lw.solver_condition_number;
         q.background_basis_rank = lw.background_basis_rank;
         q.flux_information = lw.flux_information;
+        q.flux_response_norm = lw.flux_response_norm;
+        q.flux_residual_norm = lw.flux_residual_norm;
         q.unit = q.derived_covariance_unit;   // 顶层 unit = 派生 C 的单位
         if (lw.covariance_explicit) {
           q.values = lw.covariance;                 // 显式 nl×nl row-major
@@ -571,19 +595,23 @@ StagedPrecision stage_frame_precision(
           q.matrix_rows = nl;
           q.matrix_cols = nl;
         } else {
-          // 落盘预算之外的显式矩阵: 只写精确因子（v_j, 长度 m）并把
-          // representation 记为 local-factor/v1。C = R diag(v) Rᵀ 可由本文件的
-          // v_j 与同控制点的 drizzle_operator CSR **精确**重算, 不是近似; 但
-          // 不在"显式矩阵"标签下塞因子（合同 §7.1）。nl 与理由写入 support_note。
+          // 落盘预算之外的显式矩阵: 只写精确因子（v_j, 长度 m）。C = R diag(v) Rᵀ
+          // 可由本文件的 v_j 与同控制点的 drizzle_operator CSR **精确**重算, 不是
+          // 近似。representation 必须是真实写出的 local-factor/v2（R2-F02 审查修正:
+          // 此前 note 写 v1 而 writer 发布 v2, 同一模型两个版本声明互相矛盾）;
+          // v1 只保留给历史兼容的 reader 适配, 不作为新生产语义。
           q.values = lw.source_variance;
           q.matrix_rows = m;
           q.matrix_cols = 1;
           q.support_note =
-              "representation=acsd.normalize.local-factor/v1; explicit nl x nl "
+              "representation=acsd.normalize.local-factor/v2; explicit nl x nl "
               "matrix exceeds covariance_matrix_budget (" +
               std::to_string(cfg.covariance_matrix_budget) + "); C = R diag(v) R^T "
               "with v = values[] and R = the drizzle_operator CSR of the same "
-              "control; nl=" + std::to_string(nl) + " m=" + std::to_string(m);
+              "control; nl=" + std::to_string(nl) + " m=" + std::to_string(m) +
+              "; factor_variance_unit=" + q.factor_variance_unit +
+              "; derived_covariance_unit=" + q.derived_covariance_unit +
+              "; operator_unit=sr^-1";
         }
         q.covariance_rank = ctrl.covariance_rank;
         q.condition_number = ctrl.condition_number;
@@ -628,8 +656,10 @@ StagedPrecision stage_frame_precision(
         q.values = lw.leaf_dp;
         // PSF.md §4 要求的落盘项: flux_estimator、psf_family/参数/子像元相位、
         // pixel_integration_method/order/估计误差、normalization_basis、
-        // f_enclosed/f_out。f_enc/f_out 由**实际像元集合**求和得到; 理想圆闭式
-        // 值单独作为参考求积并列写出, 不替代真实 f_out（PSF.md §4 明示）。
+        // f_enclosed/f_out。f_enc/f_out 是**本控制点自己**的实际像元集合求和
+        // （R2-F01 审查修正: 帧级 extrema 只作摘要, 不冒充逐点实测）; 理想圆
+        // 闭式值单独作为参考求积并列写出, 不替代真实 f_out（PSF.md §4 明示）。
+        const auto& pd = win_diag[static_cast<std::size_t>(i)];
         char note[768];
         std::snprintf(note, sizeof(note),
                       "patch-center deterministic grid; leaf_order=%d;"
@@ -645,9 +675,10 @@ StagedPrecision stage_frame_precision(
                       windows[i].leaf_order,
                       req.have_psf ? flux_estimator.c_str() : "unavailable",
                       req.psf_sigma_px, windows[i].cx_px, windows[i].cy_px,
-                      psf_quad_error_known ? "reported_below" : "not_available",
-                      req.have_psf ? profile_enclosed : 0.0,
-                      req.have_psf ? 1.0 - profile_enclosed : 0.0,
+                      pd.estimated_error >= 0.0 ? "reported_below"
+                                                 : "not_available",
+                      std::isfinite(pd.f_enclosed) ? pd.f_enclosed : 0.0,
+                      std::isfinite(pd.f_enclosed) ? 1.0 - pd.f_enclosed : 0.0,
                       (req.have_psf && req.psf_sigma_px > 0.0
                            ? std::pow(1.0 + template_radius * template_radius /
                                                 (2.0 * req.psf_sigma_px *
@@ -655,8 +686,8 @@ StagedPrecision stage_frame_precision(
                                       -3.0)
                            : 0.0),
                       lw.operator_coverage_fraction);
-        // 求积误差单独一个可机读字段（不进自由文本 note）
-        q.pixel_integration_error = psf_quad_error;
+        // 求积误差单独一个可机读字段（不进自由文本 note）; 负值 = 未能估计
+        q.pixel_integration_error = pd.estimated_error;
         q.support_note = note;
         q.matrix_rows = nl;
         q.matrix_cols = 1;

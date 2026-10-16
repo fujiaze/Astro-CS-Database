@@ -149,9 +149,16 @@ struct LocalModelPayload {
   std::string solver;                 // NOISE_SNR §11.4 solver 身份
   double solver_relative_tol = 0.0;
   int solver_rank = 0;
+  // 条件数估计方法（NOISE_SNR §11.6: 估计必须带方法名落盘, 不得当作 κ₂(C)）:
+  //   pivot_norm_ratio_squared | retained_eigenvalue_ratio
+  std::string condition_estimate_method;
   double solver_condition_number = 0.0;
   int background_basis_rank = 0;
   double flux_information = 0.0;
+  // 通量方向诊断（NOISE_SNR §11.6: 显式正交残差及其范数; flux_residual_norm ≈ 0
+  // 即通量落入背景列空间 ⇒ 不可辨识, 不是"信息量小"）
+  double flux_response_norm = 0.0;    // ‖t‖（有效子空间内通量响应范数）
+  double flux_residual_norm = 0.0;    // ‖t−Π_Z t‖（背景列空间外可辨识残差范数）
   std::vector<std::int64_t> csr_row_offsets;
   std::vector<std::int32_t> csr_column_indices;
   std::vector<double> csr_coefficients;
@@ -194,15 +201,25 @@ struct FactorReconstruction {
   double derived_unit_sr_power = 0.0;  // 派生 C 的 sr 幂次（须为 -2）
   double factor_unit_sr_power = 0.0;   // v_j 的 sr 幂次（须为 0）
   double operator_unit_sr_power = 0.0; // R 的 sr 幂次（须为 -1）
+  // NORMALIZE_DATA §7.1B: 除 sr 幂次外还核对**线性单位自身**（L 是该 frame 真正
+  // 施加 photometric scale 后的线性 signal 单位; "adu^2" 与 "electron^2/sr^2"
+  // 即使 sr 幂次正确也不可组合）。checked=true 表示已按 expected 核对通过。
+  std::string factor_linear_unit;    // 解析出的因子线性单位（如 "adu^2"）
+  std::string derived_linear_unit;   // 解析出的派生线性单位
+  bool linear_unit_checked = false;
   double max_abs_diff_vs_payload = 0.0;  // 与 payload.values 的逐项最大差
 };
 
 // 从已解析的 payload + 同控制点算子 payload 重建 C 并核验单位/shape。
 // dense_limit 为安全阀: nl×nl 超过该元素个数时只核验单位/shape 与 CSR 结构,
 // 不返回稠密矩阵（避免为了校验而分配数百 MB）。
+// expected_linear_unit: 该 frame 的 signal 线性单位基名（如 "adu"）。因子单位
+// 必须是 <expected>^2、派生单位必须是 <expected>^2/sr^2; 空 / 不匹配 ⇒ 具名
+// 拒绝（§7.1B: 未知转换不许仅因 sr 指数正确就接纳）。
 FactorReconstruction reconstruct_factor_covariance(const LocalModelPayload& covariance,
                                                    const LocalModelPayload& operator_model,
-                                                   std::size_t dense_limit);
+                                                   std::size_t dense_limit,
+                                                   const std::string& expected_linear_unit);
 
 // 从产品根读入单份局部模型文件的数值载荷（用于读侧重算）。
 // 文件不存在/不可解析 ⇒ ok=false, error 为具体数据错误（不是 unavailable）。

@@ -9455,6 +9455,9 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       if (staged.ok) {
         f_prec_doc[fi] = staged.document;
         f_prec_payloads[fi] = std::move(payloads);
+        if (!staged.psf_integration_summary.empty())
+          std::fprintf(stderr, "[drizzle_node][precision] %s\n",
+                       staged.psf_integration_summary.c_str());
         const std::string staging_dir =
             p1_work_frame_dir(doc, lp) + "/frame_science";
         f_prec_staging_dir[fi] = staging_dir;

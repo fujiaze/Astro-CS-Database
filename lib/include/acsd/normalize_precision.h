@@ -115,6 +115,9 @@ struct StagedPrecision {
   std::vector<std::string> model_rel_paths;  // 产品内相对路径（models/...）
   std::uint64_t n_available_controls = 0;
   acsd::normalize::FrameScienceDocument document;  // 备发布的 sidecar 内容
+  // 帧级 PSF 求积摘要（extrema 只作帧摘要, 不冒充逐控制点实测; 逐点值见各
+  // 控制点 support 模型 note 的 f_enclosed/f_out/pixel_integration_error）
+  std::string psf_integration_summary;
 };
 
 // 全链: windows → complete_spherical_reference → 局部模型文件文本 + sidecar 文本。

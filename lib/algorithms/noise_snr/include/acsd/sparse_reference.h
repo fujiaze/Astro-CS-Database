@@ -126,9 +126,21 @@ struct SphericalCompletionResult {
                                            // jacobi_retained_subspace
     int solver_rank = 0;                   // rank(C_sphere)
     double solver_relative_tol = 0.0;      // 秩判定相对容差
+    // 条件数的**估计方法**（NOISE_SNR §11.6 第二轮审查: 估计方法必须随值落盘,
+    // 不能把估计当作 κ₂(C) 的独立准确值）:
+    //   pivot_norm_ratio_squared   — QR 路径: (max/min 保留 pivot 列范数比)²,
+    //      是 C 的 σ²max/σ²min 同口径保守估计（pivot 范数 = B=Qᵀ 的列范数 =
+    //      Q 的奇异值; rank_tol 作用于这些奇异值, 不是 H 的特征值）;
+    //   retained_eigenvalue_ratio  — Jacobi 回退路径: 保留子空间内 H=QᵀQ 的
+    //      特征值精确比 λmax/λmin = κ₂(C), 但其 rank_tol 作用于**特征值**
+    //      （奇异值平方）尺度, 与 QR 路径同数值阈值的截断语义不同。
+    std::string solver_condition_estimate_method;
     double solver_condition_number = 0.0;  // 估计/精确（见 SolverDiagnostics 注释）
     int background_basis_rank = 0;         // Z_w 的有效秩（共线列被识别并记录）
-    double flux_information = 0.0;         // I_{F|β} = ‖(I−Π_Z)t‖²
+    double flux_information = 0.0;         // I_{F|β} = ‖(I−Π_Z)t‖²（显式残差平方范数）
+    double flux_response_norm = 0.0;       // ‖t‖（通量响应在有效子空间的范数）
+    double flux_residual_norm = 0.0;       // ‖t−Π_Zt‖（共线背景外可辨识残差范数;
+                                           //  ≈0 即通量方向落入背景列空间）
     double d_p = 0.0, n_p = 0.0;          // 目标叶 D_p 与完整 N_p
     double support_area_sr = 0.0;
     double a_drop_sum = 0.0;
@@ -162,11 +174,15 @@ FrameReferenceSummary summarize_frame_reference(
 // 同一字段在两条路径下口径不同, 由 solver 名字标识, 不由字段名暗示唯一含义:
 //   * pivoted_householder_qr_rowspace: 生产路径。对 B = D^{1/2}Rᵀ（=Qᵀ, Q=RD^{1/2}）
 //     做列主元 Householder QR 求 range(Qᵀ) 正交基, M = WᵀV_rV_rᵀW,
-//     W = D^{-1/2}[P,Z_planar]; V_F 由 I_{F|β}=‖(I−Π_Z)t‖² 反解得。
-//     covariance_rank = rank(Q) = rank(C_sphere); condition_number 为
-//     (max/min 保留 pivot 比)² 的**保守估计**, 与 rel_tol、rank 一并落盘供审计。
+//     W = D^{-1/2}[P,Z_planar]; V_F 由 I_{F|β}=‖(I−Π_Z)t‖² 反解得（残差显式
+//     构造, 不用 ‖t‖²−‖Π_Zt‖² 相减——后者在近共线时灾难性消去, §11.6 审查修正）。
+//     covariance_rank = rank(Q) = rank(C_sphere); rank_tol 作用于 Q 的奇异值
+//     （pivot 列范数）, 不是 H=QᵀQ 特征值的平方口径; condition_number 为
+//     (max/min 保留 pivot 比)² 的**保守估计**（估计方法见
+//     solver_condition_estimate_method）, 与 rel_tol、rank 一并落盘供审计。
 //   * jacobi_retained_subspace: 仅在稠密工作集 m·nl 超过预算时的正确优先回退,
-//     由 spherical_reference_jacobi_oracle 求得; 不冒充已用 QR。
+//     由 spherical_reference_jacobi_oracle 求得; 不冒充已用 QR。其秩判定作用于
+//     H 的特征值尺度, condition_number 是保留特征值精确比。
 struct SolverDiagnostics {
   std::string solver;                 // 见上
   int rank = 0;                       // rank(C_sphere)
