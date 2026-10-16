@@ -1,280 +1,60 @@
-# 性能模型与资源判据
+# 性能模型与资源测量
 
-上游：最高设计的软件架构、CPU 后端与资源两章[6]；并行轴分配见 `../architecture/DATA_FLOW.md`。
+本页定义并行预算模型、参数标定和测量解释。并行轴由[数据流](../architecture/DATA_FLOW.md)定义，采样字段由[资源监控](observability/RESOURCE_MONITORING.md)定义。优化首先保持[科学语义](../../science/unified/UNIFIED_SCIENCE_MODEL.md)与[数值约定](../standards/NUMERIC.md)，实际读数保存在实验记录。
 
-结构原则、编排参数标定、有效并行宽度模型、冻结标定常数与合成性能判据的正本。
-每个科学浮点量的量纲与标度口径见 `../standards/NUMERIC.md`[2]；受影响构建目标的反查依据见
-`../build/BUILD_GRAPH.md`[3]。
-实测读数与逐档墙钟落实验域的工程证据面，本分册只承载结构结论与冻结参数。
+## 1. 计算与资源原则
 
-## 结构原则与来源
+像元热点使用连续缓冲，避免逐像元分配、日志、文件访问和时钟。CPU 租约由调度器统一分配，模块不另建全局线程池。帧级并发和帧内并行共享同一预算；大数组、cache、队列与 scratch 容量纳入生命周期和内存预算。
 
-- 热路径内每像素零 alloc/log/fs/clock；per-pixel 数学用连续 buffer。
-- 科学精度优先：FP64 reference；FP32 仅显式精度等价路径。
-- 关键 fast path 与各自 reference（逐条给定义与验证方式）：
-  - **Drizzle candidate conservative test**：候选判定取保守上界（宁可多算、不可漏算）；
-    验证方式 = 与穷举候选集比对时 **false negative 恒为 0**（本仓 oracle）。
-  - **UPM dense cache**：稠密缓存与逐点稀疏求值必须给出同一结果；
-    验证方式 = 缓存命中域上的最大相对偏差不超过第 4 节冻结的双精度非归约档容差，
-    适用量级域 = 缓存命中域上的缓存值量级 `scale`，超出该域按同值的相对形式判[4]。
-    定义见 `../../science/sky/UPM.md`；容差数值不在本篇复述。
-  - **NoiseWeightModelV1**：权重模型以 oracle 矩阵与 Monte Carlo 双向核对；
-    定义见 `../../science/noise_snr/NOISE_SNR.md`[5]。
-  - **Gaia 极区 prune**：剪枝用**可证明保守**的球面判据（不丢候选）；cache 键精确匹配，
-    实现锚 = `lib/infrastructure/gaia_xpsd_client/src/gaia_client.c` 的 `query_cache_lookup`。
+快路径说明其等价范围和独立核验方法：Drizzle 候选裁剪不能漏真实交叠；UPM 缓存与原查询在同域同模型下比较；噪声权重用独立矩阵和 Monte Carlo 检查；Gaia 球面剪枝与穷举候选对照。配置值或代码注释不能代替数值比较。
 
-- 编排与内存的实测读数、拟合与逐档墙钟见 `实验/engineering-evidence/l2_performance/`；
-  本文件只承载结构结论与冻结参数。
+稠密图像按最高设计默认 FP32，几何、标定和模型元数据 FP64。高精度 reference 与生产类型分别报告；误差容差由被估计量、量级与归约方式给出，不能用统一 FP32/FP64 标签证明科学等价。
 
-## 编排参数标定（探针驱动）
+## 2. 参数及标定
 
-> 上游条款：编排参数的**最终取值**由探针基于实测数据确定，合同只保证机制正确与探针齐全；
-> `../../ACSD_DESIGN.md` 的 CPU 后端与资源一章（探针驱动优化）。
-> 并行轴语义（含帧内 OpenMP 度公式与轴不变式）唯一正本 = `../architecture/DATA_FLOW.md`[1]；
-> 本篇只给编排参数的结构结论与冻结参数，不复制轴公式。
-
-### 结构性根因
-
-帧级并发受**内存闸门**限制：Runtime lease 给出的 CPU 预算在 4096² 级帧上不能全量转成帧级并发；
-实际帧级宽度由内存预算与单帧驻留字节数决定。后果是**预算剩余**：CPU 用量远低于 lease，
-剩余预算必须转给**帧内轴**才能被利用。
-
-帧内尚存的**串行段**：`hips_write` 在帧内与 `drizzle_run` 串行；`wcs-platesolve` 无帧级并行。
-逐节点瀑布、CPU 曲线与串行段占比读数见 `实验/engineering-evidence/l2_performance/`。
-
-### 冻结参数
-
-冻结参数的两个数值（每像素字节、安全系数）与内存预算百分比的**唯一数值源** =
-`eng/packaging/config/runtime_resources.json`；本篇只登记参数名、落点与取值口径，不声明第二套数值。
-
-| 参数 | 数值键 | 落点 | 依据 |
-|---|---|---|---|
-| 帧内 OpenMP 度 | `../architecture/DATA_FLOW.md` 的并行轴分配[1] | `p1_parallel_for`（`lib/infrastructure/scheduler/src/module_adapters.cpp`） | 内存或输入帧数限制帧级宽度时可使用剩余帧内预算；只有实际在飞帧数达到租约时才退化为 1 |
-| `kP1FrameBytesPerPixel`（`B`） | `frame_memory_gate.bytes_per_pixel` | `p1_memory_cap`（`lib/infrastructure/scheduler/src/module_adapters.cpp`） | 闸门系数的标定口径与实测拟合见内存模型形态 |
-| `kP1FrameMemSafetyFrac` | `frame_memory_gate.safety_frac` | 同上 | 留基础占用与运行波动；取值随帧几何与精度模式重标定 |
-| 内存预算百分比 | `memory_budget_percent` | `eng/packaging/config/runtime_resources.json` | 单一来源；准入预算 = `MemAvailable` 按该比例的派生值 |
-
-- **实现侧字面量的现状**：`module_adapters.cpp` 当前仍以 `static constexpr double` 持有这两个字面量，
-  未消费 CMake `configure_file` 生成的配置头。该登记与实现侧现状不一致，属代码侧待订正项；
-  在订正前，**唯一数值源是上表所列 JSON 键**，实现侧字面量只作镜像，不得反向覆盖。
-
-### 并行等价性的验证
-
-固定帧集、二进制与 lease，仅改变帧内轴宽度，比较 FITS 像元、科学头信息与目录/星表科学字段；遥测、路径、时间戳和 run_id 分开处理。按预定义数值容差报告差异；只有具体实验同时固定运算序、类型和浮点环境，并取得逐位对照结果时，才报告相应范围的逐位一致。Drizzle 的归约顺序见其[算法说明](../../science/algorithms/export/DRIZZLE_GEOMETRY.md)，实验记录位置为 `实验/engineering-evidence/l2_performance/`。本页的预算代数不证明并行数值等价。
-
-## 有效并行宽度
-
-**符号**：`A` = 运行时 `MemAvailable`；`P` = 单帧像素数；`B` = `kP1FrameBytesPerPixel`；
-`L` = lease（`granted_workers`）；`K` = scratch 池上限（`drizzle_engine.cpp` 的
-`kScratchPoolCap`）；`F` = 帧级并发上限；`n` = 本次运行的输入帧数；
-`in_flight` = 帧级实际在飞数；`I` = 帧内 OpenMP 度；`W_eff` = 线程预算与暂存槽模型给出的并行宽度上限，并非实测忙碌线程数。
-
-```
-F = min(L, floor(kP1FrameMemSafetyFrac·A / (P·B)))   // 帧级内存闸门上限
-in_flight = min(n, F)                                // 帧级实际在飞数
-I = max(1, L / in_flight)                            // 帧内轴（正本 = ../architecture/DATA_FLOW.md 的并行轴分配）
-W_eff = in_flight × min(I, K)                        // drizzle 节点；K 为每帧 scratch 槽上限
-```
-
-上式的逐字来源 = `../architecture/DATA_FLOW.md` 的并行轴分配：`in_flight = min(n, frame_workers)`
-（`frame_workers = min(lease, 内存闸门上限)`）、`inner_omp = max(1, thread_budget / in_flight)`
-（`thread_budget = lease`）、总并行度 `in_flight × inner_omp ≤ thread_budget`[1]；
-实现侧同式见 `lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p1_parallel_for`。
-
-上述公式要求正租约、非空输入且内存允许至少一帧；不足时由调度器明确处理，不计算零分母。若内核线程数另有限制，`W_eff` 的第二因子还须与 `num_threads` 取最小值。
-
-**内存模型形态**：固定单帧像素数 `P` 时，总峰值驻留的经验模型为 `RSS = base + P × 边际字节/像素 × in_flight`。这不是单帧驻留公式。标定口径与报告读数如下；引用的输入、命令和输出未重新取得前，不把读数作为本次复测结果。
-
-| 项 | 值 | 性质 |
+| 参数 | 配置来源 | 使用位置/含义 |
 |---|---|---|
-| `base` | 0.143 GB | 实测（拟合截距） |
-| 边际项 | 1.6724 GB/帧 = 99.68 B/px（`P = 4096² = 16.777e6 px`） | 实测（拟合斜率） |
-| 闸门系数 `B` | 取 `frame_memory_gate.bytes_per_pixel` | 标定值，取可行窗口上端 |
-| 拟合残差 | ≤ ±2.5%（F = 1/2/4/8 四档） | 实测 |
+| 帧驻留字节系数 B | `eng/packaging/config/runtime_resources.json` 的 `frame_memory_gate.bytes_per_pixel` | `module_adapters.cpp::p1_memory_cap` 的准入估计 |
+| 安全系数 s | 同文件 `frame_memory_gate.safety_frac` | 给基础驻留和波动留余量 |
+| 内存预算比例 | 同文件 `memory_budget_percent` | 从实际可用内存派生预算 |
+| 帧内宽度 | 当前线程租约与实际在飞帧数 | `p1_parallel_for` 分配剩余预算 |
+| 每帧 scratch 上限 K | Drizzle 配置及实际 `num_threads` | 限制同时可用临时槽数 |
 
-- **件名**：`run/P1-CONCURRENCY-CALIB-01/`（报告的实测内存模型与可采纳值一节，
-  逐档峰值 RSS 见同目录 `summary_F1.json`、`summary_F2a.json`、`summary_F4.json`、`summary_F8.json`）；
-  适用域 = 同场 8 帧 4096² FP64、drizzle auto nside、`kScratchPoolCap = 2`、无 swap。
-- **拟合口径**：同一二进制、同场 8 帧、`inner_omp = 1`，对峰值 RSS 与 `in_flight` 做最小二乘，
-  得 `RSS(F) = 0.143 GB + F × 1.6724 GB`；闸门系数**不取实测边际**（99.68 B/px），
-  而取「使闸门放行目标 `F` 且需求 RSS 不越 `kP1FrameMemSafetyFrac·A`」的**可行窗口上端** ——
-  该窗口为 `(0.75·A/(9P), 0.75·A/(8P)]`，随 `A` 平移，故 `B` 是**与机器 `A` 绑定**的标定值，
-  换机器必须按同一口径重标定。
-- 本机实测的逐档峰值 RSS、墙钟与指纹见 `实验/engineering-evidence/l2_performance/`。
+JSON 是参数配置的维护源；实现若仍保留字面量镜像，必须核对两侧，不能因文档称单一来源就认为已消费生成头。B 和 s 是对具体输入、类型和算法驻留的经验估计，换机器、几何和精度模式时重新标定；它们不是物理常数。
 
-**结构性结论（与具体读数无关）**：
+固定像素数 P 的峰值模型为 `RSS = base + P × b × m`，m 为实际并发帧数，b 为测得边际字节/像元。准入系数 B 与拟合斜率 b 的角色分别说明；拟合的样本量、残差、机器可用内存和范围保存在[工程实验](../../../实验/engineering-evidence/README.md)。旧正文读数原文保留于[重构来源档案](../../../实验/documentation-refactor/docs/OBSERVABILITY_SOURCE.txt)，未重新运行。
 
-1. **整数除法的预算余量**：记 `m=in_flight`，则未受槽数限制的宽度为 `m × floor(L/m)`。它等于 `L` 当且仅当 `m` 整除 `L`；实际达到这一模型宽度还要求 `K` 和内核线程数不小于 `floor(L/m)`。当 `L/2 < m < L` 时帧内度为 1，宽度小于 `L`；其它区间也可能存在整数余量，不能把满宽只归结为两个档位。`F > n` 时 `m=n`，继续提高帧级上限不改变该模型。真实吞吐仍需测量。
-2. **每帧存在不可并行的串行段**（FITS 读、`hips_write`、星表查询、`wcs-platesolve`），
-   见 `../architecture/DATA_FLOW.md`；该串行段是「帧级并发是手段」的**结构性**理由，
-   并有本仓受控四档墙钟对照支撑（`run/P1-PARALLEL-AXIS-REDESIGN-01/REPORT.md`：
-   帧在飞数 8 → 2 → 1 时墙钟 390.7 → 532.9 → 583.7 s，CPU p50 1321% → 701% → 98.9%，
-   相邻档区间不重叠）。
-3. **内核效率的 stripe 收益递减拐点是待标定的经验拐点，不是已标定的物理常数**：把「帧内 stripe 数超过
-   某阈值后进入收益递减区」写成阈值，需要一条固定其它变量、只变 stripe 数的墙钟扫描读数；
-   本仓现有工件中无该扫描（`实验/engineering-evidence/l2_performance/` 与
-   `run/P1-PARALLEL-AXIS-REDESIGN-01/` 扫的是帧在飞数 × 帧内线程数，不是 stripe 数），
-   故本篇**不给该拐点数值**，也不把它列为不可改项。该拐点标定后结论落实验域，本篇只回引。
-4. **内存闸门是准入边界**：若某档的 `F` 使需求 RSS 超过 `kP1FrameMemSafetyFrac·A`，
-   该档不采纳 —— 安全边界优先于并行宽度。
-5. **`hips_write` 串行**是 drizzle 帧时的固定占比项，不随 `F` 缩小。
+## 3. 并行宽度模型
 
-**分类结论**：
-
-| 类别 | 条目 |
-|---|---|
-| **当前实现的结构限制（可改）** | ① `K` 是**策略值**不是物理值（派生规则见 scratch 池上限的派生一节）；② `B` 与 `kP1FrameMemSafetyFrac` 随帧几何与精度模式重标定；③ 帧级并发受内存闸门限制；④ `hips_write` 在帧内与 `drizzle_run` **串行**；⑤ `wcs-platesolve` 无帧级并行；⑥ `inner_omp = max(1, L/in_flight)` 的整数除法使 `W_eff` 在 `in_flight ∈ (L/2, L)` 非单调（死区，见结构结论 1）；⑦ 内核效率的 stripe 收益递减拐点**待标定**（见结构结论 3） |
-| **物理/算法限制（调度参数不可改）** | ① 每帧**不可压缩的输出本体**：canonical 累加器容量不随 `K` 变；② 每帧**不可并行串行段**（FITS 读、`hips_write`、星表查询、`wcs-platesolve`）的墙钟下界；③ 逻辑核 / 物理核 / 物理内存上限共同决定 `W_eff` 的取值上界 |
-
-在给定 `B` 与 `kP1FrameMemSafetyFrac` 下，能否取得预算满宽取决于实际在飞数、整数余量、内核线程数与槽数。科学产品等价性和目标档位利用率须分别用对应输入、二进制与输出检验，不能由预算公式推出（报告位置为 `实验/engineering-evidence/l2_performance/`）。
-剩余可达路径 = 让 `hips_write` 与 `drizzle_run` 重叠 + 改善内核在高 stripe 数时的效率；
-后两项属算法开发，不属编排参数标定。
-
-## scratch 池上限的派生（`K = num_threads`）
-
-**充分条件（非定理陈述）**：在 drizzle 由帧级轴驱动时，`K = num_threads` 是达成满宽的一个**充分条件**，
-且**不是唯一取值**；其成立依赖四条可核事实：
-
-- **满宽的充要条件**：抽象口径 `W_eff = in_flight × min(inner_omp, K)` 对 `K` 单调不降，
-  故 `W_eff` 达到帧内轴宽度 `in_flight × inner_omp` 当且仅当 `K ≥ inner_omp`；`K < inner_omp` 时多余线程在池上空等。
-  实现实际分配的池是 `kScratchPool = min(num_threads, kScratchPoolCap)`
-  （`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`），把 `num_threads` 也纳入截断后，
-  **达成满宽的充要条件是 `min(num_threads, K) ≥ inner_omp`**，等价于 `K ≥ inner_omp` 与 `num_threads ≥ inner_omp` 同时成立。
-  当 `num_threads ≥ inner_omp` 时，按此整数槽数模型，达到帧内预算宽度的最小 `K` 是 `inner_omp`；更大取值不再增加该模型宽度。若 `num_threads < inner_omp`，只提高 `K` 无法补足线程限制。`K` 超过 `num_threads` 后实际池大小不再增加。
-- **充分性来源**：`K = num_threads` 且 `num_threads = inner_omp` 时，同时在飞的 scratch 份数 =
-  `in_flight × inner_omp ≤ lease`（`../architecture/DATA_FLOW.md` 的轴不变式[1]），
-  故总份数不越租约；整数除法有余量时总份数随轴形态变化，不能宣称恒定。
-- **`num_threads = inner_omp` 的来源链**（逐条可核）：
-  ① `drizzle_engine.h` 的 `DrizzleConfig::threads` 缺省为 `0`，其注释写明 `0 = 自动 omp_get_max_threads`；
-  ② 帧级轴驱动路径上无任何赋值覆盖该缺省（`module_adapters.cpp` 内无 `cfg.threads = …`）；
-  ③ `drizzle_engine.cpp` 取 `num_threads = config.threads > 0 ? config.threads : omp_get_max_threads()`，
-  而每个帧级 worker 线程在进入 drizzle 前先执行 `omp_set_num_threads(inner_omp)`；
-  `omp_get_max_threads()` 返回当前任务 `nthreads-var` 的值，故此处恰为 `inner_omp`。
-  另：实现把 `kScratchPoolCap` 的缺省置为 `num_threads`，故「不设环境变量」本身就取到 `K = num_threads`，
-  它是缺省策略；当 `num_threads = inner_omp` 时也恰是该模型达到帧内预算宽度的最小槽数，不由此证明全系统性能最优。
-- **适用域**：本条只覆盖**由 `p1_parallel_for` 驱动**的 drizzle 路径。不经帧级轴调用 drizzle 时，
-  `omp_get_max_threads()` 取线程默认 ICV，`num_threads` 与 `inner_omp` 不必相等，本条不成立；
-  此时 `K = num_threads` 成立与否取决于 `num_threads ≥ inner_omp` 是否碰巧成立，不是本条保证的。
-
-**等价形态的算例**（补齐全部参数，使「标定形态」与算例同面）：取 `L = 16`、`n = 2`、`K = 2`
-（本机标定形态），则 `F = min(16, 闸门) = 2` ⇒ `in_flight = min(2, 2) = 2` ⇒ `I = max(1, 16/2) = 8`，
-`W_eff = 2 × min(8, 2) = 4`。把 `K` 由 `2` 提到 `num_threads = 8` 后 `W_eff = 2 × min(8, 8) = 16`
-—— 同一组 `(n, L, F, I)` 下只改 `K` 即取到满宽，总份数 `in_flight × K = 2 × 8 = 16 = lease` 未越界。
-反之，若形态为 `I = 2`（例如 `L = 8`、`in_flight = 4`），则 `num_threads = 2`，
-`K = 2` 与 `K = 4` 等价（后者被 `min(num_threads, kScratchPoolCap)` 截回），提高 `K` 无效 ——
-可见 `K = num_threads` 的收益**依赖 `in_flight` 落在哪个档**，不是单调的。
-
-**槽数对科学结果的验证要求**：对照 `K=2` 与 `K=num_threads`
-时，应固定输入与二进制，比较逐 leaf 转储 `.canon` 与 `.norm.hiss` 的科学值；若声明确定性逐位一致，还须比较 sha256
-（256×1024 高瘦帧 / 64 stripe / FP32+FP64 / `taskset` 预算 1,2,4,8,16 / 每预算两轮重复）；
-另有同二进制多档轴形态 A/B 下全部产品**逐位相同**的判据。
-相应复现执行器未随本文提供；只有代码注释或报告引用时不能登记为已执行。需要评估实际生产路径时，应补可取得的输入、命令与输出。
-内存代价：每份额外 scratch 的增量落实验域登记。
-
-## 关联锚
-
-- 编排参数语义与轴分配不变式：`../architecture/DATA_FLOW.md`。
-- 跨帧零浮点归约（帧结果按下标写各自槽位、join 后帧序归约）：
-  `lib/infrastructure/scheduler/src/module_adapters.cpp`。
-- 生产实现的 z 映射按 `s` 互斥、祖先归约是互不相交的散射（不存在跨瓦片求和形态）：
-  `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（确定性注入面注释）。
-- 编排/内存实测读数与拟合：`实验/engineering-evidence/l2_performance/`。
-
-机器 schema：`eng/contracts/schemas/perf_gate_criteria.schema.json`、`eng/contracts/schemas/monitor_field_semantics.schema.json`；判据阈值唯一数值源 = `eng/contracts/resource_gate_v1.json` 的 `compute` 块。
-
-## L2 冻结判据（四条；裁决强度逐条不同）
-
-| # | 判据 | 阈值 | enforcement（唯一数值源逐键给出） | 违规处置 |
-|---|---|---|---|---|
-| 1 | 平均 CPU 利用率 | ≥ 0.85 | `record_and_justify` | 记录 + 超标登记 |
-| 2 | 利用率 p50 | ≥ 0.90 | `record_and_justify` | 记录 + 超标登记 |
-| 3 | 达标样本占比（利用率 ≥ 0.85 的采样窗比例） | ≥ 0.70 | `record_and_justify` | 记录 + 超标登记 |
-| 4 | 无「连续 ≥10 s 且利用率 <60% 的低利用窗」（无就绪积压同样计违规） | 无 | `hard_fail` | red |
-
-- **enforcement 取自唯一数值源，不得在文档侧升级或降级**：`eng/contracts/resource_gate_v1.json` 的
-  `compute.mean_utilization_enforcement`、`compute.p50_utilization_enforcement`、
-  `compute.per_sample_enforcement` 三键同为 `record_and_justify`，只有
-  `compute.queue_low_window_enforcement = hard_fail`。数值源给出的理由是：85% 均值门在
-  16-worker 真负载上实测仅 65.09%，未标定前不得硬失败。
-  **本篇不得把这四条整体表述为 fail-closed**：判据 1–3 不改变裁决，判据 4 才进硬失败清单
-  （数值源的 `hard_fail_criteria` 含 `queue_low_window_with_queued_work`）。
-- **适用范围**：产品进程内的资源面**不设门**（数值源 `enforcement.in_process_default = record_only`、
-  `in_process_hard_fail = retired`）；上述 enforcement 属**外部裁决面**（重计算资源门检查与发布验收），
-  其退出码是外部程序的退出码，不是产品命令行退出码。内存、CPU、线程均不在产品面设门。
-- 判据阈值本身**保持事前冻结值**（唯一数值源同上）；硬件/算法上限只作证据化上限随判据登记，不 waiver。
-- **定义与适用域（自洽说明）**：`utilization = busy_cpu_seconds / (window_seconds × n_workers)`；
-  适用域 = 生产重计算面、`effective_cpus ≥ 2` 且采样区间 > 10 s（数值源 `applicability` 的
-  `min_effective_cpus = 2`、`min_active_window_seconds_exclusive = 10`）；低于该域记
-  `not_applicable`，且该分类**不是豁免**。分母取 `granted_workers_peak`，哨兵 0 不得用配置预算回填。
-  **验证方式** = 已归档运行证据回放与红绿双向自测，均由人读对抗审核与实验单元执行，
-  **本条不设机器执行面**；`L2-FROZEN-GATE-REPLAY` 在现行树中**无执行器**，判据由人读判读。
-
-## 测量口径（冻结）
-
-- **采样窗**：固定长度窗口（默认 1 s）内的 CPU 时间占比；`utilization = busy_cpu_seconds / (window_seconds × n_workers)`；
-- **测量面**：进程级 `/proc/self/stat`（Linux）/ 等价的进程 CPU 时间（Windows）；不含 I/O 等待；
-- **积压定义**：待处理任务队列非空且无 worker 空闲；就绪线程判据必须同时满足
-  `> 已分配容量核数` 与 `≥ 2`（数值源 `queued_work_predicate`、`queued_work_min_runnable_threads`）；
-- **样本集合**：同一 registry SHA 下的完整运行；跨 SHA 不比较；
-- **回放**：已归档运行数据必须能被同一检查器重放并给出与当时一致的判定。
-  `L2-FROZEN-GATE-REPLAY` 当前**无执行器**，本条由人读判读，不写成可复跑命令。
-
-## worker_balance 指标（正确算法）
+设 A 为运行时可用内存，P 为单帧像素数，L 为正线程租约，n 为非空输入帧数：
 
 ```text
-utilization_pct = 100 × mean_over_windows( busy_workers_in_window / n_workers )
+F = min(L, floor(s A / (P B)))
+m = min(n, F)
+I = max(1, floor(L / m))
+W_model = m × min(I, K, num_threads)
 ```
 
-- 判据算法必须与负载相关：「0.5 × 100」式常量与「(min+max)/2」式恒值算法一律判红；
-- 判据：合成两组不同负载必须给出**不同**输出（`WORKER-BALANCE-METRIC-REPLAY` 负例）。
-  该判据当前**无执行器**，由人读判读。
+该式要求至少一帧可准入；F=0 时由调度器处理不足，不能继续除以 m。它是资源上限模型，不是实测忙碌线程数或吞吐预测。未受 scratch/内核限制时，`m floor(L/m) ≤ L`，只有 m 整除 L 才等于 L；因此提高帧并发不保证单调提高忙碌宽度。
 
-## 监控字段语义（二选一落地，冻结为「真强制」）
+在 `p1_parallel_for` 设置线程 ICV、Drizzle 没有显式线程覆盖且实际 `num_threads=I` 的范围内，`K≥I` 才能保留模型的全部帧内宽度；K=I 是最小槽数，K 更大不增加这个上限。其他调用路径不能套用该等式。更多槽数增加驻留，科学归约与性能都需实际对照。
 
-| 字段 | 语义（冻结） | 执行 |
-|---|---|---|
-| `requires_monitor` | 声明该检查**必须**有监控证据（CPU/RSS/时长采样） | **真强制**：声明为 true 而监控证据缺失/为空/不可解析 ⇒ **判红**（fail-closed）；判定只走具名分支（`else PASS` 属未登记形态） |
-| `mutates_workspace` | 声明该检查**会改写工作区**（如生成产物、改配置） | **真语义**：为 true 时检查前后工作区指纹必须**可解释**（改动面 = 声明的 outputs）；指纹对比是唯一判据（「跳过 git 对比」属未登记形态） |
+FITS 读取、writer、查询与求解存在串行段的程度取决于当前实现；它们是可优化的工程结构，不能描述为物理上不可并行。考察 writer/Drizzle 重叠和 stripe 效率时，分别测量 CPU、I/O 与驻留，不从预算代数推出最佳配置。
 
-- `requires_monitor` 声明逐个核对执行语义；采样隔离见 `../testing/VALIDATION_EVIDENCE.md`；
-- 语义是**真强制**，不改名为 `monitor_capable`；改名属合同变更，走变更流程。
+## 4. 资源统计与既有评价配置
 
-## fail-closed 普查（全部判据）
+利用率定义为 `busy_cpu_seconds / (window_seconds × allocated_workers)`。必须记录工作区间、采样间隔、实际租约来源和缺失样本；100% 进程 CPU 表示一核满载时，先换算到同一分母。有效 CPU 由亲和性与平台配额约束，不能使用机器逻辑核总数替代本运行容量。
 
-每条判据必须对三种情况判红：**缺失证据** / **坏证据（不可解析、空文件）** / **无输出**；
-普查表见 `实验/engineering-evidence/release-05/FAILCLOSED_SURVEY.md`。
+既有分析参数保存在 `eng/contracts/resource_gate_v1.json`：适用域要求有效 CPU≥2 且活跃区间严格大于10秒；滑动低利用窗长度为≥10秒。均值85%、中位数90%、达到85%样本的比例70%为记录与解释项；连续低于60%并有积压的窗口在外部脚本中另有失败分类。产品进程内始终记录，不因这些 CPU、内存、线程指标改变退出码。
 
-## 基准口径
+分母优先使用实际 `granted_workers`，没有租约观测时，既有外部执行器有显式 `selected_workers/available_cpus` 回落；两者皆无则记录 `allocated_capacity_undeclared`。声明容量、实际授予和实测忙碌不能混写。C++/Python 各执行器可能使用不同来源，尚不能称同一统计量已统一。
 
-同一机器、同一数据、同一 config，每 benchmark ≥3 次，记录 median/p95。
-基准数据：
+旧文档对低利用是否要求积压、未观测容量能否回落、活动节点能否代表线程、外部门退出10的适用条件有相互冲突的描述。保持现有代码与 JSON 数值，分歧列入[待推导问题](../../../实验/documentation-refactor/docs/SCIENTIFIC_QUESTIONS.md)，本轮不以文案选择算法。外部分析程序的返回码只表示该程序的结论，不构成研发审批、科学验收或发布授权。
 
-```text
-Phase1 小真实帧 / 代表性完整帧
-Phase2 t4 overlap / GC 3-panel
-Browser GC wide / pan / zoom / STF
-```
+## 5. 实验与验证
 
-实测读数与逐档墙钟落 `实验/engineering-evidence/`（实测类证据的唯一留档区，
-登记口径见 `../../ACSD_DESIGN.md` 的 I/O 与原子产品一章）。
+固定机器、输入、科学配置、二进制、ISA 与工作量，至少重复3次，报告 median/p95、样本数和散度。分别测 OFF、ON 无快照、性能探针、选中快照的墙钟与开销。比较线程宽度或 scratch 时，核对像元、WCS、科学元数据、参考 controls 与归约误差；遥测路径、时间戳和 run_id 单独处理。
 
-优化类结论必须同时满足：
+`worker_balance` 依实际窗口内忙碌 worker 比例计算，不以 `(min+max)/2` 或常量替代。声明 `requires_monitor` 的实验缺采样时说明证据不足；声明改写工作区时保留输入输出身份与改动范围。校验器或回放执行器未提供时明确登记，不能把文档里的测试名当成可复跑命令。
 
-- 优化前后 science 输出 hash/数值等价；
-- 无 >5% 无解释总体回退；
-- 未安全优化项标注 `NO_SAFE_OPTIMIZATION_FOUND`。
-
-**现行基线由实验域给出**：本篇不复制任何基线数值；引用基线必须给出 `实验/engineering-evidence/`
-下的落位件名与该件的重复次数口径（≥3 次、记 median/p95）。未落位件名的数值不得写入本篇。
-
-## 参考文献
-
-[1] [数据流与并行轴](../architecture/DATA_FLOW.md)。
-
-[2] [数值标准](../standards/NUMERIC.md)。
-
-[3] [生产构建图](../build/BUILD_GRAPH.md)。
-
-[4] [测试标准](../testing/TEST.md)。
-[5] [噪声与参考精度](../../science/noise_snr/NOISE_SNR.md)。
-[6] [ACSD 最高设计](../../ACSD_DESIGN.md)。
+性能结论给出输入、命令、失败尝试、计时边界、内存/I/O 来源、科学等价结果及适用域。优化前后差异需能解释，不能因目标利用率未达到就降低科学精度或凭空改阈值。

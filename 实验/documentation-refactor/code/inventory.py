@@ -23,6 +23,12 @@ REWRITTEN = {
     'docs/detail/registry/README.md', 'docs/detail/normalize/README.md',
     'docs/detail/mosaic/README.md', 'docs/detail/export/README.md',
     'docs/engineering/governance/README.md',
+    'docs/engineering/contracts/LOG_AND_ERROR.md',
+    'docs/engineering/standards/ERROR_MODEL.md',
+    'docs/detail/infrastructure/log_and_error_system.md',
+    'docs/detail/infrastructure/observability.md',
+    'docs/engineering/resources/PERFORMANCE_MODEL.md',
+    'docs/engineering/resources/observability/RESOURCE_MONITORING.md',
 }
 REVIEWED = {
     'docs/science/unified/UNIFIED_SCIENCE_MODEL.md',
@@ -45,6 +51,10 @@ REVIEWED = {
     'docs/science/photometry/references/PHOTOMETRY_RESEARCH_PACK.md',
     'docs/science/photometry/references/README.md',
     'docs/science/algorithms/normalize/CALIBRATION_ALGORITHMS.md',
+    'docs/engineering/architecture/DEV_MODE.md',
+    'docs/engineering/standards/DIAGNOSTIC_PROBES.md',
+    'docs/engineering/resources/observability/STRUCTURED_LOGGING.md',
+    'docs/engineering/resources/observability/RUN_GRAPH.md',
 }
 EXTRACTED = {
     'docs/science/calibration/CCD_DEFECT.md': 'CCD_DEFECT_OBSERVATIONS.md',
@@ -102,7 +112,7 @@ def main():
                    original_files_rewritten=sum(r['path'] in REWRITTEN for r in rows),
                    consolidated_sources=len(mapping),
                    extracted_appendices=len(EXTRACTED),
-                   science_questions=23,
+                   science_questions=len(__import__('re').findall(r'^### Q\d+\b', (UNIT / 'docs/SCIENTIFIC_QUESTIONS.md').read_text(encoding='utf-8'), __import__('re').M)),
                    full_repository_substantive_review_complete=False)
     (UNIT / 'docs/INVENTORY_SUMMARY.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(summary, ensure_ascii=True, indent=2))

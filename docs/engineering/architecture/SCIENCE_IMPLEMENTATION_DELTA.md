@@ -51,7 +51,15 @@
 
 背景控制的统计量和方差与参考点源精度分名；连通分量独立规范不提供断连分量的绝对天空锚。乘性残余、颜色差和 PSF 差不能因接缝减小而被统称为加性天光。本文不依据接口存在宣称背景、曲边或 Export 的独立科学验证已完整。
 
-## 4. 已有证据怎样使用
+## 4. 日志、监控与诊断的接线边界
+
+`runtime_client.cpp::exit_code_for_error_domain` 已实现核心错误域映射，失败节点 manifest 的 `error_kind=input/disk_full` 在最终映射前分类。核心 `Error` 直接成员为 domain/message/cause，不是完整 CLI error_report。当前 CLI 源码未找到 `log_artifacts[]` 写出点；Python 结构化日志生成器与 Core logger 存在，不能据此称正式运行的同源双日志和清单登记已完整接入。
+
+Python 监控的 `TraceSnapshotObserver` 只重放构造时事件快照，未按构造 run_id 过滤；active_workers 当前是活动节点数，granted_workers 取快照内正租约最大值。Linux 默认采样 `/proc/self`，Windows Python 后端为 stub。各字段的实际来源和解释见[资源监控合同](../resources/observability/RESOURCE_MONITORING.md)；代理指标和分母分歧保存于[待核对记录](../../../实验/documentation-refactor/docs/SCIENTIFIC_QUESTIONS.md)。这些静态事实未重新运行验证。
+
+开发快照入口 `dev_diagnostics.cpp` 仍持全局 mutex 同步写盘，与低干扰目标存在差异；头文件“不阻塞”注释不代表已实现有界异步队列。`probe.h` 的既有性能输出字段与规范中的拟议完整 perf 格式分别解释，不能凭示例 JSON 认为已有相应 schema。正式 cache/spill 和被动快照不能因名字近似而混为同一依赖。
+
+## 5. 已有证据怎样使用
 
 验证记录[5]中异方差反例的生产 V_F 与解析值均为 2.6470588235294117；所列背景、秩亏、leaf 0、确定性标度与 Monte Carlo 构型给出局部支持。QR、像元积分 PSF 和因子 v2 的后续实现与验证由独立复核[8]记录，不用这些实质修复之前的静态结论描述当前代码。日志包含构建记录；本页未重跑，不能据此宣称全 CLI、所有平台、真实响应、空间模板、发布事务或 OFF/ON 科学等价已独立验证。
 

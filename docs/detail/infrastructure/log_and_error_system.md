@@ -1,224 +1,40 @@
-# 日志与错误系统落地设计
+# 日志与错误系统
 
-> 上游：《ACSD 最高设计》的「命令行合同」一章（错误传播与运行日志：顶层约束）与「I/O 与原子产品」一章
+本页把[日志错误合同](../../engineering/contracts/LOG_AND_ERROR.md)落实为产生、汇聚、写出与 CLI 收敛。[结构化日志](../../engineering/resources/observability/STRUCTURED_LOGGING.md)定义行格式，本页说明调用和生命周期。
 
-> 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行，LOG-001 正本）。
-> 日志系统判据 R1–R5 的判定以本文件正文与 `docs/engineering/contracts/LOG_AND_ERROR.md` 为准。
+## 组件与调用
 
-本文件回答"日志系统具体怎么设计"：有哪些对象、落在哪、怎么走完一生、与 manifest/provenance 和
-observability 各面是什么关系。字段级格式合同在 `docs/engineering/contracts/LOG_AND_ERROR.md`。
-
----
-
-## 1. 范围与两条硬要求
-
-日志与错误系统服务两条顶层要求（《ACSD 最高设计》的「命令行合同」一章）：
-
-1. **任何模块运行出问题都必须抛错到 CLI**：模块不吞错、不静默降级；故障以稳定错误码上行，
-   在 CLI 收敛为 `lib/infrastructure/cli/exit_codes.h` 的退出码；
-2. **详细运行日志落输出目录**：每次运行在块级 `output_dir` 下产出完整运行日志，默认目录
-   `<output_dir>/logs`，不落进程 CWD、不落源码目录、不落 `run/`。
-
-**不是**本系统的职责：科学判定（`docs/science/`）、产品 I/O 实现（`aio`）、资源门数值
-（`eng/contracts/resource_gate_v1.json`）、GUI 消费协议（运行事件流）。
-
----
-
-## 2. 层次架构
-
-日志与错误是**一条链**：事件从产生点上行汇聚，错误从产生点上行收敛，两者共用同一份归属字段。
-
-```mermaid
-flowchart TD
-    subgraph L0["L0 事件产生（模块/节点）"]
-        E1["科学模块 C ABI 返回码"]
-        E2["节点编排错误（scheduler）"]
-        E3["I/O 错误（aio）"]
-    end
-    subgraph L1["L1 汇聚（observability/logging）"]
-        A1["seq 分配 + 级别过滤"]
-        A2["脱敏 + 单行上限"]
-        A3["双通道同源：中文摘要 + 机器 JSONL"]
-    end
-    subgraph L2["L2 落盘（经 aio）"]
-        W1["目录解析：log_dir = &lt;output_dir&gt;/logs"]
-        W2["追加写 + fsync + sha256 + 原子发布"]
-    end
-    subgraph L3["L3 收敛（cli）"]
-        C1["退出码映射（exit_codes.h 唯一源）"]
-        C2["stdout 机器 JSON / stderr 摘要 / crash report"]
-    end
-    E1 & E2 & E3 --> A1 --> A2 --> A3
-    A3 --> W1 --> W2
-    E1 & E2 & E3 --> C1 --> C2
-    W2 --> C2
-```
-
-| 层 | 名称 | 唯一责任 | 落点 | 行为边界 |
-|---|---|---|---|---|
-| L0 | 事件产生 | 产生事件 + 返回稳定错误码 | 各模块/节点 | 直接开文件写日志；吞错；自行决定退出码 |
-| L1 | 汇聚 | seq 分配、级别过滤、脱敏、双通道同源、单行上限 | `lib/infrastructure/observability/logging/` | 另立第二套行格式 |
-| L2 | 落盘 | 解析日志目录、追加写、fsync、哈希、原子发布 | `observability` 经 `aio` 唯一 I/O 边界 | 绕过 aio；写非 `output_dir` 位置 |
-| L3 | 收敛 | 退出码、stdout 机器文档、stderr 摘要、crash report | `lib/infrastructure/cli/` | 把错误降级为"警告后继续" |
-
-**层次不可跨越**：L0 不写文件（L2 独占写入），L2 不判定退出码（L3 独占收敛），
-L3 不改写事件内容（L1 独占格式）。
-
----
-
-## 3. 数据对象
-
-| 对象 | 定义 | 归属 | 权威 |
-|---|---|---|---|
-| `log_event` | 单行结构化日志事件（必含字段名：`run` / `task` / `node` / `module` / `phase` / `commit` / `host` / `level` / `event` / `units` / `elapsed` / `diagnostic`；可选字段名：`error` / `progress` / `value`） | L1 产出 | 既有 schema `acsd.log.event.v1`（LOG-001 正本，本设计**不新建第二套**） |
-| `run_log` | 一次运行的日志工件集合：`{log_dir, files[]}`；`files[]` 条目 = `{kind: jsonl\|summary, name, sha256, bytes, lines, level_counts{debug,info,warn,error}, truncated}` | L2 产出 | `docs/engineering/contracts/LOG_AND_ERROR.md`「`run_log` 与 manifest 登记字段」一节 |
-| `error_report` | CLI 收敛面错误对象：`{domain, exit_code, status, source, symbol, message, run, node, phase, degraded}` | L3 产出 | `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节 |
-| `degradation_record` | 显式降级记录：`{site_id, module, symbol, reason, scientific_effect, manifest_key}` | L0 产出、manifest 承载 | `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节 |
-
-- `run_log` 与 `error_report` **各自具名**：`run_log` 是运行过程的完整记录（含成功路径），
-  `error_report` 是失败结论（一次运行至多一条终止性结论）；
-- `degradation_record` 只在"降级已发生且不改变科学语义"时出现；改变科学语义的降级不是降级，
-  是**故障**，必须 fail-closed 上行。
-
----
-
-## 4. 落点与 `output_dir` 的关系
-
-`output_dir` 是块级必填配置键（`docs/engineering/contracts/CLI_PROTOCOL.md`「配置与 `output_dir`」一节；`docs/engineering/contracts/CONFIG.md`）。
-日志落点由它派生，不另立全局目录：
-
-| 项 | 取值 | 说明 |
+| 层 | 输入与职责 | 入口或消费者 |
 |---|---|---|
-| 日志目录 | `log_dir`，默认 `<output_dir>/logs` | 显式配置优先；**必须**是绝对路径或由 `output_dir` 派生的路径 |
-| 机器日志文件 | `<log_dir>/run_<run_id>.jsonl` | 每行 = 一个 `log_event`（UTF-8，LF，单行 ≤ 4096 字节） |
-| 人可读摘要 | `<log_dir>/run_<run_id>.log` | 与 JSONL 同源生成的摘要行 |
-| 多数据块 | 每块自己的 `<block output_dir>/logs` | 块 = 一次运行 = 一份独立 run manifest 与独立日志 |
-| 失败/取消路径 | 同样落 `<log_dir>` | 失败与取消的日志是**最有价值**的证据，一律保留 |
+| 模块/节点 | 产生带归属的事件；返回错误，不决定进程退出 | `Result<T>`、C ABI 状态、节点 manifest |
+| 日志汇聚 | 分配序号、过滤、脱敏、同源渲染 JSONL 与摘要 | `lib/infrastructure/observability/logging/log_event.py` 是参考生成器 |
+| 文件写出 | 根据输出域创建目录、追加写、持久化、计算哈希 | 正式 I/O 经 AIO；运行层持有句柄 |
+| CLI 收敛 | 解释失败 manifest、映射域、输出终止事件与 stderr 摘要 | `runtime_client.cpp::exit_code_for_error_domain` 及 `run_pipeline` |
 
-**落点范围**：`<log_dir>` 及其子目录；判据红 = 进程 CWD 相对路径、源码树内目录（如 `lib/**/logs/`）、
-`run/` 下的运行日志、安装目录、用户家目录。
+`lib/include/acsd/core/logging.h` 的 Core logger、Python 日志行参考实现和 CLI JSONL emitter 是不同接口。适配必须显式映射 `component→module`、`message→diagnostic` 等语义；头文件存在不表示三者已形成一条生产双写链。
 
-`run/` 的定位不变：**只放临时产物与日志**（《ACSD 最高设计》的「I/O 与原子产品」一章）——但那是**开发过程日志**
-（仓库 `run/` 目录下按任务名分的 `logs/` 子目录），不是**程序运行日志**；两者各占一个目录。
+## 运行日志生命周期
 
----
+1. 解析块级 `output_dir` 与运行日志策略，默认 `<output_dir>/logs`。目录覆盖须在本块可写域内。
+2. 在节点执行前创建日志 sink，写开始事件；所有线程提交到同一序号分配边界。
+3. 持续追加机器日志与同源摘要。运行事件走 CLI stdout，普通文本不混入该事件流。
+4. 成功、失败或取消时停止提交并有界收尾，flush、持久化、关闭句柄。
+5. 对实际文件计算字节数、行数、级别计数和哈希，按合同登记清单。仅对真实写成的文件声明完整。
 
-## 5. 生命周期
+开始前配置失败可能没有合法日志目录；磁盘故障可能阻止收尾。此时保留 stderr 和已取得的错误上下文，报告日志缺失。清单不能证明一个实际未写成的文件存在。
 
-一次运行的日志生命周期六步，**成功、失败、取消三路都必须走完第 4–6 步**：
+目录、文件名和登记字段引用日志错误合同。`log_level`、`log_dir`、`log_keep` 是运行策略；旧文档描述这些旋钮不代表现有 CLI 已提供对应旗标或环境变量，新增通道应与 CLI 文档和实际消费者同步。
 
-```mermaid
-flowchart LR
-    S1["1 解析 log_dir<br/>= &lt;output_dir&gt;/logs"] --> S2["2 创建目录（幂等）"]
-    S2 --> S3["3 写 run_start 事件<br/>（run_id/commit/host/配置哈希）"]
-    S3 --> S4["4 运行中追加事件<br/>seq 严格递增"]
-    S4 --> S5["5 收尾 flush + fsync"]
-    S5 --> S6["6 算 sha256 → 原子发布 → 登记 manifest"]
-```
+## 错误传播
 
-| 步 | 时机 | 失败处置 |
-|---|---|---|
-| 1 解析 | CLI 解析配置后、任何节点执行前 | `log_dir` 非法/不可派生 ⇒ exit 2（ARGS） |
-| 2 创建 | 同上 | 目录不可创建 ⇒ exit 7（IO）；磁盘满 ⇒ exit 10（RESOURCE） |
-| 3 run_start | 同上 | 写失败 ⇒ 按步 2 处置 |
-| 4 追加 | 运行中每个事件 | 写失败 ⇒ 记 stderr 摘要 + 置运行失败标志，运行结束以非 0 退出 |
-| 5 收尾 | run 终止点（成功/失败/取消） | fsync 失败 ⇒ exit 7；磁盘满 ⇒ exit 10 |
-| 6 发布 | 收尾之后 | 哈希失败 ⇒ exit 8（INTEGRITY）；manifest 登记失败 ⇒ exit 7 |
+节点失败通过 `Result` 上行；`run_pipeline` 先读失败节点 manifest 的 `error_kind`，对输入和磁盘写满分类，再执行域映射。核心 `Error` 没有完整的 `error_report` 字段集，CLI 必须从实际节点上下文补充，缺失符号不能伪造。
 
-- manifest 面两码分立（P-159 定一，禁止混用）：**manifest 登记/写入失败** = exit 7（IO）；
-  **manifest verify/完整性失败**（status≠complete、artifact sha256/size 不匹配等）= exit 8
-  （INTEGRITY）。唯一源 = `docs/engineering/contracts/MANIFEST_VERIFY.md`「manifest verify 合同」一节「校验序→错误码」
-  （语法/schema=3、status≠complete=8、版本不一致=5、输入 hash 已变=3、产物缺失=3、
-  sha256/size 不匹配=8、全过=0；实现见命令行命令源文件）+
-  域→码表 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节（IO→7 / INTEGRITY→8）；码值语义表见 `docs/engineering/standards/ERROR_MODEL.md`「进程退出码」一节。
+正式产品、正式日志和清单写入失败属于运行故障；开发快照失败只影响诊断完整性。清单写入错误和已写出产品的完整性错误分别处理。最初故障与收尾次生故障都保留，不能用“日志写失败”抹去先前科学失败。
 
-**日志写失败一律显式**：任何一步失败都在 stderr 输出一条脱敏摘要，并让本次运行以非 0 退出码结束。
-"日志写不进去就继续跑完"不是可接受行为。
+多帧节点按逐帧结果传递可消费对象；共享配置或依赖故障按全局作用域处理。精度不可用、测光拟合失败、WCS 无解和合法负信号具有不同语义，以相应科学合同为准。
 
----
+## 并发、所有权与验证
 
-## 6. 与 manifest / provenance 的关系
+sink 由运行层拥有，事件中的临时字符串和数组在异步处理前复制或转移所有权；结束运行后不得保留上次运行的句柄、run_id 或计数。事件序号与接受顺序一致，墙钟仅用于展示。
 
-- `run_log` 是 run 产物的一部分，登记在 run manifest 的 `log_artifacts[]`（字段表见 `docs/engineering/contracts/LOG_AND_ERROR.md`「`run_log` 与 manifest 登记字段」一节）；
-- **manifest 不写进日志**（避免自引用循环）：manifest 是日志的登记面，日志不是 manifest 的载体；
-- 日志行内的 `commit` 来自真实构建/运行现场（既有 schema 强制 40 位 SHA，取值只来自现场），
-  因此日志可作为 provenance 的独立佐证；
-- 溯源链：`run manifest → log_artifacts[] → 日志文件 sha256 → 行内容`；任一环断裂 ⇒ exit 8。
-
----
-
-## 7. 与 observability 各面的关系
-
-`lib/infrastructure/observability/` 是**日志与可观测性的唯一实现家**；五个面各有唯一合同，互不冒充：
-
-| 面 | 合同（正本） | 键名/工件 | 消费者 |
-|---|---|---|---|
-| 结构化日志（本设计 L1） | `docs/engineering/resources/observability/STRUCTURED_LOGGING.md`（LOG-001）+ `log_event_v1.schema.json` | `event` / `seq` / `acsd.log.event.v1` 行 | 操作员、审计、回放 |
-| 运行事件流 | `lib/infrastructure/cli/protocol.h` + `jsonl.h` | `kind` / `sequence` / CLI stdout JSONL | GUI、外部 harness |
-| 运行图 | `docs/engineering/resources/observability/RUN_GRAPH.md`（LOG-003） | run-graph / observed_trace | 审计、性能 |
-| 资源监控伴随器 | `docs/engineering/resources/observability/RESOURCE_MONITORING.md`（LOG-002） | `monitor_timeseries.csv` | 容量分析、资源门 |
-| 性能探针 | `lib/infrastructure/observability/probes/README.md` | `ACSD_PROBE_LOG` JSONL（编译期 OFF） | 性能迭代 |
-
-**本设计新增的是 L2 落盘器与 L3 收敛面**，不是第六个面：它把 L1 已冻结的行格式**写到
-`<output_dir>/logs`**，并把错误收敛到退出码。日志行格式、事件流字段、运行图字段**一律不动**。
-
----
-
-## 8. 运行期旋钮（落点与默认值）
-
-日志落点**不需要新配置键就已成立**：默认由块级 `output_dir` 派生。可覆盖的旋钮都是
-**运行期策略（runtime_policy）**，权威在插件/CLI 文档面，**不进 `phase_config`、不进 `defaults.json`**
-（`docs/engineering/contracts/CONFIG.md`「三类配置（现场清单）」一节 三类配置分离红线；`CFG002-02` 机器强制）。
-
-| 旋钮 | 登记点（权威） | 默认 | 值域/约束 |
-|---|---|---|---|
-| `log_dir` | `docs/detail/infrastructure/observability.md` 的「配置项」一章（`log_dir` / `log_keep` / `log_level`） | `<output_dir>/logs` | 绝对路径，或由 `output_dir` 派生；CWD 相对路径属判据红 |
-| `log_level` | 同上 | `info` | `debug\|info\|warn\|error` |
-| `log_keep` | 同上 | `all` | `all`（保留全部运行日志）或正整数（保留最近 N 次运行） |
-
-- 缺省即默认值，且**落点与旋钮设置无关**：不设任何旋钮时落点恒为 `<output_dir>/logs`；
-- `log_dir` 显式给出时，其解析结果必须落在本次运行的 `output_dir` 可写域内（跨块写同一目录 = 配置错 ⇒ exit 2）；
-- 旋钮的**取值通道**（CLI 旗标 / 环境变量）由实现任务接线；通道一旦落地，其登记点随之迁移到对应文档面
-  （CLI 旗标 → 命令行入口页的 `cli_surface` 行），并由 `CFG002-01` 强制唯一登记点。
-
----
-
-## 9. 判据与登记
-
-| 判据 | 内容 | 核对面 | 负例面 |
-|---|---|---|---|
-| R1 错误不吞 | 生产收敛面 catch 吞错点必须登记（台账只减不增） | 对抗性审查逐条核对 | 注入空 catch ⇒ 判红 |
-| R2 降级显式 | 生产面条件回退点必须登记且函数体内记录 `degraded_reason` | 同上 | 注入静默回退 ⇒ 判红 |
-| R3 日志落点 | 生产面日志落点必须派生自 `output_dir` 或登记 | 同上 | 注入 `run/` 字面量 ⇒ 判红 |
-| R4 台账完整 | 台账锚存活、只减不增、扫描面非空（fail-closed） | 同上 | 抹掉锚/清空扫描面 ⇒ 判红 |
-
-**这四条判据约束 agent 写代码时的自律**：改动生产收敛面、日志落点或台账的每一次提交，都要自己
-逐条核对「正确实现成立、注入对应缺陷不成立」；只报告不注入负例不算核对完成。
-
----
-
-## 10. 失败作用域：帧级失败与全局失败
-
-多帧节点（一次调用处理 N 帧输入）必须把失败按**作用域**分开上报，两种作用域各自具名：
-
-| 作用域 | 触发条件 | 上报形态 | 运行结果 |
-|---|---|---|---|
-| **帧级失败** | 失败只由**该帧自身**的条件决定：换一帧可能成功（本帧 WCS 不可用、本帧星点目录缺行、本帧拟合未产出标度、本帧标度非物理、帧内残差散度超门限） | 该帧记 `status=fail` + `error_domain`/`error_status`/`error`（`error_report` 口径见 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节），落在节点 manifest 与 provenance 的**逐帧判决表**里 | **该帧不产出产品，其余帧照常完成**；运行级是否判红由产品基数与不变量决定（《ACSD 最高设计》「normalize」一章的「输出合同」一节：任何一帧未被处理、跳过或失败都显式判红），判红时**不发布**数据集清单 |
-| **全局失败** | 失败与具体帧无关：换任何一帧都不会好（星表/响应曲线等程序级输入不可读、配置缺项、冻结 C 入口返回非零） | 节点直接返回 `Error`（域 = `CONFIG`/`IO`）上行到 CLI，收敛为退出码（判据见 `docs/engineering/contracts/LOG_AND_ERROR.md`「错误对象与退出码映射」一节） | **中止运行**：不处理后续帧，也不把整批帧逐帧判 fail |
-
-**帧级失败不是降级**：降级 = 上游能力缺失时改走替代路径并**继续运行**且**科学语义不变**（判据见 `docs/engineering/contracts/LOG_AND_ERROR.md`「显式降级登记要件」一节）。
-帧级失败改变的是「这一帧有没有合格的科学结果」，因此不写 `degraded_reason`，并以帧级失败状态上报（L3 行为边界项）。
-反之，**通道整体缺席**（例如测光标定通道未配置、产品以未归一化的中性标度继续）是降级：写 `degraded_reason` 并在元数据如实登记标度。
-
-**逐帧判决表是唯一真相**：组级摘要（如 `photometry_applied`）只表示「至少一帧成立」，下游节点必须按逐帧表选择输入面；
-下游对上游判 fail 的帧**显式跳过**并在自己的 manifest 记跳过原因与上游错误码，记录完整。
-
-## 落地对照与参考文献
-
-本页是支撑面的日志错误落地设计，对应最高设计命令行合同一章的错误传播与运行日志条目。定位是事件产生到落盘再到退出码收敛的整条链，数据对象是日志事件、运行日志、错误报告与降级记录。块读写经统一输入输出边界，日志落点由块输出目录派生。接口签名以日志事件模式与退出码表为准。处理步骤按生命周期六步执行。配置旋钮是运行期策略，不进阶段科学配置。相邻关系是上游承接各模块的错误返回，下游供给命令行收敛与可观测性。调试入口是阶段日志目录与运行清单登记。
-
-### 参考文献
-
-[1] 工程日志错误合同，docs/engineering目录。
-[2] 命令行入口落地页，本文infrastructure目录。
-[3] 可观测性落地页，本文infrastructure目录。
+核对实际生成、取消、只读目录、写满、双通道一致和句柄释放。源码静态核对已确认域映射与 manifest 分类入口；完整 `log_artifacts[]` 生产写出仍需补齐，见[实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。本页未声明真实运行已经覆盖全部路径。
