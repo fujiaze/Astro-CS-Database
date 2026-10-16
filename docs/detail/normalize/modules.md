@@ -413,3 +413,33 @@ writer 是 I/O 节点，单帧产品只有一个最终发布者。输入图像/�
 返回码使用 `ACS_ERR_*`，错误由会话 manifest 和 `last_error` 说明；失败不写成 complete。校准与 cosmetic 的状态须按实际调用分别记录，未启用修复与已修复不能混写。
 
 验证入口为本头文件五函数和 [Normalize 测试入口](../../../eng/tests/pipeline/test_stage_normalize.py)；前者检查生命周期、host 分配配对、非法配置和取消，后者检查完整命令。测试入口存在不表示已执行或得到科学支持。完整数据/能力要求见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)；具体实施边界见[差异地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+
+## 天测与光度接口的当前核对
+
+以下补充当前公开头、实现段与CLI调用，对上文保留材料和旧算法卷的入口/坐标/状态作消歧；不以接口存在宣称全生产或科学已验收。完整旧算法正文保存于[来源档案](../../../实验/documentation-refactor/docs/ASTROMETRY_PHOTOMETRY_SOURCE.txt)。
+
+### IPV 所有权、ABI与数据
+
+公开头为lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h，实现入口ipv_entry.cpp。ipv_solve_create/destroy管理solver；调用者持有Gaia/detector句柄并保证其覆盖求解。当前CLI的p1_op_wcs调用ipv_solve_from_memory_with_callback_d，输入行主序double校准图、宽高、角度hint、焦距mm、像元um与IpvParams；外部[N,6]候选API是另一入口。
+
+IpvParams首部struct_size/abi_version，当前版本2，优先用ipv_get_default_params初始化，不能按旧ctypes镜像猜布局。Windows的IPV_EXPORTS/IPV_STATIC/默认消费宏分别对应DLL导出、静态链接和导入，root静态target与独立DLL区分。
+
+返回值1/0表示成功/失败，IpvWcsResult.success须一致检查；失败读取error_msg，不能只据result其他数值猜状态。固定结果含CD[4]、crval/crpix[2]、A/B/AP/BP各36、阶、残差、匹配数及ctype；CRPIX是FITS一基，角度deg，rms_px与rms_arcsec各自给单位。内部更高阶APx/BPx能力不能直接写进固定36数组冒充公开输出。
+
+检测callback在求解期间同步借用[N,6] double缓冲，返回后指针失效，要保留就复制；不把它当WCS后的science_sources。last_inliers由调用者提供max_count×9 double缓冲，列为det_x/y、Gaia RA/Dec、pred_x/y、residual_x/y/dist；det/pred是相对图像中心Y-up的内部坐标，不能直接当FITS像元。返回实写数与容量核对，solver重用/销毁后缓存寿命不得延伸。
+
+同一solver串行使用，在途求解完成后销毁。探测句柄线程本地override与全局兼容setter分别管理，退出时清理本线程绑定；不能由“无内部锁”认定任意共享句柄安全。UTF-8错误串容量、码点截断/坏字节、取消和全部并行预算需沿入口与真实分支验证。本轮未运行ABI探针或解算。
+
+### 光度拟合、输入身份与状态
+
+当前adapter的p1_op_photometry经frame_photometry_fit连接pc_calibrate_simple_with_gaia_f64_v2_qf族；pc_api.cpp、star_matcher.cpp、spectrum_integrator.cpp分别组装、配对拟合和积分。公开结构与匹配记录见photometric_calib.h，v2/qf与旧simple ABI分开，不用旧wrapper孔径类代替生产测量。
+
+逐帧binding读取真实响应及来源，当前override首次匹配路径/basename/key不是严格input occurrence。数组、PSF源ID、quality_flags与匹配记录索引须同序；缺曲线或数据时按实际能力记录，scale=1本身不能证明已完成校准。图像、星表与响应缓存寿命覆盖同步求值，跨DLL按本库公开释放接口回收输出。
+
+XPSD decode为byte×flux_mul+flux_min，compute_f_syn_cached_xpsd检查指针/尺寸和量化参数，非法时返回0供上层判无效；0不是合法已测参考通量。cache应绑定实际曲线字节/波长单位/QE/积分约定，不能只凭滤镜名字复用；源数、批查询和局部缓存分别统计。
+
+cleanAndScale先质量/通量/星等筛选，参考不足3返回无拟合、scale默认1；S=0跳过IRLS但仍可有标度。S=0也可能是少数重复值造成MAD为零，不应沿用“全部r相等”注释推断。S>0固定尺度Tukey最多50轮，所有权重为0或触顶时仍计算最后location对应scale；robust_iterations不是完整converged标志，恰好50轮收敛也可能达到同计数。
+
+sigma_residual是内点对location的绝对残差中位尺度，内点不足2与实际零散度都可能编码0。noise的后续质量换算不替所有消费者自动消歧，不能把0当未知误差已测为零。rejected_quality当前混合多类拒绝，v2逐星reason与输入映射另核对，不将计数名称等同独立原因。
+
+后续实际施加面、application_id、单位、spatial_gain与方差二次幂必须和该次fit配对；拟合成功、输出指针非空及样本残差小分别不是整帧校准完成。独立真值、并列配对、退化、触顶、曲线误用和真实写读验证按[数据合同](../../engineering/contracts/NORMALIZE_DATA.md)进行，本轮未运行。
