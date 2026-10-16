@@ -16,6 +16,10 @@
 
 Runtime 一次只执行 Normalize、Mosaic 或 Export 之一；跨阶段用已完成磁盘产品，不传活跃内存对象。**Frame 是所有权/可撤销事务单位；Process/Operation 是科学语义单位；WorkUnit 是 CPU 调度单位。** Mosaic global model/已合入贡献与 Export 输出事务不能伪装成 Normalize Frame。
 
+## ARS-02 头级冻结的优先适用说明（2026-10-16）
+
+ARS-02 第一个 Calibration 功能域 DLL 的 **规范性冻结接口** 已移至 [ARS-02 C ABI v2 头级冻结与真实双 Operation 施工合同](../api/abi/PROCESS_ABI_V2.md)：唯一可编译 C11 头、完整 Host 子表/释放、跨 DLL 类型与 ABI 尺寸、串行实例、真实 `ac_calibrate_frame` 和 `ac_correct_frame` 双 Operation、端口/物理公式、CLI 纵向切片与正负测试。**以下 §2 的 skeleton/candidate 对 ARS-02 首个纵向切片被新头级合同取代**，保留它只是后续 ARS-03～12 一般设计的历史上下文，不得让 Agent 在两个不同结构间自由选择。第一切片不替换既有 Cosmetic 的 `ac_correct_columns_ex2` 坏列处理，也不声称资源/OOM 和多文件发布全链已实现。
+
 ## 2. 动态多 operation ABI v2（ARS-02）：精确函数、参数与寿命
 
 ### 2.1 安装头与协商

@@ -42,6 +42,9 @@
 按 `CLI -> IR -> ModuleRegistry -> Scheduler -> P1/P2/P3 adapter -> algorithm/AIO` 核验真实生产调用；区分实际动态加载器与 CLI 静态科学模块。建立对照数据清单（用户现有真实数据只建索引，不上传原始）；固定同一科学 config、输入 occurrence、原始 signal/sidecar/模型 identity。记录峰值 RSS、内存分配源、线程授予、CPU busy、每 op 延迟、AIO read/write/queue p95、总墙钟；缺指标如实列出。将旧 Frame/AIO/benchmark 实现与可复用接口映射，不改算法。
 
 ### S1：真正可复用的功能域 Process（ARS-02/03）
+
+**ARS-02 首次编码的唯一头级口径**：[冻结的 v2 ABI + Calibration 双 Operation](../api/abi/PROCESS_ABI_V2.md)。先复用 `acsd_p1_calibration` 同 DLL 的 `calibrate_frame/correct_frame`，实例串行/帧间并行，严格保留旧 cal/cos 科学与坏列处理；所有 v2 Host callbacks 和所有权以该头为准。实施前先完成 ARS-01 #23 科学与性能基线，不能将 ABI 文档本身当成可运行证明。
+
 稳定 `(module_id, operation_id, schema_version)`；`module_ports.registry.json` 不再只映射静态适配器，应与真实 DLL descriptor 和 IR 的同一能力面核对。C ABI 以 opaque host-owned block/model handle、POD/span 和版本协商跨边界；模块服务函数指针对象 pin 至所有 instance、views、jobs 完成。可测试 Linux/Windows secure loading、符号检查、ABI mismatch、卸载中的任务、多个 op 实际执行。先在一个小的真实生产算法做动态端到端证明，再推广，不以 DLL 加载成功冒充 CLI 真正执行。
 
 ### S2：Block 账本 / Frame 回滚（ARS-04/05/06）
