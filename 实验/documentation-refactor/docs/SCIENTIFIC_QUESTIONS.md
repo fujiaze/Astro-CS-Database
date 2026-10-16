@@ -389,6 +389,8 @@
 | E68 | Issue6天测现源码：select_image_stars只把NaN排后，短候选可选入；总返回N>=每文件cap不证明实际截断；三角a<1e−6不排所有共线、b/a>0.9含近等边；iter_trans_inner的is_ok初为true；trans.sig=q68.3(d²)却作initial_rms_arcsec传精化；重投影仍用valid_inliers而非refit.inliers | 逐项在正式算法/接口说明准确行为；参数/统计、秩与样本需实现方独立负例核验，保留代码；to_c_result的n_detected/n_catalog固定0及best_inliers复制n_pairs已说明，旧SIP奇异仅warn记录按当前明确失败更新 |
 | E69 | Issue6光度当前run_with_gaia_impl<T>试乘始终static_cast<float>，T=double仍舍入；records部分分支未填f_instr/gaia_mag，质量reason7可被invalid回填覆盖；谱stride取DB但缓存仍按入参网格；C层width*height用int且无全域/scale有限检查；裸查询缓冲异常清理需核 | 正式detail记录7完整C签名、所有C++装配字段与分支；frame已NaN预置记录、fit_ok已区分NO_DATA、scale正有限已核，不再称这三项缺陷未修；frame丢试乘图，最终apply另行完成，不能把局部float舍入外推全产品；旧Photometer全图扫描和Simpson三段重复端点均已修复。未改生产代码或运行独立反例 |
 
+| E70 | Issue6公共API完整2325行复读发现多处同页矛盾：取消/并发总表与逐族冲突、Noise无锁注册表风险已被mutex修复、旧Drizzle缺自动/异步/capture形参、PSF compact原行映射曾错误要求只取n_valid前缀 | 已恢复Normalize18校准/缺陷、7 PSF、27 Noise和14 Drizzle完整声明/布局及语义，修正有锁/取消/并发/原行映射；Runtime全公开字段/方法及15 session签名入正式正文。Mosaic/Export逐参数与完整模块算法仍待后批，不以完整读过API等同所有接口已对照完；未改生产代码或运行ABI/并发实验 |
+
 本轮已合并远端 `5b33e0417`，保留 Normalize Round 3 的空间 PSF、空间 alpha、typed 边与实验记录。已重读新增空间PSF完整实现、相关改动与生产调用，确认E52所列路径并同步架构/实施差异及接口说明；第三轮报告全文已读，其数值本轮未重跑。E01–E15来自合并前抽查，E01的sed_response未接线、E03的basename身份、E04的signal叶阶、E07释放后EXPTIME读取本轮相应代码段仍可见；其余不自动当作仍存或已解决。E05中因子基础单位检查已增加，但通用reader是否全面调用仍须分开核对。原始191篇清单继续固定基线，新增代码/记录另外登记。
 
 ## 本轮证据边界

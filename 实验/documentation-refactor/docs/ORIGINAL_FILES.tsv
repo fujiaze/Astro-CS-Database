@@ -63,7 +63,7 @@ docs/detail/registry/acsd.phase3.wcs.md	63eccbb6133aef56389641d43c55df6e243819c5
 docs/detail/registry/acsd.phase3.writer.md	63eccbb6133aef56389641d43c55df6e243819c5	368e8f50af002c1bb039b99b15deb84f3466e977	3379	并入同主题正文；原文件退役	docs/detail/export/modules.md#writer	已读模块/规范；接口按已查生产段抽查，未做全函数运行核验
 docs/engineering/README.md	63eccbb6133aef56389641d43c55df6e243819c5	c5459281a4f95f7566ae8b4a0e248f9b7289b99c	480	重写	docs/engineering/README.md	已读；按本轮授权整理，科学重推导未执行
 docs/engineering/UNIFIED_OBJECTS.md	63eccbb6133aef56389641d43c55df6e243819c5	839ccd4a92a2f4ed218c2ca19924673cff1de0b2	5010	保留专题内容；必要导航同步	docs/engineering/UNIFIED_OBJECTS.md	已读正文；未完成逐引文/逐函数外部核验
-docs/engineering/api/PUBLIC_API.md	63eccbb6133aef56389641d43c55df6e243819c5	53ac0fc889bda885e274ecfe27de6a64f46cd89e	154123	重写	docs/engineering/api/PUBLIC_API.md	已读；按本轮授权整理，科学重推导未执行
+docs/engineering/api/PUBLIC_API.md	63eccbb6133aef56389641d43c55df6e243819c5	53ac0fc889bda885e274ecfe27de6a64f46cd89e	154123	重写	docs/engineering/api/PUBLIC_API.md	完整2325行基线精读并逐主题对照现正式模块：Normalize完整实参/布局回填，Runtime完整类型与15会话签名回填；纠正历史路径/取消/并发/compact误述；Mosaic/Export详细接口与算法逐项语义复核仍未完成，不能据此标全篇闭合
 docs/engineering/api/README.md	63eccbb6133aef56389641d43c55df6e243819c5	34c069fa132dfe93201d7bf2b97e55c8e59731b9	225	重写	docs/engineering/api/README.md	已读；按本轮授权整理，科学重推导未执行
 docs/engineering/api/abi/ABI.md	63eccbb6133aef56389641d43c55df6e243819c5	ae203aef2050da734a829dd7016ca71a667a20b3	7619	保留专题内容；必要导航同步	docs/engineering/api/abi/ABI.md	已读正文；未完成逐引文/逐函数外部核验
 docs/engineering/api/abi/README.md	63eccbb6133aef56389641d43c55df6e243819c5	bc8fd95572ccb4aeadf7a1b21bc9b94580727af6	211	重写	docs/engineering/api/abi/README.md	已读；按本轮授权整理，科学重推导未执行

@@ -53,6 +53,70 @@ CLI 八节点的入口是 [module_adapters.cpp](../../../lib/infrastructure/sche
 
 [阶段一管线测试](../../../eng/tests/pipeline/test_stage_normalize.py)检查生产入口；独立校准检验应覆盖两种暗场约定、非单位 K、平场边界、标度声明、负信号及共享母版误差。并发等价需以实际 budget 配置与输出读数核对，本页不提供未经运行的通过结论。
 
+### 完整校准与母版声明
+
+以下为当前公开头的完整实参顺序。stack为[n_frames,H,W]连续帧主序，out为[H,W]；sigma_low/high分别为低/高侧裁剪倍数、max_iterations为裁剪次数、combine=0均值/1中位数。flat减可选bias并逐帧归一后合并，输出为相对响应；dark本身含bias的约定不由函数名自动改变。调用者必须按输入归一元数据解释计数单位，不固定所有数组都是ADU。
+
+```cpp
+AC_API int ac_generate_master_bias(
+    const float* stack, int n_frames, int width, int height,
+    float* out,
+    float sigma_low, float sigma_high, int max_iterations,
+    int combine);
+
+AC_API int ac_generate_master_dark(
+    const float* stack, int n_frames, int width, int height,
+    float* out,
+    float sigma_low, float sigma_high, int max_iterations,
+    int combine);
+
+AC_API int ac_generate_master_flat(
+    const float* flat_stack, int n_frames, int width, int height,
+    const float* master_bias,
+    float* out,
+    float sigma_low, float sigma_high, int max_iterations);
+
+AC_API int ac_calibrate_frame(
+    const float* light, int width, int height,
+    const float* master_dark, const float* master_flat, const float* master_bias,
+    float* out,
+    int dark_optimization, float dark_scale_factor,
+    float* actual_k);
+
+AC_API int ac_generate_master_bias_f64(
+    const double* stack, int n_frames, int width, int height,
+    double* out,
+    double sigma_low, double sigma_high, int max_iterations,
+    int combine);
+
+AC_API int ac_generate_master_dark_f64(
+    const double* stack, int n_frames, int width, int height,
+    double* out,
+    double sigma_low, double sigma_high, int max_iterations,
+    int combine);
+
+AC_API int ac_generate_master_flat_f64(
+    const double* flat_stack, int n_frames, int width, int height,
+    const double* master_bias,
+    double* out,
+    double sigma_low, double sigma_high, int max_iterations);
+
+AC_API int ac_calibrate_frame_f64(
+    const double* light, int width, int height,
+    const double* master_dark, const double* master_flat, const double* master_bias,
+    double* out,
+    int dark_optimization, double dark_scale_factor,
+    double* actual_k);
+
+AC_API void ac_set_num_threads(int n);
+
+AC_API const char* ac_version();
+```
+
+所有图像/母版输入只读借用，输出调用者持有，actual_k可空；无输入输出重叠保证。W/H/n_frames正，缓冲长度与乘积须可表示；现入口基本参数错返回−1，枚举−2/−3的存在不证明内核所有分配/异常已转换。没有独立取消回调；宿主在帧/调用边界控制，不能恢复旧表“行带已取消”的断言。
+
+ac_version返回库内静态串，不释放。ac_set_num_threads改变OpenMP执行设置，不能在并发科学调用中任意改预算，也不能列为无共享副作用的普通纯函数。calibrate_f64在double算术运行；master_f64内部float转换，区别于只是接口类型double。母版统计/校准分支和dark优化公式见[校准算法](../../science/algorithms/normalize/CALIBRATION_ALGORITHMS.md)，本批只恢复接口，不把库缺失检查改写成调用者已经执行。
+
 ## cosmetic
 
 **Normalize 缺陷修复。**
@@ -92,6 +156,88 @@ CLI 八节点的入口是 [module_adapters.cpp](../../../lib/infrastructure/sche
 
 验证从本页公开函数及[阶段一管线测试](../../../eng/tests/pipeline/test_stage_normalize.py)进入：注入点/列缺陷，检查三路来源、0/1/2 掩膜、宽段不修、边缘单侧、无锚、负信号和修复相关性。本页未运行这些检验。
 
+### 坏点与坏列完整声明
+
+坏点、基础列、母版列、三来源ex/ex2与方差记账都在同一公开头，完整实参如下；不是只有旧PUBLIC_API列出的3个符号。
+
+```cpp
+AC_API int ac_correct_frame(
+    const float* data, int width, int height,
+    const float* master_dark, const float* master_bias,
+    float* out,
+    float hot_sigma, float cold_sigma,
+    int method, int max_structure_size,
+    int* out_hot, int* out_cold);
+
+AC_API int ac_correct_columns(
+    const float* data, int width, int height,
+    float* out,
+    float column_sigma, int neighbor_k, int max_seg_len,
+    unsigned char* col_mask,
+    int* out_n_cols, int* out_px_repaired,
+    float* out_sigma_col, int* out_status);
+
+AC_API int ac_detect_bad_columns_from_master(
+    const float* master, int width, int height,
+    float column_sigma, int neighbor_k, int max_seg_len,
+    unsigned char* col_mask,
+    int* out_n_cols, float* out_sigma_col, int* out_status);
+
+AC_API int ac_correct_columns_ex(
+    const float* data, const float* master_dark, const float* master_bias,
+    int width, int height, float* out,
+    float column_sigma, int neighbor_k, int max_seg_len,
+    unsigned char* col_mask,
+    unsigned char* out_source_mask,
+    unsigned char* out_conf_mask,
+    int* out_n_cols, int* out_n_science, int* out_n_dark, int* out_n_bias,
+    int* out_px_repaired, float* out_sigma_col, int* out_status);
+
+AC_API int ac_correct_columns_ex2(
+    const float* data, const float* master_dark, const float* master_bias,
+    int width, int height, float* out,
+    float column_sigma, float master_column_sigma, float master_wide_frac_max,
+    float science_wide_frac_max,
+    int neighbor_k, int max_seg_len,
+    unsigned char* col_mask,
+    unsigned char* out_source_mask,
+    unsigned char* out_conf_mask,
+    int* out_n_cols, int* out_n_marked_only,
+    int* out_n_science, int* out_n_dark, int* out_n_bias,
+    int* out_n_science_marked, int* out_n_dark_marked, int* out_n_bias_marked,
+    int* out_master_wide_suppressed, int* out_science_wide_suppressed,
+    int* out_px_repaired, float* out_sigma_col,
+    float* out_sigma_col_dark, float* out_sigma_col_bias,
+    int* out_status);
+
+AC_API int ac_column_variance_inflate(
+    const float* var_in, int width, int height,
+    const unsigned char* col_mask,
+    float kappa,
+    float* var_out,
+    float* out_w2_mean, int* out_px_inflated);
+
+AC_API int ac_correct_frame_f64(
+    const double* data, int width, int height,
+    const double* master_dark, const double* master_bias,
+    double* out,
+    double hot_sigma, double cold_sigma,
+    int method, int max_structure_size,
+    int* out_hot, int* out_cold);
+
+AC_API int ac_correct_columns_f64(
+    const double* data, int width, int height,
+    double* out,
+    double column_sigma, int neighbor_k, int max_seg_len,
+    unsigned char* col_mask,
+    int* out_n_cols, int* out_px_repaired,
+    double* out_sigma_col, int* out_status);
+```
+
+column_sigma/master_column_sigma分别作用于科学/母版检测，母版阈非正退回科学阈；*_wide_frac_max是各路宽标记上限（≤0不设），超过则只抑制该类宽标记并报告数量，不改变已经修复列。max_seg_len≤0取1，neighbor_k未消费；掩膜和source/conf均按width分配字节，输入图像与母版按H*W。sigma_col/dark/bias分别给各路尺度；source为science/dark/bias的1/2/4位，conf的1/2/3是来源组合标签，非校准概率。
+
+ex2的out_n_cols/out_n_marked_only分别数已修/仅标记列；各来源的已修、标记与suppressed分别计数，不能要求这些相加等于并集。out_px_repaired才是像素数；variance_inflate的out_px_inflated现实际为列数。返回AC_OK/AC_ERR_PARAM、空可选计数、不写失败输出与别名边界沿各入口解释，不能将坏列status位当错误码。方差输入按原像元位置而非两锚方差的现处方及κ统计含义见Q36，接口恢复不认可其普遍物理充分性。
+
 ## wcs-platesolve
 
 **Normalize 天体测量。**
@@ -103,6 +249,8 @@ CLI 八节点的入口是 [module_adapters.cpp](../../../lib/infrastructure/sche
 [module_adapters.cpp](../../../lib/infrastructure/scheduler/src/module_adapters.cpp) 的 `p1_op_wcs` 对应 `acsd.phase1.wcs-platesolve`，输入 `calibrated`，输出 `wcs`；它调用 `ipv_solve_from_memory_with_callback_d`，不依赖下游 `science_sources`。该解供 guided sources、photometry、Drizzle 和 writer。
 
 近似指向/尺度可来自 header_pointing、config、neighbor_crval；它们只是初值。明确配置的完整 WCS 标为 `explicit_config`，不能标为 IPV 求解成功。当前结果写 `p1_wcs.json`；Runtime 对象、attempts 和版本合同见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。
+
+完整14个函数、IpvParams全部字段、callback/inlier布局及成功/失败分支见[天测详细设计](modules/platesolve.md)。
 
 ### 公开 API 与字段
 
@@ -149,6 +297,8 @@ solver 用 create/destroy 配对，result POD 和 inlier 缓冲由调用方提�
 CLI 调用链为 [module_adapters.cpp](../../../lib/infrastructure/scheduler/src/module_adapters.cpp) 的 `p1_op_star_psf_impl → p1_guided_predict → pc_project_sky_to_pixel → sdet_detect_guided_ex_f64`。投影消费本帧已解 WCS 与 SIP，近似指向仅用于搜索/初值，不能代替最终预测。该步骤属于 `acsd.phase1.star-psf`，没有另一个独立 `star-detection` 生产调度节点。
 
 输出经 source ID 与 PSF 参数关联，供 photometry、noise、Drizzle 使用；解算候选与科学源不互相冒充。实际跨节点载体含 `p1_sources.json`，完整 typed 对象目标见[数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。
+
+完整6个函数、SDetParams13字段、列布局和O1–O16见[检测详细设计](modules/star_detection.md)。
 
 ### 输入输出合同
 
@@ -203,7 +353,7 @@ PSF 节点把已解 WCS 引导的源测量转为逐星轮廓参数。空间、�
 
 当前接口是逐星拟合；空间有效 PSF 求值、像元积分归一与噪声 completion 的真实覆盖由[差异地图](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)维护。目标 `EffectivePsfModel` 不能仅靠帧中位宽度或 `psf_spatial_order` 名称宣称完成。
 
-[pixel_integrated_psf.h](../../../lib/algorithms/psf/include/acsd/pixel_integrated_psf.h) 已提供 `pixel_integrated_moffat4_profile(request,out,diagnostics)`：request 指定 sx/sy/theta、零基参考中心、像元中心数组和求积阶数，借用输入数组，写调用方 vector；diagnostics 给实际集合包络及相邻阶自检差。completion 已调用此库，但当前调用传帧级圆化宽度。函数的像元积分能力不能代替空间 PSF 的真实参数与留出验证，相邻阶差也不构成严格真误差界。
+[pixel_integrated_psf.h](../../../lib/algorithms/psf/include/acsd/pixel_integrated_psf.h) 已提供 `pixel_integrated_moffat4_profile(request,out,diagnostics)`：request 指定 sx/sy/theta、零基参考中心、像元中心数组和求积阶数，借用输入数组，写调用方 vector；diagnostics 给实际集合包络及相邻阶自检差。completion 已调用此库，并已结合空间模型求值；无支持时回退帧级宽度的状态仍需明确。函数的像元积分能力不能代替空间PSF的有效域与留出验证，相邻阶差也不构成严格真误差界。
 
 ### 验证入口
 
@@ -226,6 +376,90 @@ PSF 节点把已解 WCS 引导的源测量转为逐星轮廓参数。空间、�
 
 逐星可并行、星内有固定累加，不由此保证任意ISA/优化/worker下逐位一致。旧文按批检查取消与“没有取消点”的描述并存，应沿当前循环核对；调用者取消不表示已在飞拟合能立即中止。完整原文和历史诊断保存在[来源档案](../../../实验/documentation-refactor/docs/SPATIAL_NOTES_SOURCE.txt)，不把旧实测数字或测试名字当本轮执行结论。
 
+### 完整PSF声明与两种行布局
+
+```cpp
+typedef struct {
+    int status;
+    double B;
+    double A;
+    double cx;
+    double cy;
+    double sx;
+    double sy;
+    double theta;
+    double fwhm_x;
+    double fwhm_y;
+    double mad;
+    double flux;
+    double eccentricity;
+} DPSFFitResult;
+
+typedef struct {
+    int fitRadius;
+    int maxIter;
+    double tolerance;
+} DPSFFitParams;
+
+DPSF_EXPORT int dpsf_fit(const uint16_t *image, int width, int height,
+                          double cx, double cy,
+                          const DPSFFitParams *params,
+                          DPSFFitResult *result);
+
+DPSF_EXPORT int dpsf_fit_batch(const uint16_t *image, int width, int height,
+                                  const double *cx_array, const double *cy_array, int count,
+                                  const DPSFFitParams *params,
+                                  DPSFFitResult **out_results);
+
+DPSF_EXPORT int dpsf_fit_batch_f(const float *image, int width, int height,
+                                  const double *cx_array, const double *cy_array, int count,
+                                  const DPSFFitParams *params,
+                                  DPSFFitResult **out_results);
+
+DPSF_EXPORT void dpsf_free_results(DPSFFitResult *results);
+
+DPSF_EXPORT int dpsf_fit_batch_f32(
+    const float *image,
+    int width,
+    int height,
+    const double *detections,
+    int n_detections,
+    const DPSFFitParams *params,
+    double *out_psf_params,
+    int *out_n_valid,
+    int *out_status
+);
+
+DPSF_EXPORT int dpsf_fit_batch_f64(
+    const double *image,
+    int width,
+    int height,
+    const double *detections,
+    int n_detections,
+    const DPSFFitParams *params,
+    double *out_psf_params,
+    int *out_n_valid,
+    int *out_status
+);
+
+DPSF_EXPORT int dpsf_fit_batch_d(
+    const double *image,
+    int width,
+    int height,
+    const double *cx_array,
+    const double *cy_array,
+    int count,
+    const DPSFFitParams *params,
+    DPSFFitResult **out_results
+);
+```
+
+DPSFFitResult有13字段：status为逐星FIT域，B/A是背景/背景以上振幅，cx/cy全图中心，sx/sy与fwhm为px，theta为rad，mad是截尾平均绝对残差，flux是2πA sx sy/3，eccentricity无量纲。输入像素为当前线性积分单位，连续轮廓/采样近似的振幅解释按PSF科学，不固定任意applied输入为ADU。
+
+分配型batch保留N个结果，调用方始终检查每行status，用dpsf_free_results释放；其params必须提供，compact f32/f64的params可空才用8/200/1e−8默认。maxIter/tolerance当前不控制内部LM的硬编码停止，不能以已传数值宣称生效。compact detections固定N×6，参数输出预留N×9 double，out_n_valid必需、out_status可选N int。所有输入/输出调用期不重叠，图像只读；坐标不经uint16强裁切，f32/f64按各自入口。
+
+compact映射用k=0遍历i=0..N−1，遇out_status[i]==0将参数第k行关联输入第i星，再k++，最终k==out_n_valid；禁止只读i<n_valid前缀。状态数组的0/1/2/3分别OK/拟合失败/空窗/分配失败，与FIT域0/1/2/3的OK/不收敛/参数非法/迭代上限不同。N≤0或基本参数非法批返回−1；批返回0不要求全星成功，错误输出不作有效参数消费。
+
 ## photometry
 
 **Normalize 测光与标度应用。**
@@ -237,6 +471,8 @@ PSF 节点把已解 WCS 引导的源测量转为逐星轮廓参数。空间、�
 [module_adapters.cpp](../../../lib/infrastructure/scheduler/src/module_adapters.cpp) 的 `p1_op_photometry` 对应 `acsd.phase1.photometry`，调用 `acsd::photometry::fit_frame_photometry`。其 [FramePhotFitRequest/Result](../../../lib/algorithms/photometry/cpp/src/frame_photometry_fit.h)装配本地 Gaia、滤镜/QE、PSF 通量和完整 WCS，内部进入 `pc_calibrate_simple_with_gaia_f64_v2_qf`。
 
 descriptor 声明 calibrated、sources、wcs 输入和 fluxes、photprov 输出；真实像元取 sources 指向的 cleaned 面，PSF 参数也随 sources 工作文件到达。当前载体含 `p1_phot.json` 和 photoapplied FITS。目标 `PhotometricSolution`、`PhotoAppliedPlane` 与独立 PSF 输入依[数据合同](../../engineering/contracts/NORMALIZE_DATA.md)，端口排序不能冒称完整 typed 取数。
+
+完整7个C签名及生产C++装配字段/默认、逐星布局和退化分支见[光度详细设计](modules/photometry.md)。
 
 ### API、字段与单位
 
@@ -306,6 +542,362 @@ Drizzle 节点获取同次球面几何后，经 [normalize_precision.cpp](../../
 
 [生产 GLS 单元入口](../../../eng/tests/unit/sparse_reference_gls_test.cpp)、[噪声合成入口](../../../eng/tests/synthetic/test_p2_absolute_snr.py)、[sidecar 合同入口](../../../eng/tests/conformance/normalize_frame_science_schema_test.py)和[已保存局部验证记录](../../../实验/normalize-precision-p5/evidence/ROUND1_VERIFY.log)分别覆盖不同问题。需区分背景已知/共同拟合、异方差、秩亏、非单位 scale、缺 gain、leaf 0、PSF 截断及 Monte Carlo 的实际条件；已有日志不支持全 CLI、真实 SED/空间 PSF或完整误差链已验证。
 
+### 完整Noise/SNR声明、布局与当前版本
+
+以下完整保留现公开头的结构字段和函数参数。它们分为空背景模型、逐源诊断/质量与legacy稀疏模型三族；canonical球面controls仍走sparse_reference，不能因共享“SNR”名称互换。SNR_ABI_HEADER在此展开为两个uint32_t，size/version不能遗漏。
+
+```cpp
+#define SNR_ABI_HEADER(TYPE, VERSION) uint32_t struct_size; uint32_t abi_version;
+#define SNR_NOISE_CONFIG_ABI_VERSION 1u
+#define SNR_NOISE_MODEL_ABI_VERSION 2u
+#define SNR_SIP_COEFF_SIZE 36
+typedef struct {
+    double sigma_logflux_dex;
+    double sigma_mag;
+    double sigma_cal_rel;
+
+    double sigma_location_se_dex;
+    double sigma_location_se_mag;
+    int    n_matches;
+    int    fit_status;
+} PhotometricCalibrationQuality;
+
+typedef struct {
+    double flux;
+    double amplitude_above_bg;
+    double background;
+    double fwhm;
+    double eccentricity;
+    double residual_scale;
+    double robust_residual_sigma;
+    double q_psf;
+    uint32_t fit_status;
+
+} PsfFitQualityRow;
+
+typedef struct {
+    SNR_ABI_HEADER(SnrNoiseModelConfig, SNR_NOISE_CONFIG_ABI_VERSION)
+    int    patch_grid_x;
+    int    patch_grid_y;
+    double source_mask_radius_px;
+    double mask_radius_scale;
+    double gain_e_per_adu;
+    double read_noise_e;
+    double saturation_level;
+
+    double cosmic_clip_sigma;
+    int    min_patch_samples;
+    int    max_clip_rounds;
+    uint32_t use_gain_model;
+    uint32_t enable_spatial_field;
+    double   variance_floor;
+
+    double   mask_k_sigma;
+    double   mask_r_min_px;
+    double   mask_fwhm_floor_scale;
+    uint32_t mask_budget_min_patches;
+    uint32_t mask_budget_min_sky;
+} SnrNoiseModelConfig;
+
+typedef struct {
+    SNR_ABI_HEADER(NoiseWeightModelV1, SNR_NOISE_MODEL_ABI_VERSION)
+    uint32_t n_control_points;
+    double*  ctrl_x_px;
+    double*  ctrl_y_px;
+    double*  ctrl_sigma;
+    double*  ctrl_variance;
+    double*  ctrl_ivar;
+    double   sigma_bg_global;
+    double   variance_bg_global;
+    double   ivar_bg_global;
+    uint32_t n_qualified_patches;
+    uint32_t n_rejected_patches;
+    uint8_t  source;
+
+    uint8_t  has_spatial_field;
+    uint8_t  degenerate;
+    uint8_t  reserved;
+
+    uint32_t mask_degraded;
+
+    double   mask_radius_p50;
+    double   mask_frac;
+
+    uint32_t n_structure_rejected_patches;
+    uint32_t n_r_unavailable_patches;
+
+    double   r_min;
+    double   r_median;
+    double   r_max;
+    double   r_fence;
+
+    double   plane_a;
+    double   plane_b;
+    double   plane_c;
+    double   ctrl_variance_range;
+    double   hull_min_pred;
+
+    double   hull_nonpositive_frac;
+} NoiseWeightModelV1;
+
+typedef struct {
+    double flux_adu;
+    double fwhm_px;
+
+    double sigma_px;
+    double sigma_sky_adu;
+    double gain_e_per_adu;
+    double read_noise_e;
+    double aperture_radius_px;
+    double n_sky;
+    double zero_point_mag;
+    int    profile_half_px;
+    int    sigma_sky_source;
+} SnrSourceParams;
+
+typedef struct {
+    double snr_optimal;
+    double sigma_f_optimal_adu;
+    double snr_aperture;
+    double sigma_f_aperture_adu;
+    double enclosed_fraction;
+    double aperture_correction;
+    double n_pix;
+    double sum_p2;
+    double snr_peak;
+    int    sigma_sky_source_effective;
+
+    double flux5_adu;
+    double m5_mag;
+    int    status;
+} SnrSourceResult;
+
+typedef struct {
+    int a_order;
+    int b_order;
+    double a[SNR_SIP_COEFF_SIZE];
+    double b[SNR_SIP_COEFF_SIZE];
+} SnrSipCoeffs;
+
+typedef struct {
+    double crval1;
+    double crval2;
+    double crpix1;
+    double crpix2;
+    double cd[4];
+    SnrSipCoeffs sip;
+} SnrWcsParams;
+
+#pragma pack(push, 1)
+typedef struct {
+    double ra;
+    double dec;
+
+    float  snr_psf;
+} SnrControlPoint;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct {
+    double ra;
+    double dec;
+    double snr_psf;
+} SnrControlPointF64;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct {
+    double   ra;
+    double   dec;
+    float    snr_psf;
+    int64_t  star_id;
+    uint32_t quality_flags;
+    uint32_t photometric_status;
+} SnrControlPointV3;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct {
+    double   ra;
+    double   dec;
+    double   snr_psf;
+    int64_t  star_id;
+    uint32_t quality_flags;
+    uint32_t photometric_status;
+} SnrControlPointF64V3;
+#pragma pack(pop)
+
+typedef struct {
+    uint32_t n_points;
+    uint8_t  value_dtype;
+    uint8_t  reserved[3];
+    void*    points;
+    double   snr_phot;
+    double   median_snr;
+    double   idw_power;
+    double   median_source_snr;
+    double   frame_depth_flux5_adu;
+    double   frame_depth_m5_mag;
+} SnrModelV3;
+
+typedef struct {
+    uint32_t n_points;
+    uint8_t  value_dtype;
+    uint8_t  reserved[3];
+    void*    points;
+    double   snr_phot;
+    double   median_snr;
+    double   idw_power;
+    double   median_source_snr;
+    double   frame_depth_flux5_adu;
+    double   frame_depth_m5_mag;
+} SnrModelV2;
+
+typedef struct {
+    uint32_t n_points;
+    SnrControlPoint* points;
+
+    double   snr_phot;
+    double   median_snr;
+    double   idw_power;
+
+    double   median_source_snr;
+    double   frame_depth_flux5_adu;
+    double   frame_depth_m5_mag;
+} SnrModel;
+
+SNR_API int snr_phot_cal_quality(double sigma_logflux_dex, int n_matches,
+                                 PhotometricCalibrationQuality* out);
+
+SNR_API int snr_psf_fit_quality(const double* psf, int n_stars,
+                                const int64_t* star_ids,
+                                const uint32_t* quality_flags,
+                                PsfFitQualityRow* out);
+
+SNR_API int snr_noise_model_v1_default_config(SnrNoiseModelConfig* cfg);
+
+SNR_API int snr_noise_model_v1(const float* data, int h, int w,
+                               const float* source_mask,
+                               const double* star_x, const double* star_y,
+                               const double* star_flux, const double* star_fwhm,
+                               int n_stars,
+                               const SnrNoiseModelConfig* cfg,
+                               NoiseWeightModelV1* out_model);
+
+SNR_API int snr_noise_model_v1_f64(const double* data, int h, int w,
+                                   const float* source_mask,
+                                   const double* star_x, const double* star_y,
+                                   const double* star_flux, const double* star_fwhm,
+                                   int n_stars,
+                                   const SnrNoiseModelConfig* cfg,
+                                   NoiseWeightModelV1* out_model);
+
+SNR_API void snr_noise_model_v1_abi_stamp_config(SnrNoiseModelConfig* cfg);
+
+SNR_API void snr_noise_model_v1_abi_stamp_model(NoiseWeightModelV1* model);
+
+SNR_API int  snr_noise_model_v1_abi_check_config(const SnrNoiseModelConfig* cfg);
+
+SNR_API int  snr_noise_model_v1_abi_check_model(const NoiseWeightModelV1* model);
+
+SNR_API int snr_noise_model_v1_fill(const NoiseWeightModelV1* model,
+                                    int h, int w,
+                                    float* out_variance, float* out_ivar);
+
+SNR_API int snr_noise_model_v1_bind_variance_floor(NoiseWeightModelV1* model,
+                                                   double floor_var);
+
+SNR_API int64_t snr_noise_model_v1_floor_clamp_count(
+    const NoiseWeightModelV1* model);
+
+SNR_API void snr_noise_model_v1_free(NoiseWeightModelV1* model);
+
+SNR_API void snr_noise_scale_law(double alpha,
+                                 double* variance, double* ivar);
+
+SNR_API double snr_noise_gain_variance(double signal,
+                                       double gain_e_per_adu,
+                                       double read_noise_e);
+
+SNR_API int snr_source_snr_f64(const SnrSourceParams* params,
+                               SnrSourceResult* out);
+
+SNR_API int snr_moffat4_profile_f64(double fwhm_px, double sigma_px, int half_px,
+                                    double* out_sum_p2, double* out_p_center);
+
+SNR_API int snr_frame_depth_f64(const SnrSourceResult* reference,
+                                double zero_point_mag,
+                                double* out_flux5_adu,
+                                double* out_m5_mag);
+
+SNR_API double snr_calib_zero_point_standard_error(double sigma_logflux_dex,
+                                                   int n_matches);
+
+SNR_API int snr_estimate(const float* data, int h, int w,
+                         const double* psf, int n_stars,
+                         double sigma_residual,
+                         float* out_snr);
+
+SNR_API int snr_estimate_f64(const double* data, int h, int w,
+                             const double* psf, int n_stars,
+                             double sigma_residual,
+                             float* out_snr);
+
+SNR_API int snr_extract_model(const double* psf, int n_stars,
+                               double sigma_residual,
+                               const SnrWcsParams* wcs,
+                               SnrModel* out_model);
+
+SNR_API int snr_extract_model_v2(const double* psf, int n_stars,
+                                  double sigma_residual,
+                                  const SnrWcsParams* wcs,
+                                  int value_dtype,
+                                  SnrModelV2* out_model);
+
+SNR_API int snr_extract_model_v3(const double* psf, int n_stars,
+                                  double sigma_residual,
+                                  const SnrWcsParams* wcs,
+                                  int value_dtype,
+                                  const int64_t* star_ids,
+                                  const uint32_t* quality_flags,
+                                  const uint32_t* photometric_status,
+                                  SnrModelV3* out_model);
+
+SNR_API void snr_free_model(SnrModel* model);
+
+SNR_API void snr_free_model_v2(SnrModelV2* model);
+
+SNR_API void snr_free_model_v3(SnrModelV3* model);
+```
+
+| 实参/字段组 | 工程语义 |
+|---|---|
+| data,h,w,source_mask | data为f32或f64行主序[h,w]；注意参数次序**h再w**。mask为float[h*w]，非零标源，可空；图像单位必须与cfg的gain/阈/方差floor一致 |
+| star_x/y/flux/fwhm,n_stars | 同序double[n_stars]，零基px、仪器解析积分通量及已声明来源的FWHM；flux/fwhm可缺使掩膜进入具名legacy状态，不能把缺失当零 |
+| config | default_config初始化且盖版本1；patch_grid为各轴块数，半径px，mask_radius_scale为无量纲倍数，min_patch_samples/rounds为数量；gain为e⁻/原生计数，RN为e⁻，variance_floor为当前数组单位平方 |
+| 掩膜参数 | mask_k_sigma=0.1是背景尺度倍数，mask_r_min_px=1.5、fwhm_floor_scale=.75；预算min_patches=8、min_sky=9216。旧统一半径仍是硬上界/退化能力，不能覆盖现逐星语义 |
+| NoiseWeightModelV1 | 版本2；ctrl_x/y/sigma/variance/ivar共n_control_points，内部malloc。全局σ/v/ivar、合格/拒绝计数、source/degenerate/has_field与掩膜状态均为解释模型的字段；plane_a/b/c对应var=a+bx+cy，range无量纲，hull_min_pred为方差单位，hull_nonpositive_frac是面积比例 |
+| R与结构统计 | n_structure_rejected、n_r_unavailable为patch数，r_min/median/max/fence按结构统计R的无量纲定义，未计算与真实0由计数/状态区分，不从0自动推无结构 |
+| fill输出 | out_variance/out_ivar调用者分配float[h*w]，至少一个非空；所有图像输入与输出不重叠。正可表示方差/逆方差成对输出；现兼容三态以0/0表示不可用，不是已知零随机误差 |
+| quality | snr_phot_cal_quality输入dex散度和匹配数，输出帧系综质量；1.253·σ/√N为当前中位数近似，非任意IRLS参数协方差。snr_psf_fit_quality输入legacy布局[N,9]及同序可空ID/quality位，输出N行代理质量；不是compact PSF参数布局 |
+| SnrSourceParams | flux_adu为总通量、sigma_sky_adu为像元RMS；fwhm_px是**检测Gaussian**FWHM，正时优先于sigma_px。aperture_radius≤0用1.5FWHM、n_sky≤0用孔径像素量；profile_half≤0自动。sigma_sky_source=1散粒仅需另加读噪，=2经验总RMS禁重加，=0为legacy语义 |
+| SnrSourceResult | snr_*无量纲、sigma_f/flux5为原生通量单位，enclosed/correction无量纲，n_pix为像素面积数；status单独解释。flux5=5σ_F(ref)只在固定该源条件下成立，不能普遍当解方程SNR(F)=5的精确深度 |
+| SnrWcsParams | CRVAL degree、CRPIX一基、CD degree/px；A/B各36、i*6+j，阶0–5；模型坐标ra/dec为degree，不把ICRS当历元 |
+| extract/estimate | psf是legacy [N,9]，sigma_residual为dex；v2/v3的value_dtype=0/1分别选f32/f64点值，位置均double；v3的star_ids/quality/photometric_status同PSF行，成功过滤后保留关联 |
+| packed点 | f32/f64/v3f32/v3f64分别20/24/36/40字节，必须保留pack(1)；SnrModel结构自身并非相同紧密打包对象，不按点大小memcpy模型 |
+
+config默认patch8×8、半径10×6、clip5/2轮、min64、spatial开启、floor1e−12，其余gain/RN/use_gain初始0；这是现函数默认，不替未模型化误差补物理常数。saturation_level未给不等于无饱和，来源/能力单独记录。
+
+build返回0可含全局兜底，1为完全退化，3为基本参数/分配/捕获异常，−9为ABI失配，−10为非法或未绑定floor（相关分支）。fill检查model版本且原样上抛−10；手工复制model到另一地址不复制floor绑定，须显式bind，clamp_count未注册返−1。free清内部数组并擦注册表，模型对象本身调用方释放，不提前free在飞fill所借数组。
+
+现floor/clamp两个进程级注册表已有**同一mutex**保护所有读写，不能沿旧PUBLIC_API把“无锁map并发损坏”当现缺陷。但有锁不允许同一model一边fill一边free，model地址不可无管理复制/复用；不同model独立缓冲可并发。fill正空间预测用配对floor与float可表示性检查，非正预测输出0/0；全局路径与所有异常尚须分别验证，函数存在不是总体充分性证明。
+
+scale_law作用于已有variance/ivar的α²/α⁻²换算，gain_variance计算max(signal,0)/g+(RN/g)²；它们没有携带response/application身份，不自行知道是否已经缩放。PhotometricCalibrationQuality的零哨兵/状态与PcMatchRecord/球面precision状态属于不同域，不能互套。
+
+extract的旧退化码0/1/2/3和相应free_model/v2/v3是另一族，v2/v3 points按value_dtype释放；它们及legacy estimate不自动进入canonical路径。高斯检测宽度与Moffat参数的换算、源RMS是否已含读噪、未知gain与零点的能力状态按科学正本解释，不能把flux5/m5字段存在当真实通带绝对深度已成立。
+
+本节恢复的是当前接口、边界及关键包装/注册表静态事实；NOISE_ESTIMATION长篇算法的完整基线语义复查及逐源模型内部全部分支尚需继续，未运行相应数值或并发验证。
+
 ## drizzle
 
 **Normalize 球面 Drizzle。**
@@ -343,6 +935,156 @@ nside/目标尺度、pixfrac、ordering、精度和存储请求来自配置与�
 ### 验证入口
 
 [守恒映射合成入口](../../../eng/tests/synthetic/test_p3_conservative_map.py)与[实际阶段一入口](../../../eng/tests/pipeline/test_stage_normalize.py)分别检查算子和 production。核对常值、drop 分割、真实 HEALPix 曲边、源/叶尺度比、12 面/极区、NaN、孔径量与相邻协方差；precision 另核对完整 R 与模型条件。本页不据接口或已有局部日志宣称全链已完成。
+
+### 完整Drizzle函数与结果结构
+
+下列签名保留所有可选参数、异步作业与反向入口；旧7符号清单不能覆盖当前头。默认参数属于现C++可包含头，void*的overlap捕获当前实际指向C++容器，不能称为可由任意编译器独立实现的版本化opaque C对象。
+
+```cpp
+typedef struct {
+    int64_t n_healpix_pixels;
+    int64_t n_source_pixels;
+    int     nside;
+    int     nested;
+    double  pixfrac;
+    double  elapsed_sec;
+    char    error_msg[512];
+
+    int64_t n_rejected_nonfinite;
+    int64_t n_rejected_nonfinite_value;
+    int64_t n_rejected_nonfinite_variance;
+    int64_t n_rejected_nonpositive_weight;
+} HpDrizzleResult;
+
+typedef struct {
+    int     nside;
+    double  finest_arcsec;
+    double  hp_res_arcsec;
+    double  oversample;
+    int     clamped;
+    char    error_msg[512];
+} HpAutoNsideResult;
+
+typedef struct {
+    int32_t  nside;
+    int32_t  nested;
+    int32_t  target_width;
+    int32_t  target_height;
+    double   pixfrac;
+    int32_t  output_fp64;
+
+    double   crval[2];
+    double   crpix[2];
+    double   cd[4];
+    int32_t  sip_order;
+    int32_t  sip_ap_order;
+    double   sip_a[36];
+    double   sip_b[36];
+    double   sip_ap[36];
+    double   sip_bp[36];
+
+    const uint64_t* leaf_ipix;
+    int64_t  n_leaf;
+    const float*   leaf_signal_f32;
+    const double*  leaf_signal_f64;
+    const double*  leaf_support;
+    int32_t  no_data_as_zero;
+} HpReverseDrizzleInput;
+
+typedef struct {
+    int64_t n_source_leaf;
+    int64_t n_target_pixel_touched;
+    int64_t n_candidates;
+    int64_t n_overlaps;
+    double  total_signal_in;
+    double  total_signal_out;
+    double  total_covered_area_in;
+    double  total_covered_area_out;
+    int64_t n_invalid_ipix;
+    int64_t n_nonfinite;
+    int64_t n_skipped_outside;
+    char    error_msg[512];
+} HpReverseDrizzleResult;
+
+HP_DRIZZLE_API int hp_drizzle_fits_to_ahpx(
+    const char* fits_path,
+    const char* output_path,
+    int nside,
+    int nested,
+    double pixfrac,
+    const char* snr_path,
+    const char* weight_path,
+    HpDrizzleResult* result
+);
+
+HP_DRIZZLE_API int hp_drizzle_run(PipelineFrame* frame,
+                                   int nside, int nested, double pixfrac,
+                                   const char* output_path,
+                                   HpDrizzleResult* result,
+                                   int precision_mode);
+
+HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
+                                       int nside, int nested, double pixfrac,
+                                       const char* hips_dir,
+                                       const char* legacy_hiss_path,
+                                       HpDrizzleResult* result,
+                                       int precision_mode);
+
+HP_DRIZZLE_API int hp_drizzle_run_phase1_hips(PipelineFrame* frame,
+                                              int nside, int nested, double pixfrac,
+                                              const char* hips_dir,
+                                              const char* filter_passband,
+                                              HpDrizzleResult* result,
+                                              int precision_mode,
+                                              const char* hips_geometry_json = nullptr,
+                                              const char* snr_sidecar_path = nullptr,
+
+                                              const void* overlap_capture_targets = nullptr,
+                                              void* overlap_capture_out = nullptr);
+
+HP_DRIZZLE_API int hp_drizzle_write_pool_width(void);
+
+HP_DRIZZLE_API int hp_drizzle_write_pool_ensure(int width);
+
+HP_DRIZZLE_API int hp_drizzle_run_phase1_hips_begin(PipelineFrame* frame,
+                                                    int nside, int nested, double pixfrac,
+                                                    const char* hips_dir,
+                                                    const char* filter_passband,
+                                                    HpDrizzleJob** out_job,
+                                                    HpDrizzleResult* result,
+                                                    int precision_mode);
+
+HP_DRIZZLE_API int hp_drizzle_job_wait(HpDrizzleJob* job, HpDrizzleResult* result);
+
+HP_DRIZZLE_API int hp_drizzle_job_disk_full(const HpDrizzleJob* job);
+
+HP_DRIZZLE_API void hp_drizzle_job_free(HpDrizzleJob* job);
+
+HP_DRIZZLE_API int hp_drizzle_compute_auto_nside(PipelineFrame* frame,
+                                                 HpAutoNsideResult* result);
+
+HP_DRIZZLE_API int hp_drizzle_reverse_run(
+    const HpReverseDrizzleInput* in,
+    void* signal_out,
+    void* coverage_out,
+    HpReverseDrizzleResult* result);
+
+HP_DRIZZLE_API uint32_t hp_drizzle_reverse_capability(void);
+
+HP_DRIZZLE_API const char* hp_drizzle_reverse_version(void);
+```
+
+frame只读借用命名data/header及可选噪声块，result由调用方分配；WCS为完整TAN/SIP，nside为叶NSIDE，nested应1、RING拒绝；pixfrac正且≤1。precision_mode=0/1选择f32/f64，−1读header PRECISION并按现规则缺省FP64，不沿用旧“默认FP32”。文件入口nside0可自动求值，自动决策另有完整结果供追溯。
+
+phase1额外hips_geometry_json为可空JSON对象文本，snr_sidecar_path为可空显式兼容诊断来源；overlap_capture_targets借用unordered_map，out借用vector填真实(source,leaf)贡献，仅进程内同工具链使用。它们不改变R的正式归一或把兼容SNR升级canonical。
+
+HpDrizzleResult包含n_healpix/source、nside/ordering/pixfrac、耗时/错误和四个拒绝计数；总拒绝与值/方差/权重分类按引擎实际资格互斥解释，不从value非有限推方差数值不可用也应删信号。整数0成功，非零按error_msg解释，正负号/相同数值不跨入口分支。没有内部通用cancel参数；不能沿用旧表的帧/tile内部检查承诺。
+
+异步begin先完成compute再投递写盘，out_job非空时调用方保留job到wait结束，再free；禁用写池可同步完成且job空。wait回传写盘状态，disk_full回传写线程归因；帧结果元数据只能在写成功后宣告完成。池宽由宿主预算/内存决策，ensure是进程资源设置，不与在途写任意并发重配。当前begin不含overlap_capture参数，不能由同步签名推它支持相同precision捕获。
+
+auto结果finest/hp_res为arcsec，oversample字段是hp_res/finest（通常0.5–1），不是标题中线性放大finest/hp_res（通常1–2）；clamped说明达[16,2²²]边界，有限自适应采样不自动证明找到连续全域最小尺度。
+
+reverse的leaf_ipix与signal长度n_leaf，signal_f32/f64选一，support可空即1；输出按output_fp64写width*height个float/double。CRPIX一基、CRVAL degree、CD degree/px，SIP两阶0–5且每表36。输出signal与coverage由调用者提供不重叠；support是均匀部分覆盖假设，coverage面积与总积分不能互换。no_data_as_zero只属该库兼容选项，正式产品无数据仍遵循NaN；capability位1/2/4/8/16/32分别声明面积/f32/f64/support/部分覆盖/输入检查能力，不证明独立科学验证。
 
 ## writer
 

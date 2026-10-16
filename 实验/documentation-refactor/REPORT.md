@@ -237,3 +237,13 @@ CLI主题 `922ecfb65` 已立即推送。全文阅读benchmark两页、BACKEND、
 完整复读NOISE_SNR、UNIFIED_SCIENCE_MODEL、NORMALIZE_DATA、Normalize接口规格、PSF、实施地图、GAIA_QUERY以及ROUND4/RUN/ROUND7相关原文，核对当前sparse_reference显式残差实现与已有alpha调用。按本次明确授权统一F_native、F_ref=α_*F_native、F_applied,total三者及模板，保留全域归一的另一参数化，给出V_total=c²V_ref、I/T及SNR换算；h_sphere均用R h_ref，原生P保持analytic_total。Q03/Q35改记已统一语义和剩余误差，而非继续拒绝同步。
 
 Q10旧t_norm2−proj已修，历史反例保留，剩余秩阈值/误差证书分开；现代码i_f相对平方阈也明确解释。空间PSF采用同518星train414/hold104、同L1的0.0986/0.2058，旧3.5倍不当现结论；GAIA_QUANT0.21%/1.8%缺真实原样本，不能因构造能过的总体补出处。ROUND9/issue5的单位/身份生产修复截至本批fetch尚无新远端提交，仍按现代码记录，不抢改生产源。上述为语义同步，并非这几篇完整基线的再次逐项审计，更不代表191篇已经完成；本轮未重跑科学验证。
+
+## Issue6：PUBLIC_API完整基线精读与Normalize接口回填
+
+完整精读PUBLIC_API基线2325行（不是关键词定位），按Gaia、CAL/COS、Drizzle/HiPS、Noise、PHOT、PSF、三个局部session、STAR/WCS、Coverage/SMP/UPM/REJ/INT、Mosaic工具、P3 WCS/RSMP/FITS、来源/所有权与并发逐段对照现正式模块；完整复读Normalize/Mosaic/Export模块与writer、Runtime合同，核查当前astro_calibration/dynamic_psf/hp_drizzle_api/snr_estimator/runtime/module及三个session头，Noise注册表/包装/fill实现和PSF相关入口。
+
+正式Normalize modules已补18校准/缺陷完整声明、7 PSF与13字段、27 Noise和15结构、14 Drizzle及结果/反向/异步/捕获，参数含义/单位/容量/异常/所有权随声明解释；Runtime合同补全部公开类型/字段/方法，PUBLIC_API增15会话完整签名和唯一主题归属，避免改回“回历史/头自己拼”。保留旧错误码差异但不把工具裸整数与CLI同数值称缺陷；纠正Noise无锁风险已修、PSF压缩回映射、取消点与生产调用图，E70留核对边界。
+
+仍未完成：Mosaic和Export全部详细API形参/结构及实现分支的逐项语义验证；HiPS writer完整实参/布局；Gaia接口再核与191篇其余专题（包括既有重写篇的再次内容保全对照）、246实验按需读取及最终跨层复读。本批“API基线全文已读”不等于API所有主题已经闭合；原始清单现行重写统计100不能当191完成率。未编译、未跑科学/ABI/并发测试，不改Agent生产源码。
+
+结构检查的旧“25模块正文必须是基线全文连续子串”拒绝插入完整接口，也会强迫保留已过时PSF调用描述；此规则不能证明语义保全，现去掉该伪语义断言，仅核基线来源非空、迁移锚存在及原文身份，结果名改为mapped_module_pages。语义保全仍由逐项人工对照、现有REPORT/原始清单记录承担，不将结构检查通过当内容完整，也不新设门禁或登记体系。
