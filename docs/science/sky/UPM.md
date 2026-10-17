@@ -100,6 +100,30 @@ L_{\rm prof}(\alpha)=(y-A\alpha)^T WQ_H(y-A\alpha)
 
 本解法属于 additive-only 生产替代候选；乘性 A+G 联合扩展可参照 Golub–Pereyra variable projection [DOI:10.1137/0710036](https://doi.org/10.1137/0710036)，以外部星点证据与留出负例决定是否增加 η，当前没有生产与真实 E2 支持，不冒称已部署。
 
+### 4.1.1 相对增益图的可辨识性、误差与循环闭合（2026-10-17）
+
+仅当已配准并通过 PSF/颜色/孔径修正的**同一恒星**提供独立观测时，才将帧间 log 通量比用作增益测量。对每个有效重叠边 `e=(i,j)` 的统计量 `d_e`，模型是
+\[
+d=B\eta+e,\qquad B_{e,i}=1,\ B_{e,j}=-1,\qquad\operatorname{Cov}(e)=\Sigma_e\succ0.
+\]
+`B` 是取向任意但冻结的重叠图关联矩阵；不同边可共享恒星、测光标定、背景参数，因此其协方差通常**不是**自动对角。独立边条件下 `W_e=\operatorname{diag}(1/\sigma_e^2)`，信息矩阵为图拉普拉斯 `L=B^TW_eB`；一般有相关边则是 `L=B^T\Sigma_e^{-1}B`。
+
+在全部边权正且对应真实约束的前提下：
+\[
+\eta^TL\eta=\|\Sigma_e^{-1/2}B\eta\|^2,\quad
+\ker L=\ker B=\operatorname{span}\{\mathbf1_{\mathcal C_1},\dots,
+\mathbf1_{\mathcal C_C}\},\quad \operatorname{rank}L=K-C .
+\]
+**证明**：二次型为零当且仅当每条有效边两端参数相等；沿每个连通分量传递，只能留下每分量一个常数。这是严格的可辨识性定理，不依赖星点通量有多亮。对每个分量取 `Σ_{k∈C}η_k=0` 的**坐标规范**时，GLS 的最小范数估计 `\widehat\eta=L^+B^T\Sigma_e^{-1}d`；相对参数协方差在上述线性高斯/已知 Σ 条件下是 `L^+`。对可识别差值 `c=e_i-e_j`（i、j 同分量），
+\[
+\operatorname{Var}(c^T\widehat\eta)=c^TL^+c,
+\]
+即图中的**有效电阻**；单一桥边或弱星约束会放大该方差。若跨分量，`c` 不属于行空间，公式 `c^TL^+c` 的有限数值**不能解释成真实跨分量误差条**，因为相对零点根本不可识别；须标 `unavailable`。独立外部标准星可额外连接绝对零点，但误差传播应含锚不确定性。
+
+循环中 `d_{ij}+d_{jk}+d_{ki}` 理论期望为0（方向一致），标准化残差使用完整边协方差检验；显著非零可能来自 PSF/颜色/时变透明度系统项、关联误差或不正确的统计独立性，不自动归结为真正残余 gain。参数数超过图 rank，或者低阶 `η_k(p)` 的空间场基与现有星点位置不匹配时，**图连通本身不保证空间增益场可辨识**，仍需对实际 `J_\eta` 做秩诊断。
+
+独立可运行数学参考（非 production）：[graph_and_affine_oracles.py](../../../实验/innovation-closure/code/graph_and_affine_oracles.py)，含连通/断连分量、正定加权、规范及相对协方差的解析对照；实验预注册见 [#76](https://github.com/fujiaze/Astro-CS-Database/issues/76)。本节不声称生产已装入该参数求解器。
+
 ### 4.2 加性/增益校正后的完整线性化误差
 
 对`z_k=(y_k-a_k)/g_k`、`g_k=e^{\eta_k}`，
