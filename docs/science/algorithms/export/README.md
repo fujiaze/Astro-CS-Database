@@ -4,3 +4,6 @@
 
 
 **D7-A 已逐篇重构**：[P3 Projection/WCS](PHASE3_PROJ_IMPL.md) 保留 G1/G2/registry 的现有公式，补真实 TAN-only CLI、CRPIX/CD、crop、#79/#88/#89；[P1 Drizzle 曲边](DRIZZLE_GEOMETRY.md) 保留 P1 数值核，补 #15 的真实 HEALPix 叶/独立面积 Oracle 与受控自适应方案。该文件虽然在 export 目录，但科学职责是 Stage1 forward spherical overlap，区别于 Phase3 bilinear。正式科学正本为 [Drizzle](../../drizzle/DRIZZLE.md) 与 [P3 HiPS→FITS](../../projection/HIPS_TO_FITS.md)，模块接口见 [Export detail](../../../detail/export/modules.md)。
+
+
+**D7-B 两篇原始长文已经正式精读与改写**：[Stage3 HiPS Resample](PHASE3_RSMP_IMPL.md)（NESTED/标准目录与历史fallback、实际 bilinear、#88/#89、#90 一次再现、负缓存和当前 Runtime双平面）与 [Stage3 FITS Writer](PHASE3_FITS_IMPL.md)（单 PRIMARY HDU、stream状态机、发布前checksum/sha、裁剪、BUNIT/响应、读回校验状态）。P1真实球面 Drizzle仍由 D7-A [Drizzle](DRIZZLE_GEOMETRY.md)独立负责；当前 Stage3 bilinear不是P1 leaf曲边交叠。本批没有执行 D7-C。

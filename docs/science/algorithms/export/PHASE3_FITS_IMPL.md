@@ -8,8 +8,8 @@
 > 集合 SCI-P3-001..020，零改动）；推导级算法权威=ALG-P3-001..004
 > （docs/science/algorithms/PHASE3_RESAMPLE.md，DERIVED 施工规格，本域不改动其
 > 公式；G1/G2 WCS 构造与 G5 FITS 写公式的本域实现子面由本文档承接）。
-> 实现源: lib/algorithms/fits_output/p3_output.cpp（1270 行）+ 唯一权威签名头
-> lib/algorithms/fits_output/p3_output.h（176 行）+ WCS 关键字源
+> 实现源: lib/algorithms/fits_output/p3_output.cpp（现1066行）+ 唯一权威签名头
+> lib/algorithms/fits_output/p3_output.h（现182行）+ WCS 关键字源
 > lib/algorithms/projection/p3_wcs.h；
 > API: API-P3-FITS-001（PUBLIC_API.md「Phase3 FITS 写出公共消费面」节）；
 > DATA: DATA-P3-FITS（`docs/detail/export/modules.md`）；MOD: acsd.p3.fits_writer
@@ -19,8 +19,7 @@
 
 ## 1 目的与非目标
 
-- 目的：冻结 HiPS 重采样结果的 FITS 落盘合同——signal 主 HDU +
-  COVERAGE 扩展 HDU 合成单文件、WCS/BUNIT/provenance 关键字全量、
+- 目的：保全历史 signal 主 HDU + COVERAGE 扩展设计，同时明确**现行生产只写一个 PRIMARY signal HDU**，内部 coverage 仅为中间 plane / 统计、WCS/BUNIT/provenance 关键字全量、
   原子写协议（tmp → flush → fsync → rename）、失败/取消清理、
   独立重开验证与 sha256 完整性锚。
 - 非目标：不做重采样/tile 读取（ALG-P3-001/003，p3_resample/
@@ -45,10 +44,10 @@
 | CTYPE1/2 | string | RA---TAN / DEC--TAN | `lib/algorithms/fits_output/p3_output.cpp` |
 | CUNIT1/2 | string | deg | `lib/algorithms/fits_output/p3_output.cpp` |
 | HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER | string | provenance 八字段子集；RUNID/SWVER/manifest hash 由 CLI run_context + 输入 HiPS 产品哈希注入（禁占位串） | `lib/algorithms/fits_output/p3_output.h` / `lib/algorithms/fits_output/p3_output.cpp` |
-| DATASUM/CHECKSUM | string | 标准 CFITSIO `fits_write_chksum`（IAU FITS 4.0 §4.4.2.5），逐 HDU 归属 PRIMARY/COVERAGE/VARIANCE/IVAR | `lib/algorithms/fits_output/p3_output.cpp`（`fits_write_std_chksum` + 逐 HDU 写点） |
+| DATASUM/CHECKSUM | string | 当前 PRIMARY HDU 由 CFITSIO `fits_write_chksum` 写；多扩展 HDU 是旧历史目标，不可作为 CURRENT | `lib/algorithms/fits_output/p3_output.cpp`（`fits_write_std_chksum` + 逐 HDU 写点） |
 | sha256 | char[65] | 输出文件 SHA-256 hex 小写（完整读出才填） | `lib/algorithms/fits_output/p3_output.h` |
 
-## 3 逐符号对照（`p3_output.cpp` 1270 行 / `p3_output.h` 176 行 / `p3_wcs.h` 373 行）
+## 3 逐符号对照（原基线1270/176/373行；当前 p3_output.cpp 1066行、p3_output.h 182行、p3_wcs.h 374行）
 
 > 本节按「**文件 + 符号**」定位，覆盖 CTYPE1/2、CUNIT1/2、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2、BUNIT、HIPSID..SWVER、`cfitsio_io_mutex`；仓内行号按 `eng/contracts/anchors/anchor_contract.json` 的撤销口径**一律不再给出**（原 §2/§5「只改数字、不动符号/公式/门」中「只改数字」一节随仓内行锚撤销**作废**，其余「不动符号/公式/门」义务对本节继续适用）。**符号/公式/门语义不变。**
 
@@ -447,3 +446,113 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
 本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接 《产物与清单登记面》 的 fail-closed 唯一出口**（DATA-UNC-001 规则行与 DATA-P2-PROV-001 显式登记行，按**内容锚**读、不按行号读）：不写 variance/ivar 子产品，manifest 写 `uncertainty_available=false` 并在 diagnostics 标红计数。该键不是失败态，是 unavailable 的显式登记模式；键名与取值口径以该处为唯一权威，本层不另立第二套。
+
+
+---
+
+## D7-B｜现行唯一 PRIMARY FITS、流式发布、校验、provenance 的正式实现设计（2026-10-17）
+
+**保全依据**：原始 `63eccbb6133aef56389641d43c55df6e243819c5` 的 450 行/34690B 全文及现行450行正文已按节复读，Git blob `0061d759b478f5c42a50aeac67d7c4fd11c5ce43`。原 §1–17 的 F1–F4、整幅兼容 API、Cfitsio校验、原子协议、WCS/失败状态、资源基线、已撤销TEST载体的判据/参考文献仍在，**不得因为历史目标写着 COVERAGE / VARIANCE / IVAR 就把它们当最新生产 HDU**。此 D7-B 的 CURRENT 以 main `51e06540eb021c7272e87cf67b34e53c0648cf7a` 的 `p3_output.cpp` (1066行)、`p3_output.h` (182行)、`module_adapters.cpp::p3_op_writer/verify` 为准。 `p3_session.cpp` 仅兼容/可调用的会话代码，非当前唯一 CLI。科学输入由 [重采样](PHASE3_RSMP_IMPL.md) 和 [Stage3科学正本](../../projection/HIPS_TO_FITS.md) 给出。
+
+### B1. 真正 CLI 五节点与单 HDU 产品形态
+
+```text
+acsd export config + completed <hips_dir>/manifest.json + signal/properties
+  -> p3_op_properties: p3_props.json (实际order, BUNIT canonical, no response)
+  -> p3_op_wcs: p3_wcs.json (TAN ICRS CD/CRPIX + crop window)
+  -> p3_op_resample: p3_resampled.bin (signal f32 + coverage f32, 原未裁剪W×H)
+                    p3_resampled.json (selected order/sampler/mode/capability)
+  -> p3_op_writer: P3FitsStream PRIMARY (crop子窗) -> output_phase3.fits
+                   p3_writer.json (canonical+integrity hashes, provenance)
+  -> p3_op_verify: P3FitsVerifyStream -> p3_verify.json
+                   + 独立 canonical_product_hash_file
+```
+
+CURRENT FITS **恰一个 HDU = PRIMARY signal**，float二维 `NAXIS=2`、`NAXIS1/2=裁剪后宽高`、`BITPIX=-32 或 -64`，但本次输入和 block API 的数据是 `float* f32`；选 `-64` 仅使磁盘表示更宽，**不会恢复已由HiPS f64→f32读取或插值f32舍入丢失的有效位**。 `BSCALE=1.0,BZERO=0.0`、`CTYPE1=RA---TAN,CTYPE2=DEC--TAN`、`CUNIT1/2=deg`，FITS 1-based CRPIX/ICRS CRVAL/度每像素的 CD。crop 的 `CRPIX'_i=CRPIX_i-crop_origin_i`、CRVAL/CD 原值不变；重采样结果先按原 W×H 形成，writer按窗口位置读取，不叠加第二次数值变换。生产没有 COVERAGE、VARIANCE、IVAR、SNR、有效覆盖计数等额外 HDU，也不应为历史兼容凭空补一层零方差。
+
+**内部 coverage 不是最终文件的 science image**：`p3_resampled.bin` 的第二f32 plane仅供中间工作/统计； `P3FitsStream` 的 `begin_hdu(plane>0)` 当前直接给 `P3_OUT_PARAM` 并置 failed， `p3_output_write_atomic_ex` 对任一非空 variance/ivar 直接拒，`P3FitsVerifyStream::open(...has_uncertainty=true)` 拒。原文 §2/§3/§4/§6/§8/§11/§14 的主+COVERAGE+可选VAR/IVAR 顺序属历史API意图；**现行唯一生产口径以本节为准**，旧表所称这几层“实测已输出”不再成立。现行整幅 `p3_output_write_atomic[_ex]` 是兼容和受控故障对照路径，也实行单PRIMARY，不能以 ex 参数存在判定它能发布方差。
+
+### B2. 真实头字典、来源与失落的 #79
+
+`P3Provenance` 当前字段：`hips_id,manifest_hash,missing_tiles,missing_count,software_version,run_id,order_sel_used,sampler_used,uncertainty_source,uncertainty_missing_pixels`；均为调用方借用字符串/数组指针，在 open/write 调用期间有效，不是库拥有/复制的长期所有权。真正 CLI `p3_op_writer` 由 `run_context.json` 读真实 run_id/software_version/source_sha，经 `p3n_input_manifest_hash` 摘要实际输入 HiPS `signal/properties` 与 Moc.fits；`prov.hips_id="ivo://acsd/phase3"` 当前是硬编码 identifier，**不能用它代替真实唯一输入HiPS产品ID**。内核写出的头包括 `HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER` 以及含来源和manifest摘要的 `HISTORY`。真正源hash在HISTORY和sidecar/manifest，不能误称独立 FITS `MANIFEST` 全字节256哈希已经以结构化keyword写出。 `prov.missing_tiles=nullptr,count=0` 是当前代码常量，不能宣称所有tile均真实可用或已报告每个失块。writer sidecar另保存 `input_manifest_hash,source_sha,canonical_sha256,integrity_sha256,crop,export_stream,uncertainty_available=false`。
+
+**CURRENT 单位**：adapter `p3n_guard_input_units` 对 `signal/properties:BUNIT` 缺失硬拒；若为 `ADU/sr` 接受，若为 `ADU` 仅在 `ACSD_PIXEL_SEMANTICS=surface_brightness` 且 `ACSD_PIXEL_AREA_POWER=-2` 时允许**仅在元数据层 canonical 化为 ADU/sr**。这一步不乘/除任何光度标度，**不能用其替代 #9 真正的 P1 photometry-applied L/sr 物理单位追踪**。其他规范外单位/真实 L/sr 视当前单位注册词汇拒绝，故当前真正CLI可导出范围比 “任意科学面亮度单位” 窄。兼容整幅和 `P3FitsStream::open` 自身还允许 `bunit=nullptr/empty` 回退 `"ADU/sr"`，但**生产 adapter 比它严格**；文档不得将库默认误写为生产可容忍未知单位。
+
+**#79 PRODUCTION_GAP_OBSERVED**：现 `p3_op_properties` 不传P2 `obs_filter/response_distribution`，`p3_op_writer` 不从P2注入名义通带响应，FITS不写 `FILTER`/可检索完整响应哈希。TARGET 是 P2 已完成且hash/revision一致的 mono/unknown/mixed 经 p3_props→p3_resampled→writer provenance，以 `FILTER` 仅表示**确定唯一真实非空滤镜**，mixed 不许伪成一片滤镜，unknown 不许声称通带已知；目标 `ACSDRESP` 明确三态、`RSPHASH`/sidecar 保留响应源身份。具体KEY长度/FITS允许格式与整个hash字节编码须在实施前按FITSV4规范独立确认，不能把本文 proposed key 写成已实现；空间依赖 `R_eff(lambda,omega)` 归 #14，静态响应分布标签绝非真实有效通带函数。
+
+### B3. 流式 API、接口参数、所有权和状态机
+
+当前 `P3OutputStatus` = OK0, PARAM1, IO2, CANCELLED3； `P3OutputResult` = char sha256[65]、reopen_ok、coverage_ok、covered_px、total_px； `p3_output_last_error()` 是最近错误诊断文本，不能作为状态/线程安全契约依据。公开头中整幅函数 `p3_output_write_atomic` / `_ex` 接收 `const float* signal,coverage[,variance,ivar], int width,height, const P3WcsDescriptor* wcs, const char* bunit,output_path, const P3Provenance*, int bitpix,int cancelled_at_row, P3OutputResult*`；其 verify 对应 `p3_output_verify/_ex`。**实际生产默认**以下流式 class 方法，调用参数和缓冲所有权由本契约定义：
+
+```cpp
+P3OutputStatus P3FitsStream::open(
+    const char* output_path, const P3WcsDescriptor* wcs,
+    int width, int height, int bitpix, const char* bunit,
+    const P3Provenance* prov);
+P3OutputStatus P3FitsStream::begin_hdu(int plane); // CURRENT only 0
+P3OutputStatus P3FitsStream::write_block(
+    int x0,int y0,int w,int h,const float* row_major);
+P3OutputStatus P3FitsStream::end_hdu();
+P3OutputStatus P3FitsStream::publish(P3OutputResult* result);
+void P3FitsStream::abort(); // repeat safe
+P3OutputStatus P3FitsVerifyStream::open(
+    const char* path,const P3WcsDescriptor* wcs,int width,int height,
+    bool has_uncertainty); // CURRENT false
+P3OutputStatus P3FitsVerifyStream::check_block(
+    int plane,int x0,int y0,int w,int h,const float* expected);
+P3OutputStatus P3FitsVerifyStream::close(P3OutputResult* result);
+```
+
+`P3FitsStream` 持有Impl、私有tmp路径、FITS句柄、`unique_ptr<aio::CfitsioLockGuard>`（从open到publish/abort）、hdu_done位图与状态；不可复制。open 在首像素写前写全部 WCS/BUNIT/provenance/HISTORY，首HDU已经创建；`begin_hdu(0)`确认这一状态，`write_block` 按0-based半开矩形输入并转换成 `fits_write_subset` 1-based闭区间，要求数据在调用期间有效、长度=w*h f32且行主序，块之间无重叠/遗漏由**上游Scheduler**保证； `end_hdu` 在PRIMARY末写DATASUM/CHECKSUM。 `publish` 要求 PRIMARY `hdu_done[0]` 已完成，无未结束块，否则返回失败； `abort` 关句柄/删tmp可重复调用，已发布后不能凭abort撤回正式产品。
+
+**严格原子发布当前代码顺序**：
+```text
+private tmp <output>.<pid>.tmp (same directory, no leading hidden dot)
+  -> fits_write_subset for all PRIMARY blocks
+  -> fits_write_chksum on PRIMARY
+  -> fits_flush_file   -> fits_close_file
+  -> aio_atomic::fsync_path(tmp)
+  -> verify_tmp_chksums(tmp) with independent CFITSIO read handle
+  -> aio_file::sha256_hex(tmp) on FULL contents
+  -> aio_atomic::atomic_replace(tmp, output)
+  -> set published=true; release cfitsio lock
+  -> caller reopens published output with P3FitsVerifyStream
+  -> p3n canonical_product_hash_file / verify sidecar
+```
+这是**publish前 checksum/sha**；旧原文写 rename后做hash的顺序已不再是 CURRENT。按当前代码 `P3FitsStream::publish` 的 pre-publish check 以HDUs存在及各自DATASUM为主，**并不执行完整的外部科学WCS/像素Oracle，也不验证上游每个工作块和同run身份**；writer/verify 的后续调用承担一部分检查但尚有下述状态消费缺口。 `aio_atomic::atomic_replace` 使目标路径替换原子化，目录 fsync/power-loss 对不同文件系统的要求应单独核实，不能从POSIX rename原子性推出任何存储介质掉电必无数据遗失。
+
+### B4. 实际 verify 做了什么与静态未闭合问题
+
+| 检查面 | 现行函数事实 | 能推出什么 / 不能推出什么 |
+|---|---|---|
+| publish(tmp) | 逐HDU `fits_verify_chksum`、FITS文件完整SHA256，再rename | 临时文件结构/校验和可核；不是天文输入与输出一致性 |
+| `P3FitsVerifyStream::open` | 读 CTYPE/CUNIT/CRPIX/CRVAL/CD、宽高、HDU==1；不重新读取BUNIT/真实FILTER与响应身份；也不逐HDU重验DATASUM/CHECKSUM | reopen WCS自洽并不保证单位/响应传递和文件后续未被改写 |
+| `check_block(0,...)` | FITS READONLY subset + 与 `p3_resampled.bin` 源子窗的 f32 精确比对；NaN==NaN | 保证两个**同算法来源**的像素值相等，不证明对独立天体天空真值正确 |
+| `P3FitsVerifyStream::close` | 返回 P3_OUT_OK，`result.reopen_ok` 按像素/WCS等状态单独计算，file SHA256重新算 | **返回码OK不是 reopen_ok=1**，调用方必须显式消费result |
+| `p3_op_verify` | 产生 `p3_verify.json.reopen_ok`、`canonical_match`、哈希字段，最后无条件 `Result<void>::success()` | **已确认静态语义缺口**：若校验为假而未有IO错误，当前node仍可能标成功；应把两布尔和实际sha/version一致性作为运行失败前提（TARGET，不改生产） |
+| `p3_output_verify_ex` 整幅API | 可重开并校CFITSIO checksum、有限WCS与BUNIT的*词汇可解析*、f32数值，返状态和result.reopen_ok分离 | 是另一个API而非现行流式verify；其 `verify` 不持有调用方期待的BUNIT字符串参数，BUNIT词汇可解析也不等于与输入真实物理标度相等 |
+
+**另一生产静态差异**：`P3FitsVerifyStream::check_block` 用 `if(buf[i]==buf[i])` 统计 `covered_px`，只排除 NaN，但**允许 ±Inf 计为covered**，又没有读内部 coverage plane。这个 `covered_px` 不等同当年 writer 整幅API的 `coverage>0.5`，亦不等于“有限科学信号且被认可覆盖”的精度/有效性；不在文档中把这三种定义混作同一个指标。 `p3_op_writer` 将后置 verify 的 `reopen_ok` 取回后即生成p3_writer.json，是否 fail-closed 必须逐路径独立试验，不假定上游不会出现 `reopen_ok=0`。**这些是静态调用链发现与正向修复规格，不是已重现的真实故障样本。**
+
+正向目标流程为：verify函数提供机器可判的具体失败码或独立状态，adapter在publish/verify后对 `reopen_ok==1`、`canonical_match==true`、可信文件hash与输入run/version/所有必需header字段作显式失败处理；不能以生成一个 `p3_verify.json` 即视为科学成功。文件改写/删失的校验不应用同一write/read函数的原地自证代替外部 Astropy/CFITSIO reader；前台审核后再交编码 Agent。
+
+### B5. 单位/信号/输入身份与 P3-P5 科学分层
+
+- 物理测光：输入真实 `L/sr` 应沿 P1校准→P2单Signal→P3不变并正确写 BUNIT；目前 canonical 表主要接受 `ADU/sr`，不能从“FITS头BUNIT存在”推出实际SI或跨通带绝对定标已正确。保留 finite negative/zero，NaN 非观测值不能用零填替。
+- `output_mode` 的 surface_brightness 可测量标识不能当“星点总flux无偏”；visualization只给显示用，point_source_flux目前在 `p3_op_resample` 具名拒绝。控制 P3 point source flux 的有效PSF与观测响应属于未来科学研究，不由BITPIX或FITS写出自动实现。
+- 产品标识：`integrity_sha256` 是完整文件字节摘要，`canonical_sha256` 在受控规范下排除易变记录以比较科学可重复性，两者**定义和用途不同**； `P3OutputResult.sha256` 对应完整字节摘要，不与 canonical 混称。真实可追溯性需有原输入产品revision、实际WCS、采样核、响应与裁剪计划，#79真实标称FILTER/mixed的链仍未落地。
+- Phase1 `#15` 曲边真实leaf归属、Phase2 #76 seam天空处理、Stage3 #90 bilinear梯度不可再现，是**三个不同算子与不同误差源**；最后FITS质量需独立模拟与真值，不能把输出符号正确当科学闭合。
+
+### B6. 资源复杂度、错误和可执行独立验收计划
+
+**内存/IO真实界**：原 §9 的整幅 `2W H` f32 内存描述只适用于 `p3_session` 全帧/故障注入 whole_frame_resident。生产默认 writer 经 `P3FitsStream::open` 后，`ExportStreamScheduler` 调度有界读/写子块 `sub_block_px`、`queue_depth`，内存应按 `O(queue_depth*sub_block_px²*bytesPerSample)` 加worker/cache/CFITSIO内部缓冲计；并非总图像磁盘空间不随W/H增长。 `p3_resampled.bin` 磁盘双f32面 **8WH字节**，最终 FITS PRIMARY 大约 `(-BITPIX/8)*W_crop H_crop` 加2880字节块对齐的headers；全文件SHA/验证线性扫描 O(WH)，写端 CFITSIO串行锁存在，可并行读子块而非并行共享一个FITShandle。不得凭代码有流式类就宣布已通过真实峰值RSS、取消和磁盘背压条件。
+
+**正反实验矩阵**：
+1. 小图64×48、非方整幅1025×767、crop非对称窗口，BITPIX -32/-64、负/零/NaN、来源hash、header identity，外部 `astropy.io.fits.open(...,checksum=True)` / FITS WCSLIB 读 primary HDU 数、NAXIS、WCS、BUNIT及数据数组和字节序；bitpix -64不能当插值f64保持证书。
+2. 禁 `COVERAGE/VARIANCE/IVAR` 当前产品的明确拒绝，`begin_hdu(plane>0)`、 `write_atomic_ex` variance/ivar 非NULL、`verify_stream.open(has_uncertainty=true)`、缺/多HDU；独立完整checksum和CRC/数据头篡改控制。
+3. 原子发布中途注入 flush/close/fsync/checksum/sha/rename失败及 cancellation；在临时路径与正式路径核目录残留、原旧产品是否保留、Windows清理以及缺失 `run_context`/输入源 hash 的拒绝，distinct `canonical_hash` vs `integrity_hash`。
+4. **状态失败反例**：在 `P3FitsVerifyStream.open` 前改写出片CRPIX或信号一像素，要求能观察 `reopen_ok=0`，再实际跑 `p3_op_verify` 看是否也返回失败（以源码可预见当前node只写false却success）；改造目标下此例必须 nonzero。另篡改BUNIT、FILTER/provenance、DATASUM、CHECKSUM，分别明确哪个reader可检、哪个未检。
+5. 完整 #79：真实P2 mono Halpha / unknown / mixed 2/3 响应经出品CLI+外部 FITS header parser、P2→P3 hash、signal字节/物理单位/标称身份三条独立核验；不从多响应标签推定 `R_eff`。
+6. M42真实有效域与HST真值静态/观测数据分别测星点孔径、FWHM、低频功率和PSF变化；每个场景报告目标原始面积、有效分母、NaN/covered定义、RMS/SNR相关性，单信号输出不能提供完整方差；1/N worker、数百MB/GB真实P3输出、queue_backpressure/峰值RSS/真实磁盘写阻塞，不能只按构造函数返回成功断言。
+
+**验证分级**：本批 READ/STATIC_SOURCE_CONFIRMED、路径和差异可核；新增编译、实际CLI、多目标FITS reader、WCSLIB/Astropy、M42/HST、数值插值Monte Carlo、故障注入和吞吐/RSS均 **NOT_RUN**。原始§11–13旧测试读数及已撤销载体保留为历史证据和验收设想，不能冒充D7-B本次通过。参考：IAU FITS 4.0 标准 (https://fits.gsfc.nasa.gov/fits_standard.html)、CFITSIO/HEASARC (https://heasarc.gsfc.nasa.gov/fitsio/)、Greisen & Calabretta 2002 FITS WCS Papers I/II、POSIX rename、IVOA HiPS 1.0；本文引用它们是标准/论文定位，**未本轮重新逐页核验其新版本/许可**。

@@ -9,8 +9,8 @@
 > docs/science/algorithms/PHASE3_RESAMPLE.md，公式零改动）。
 > 本文档为 HiPS 重采样域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
-> 生产源: lib/algorithms/resample/p3_resample.h（202 行，唯一权威签名头）+
-> lib/algorithms/resample/p3_resample.cpp（586 行）。
+> 生产源: lib/algorithms/resample/p3_resample.h（现 204 行）+
+> lib/algorithms/resample/p3_resample.cpp（现 606 行）。
 > 本层含 `P3SampleRejection` 与 `p3_sample_bilinear_nanmask_ex`（NaN 样本掩膜
 > 与对齐口径），逐项登记见 [S-1]「参数与常数」一节。
 > 代码中的数学核心唯一 = healpix 权威函数（见 §6）。
@@ -83,7 +83,7 @@ lib/algorithms/resample/p3_resample.h 全部公共符号（ALG-P3-003 施工面 
 | `p3_order_select` | 同上 | 同上 | `(int max_order, double scale_deg_per_px, int* out_order)` |
 | `p3_resample_check_mode` | 同上 | 同上 | `(const char* input_mode)`；`surface_brightness` 唯一合法 |
 | `P3SamplerImpl` | 同上（前置声明） | 同上（匿名命名空间辅助等） | 不透明实现类型 |
-| `P3Sampler` | 同上 | — | `P3SamplerImpl* impl; char last_error[256];` |
+| `P3Sampler` | 同上 | — | `P3SamplerImpl* impl=nullptr;`（错误文本是 `std::string* err` / 内部状态，不存在公共 last_error[256]） |
 | `p3_sampler_open` | 同上 | 同上 | `(const char* hips_dir, P3Sampler* out, char* err)`；= open_ex 缺参薄封装 |
 | `p3_sampler_open_ex` | 同上 | 同上 | `(const char* product_dir, P3Sampler* out, int* out_order, std::string* out_bunit, std::string* err)`（**std::string***，非 `char*`） |
 | `p3_sampler_set_max_tiles` | 同上 | 同上 | `(P3Sampler*, int max_tiles)`；≤0 恢复默认 8 |
@@ -212,7 +212,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 - 缓存未命中: 定位 `order_{order}/dir{tile_ipix>>28}/Npix{tile}.fits`
  （HiPS 目录布局），FITS float tile 读入 `kReaderBuf`，插入缓存
  （可能触发 FIFO 逐出），再取像素（同文件路径）。
-- tile 文件不存在/读失败: 返回 false（= 无覆盖路径，**非错误抛出**），
+- tile 文件不存在/读失败: 返回 false（= 本次调用返回缺失/coverage=0；**是否属于正常天区缺数须查完整产品、MOC 与损坏状态，不得无条件当合法空洞**），
   语义见 §6.6；SCI [S-1]「判据与误差」一节 要求 provenance 记 missing tile——聚合上报
   未接线，DISP-P3RSMP-004。
 
@@ -313,7 +313,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 | P3_RS_PARAM | out_order 空/max_order 越界/scale≤0（`lib/algorithms/resample/p3_resample.cpp`）；properties 语义不符 | ACS_ERR_PARAM |
 | P3_RS_UNSUPPORTED | input_mode 非 surface_brightness（同上文件）；frame≠ICRS | ACS_ERR_UNSUPPORTED |
 | P3_RS_IO | properties 解析失败/HiPS 目录或 tile 文件不可读 | ACS_ERR_IO |
-| （采样层无错误码） | tile 缺失 = coverage=0 数据语义（§6.6），非错误 | — |
+| （采样层返回 P3_RS_OK） | tile 缺失 = coverage=0、signal=NaN；但若损坏的已声明 tile 读失败，同样走此数据分支，需更高层完整性审计 | — |
 
 - 采样函数（nearest/bilinear）无返回码（void 语义经 value/coverage
   表达）；`last_error[256]` 缓冲仅 open/set_max_tiles 路径填充。
@@ -424,3 +424,72 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
 本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接 《产物与清单登记面》 的 fail-closed 唯一出口**（DATA-UNC-001 规则行与 DATA-P2-PROV-001 显式登记行，按**内容锚**读、不按行号读）：不写 variance/ivar 子产品，manifest 写 `uncertainty_available=false` 并在 diagnostics 标红计数。该键不是失败态，是 unavailable 的显式登记模式；键名与取值口径以该处为唯一权威，本层不另立第二套。
+
+
+---
+
+## D7-B｜现行 Stage3 NESTED 重采样、有效值、统计和资源正式设计（2026-10-17）
+
+**证据基线**：完整阅读 `63eccbb6133aef56389641d43c55df6e243819c5` 的 427 行原文（原 blob `35e05649bba5bc4a6e2473261299e9d3e32ec317`，清单 36496 bytes）与当前 427 行正文；原 §1–14 的 G3/G4、API、缓存、复杂度、DISP、实验原设计及文献均保留。本文新增的是以 **main 51e06540eb021c7272e87cf67b34e53c0648cf7a** 的源码为事实的 CURRENT 合同与唯一研究 TARGET；原文旧版文件行数、FIFO状态、估计数、会话入口等只保留为历史参照。现行头 `p3_resample.h` 204 行、实现 `p3_resample.cpp` 606 行；科学原理正本在 [RESAMPLE](../../resample/RESAMPLE.md)，P3 实际消费者在 [Export modules](../../../detail/export/modules.md)，FITS 发布见 [FITS 实现](PHASE3_FITS_IMPL.md)，不要从本章倒推出 P1 HEALPix 曲边已经由 P3 修复。
+
+### B1. 输入事实、真正的 HiPS 格式与坐标离散
+
+**CURRENT** 的 `acsd.phase3.properties` 对 `source.hips_dir/signal/properties` 先执行 `p3n_guard_input_units`，随后调用 `p3_sampler_open_ex`；`hips_product_validate` 解析 properties 要求 hips_order ∈[0,20]、hips_tile_width=512、hips_tile_format 包含 fits、hips_frame 属于 equatorial|icrs、dataproduct_type=image、产品至少一个 `NorderK/Dir*/Npix*.fits` tile。其 public `HipsProperties` 与 `hips_product_validate` 的解析语义不得与 AIO `aio_hips_open` 的另层宽松原始解析混淆；AIO 会先验根 `manifest.json` 存在且宣告 signal 子产品，再硬核 tile_width=512/order∈[0,29] 并读取 MOC；**P3 sampler 经过自己的[0,20]严格产品门之后才能到 AIO**。这两个 reader 范围不同但在 P3 已受前置限制。AIO `read_tile_t` 只接受 FITS BITPIX -32/-64，读 -64 时用 f64 临时缓冲，再按 P3 sampler f32 tile 转换，因此当前即使读高精度 tile 也不能声明 P3 之后保留 f64 输入细节。
+
+```text
+K=hips_order; leaf_order = K+9; nside_leaf = 512*2^K
+leaf = ang2pix_nest(nside_leaf, ICRS ra_deg,dec_deg)
+tile = leaf_to_tile_nest(leaf,leaf_order,K) = leaf >> 18
+first = tile_to_leaf_nest(tile,K,leaf_order)
+local = leaf-first                             // nested morton 18 bits
+fits_index = nested_local_to_fits_index(local,9,512)
+           = (511-local_x)*512 + local_y      // row-major FITS flat index
+tile_file = signal/NorderK/Dir{floor(tile/10000)*10000}/Npix{tile}.fits
+```
+
+**目录形态是重要纠偏**：旧版本 `Dir{tile >> 28}` 与真实 IVOA/代码不一致，AIO 当前标准路径优先，若 `tile>=10000` 标准路径不存在，会尝试仅读兼容的旧 `Dir{tile/10000}/Npix{tile%10000}.fits`。只读兼容不能变成新产物的默认写路径，必须分别验证 standard/legacy。MOC 缺失当前 AIO `load_tiles_from_moc` 允许空列表，但存在而读损坏则 fail-closed；产品完成清单缺失直接拒绝，这不是单个尚未观测 tile 的合法空洞。采样 tile open/read 失败只返回 null/coverage=0，当前一类错误与真缺失无法在输出逐像素精确分离，因此 **缺 tile 应按“输入宣称已覆盖的 tile 却读失败 / 实际未覆盖”分别外部核验并补 provenance**，属研究/工程 GAP，不得报告“损坏已自动阻断”。
+
+### B2. 实际 G3、G4 与受控矩阵近似
+
+`p3_order_select(max_order,scale_deg_per_px,out)` 实现从0递增取首个 `sqrt(pi/3)/(512*2^k) <= scale_rad` 的层，若到 max_order 仍不足就取 max_order；`kMaxOrder=20`、scale>0；这是等面积等效角宽，而非每个方向最坏叶中心间距，更不意味着尺度超采样创造新像素信息。真实 `p3_op_resample` 使用输入 signal/properties 解析的 order 上限，统一基于完整 WCS 反变换求每个**零基输出像元中心**的 ICRS sky 坐标；P3 的另一个 `p3_session_run` 是兼容/程序内 API 路径，不能用旧 `std::thread` /全帧内存分配叙述替代 DAG 的 bounded-block 生产。
+
+`nearest` 是包含方向的单 HEALPix leaf 零阶取样，保留 leaf 中被读出的已量化面亮度值，不会再引入 bilinear 平均，但不是“真实连续天空无插值误差”；经单 leaf 的阶梯量化仍需 aliasing 对照。当前 `bilinear` 不是严格双线性**不规则四边形有限元**也不是输出 WCS 像元与 leaf 的真实面积交叠。生产首先取中心 ipix 和其邻 leaf，使用输入 sky 点为 gnomonic 切平面原点，按坐标符号划四象限，每象限选最近叶中心（同距离时选较小 ipix），缺象限以整体最近叶中心填补，允许重复叶。用 `x00,x10` 求 u、`y00,y01` 求 v，分别夹到[0,1]，生成四个常规矩形权重 `w=[(1-u)(1-v),u(1-v),(1-u)v,uv]`；**只保证常数再现 Σw=1，不保证一般不规则叶中心的一次梯度精确再现**。
+
+在真实点位置 `q_k=(x_k,y_k)` 与输出目标 `t=(0,0)` 的局部线性源 `B(q)=b0+bx*x+by*y` 中，正确的一次再现当且仅当：
+\[
+\sum_k c_k=1,\quad\sum_k c_kx_k=0,\quad\sum_k c_ky_k=0.
+\]
+#90 已给解析非矩形四角反例：`q00=(-e,-e),q10=(e,-e),q01=(-2e,e),q11=(e,e)`，四权重各1/4时在 `B(x,y)=B0+x/e` 上产生 `-0.25` 的目标偏差。此反例为**数学合法非矩形点集**，还不能宣称它正是现行 HEALPix 某个 ipix 的测得偏差。TARGET 可在真实叶中心中找含 t 的非退化三角形，用二维 barycentric 权、条件数和凸包判据做局部一次再现；或精确求真实四边形映射逆解。需对折叠/退化/无有效邻域选择**唯一可报告 fallback**，并在真实 all-face/极区/face seam/亚像元相位独立测其适用性、耗时、PSF变化。目标面积守恒 resampler `area(Q_i∩H_j)` 是**另一个尚未实现的P3研究算法**，切忌把 Stage1 #15 的 Drizzle 球面 overlap 等同为当前 P3 bilinear。
+
+### B3. 两层缺数与有效系数精确含义
+
+CURRENT 函数签名是 `P3ResampleStatus` 返回，`float* value`、`int* coverage` 输出，不是原文过时的 void / float* coverage。Tile 未读到（bilinear 任一角）⇒ **S=NaN,C=0**；四角都来自存在 tile，但值全 NaN/±Inf 或有效权重总和≤0⇒ **S=NaN,C=1**，这表明几何覆盖、科学值资格两个轴分离。只有部分值无效时取有效角集合 `E` 并令：
+\[
+c_k=\begin{cases}w_k/\sum_{j\in E} w_j & k\in E,\ \sum_{E}w>0\\0&\mathrm{otherwise}\end{cases},\quad
+S=\sum_k c_k X_{\mathrm{id}(k)}.
+\]
+`P3SampleRejection` 在 `p3_sample_bilinear_nanmask_ex` 已暴露每类计数和 `n_eligible`，但 **真实 adapter 调用的是 `p3_sample_bilinear_ex`，其 rejection=NULL，因此计数并未作为 P3 正式 artifact 输出**；不能把 public API 存在说成数据全量留痕。#89已在函数入参合法后 `std::fill(weights,weights+4,0.0)`，故非有限被剔除角不会留下上一轮栈缓冲的权；失效/重复角、0权重角必须分离计数。nearest 存在 tile 中非有限值也可得到 `C=1,S=NaN`。Signal 为有限零、负值时不得视为未覆盖。
+
+`p3_resampled.bin` 当前内部**两个 f32 平面**，先 `signal[W*H]`，后 `coverage[W*H]`，同一未裁剪 W/H、每个平面行主序 `offset=(plane*W*H+y*W+x)*4 bytes`。虽然是两平面中间工作阵列，最终 FITS **只含 PRIMARY signal，不含 COVERAGE extension**；像元 `NaN` 无法唯一决定原始 C=0 还是 C=1 且无有效科学值。不得以 `n_nonfinite/coverage` 简写最终产品包含逐像素拒绝计数。
+
+### B4. 方差API的已修与未闭合的明确边界
+
+`p3_uncertainty_open` 公共库可按 variance→ivar 优先级打开误差子产品并校 order；`p3_uncertainty_propagate` 在 `npts=1/4` 时按生效权重算条件方差。**#88 已按完整 64-bit leaf_ipix 把重复四角归成同一随机变量**：`a_j=Σ_{k:leaf(k)=j} c_k`，在**不同叶条件独立**且方差有效时 `V_out=Σ_unique a_j² V_j`，不是原过时的 `Σ角 c_k²V_leaf(k)`。#89 的被剔除角先清零；方差读侧仍逐角执行负/Inf 损坏校验，ivar=0 判无效。全相关真实式仍为 `V_out=a^T C_leaf a`；前级 P1 drizzle、HiPS 层级、P2校准/天空减除的关联 C 并没有凭 #88 的同一leaf身份聚合而消失。**现行 `p3_op_properties`、`p3_op_resample` 明确不打开这些可调用的 uncertainty API**，真实产品 metadata `uncertainty_available=false`，writer 不输出VARIANCE/IVAR HDU；任何用实测P3 variance HDU证明这些修复的说法都缺生产可达前提。
+
+### B5. 真实 Cache/IO 资源与当前静态风险
+
+`P3Sampler` 仅包含 `P3SamplerImpl* impl`，由 `open/open_ex` 分配、`close` 释放；调用者拥有句柄和 `err` 的 std::string，对同一 sampler 并发读不安全。每工作线程有自己的 sampler/AioHipsDataset 和8槽热缓存；`p3_sampler_attach_cache` 共享 `SharedTileCache` 的 mutex+list+map LRU，容量默认8片、允许 `set_max_tiles` 按资源预算设置，tile的数据为 `shared_ptr<const vector<float>>`，每片512²f32≈1MiB。读取优先热槽→共享LRU→负缓存→实际AIO tile。旧“FIFO”仅是历史已被P30修正。实际 AIO Reader 对每 tile 使用独立READONLY CFITSIO句柄，在 _REENTRANT 4.6.4路径**不再使用同一全局Cfitsio写锁**；FITS写端有全局串行锁，不能把两端混称全局I/O串行。
+
+**资源审查必须如实限定当前实现**：SharedTileCache::absent 是与LRU map**分离的 unordered_map，没有按cap淘汰**；缺失 tile 负缓存不能无条件称为“与cap同界的有界缓存”。hot槽的 `shared_ptr` 会 pin住已逐出的tile，瞬时同一tile在多worker竞态失误后可能并行重复I/O（底层读在共享锁外），并不能保证“每tile全球唯一open”。峰值由正常LRU `cap*1MiB`、每worker热槽pin、in-flight解码、std::vector neighbors临时分配、Runtime子块和未封顶负缓存键共同决定，须用工作集含大量缺失和并发的真实M42测RSS/IO锁等待/重复open和缺块规模；缓存结构自洽不等于符合总体 OOM 预算。 `p3_sample_bilinear_ex` 每次调用 `healpix::neighbors` 返回动态vector，故旧的“每像素严格O(1)且无分配”不能解释实际内存分配成本。
+
+**CURRENT 真 DAG 资源**：`p3_op_resample` 用 Runtime 单一executor按 `sub_block_px` 分割 W×H，工作线程每块缓冲 `float signal,coverage`，经 AIO RandomWriter 将2×W×H×4B**整幅中间文件**以不相交行区间写到磁盘；仅RAM缓冲按子块受限（不等于磁盘大小不随画幅变化），临时文件全部块成功才fsync+rename。writer随后经有界 `ExportStreamScheduler` 逐块读并写PRIMARY FITS；当前不是“生产整幅 f32 signal+coverage 常驻RAM”，原 §10仅适用于独立全帧`p3_session`/故障注入对照。默认 max_tiles 按输入画幅估测、上界1024、请求可降低，`queue_depth/sub_block_px`来自运行资源配置，实际 worker 从Runtime lease而不是 `hardware_concurrency`；中途取消/作业缺块写入/队列未执行任务都必须 fail-closed。
+
+### B6. 正交独立验证（TARGET；无本批实验执行）
+
+1. **索引与reader**：所有12 faces、nside=512×2^K，核对 `leaf→tile→local→FITS index` 与独立 astropy-healpix/HiPS reader，标准Dir分组、legacy fallback、MOC/manifest 缺失与损坏、输入BITPIX=-32/-64、duplicate required key/非512宽/order>20、极区和跨RA=0。
+2. **插值**：取真实HEALPix叶中心＋输出WCS作 oracle，分别对常量 `B0`、切平面`bx*x+by*y`、二次曲率/解析Gaussian/Moffat PSF、星核和扩展天体。每个真实位置记录 `Σc`、`Σcx`、`Σcy`、负权、重复leaf、无凸包、FWHM/孔径星等和空间频谱；真正验证 #90 而不是把任意非矩形反例当真实HEALPix ipix。
+3. **NaN/coverage**：tile缺失、损坏tile（不能全归合法无覆盖）、所有角有效、1/2/3/4角非有限、0有效权、退化象限、相同leaf、无tile、finite 0和负值、partial NaN+预填sentinel权重。比较 sample API 与生产`p3_resampled.bin`的两个平面和缺失元数据。
+4. **协方差**：注入 `[A,A,B,C]` 权重 `[.5,.5,0,0]` 及 `[A,A,A,A]` 验已修 #88 的对角独立leaf恒等；另注入真实跨leaf相关 covariance 的MC，验证 `a^T C a` 与 `Σa²V` 的不同，不能输出未真实发布的误差HDU。
+5. **预算与IO**：1/N Runtime worker，cap_tiles=8/可调，10^3+不存在tile、多tile并发首次缺失、reader read-only同时、负缓存unbounded检测、峰值RSS、CfItsio读写锁等待、sub-block/queue配置和取消恢复；真实 M42/HST 尺度及可用像元掩膜，原参考例据均为历史，不作本轮PASS。
+
+文献：IVOA HiPS REC-1.0（https://www.ivoa.net/documents/HiPS/）；Górski et al. (2005), ApJ 622, 759, DOI 10.1086/427976；Fernique et al. (2015), A&A 578, A114, DOI 10.1051/0004-6361/201526075；FITS 4.0/CFITSIO；具体局部 bilinear 几何与 masked weights 是 ACSD project-defined 而非文献已有保守积分算法。上述外部文献用于方法/标准定位，本 D7-B **未独立重新打开并逐段核验版本/许可证**；真正 MC/HST/M42/CLI E2E/构建均 NOT_RUN。
