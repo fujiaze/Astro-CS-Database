@@ -181,14 +181,14 @@ Canonical controls 的 C_ref 是加入规定参考源后的条件协方差。实
 
 ### 6.1 P2→P4→Mosaic：从实际算子求同被估计量的权重（2026-10-17 独立推导）
 
-这一桥梁的**可执行解法**不是把 \`SNR_ref²/F_ref²\` 改名为 \`ivar\`，而是从实际输出估计量出发。给帧 k 定义已冻结的 calibrated + Drizzle + sky-correction + gain 线性化算子 \`L_k\`，将输入观测/拟合参数扰动 \`ξ_k\` 映到最终同一个球面位置 p 的校正面亮度：\`δz_{kp}=l_{kp}^T ξ_k\`。若完整联合协方差为 \`Σ_k\`，则
+这一桥梁的**可执行解法**不是把 `SNR_ref²/F_ref²` 改名为 `ivar`，而是从实际输出估计量出发。给帧 k 定义已冻结的 calibrated + Drizzle + sky-correction + gain 线性化算子 `L_k`，将输入观测/拟合参数扰动 `ξ_k` 映到最终同一个球面位置 p 的校正面亮度：`δz_{kp}=l_{kp}^T ξ_k`。若完整联合协方差为 `Σ_k`，则
 
 \[
 V_{B,kp}=l_{kp}^{T}\Sigma_k l_{kp},
 \qquad w_{B,kp}=V_{B,kp}^{-1}\quad(V_{B,kp}>0).
 \]
 
-这里 \`l\` 必须来自正式**已归一** Drizzle signal、实际天空参数更新和 gain，不能从 Drizzle 的 drop 原始面积或点源 h 猜测。若单独定义点源条件信息 \`I_{F,kp}>0\`，同条件的 \`T_{kp}=V_{B,kp} I_{F,kp}\`，才有 \`w_B=I_F/T\`。当 \`C_{B,kp}\` 已可直接计算时无需绕 SNR/T 回转。若某个 \`V_B\` 不含天空/增益**参数不确定性及交叉项**，它只代表冻结这些参数后的条件方差，不能将其称为完整边际方差。经 rejection 的自适应选择集合也不能由固定 L 自动保证无选择偏差。
+这里 `l` 必须来自正式**已归一** Drizzle signal、实际天空参数更新和 gain，不能从 Drizzle 的 drop 原始面积或点源 h 猜测。若单独定义点源条件信息 `I_{F,kp}>0`，同条件的 `T_{kp}=V_{B,kp} I_{F,kp}`，才有 `w_B=I_F/T`。当 `C_{B,kp}` 已可直接计算时无需绕 SNR/T 回转。若某个 `V_B` 不含天空/增益**参数不确定性及交叉项**，它只代表冻结这些参数后的条件方差，不能将其称为完整边际方差。经 rejection 的自适应选择集合也不能由固定 L 自动保证无选择偏差。
 
 一个很重要的**可证明降级条件**是：若独立校准能在相同随机贡献空间上保证
 \[
@@ -200,13 +200,13 @@ V_{B,kp}=l_{kp}^{T}\Sigma_k l_{kp},
 (1-\delta)V_{B,\rm ref}\leq V_{B,\rm scene}\leq
 (1+\delta)V_{B,\rm ref}.
 \]
-所以可以用上界 \`V^+_{B,\rm scene}=(1+\delta)V_{B,\rm ref}\` 作**条件保守**合成权重。前提是 \`C_ref\` 与 \`C_scene\` 用相同单位、模板、可观测空间和相关结构，并且 δ 有独立来源；参考源 Poisson 与实际星云/暗场差异未知时不能凭空指定 δ。仅知 SNR_ref、F_ref 与 gain，不足以得到此 \`V^+\`。
+所以可以用上界 `V^+_{B,\rm scene}=(1+\delta)V_{B,\rm ref}` 作**条件保守**合成权重。前提是 `C_ref` 与 `C_scene` 用相同单位、模板、可观测空间和相关结构，并且 δ 有独立来源；参考源 Poisson 与实际星云/暗场差异未知时不能凭空指定 δ。仅知 SNR_ref、F_ref 与 gain，不足以得到此 `V^+`。
 
-**可执行状态组合**：优先采用实际同对象 \`corrected_scene_variance\`；其次用有外部误差界的 \`certified_scene_variance_upper\` 并声明 \`conditional_conservative\`；再下才是 \`reference_flux_information_only\` 或 \`heuristic_snr_weight\`，这两种数值可供明确用户选择的近似/诊断，不能在 manifest 中自动声称 \`inverse_variance_closed\`。未识别支持、单位或参数模型，报告 \`precision_unavailable\`。Stage2 仍只发布 signal HiPS；这些状态随运行 provenance/内部评估传递。
+**可执行状态组合**：优先采用实际同对象 `corrected_scene_variance`；其次用有外部误差界的 `certified_scene_variance_upper` 并声明 `conditional_conservative`；再下才是 `reference_flux_information_only` 或 `heuristic_snr_weight`，这两种数值可供明确用户选择的近似/诊断，不能在 manifest 中自动声称 `inverse_variance_closed`。未识别支持、单位或参数模型，报告 `precision_unavailable`。Stage2 仍只发布 signal HiPS；这些状态随运行 provenance/内部评估传递。
 
 ### 6.2 独立噪声下的 minimax 合成：为什么保守权重不是随意削弱 SNR
 
-若多帧在**同一个被估计量**上无偏、资格固定且条件相互独立，每帧真实方差只知 \`0<V_k≤U_k\`，选择非负系数 \`a_k≥0\`、\`Σa_k=1\`，其最坏方差恰为 \`sup Var(Σa_kz_k)=Σa_k² U_k\`。Lagrange 乘子或 Cauchy–Schwarz 证明其唯一最优（所有 U 有限正）为
+若多帧在**同一个被估计量**上无偏、资格固定且条件相互独立，每帧真实方差只知 `0<V_k≤U_k`，选择非负系数 `a_k≥0`、`Σa_k=1`，其最坏方差恰为 `sup Var(Σa_kz_k)=Σa_k² U_k`。Lagrange 乘子或 Cauchy–Schwarz 证明其唯一最优（所有 U 有限正）为
 
 \[
 a_k^*=\frac{U_k^{-1}}{\sum_j U_j^{-1}},
@@ -214,7 +214,7 @@ a_k^*=\frac{U_k^{-1}}{\sum_j U_j^{-1}},
 \left(\sum_k U_k^{-1}\right)^{-1}.
 \]
 
-这是**方差上界明确且独立**时的 minimax 解释，不是无条件证明比真实精确逆方差更好。若允许未知、最大程度正相关（\`|\Gamma_{ij}|\le\sqrt{U_iU_j}\`），则最坏方差可达 \`(\sum_k a_k\sqrt{U_k})^2\`，其最优可能只用一个最小 U 的帧。故**不知道帧间相关性就无法证明随合成帧数增加必然提高 SNR**。共享 Master、零点、天空面与增益参数的协方差必须建模或分开报预算。此结论不要求发布第二张科学图像。
+这是**方差上界明确且独立**时的 minimax 解释，不是无条件证明比真实精确逆方差更好。若允许未知、最大程度正相关（`|\Gamma_{ij}|\le\sqrt{U_iU_j}`），则最坏方差可达 `(\sum_k a_k\sqrt{U_k})^2`，其最优可能只用一个最小 U 的帧。故**不知道帧间相关性就无法证明随合成帧数增加必然提高 SNR**。共享 Master、零点、天空面与增益参数的协方差必须建模或分开报预算。此结论不要求发布第二张科学图像。
 
 ## 7. 缺项上界的适用域
 
@@ -231,6 +231,25 @@ Normalize 先建立已应用光度标度的平面模型，Drizzle 后由同一 n
 阶段二可以重建 log V_F、log SNR 或噪声尺度/形状参数；节点测量误差、插值预测误差与随机像元方差是三个对象。exp(E[log V])不等于E[V]；自然样条可过冲，正值变换、裁剪或 IDW 指数也不自动无偏。方法与空间尺度通过空间块/跨帧留出、PSF/几何/噪声分层比较确定，空洞和外推须有状态。
 
 相关模型需满足 PSD；逐项相关系数位于[-1,1]不足以保证。例如四维单位对角、最近邻0.7、其余0的三对角矩阵最小特征值为1−1.4cos(π/5)<0，不能作为协方差。背景中位数的渐近方差 πσ²/(2N)仅适用于独立高斯样本；相关噪声、剪裁和污染需按该统计量重新估计。点源、背景控制与像元精度不能共用无对象定义的 k_corr。
+
+### 8.1 P4 的局部误差证书、可用区域与原始控制点身份（2026-10-17）
+
+要重建 **实际场景面亮度逆方差**，先由第 6.1 节得到同条件节点的 `V_{B,i}`，再令 `u_i=\log V_{B,i}`；只有 `I_{F,i}` 的旧稀疏 SNR 节点，最多重建 `reference_flux_precision`，不能越过估计量转换直接发行 `scene_inverse_variance`。在一个已有观测支撑、局部几何准确的凸邻域，取可微 `u(x)` 满足 `||\nabla^2u||_2\le M`，并使用重建权 `λ_i\ge0`、`Σλ_i=1`、`Σλ_i x_i=x`。若**独立来源**保证 `|\widehat u_i-u(x_i)|\le\delta_i`，Taylor 展开消掉常数/一阶项，得
+
+\[
+|\widehat u(x)-u(x)|
+\le \sum_i\lambda_i\delta_i
++\frac M2\sum_i\lambda_i\|x_i-x\|^2
+\equiv\Delta(x).
+\]
+
+严格条件上界为 `V_B(x)\le\exp(\widehat u(x)+\Delta(x))`；可用于 §6.2 的 `U(x)`。当 δ_i 仅为置信区间，联合覆盖概率必须用独立/同时推断控制，而不是将点态 95% 自动写为全图 95%。`M` 是独立验证的真实方差曲率约束；若 M 未知，则这不是现行算法的精度证书。
+
+对于非负、一次再现的局部 barycentric/bilinear 算子，上述推导可用；对自然三次样条或经 mesh-median 预处理后的非线性算子，必须重新形成其**实际有效系数**、误差与可能的负权/非局部影响，不能复用同一 Δ。这里的 bilinear 是 **P4 空间精度场重建**，不是 Stage3 不规则 HEALPix 邻点图像重采样。
+
+**具体支持/身份解法**：在原始控制网格保留 `valid_measured_mask`、未填充数值、原始坐标/像元支撑与估计量单位。数值 nearest-fill 可以继续给图形或迭代初始化，但其节点标成 `imputed`，不是 measured。对每个最终查询点，输出实际依赖的节点身份及最远距离；若查询核引用 imputed 或未证明支持域的节点，就标 `model_predicted/precision_unavailable`，直到相应 δ/M/转换证据成立。特别是三次样条的系数可在整行/整列全局依赖多个节点，不能仅检查四邻节点来宣告独立于缺值。超过有效 cell 并集或明示散点半径的查询属于无支持域，`grid_tol` 只校验控制点坐标，绝不是科学外推半径。当前 `weight_chain.cpp` 对 `grid_tol` 的查询域已经用独立浮点余量，Issue #69 的旧反例不代表现版仍含这一分支。
+
+**不可识别性的构造证明**：给任意有限控制点集合，在它们不覆盖的任意开球内选一光滑 bump `b(x)`，满足所有节点 `b(x_i)=0`、目标点 `b(x)>0`。则 `u_1(x)=u_0(x)` 与 `u_2(x)=u_0(x)+A b(x)` 对所有已有控制点不可区分，但目标 `V_B` 比值 `e^{A b(x)}` 可随 A 任意大。没有曲率/先验和实际观测，远距离补值没有任何**有限的**真方差上界；nearest-fill 不能自动作为生产置信度。此命题可作为 P4 论文中的可识别性限制/弃权依据。
 
 ## 9. 合成、同数据拟合与后选择
 
