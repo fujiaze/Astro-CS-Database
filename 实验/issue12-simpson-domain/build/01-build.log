@@ -1,0 +1,24 @@
+# build command: ninja -C build/linux-sci-p5
+# main SHA: f1082869562bedfb6ab9d81b632bc99e39e48de2
+# started: 2026-10-17T04:09:55Z
+ninja: Entering directory `build/linux-sci-p5'
+[1/19] Linking CXX shared library lib/algorithms/calibration/acsd_p1_calibration.so
+[2/19] 生成构建期指纹 build_stamp_generated.h (RUN-PROVENANCE-01)
+[3/19] ACSD: 同步响应曲线库 → /workspace/Astro CS Database/build/linux-sci-p5/config/response_curves
+[4/19] Linking CXX shared library lib/algorithms/drizzle/hips/acsd_p1_hips_writer.so
+[5/19] Linking CXX shared library lib/algorithms/cosmetic/acsd_p1_cosmetic.so
+[6/19] Building CXX object CMakeFiles/acsd_core.dir/lib/infrastructure/scheduler/src/build_stamp.cpp.o
+[7/19] Linking CXX shared library lib/algorithms/drizzle/acsd_p1_drizzle.so
+[8/19] Linking CXX static library libacsd_core.a
+[9/19] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp.o
+[10/19] Building CXX object lib/algorithms/resample/CMakeFiles/acsd_p3_rsmp.dir/p3_resample.cpp.o
+[11/19] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/pc_api.cpp.o
+[12/19] Linking CXX static library lib/algorithms/resample/libacsd_p3_rsmp.a
+[13/19] Building CXX object CMakeFiles/acsd_phase1_photcal.dir/lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp.o
+[14/19] Linking CXX static library libacsd_phase1_photcal.a
+[15/19] Building CXX object CMakeFiles/acsd_phase2.dir/lib/algorithms/coverage/src/sky_plane.cpp.o
+[16/19] Linking CXX static library libacsd_phase2.a
+[17/19] Building CXX object CMakeFiles/acsd_module_adapters.dir/lib/infrastructure/scheduler/src/module_adapters.cpp.o
+[18/19] Linking CXX static library libacsd_module_adapters.a
+[19/19] Linking CXX executable acsd
+ninja exit=0

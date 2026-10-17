@@ -20,9 +20,11 @@
 //   与官方定义 (Gaia DR3 文档 §5.4.1 式 5.41) 的差别只是去掉了与星无关的归一化分母
 //   ∫T(λ)Q(λ)λdλ —— 该分母是逐帧常数, 被 location/ZP_syn 吸收。
 //
-// 退化 (不得给出数值, 见 PHOTOMETRY.md §2a.1/§8):
-//   T·Q 在整个谱网格上为 0 (通带不重叠 / QE 曲线落在网格外) => F_syn ≡ 0;
-//   flux_mul<=0 或量化参数非有限 => 显式返回 0;
+// 退化与非法输入 (正本 docs/science/algorithms/normalize/PHOTOMETRIC_FIT.md §Simpson 有效域, Issue #12):
+//   T·Q 在整个谱网格上为 0 (通带不重叠 / QE 曲线落在网格外) => F_syn ≡ 0 (合法零, 保留);
+//   flux_mul<=0 或量化参数非有限 => 返回 quiet NaN (具名 INVALID_INTEGRAND);
+//   非法/非等距 nm 轴 => prepare_filter_cache 具名 INVALID_SPECTRAL_GRID (返回空缓存),
+//      simpson_integrate 返回 quiet NaN; 绝不以 0 伪装"零光子";
 //   解码后 F_λ 含负值使积分 F_syn<=0 => 函数不钳位, 由调用方 F_syn>0 有效域判据拒绝。
 //
 // 非生产通道 (保留供数值对拍, **不得**用于生产定标): compute_f_syn / compute_f_syn_cached
@@ -43,9 +45,13 @@ std::vector<double> akima_interpolate(
     const std::vector<double>& x_src, const std::vector<double>& y_src,
     const std::vector<double>& x_dst, double fill = 0.0);
 
-// Simpson 1/3 复合积分 (等间距网格)
-// 当区间数为奇数时, 末尾 3 个区间用 Simpson 3/8 公式 (与 scipy.integrate.simpson 一致)
-// 输入: x 必须严格单调递增且等间距
+// Simpson 1/3 复合积分 (严格等距 nm 轴; 区间数为奇数时末尾 3 个区间用 3/8)
+// 合法域 (唯一判据, 正本 §Simpson 有效域): N=x.size()==y.size()>=2、x/y 全 finite、
+//   x 严格递增, 且令 n=N-1、h=(x_{N-1}-x_0)/n>0、eps=2^-52、M=max(|x_0|,|x_{N-1}|,h):
+//     16*eps*M <= 1e-8*h  (坐标分辨率前提)
+//     tau = min(1e-8*h, 16*eps*M);  forall i: |(x_i-x_{i-1})-h| <= tau
+// 任一条不满足 (含长度不等、NaN/Inf、重复/倒序、非等距、分辨率不足、累加溢出)
+//   返回 quiet NaN。合法网格上被积函数恒零返回真 0。绝不返回 0 表示失败。
 double simpson_integrate(
     const std::vector<double>& x, const std::vector<double>& y);
 
