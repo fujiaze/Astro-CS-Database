@@ -170,7 +170,11 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
     const P3ResampleStatus sst = p3_sampler_open_ex(hips_dir.c_str(), &samp, &input_order,
                                                     &bunit, &serr);
     if (sst != P3_RS_OK) {
+        // Issue #91: 单位身份裁决/结构校验失败 —— 具体失败类型与输入产品身份贯通
+        // 到 session last_error 与日志（CLI 侧由节点 manifest 承载同一错误码）。
         s->last_error = "sampler open: " + serr;
+        s->log(3, "p3_session",
+               "input rejected: hips_dir=" + hips_dir + "; " + serr);
         return (sst == P3_RS_IO) ? ACS_ERR_IO : (sst == P3_RS_UNSUPPORTED) ? ACS_ERR_UNSUPPORTED
                                                                           : ACS_ERR_PARAM;
     }
@@ -218,6 +222,11 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
     if (n_workers > (uint32_t)hpx) n_workers = (uint32_t)hpx;  // 行带不空
     const int rows_per_worker = hpx / (int)n_workers;
     std::atomic<int> cancelled_at{-1};
+    // Issue #91 (E1-C): 并发 worker 的失败状态必须可靠传给调用方 —— 旧实现只置
+    // cancelled_at=-2 而丢弃具体错误串，调用方无法诊断。此处以互斥保护的首错串
+    // 承载（确定性: 首个失败 worker 的错误被保留）。
+    std::mutex werkerr_mu;
+    std::string werkerr;
     auto worker = [&](int wid, int y0, int y1) {
         (void)wid;
         // 每 worker 独立 sampler(独立 tile cache; 读共享只读 HiPS 无写锁)
@@ -225,6 +234,10 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
         std::string wserr;
         if (p3_sampler_open_ex(hips_dir.c_str(), &w_samp, nullptr, nullptr, &wserr) !=
             P3_RS_OK) {
+            {
+                std::lock_guard<std::mutex> lk(werkerr_mu);
+                if (werkerr.empty()) werkerr = wserr;
+            }
             cancelled_at.store(-2);  // open 失败(罕见; 主线程已有有效 samp)
             return;
         }
@@ -276,6 +289,15 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
     }
     if (cancelled_row == -2) {
         p3_sampler_close(&samp);
+        std::string w;
+        {
+            std::lock_guard<std::mutex> lk(werkerr_mu);
+            w = werkerr;
+        }
+        s->last_error = "worker sampler open failed: " +
+                        (w.empty() ? std::string("(no detail)") : w);
+        s->log(3, "p3_session",
+               s->last_error + "; hips_dir=" + hips_dir);
         return ACS_ERR_IO;
     }
 

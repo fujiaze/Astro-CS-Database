@@ -1,6 +1,7 @@
 // lib/algorithms/coverage/hips_properties.cpp — HiPS properties 严格解析实现 (ALG-P3-001) — P3-001
 #include "hips_properties.h"
 
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 
@@ -21,6 +22,14 @@ std::string trim(const std::string& s) {
     while (a < b && (s[a] == ' ' || s[a] == '\t' || s[a] == '\r')) ++a;
     while (b > a && (s[b - 1] == ' ' || s[b - 1] == '\t' || s[b - 1] == '\r')) --b;
     return s.substr(a, b - a);
+}
+
+std::string ascii_upper(const std::string& s) {
+    std::string o;
+    o.reserve(s.size());
+    for (const char c : s)
+        o += static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    return o;
 }
 
 bool parse_int(const std::string& v, int* out) {
@@ -65,6 +74,12 @@ bool hips_properties_parse(const std::string& text, HipsProperties* out,
     *out = HipsProperties{};
     bool has_order = false, has_width = false, has_fmt = false, has_frame = false,
          has_dpt = false;
+    // Issue #91: 单位声明面按**逻辑键**（大小写不敏感）去重 ——
+    // BUNIT/bunit/BuNiT 是同一个 FITS 关键字；ACSD_SIGNAL_UNIT 是辅助声明面。
+    // 重复声明（无论同值/异值）一律拒绝（禁 silent override）。裁决与错误分类由
+    // acsd::phase3::p3_input_unit_verdict 给出（唯一实现）。
+    bool has_bunit = false, has_signal_unit = false, has_semantics = false,
+         has_area_power = false;
     std::istringstream f(text);
     std::string line;
     while (std::getline(f, line)) {
@@ -75,6 +90,7 @@ bool hips_properties_parse(const std::string& text, HipsProperties* out,
         const std::string key = trim(line.substr(0, eq));
         const std::string val = trim(line.substr(eq + 1));
         if (key.empty()) return fail("empty key");
+        const std::string upkey = ascii_upper(key);
         // 重复键 = 错误(无 silent override)
         if (key == "hips_order") {
             if (has_order) return fail("duplicate key hips_order");
@@ -101,8 +117,21 @@ bool hips_properties_parse(const std::string& text, HipsProperties* out,
             out->creator_did = val;
         } else if (key == "obs_title") {
             out->obs_title = val;
-        } else if (key == "BUNIT" || key == "bunit") {
-            out->bunit = val;   // 可缺; 缺省 ADU(SCI 合同), 绝不 Jy/beam 默认
+        } else if (upkey == "BUNIT") {
+            // 可缺（是否可接受由 p3_input_unit_verdict 裁决，本解析器不管语义）;
+            // 但**同一逻辑键不得重复声明**（含大小写别名）。
+            if (has_bunit) return fail("duplicate unit declaration (BUNIT/bunit; 唯一声明合同)");
+            out->bunit = val;
+            has_bunit = true;
+        } else if (upkey == "ACSD_SIGNAL_UNIT") {
+            if (has_signal_unit) return fail("duplicate key ACSD_SIGNAL_UNIT");
+            has_signal_unit = true;
+        } else if (upkey == "ACSD_PIXEL_SEMANTICS") {
+            if (has_semantics) return fail("duplicate key ACSD_PIXEL_SEMANTICS");
+            has_semantics = true;
+        } else if (upkey == "ACSD_PIXEL_AREA_POWER") {
+            if (has_area_power) return fail("duplicate key ACSD_PIXEL_AREA_POWER");
+            has_area_power = true;
         }
         // 未知键: 保留忽略(HiPS 允许扩展键), 但值仍不得含 NUL
         if (val.find('\0') != std::string::npos) return fail("value contains NUL");

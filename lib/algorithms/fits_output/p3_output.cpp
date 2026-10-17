@@ -38,6 +38,9 @@
 // (aio_file_io.h)。二者均为 aio 内唯一实现 (header-only 机制面)。
 #include "aio_atomic_file.h"
 #include "aio_file_io.h"
+// Issue #91: 产品 signal 面亮度 canonical 串的唯一单源（header-only 常量，
+// 不引入链接依赖 —— 只是拒绝在写出边界捏造缺省单位）。
+#include "../resample/p3_input_unit.h"
 
 #include <memory>
 #include <vector>
@@ -277,6 +280,24 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
             return P3_OUT_PARAM;
         }
     }
+    // ── Issue #91: 主 HDU 单位必须由调用方给出**已经输入单位裁决证实的**科学身份 ──
+    // 旧行为 `(bunit && *bunit) ? bunit : "ADU/sr"` 在调用方漏传时捏造确定量纲，
+    // 使无单位证据的输入产出被标为 ADU/sr 的"成功"产品。此处 fail-closed：
+    // 缺声明 / 非冻结 canonical 串 → 在创建任何临时文件之前拒绝。
+    // 产品 signal 面亮度唯一 canonical 串 = "ADU/sr"
+    // （唯一单源 acsd::phase3::kP3SignalBunitCanonical，见
+    //  lib/algorithms/resample/p3_input_unit.h；本写出边界逐字核对同一串）。
+    if (!bunit || !*bunit) {
+        g_last_err = "BUNIT missing: 调用方必须给出经输入单位裁决证实的 canonical 面亮度串"
+                     " (FZ-BUNIT-SEMANTICS; 禁 silent default ADU/sr)";
+        return P3_OUT_PARAM;
+    }
+    if (std::strcmp(bunit, kP3SignalBunitCanonical) != 0) {
+        g_last_err = std::string("BUNIT '") + bunit +
+                     "' != canonical signal surface-brightness '" +
+                     kP3SignalBunitCanonical + "' (FZ-BUNIT-SEMANTICS; 禁 loose default)";
+        return P3_OUT_PARAM;
+    }
     if (result) std::memset(result, 0, sizeof(*result));
     // RT-008: cfitsio 全局表非线程安全 → 进程级串行化（覆盖内部 verify 重开）
     aio::CfitsioLockGuard cfitsio_guard;
@@ -346,10 +367,9 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         // 端口见 docs/detail/registry/acsd.phase3.writer.md 与
         // docs/detail/registry/acsd.phase3.resample2.md 的
         // 「输入输出端口、DATA、单位、坐标、invalid」一节），单位口径见
-        // `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节；缺省串取该平面的物理单位 canonical "ADU/sr"
-        // （裸 "ADU" 是每像素计数口径，与本平面数值不符且量纲不可判）。
-        const char* unit = (bunit && *bunit) ? bunit : "ADU/sr";
-        fits_write_key(f, TSTRING, (char*)"BUNIT", (void*)unit, nullptr, &status);
+        // docs/science/unified/DATA_SEMANTICS.md §3；本函数入口已 fail-closed 校验
+        // bunit == canonical "ADU/sr"（Issue #91: 不再有缺省补写）。
+        fits_write_key(f, TSTRING, (char*)"BUNIT", (void*)bunit, nullptr, &status);
     }
     if (prov) {
         fits_write_key(f, TSTRING, (char*)"HIPSID", (void*)prov->hips_id, nullptr, &status);
@@ -687,13 +707,25 @@ P3OutputStatus P3FitsStream::open(const char* output_path,
         g_last_err = "bitpix must be -32|-64";
         return P3_OUT_PARAM;
     }
+    // ── Issue #91: 与整幅路径同判 —— 缺声明/非 canonical 串一律拒绝 ─────────
+    // （旧行为 `bunit ? bunit : "ADU/sr"` 捏造确定量纲，是缺陷本体之一。）
+    if (!bunit || !*bunit) {
+        g_last_err = "BUNIT missing: 调用方必须给出经输入单位裁决证实的 canonical 面亮度串"
+                     " (FZ-BUNIT-SEMANTICS; 禁 silent default ADU/sr)";
+        return P3_OUT_PARAM;
+    }
+    if (std::strcmp(bunit, kP3SignalBunitCanonical) != 0) {
+        g_last_err = std::string("BUNIT '") + bunit +
+                     "' != canonical signal surface-brightness '" +
+                     kP3SignalBunitCanonical + "' (FZ-BUNIT-SEMANTICS; 禁 loose default)";
+        return P3_OUT_PARAM;
+    }
     impl_->width = width;
     impl_->height = height;
     impl_->bitpix = bitpix;
-    // 主 HDU = 重采样后的**面亮度**平面（与整幅路径同面，§27.1/§29.3）:
-    // 缺省串取 `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节
-    // 的 canonical "ADU/sr"（裸 "ADU" 是每像素计数口径）。
-    impl_->bunit = (bunit && *bunit) ? bunit : "ADU/sr";
+    // 主 HDU = 重采样后的**面亮度**平面（与整幅路径同面）: 单位已在上方校验为
+    // canonical "ADU/sr"（Issue #91: 不再有缺省补写）。
+    impl_->bunit = bunit;
     impl_->out = output_path;
     impl_->lock.reset(new aio::CfitsioLockGuard());
     make_temp_path(impl_->out, &impl_->tmp);

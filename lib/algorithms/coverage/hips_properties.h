@@ -17,7 +17,9 @@ struct HipsProperties {
     std::string dataproduct_type;// dataproduct_type(必需, image)
     std::string creator_did;     // 可缺(诊断)
     std::string obs_title;       // 可缺(诊断)
-    std::string bunit;           // BUNIT 键(可缺; 缺省按 SCI 合同=ADU, 绝不 Jy/beam 默认)
+    std::string bunit;           // BUNIT 逻辑键(大小写不敏感; 可缺, 是否可接受由
+                                 // acsd::phase3::p3_input_unit_verdict 裁决 —— 本解析器
+                                 // 不补任何缺省单位; 重复声明一律拒绝)
 };
 
 static constexpr int kMaxOrder = 20;   // ARCH-P3 §3 内存守卫(2^(2*20) leaf 上限之外拒)

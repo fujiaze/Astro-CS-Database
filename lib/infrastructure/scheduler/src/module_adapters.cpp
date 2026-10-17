@@ -153,6 +153,8 @@
 // lib/algorithms/resample/p3_rsmp_units.cpp, 已随 acsd_p3_rsmp 进生产链接闭包）——
 // 输入语义守卫与输出模式声明的唯一单位/模式词汇源, 不另发明第二套。
 #include "../../../algorithms/resample/p3_rsmp.h"
+// Issue #91: 输入单位身份裁决的**唯一实现**（session 与 scheduler 同源同判）。
+#include "../../../algorithms/resample/p3_input_unit.h"
 #include "../../../algorithms/fits_output/p3_output.h"
 #include "../../../algorithms/projection/p3_wcs.h"
 
@@ -9866,11 +9868,9 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
 // 冻结单位表 canonical **产品 BUNIT 串**（docs/science/unified/DATA_SEMANTICS.md
 // 「单位与量纲表」一节）: signal_sb = ADU/sr, sb_variance_out = ADU^2/sr^2,
 // sb_ivar_out = sr^2/ADU^2。产品面必须逐字写冻结串。
-// 注: p3rsmp::Bunit::canonical() 现按 docs/science/unified/DATA_SEMANTICS.md
-// 「面亮度单位的推导」一节的同一映射写冻结串
-// （"ADU/sr" / "ADU^2/sr^2" / "sr^2/ADU^2"；符号幂次 = px_power/2），与上列常量同串；
-// 产品面仍以本处常量逐字写出为准（不依赖该函数）。
-constexpr const char* kP3BunitSurfaceBrightness = "ADU/sr";
+// Issue #91: signal canonical 串改由唯一单源引用（禁第二处字面量漂移）——
+// 定义见 lib/algorithms/resample/p3_input_unit.h（输入单位裁决的同一实现）。
+constexpr const char* kP3BunitSurfaceBrightness = acsd::phase3::kP3SignalBunitCanonical;
 constexpr const char* kP3BunitSbVariance = "ADU^2/sr^2";
 constexpr const char* kP3BunitSbIvar = "sr^2/ADU^2";
 
@@ -15905,14 +15905,17 @@ bool p3n_wcs_from_json(const Json& j, acsd::phase3::P3WcsDescriptor* d,
 
 // ══ Phase3 输入语义守卫（docs/ACSD_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）═════════════
 // 生产 export 只接受**面亮度语义**输入；按输入 provenance 声明的单位分派，
-// 不做任何"自动猜测单位"的宽松解析（缺声明即拒绝，禁 silent default ADU）:
-//   * 面亮度（BUNIT 显式含立体角幂次 canonical "ADU/sr"，或 BUNIT=ADU +
-//     ACSD_PIXEL_SEMANTICS=surface_brightness + ACSD_PIXEL_AREA_POWER=-2）→ 放行;
-//     下游统一携带冻结单位表的 canonical 产品串（"ADU/sr"）。
-//   * 缺 BUNIT / 空 BUNIT / 裸 ADU 而无像素语义声明（单位不可判）→ 输入缺失或
-//     格式错 → error_kind=input（CLI exit 3）。
-//   * 已声明但非面亮度（积分通量 ADU/px^0、方差或 ivar 面、冻结单位表外单位）→
-//     科学语义违例 → ErrorDomain::SCIENCE_PRECONDITION（CLI exit 4）。
+// 不做任何"自动猜测单位"的宽松解析（缺声明即拒绝，禁 silent default ADU）。
+//
+// Issue #91: 判定本体已收敛到 **唯一实现**
+//   acsd::phase3::p3_input_unit_verdict（lib/algorithms/resample/p3_input_unit.cpp），
+// 与正式 session 入口 p3_session_run 经 p3_sampler_open_ex 走**同一函数** ——
+// 同一文件、同一身份条件下两个入口 verdict 恒相同（禁两套解析面分叉）。
+// 本处只做退出码分类映射:
+//   * 输入错误（缺/空/重复/冲突/表外语汇/裸 ADU 无 provenance）→ error_kind=input
+//     → ErrorDomain::DATA → CLI exit 3。
+//   * 科学语义/身份矛盾（可解析但非面亮度、与像素语义声明矛盾）→
+//     ErrorDomain::SCIENCE_PRECONDITION → CLI exit 4。
 struct P3InputUnit {
   bool ok = false;
   bool input_error = false;      // true → exit 3（输入缺失/格式错）; false → exit 4
@@ -15922,134 +15925,16 @@ struct P3InputUnit {
   std::string reason;
 };
 
-// 读 HiPS properties 文本键（"KEY = value" 行）。重复键 → 显式拒绝（禁 silent override）。
-bool p3n_properties_scalar_keys(const std::string& path,
-                                std::map<std::string, std::string>* out,
-                                std::string* err) {
-  // CLEAN-403: 整文件读取经 aio (aio_file::read_all), 逐行解析在内存进行。
-  std::string ptext;
-  if (!aio_fs::read_all(path, &ptext)) {
-    if (err) *err = "properties not found: " + path;
-    return false;
-  }
-  const auto trim = [](std::string s) {
-    const size_t a = s.find_first_not_of(" \t\r");
-    const size_t b = s.find_last_not_of(" \t\r");
-    return (a == std::string::npos) ? std::string() : s.substr(a, b - a + 1);
-  };
-  std::istringstream f(ptext);
-  std::string line;
-  while (std::getline(f, line)) {
-    const size_t eq = line.find('=');
-    if (eq == std::string::npos) continue;
-    const std::string key = trim(line.substr(0, eq));
-    const std::string val = trim(line.substr(eq + 1));
-    if (key.empty()) continue;
-    if (out->count(key)) {
-      if (err) *err = "duplicate properties key: " + key;
-      return false;
-    }
-    (*out)[key] = val;
-  }
-  return true;
-}
-
 P3InputUnit p3n_guard_input_units(const std::string& hips_dir) {
-  using namespace acsd::p3rsmp;
+  using namespace acsd::phase3;
   P3InputUnit g;
-  std::map<std::string, std::string> kv;
-  std::string perr;
-  if (!p3n_properties_scalar_keys(hips_dir + "/signal/properties", &kv, &perr)) {
-    g.input_error = true;
-    g.code = "P3-INPUT-PROPERTIES-UNREADABLE";
-    g.reason = perr;
-    return g;
-  }
-  const auto it = kv.find("BUNIT");
-  if (it == kv.end() || it->second.empty()) {
-    g.input_error = true;
-    g.code = "P3-INPUT-BUNIT-MISSING";
-    g.reason = "input HiPS signal/properties declares no BUNIT; unit undecidable"
-               " (FZ-BUNIT-SEMANTICS; 禁按 ADU 猜测)";
-    return g;
-  }
-  g.bunit_raw = it->second;
-  BunitProvenance prov;
-  {
-    const auto ps = kv.find("ACSD_PIXEL_SEMANTICS");
-    if (ps != kv.end() && !ps->second.empty()) {
-      if (ps->second == "surface_brightness")
-        prov.pixel_semantics = PixelSemantics::SurfaceBrightness;
-      else if (ps->second == "integrated_flux")
-        prov.pixel_semantics = PixelSemantics::IntegratedFlux;
-      else {
-        g.code = "P3-INPUT-PIXEL-SEMANTICS-UNSUPPORTED";
-        g.reason = "ACSD_PIXEL_SEMANTICS '" + ps->second +
-                   "' is not a declared pixel semantics"
-                   " (surface_brightness|integrated_flux)";
-        return g;
-      }
-    }
-    const auto pp = kv.find("ACSD_PIXEL_AREA_POWER");
-    if (pp != kv.end() && !pp->second.empty()) {
-      try {
-        size_t used = 0;
-        const int v = std::stoi(pp->second, &used);
-        if (used != pp->second.size()) throw std::invalid_argument("trailing chars");
-        prov.pixel_area_power_present = true;
-        prov.pixel_area_power = v;
-      } catch (...) {
-        g.input_error = true;
-        g.code = "P3-INPUT-PIXEL-AREA-POWER-UNPARSABLE";
-        g.reason = "ACSD_PIXEL_AREA_POWER '" + pp->second + "' is not an integer";
-        return g;
-      }
-    }
-  }
-  // 冻结串逐字比较（仅去空白; 禁大小写/别名/幂次"猜测"）: "ADU/sr" 是唯一
-  // 显式可判的面亮度 BUNIT 串; 裸 ADU 须 provenance 声明补足 (FZ-BUNIT-SEMANTICS (b))。
-  std::string norm;
-  for (char c : g.bunit_raw) {
-    if (c != ' ' && c != '\t') norm += c;
-  }
-  if (norm == kP3BunitSurfaceBrightness) {
-    g.ok = true;
-    g.bunit_canonical = kP3BunitSurfaceBrightness;
-    return g;
-  }
-  const BunitResolution res = resolve_bunit(g.bunit_raw, prov);
-  if (norm == "ADU") {
-    if (prov.pixel_semantics == PixelSemantics::SurfaceBrightness &&
-        prov.pixel_area_power_present && prov.pixel_area_power == -2) {
-      // FZ-BUNIT-SEMANTICS (b): 裸 ADU + 像素语义声明 → 可判为面亮度, 归一为冻结串
-      g.ok = true;
-      g.bunit_canonical = kP3BunitSurfaceBrightness;
-      return g;
-    }
-    if (prov.pixel_semantics == PixelSemantics::IntegratedFlux) {
-      g.code = "P3-INPUT-NOT-SURFACE-BRIGHTNESS";
-      g.reason = "BUNIT 'ADU' with ACSD_PIXEL_SEMANTICS=integrated_flux resolves to"
-                 " integrated flux; export accepts surface-brightness inputs only"
-                 " (docs/ACSD_DESIGN §6.3)";
-      return g;
-    }
-    // 裸 ADU 而无像素语义声明: 输入**未声明**可判语义 → 输入格式错 (exit 3)
-    g.input_error = true;
-    g.code = "P3-INPUT-BUNIT-UNDECIDABLE";
-    g.reason = "input BUNIT 'ADU' without ACSD_PIXEL_SEMANTICS="
-               "surface_brightness + ACSD_PIXEL_AREA_POWER=-2 is not dimensionally"
-               " decidable (FZ-BUNIT-SEMANTICS; 禁按 ADU 猜测); 面亮度输入须逐字写"
-               " '" + std::string(kP3BunitSurfaceBrightness) + "' 或补像素语义声明";
-    return g;
-  }
-  // 其余（含可解析的非面亮度单位与冻结词汇表外单位）: 已声明但非面亮度语义 → exit 4
-  g.code = res.resolvable ? "P3-INPUT-NOT-SURFACE-BRIGHTNESS"
-                          : "P3-INPUT-UNIT-UNSUPPORTED";
-  g.reason = "export accepts surface-brightness inputs only (docs/ACSD_DESIGN §6.3):"
-             " BUNIT '" + g.bunit_raw + "'" +
-             (res.resolvable ? (" resolves to '" + res.resolved.canonical() + "'")
-                             : std::string(" is outside the frozen unit vocabulary")) +
-             " (expected '" + std::string(kP3BunitSurfaceBrightness) + "')";
+  const P3InputUnitVerdict v = p3_input_unit_verdict(hips_dir);
+  g.ok = v.accepted;
+  g.input_error = v.input_error;
+  g.code = v.code;
+  g.reason = v.reason;
+  g.bunit_raw = v.bunit_raw;
+  g.bunit_canonical = v.bunit_canonical;
   return g;
 }
 
@@ -16097,11 +15982,15 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
   // slim 唯一形态（task-9）：不探测 uncertainty 子产品
   //（variance/ivar 输入不属拒绝项，只是不输出扩展 HDU）。
 
-  // BUNIT 一致性: reader 解析出的 BUNIT 必须与守卫所见逐字一致
-  // （两份解析面分叉 = 产品被并发改写/解析漂移 → 显式拒，禁静默采信任一）。
-  if (!bunit.empty() && bunit != guard.bunit_raw)
+  // 单位身份一致性（Issue #91）: sampler（同 p3_input_unit_verdict）解析出的
+  // **canonical** 面亮度身份必须与输入守卫的 canonical 一致 —— 两次读取之间
+  // 产品被并发改写/解析漂移时显式拒（禁静默采信任一）。原始声明另存
+  // props.bunit_input / manifest.bunit_input 供审计（raw ≠ canonical 是合法情形:
+  // 裸 ADU + 像素语义、legacy px 写法都归一为冻结 canonical 串）。
+  if (bunit != guard.bunit_canonical)
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        "BUNIT drift between properties parse ('" + bunit + "') and guard ('" +
+        "canonical BUNIT drift between sampler parse ('" + bunit +
+        "') and input guard ('" + guard.bunit_canonical + "'; input declared '" +
         guard.bunit_raw + "')"));
   const std::string path = g.out_dir + "/p3_props.json";
   Json props{{"schema", "DATA-P3-PROPS"},
@@ -16536,10 +16425,11 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   Json planes = Json::array();
   planes.push_back("signal");
   planes.push_back("coverage");
-  // BUNIT 一致性: reader 解析面与守卫面必须逐字一致。
-  if (!bunit.empty() && bunit != guard.bunit_raw)
+  // 单位身份一致性（Issue #91）: sampler 的 canonical 面亮度身份与输入守卫一致。
+  if (bunit != guard.bunit_canonical)
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        "BUNIT drift between properties parse ('" + bunit + "') and guard ('" +
+        "canonical BUNIT drift between sampler parse ('" + bunit +
+        "') and input guard ('" + guard.bunit_canonical + "'; input declared '" +
         guard.bunit_raw + "')"));
   const std::string json_path = g.out_dir + "/p3_resampled.json";
   Json res{{"schema", "DATA-P3-RES"},

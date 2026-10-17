@@ -27,6 +27,9 @@ if(NOT TARGET acsd_p3_rsmp)
     ${CMAKE_CURRENT_SOURCE_DIR}/p3_rsmp_failclosed.cpp
     # 叶级重采样内核 (ALG-P3-003; 批次 4 归位)
     ${CMAKE_CURRENT_SOURCE_DIR}/p3_resample.cpp
+    # Issue #91: Stage3 signal 输入单位身份裁决（唯一实现; session 与 scheduler 共用）
+    ${CMAKE_CURRENT_SOURCE_DIR}/p3_input_unit.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/p3_input_unit_io.cpp
   )
   target_include_directories(acsd_p3_rsmp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
   # hips_properties.h: 经 acsd_hips_properties 的 PUBLIC include 面 (coverage 目录)

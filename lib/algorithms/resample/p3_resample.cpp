@@ -29,6 +29,7 @@
 #include "healpix_core.h"
 #include "aio_hips_reader.h"
 #include "hips_properties.h"
+#include "p3_input_unit.h"   // Issue #91: 唯一输入单位身份裁决
 
 // (docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」): 子产品 properties
 // 的整文件读取经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 FILE*。
@@ -266,6 +267,15 @@ P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
                                     int* out_order, std::string* out_bunit,
                                     std::string* err) {
     if (!product_dir || !out) return P3_RS_PARAM;
+    // ── Issue #91: 输入单位身份裁决先行 ────────────────────────────────────
+    // 唯一实现 = acsd::phase3::p3_input_unit_verdict（session 与 scheduler 同源
+    // 同判）。缺失/空串/重复/冲突/表外语汇/语义矛盾一律显式拒绝，**绝不**补写
+    // 确定量纲（旧行为 `p.bunit.empty() ? "ADU/sr" : p.bunit` 是缺陷本体）。
+    const acsd::phase3::P3InputUnitVerdict unit = acsd::phase3::p3_input_unit_verdict(product_dir);
+    if (!unit.accepted) {
+        if (err) *err = unit.code + ": " + unit.reason;
+        return P3_RS_PARAM;   // 无 silent default；错误码经 err 贯通 session/scheduler
+    }
     // product_dir = HiPS 根(内含 signal/ 子产品); 严格校验 signal/properties
     const std::string signal_dir = std::string(product_dir) + "/signal";
     HipsProperties p{};
@@ -282,13 +292,15 @@ P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
     s->leaf_nside = kTileWidth << p.order;
     s->root = product_dir;
     out->impl = s;
-    // 暴露输入实际 order 与 BUNIT(缺省 ADU/sr, 绝不 Jy/beam)
+    // 暴露输入实际 order 与**经裁决的**单位身份。
     if (out_order) *out_order = p.order;
-    // 采样值 = 输入 HiPS tile 值的凸组合 ⇒ 与输入同单位（面亮度，canonical "ADU/sr"，
-    // docs/detail/registry/acsd.phase3.resample2.md
-    // 「输入输出端口、DATA、单位、坐标、invalid」一节与 `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节）；
-    // 缺省串取该平面物理单位，禁裸 ADU（每像素口径）。
-    if (out_bunit) *out_bunit = p.bunit.empty() ? std::string("ADU/sr") : p.bunit;
+    // 采样值 = 输入 HiPS tile 值的凸组合 ⇒ 与输入同单位（面亮度）。产品单位串取
+    // 裁决给出的冻结 canonical 面亮度串（acsd::phase3::kP3SignalBunitCanonical,
+    // "ADU/sr"）；输入原始声明由调用方另存 bunit_input 供审计。单位身份已由裁决
+    // 证实，此处不再做任何缺省/猜测（docs/science/unified/DATA_SEMANTICS.md §3 +
+    // docs/detail/registry/acsd.phase3.resample2.md「输入输出端口、DATA、单位、坐标、
+    // invalid」一节）。
+    if (out_bunit) *out_bunit = unit.bunit_canonical;
     return P3_RS_OK;
 }
 P3ResampleStatus p3_sample_nearest(P3Sampler* s, double ra_deg, double dec_deg,
