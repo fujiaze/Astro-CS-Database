@@ -97,3 +97,14 @@ HiPS 的父层本来是从叶层再次粗化的图像，而阶段三进一步在
 [2] Calabretta, M. R., Greisen, E. W. Representations of celestial coordinates in FITS. A&A, 395, 1077–1122. [论文](https://arxiv.org/abs/astro-ph/0207413)。
 
 [3] IVOA. HiPS: Hierarchical Progressive Surveys. [推荐标准](https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf)。
+
+
+## D7-B｜生产层级、插值精度与统计的明确边界
+
+当前 [Resample 实现级长文](../algorithms/export/PHASE3_RSMP_IMPL.md)按真实 p3_resample.h/.cpp、aio_hips_reader.cpp 和生产 DAG 核对：通过 ICRS sky、NESTED leaf、512² tile 的标准 HiPS 地址及 `nested_local_to_fits_index` 读取，真实 sampler 有 nearest、四象限最近 leaf-center 的局部 bilinear，不存在已接线的 P3 真球面 area-overlap。输入 HiPS FITS 为 -64 时采样缓冲仍转 f32；重采样不会增加真实细节。
+
+**一次再现的严格判据**不止 \(\sum c_j=1\)。在输出位置为局部切平面原点时还需 \(\sum c_j x_j=\sum c_j y_j=0\)。当前 bilinear 的 u、v 只取不规则四角的一部分坐标，不保证这一条件；#90 的非矩形反例已解析成立，真实全域 HEALPix 构型的误差幅度需要独立积分/几何实验。相同 leaf 重复四角的生效系数必须合并 (#88 源码已修)，非有限信号角权重先清零 (#89 已修)；这些不意味着跨 leaf 的相关协方差已可由单 Signal 生成，也不意味着现行 CLI 实际发布 uncertainty。
+
+**覆盖与有效值不同**：缺 tile 返回 `C=0,S=NaN`，四角 tile 都可读而没有合格数值时可返回 `C=1,S=NaN`；正常有限零与负值保留。当前生产并未调用暴露详细拒绝计数的 `p3_sample_bilinear_nanmask_ex`，也没有把计数作为正式FITS层。读侧 completion manifest/产品基本属性损坏要与某个 sky 方向自然缺 tile 区分，当前 tile 读取失败统一折叠为“缺块”仍是风险。
+
+**性能不变量需以真实 RSS 验收**：shared LRU 存在配置容量，但单独的 absent 负缓存 map 无同一容量淘汰，worker 的 hot tile shared_ptr 会额外 pin 数据，未命中的并发I/O可能重复发生；真正生产采用 Runtime 子块位置写中间 signal+coverage 双f32磁盘文件，再由 writer 流式读取，不能以“整幅常驻RAM”描述默认路径。以上为静态源码对照；外部 WCS/HiPS oracle、真实M42/HST与MC仍 NOT_RUN。

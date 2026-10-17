@@ -349,3 +349,20 @@ Q10旧t_norm2−proj已修，历史反例保留，剩余秩阈值/误差证书�
 **正式修改范围**：两篇原算法长文、docs/science/drizzle/DRIZZLE.md、docs/science/projection/HIPS_TO_FITS.md、docs/detail/export/modules.md、export/README.md、当前REPORT、ORIGINAL_FILES.tsv严格两行；不新增治理文档，不改生产C++/schema/科学参数/test。静态源审/原文保全/路径/链接/最终diff/远端SHA可复核；外部WCSLIB/Astropy、独立曲边积分MC、真实M42/HST、编译/CPU-RSS/E2E全部NOT_RUN。#15/#79/#9/#14/#21未闭合。
 
 **建议D7-B仅两篇原文**：docs/science/algorithms/export/PHASE3_RSMP_IMPL.md 和 PHASE3_FITS_IMPL.md；核实际Phase3 resample/output及#88/#89与#79和D7-A WCS的完整单位、FITS、流式/裁剪、错误、验证，不提前执行。
+
+
+## ACSD Issue #6 D7-B｜Stage3 Resample / FITS 两篇原长文精读与现行生产分层（2026-10-17）
+
+**基线与保全来源**：参考最新 main 51e06540eb021c7272e87cf67b34e53c0648cf7a，原始63eccbb6133aef56389641d43c55df6e243819c5的 `PHASE3_RSMP_IMPL.md` **427行、36496B、blob 35e05649bba5bc4a6e2473261299e9d3e32ec317** 和 `PHASE3_FITS_IMPL.md` **450行、34690B、blob 0061d759b478f5c42a50aeac67d7c4fd11c5ce43**，已按每一原文范围读取全文与当前正文。原 §1–14、§1–17 有效 G3/G4、F1–F4、伪代码、签名、枚举、状态、资源设计、测试/参考与历史差异保留在两篇正式长文；在篇内就地订正实际数据结构/公开句柄与旧实现误述，并添可供科学复核和工程实施的 D7-B CURRENT/TARGET/RESEARCH_OPEN 章节。历史已撤销的测试载体仍仅是文档设计，不冒充本轮已跑。其它 export 长文没有虚记完成。
+
+**Resample 源图与真实产品**：实读 lib/algorithms/resample/p3_resample.h(204行)/.cpp(606)、lib/algorithms/coverage/hips_properties.cpp、lib/infrastructure/aio/src/hips/aio_hips_reader.cpp、lib/phase3_session/p3_session.cpp 和生产 module_adapters.cpp 的5节点。真正产品来自 acsd.phase3.properties→wcs→resample2→writer→verify；另一个 p3_session是可调用兼容API，不能代表现有CLI的资源与磁盘形态。NESTED leaf`>>18`、local Morton→FITS index=(511-x)*512+y由共享HEALPix给出；真实IVOA Dir=floor(tile/10000)*10000、Npix=完整tile号，缺文件时AIO可回退仅兼容旧Dir=tile/10000 Npix=tile%10000。P3先验hips_properties校验order≤20/512/format/frame/image及至少一tile，AIO进一步检查完成manifest已声明signal、tile/reader与MOC；不能把损坏产品一概记合法空洞。读取-64bit tile经f32缓存后不保留64bit像元精度。nearest/bilinear是正式仅两核；bilinear选四象限最近中心、退化重复leaf，满足常量重现但#90不规则四角可能不满足Σcx=Σcy=0，真实HEALPix误差和孔径需MC。#89预清空masked weights、#88合并重复64bit leaf coefficients后按条件独立跨叶方差传播已存在；不同叶相关C没有闭合，CLI根本不发布uncertainty。NaN C0缺tile vs C1值非法要区分；adapter调用p3_sample_bilinear_ex不暴露计数产品。P3生产`p3_resampled.bin`仍为signal+coverage双f32 *全图磁盘工作文件*，Runtime按sub-block有界内存，writer实际只消费signal。CACHE静态风险：sharedLRU cap只约束成功tile map，separate absent map不受cap约束，worker hot pin以及并发miss读可能额外增长；每pixel neighbors vector动态分配。旧FIFO/“单tile只可能一次global读取”和全图必常驻RAM结论过时。
+
+**FITS生产真合同**：lib/algorithms/fits_output/p3_output.h(182)/.cpp(1066)、P3 WCS、module_adapters.cpp p3_op_writer/verify、run_context与真正源hash。历史§2–4 “PRIMARY+COVERAGE+VARIANCE/IVAR扩展”是旧开发意图，**现行整幅兼容与生产P3FitsStream均严格只允许1个PRIMARY signal FITS HDU**；内部coverage是二进制work plane/摘要，不输出COVERAGE扩展，误差子产品不发布。P3FitsStream公开open/begin_hdu(0)/write_block/end_hdu/publish/abort状态机，crop WCS将CRPIX减整数窗口原点而不新采样，BITPIX=-64只是盘面宽度，上游数值已为f32。真实原子顺序tmp写PRIMARY/WCS/BUNIT/provenance→DATASUM/CHECKSUM→flush→close→fsync→**rename之前tmp结构/checksum验证+完整sha256**→atomic_replace→P3FitsVerifyStream reopen&compare→canonical产品hash/sidecar；真实run_id/software_version/input_manifest_hash而不是旧字符串占位。IntegritySHA256整文件和canonical SHA是不同对象。#79生产仍未传P2 obs_filter/response_distribution/FILTER等；#9真实photometry-applied单位不能靠canonical写ADU/sr宣称正确。读侧-64值与bin f32核比对/NaN同态/极区WCS/外部Astropy均未在本批实跑。
+
+**新发现静态CURRENT科学/工程风险**：P3FitsVerifyStream::close return P3_OUT_OK 并不保证 result.reopen_ok=true；P3_op_verify保存 reopen_ok 和 canonical_match，但缺少在false时显式返回失败，会存在“发布校验报告表明失败但operation仍报success”的静态路径，需单独故障注入证明触发并修生产。stream verify也不独立对拍真实BUNIT、FILTER/响应、DATASUM/CHECKSUM（发布前tmp有校验，但发布后verify的覆盖不同），covered_px在流式verify按非NaN计算而不是内部coverage plane、有限科学值，Inf也被计数。不得据校验JSON文件存在认定天文生产验收已通过。以上是SOURCE_CONFIRMED，尚未实跑重现负例。
+
+**正式文件范围**：两篇算法原长文、docs/science/resample/RESAMPLE.md、docs/science/projection/HIPS_TO_FITS.md、docs/detail/export/modules.md、docs/science/algorithms/export/README.md及既有 REPORT/ORIGINAL_FILES.tsv仅该两行。没有新台账、没有改源码/Schema/科学参数/测试或原始数据。
+
+**本轮验证等级**：已做GitHub live main读取、原长文和生产函数静态语义对照；待做diff/tree/MD link/TSV与远端提交核验。**NOT_RUN**：命令行`git fetch origin`本地shell（使用GitHub远端最新ref替代）、C++编译、生产CLI/FITS E2E、Astropy/WCSLIB和独立HEALPix/MC、HST/M42、实际RSS/锁/IO测试、错误注入、跨平台Windows验证。原测试数值不冒充D7-B新结果。
+
+**停止边界**：D7-B提交和Issue6反馈后停止，D7-C只建议余下 `docs/science/algorithms/export/PHASE3_RESAMPLE.md` 与 `HIPS_WRITER.md` 原长文；下一轮如启动应先确认任务批次与最新生产。#9/#15/#79/#90与新verify fail-closed问题仍按其独立来源和实验闭合。

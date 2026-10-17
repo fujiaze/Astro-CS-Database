@@ -66,3 +66,10 @@ HiPS的层级表示遵循[3]。Tile 宽 W=512、tile order K 对应细层 leaf n
 [投影/WCS 实现级合同](../algorithms/export/PHASE3_PROJ_IMPL.md)保留 63eccbb6 全部 G1/G2、CRPIX/CD/手性/四角/错误和投影注册原文。当前 p3_projection_registry.h 的设计冻结八种投影与生产声明 D={TAN} 不同；SIN/CAR/AIT 内部核尚未进入 CLI，STG/MOL/CEA/ZEA 未实现。p3_op_wcs 实际调用 p3_wcs_make 时 PA 传 0.0；库能构造旋转不是当前 CLI 暴露了 PA。内部像素中心0-based，FITS CRPIX1/2 为1-based，外缘需另测±0.5像素边界。TAN 实现另有保守策略 |Dec|≤85°、FOV/数值门和 pix2world 切平面 r<π/2，必须区别于球面理论半球的几何奇点。天空 crop 在离散边样本求窗口，不是再重采样；CRPIX 只减 integer 裁剪偏移，CD/CRVAL 不变。
 
 CURRENT 单Signal P3 使用 nearest 或局部四象限 bilinear，不是 P1 对真实 HEALPix 曲边的面积求交，也**尚没有 P3 conservative area-overlap**。#89 已将 bilinear 输出权重初始化0，#88 已按完整 leaf ipix 聚合重复系数再算条件对角方差；这仅证明库修复代码已经存在，当前 slim export 仍不消费/发布 uncertainty。需要另外核真实源单位与 canonical BUNIT（#9）、各级面积/PSF真值、空间相关协方差以及 #79 的 mono/unknown/mixed response 从 P2 进入最终 FITS 的原子完整传递。现 p3_props.json 未载 obs_filter/response_distribution，不能把 FILTER 和 ACSDRESP/RSPHASH 的目标合同标为已实现。本批外部 WCSLIB/Astropy、真实 FITS CLI、HST/M42 都 NOT_RUN。
+
+
+## D7-B｜Resample→FITS Writer 发布和校验的真实能力
+
+[重采样长文](../algorithms/export/PHASE3_RSMP_IMPL.md)与[FITS Writer 长文](../algorithms/export/PHASE3_FITS_IMPL.md)分别还原 Stage3 真生产：`p3_resampled.bin` 为未裁剪 signal/coverage 两个 f32 内部平面；P3FitsStream 与 ExportStreamScheduler 仅将裁剪后 signal 写入一个 PRIMARY HDU，BITPIX -32/-64 不增加输入f32有效精度。最终文件没有 COVERAGE、VARIANCE、IVAR 扩展。原子发布的真实顺序为 tmp、写PRIMARY/DATASUM/CHECKSUM、flush/close/fsync、**发布前**验证checksum和完整SHA256、原子rename、再独立流式reader对照工作数据，此外生成完整字节 `integrity_sha256` 与规范内容 `canonical_sha256`（不同身份与用途）。
+
+**当前实现不等于完整跨层验收**：`P3FitsVerifyStream` 回读 WCS/尺寸/单HDU及像素（NaN==NaN），但不读FITS BUNIT/名义响应、也不在发布后重新校CHECKSUM；`close` 的返回状态OK与 `reopen_ok` 可以不同。生产 `p3_op_verify` 会把 `reopen_ok` 和 `canonical_match` 写入JSON，却未以这两个布尔为最终成功的强制条件；这属于静态证实的 fail-closed 调用契约缺口，待编码/故障注入。 `covered_px` 当前verify按非NaN计，非真实coverage plane，不能互相替代。#79的真实响应来源/FILTER传递尚缺；#9的真实已施加光度单位不因固定ADU/sr头字符串而获得保证。独立 FITS/astropy读侧、外部 WCS、跨阶段响应与真值光度、负例故障注入均未在D7-B运行。
