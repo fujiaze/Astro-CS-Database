@@ -162,3 +162,12 @@ Tile宽度固定为 512（2^9）时，某 tile 的 leaf 分辨率 order_leaf=ord
 [2] Fruchter, A. S., Hook, R. N. Drizzle: A Method for the Linear Reconstruction of Undersampled Images. PASP, 114, 144–152. [论文](https://arxiv.org/html/astro-ph/9808087v2)。
 
 [3] IVOA. HiPS: Hierarchical Progressive Surveys. [推荐标准](https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf)。
+
+
+## D7-A｜#15 真曲边计算与闭合证据的生产/研究分界
+
+目前 HEALPix Drizzle 真正的生产核在 lib/algorithms/drizzle/healpix_drizzle/，不是 Phase3 resample；[原始长文的实现级复核](../algorithms/export/DRIZZLE_GEOMETRY.md)已核最新 spherical_overlap.cpp。真实的 H_p 有等面积 \(4\pi/(12nside^2)\) 但具有曲边；当前 nside≥256 的 cached 和 uncached 求交路径都将叶替换为四角大圆弧多边形 \(\widetilde H_p\)。这会令 \(\sum_p\widetilde a_{jp}\approx A_{drop,j}\) 在近似内部成立，却未保证 \(\widetilde a_{jp}=a_{jp}\) 或正确的真实 leaf membership。极冠 apex 的四角相对真实叶面积已知约−9.968368384%，是**局部几何反例**，不是已测最终真实场景光度损失。
+
+D7-A 的唯一可施工设计是 HEALPix face/chart 真曲边参数化、球面 Jacobian/积分或高阶自适应边界，和独立的 HEALPix ang2pix membership 及真实 overlap oracle；细分容差需同时含绝对面积和对非零真交叠的相对面积，并逐 12 faces/极冠/|z|=2/3/RA wrap 分类。零候选、微小近平接、不同 pixfrac、nside={256,8192,2^18} 的失败不得被平均掩盖。分离 **partition closure / constant signal / true area & membership / PSF flux & extended-source truth** 四种断言。性能可保存由独立证据认证的四角快速域，其余局部精细路径，以 Runtime worker 预算和有界缓存执行。此方案为 SCIENCE_TARGET，没有在本 D7-A 修改 C++。
+
+这里的归一恰为原 §2：\(F_p=\sum_j x_j a_{jp}/A_{drop,j}\)，\(N_p=\sum_jA_{pixel,j}a_{jp}/A_{drop,j}\)，\(S_p=F_p/N_p\)。只有 \(A_{pixel,j}/A_{drop,j}\) 在同一目标的有效样本之间相等时，才能进一步写 \(S_p=\sum_jB_ja_{jp}/\sum_ja_{jp}\)；不能普遍用 \(D_p=\sum_ja_{jp}\) 替掉 \(N_p\)。相关噪声服从同一实际线性算子 \(C_{leaf}=RC_{source}R^T\)，P2/P3 单 Signal 不等于其完整协方差已经发布。

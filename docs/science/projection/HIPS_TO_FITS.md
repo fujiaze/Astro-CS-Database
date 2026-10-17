@@ -59,3 +59,10 @@ HiPS的层级表示遵循[3]。Tile 宽 W=512、tile order K 对应细层 leaf n
 [2] Calabretta, M. R., Greisen, E. W. Representations of celestial coordinates in FITS. A&A, 395, 1077–1122. [论文](https://arxiv.org/abs/astro-ph/0207413)。
 
 [3] IVOA. HiPS: Hierarchical Progressive Surveys. [推荐标准](https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf)。
+
+
+## D7-A｜已核 P3 CLI 投影、FITS 与重采样能力边界
+
+[投影/WCS 实现级合同](../algorithms/export/PHASE3_PROJ_IMPL.md)保留 63eccbb6 全部 G1/G2、CRPIX/CD/手性/四角/错误和投影注册原文。当前 p3_projection_registry.h 的设计冻结八种投影与生产声明 D={TAN} 不同；SIN/CAR/AIT 内部核尚未进入 CLI，STG/MOL/CEA/ZEA 未实现。p3_op_wcs 实际调用 p3_wcs_make 时 PA 传 0.0；库能构造旋转不是当前 CLI 暴露了 PA。内部像素中心0-based，FITS CRPIX1/2 为1-based，外缘需另测±0.5像素边界。TAN 实现另有保守策略 |Dec|≤85°、FOV/数值门和 pix2world 切平面 r<π/2，必须区别于球面理论半球的几何奇点。天空 crop 在离散边样本求窗口，不是再重采样；CRPIX 只减 integer 裁剪偏移，CD/CRVAL 不变。
+
+CURRENT 单Signal P3 使用 nearest 或局部四象限 bilinear，不是 P1 对真实 HEALPix 曲边的面积求交，也**尚没有 P3 conservative area-overlap**。#89 已将 bilinear 输出权重初始化0，#88 已按完整 leaf ipix 聚合重复系数再算条件对角方差；这仅证明库修复代码已经存在，当前 slim export 仍不消费/发布 uncertainty。需要另外核真实源单位与 canonical BUNIT（#9）、各级面积/PSF真值、空间相关协方差以及 #79 的 mono/unknown/mixed response 从 P2 进入最终 FITS 的原子完整传递。现 p3_props.json 未载 obs_filter/response_distribution，不能把 FILTER 和 ACSDRESP/RSPHASH 的目标合同标为已实现。本批外部 WCSLIB/Astropy、真实 FITS CLI、HST/M42 都 NOT_RUN。

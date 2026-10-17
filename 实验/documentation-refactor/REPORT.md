@@ -334,3 +334,18 @@ Q10旧t_norm2−proj已修，历史反例保留，剩余秩阈值/误差证书�
 **验证事实**：原文有 NIST、Siril、M42、Monte Carlo 的历史报告；本 D6 的新 E2E/MC/M42/HST/Gaia、跨平台 ABI/编译、Windows 构建、真实 rejection 误拒/后选择协方差、完整 Markdown 渲染科学和代码回归均 **NOT_RUN**。GitHub links/原清单两行变更及远端 diff 范围单独做静态检查；无法以读源证明新的科学统计正确性。#8/#9/#13/#17/#20/#21/#71 等保持开放研究/实施分界。
 
 **下一批 D7 不在本批执行**：按 Issue #6 规划先逐篇全文精读 **docs/science/algorithms/export/PHASE3_PROJ_IMPL.md 和 DRIZZLE_GEOMETRY.md**（以 Git tree 中实际路径核对）；随后每批最多2篇处理 PHASE3_RSMP_IMPL.md、PHASE3_FITS_IMPL.md，再 PHASE3_RESAMPLE.md、HIPS_WRITER.md；总队列聚焦 #79 response/provenance、#15 曲边光通/面积守恒、Export FITS/WCS/BUNIT 与阶段二单Signal。D8再查 API、detail 和实验文本。D6 完成后立即停止，不提前施工 D7。
+
+
+## Issue #6 D7-A：原两篇长文全文审读与真实 P1 曲边 / P3 投影分界（2026-10-17）
+
+**起点**：远端 main d35bfc501d1cf257eb9267a571f1061c0c1fe27a。原始基线63eccbb6133aef56389641d43c55df6e243819c5；PHASE3_PROJ_IMPL.md 原724行/55288B，blob 5a0bb9fd778348fbea5203bad4c38ed7740cce77；DRIZZLE_GEOMETRY.md 原469行/44423B，blob a432fd9915e44994a5450ff2f9dac5ddac9d7c3d。两篇全部章节已全文阅读，按最新源核准后直接在原当前文档保留全部有效公式、算法分支、接口、错误、实验参考与关键数据，并增加 D7-A 正式 CURRENT / SCIENCE_TARGET / RESEARCH_OPEN 规范。仅精读本批两篇，不将其他 Export 长文虚记完成。
+
+**Phase3 WCS 的真实责任**：源 p3_wcs.h(374行)、p3_wcs.cpp(594行)、p3_projection_registry.h(312行)、p3_session.cpp(355行)、module_adapters.cpp p3_op_properties/wcs/resample/writer/verify、p3_resample.h/cpp、p3_output.h。原 G1/G2 中 CRPIX(1-based)/零基像元中心唯一+1桥接，ICRS CRVAL、CD-only手性（east_left/right 均 detCD<0）、rotation、TAN正反映射、RA wrap、裁剪、四角和密点适用域测试保全。关键状态：设计冻结八投影；v6内部核四种；产品声明与生产只有TAN，非声明码显式UNSUPPORTED。库支持 rotation_pa 非零，但真实 p3_op_wcs 将 rotation_pa_deg=0.0，不冒充CLI有旋转选项。pix2world 中切平面半径 r≥π/2 拒绝是额外实现限制而非真正TAN天球前半球边界；四角像元中心足够涵盖中心矩形，但不能证明±0.5像元外边界。crop精确调整CRPIX/画幅不重新采样；真实CURRENT P3 writer仅PRIMARY Signal，uncertainty unavailable。#79真实生产 props 不携 nominal response，mono/unknown/mixed FITS FILTER/hash均只是目标合同；#9 applied L/sr 与canonical BUNIT一致性未闭合。
+
+**Stage1 HEALPix Drizzle 的真实责任**：原 DRIZZLE_GEOMETRY 虽在 export/，实际是 P1 Normalize 的 forward球面面积交叠，源 drizzle_engine.cpp、spherical_overlap.cpp、hp_drizzle_api.h、astro_sphere_sink.cpp、aio_hips_writer.cpp。保留原 drop/pixfrac、a_jp、A_drop/A_pixel、F/N/D、sumVarNum、auto-nside、SIP、3层候选、1/N确定性、非有限分类和九项DISP与HST/M42设计。核实 #15：nside≥256 真生产 cached/uncached 路径均用4角测地线叶替代真实HEALPix曲边；极冠apex 约−9.968368384%是特定叶区域面积误差，不是已测FITS或星点 flux 误差。分清自分区闭合、常数面亮度、真实leaf membership、曲边真实 overlap 和天空信号保真。就地订正原无条件 S_p=ΣB_ja_jp/Σa_jp：正确代码表达为 S=ΣB_j a_jp(A_pixel,j/A_drop,j)/Σa_jp(A_pixel,j/A_drop,j)，只有面积比对所有有效 j 一致才可约掉。不得替换 sumNorm=N_p 为 sumArea=D_p。唯一 SCIENCE_TARGET：HEALPix face/chart参数真曲边、面积Jacobian和自适应求积/误差证书，以及独立 membership oracle；在证明范围内保留快四角，否则精细曲边路径。实验 nside256/8192/2^18、12faces、极冠/|z|=2/3/RA wrap、pixfrac.5/.8/1、不同drop尺寸、PSF/星点孔径/低频/M42/HST、输入像元相关噪声分组，绝不把P3 bilinear当P1精确leaf overlap。
+
+**D6后代码新修事实**：#81 生产 large_scale 已用 eligible_before_growth 裁剪ring，#84 zero candidate 初始 acc=0；#89 p3 bilinear_nanmask_ex 已初始化weights[4]为0，#88 p3_uncertainty_propagate 已按完整leaf_ipix归并重复角系数再传播条件方差。四项均 STATIC_SOURCE_CONFIRMED，不依据旧D6描述回退，也不声称已真实FITS验收或消除完整covariance。Phase3 slim仍不发布方差层。
+
+**正式修改范围**：两篇原算法长文、docs/science/drizzle/DRIZZLE.md、docs/science/projection/HIPS_TO_FITS.md、docs/detail/export/modules.md、export/README.md、当前REPORT、ORIGINAL_FILES.tsv严格两行；不新增治理文档，不改生产C++/schema/科学参数/test。静态源审/原文保全/路径/链接/最终diff/远端SHA可复核；外部WCSLIB/Astropy、独立曲边积分MC、真实M42/HST、编译/CPU-RSS/E2E全部NOT_RUN。#15/#79/#9/#14/#21未闭合。
+
+**建议D7-B仅两篇原文**：docs/science/algorithms/export/PHASE3_RSMP_IMPL.md 和 PHASE3_FITS_IMPL.md；核实际Phase3 resample/output及#88/#89与#79和D7-A WCS的完整单位、FITS、流式/裁剪、错误、验证，不提前执行。
