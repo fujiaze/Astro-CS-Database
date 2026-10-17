@@ -1,0 +1,24 @@
+  [correct] output_dir = /workspace/Astro CS Database/实验/issue91-stage3-bunit/work/out/e1r_regress/alias_conflict
+  [correct] source.hips_dir = /workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/alias_conflict
+  [correct] 磁盘预估：output_dir = /workspace/Astro CS Database/实验/issue91-stage3-bunit/work/out/e1r_regress/alias_conflict 可用 126747 MiB；预估需求下限 12 MiB（输入 14 文件/1 目录）
+{"event_id":"evt-a25c04f22f75-0","kind":"stage_start","message":"stage started","phase":"export","run_id":"a25c04f22f75","schema_version":"1","sequence":0,"severity":"info","stage":"phase3_session","timestamp_utc":"2026-10-17T12:11:47Z"}
+[2026-10-17T12:11:47Z] seq=0 info stage_start (export/phase3_session)：stage started
+{"completed":0,"eta_seconds":null,"event_id":"evt-a25c04f22f75-1","kind":"progress","message":"progress update","phase":"export","rate":null,"run_id":"a25c04f22f75","schema_version":"1","sequence":1,"severity":"info","stage":"progress","timestamp_utc":"2026-10-17T12:11:47Z","total":1,"unit":"phases"}
+[2026-10-17T12:11:47Z] seq=1 info progress (export/progress)：progress update
+session run: cpu_profile source=user-data-fallback path=/workspace/.local/share/ACSD/cpu_profile.json
+acsd: cpu profile invalid: schema != acsd.cpu-profile/v2 — rerun 'acsd benchmark cpu'
+acsd: cpu_profile '/workspace/.local/share/ACSD/cpu_profile.json' rejected (rc=5) — conservative baseline
+session run: memory budget=13392280780 B (available=14097137664 B, percent=95, source=probe)
+[acsd:INFO][avx2] self_test ok
+session run: backend=acsd.cpu.baseline provider=baseline (route table: 0/12 kernels on variant provider)
+session run: memory pressure ledger=/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/out/e1r_regress/alias_conflict/memory_pressure_ledger.jsonl
+{"completed":1,"eta_seconds":null,"event_id":"evt-a25c04f22f75-2","kind":"progress","message":"progress update","phase":"export","rate":6.038619337804037,"run_id":"a25c04f22f75","schema_version":"1","sequence":2,"severity":"info","stage":"progress","timestamp_utc":"2026-10-17T12:11:47Z","total":1,"unit":"phases"}
+[2026-10-17T12:11:47Z] seq=2 info progress (export/progress)：progress update
+{"event_id":"evt-a25c04f22f75-3","kind":"stage_end","message":"stage finished","phase":"export","run_id":"a25c04f22f75","schema_version":"1","sequence":3,"severity":"info","stage":"phase3_session","timestamp_utc":"2026-10-17T12:11:48Z"}
+[2026-10-17T12:11:48Z] seq=3 info stage_end (export/phase3_session)：stage finished
+{"event_id":"evt-a25c04f22f75-4","kind":"artifact","message":"run manifest written","path":"/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/out/e1r_regress/alias_conflict/acsd_run_a25c04f22f75.json","phase":"export","role":"run_manifest","run_id":"a25c04f22f75","schema_version":"1","sequence":4,"severity":"info","sha256":"bfee225c19871c46c688cdb04e567ca324e572d66ab35ee259a4f1db41f0ee26","size_bytes":1961,"stage":"manifest","timestamp_utc":"2026-10-17T12:11:48Z"}
+[2026-10-17T12:11:48Z] seq=4 info artifact (export/manifest)：run manifest written
+acsd: phase3 failed: node properties failed: P3-INPUT-UNIT-DECLARATION-CONFLICT: two unit declaration surfaces disagree: BUNIT='ADU/sr' vs ACSD_SIGNAL_UNIT='ADU': /workspace/Astro CS Database/??????/issue91-stage3-bunit/w
+[dev_diag] run=a25c04f22f75 snapshots_written=0 diag_io_error=0 root=/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/out/e1r_regress/alias_conflict/_dev_diagnostics/a25c04f22f75
+{"event_id":"evt-a25c04f22f75-5","exit_code":3,"kind":"final","message":"node properties failed: P3-INPUT-UNIT-DECLARATION-CONFLICT: two unit declaration surfaces disagree: BUNIT='ADU/sr' vs ACSD_SIGNAL_UNIT='ADU': /workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/alias_conflict/signal/properties","phase":"export","run_id":"a25c04f22f75","run_manifest":"/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/out/e1r_regress/alias_conflict/acsd_run_a25c04f22f75.json","schema_version":"1","sequence":5,"severity":"error","stage":"n/a","status":"phase3_failed","summary":"node properties failed: P3-INPUT-UNIT-DECLARATION-CONFLICT: two unit declaration surfaces disagree: BUNIT='ADU/sr' vs ACSD_SIGNAL_UNIT='ADU': /workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/alias_conflict/signal/properties","timestamp_utc":"2026-10-17T12:11:48Z"}
+[2026-10-17T12:11:48Z] seq=5 error final (export/n/a)：node properties failed: P3-INPUT-UNIT-DECLARATION-CONFLICT: two unit declaration surfaces disagree: BUNIT='ADU/sr' vs ACSD_SIGNAL_UNIT='ADU': /workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/alias_conflict/signal/properties（exit_code=3）
