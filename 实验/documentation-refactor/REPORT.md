@@ -366,3 +366,16 @@ Q10旧t_norm2−proj已修，历史反例保留，剩余秩阈值/误差证书�
 **本轮验证等级**：已做GitHub live main读取、原长文和生产函数静态语义对照；待做diff/tree/MD link/TSV与远端提交核验。**NOT_RUN**：命令行`git fetch origin`本地shell（使用GitHub远端最新ref替代）、C++编译、生产CLI/FITS E2E、Astropy/WCSLIB和独立HEALPix/MC、HST/M42、实际RSS/锁/IO测试、错误注入、跨平台Windows验证。原测试数值不冒充D7-B新结果。
 
 **停止边界**：D7-B提交和Issue6反馈后停止，D7-C只建议余下 `docs/science/algorithms/export/PHASE3_RESAMPLE.md` 与 `HIPS_WRITER.md` 原长文；下一轮如启动应先确认任务批次与最新生产。#9/#15/#79/#90与新verify fail-closed问题仍按其独立来源和实验闭合。
+
+## D7-C｜原始 PHASE3_RESAMPLE、HIPS_WRITER 全文复核及 Export 系列文档语义收尾（2026-10-17）
+
+**历史全文**：`docs/science/algorithms/export/PHASE3_RESAMPLE.md`：原63eccbb6133aef56389641d43c55df6e243819c5，blob`7c7d894b5d31c1e2eff4041563f90b157e5674cd`，214行/原清单17647字节，现行原本同blob；`docs/science/algorithms/export/HIPS_WRITER.md`：原blob`ae917e6510915845b7de97f1fc5367d838ca7ff6`，427行/37310字节，现行原版只替换了5个正式路径引用。两文历史全文按前后分段逐节读取，不用D7-A/B摘要或_SOURCE.txt代替。大原文中有效G1–G5、NESTED/tile/FITS/MOC、面积归一、层级、失败处理、伪代码、测试设计、参考文献保存在原正式正文并按最新版正文明确CURRENT/TARGET/RESEARCH_OPEN，原归档不是正式归属。
+
+**PHASE3_RESAMPLE CURRENT**：G1真实TAN WCS/PA/手性/一次0→1桥接/CRPIX裁剪；G2输入leaf面亮度L/sr且非保守中心插值与面积平均是不同估计量；G3数学选阶与#86真正read_leaf永久按输入K读finest的脱节，不能以ORDERSEL metadata冒充粗阶已消费；G4四象限不规则bilinear只有常数再现，#90一次梯度反例仍需真实HEALPix和最终PSF定量；#88/#89库级重复leaf归权与剔除角0权已修，但C=1/S=NaN、失tile C=0、相关协方差与missing count产物未闭合。CURRENT CLI是module_adapters五节点及Runtime子块磁盘`p3_resampled.bin`双f32 plane→最终单PRIMARY FITS，不是历史COVERAGE/VARIANCE/IVAR多HDU；#9单位、#79响应、#94两布尔false但节点依旧成功列为明确缺口。当前该算法正文新增全链伪代码、公式适用条件、API/状态/性能和独立正反例矩阵。
+
+**HIPS_WRITER CURRENT**：正式C头`lib/infrastructure/aio/include/aio_hips.h`405行、`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`3138行；真实P1 Drizzle调用`astro_sphere_sink.cpp::write_hips_phase1`，P2为`module_adapters.cpp::p2_op_write`（最终仅SIGNAL）。K=log2(nside)是真实HEALPix叶阶，T=K−9是HiPS tile目录；standard Dir按tile号的万位向下取整，Npix完整tile号，NESTED Morton→FITS index=(511−x)*512+y。Drizzle F/N在sink通过k=D/N转换为AIO`flux_sum=F*k`/`covered_area=D`后，writer再F'/D获得正确面亮度；方差分子乘k²，支持度D/Ω可>1并clamp，绝不能从clamped support反演真实面积。#15真曲边仍未在上游生产闭合。Writer叶级信号、support与variance未知/可用/无覆盖/坏数据分别表示，当前var=0/ivar=0是unknown sentinel而非零噪声（物理歧义须有状态）；父阶稀疏double累加和完备流式发布现已真实接入，历史f32累计不是现行；发现子leaf area>0但signal=NaN时父层因跳过非有限flux同时丢area的静态条件性风险，须E2独立验证。单文件tile原子写、properties和manifest原子发布/两次异步池drain已真实实现，但`aio_hips_abort`不清理所有已落磁盘文件，P1 HiPS manifest与后发布的frame_science侧文件不是一个完整revision事务。#10 P1 signal.leaf_order当前已修到K，frame-science/v2仍TARGET；#13 Mosaic legacy稀疏层消费未切Canon；#19混阶未先球面重映射；#74低nside实际延迟根因未知；#75软件SHA增量构建可陈旧；#9 applied光度数值与固定ADU/sr不符。源代码函数、公共C ABI flags和struct_size、完成标记及错误码已正式落在原文和接口分册。
+
+**正式文件范围**：只更新`PHASE3_RESAMPLE.md`、`HIPS_WRITER.md`两篇长文及必要交叉引用`docs/detail/infrastructure/hips_writer.md`、`docs/science/drizzle/DRIZZLE.md`、`docs/science/algorithms/export/README.md`，与已有`实验/documentation-refactor/REPORT.md`、原191篇`ORIGINAL_FILES.tsv`两行。没有新增管理体系；没有改C++、机器schema、科学参数、测试、实验输入或构建脚本。
+
+**证据等级**：全文原始/现行比对、Issue#6/#9/#10/#13/#15/#19/#74/#75/#86/#90/#94、最新GitHub main源函数静态阅读已完成。**NOT_RUN**：本地shell `git fetch origin`（直接向GitHub读取最新branch ref代替）、C++编译/CI、真实Normalize/Mosaic/Export CLI和P3 E2E、FITS/Astropy/独立HEALPix曲边Oracle、#86/#90真实数值验证、#94故障注入、M42/HST/用户目检、跨平台Windows与RSS/IO基准。原文旧实验报告不冒充本批PASS。提交/远端SHA/Issue评论在单次git操作成功后追加记录；D7-C提交即停止，不宣称Issue#6所有科学问题已闭合。
+

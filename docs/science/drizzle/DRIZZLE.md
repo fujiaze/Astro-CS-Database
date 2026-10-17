@@ -192,3 +192,9 @@ Tile宽度固定为 512（2^9）时，某 tile 的 leaf 分辨率 order_leaf=ord
 D7-A 的唯一可施工设计是 HEALPix face/chart 真曲边参数化、球面 Jacobian/积分或高阶自适应边界，和独立的 HEALPix ang2pix membership 及真实 overlap oracle；细分容差需同时含绝对面积和对非零真交叠的相对面积，并逐 12 faces/极冠/|z|=2/3/RA wrap 分类。零候选、微小近平接、不同 pixfrac、nside={256,8192,2^18} 的失败不得被平均掩盖。分离 **partition closure / constant signal / true area & membership / PSF flux & extended-source truth** 四种断言。性能可保存由独立证据认证的四角快速域，其余局部精细路径，以 Runtime worker 预算和有界缓存执行。此方案为 SCIENCE_TARGET，没有在本 D7-A 修改 C++。
 
 这里的归一恰为原 §2：\(F_p=\sum_j x_j a_{jp}/A_{drop,j}\)，\(N_p=\sum_jA_{pixel,j}a_{jp}/A_{drop,j}\)，\(S_p=F_p/N_p\)。只有 \(A_{pixel,j}/A_{drop,j}\) 在同一目标的有效样本之间相等时，才能进一步写 \(S_p=\sum_jB_ja_{jp}/\sum_ja_{jp}\)；不能普遍用 \(D_p=\sum_ja_{jp}\) 替掉 \(N_p\)。相关噪声服从同一实际线性算子 \(C_{leaf}=RC_{source}R^T\)，P2/P3 单 Signal 不等于其完整协方差已经发布。
+
+
+### D7-C｜Drizzle分子与HiPS Writer实参的归一桥接
+
+现行[HiPS Writer算法长文](../algorithms/export/HIPS_WRITER.md)明确源头：Drizzle原累计`F_p=sum_j(a_jp/A_drop,j)*x_j`（积分量L）与`N_p=sum_j(a_jp/A_drop,j)*Omega_j`（sr），信号`S_p=F_p/N_p`（L/sr）；`astro_sphere_sink.cpp::write_hips_phase1`在调用AIO前引入`D_p=sum_j a_jp`及`k=D_p/N_p`，以`flux_sum=F_p*k`、`covered_area=D_p`作为Writer ABI视图，所以AIO再次执行`flux_sum/covered_area`时才复原正确S，方差分子同乘k²。`support=min(1,D_p/Omega_leaf)`是覆盖分配累计的截断比例，可能重复覆盖，不是独立方差或真实并集。现行AIO祖先为稀疏double且按未钳制D面积加权，其科学误差仍承接#15真曲边及输入相关噪声；有coverage但signal非有限时叶级保留C、父级可能因同次跳过非有限flux而丢面积，属D7-C静态新条件风险。#9 applied数值真实L/sr与固定ADU/sr的差异、#13精度并未由Mosaic消费也不能靠Writer修复。此节为源码静态对照，独立几何与真实图像运行NOT_RUN。
+

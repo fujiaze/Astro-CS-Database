@@ -7,3 +7,7 @@
 
 
 **D7-B 两篇原始长文已经正式精读与改写**：[Stage3 HiPS Resample](PHASE3_RSMP_IMPL.md)（NESTED/标准目录与历史fallback、实际 bilinear、#88/#89、#90 一次再现、负缓存和当前 Runtime双平面）与 [Stage3 FITS Writer](PHASE3_FITS_IMPL.md)（单 PRIMARY HDU、stream状态机、发布前checksum/sha、裁剪、BUNIT/响应、读回校验状态）。P1真实球面 Drizzle仍由 D7-A [Drizzle](DRIZZLE_GEOMETRY.md)独立负责；当前 Stage3 bilinear不是P1 leaf曲边交叠。本批没有执行 D7-C。
+
+
+**D7-C 结题的原长文**：[G1–G5 Stage3 Resample](PHASE3_RESAMPLE.md)与[HEALPix HiPS Writer](HIPS_WRITER.md)已对63eccbb6原始全文、main真实C++接口逐一复核。前者强调#86“选择的order不是真正读取的order”、#90非矩形bilinear/#94校验状态；后者强调P1 Drizzle的F/N与AIO的F'/D换算、f64稀疏层级、#9/#10/#13/#15/#19/#74/#75和单文件原子相对于完整P1科学revision的边界。原历史设计和研究性测试继续保留正文，实验未运行不标PASS；此批是文档语义收敛，不代表整仓科学闭合。
+
