@@ -3371,7 +3371,10 @@ static int sky_make_residual_fields(const SkyPlaneModel* m, const P2SkySample* s
 
 // §5.11 联合解（块坐标迭代）：解 (B_ref, δ_poly) → 用残差建逐帧场 F（已去公共模）
 // → 把 F 从样本里扣掉 → 重解 (B_ref, δ_poly) → 再更新 F …… 直至迭代次数用尽。
-// 每步都是精确最小二乘，块坐标迭代收敛到联合解；不需要把逐帧样条塞进 Schur。
+// 注意：当前 own 更新为 floor-bin 残差均值，实际求值为 bilinear basis；
+// 二者不构成严格的同目标函数最小二乘 F-step，不能凭固定迭代次数宣称收敛。
+// 精确的 projected GLS / 同一 basis 稀疏 LS 设计见 docs/science/sky/UPM.md §4.1；
+// 本轮仅纠正科学陈述，不改变生产数值路径（Issue #83 / #76）。
 int p2_sky_plane_build_joint(const P2SkySample* samples, std::uint64_t n,
                              const P2SkyPlaneConfig* cfg_in,
                              const P2SkyPlaneAdaptiveConfig* adaptive_in,
