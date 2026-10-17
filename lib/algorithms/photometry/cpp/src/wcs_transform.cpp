@@ -208,10 +208,26 @@ void WcsTransform::pixelToSky(double x, double y, double& ra, double& dec) const
 // ============================================================================
 // 天球坐标 -> 像素坐标 (逆向转换)
 // 步骤:
-// 1. TAN正投影: (RA,Dec) -> (xi,eta)
-// 2. CD逆矩阵: dx = cdInv[0]*xi + cdInv[1]*eta, dy = cdInv[2]*xi + cdInv[3]*eta
-// 3. 逆向SIP(AP/BP): 如果有AP/BP, dx' = dx + AP(dx,dy); 无则迭代一次
-// 4. 转回0-based: x = dx' + (CRPIX1-1), y = dy' + (CRPIX2-1)
+// 1. TAN正投影: (RA,Dec) -> (xi,eta)（#57: 背半球/非法坐标 -> NaN）
+// 2. CD逆矩阵: t = (cdInv·(xi,eta))（#61: 奇异CD -> NaN）
+// 3. SIP 逆解: 目标求 F(u,v) = (u + A(u,v), v + B(u,v)) = t
+// 4. 转回0-based: x = u + (CRPIX1-1), y = v + (CRPIX2-1)
+//
+// ── #92 A1-FIX: 唯一统一逆解算子 ──────────────────────────────────────────
+// 缺陷（修复前）: 当显式 AP/BP 存在时只做**一次性**近似逆
+// (u,v) = t + (AP(t), BP(t)) 就进入 1e-7 px 前向残差门。AP/BP 是求解器
+// **拟合**出的近似逆多项式，不保证自身即满足该门；真实 M42 帧的
+// AP_0_0 = -4.33e-5 px 使切点处残差 4.33e-5 > 1e-7，2309/2309 星被判 NaN。
+//
+// 修复: AP/BP 只作**初值**，有无 AP/BP 两条路径统一执行同一段有界不动点精化
+// (最多 64 轮, 步长 <=1e-10 早停)，精化完成后仍以原有 1e-7 px 前向残差门
+// 验收；非有限/不收敛一律 NaN（#56 的保守检查与 #57/#61 的拒绝条件全部保留）。
+// 不放大 1e-7、不放宽匹配半径、不关闭 SIP、不删门、不用一次式 AP/BP 直接放行。
+//
+// 次级合同缺口（本批只登记，不改 API）: 生产者 p1_wcs.json 声明
+// sip.ap_order=5，但消费者 WcsTransform 只有单一 m_sip_order(=sip_order=3)，
+// AP/BP 以 3 阶求值。该缺口只影响**初值质量**（帧角落 ~0.5 px），精化后
+// 对最终精度无影响；真正的 API 改造（ap_order 独立入参）需另批最小补丁 + 真实 A/B。
 // ============================================================================
 void WcsTransform::skyToPixel(double ra, double dec, double& x, double& y) const {
     double xi, eta;
@@ -224,46 +240,53 @@ void WcsTransform::skyToPixel(double ra, double dec, double& x, double& y) const
         return;
     }
 
-    double dx = m_cdInv[0] * xi + m_cdInv[1] * eta;
-    double dy = m_cdInv[2] * xi + m_cdInv[3] * eta;
-    const double distorted_dx = dx;
-    const double distorted_dy = dy;
+    // 线性中间坐标 t（含 SIP 修正后的目标中间坐标）。
+    const double t_x = m_cdInv[0] * xi + m_cdInv[1] * eta;
+    const double t_y = m_cdInv[2] * xi + m_cdInv[3] * eta;
+
+    double dx = t_x;
+    double dy = t_y;
 
     if (m_has_sip) {
+        // (1) 初值: 有 AP/BP 用 t + (AP(t),BP(t))；否则用 t。
         if (m_sip_ap != nullptr && m_sip_bp != nullptr) {
-            // 有逆向SIP多项式, 直接应用
-            double fp = evalSip(m_sip_ap, dx, dy, m_sip_order);
-            double gp = evalSip(m_sip_bp, dx, dy, m_sip_order);
-            dx += fp;
-            dy += gp;
-        } else {
-            // 求解 (u+A(u,v), v+B(u,v))=(distorted_dx,distorted_dy)。
-            // 固定三轮不构成收敛证明：用至多64轮保守不动点迭代，
-            // 最终还必须检验前向残差；非收敛坐标不能作为有效引导源。
-            double u = dx, v = dy;
-            for (int iter = 0; iter < 64; ++iter) {
-                const double f = evalSip(m_sip_a, u, v, m_sip_order);
-                const double g = evalSip(m_sip_b, u, v, m_sip_order);
-                const double u_new = distorted_dx - f;
-                const double v_new = distorted_dy - g;
-                if (!std::isfinite(u_new) || !std::isfinite(v_new)) break;
-                const double step = std::max(std::fabs(u_new - u), std::fabs(v_new - v));
-                u = u_new;
-                v = v_new;
-                if (step <= 1e-10) break;
+            const double ap = evalSip(m_sip_ap, t_x, t_y, m_sip_order);
+            const double bp = evalSip(m_sip_bp, t_x, t_y, m_sip_order);
+            const double u0 = t_x + ap;
+            const double v0 = t_y + bp;
+            // 畸变求值异常 => 退回受保护的线性初值 t（不产生"看似有效"的解）；
+            // 结果是否成立仍由 (2) 的精化与最终前向残差门裁决。
+            if (std::isfinite(u0) && std::isfinite(v0)) {
+                dx = u0;
+                dy = v0;
             }
-            dx = u;
-            dy = v;
+        }
+        // (2) 有界不动点精化: (u_{j+1},v_{j+1}) = t - (A(u_j,v_j), B(u_j,v_j))。
+        // 两条路径同一实现；固定轮数不构成收敛证明，故 (3) 仍必须检验。
+        for (int iter = 0; iter < 64; ++iter) {
+            const double f = evalSip(m_sip_a, dx, dy, m_sip_order);
+            const double g = evalSip(m_sip_b, dx, dy, m_sip_order);
+            const double u_new = t_x - f;
+            const double v_new = t_y - g;
+            if (!std::isfinite(u_new) || !std::isfinite(v_new)) {
+                dx = std::numeric_limits<double>::quiet_NaN();
+                dy = dx;
+                break;
+            }
+            const double step = std::max(std::fabs(u_new - dx), std::fabs(v_new - dy));
+            dx = u_new;
+            dy = v_new;
+            if (step <= 1e-10) break;
         }
     }
 
-    // 无论逆向系数是显式AP/BP还是迭代求得，均以同一前向SIP检验。
+    // (3) 精化完成后的唯一验收门: 逐分量前向残差 <= 1e-7 px 且全部有限。
     if (m_has_sip) {
         const double check_x = dx + evalSip(m_sip_a, dx, dy, m_sip_order);
         const double check_y = dy + evalSip(m_sip_b, dx, dy, m_sip_order);
         if (!std::isfinite(check_x) || !std::isfinite(check_y) ||
-            std::fabs(check_x - distorted_dx) > 1e-7 ||
-            std::fabs(check_y - distorted_dy) > 1e-7) {
+            std::fabs(check_x - t_x) > 1e-7 ||
+            std::fabs(check_y - t_y) > 1e-7) {
             x = std::numeric_limits<double>::quiet_NaN();
             y = x;
             return;
