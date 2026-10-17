@@ -144,6 +144,19 @@ star_matcher.cpp:207-218
 
 前向被独立确认正确 ⇒ 不是投影几何、不是 CD/SIP 前向、不是像素基准或角度单位问题。
 
+### 6.1 端到端交叉核对（不依赖 C++ 探针）
+
+`evidence/50-astropy-crosscheck.json`：把**同一批 2309 颗真实 Gaia 星**直接喂给 Astropy：
+
+| 量 | 值 |
+| --- | --- |
+| Astropy `all_world2pix` 后落在 `[0,4096)²` 的星数 | **1085** |
+| C++ 不动点分支（post）入帧数 | **1085**（一致） |
+| C++ pre（`38eaeba8b^`）入帧数 | 1085 |
+| 生产一次式 AP/BP 分支前向残差 | **2309/2309 > 1e-7 px**（min 1.03e-5，中位 0.269，max 1.84） |
+
+即：**投影本身把 1085 颗星正确放进帧内**（两个完全独立的实现给出同一个数），而门把 2309 颗全部判为无效。
+
 ---
 
 ## 7. 首个错误位置与根因判定
@@ -265,6 +278,7 @@ residual_center = |dx + A(dx,dy) - u| = |AP_0_0| = 4.3348e-5 px  >  1e-7 px  →
 | post/pre 单文件 A/B（0 ↔ 1085） | **PASS** |
 | 独立 WCSLIB/Astropy 前向 oracle | **PASS**（≤1.2e-10″） |
 | 独立 oracle 逆向可达 | **PASS**（≤3.9e-7 px） |
+| 端到端交叉核对（Astropy 入帧 1085 == C++ 不动点 1085） | **PASS** |
 | 首个错误位置 + 根因唯一判定 | **PASS**（`wcs_transform.cpp:265-266`，判定 (c)） |
 | 修复实施 + 相同真实六帧 E2E | **NOT_RUN**（需另行授权，A1 边界） |
 | 光度标度 `k_photo` / 应用标度科学正确性 | **NOT_RUN** |
@@ -299,6 +313,12 @@ python3 实验/issue92-wcs-gaia-match/code/20_project_variants.py \
   --p1wcs 实验/issue92-wcs-gaia-match/evidence/40-p1_wcs-frame1.json \
   --stars 实验/issue92-wcs-gaia-match/evidence/40-gaia-stars-frame1.csv \
   --out 实验/issue92-wcs-gaia-match/evidence/20-project-variants.json
+
+# 5) 端到端独立交叉核对（Astropy 入帧数 vs C++ 不动点入帧数）
+python3 实验/issue92-wcs-gaia-match/code/50_astropy_crosscheck.py \
+  --p1wcs 实验/issue92-wcs-gaia-match/evidence/40-p1_wcs-frame1.json \
+  --stars 实验/issue92-wcs-gaia-match/evidence/40-gaia-stars-frame1.csv \
+  --out 实验/issue92-wcs-gaia-match/evidence/50-astropy-crosscheck.json
 ```
 
 ---
