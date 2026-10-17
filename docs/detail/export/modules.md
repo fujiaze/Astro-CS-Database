@@ -213,3 +213,35 @@ stream 持有读句柄，调用者持有期望子块并复用有界缓冲；校�
 ### D5.2 真实生产数据与独立 oracle
 
 以 #11 已通过的标签-only 矩阵为基线复跑：全同 Halpha、全 unknown、unknown+known 顺序互换、Red+Blue、unknown+Red+Blue 六种排列。逐条执行当前 CLI Mosaic→Export，再以外部 CFITSIO/astropy 检查 P2 `p2_final`、P3 `p3_props` 和 FITS FILTER/ACSDRESP/RSPHASH/侧车 hash 的同一性；**仅修改 FILTER 名义标签不应改变 science DATA**（除 Export 自身固定算法的声明舍入），而 FITS Header 必须跟随身份变化。负例：删 `obs_filter` 属性键（与有空值不同）、换 run/model/source SHA、损坏完整 sidecar、跨 revision 混拼、BUNIT/leaf_order 冲突，明确拒绝。真实不同光谱响应的 M42/星云结构无偏性由 #14/P5 独立合成与真实 E2 证明，不用标签不变性自证。此 D5 只冻结文档，**不修改 C++、不更新机器 Schema、不声称已运行或已关闭 #79**。
+
+
+## D7-A｜P3 WCS / crop / Phase1 Drizzle 交叉引用下的当前 ABI
+
+**当前 P3 生产有完整 DAG 五段**：module_adapters.cpp::p3_op_properties → p3_op_wcs → p3_op_resample → p3_op_writer → p3_op_verify，P3 session 旧兼容入口不能替代 DAG 的真实资源说明。真实 p3_wcs.h/cpp 的 C++ 命名空间为 acsd::phase3；主要 API 签名如下（完整声明以头为准）：
+
+~~~cpp
+P3WcsStatus p3_wcs_validate_request(
+    const char* projection, const char* frame,
+    const char* coverage_output, std::string* why);
+P3WcsStatus p3_wcs_make(
+    double centre_ra_deg, double centre_dec_deg, double scale_deg_per_px,
+    int width_px, int height_px, const char* parity, double rotation_pa_deg,
+    P3WcsDescriptor* out, const char* projection="TAN");
+P3WcsStatus p3_wcs_pix2world(
+    const P3WcsDescriptor* d, double x, double y,
+    double* ra_deg, double* dec_deg);
+P3WcsStatus p3_wcs_world2pix(
+    const P3WcsDescriptor* d, double ra_deg, double dec_deg,
+    double* x, double* y);
+std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);
+const P3WcsApplicability* p3_wcs_applicability(const char* projection);
+P3WcsRoundtripGate p3_wcs_roundtrip_gate(const P3WcsDescriptor* d);
+P3WcsStatus p3_wcs_check_applicability(
+    const P3WcsDescriptor* d, std::string* why);
+~~~
+
+p3_wcs.h 还公开 p3_wcs_fov_deg、p3_wcs_scale_arcsec_per_px、p3_wcs_roundtrip_envelope_px、p3_wcs_roundtrip_max_error_px、p3_wcs_roundtrip_dense_max_error_px 和 header-inline p3_crop_window_from_fits/from_sky/apply_wcs。描述符字段为 double crval_ra_deg/crval_dec_deg/crpix_x/crpix_y、double cd[2][2]、int width_px/height_px、const char* projection；projection 为指向静态注册代码字面量的借用指针，不归调用者释放。状态 P3_WCS_OK=0、PARAM=1、UNSUPPORTED=2、HEMISPHERE=3；crop 状态 OK/PARAM/HEMISPHERE 分离。p3_wcs_make 在投影已可声明时零初始化 out，通过 CD/FOV/往返/corner gates 后返回；不要把错误状态当成输出 WCS 有效。当前 adapter PA=0, projection=TAN-only，frame=ICRS, coverage_output=mask；crop 内部0-based半开窗口，来自 FITS 的像素输入为1-based闭区间，输出 CRPIX 减整数原点，CD/CRVAL 原样；sky crop 每边257采样点是实现规格而非连续严格边界证书。
+
+**P1 Drizzle 真实内核与 P3 API 属不同库**：[Drizzle 球面长文](../../science/algorithms/export/DRIZZLE_GEOMETRY.md)指向 lib/algorithms/drizzle/healpix_drizzle/{hp_drizzle_api.h,drizzle_engine.cpp,spherical_overlap.cpp}；其中生产 nside>=256 leaf 求交使用 boundary4/cached TargetGeomCache，故 #15 保持 OPEN。P3 p3_resample.h 是 HEALPix leaf 中心/邻域的 nearest、bilinear；它们不是输出像元足迹面积求交，未来的 area-overlap 是 TARGET。库 #88/#89 的重复 leaf 合并和 masked-corner weight 初始化修复已在当前 main；当前 CLI 的 p3_op_resample/ writer 仍只有 Signal，不发布 variance/ivar。#81/#84 的 P2 large-scale/zero-candidate 源码已修复，不再以旧 D6 描述作为当前缺陷。
+
+**资源与真值分离**：P1 球面交叠每 drop 候选查询与角点/真曲边精细求积成本随 nside/边界复杂度变化，TargetGeomCache bounded/thread-local；P3 阶段行带/固定子块写盘随 W×H 和 tile cache/queue-depth，Runtime 租约预算控制 worker，stream 按 block bounded 驻留，crop 不新算整张值。两者计算成本不能合并估为一次 bilinear O(1)。外部 Astropy/WCSLIB、独立 HEALPix chart/membership、P2 Signal→FITS 的 BUNIT/response/PSF/方差 oracle 均为 NOT_RUN。真正的 RESPONSE/FILTER/ACSDRESP/RSPHASH 仍按本页 D5 的 #79 TARGET 定义而非宣称当前支持。

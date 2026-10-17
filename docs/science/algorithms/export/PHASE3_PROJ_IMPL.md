@@ -10,8 +10,8 @@
 > [D-1]「文档权威与索引」一节 = 以独立证据判定、不预设谁为准。订正原则见`docs/ACSD_DESIGN.md` [D-1]「文档权威与索引」一节）。
 > 本文档为 WCS/投影域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
-> 生产源: lib/algorithms/projection/p3_wcs.h（373 行，唯一权威签名头）+
-> lib/algorithms/projection/p3_wcs.cpp（593 行），已由 lib/phase3_session/ 迁入本目录
+> 生产源: lib/algorithms/projection/p3_wcs.h（当前 374 行，实际签名头）+
+> lib/algorithms/projection/p3_wcs.cpp（当前 594 行），已由 lib/phase3_session/ 迁入本目录
 > （内容逐字节等价，行数按新址复测）。
 
 ## 1 目的与非目标
@@ -53,9 +53,9 @@
 
 | 文件 | 行数 | 角色 |
 |---|---|---|
-| lib/algorithms/projection/p3_wcs.h | 373 | 唯一权威签名头（P3WcsDescriptor/P3WcsStatus/四函数 + 适用域/Oracle 面）；已迁入本目录，行数按新址复测 |
-| lib/algorithms/projection/p3_wcs.cpp | 593 | 实现（常量+守卫/G1 构造/正反映射/关键词 + 适用域门 `p3_wcs_check_applicability` + 往返门 `p3_wcs_roundtrip_*`）；行数按新址复测 |
-| lib/phase3_session/p3_session.cpp | 329 | 会话消费点（:17/:160/:163/:232/:247-253） |
+| lib/algorithms/projection/p3_wcs.h | 374 | 唯一权威签名头（P3WcsDescriptor/P3WcsStatus/四函数 + 适用域/Oracle 面）；已迁入本目录，行数按新址复测 |
+| lib/algorithms/projection/p3_wcs.cpp | 594 | 实现（常量+守卫/G1 构造/正反映射/关键词 + 适用域门 `p3_wcs_check_applicability` + 往返门 `p3_wcs_roundtrip_*`）；行数按新址复测 |
+| lib/phase3_session/p3_session.cpp | 355 | 会话消费点（:17/:160/:163/:232/:247-253） |
 | 根 CMakeLists.txt:460-465 | — | 构建挂载（acsd_phase3_session STATIC） |
 
 > WCS 完整性/尺寸溢出检查、独立解析解回归、四模式探针三组判据的载体文件**均已不在本仓**；
@@ -721,3 +721,70 @@ G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
 ## U 承接：`uncertainty_available=false`（fail-closed 唯一出口）
 
 本层产出/消费不确定度子产品时，`uncertainty_available=false` 的处置**承接 《产物与清单登记面》 的 fail-closed 唯一出口**（DATA-UNC-001 规则行与 DATA-P2-PROV-001 显式登记行，按**内容锚**读、不按行号读）：不写 variance/ivar 子产品，manifest 写 `uncertainty_available=false` 并在 diagnostics 标红计数。该键不是失败态，是 unavailable 的显式登记模式；键名与取值口径以该处为唯一权威，本层不另立第二套。
+
+
+---
+
+## D7-A｜从原始 G1–G2、registry 到现行 P3 CLI 的投影科学合同（2026-10-17）
+
+**保全与证据**：63eccbb6133aef56389641d43c55df6e243819c5 原全文 724 行、55288 B（blob 5a0bb9fd778348fbea5203bad4c38ed7740cce77）经全文章节对读，保留 §1–16 原所有 WCS 数值、CD 旋转、四角守卫证明、九宫/密集往返测试、适用域门、八投影/三层注册表、状态码、crop 与参考文献。凡原文中“冻结”“实现已验证”只指该版本的规格/既往证据，不替代本 D7-A 针对 main d35bfc501d1cf257eb9267a571f1061c0c1fe27a 的静态事实，也不等于本轮执行了 Astropy 或真实 CLI。库源码路径和行数以 p3_wcs.h (374), p3_wcs.cpp (594), p3_projection_registry.h (312), p3_resample.cpp (当前 main), p3_session.cpp (355), module_adapters.cpp 中真实 p3_op_* 为准。本文数学职责 **仅 Phase3 球面位置→投影平面 WCS**；Stage1 曲边球面交叠另见 [DRIZZLE_GEOMETRY](DRIZZLE_GEOMETRY.md) 和 [Drizzle 科学正本](../../drizzle/DRIZZLE.md)。
+
+### D7-A.1 可运行状态的四个层次
+
+| 层 | 当前源代码证据 | 实际结论 |
+|---|---|---|
+| 设计目标 F | p3_proj_frozen_table：TAN SIN CAR AIT STG MOL CEA ZEA | 八种研究/产品目标，不代表能请求运行 |
+| v6 内核 | p3_proj.h/.cpp：TAN/SIN/CAR/AIT 四个数学内核 | 内部核有 ≠ 当前导出产品有 |
+| 产品声明 D、生产可实现 I | p3_projection_registry.h 两表均仅含 TAN | 只有 TAN 允许作为 P3 WCS 的产品 |
+| 真实 CLI | p3_op_wcs → p3_wcs_make(g.ra,g.dec,g.scale,g.w,g.h,g.parity,**0.0**,out,g.projection) | 请求非 TAN → UNSUPPORTED；FITS 写 TAN；**现 adapter 旋转 PA 固定 0.0**，即使 p3_wcs_make 公共库支持非零旋转，也不是本 CLI 开放的参数 |
+
+P3 严格区分产品与算法；错误请求不能回落 TAN，也不能用内部 SIN 的数值测试证明 export 中 SIN 可选。p3_wcs_validate_request 的 projection 缺省 TAN、frame 缺省 ICRS（仅 icrs/ICRS）、coverage_output 缺省 mask（仅 mask），无对应可用产品时返回 P3_WCS_UNSUPPORTED/PARAM。p3_session_run 的独立 C ABI 五段 create/validate/run/inspect/destroy 是可调用兼容入口，当前任务真实 DAG 使用 module_adapters.cpp 的 props→wcs→resample→writer→verify，不能用旧 p3_session 单入口代码代表当前 CLI 的所有资源与参数。无任何 P3 实现采用 P1 的 HEALPix 曲边相交核。
+
+### D7-A.2 WCS 完整式、维度与两个原点
+
+P3WcsDescriptor: crval_ra_deg/crval_dec_deg (ICRS degree), crpix_x/crpix_y (FITS 1-based pixel-center), cd[2][2] (degree/pixel)、width_px、height_px、projection。函数签名及符号级测试在原 §4/§6–9；以下写成真实执行不可分解的变换。
+
+~~~
+FITS x_F = x_0 + 1, y_F = y_0 + 1  （仅导出桥接一次）
+CRPIX = ((W+1)/2,(H+1)/2); CRVAL=(alpha_0,delta_0)
+q = CD * ((x_0+1,y_0+1)^T - CRPIX^T);    q in degrees
+xi=q_1*pi/180, eta=q_2*pi/180           （中间投影坐标 rad）
+CD = R(-PA)*diag(s_x*s,s_y*s)
+(s_x,s_y)=(-1,+1) east_left; (+1,-1) east_right
+det(CD)=-s^2, s>0 (deg/pixel)
+~~~
+
+**手性并非普通“x 正就天东正”**：east_left 在 PA=0 时 CD=(-s,0;0,+s)，east_right 则 (+s,0;0,-s)，两者都 det<0；旋转后应验证整个矩阵的像元方向，而不是只看 CD1_1 正负判断图像天东。CD-only FITS 头使用 CTYPE1=RA---TAN/CTYPE2=DEC--TAN、CUNIT=deg、CRPIX/CRVAL/CD；PC+CDELT 是 FITS 合法的另一表示法，但**当前 p3_wcs_fits_keywords 不生成 PC/CDELT**，不得声称已同时生产。RA 周期 [0,360)、极区/跨 RA=0 的连续实际天球角距离使用球面向量对照，不以原始 RA 数值差 359.99° 判错。
+
+pix2world 使用 ξ/η→球面 TAN 逆映射，并在代码层对 **切平面半径 r=sqrt(ξ²+η²)≥π/2 提前给 HEMISPHERE**；world2pix 则按 **球心点积 denom≤0** 判断真正背面。**这两者不是同一理论边界**：gnomonic 对整个前半球成立，而 r=π/2 是额外保守的数值输入截断，切忌称为“天球前半球的精确数学边界”。p3_wcs_make 另外限制 |centre_dec|≤85°、width/height ≤编译 kMaxSide(默认20000)、scale>0、四个像素中心角以及 FOV/稠密往返适用域；这些是**产品策略域**，不能把 |dec|>85°说成 TAN 天体坐标几何不合法。反向 world2pix 对目标 |dec|>85°亦施代码策略拒绝；应在 oracle 中将“数学应存在投影”的期望与“当前接口主动拒绝”的状态分开比对。FOV>20°、往返 gate 的 TIGHT(1e−8px)/GLOBAL(1e−6px)/OUT_OF_DOMAIN 三态须按 p3_wcs_applicability/roundtrip_gate 动态查证；9点误差只是诊断，密采样才可用来检验已声明门。任何“超出往返数值门适用域”不自动证明投影物理失败。
+
+**当前四角守卫**检查零基像元中心 (0,0),(W−1,0),(0,H−1),(W−1,H−1)；对其本身的仿射切平面半径凸域，这四个角对**像元中心矩形**覆盖充分，但不能由此推出**外边界 x=−0.5 / W−0.5** 全部合法，或裁剪/天空矩形投影边缘毫无几何误差。FITS 的关键点：图像尺寸内包含最外围像元面积，不等于四个中心的凸包；边界相关科学 oracle 必须使用 x∈{−0.5,W−0.5}、y∈{−0.5,H−0.5} 独立检查。现 crop 的 sky 窗口每边采样257点生成包络，只对被抽样位置给出离散证据，不是任意球面曲边的严格包围证明。
+
+### D7-A.3 裁剪、下游实际输入及可用单位
+
+CURRENT：
+- p3_op_properties 打开单 Signal HiPS、检查 signal/properties BUNIT 模式，产 p3_props.json: hips_order/tile_width=512/bunit canonical/bunit_input/pixel_semantics=surface_brightness/pixel_area_power=−2，uncertainty_available=false；**没有 obs_filter、response_distribution**（#79 仍实测未修）。
+- p3_op_wcs 从真实配置构造投影和 crop window；p3_wcs.json 包含 CRVAL、CRPIX、四个 CD、projection、crop、fits_keywords；**当前 rotation_pa_deg=0.0**。
+- p3_op_resample 按 WCS 反投影逐像素从 HiPS nearest 或 bilinear 取 signal；surface_brightness 才是正式测量语义，visualization 不具测量能力，point_source_flux 已声明但真实 node 明确 UNSUPPORTED；此处**不调用 P1 polygon/drizzle 求交**。
+- p3_op_writer 生产以 ExportStreamScheduler 的 bounded block/RAM 队列流式写一幅 PRIMARY FITS signal，crop 只改变读取窗口和输出 CRPIX/宽高，完整画面已在 resample 计算好；p3_op_verify 独立重开产品并校对实际窗口，不新建误差 HDU，不能用老 p3_session 全图驻留参考代码描述当前生产。
+- 目前 writer 把 resampled canonical bunit 强制与 kP3BunitSurfaceBrightness 字符串比较。**这是当前硬编码的导出可接受量纲族/标度限制，不是上游所有 P1 applied 真实 linear_unit 都被科学重标定的证据**；#9 的 P1/P2 数值单位和标签错误，不能通过 P3 canonical 单纯重命名修复。实际 FITS BUNIT 应与真实 L/sr 一致，跨阶段同一数值的 bytes 不应被隐式倍乘。
+
+TARGET #79 provenance 合同仍单独引用 [Export detail](../../../detail/export/modules.md)：P2 signal/properties:obs_filter、p2_final:response_distribution 与源身份和 hash 必须由 p3_op_properties 验证同一 revision，再显式进入 p3_resampled 和 FITS。单一种真实非空响应可携 FILTER；unknown 不虚构；mixed 不能伪装为单滤镜（推荐 ACSDRESP 具名三态+完整 RSPHASH/sidecar，关键词为目标而非现实现）；R_eff(lambda,omega) 必须以真实贡献权重及每源响应定模，留给 #14，不由混合标签推出。
+
+### D7-A.4 #88/#89 与本篇 WCS 的交叉条件
+
+**已存在修复，不再用旧缺陷断言覆盖生产**：#89 在 p3_sample_bilinear_nanmask_ex 入口已把可选 weights[4] 填0，掩膜缺角留下显式零系数；#88 在 p3_uncertainty_propagate 已对**相同完整 HEALPix leaf_ipix**归并生效权重 a_j=Σ_{k:id(k)=j} c_k，再于不同 leaf 条件独立时按 Σ_j a_j² V_j 求方差，仍检查每角的损坏输入。重复引用同一 leaf 是确定性同一随机变量，不是可由“4角独立”化解的可忽略相关；任意不同 leaf 的物理跨叶相关/共同 sky-plane 参数仍需完整 C_jl 和 R C R^T。当前 Phase3 slim 路径 **不探测/不发布 uncertainty**，两项是公共 API 静态修复，**不证明整个 P3 FITS 有真实方差层**，更不关闭 #21 的跨帧相关研究。与 D6 rejection 的 #81/#84 修复同属新的 main 静态事实，CI/E2E仍需分开登记。
+
+### D7-A.5 正交验证与失败语义（可直接派发实验 Agent）
+
+最小真实 CLI 路径使用有效单 Signal HiPS → acsd export (TAN,ICRS,coverage_output=mask,正 scale,合法 W/H,明确 output_mode=surface_brightness) → props → wcs → resample2 → writer → verify → 外部 Astropy/WCSLIB 打开 FITS PRIMARY，读 CD/CRPIX/CRVAL/CTYPE/BUNIT/response provenance。输入须是真实已签科学量纲的产品，而非为测试强塞 ADU/sr。
+
+独立 oracle 分组：
+
+1. **WCS 算法**：Astropy/WCSLIB 与不复用 p3_wcs.cpp 的解析球面切基公式双 oracle；PA 0/±θ、east_left/right、奇偶宽高、CRPIX=1-based、0/1桥接负例；RA=0±epsilon、Dec±85°策略域、近极天体、TAN horizon/切平面r临界、FOV/画幅四边**像元外边界**；逐角向距离和像元差，同时报告 9点/密点误差及取样分母。
+2. **产品声明**：八投影逐码区分 frozen/kernel-only/declarable/CLI，SIN/CAR/AIT 等 fail-closed、frame 非 ICRS、coverage_output 非 mask、negative scale、oversize、NaN/Inf、未支持模式、point_source_flux 不能暗中改为 surface_brightness；rotation 非零库可达，但 CLI 不许虚报。
+3. **crop**：默认 no crop；pixels FITS 1-based 闭范围与 sky 边界257点窗口；半开0-based内部窗，CRPIX 减整数 x0/y0 后与未裁切 WCS/信号逐像元一致，不重复插值；裁剪错误状态 PARAM/HEMISPHERE，窗口空/越界拒。
+4. **P2→P3科学**：有真 response 的 mono/unknown/mixed，位级相同 Signal 前后读回，FILTER/响应身份不凭标签猜测；nearest 与 bilinear 的常数/线性/星点峰/FWHM/孔径总光度和空间功率、NaN与部分角、重复 leaf [A,A,B,C] 与 [A,A,A,A] 的静态反例及独立 MC 条件方差。#88/#89 code 修复须有真实已构建运行证据后才能升状态。
+5. **错误/资源**：W×H 最多20000²但受预算/队列/IO限制，band worker 从 Runtime 租约、独立只读 HiPS tile/cache，stream 输出按 block bounded，异常、取消、写入不足、重新读取 hash 不一致 → fail-closed；构建编译/最小输出/峰值 RSS/1 vs N worker 不等于只测小核。
+
+本 D7-A 只核对源码和保全文档：**Astropy、WCSLIB、真实Export CLI、FITS E2E、跨平台编译与实验均 NOT_RUN**。独立验收依赖以上 oracle，而非再调用一次被测库函数。

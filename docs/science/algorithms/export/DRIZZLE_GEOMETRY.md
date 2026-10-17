@@ -103,6 +103,17 @@
   `N_p=Σ_j w_jp·A_pixel,j` 归一（⇒ 无需 s² 因子），
   分母 D_p 兼作 support 的分子（`support = D_p/A_cell`）。该差异为 Project-defined
   选择，须与 `FZ-UNIT-SIGNAL-SB` 的量纲链一并阅读，实现口径只取本模块 Project-defined 定义。
+- **D7-A 代数纠偏：一般情况下不能化成纯交叠面积平均**。原上文把
+  S_p=F_p/N_p 无条件写为 Σ_j B_j a_jp/Σ_j a_jp；但当 A_pixel,j/A_drop,j
+  随像元、畸变和 pixfrac 变化时，正确展开式是
+  S_p = [Σ_j B_j a_jp (A_pixel,j/A_drop,j)] /
+        [Σ_j a_jp (A_pixel,j/A_drop,j)]。
+  只有所有有效 j 的 A_pixel,j/A_drop,j 对同一目标 p 为**相同常数**（例如
+  局部仿射、相同 pixfrac 的受控条件）才可以约掉，成为 Σ B_j a_jp/Σ a_jp。
+  因而“pixfrac 的球面面积比只进分母”的说法本身还需配对分子一起理解；
+  本条不改 w_jp=a_jp/A_drop,j 与 sumNorm 的生产定义，也不允许把
+  support 面的 D_p=Σa_jp 冒充 sumNorm。此纠偏同样适用于原 §10
+  DISP-DRZ-009 对该等式的过强简化。
 - **S_p = F_p/N_p 归一不在本模块**: sumFlux/sumArea/sumVarNum 原始和
   逐 tile 传出（`lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp` dense 化），归一在
   aio_hips_writer finalize_tile（variance = var_num_sum/area²，
@@ -466,3 +477,99 @@ B0=1000、nside=512、W=H=16）：注入态（分母取 A_drop）逐 leaf `S_p/B
 - 球面三角面积：Van Oosterom & Strackee 1983, IEEE TBME 30, 125（DOI 10.1109/TBME.1983.325207）。
 - 多边形裁剪：Sutherland & Hodgman 1974, “Reentrant Polygon Clipping”, Comm. ACM 17, 32（DOI 10.1145/360767.360802）——**平面**算法（原文摘要为 “plane-faced volumes”）；本模块的球面逐边裁剪是它的推广，不属原文结论。
 
+
+---
+
+## D7-A｜P1 真实 HEALPix 曲边与面积/通量双重真值合同（2026-10-17）
+
+**适用阶段**：本篇即使文件路径处在 science/algorithms/export/，**它的科学对象始终是 Stage1 Normalize 的 spherical HEALPix forward Drizzle**。不得将本篇的 hp leaf 几何多边形裁剪、quad 分派与 Stage3 从单 Signal HiPS 到 FITS 的 nearest/bilinear 定义成同一个 reproject 算法。原始 63eccbb6133aef56389641d43c55df6e243819c5 完整长卷为 469 行/44423 B、blob a432fd9915e44994a5450ff2f9dac5ddac9d7c3d；本 D7-A 保留 §0–11 原 drop/面积/方差/精度/auto nside、候选完备性、SIP、反向 drizzle、九项 DISP、算术与实验设计、文献和 ABI 的技术内容，并单独订正 #15/#9/#88 等当前科学对象和真值适用域。当前源基线 main d35bfc501d1cf257eb9267a571f1061c0c1fe27a，生产锚是 drizzle_engine.cpp::processPixelSharedTiled、spherical_overlap.cpp::compute_overlap_area_g_ctx_cached / TargetGeomCache::get_or_build、hp_drizzle_api.h、astro_sphere_sink.cpp 和 aio_hips_writer.cpp；当前 P3 是 [投影/WCS合同](PHASE3_PROJ_IMPL.md)、[P3 正本](../../projection/HIPS_TO_FITS.md)。
+
+### D7-A.1 四种不同物理命题，不能以其中一个替代另一个
+
+记输入源像元未收缩球面 footprint P_j，面积 A_pixel,j [sr]，pixfrac 收缩 footprint D_j、面积 A_drop,j [sr]；真实 HEALPix NESTED 叶 H_p 具有**曲线边界**且精确等面积 A_H=4π/(12nside²) [sr]；真实交叠 a_jp=area(D_j∩H_p) [sr]。当前高 nside 的实现实际上是叶四角顶点大圆弧图形 Htilde_p，相交返回 atilde_jp=area(Dtilde_j∩Htilde_p)，其中 Dtilde_j 亦以源码当前 WCS/SIP 四角 footprint 表示；即使源 drop WCS 非线性，还要另计“真实源边界 vs 四角近似”的误差，不能只纠正 HEALPix 叶一侧便宣称全部精确。
+
+| 判据 | 定义与能证明的对象 | 不能证明的内容 |
+|---|---|---|
+| 数值/代数闭合 | 例如 Σ_p atilde_jp≈Atilde_drop,j，或 Σ_p weight_jp≈1；含未覆盖/漏选的显式误差项 | 因为相交双方都基于替代叶，这个等式**不能说明**真正叶 H_p 归属正确 |
+| 常数面亮度 | 对 B_j=B0，使用配对 F_p/N_p 保持 B0 | 不能说明尖锐星点 PSF/局部 gradient 或 leaf membership 的误差为零 |
+| 真几何 | 对每个 leaf，epsilon_curve_p=(area(Htilde_p)−A_H)/A_H；每 drop 比较 a_jp 与独立真实曲边求积所得 a_ref | 不能单独推出已测星点总通量亏损比例 |
+| 科学场景 | 输出 SNR、星核/积分孔径、弱扩展源、绝对 flux、噪声相关、coverage 与结构保真 | 不能由一个几何面积负例或源图单值误差简单外推 |
+
+**#15 已知静态反例**：当 nside≥256 时，spherical_overlap.cpp::compute_overlap_area_g_ctx 的高阶分支调用 get_healpix_boundary4；**真实调用的缓存路径** TargetGeomCache::get_or_build 对所有高阶目标叶缓存 boundary4，compute_overlap_area_g_ctx_cached→overlap_area_impl(...,boundary4,4)。get_healpix_boundary_sampled 自身在 Ns≥256 同样提前返回四角。HEALPix 真叶边是投影参数曲线，不是四条大圆弧；对极冠 apex 型叶已有相对叶面积反例 epsilon_curve≈**−9.968368384%**（解析极限 2sqrt(2)/π−1），这个比例在高阶不必向零。**该读数仅对特定叶四角区域相对真实叶的面积差负责**：并非所有叶统一偏差，更不是“已证明 M42/FITS 星点通量少9.968%”。同样，旧 §9 的面积闭合 1e−6 或 absolute 1e−15 sr 是**分区自洽测试**，不能作为真实曲边 1e−5 相对 oracle 的替代；eps_abs 对 tiny drop 还会使巨大相对错配被忽略，须报告面积与真值的分母。
+
+### D7-A.2 正确 w/F/N/D 的量纲与光度恒等式
+
+真实科学目标的当前生产计算在给定原始图像像元通量 x_j [L]、面亮度 B_j=x_j/A_pixel,j [L/sr]、参考源几何变换之后为：
+
+\[
+w_{jp}=\frac{\tilde a_{jp}}{\tilde A_{\mathrm{drop},j}}\quad[1],\qquad
+F_p=\sum_j x_jw_{jp}\quad[L],\qquad
+N_p=\sum_j A_{\mathrm{pixel},j}w_{jp}\quad[\mathrm{sr}],
+\]
+\[
+D_p=\sum_j\tilde a_{jp}\quad[\mathrm{sr}],\qquad
+S_p=\frac{F_p}{N_p}\quad[L/\mathrm{sr}],\qquad
+V_{F,p}^{\mathrm{ind}}=\sum_jV_{x,j}w_{jp}^{2}\quad[L^{2}].
+\]
+当前源码把 overlap_area/drop_area 作为权重，sumFlux、sumNorm、sumArea、sumVarNum 分别累计；后续 HiPS writer/sink 依据本层数据形成面亮度与 support。它不以 N_p=D_p 作为通用恒等式。真实（非近似）公式只需将所有带波浪号的交叠与面积换为独立真值；由相同叶/源定义给定，未覆盖或数据无效像元须单独报告。
+
+**原文代数勘误**：
+\[
+ S_p=\frac{\sum_j B_j\,a_{jp}\,(A_{\rm pixel,j}/A_{\rm drop,j})}
+           {\sum_j a_{jp}\,(A_{\rm pixel,j}/A_{\rm drop,j})}.
+\]
+仅当 \(\kappa_j=A_{\mathrm{pixel},j}/A_{\mathrm{drop},j}\) 为同一有效目标叶上的常数，才化简为 \(\sum B_ja_{jp}/\sum a_{jp}\)。原 §1 和 DISP-009 将其写为无条件恒等会让应用者误以为 “drop面积比只在分母起作用”；既定代码中 numerator 的 x_j 与 A_pixel,j 正好通过 w 形成配对。对 pixfrac<1，面积近似 \(A_{\mathrm{drop}}\simeq{\rm pixfrac}^2 A_{\mathrm{pixel}}\) 是局部仿射近似而非所有球面位置的真恒等；旧文的二阶 δ 展开应按其推导适用域阅读。**若把 N_p 改为 D_p**，在近似常 κ=1/pixfrac² 时亮度会被放大该因子（pf=.8 → 1.5625），但这个归一错误与 #15 曲边误差不是同一个问题，两者要分别做独立负例。
+
+旧 `x_j` 的 ADU 单位只对**真正 native ADU**输入成立，P1 应用的真实 linear_unit=L 时 x_j 是 L，V_x=L²；#9 已证实应用后单位/BUNIT 问题尚未普遍闭合，所以不能把所有 P1 输入硬说成 ADU，也不能靠把最终 P3 BUNIT 写成 ADU/sr 就改变 P1 的实际光度值。P2 单 Signal 只负责最终统一面亮度图，不承诺输出 full C covariance；完整 Drizzle 相邻叶的 covariance 必须从相同输入 x_j 同时参与不同输出叶的相关项推导，不能用 \(V_F\) 的单点值冒充跨叶全相关矩阵。
+
+### D7-A.3 真曲边面积工程方案（TARGET，**不是已实现**）
+
+建议采用**一个具可证明预算的自适应真实几何路径**，在通过独立审计后可保留四角快速路径。此方案先作为科学规格评审，不能在 D7 文档中偷偷宣称 P1 生产已经变更。
+
+1. **球面 chart 与精确参数边界**：以 NESTED leaf 的 (face,ix,iy,nside) 表示 H_p，通过独立的 HEALPix face→sphere 映射对每一段 ix/iy 常量的边作参数化 \(\gamma_e(t)\)，而非只拿四角后做 slerp 作为“真曲边”。源 drop 的 pixel→WCS/SIP 中间边也沿像素坐标参数化 \(d_j(t)\)，在 SIP 与大角度源 patch 上自适应划分。所有面积和 membership oracle 使用一致**真实**球面域，不假设叶边是大圆。
+2. **独立真值几何 oracle**：方案A：等面积 chart 的单元裁剪＋高阶/自适应求积，对 4边非测地线精确积分，求 \(a_{jp}^{ref}\)。方案B：独立 astropy-healpix boundaries(step≫1)/healpy ang2pix 的 **球面点 membership oracle** 并做 quasi-MC/分层面积积分，两者不得共同调用被测 spherical_overlap.cpp 的四角 clip 或共用其候选列表；分别报告面积绝对误差、相对误差和真叶身份混淆率。稳定传递全 64bit ipix 和 face，不用浮点近似“近邻”猜身份。
+3. **自适应细分与强制精细域**：对每条 \(\gamma_e\) 使用球面弦距和**积分差**双判断，逐段细分直到已证的面积误差上界/独立加密序列达到给定上限；在极冠 apex、|z|≈2/3、RA wrap、face 交界、drop与leaf近切处强制精细或 chart 路径。四角快速分支仅在经过真面积+最差相交构型证明可满足要求的空间域可用。不能只用弦偏离的绝对角 O(h²) 说明 tiny overlap 的**相对**误差小；当真实 a→0 时需绝对误差门，且以所有 drop 归属/错配率另验。
+4. **面积与工作量可控**：候选集保守包络要包括曲边与源 WCS 非线性潜在外凸，先取有限 ring/queryDisc 超集再与真 leaf 算精细面积；动态误差预算可按 \(A_{\rm drop}\)、\(A_H\)、局部交叠 a、期望目标 flux 等分配。对超预算 drop 启动精细路径或显式标 unavailable，不悄悄用四角发布“已满足 1e−5”。线程本地 TargetGeomCache 可缓存**参数边/分段/误差证书**（key = nside+ipix+geometry_precision/model version）；内存按 bounded LRU/Runtime lease，不将无限曲线点常驻全局。
+5. **独立验证后再改生产**：同一组 true-oracle 输入对比 fast4 与自适应算法，在真实 P1 Drizzle→HiPS→P2单 Signal→P3 FITS 量纲完整链测流量、FWHM、低频背景。只有独立真值给出带置信区间的误差预算及性能回退条件，才把高阶分支从 CURRENT 改成新算法，不由本文修改任何 C++、参数或机器 schema。
+
+最小数值伪代码（TARGET，绝非已运行）：
+
+~~~text
+for each input source pixel j:
+    P_j := sample_true_pixel_wcs_sip_boundary(j)
+    D_j := sample_true_pixfrac_boundary(j)
+    A_pixel[j], A_drop[j] := independent spherical area integrals
+    candidates := conservative_spherical_envelope(D_j) + leaf_extent
+    for leaf p in candidates:
+        H_p := healpix_face_parametric_boundary(nside,p)
+        a_ref[j,p], bound := certified_chart_curve_overlap(D_j,H_p)
+        if bound > error_budget(j,p):
+            refine boundaries and integration (or mark geometry_unavailable)
+        weight[j,p] = a_ref[j,p]/A_drop[j]
+        sumFlux[p] += x[j]*weight[j,p]
+        sumNorm[p] += A_pixel[j]*weight[j,p]
+        sumArea[p] += a_ref[j,p]
+    audit per-drop mass closure AND leaf membership AND boundary error
+publish signal only if supported valid geometry; keep precision provenance
+~~~
+
+### D7-A.4 分层实验矩阵与真实科学结果门
+
+| 实验轴 | 必须覆盖 | 真值/证据 |
+|---|---|---|
+| resolution | nside=256、8192、2^18；对照低阶细分分支 | 叶面积 \(4\pi/(12n^2)\) 解析恒等；子分区和独立曲边面积比较 |
+| sky domain | 12 faces、apex leaf/极冠、赤道、|z|=2/3 转折及 u+v=1 seam、RA=0±ε、跨面邻域、近平接/小交叠 | 真实曲边积分与独立 point→leaf membership；错误归属矩阵按天区分类 |
+| pixfrac/size | .5/.8/1.0；source drop ≪、≈、≫ leaf；极区 subpixel tiny drop、含空洞 | 分离 relative area、absolute area、候选 false-negative、逐 drop mass closure |
+| science | 正负常数、解析梯度/弱 extended structure、point/Gaussian Moffat PSF、真实M42、HST处理真值可用部分 | BUNIT、PSF FWHM、孔径通量/星等、结构低频功率、coverage、空间偏差图 |
+| end-to-end | raw/native vs photometrically-applied P1，single vs multiple exposures→P2 Signal→P3 nearest/bilinear | 先验证 P1 real linear_unit，再各阶段比较误差，P3重插值核与P1交叠分开测，不互相抵扣 |
+| uncertainty | shared input→neighbor HEALPix correlated noise、P2 sky-plane own、P3 repeated leaf与masked corners | 解析/独立MC测 RC R^T；#88/#89 修复的公共API 与 P3 uncertainty unavailable 分开报告 |
+
+每组合给独立 oracle 的有效面积分母、曲边收敛率、CPU/RSS/缓存 hit、裁剪异常状态、时间、相对/绝对误差分位点与最坏叶；某一类超域不得由全球平均遮盖。原 §9 曾列逐叶相对误差 1e−5、极区弦亏、drop闭合 1e−6+1e−15sr、Gaussian aperture 1e−3 等原设计，可作为**历史准则候选**，其复合适用域与 oracle 各自独立确认，不能把“自校闭合达到1e−6”误写成“真实曲边逐叶精度达到1e−5”。
+
+### D7-A.5 #81/#84/#88/#89 与跨阶段责任的精确状态
+
+本批已重新读当前 main：#81 的 P2 reject adapter 已在 large_scale 后以 eligible_before_growth 为限裁剪新增 low/high mask；#84 空候选像元 acc 改为 eligible_count>0?1:0；这**纠正 D6 之前的 CURRENT 源码描述**，不代表本批跑过真实 P2 E2。#89 P3 bilinear 样本级权重输出先填0，#88 对重复 leaf identity 聚合系数再传播对角条件方差；两者只属**公开 P3 核修复**，不能把 P3 bilinear 重采样说成 P1 真实曲边求交，也不能据其把已发布的单 Signal 当成包含真实 full covariance。
+
+**当前三阶段**：P1 输入像素的真实 footprint 面积分派→P1 HiPS signal/support/内部噪声控制；P2 统一 Signal mosaic、P5天空统计另建假设；P3 依据输出 TAN WCS 的像元中心做 nearest/bilinear 读取 HiPS，生成 FITS PRIMARY Signal（uncertainty unavailable）。只有P1曲边误差基于H_p的真实区域定义；P3插值是另一个连续场/采样重建问题，若未来要面积守恒的 P3输出像元面积交叠，需要**独立 P3 conservative area-overlap 算子**，而当前生产没实现，不能拿 P1 的面积相交代码冒充。#79 的响应身份、#9 的量纲、#14 的物理响应函数、#15 的曲边均属于不同闭合要求。
+
+**本 D7-A 结果等级**：生产源码/历史实验与原文保全静态 VERIFIED；独立 astropy-healpix/healpy/wcslib 外部oracle、nside高阶曲边面积、M42/HST、FITS E2E、完整 covariance/噪声效率、CPU/RSS、编译测试 **NOT_RUN**，#15 继续 OPEN。
