@@ -1,0 +1,16 @@
+{
+  "p1_wcs": "/workspace/Astro CS Database/实验/issue92-wcs-gaia-match/fixtures/M42_M1_T3_flying_dutchman-20251213_021555-300S-Red.json",
+  "stars": "/workspace/Astro CS Database/实验/issue92-wcs-gaia-match/evidence/40-gaia-stars-20251213_021555-300S-Red.csv",
+  "n_stars": 2307,
+  "astropy_in_frame": 1084,
+  "cpp_iterative_in_frame": 1084,
+  "in_frame_agrees": true,
+  "oneshot_production_residual": {
+    "gate_tol_px": 1e-07,
+    "n_exceed": 2307,
+    "n": 2307,
+    "min_px": 3.6072575432208524e-06,
+    "max_px": 1.787554375829329,
+    "median_px": 0.25961036616441996
+  }
+}

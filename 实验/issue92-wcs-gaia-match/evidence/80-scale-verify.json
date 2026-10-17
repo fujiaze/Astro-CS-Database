@@ -1,0 +1,76 @@
+{
+  "frame": "M42_M1_T3_flying_dutchman-20251126_041940-300S-Red",
+  "k_photo": 6.222285086050469e-17,
+  "orders": {
+    "5": {
+      "n_tiles_common": 4,
+      "n_pixels": 92625,
+      "r_signal": {
+        "median": 6.225590598299807e-17,
+        "min": 5.326837991075742e-17,
+        "max": 6.555741446426204e-17,
+        "p16": 5.897377154962849e-17,
+        "p84": 6.45863064726938e-17
+      },
+      "k_photo": 6.222285086050469e-17,
+      "r_signal_over_kphoto_median": 1.0005312376729167,
+      "r_signal_spatial_spread_rel": 0.045076325165021934,
+      "r_variance": {
+        "median": 3.7530334430050736e-33,
+        "min": 3.2266647355835e-33,
+        "max": 4.388765557781629e-33
+      },
+      "variance_eq_signal_sq": {
+        "median_rel_err": 0.04546360612530435,
+        "p99_rel_err": 0.12948392912993115,
+        "max_rel_err": 0.18733997773369282
+      },
+      "ivar_eq_inverse_variance": {
+        "median": 1.0305500039095503,
+        "p99_abs_dev": 0.11463985239646056
+      }
+    },
+    "9": {
+      "n_tiles_common": 112,
+      "n_pixels": 23509054,
+      "r_signal": {
+        "median": 6.226825545076249e-17,
+        "min": 5.326837991075742e-17,
+        "max": 7.291756939446813e-17,
+        "p16": 5.900297486375513e-17,
+        "p84": 6.458777827468543e-17
+      },
+      "k_photo": 6.222285086050469e-17,
+      "r_signal_over_kphoto_median": 1.0007297092568064,
+      "r_signal_spatial_spread_rel": 0.04484470755203974,
+      "r_variance": {
+        "median": 3.752922267819283e-33,
+        "min": 0.0,
+        "max": 4.636320478948284e-33
+      },
+      "variance_eq_signal_sq": {
+        "median_rel_err": 0.04553507586075331,
+        "p99_rel_err": 0.12778115041088847,
+        "max_rel_err": 1.0
+      },
+      "ivar_eq_inverse_variance": {
+        "median": 1.0310208337220947,
+        "p99_abs_dev": 0.11330320507904822
+      }
+    }
+  },
+  "signal_properties_enabled": {
+    "hips_data_range": "-0.031082 0.221230",
+    "BUNIT": "ADU/sr",
+    "ACSD_SIGNAL_UNIT": "ADU/sr",
+    "ACSD_PIXEL_SEMANTICS": "surface_brightness",
+    "ACSD_PIXEL_AREA_POWER": "-2"
+  },
+  "signal_properties_disabled": {
+    "hips_data_range": "-474231961042481.562500 3392314060751985.000000",
+    "BUNIT": "ADU/sr",
+    "ACSD_SIGNAL_UNIT": "ADU/sr",
+    "ACSD_PIXEL_SEMANTICS": "surface_brightness",
+    "ACSD_PIXEL_AREA_POWER": "-2"
+  }
+}
