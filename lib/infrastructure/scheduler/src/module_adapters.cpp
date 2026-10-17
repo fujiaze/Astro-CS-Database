@@ -12677,6 +12677,13 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                        cand < static_cast<std::uint32_t>(plan.minimum_n))) ++l_undet_tot;
     }
     if (ls_active) {
+      // 记住增长之前的实际候选资格（含已接受与核拒绝），该集合必须固定。
+      // large_scale_grow_side 的几何ring没有footprint/valid输入，增长后的拒绝
+      // 只允许覆盖原先已进入candidate栈的样本，不得在支持域外凭空制造拒绝。
+      std::vector<uint8_t> eligible_before_growth(tile_mask.size(), 0);
+      for (std::size_t bi = 0; bi < tile_mask.size(); ++bi)
+        eligible_before_growth[bi] =
+            (tile_mask[bi] != 0 || ls_lo[bi] != 0 || ls_hi[bi] != 0) ? 1 : 0;
       // 契约最后一步：对每帧 low/high mask 做 connected-component 生长
       // （只增不减；tile 内 leaf 索引与栅格只差转置+翻转 ⇒ 8-邻接保持）。
       if (p2_large_scale_apply(ls_lo.data(), ls_hi.data(), 512, 512,
@@ -12686,8 +12693,16 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                       std::to_string(tip) + ")";
         return;
       }
+      // 仅剔除原本有观测资格的邻域：对无覆盖/NaN等未入candidate栈的
+      // 位置，ring增长无权赋予REJECTED统计身份。
+      for (std::size_t bi = 0; bi < tile_mask.size(); ++bi) {
+        if (eligible_before_growth[bi] == 0) {
+          ls_lo[bi] = 0;
+          ls_hi[bi] = 0;
+        }
+      }
       // 二次投影：生长只增不减 ⇒ 重新求 accepted / nrej 与计数。
-      // 资格 = 原 accepted 或 新被拒（tile_mask 为 0 且两侧 mask 也为 0 = 未入栈）。
+      // 不改变源candidate身份；既有accepted或原核拒 / 生长核拒均需在资格内。
       l_acc_total = 0;
       l_rej_low = 0;
       l_rej_high = 0;
