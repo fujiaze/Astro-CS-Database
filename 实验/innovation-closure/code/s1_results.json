@@ -1,0 +1,476 @@
+{
+  "schema": "acsd.s1.oracle/1",
+  "base_main_sha": "51e06540eb021c7272e87cf67b34e53c0648cf7a",
+  "runtime": {
+    "python": "3.13.5",
+    "numpy": "2.3.5"
+  },
+  "method": "closed-form + NumPy LAPACK (Cholesky/solve/SVD)",
+  "status": "PASS_ANALYTIC_ONLY",
+  "tests_count": 12,
+  "not_run": [
+    "production_C++",
+    "real_FITS",
+    "Monte_Carlo",
+    "independent_HEALPix_NESTED_face_crossing",
+    "Gaia_XP_real_response"
+  ],
+  "cases": {
+    "units_deterministic": {
+      "input": {
+        "x_native": [
+          100,
+          200
+        ],
+        "native_unit": "ADU",
+        "alpha": [
+          2e-17,
+          3e-17
+        ],
+        "alpha_unit": "Uref/ADU",
+        "C_native_ADU2": [
+          [
+            4.0,
+            0.25
+          ],
+          [
+            0.25,
+            9.0
+          ]
+        ],
+        "pixel_area_sr": 0.5
+      },
+      "result": {
+        "x_applied_Uref": [
+          2e-15,
+          6.0000000000000005e-15
+        ],
+        "C_applied_Uref2": [
+          [
+            1.6000000000000002e-33,
+            1.5000000000000002e-34
+          ],
+          [
+            1.5000000000000002e-34,
+            8.1e-33
+          ]
+        ],
+        "B_applied_Uref_sr": [
+          4e-15,
+          1.2000000000000001e-14
+        ],
+        "variance_B_Uref2_sr2": [
+          6.400000000000001e-33,
+          3.24e-32
+        ]
+      }
+    },
+    "stochastic_scale": {
+      "input": {
+        "x": [
+          2,
+          3
+        ],
+        "alpha_mean": 4,
+        "var_theta": 0.04,
+        "cov_x_theta": [
+          0.01,
+          -0.02
+        ],
+        "Cov_x": [
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            4.0
+          ]
+        ]
+      },
+      "result": {
+        "conditional": [
+          [
+            16.0,
+            0.0
+          ],
+          [
+            0.0,
+            64.0
+          ]
+        ],
+        "parameter": [
+          [
+            0.16,
+            0.24
+          ],
+          [
+            0.24,
+            0.36
+          ]
+        ],
+        "cross": [
+          [
+            0.16,
+            -0.04000000000000001
+          ],
+          [
+            -0.04000000000000001,
+            -0.48
+          ]
+        ],
+        "marginal_linearized": [
+          [
+            16.32,
+            0.19999999999999998
+          ],
+          [
+            0.19999999999999998,
+            63.88
+          ]
+        ]
+      },
+      "assumptions": "small parameter error; joint covariance specified; 1st-order delta method"
+    },
+    "psf_vs_brightness": {
+      "input": {
+        "Cov_pixels": [
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ],
+        "B_estimator_l": [
+          1.0,
+          0.0
+        ],
+        "PSF_A": [
+          1.0,
+          0.0
+        ],
+        "PSF_B": [
+          0.5,
+          0.5
+        ],
+        "assumption": "constant B over the two raw pixels; fixed l=[1,0]"
+      },
+      "result": {
+        "V_B_A": 1.0,
+        "V_B_B": 1.0,
+        "I_F_A": 1.0,
+        "I_F_B": 0.5,
+        "T_A": 1.0,
+        "T_B": 0.5,
+        "coadd_optimal_variance": 0.5,
+        "coadd_using_IF": 0.5555555555555556,
+        "relative_excess": 0.11111111111111116
+      }
+    },
+    "heteroscedastic_background": {
+      "input": {
+        "h": [
+          0.8,
+          0.2
+        ],
+        "C": [
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            4.0
+          ]
+        ],
+        "Z": [
+          [
+            1.0
+          ],
+          [
+            1.0
+          ]
+        ]
+      },
+      "result": {
+        "I_F_background_known": 0.6500000000000001,
+        "V_F_background_known": 1.538461538461538,
+        "I_F_background_free": 0.07200000000000001,
+        "V_F_background_free": 13.888888888888888,
+        "nuisance_penalty_ratio": 9.027777777777779
+      },
+      "expected": {
+        "I_known": 0.65,
+        "I_unknown": 0.072
+      }
+    },
+    "shared_calibration": {
+      "input": {
+        "Gamma": [
+          [
+            2.0,
+            1.0
+          ],
+          [
+            1.0,
+            2.0
+          ]
+        ],
+        "e_k": "delta + independent eta_k",
+        "Var_delta": 1,
+        "Var_eta": 1
+      },
+      "result": {
+        "GLS_coeff": [
+          0.5,
+          0.49999999999999994
+        ],
+        "true_V_B": 1.4999999999999998,
+        "reported_if_diagonal_only": 1.0,
+        "fraction_underreported": 0.33333333333333326
+      }
+    },
+    "general_GLS": {
+      "input": {
+        "Gamma": [
+          [
+            1.0,
+            0.3
+          ],
+          [
+            0.3,
+            4.0
+          ]
+        ],
+        "signal_model": "z=[B,B]+noise"
+      },
+      "result": {
+        "BLUE_coeff": [
+          0.840909090909091,
+          0.1590909090909091
+        ],
+        "BLUE_variance": 0.8886363636363638,
+        "diagonal_only_coeff": [
+          0.8,
+          0.2
+        ],
+        "actual_variance_diagonal_only": 0.8960000000000002
+      }
+    },
+    "reference_vs_scene": {
+      "input": {
+        "background_plus_read_variance_ADU2": 1,
+        "reference_flux_ADU": 100,
+        "gain_e_per_ADU": 2,
+        "actual_scene_source_flux_ADU": 0
+      },
+      "result": {
+        "V_reference_ADU2": 51,
+        "V_actual_scene_ADU2": 1,
+        "ratio_ref_to_scene": 51
+      },
+      "assumptions": "scalar unweighted readout, P=[1], known sky; Poisson variance=F/g"
+    },
+    "unknown_correlation": {
+      "input": {
+        "known_marginals": [
+          1,
+          1
+        ],
+        "Gamma_world1": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "Gamma_world2": [
+          [
+            1,
+            0.99
+          ],
+          [
+            0.99,
+            1
+          ]
+        ]
+      },
+      "result": {
+        "variance_of_mean_world1": 0.5,
+        "variance_of_mean_world2": 0.995,
+        "complete_precision_identifiable": false
+      }
+    },
+    "reference_parameter_vs_total": {
+      "input": {
+        "P_integrated": [
+          0.25,
+          0.75
+        ],
+        "alpha_per_pixel": [
+          1.0,
+          3.0
+        ],
+        "alpha_at_source": 2.0,
+        "F_native": 100.0,
+        "V_F_ref_example": 4
+      },
+      "result": {
+        "F_ref": 200.0,
+        "h_ref": [
+          0.125,
+          1.125
+        ],
+        "F_applied_total": 250.0,
+        "P_applied_normalized": [
+          0.1,
+          0.9
+        ],
+        "scale_c": 1.25,
+        "V_F_applied_total_example": 6.25
+      }
+    },
+    "drizzle_correlated_leaf": {
+      "input": {
+        "raw_integral_unit": "L",
+        "source_area_sr": 0.2,
+        "R_per_sr": [
+          [
+            3.75,
+            1.25
+          ],
+          [
+            1.25,
+            3.75
+          ]
+        ],
+        "C_source_L2": [
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            4.0
+          ]
+        ]
+      },
+      "result": {
+        "C_leaf_L2_sr2": [
+          [
+            20.3125,
+            23.4375
+          ],
+          [
+            23.4375,
+            57.8125
+          ]
+        ],
+        "variance_leaf": [
+          20.3125,
+          57.8125
+        ],
+        "offdiagonal_nonzero": true
+      },
+      "assumptions": "both leaf estimators are normalized average B on same source pixels"
+    },
+    "missing_control_two_worlds": {
+      "input": {
+        "measured_SNR": [
+          100,
+          100,
+          100
+        ],
+        "fourth_SNR": null,
+        "F_ref": 1,
+        "candidate_impute_SNR": 100
+      },
+      "result": {
+        "worldA_missing_SNR": 100,
+        "worldB_missing_SNR": 1,
+        "worldA_I_F": 10000,
+        "worldB_I_F": 1,
+        "identified_upper_information": null,
+        "support_state": "PRECISION_UNAVAILABLE"
+      }
+    },
+    "spherical_support": {
+      "input": {
+        "ra_seam_controls_deg": [
+          [
+            359.8,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            0,
+            0.3
+          ]
+        ],
+        "target": [
+          0,
+          0.1
+        ],
+        "polar_points_deg": [
+          [
+            10,
+            89.8
+          ],
+          [
+            130,
+            89.8
+          ]
+        ],
+        "polar_center": [
+          70,
+          89.9
+        ]
+      },
+      "result": {
+        "valid": {
+          "state": "MODEL_ESTIMATE_ONLY",
+          "variance": 1.9999985923648362,
+          "coefficients": [
+            0.33333367179816414,
+            0.33333367179816414,
+            0.3333326564036717
+          ],
+          "remark": "a model prediction; no calibrated error bound supplied"
+        },
+        "missing": {
+          "state": "PRECISION_UNAVAILABLE",
+          "variance": null,
+          "reason": "control missing, not guessed"
+        },
+        "outside": {
+          "state": "OUTSIDE_SUPPORT",
+          "variance": null
+        },
+        "corrupt": {
+          "state": "DATA_CORRUPT",
+          "variance": null
+        },
+        "polar_tangent_deg": [
+          [
+            -0.17320552043508128,
+            -3.0461835236839246e-07
+          ],
+          [
+            0.17320552043508136,
+            -3.046183522068792e-07
+          ]
+        ]
+      },
+      "scope": "independent ICRS tangent geometry; NOT NESTED HEALPix cross-face index test"
+    }
+  }
+}
