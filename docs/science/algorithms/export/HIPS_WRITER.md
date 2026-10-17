@@ -1,4 +1,4 @@
-# ALG-HIPS-001..005 — acsd.p1.hips_writer HiPS 产品集写出算法
+# ALG-HIPS-001..005｜统一 AIO HiPS Writer 的球面信号、层级、精度状态和产品提交
 
 > 上游：ACSD_DESIGN.md [D-1]「节点流程」一节（Phase1 节点流程）、[D-1]「I/O 与原子产品」一节（I/O 与原子产品）
 
@@ -51,7 +51,7 @@ docs/engineering/contracts/ATOMIC_PUBLISH.md，本文件仅登记对齐边界）
   ；=0 时自动取 tile_order（finalize 路径）。读侧
   `lib/infrastructure/aio/src/hips/aio_hips_reader.cpp` 仅保留 order==K 的 UNIQ——moc_order<K 时
   低阶父 cell 对自家 reader 无效（见 DISP-HIPS-005）。
-- (1d) 产品集校验：flags 位域 {1,2,4,8,16}，ALL=7/ALL_V19=31
+- (1d) 产品集校验：现行 flags 位域 {1,2,4,8,16,32,64}，ALL=7/ALL_V19=31/ALL_V20=127
   （`lib/infrastructure/aio/include/aio_hips.h`；begin 拒绝越位）；dtype∈{0=float32,1=float64}
   （同文件）；违规 → 返回 NULL + last_error。
 - (1e) 缺省元数据：creator_did="ivo://acsd/phase1"、
@@ -75,7 +75,7 @@ docs/engineering/contracts/ATOMIC_PUBLISH.md，本文件仅登记对齐边界）
   `fits = (511−x)·512 + y`——即 `docs/science/unified/DATA_SEMANTICS.md`「坐标语义」一节冻结的 (511−x)·512+y
   （CDS Hipsgen MAPTILES 对拍冻结，`lib/algorithms/shared/healpix/healpix_core.h` 头注释）。tile 内
   512×512，与父 cell parent_ipix（NESTED，Norder K）拼接出全局 HEALPix 索引。
-- (2b) 归一（与 SCI-DRZ-001 的 support=D_p 语义一致，集合级细节由实现定，
+- (2b) 归一（现行实际是先由上游 sink 把 Drizzle F/N 转换成 AIO 可消费 F'/D；support 非真实面积并集，详见D7-C正文；
   `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节）：对 tile 内每局部像素 p（512²）：
   `signal[p] = flux_sum[p] / covered_area[p]`，
   `support[p] = covered_area[p]/A_cell`，`>1 钳 1.0`（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`）。
@@ -93,9 +93,7 @@ docs/engineering/contracts/ATOMIC_PUBLISH.md，本文件仅登记对齐边界）
   && isfinite(area[p])` 为假 → signal=NaN、support=0；
   signal_min/signal_max 遍历有限值更新（供 properties
   hips_data_range）。IEEE NaN 填充（无 FITS BLANK 整型卡）。
-- (2d) FITS tile：`write_fits_image`（vendored CFITSIO 4.6.4）——
-  先 `std::remove` 后 `fits_create_file`（覆盖式直写，无临时
-  文件——原子发布属 IO-003 层，见 DISP-HIPS-004）；cards
+- (2d) FITS tile：`write_fits_image`（vendored CFITSIO 4.6.4）当前是单文件**私有tmp→内容/checksum验证→fsync→原子rename/目录fsync**的发布壳；其内部`write_fits_image_raw`确有先remove(tmp)再fits_create_file(tmp)，但**不是在正式tile路径上直写**。多文件完整revision仍未实现，详见D7-C及DISP-HIPS-004历史纠偏。cards
   PIXTYPE=HEALPIX / ORDERING=NESTED / COORDSYS=C +
   OBJECT/FILTER/EXPTIME/DATE-OBS + NSIDE/FIRSTPIX="0"/
   LASTPIX="262143"（调用方三处同文件；声明性头卡，
@@ -117,9 +115,7 @@ FITS 写；hierarchy 登记，各段同文件）。SCI 锚：SCI-DRZ-001 的 fin
 （finalize_tile 方差传播，方差分子已由 P1-DRZ 链生产，本模块只做除法归一）；
 `docs/science/unified/DATA_SEMANTICS.md`「方差与逆方差的三态编码」一节（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
 
-- (3a) 归一：条件 `valid && area>0 && vnum>0 && isfinite(area) &&
-  isfinite(vnum)`（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`）下 `variance[p] = var_num_sum[p] / (covered_area[p])²`、
-  `ivar[p] = 1 / variance[p]`；否则 variance=ivar=NaN（同文件）。
+- (3a) CURRENT 四态：有覆盖且vnum>0有限时variance=vnum/area²、ivar=1/variance；有覆盖且vnum==0时variance=0、ivar=0是**精度未知的显式哨兵态，不是零噪声**；无覆盖时两者NaN；area非有限或有覆盖的vnum负/非有限则返回损坏rc=-6。见下方D7-C独立状态表。
   var_n[i] 缓存（供 hierarchy）取 `vnum` 当 `valid && area>0 && vnum>0`
   （同文件，不含 isfinite——与写盘条件略有差，如实登记）。var_num_sum
   语义=Σ v_j·w_jp²（drizzle 侧逐像素分子，`lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp` 传入），
@@ -148,7 +144,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   （同文件，s=tile 内 NESTED 段），得阶 k 的父 cell 索引——标准 HEALPix
   NESTED 4 分叉父子关系（Górski 2005）；叶 tile→父 cell 分离
   `leaf_to_tile_nest = leaf_ipix >> 2(L−K)`（`lib/algorithms/shared/healpix/healpix_core.h`）。
-- (4b) 逐父 cell 确定性累加（叶级缓存、归约，同文件）：
+- (4b) 逐父 cell 面积加权层级归约（现行采用**稀疏f64分块+完备即写出释放**；原后续f32累计描述是历史实现，默认f32_step仅在故障注入时可达）：
   `flux_n += sig·a`、`area_n += a`，其中 **`a` = 未钳制真实覆盖面积**
   （叶级 `area_true`→`scratch_area_n`），`sig` = 发布面叶级
   signal（f32 产品取 float 截断后的值）。父级面积恒等式为 `area_parent = Σ area_child`（未钳制真实覆盖面积之和），发布面再取 `support = min(area_parent/A_cell_k, 1)`；钳后值不可反推真实面积，Σa>A_cell_k 的倍数信息在发布面丢失并按计数键登记（见 (4c)）。**归约权重取自未钳制真实覆盖面积；钳后的 support 只作发布值，不进入
@@ -158,8 +154,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   旧式 5.05，损失 37.032%→0）。方差分子直接累加
   `var_n += var_num`（同文件，var_num 本身已是
   Σv_j w_jp² 分子，不另乘权）。AncestorAcc 保持 f32/f64 双轨（is_f32
-  ；**f32 产品用 float 累加 Σflux/Σarea——多子 tile 有舍入漂移
-  风险，DISP-HIPS-009**）。同一父 cell 按叶写序单线程顺序累加（map 条目
+  ；**当前正常生产的累计均为double，即使最终产品位深f32也只在写出时转换**；历史float累加风险已有实现修复，DISP-HIPS-009只保留历史/故障注入对照）。同一父 cell 按叶写序单线程顺序累加（map 条目
   首次遇到时创建）→ fixed_reduction_order（无并行求和漂移）。
 - (4c) 落盘：finalize 时对每阶 k<T：nside_k=2^(k+9)、
   A_cell_k=4π/(12·nside_k²)；cell 归一 signal=Σflux/Σarea、
@@ -199,8 +194,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   列 "UNIQ" TFORM=K；MOCORDER/PIXCOUNT 头键；checksum；
   空集不写；remove+create）。moc_sky_fraction =
   moc_area_sr/4π（finalize）。
-- (5b) properties（write_properties 裸 `key=value\n` 直写，fopen
-  失败静默 return；键序 finalize_image_product，均在同文件）：IVOa 关键字
+- (5b) properties：当前`write_properties`组装key=value文本后通过`aio_atomic::write_file_atomic`写出并传播失败；原裸fopen静默失败已修。其余键定义见下：IVOa 关键字
   creator_did（缺省 ivo://acsd/phase1）/ obs_title / obs_creator=
   "ACSD"/ **hips_version="1.4"** / hips_order=K /
   hips_tile_width="512" / hips_frame="equatorial"（IVOA REC-HIPS-1.0 §4.4.1 标准值域 {equatorial, galactic, ecliptic}；
@@ -252,7 +246,7 @@ add_var 同文件）；finalize 落盘 `finalize_hierarchy`
   明示非伪造）**；metadata.xml=VOTable 1.3（Hipsgen LINT[4.4.3] 要求根
   元素 votable；FIELD 含 datatype/unit/ucd，同文件）；SNR Moc.fits
   （同文件）。
-- (5d) manifest.json（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 的 manifest 写出段）：format_version=1、hips_version="1.4"、
+- (5d) manifest.json（当前由`aio_atomic::write_file_atomic_stream`在**全部异步tile发布池两次排空且子产品完成**后最后写出，读侧仅在manifest声明产品时消费）：format_version=1、hips_version="1.4"、
   nside/tile_width/data_type、products 列表、n_leaf_tiles=leaf_ipix_list
   .size()、moc_sky_fraction、acsd_covered_sky_fraction、signal_dtype。
   **无 COMPLETE 状态字、无 sha256 树哈希**——发布侧语义在 IO-003
@@ -299,16 +293,9 @@ META-001 使用真实时间 → properties/manifest 字节不跨运行复现（�
 输入同序逐字节可复现。数据类型双轨（f32/f64）由 data_type 一次性决定
 （begin 固化），不混写；hips 精度分层见 §8。
 
-## 8. 精度与 dtype
+## 8. 精度与 dtype（以当前 f64 稀疏父阶与明确precision状态为准）
 
-存储 dtype=入参 data_type（f32/f64 统一 tile 内外一致）；计算路径：归一在
-double 域完成（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 输入 double 化后运算），存储时截断到存储 dtype；
-hierarchy 累加器双轨——**f64 产品全程 double；f32 产品 AncestorAcc 用
-float 累加 Σflux/Σarea（同文件），多子 tile 大和有 f32 舍入漂移风险
-（DISP-HIPS-009；方差分子同理）**。signal=flux/area 与
-variance=var_num/area² 的病态区域（area→0）由 (2c)/(3a) 无效规则兜底为
-NaN/0。hips_data_range 只统计有限值（同文件）。TSV 精度按 SNR-PREC-001
-round-trip（(5c)）。容差冻结见 §9。
+产品BITPIX受begin中data_type控制：f32/f64在写tile时分别采用-32/-64，归一比例先以double计算再存储到相应精度。**CURRENT正常AncestorAcc是稀疏double块累加Σflux/Σarea/Σvar_num**，旧版“f32产品用float累加”的风险已有实现修正；f32_step只是测试故障注入。父阶将源叶已存精度的面亮度乘未钳制area累加，不能宣称比输入已量化值凭空获得新精度。面积分母趋近0、NaN值资格、var=0/ivar=0编码未知精度应分别处理；signal=flux/area与variance=var_num/area²仅在正有限的同一面积和同一物理估计量下成立。HiPS data_range只统计有限signal。SNR TSV用FP32 %.9g、FP64 %.17g保留数值round-trip；真正Catalogue不是canonical精度模型，更多状态详见D7-C §12。
 
 ## 9. TEST-HIPS-DESIGN-001 — 冻结测试设计（可执行测试归 P1-HIPS-TEST）
 
@@ -345,7 +332,7 @@ round-trip（(5c)）。容差冻结见 §9。
   发布面 support=min(Σa/A_cell_k,1) 是编码限，只作发布值，不回流当归约权重），
   f64 域 bitwise（c>1 亦然）；f32 路径按 §9 容差（accumulator 漂移）**；I8
   manifest 计数字段=实际文件数；I9 double finalize rc=−2；I10 abort 后
-  句柄不可复用；I11 F=signal×support×A_cell 有限非负（gate7 同式）；
+  句柄不可复用；I11 历史式 F=signal×support×A_cell 仅当support未钳制、被估计量/源面积和分母一致时有意义；**科学signal允许负值**，且当真实area>A_cell后support被钳为1，该乘积不能复原F；
   I12 SNR TSV 数值 round-trip 精确（SNR-PREC-001）。
 - **负面矩阵**：nside<512、tile_width≠512、非法 dtype、越位 flags、
   parent_ipix≥12·4^K、width≠512、var_num NULL、全无效 variance tile（−5）、
@@ -366,21 +353,21 @@ round-trip（(5c)）。容差冻结见 §9。
   路径断言无交叉污染。
 - 性能/资源：单 tile 写耗与内存水位 smoke 记录（非冻结容差，登记即可）。
 
-## 10. DISP-HIPS-001..012 — 实现偏差清单
+## 10. DISP-HIPS-001..012 — 历史实现偏差清单（已修与未闭合须按D7-C现行源码重新判定）
 
 | ID | 严重度 | 描述 | 锚 | 处置建议 |
 |---|---|---|---|---|
-| DISP-HIPS-001 | 高 | abort 仅 `delete ps`，不删除已写文件；`lib/infrastructure/aio/include/aio_hips.h` 注释称"清理已写部分(尽力)"——合同与实现不符，部分失败产品残留无 rollback。matrix 专项"partial failure rollback"如实登记为缺口 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（abort 段）；`lib/infrastructure/aio/include/aio_hips.h` | IMPL 事务化（写临时目录+发布切换）或头注释降级声明+文档化调用方清理责任（与 IO-003 对齐） |
+| DISP-HIPS-001 | 高 | CURRENT abort会先排空发布池、再删除ps，不回滚已经落盘的子产品，残骸没有成功manifest；`lib/infrastructure/aio/include/aio_hips.h` 注释称"清理已写部分(尽力)"——合同与实现不符，部分失败产品残留无 rollback。matrix 专项"partial failure rollback"如实登记为缺口 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（abort 段）；`lib/infrastructure/aio/include/aio_hips.h` | IMPL 事务化（写临时目录+发布切换）或头注释降级声明+文档化调用方清理责任（与 IO-003 对齐） |
 | DISP-HIPS-002 | 中 | properties `hips_estsize="1000000"`、`hips_initial_fov="60"`（image 与 SNR 两处）硬编码占位，无真实估算/校验 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（image 与 SNR 两处） | 按产品目录真实字节数与天区极值估算；e2e fixture 生成器照抄处需同步 |
 | DISP-HIPS-003 | 低 | properties `hips_status` 恒 "private master"，无公开/克隆状态参数化 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（image 与 SNR 两处） | 参数化或确认产品定位恒私有 |
-| DISP-HIPS-004 | 高 | C++ 写出无原子发布：FITS/MOC/metadata 先 remove 后 create 直写、make_dirs 无 fsync（同文件）、properties/manifest 直写、manifest 无 COMPLETE 状态字/树哈希；finalize 中途失败（−3..−8）已写子产品残留；同 out_dir 重跑与旧运行残留混合。原子语义由 IO-003 Python 发布层承接（临时写→fsync→fitsverify→sha256→原子 rename→manifest COMPLETE）——两合同边界在DATA-P1-HIPS [S-1]「判据与误差」一节登记对齐，writer 层不冒认已原子。对照：HISS 容器有 .partial/.tmppool+atomic_replace（`lib/infrastructure/aio/src/hiss_stream_writer.cpp`）但 writer 未采用 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`；`docs/engineering/contracts/ATOMIC_PUBLISH.md` | INT 层接线（writer 写 staging 由 IO-003 消费）或 writer 内嵌事务；tree hash 归属待定 |
+| DISP-HIPS-004 | 高 | **旧原子缺陷已部分修复，仍无统一多文件revision**：tile/MOC使用私有tmp+checksum/fsync+atomic rename，properties与manifest采用aio_atomic；但metadata.fits与SNR TSV仍存在局部直写，abort不清理整棵目录，P1 HiPS和frame_science不共用完成指针。历史表述“所有tile都在正式路径直写”作废。finalize 中途失败（−3..−8）已写子产品残留；同 out_dir 重跑与旧运行残留混合。原子语义由 IO-003 Python 发布层承接（临时写→fsync→fitsverify→sha256→原子 rename→manifest COMPLETE）——两合同边界在DATA-P1-HIPS [S-1]「判据与误差」一节登记对齐，writer 层不冒认已原子。对照：HISS 容器有 .partial/.tmppool+atomic_replace（`lib/infrastructure/aio/src/hiss_stream_writer.cpp`）但 writer 未采用 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`；`docs/engineering/contracts/ATOMIC_PUBLISH.md` | INT 层接线（writer 写 staging 由 IO-003 消费）或 writer 内嵌事务；tree hash 归属待定 |
 | DISP-HIPS-005 | 低/中 | 入参 moc_order 静默 clamp（min 与 tile_order）无告警；且 moc_order<K 时 Moc.fits 含低阶 UNIQ，而自家读侧 `lib/infrastructure/aio/src/hips/aio_hips_reader.cpp` 仅保留 order==K——低阶 MOC 对自家 reader 无效（Moc.fits 为 optional hint，不影响覆盖判定） | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`；`aio_hips_reader.cpp` | 强制 moc_order=K 或 reader 兼容低阶 UNIQ |
 | DISP-HIPS-006 | 中 | CFITSIO 裸调未包装进程级互斥锁（同库 `lib/infrastructure/aio/src/aio_fits.cpp` 与 `aio_hips_reader.cpp` 均用 aio::cfitsio_io_mutex）——writer 写路径完全无锁；单句柄串行使用无影响，未来多句柄/多线程写同进程将静默竞争（现生产链=drizzle 合并后单线程写，`lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp`，暂无并发场景） | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 全文件无 mutex | 统一包装 mutex 或显式登记单句柄使用约束 |
 | DISP-HIPS-007 | 低 | 错误码无集中枚举且正负混用（write/finalize 负码 −1..−9（含 ABI 不匹配 −9，V11-N-01）vs provenance 正码 1/2；语义仅注释）——ABI 演进风险；last_error 每入口 clear，跨调用不可追溯 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（各公开入口与各子产品写出/收尾段） | 集中枚举 + 头文件公开 |
 | DISP-HIPS-008 | 低 | `aio_hips_write` 兼容入口旧语义：signal=F、support=uint8 0..255 → covered_area=su/255·A_cell、flux_sum=signal·su/255（8bit 量化损失），flags 固定 ALL（无 variance/ivar），与新 AstroSphereTileView 连续 support 语义并存易混用 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（兼容入口与其转换段） | 标记为非推荐入口或内部转换告警 |
-| DISP-HIPS-009 | 中 | f32 产品下 AncestorAcc 以 float 累加 Σflux/Σarea/Σvar_num（f64 通道仅 f64 产品使用）——多子 tile 大和有 f32 舍入漂移风险，影响低阶 hierarchy 精度 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（AncestorAcc 定义与逐父累加段） | f32 产品仍用 double 累加（存储时再截断）或登记精度边界（TEST-HIPS-DESIGN-001 容差已按 1e-6 冻结） |
-| DISP-HIPS-010 | 低 | fits_str 对 FITS 头字符串 68 字符静默截断（obs_title 等超长丢尾无告警）；properties key=value 裸写无转义（值含换行/=会破坏格式，现状值域受控）；write_properties/SNR tile fopen 失败静默或仅 set_error（properties 缺失时 finalize 仍返回成功路径） | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（fits_str/write_properties/SNR tile 三段） | 截断告警；properties 值转义/校验；失败传播到返回码 |
-| DISP-HIPS-011 | 低 | hierarchy 空 acc（count 全 0 的父 cell）照写全 NaN tile（不检查 count），文件量虚增；hierarchy 目录无独立 MOC；finalize 每层重新分配 4×262144 缓冲内存峰值 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（finalize_hierarchy 缓冲分配段与空 acc 写出段） | count==0 跳过；缓冲入句柄 scratch 复用 |
+| DISP-HIPS-009 | 已修/回归 | **正常父阶稀疏double累计**；历史float运算仅f32_step故障注入用于负例检测，不是当前的正常f32路径 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（AncestorAcc 定义与逐父累加段） | f32 产品仍用 double 累加（存储时再截断）或登记精度边界（TEST-HIPS-DESIGN-001 容差已按 1e-6 冻结） |
+| DISP-HIPS-010 | 部分已修 | fits_str超长静默截断与properties文本值转义仍需控制；**write_properties现在用aio_atomic并向finalize传回失败**，SNR TSV仍为fopen逐tile，不能把已修错误传播再记未修 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（fits_str/write_properties/SNR tile 三段） | 截断告警；properties 值转义/校验；失败传播到返回码 |
+| DISP-HIPS-011 | 部分已修 | hierarchy使用稀疏double分块、完备即流式写释放；write_hierarchy_cell仍为每cell分配输出缓冲、空acc/稀疏覆盖域需要独立文件数对照；父层无独立MOC的限制另验 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（finalize_hierarchy 缓冲分配段与空 acc 写出段） | count==0 跳过；缓冲入句柄 scratch 复用 |
 | DISP-HIPS-012 | 低 | FIRSTPIX/LASTPIX 声明性头卡（恒 "0"/"262143"）全仓无消费方（仅 fixture 断言字面值）——冗余契约，语义漂移风险低 | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（三处 tile 写调用点） | 保留并文档化或删除 |
 
 登记级事项（非缺陷，如实登记）：逐像素标量 scatter 调用
@@ -424,3 +411,103 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
 - FITS 写出/关键字：FITS Standard 3.0；CFITSIO（宽松许可）。
 - MOC/properties：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。
 - dtype/精度与 hierarchy 聚合：Project-defined（本文件 §2/§4/§8）。
+
+## 12. D7-C 正式重构：公共 HiPS Writer 的现行科学量、接口、精度、事务及独立实验
+
+**原文保全与分层**：以`63eccbb6133aef56389641d43c55df6e243819c5`的427行原版、blob`ae917e6510915845b7de97f1fc5367d838ca7ff6`完整精读为基础，保留历史ALG-HIPS-001..005、测试fixture G、面积加权父层、标准文件布局、MOC/TSV、负例判据及标准出处。本文的旧 §1–11 中与2026-10-17最新版冲突的“直接覆盖正式tile、f32累计、仅flags≤31、NaN精度处理、无原子properties、历史P1权重链”等，应以本节的**CURRENT**取代；仍有效的原数学、参数和实验设计保留作为可执行研究内容。事实源码：`lib/infrastructure/aio/include/aio_hips.h`（405行）、`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（3138行）、`astro_sphere_sink.cpp`、`module_adapters.cpp`、`aio_hips_reader.cpp`与`hips_properties.cpp`。科学正本：[Drizzle](../../drizzle/DRIZZLE.md)、[统一模型](../../unified/UNIFIED_SCIENCE_MODEL.md)、[数据语义](../../unified/DATA_SEMANTICS.md)；接口详见[共用HiPS写入](../../../detail/infrastructure/hips_writer.md)、[Normalize正式数据合同](../../../engineering/contracts/NORMALIZE_DATA.md)、[原子发布](../../../engineering/contracts/ATOMIC_PUBLISH.md)。
+
+### 12.1 真球面 leaf/tile/FITS/MOC 四种“阶”和三个面积
+
+对 HEALPix NESTED，真实leaf阶`K=log2(nside)`，合法leaf `nside=2^K`，当前AIO begin要求2的幂且512≤nside≤2^29。一个标准512×512 tile含`4^9=2^18`个叶；tile目录阶`T=K-9`。在同一个base face内的tile索引`t`和tile局部Morton索引`l`构成全局leaf `leaf_ipix=(t<<18)|l`；其天区身份来自`pix2ang_nest(nside,leaf_ipix)`，而不是tile本地二维数组下标本身。共享`nested_local_to_fits_index(l,9,512)`经低位交错反解(x,y)，转换为`fits_index=(511-x)*512+y`；NorderT/DirD/NpixN.fits，其中`D=floor(N/10000)*10000`，Npix文件名为完整的无符号64bit tile号。AIO reader仅在标准路径缺时尝试旧商/余数目录（只读兼容）。必须在base face缝、极区和大索引上用独立astropy-healpix/HiPS FITS对拍，这一公式不是简单图像旋转即可解释。
+
+真实叶球面立体角`Omega_leaf=4*pi/(12*nside²)` sr；tile覆盖的**整块名义球面足迹**为`4^9*Omega_leaf`。源像元缩小drop面积`A_drop,j`、真实单次交叠`a_jp=area(D_j intersect H_p)`、HiPS叶几何足迹面积Ω_p，以及Drizzle累计归一分母`N_p`、覆盖分配累计`D_p`是**不同量**。由#15已证实的高nside四角geodesic叶近似`Htilde_p`不等于HEALPix真曲边`H_p`；`sum_p a_tilde/A_drop`可内部闭合但真叶membership仍错。极冠示例的约−9.968%是**局部弦边形状面积差**，不是已测最终星点测光损失。修正需真实曲边交叠/等面积chart独立积分和分区完备性，不是writer元数据或sidecar改名能解决。
+
+### 12.2 Drizzle → AIO 写入所估计的量及正确的 k 因子
+
+定义原生每源像元线性积分值`x_j`（物理单位`L`，可能native ADU或应用后的模型单位），实际未收缩球面面积`Omega_j`，drop面积`A_drop,j`，对叶p交叠`a_jp`，权`w_jp=a_jp/A_drop,j`。上游 Drizzle 可用以下等价累计表示：
+\[
+ F_p=\sum_j w_{jp} x_j,\qquad
+ N_p=\sum_j w_{jp}\Omega_j,\qquad
+ D_p=\sum_j a_{jp},\qquad
+ B_p=F_p/N_p.
+\]
+`F_p`是按drop分配积分中间量（单位L），`N_p`是将其换算成面亮度的归一面积（sr）；`D_p`是像元/drop footprint重叠的面积累计（sr），**不一定等于叶真实覆盖并集**，多帧/重叠可超过Ω_leaf。一个共同factor`k_p=D_p/N_p`将上游转给AIO：
+\[
+ {\rm view.flux\_sum}=F_p\,k_p,\quad
+ {\rm view.covered\_area}=D_p,\quad
+ {\rm view.var\_num\_sum}=V_{F,p}\,k_p^2.
+\]
+这里`V_F,p`专指**该输出累计分子F_p的条件随机方差**，与#8点源flux估计`V_ref`必须异名区分；若原始随机项独立，`V_F,p=sum_j w_jp² v_j`，一般为`w_p^T C_source w_p`。AIO按`view.flux_sum/view.covered_area`得到`B_p=F_p/N_p`（L/sr），在误差通道上按`view.var_num_sum/D_p²`得到`Var(B_p)=V_F,p/N_p²`（L²/sr²）。**这正是`astro_sphere_sink.cpp::write_hips_phase1`实际使用的`sb_publish_scale(sumArea,sumNorm)`与`k²`修正**；原文若把原`sumFlux/sumArea`当成最终面亮度，在pixfrac<1时会有尺度错误，pixfrac=1作为弱阳性恰可能掩盖缺陷。实验须用pixfrac=0.5/0.8/1及单位D_p/N_p、方差平方比例同时区分。
+
+**上游科学条件**：`x_j`若是native ADU，且由`B=F/N`得出才有`BUNIT=ADU/sr`；若实际 P1 photometry apply由有量纲alpha将x变为另种L，writer虽只做相同数值除法，BUNIT必须跟随`L/sr`、variance跟随`L²/sr²`。#9生产`p1_stack.json`和`declare_hips_surface_brightness_units`仍有固定ADU/sr声明，不能因“源值被乘因子但形式仍是面亮度”否认单位变动；也不能把无量纲相对零点标度误当SI绝对标定。TARGET必须把native/applied/response/scale_state的实际单位和数值变换由`frame_science`与产品properties一致追踪，图像单位不因FITS HDU数减少而消失。
+
+### 12.3 coverage、valid、signal、未知precision与数据损坏五种状态
+
+AIO当前`aio_hips_write_signal_support_tile`每leaf判断`covered = valid_mask_allowed && isfinite(area) && area>0`；已覆盖时无论`flux_sum`是否有限，都写`support=min(area/Omega_leaf,1)`，而`signal=flux_sum/area`仅当flux有限，否则NaN；无覆盖S=NaN/support=0。有限零与负signal均正确。若`D_p>Omega_leaf`会clamp support为1，原始D累计倍数无法由product support逆推；真实层级必须继续用未clamp的area并在`acsd_support_clamped_pixels`记录发生次数。**support不是SNR、inverse variance，也不是并集覆盖面积**。
+
+`aio_hips_write_variance_tile`现行4态需在同一产品metadata声明，而不是把物理0方差解释成最大信息：
+
+| 几何/数据状态 | Signal/support | variance/ivar产物 | 解释与处理 |
+|---|---|---|---|
+| area≤0或valid=0且area有效 | S=NaN, support=0 | NaN / NaN | 无观测足迹，不可用零亮度填 |
+| area>0且signal有限、vnum>0有限 | S可为任意有限正/零/负，support>0 | vnum/area² 与其倒数 | 条件随机精度可用；需真实被估计量与单位配对 |
+| area>0且vnum==0 | support>0（S视flux有效性） | **0 / 0** | **库内编码为 precision unavailable**，不是无随机误差、也不得令1/0=∞；必须使用产品及逐像元状态避免歧义 |
+| area>0但flux非有限 | S=NaN, support>0 | vnum依实际是否有效单独声明 | 科学signal无效与几何覆盖分离；下游须保留实际原因 |
+| area非有限，或有覆盖且vnum负/非有限 | 不可消费为合格产品 | **写出返回负码（variance路径rc=-6）** | **DATA_CORRUPT**，不是unknown precision；不得clamp或把脏模型退化成valid数据 |
+
+上表“0/0”表示两张图的两个**数值零哨兵**，并非有理数`0/0`的运算定义；遇到真实确定性零方差需要一个明确物理模型及另外状态，而不是自动把其视为unknown。全块无`any_covered`时方差函数返回−5（sink对特定情况会跳过并记录），需确认被声明子产品的tile存在集与signal/MOC一致；不能以writer“返回成功”自行判定所有叶方差都有证据。CURRENT库通过flags决定是否尝试VARIANCE/IVAR，不能据公共ABI有四通道就称Mosaic最终多科学图像：Normalize单帧**可有辅助**signal/support/variance/ivar（及Catalogue），而`p2_op_write`真正只选SIGNAL，P2最终single scientific image channel。
+
+### 12.4 hierarchy：数值真相与稀疏f64流式策略
+
+对低一层`k<T`的tile，祖先tile id`A=t>>2(T-k)`，其局部索引`z=((s<<18)|l)>>2(T-k)`（s是t在祖先下面的后缀子tile位）；同一细leaf支撑的低阶目标由父层累加决定。CURRENT `AncestorAcc`使用稀疏按需64个double子块记录flux/area/var-num，而不是历史f32父阶求和；`f32_step`仅用于显式故障注入。因不同tile的local leaf经过完整NESTED父映射不会给同一目标z重复独立贡献，历史“因tile到达序浮点重结合必不可复现”的推断已被源码结构性修正，但不同输入科学帧源本身的融合仍须另按权重重算。`stream_flush_ready_cells`在祖先cell所有预期leaf slots（含方差槽配对）到达后直接`write_hierarchy_cell`、释放子块；`finalize_hierarchy`写剩余尚未完成的cell，属于MEM-DESIGN-01的真实改进而非未来架构设想。
+
+当前父层按正有效信号贡献计算`flux_parent=sum(B_leaf_stored*D_leaf_unclamped)`、`area_parent=sum(D_leaf_unclamped)`、`signal_parent=flux_parent/area_parent`，support仍先除父叶Ω再钳到[0,1]；方差分子从子叶累计后按`V_parent=sum var_num/(sum area)²`。该方差等式仅在其原生成分子及条件协方差/同一光度计量成立时有意义，**跨孩子像元共享原始曝光/Drizzle贡献时不能仅相加孩子方差得到真实跨叶相关合成方差**。不要把派生父层当成独立观测，也不得从被clamp的support乘回真实D或原始F。
+
+**D7-C 静态新风险**：叶级`covered && !isfinite(flux)`会保留support>0但S=NaN；在`aio_hips_write_signal_support_tile`累加父层时读取`flux=sig_n[i]*area_n[i]`，随`if (!isfinite(flux)) continue`把**同一leaf的面积贡献也跳过**。这使某些真实有footprint但信号不可用的位置，在父阶被计为面积0/支持域减小。它是生产条件路径的SOURCE_CONFIRMED而非真实E2E已触发。TARGET需按面积、有限信号与有效估计器分开聚合，决定“几何covered但科学invalid”在父层的表现；外部独立构造一个area>0、signal NaN及旁边正常leaf，要求各阶面积并集和信号状态分开核验。此问题不同于旧DISP-HIPS-009已修的f32累计。
+
+### 12.5 公共C ABI、所有权、失败码与实际两个生产者
+
+`aio_hips.h`是公开C ABI，不是STL跨DLL接口，句柄`AioHipsProductSet*`唯一拥有会话状态、scratch/祖先map/叶MOC/来源。`aio_hips_product_begin`输入out_dir、nside、tile_width、data_type、flags、creator_did、obs_title、obs_filter、exposure_s、obs_date、moc_order，失败返回NULL并通过`aio_hips_last_error`读取最近错误。产品flag数值 SIGNAL1/SUPPORT2/SNR4/VARIANCE8/IVAR16/NREJ32/NUSED64，ALL7、ALL_V19=31、ALL_V20=127；f32=0/f64=1，diag nrej/nused是int32无父层聚合。`AstroSphereTileView`由caller持有并传入，其`struct_size`/`abi_version`必须使用`aio_hips_tile_view_abi_init`（其他SNR/diag/test镜像用各自initializer）；字段顺序parent_ipix:uint64、leaf_order:uint32、width:uint32、data_type:int32、指向NESTED局部序flux_sum/covered_area/valid_mask/var_num_sum。错误布局返回`AIO_HIPS_ABI_MISMATCH=-9`，不得按调用者自己猜sizeof。
+
+生产流程为`aio_hips_product_begin`→`aio_hips_write_signal_support_tile`（必要时`aio_hips_write_variance_tile`/`aio_hips_write_diag_tile`/`aio_hips_write_snr_points`及provenance/set_geometry）→`aio_hips_finalize`，失败时`aio_hips_abort`。调用方保留view数据至少到同步写返回，库不可跨线程用同一ps同时修改scratch/hierarchy。虽然AIO有单文件I/O发布池，并不意味着同一产品集数学归约可被多个线程同时无锁写。返回负码各函数具体不同（参数、未覆盖、FITS写、发布池或ABI），正码的setter通常为无效参数；不能以全局“0成功+其它任意可忽略”替代逐函数具名状态及最后错误。异常跨C API在实现中有try/catch障壁，错误文本不得作为程序分支唯一依据。
+
+**两个真实消费者**：
+
+- **Normalize Phase1**：`astro_sphere_sink.cpp::write_hips_phase1`消费Drizzle累加与`sb_publish_scale`，按真实输入是否有方差决定SIGNAL|SUPPORT及VARIANCE|IVAR，按视图逐tile同步调用并把模型/Frame SNR部分证据写到HiPS；`p1_op_writer`另负责检查正式产品、在完成tile后写/验证`frame_science.json`和模型，产品root/final摘要不等同AIO writer内部完成标志。若precision模型未写出，signal tiles可以存在，但不能叫它“完整且precision unavailable的v2 frame-science产品”。
+- **Mosaic Stage2**：`p2_op_write`从真正integrate中间层取得signal/coverage，转为writer要求的NESTED local布局，在`staging`中`aio_hips_product_begin`，当前flags只选SIGNAL，不把P2内部ivar/reject/support变成最终多图层；`aio_hips_finalize`后继续独立校验并发布整体mosaic root。多个相机、波段按自定义混合规则可以参与，但标称滤镜标签/mixed不能伪装为同一物理响应。
+
+### 12.6 科学Identity：#9/#10/#13/#19/#74/#75与产品读侧
+
+#10 **原字段问题的当前变化**：`p1_op_drizzle`如今设置`fdoc.signal.leaf_order=log2(frame_nside)`，不再直接写K−9；但真正`write_frame_science_document/read_frame_science_document`与机器schema仍为v1。`NORMALIZE_DATA` §9冻结的 **唯一frame-science/v2是TARGET / NOT_RUN**，不能把新文档既定schema当已编码上线；其leaf_order=K、tile_order=K−9、球面控制点、64bit ipix十进制字符串、模型hash和source ID必须作为同一次产品revision验证。
+
+#13 **Canonical Precision未被真正消费**：P1`frame_science.json`现在可能写出球面PSF/参考source条件模型，但Stage2`p2_sparse_layer_probe`仍依赖`ACSD_SPARSE_SNR_LAYER`的legacy像素规整层，未读取Canonical v2模型；点源`I_F=(SNR_ref/F_ref)²`并不直接是Mosaic面亮度方差逆，要有同估计量同噪声条件下`T=V_B/V_F`。未知precision是有完成sidecar和具名reason的科学能力状态，而读取sidecar失败/哈希损坏属于DATA_CORRUPT/INCOMPLETE，不能假装unavailable；无sidecar的未完成私有staging又是NOT_APPLICABLE或未提交revision。这样才能使写库的API“可写SNR TSV”不被冒称Canonical精度已贯通。
+
+#19 **跨输入阶**：Stage2部分coverage元数据可合并不同T，但reject/integrate仍可能将同一个tile_ipix/局部index在不同nside下当成同天区，没有真实重映射，造成坐标错配。必须给每帧显式FrameGrid并**同grid才能直接按leaf合并**；否则先按球面面积/有效核重映射signal与相关统计，完整功能前对混阶fail-closed。writer输出最低T的产品不能修复源叠加前坐标错配。
+
+#74 已有实际观测：自动nside最高档写出/sidecar成功与显式512/2048写tile后长时仍不出frame_science有显著差别，但根因**未知**（不能凭近端 writer API推断死循环或归因线程）；复核需分离Drizzle、AIO层级finalize、球面精度序列化和p1_writer每段timestamp/RSS/perf。#75 增量构建`ACSD_COMMIT_SHA`可能陈旧，`software_sha`不能独立证明当前加载CLI/DLL身份；TARGET记录真实构建依赖及二进制hash、dirty/source revision与模型版本，不从同名文件覆盖推断匹配。
+
+HiPS properties包括`hips_order=T`,`hips_tile_width=512`,`hips_frame=equatorial`（ICRS含义）、`hips_ordering=NESTED`,`hips_pixel_scale`单位是**度**，`obs_filter`在image properties即使空也写；`hips_estsize`与`hips_initial_fov`仍可能是历史硬编码占位。MOC用UNIQ整数编码，较粗`moc_order<T`产物读取时`aio_hips_reader.cpp::load_tiles_from_moc`只识别T对应的UNIQ，不会自动展开低阶父cell ⇒ tile列表缺失，须严格配对MOC order或升级读侧。Catalogue TSV点源SNR只为浏览/legacy消费，不能替代frame_science canonical。目录及属性检验由`hips_product_validate`与`aio_hips_open`各有侧重：它们不能仅凭manifest存在证明元数据所有语义已由机器schema验证。
+
+### 12.7 原子文件 vs 多文件完整提交：已有修复与尚缺事务
+
+**旧§2/§5/§10“全部FITS正式路径直接覆盖写、properties fopen失败静默、manifest非原子”已被当前源码否定。** `write_fits_image` 与`write_moc_fits`现在经`write_fits_atomic`使用同目录私人tmp，write/close与可复现FITS checksum、独立verify、fsync、可选经读回验证的全零打洞、单文件原子rename并尽力目录fsync；发布池可后台并行文件尾部并在`aio_hips_finalize`入口和完成标记前两次`publish_drain`。`write_properties`使用`aio_atomic::write_file_atomic`且失败上行；最终`manifest.json`经`aio_atomic::write_file_atomic_stream`在最后发布。`write_chksum_deterministic`使用CFITSIO标准数值校验和但避免UTC变动注释污染文件字节确定性。仍有少量辅助`metadata.fits`或Catalogue TSV通过局部直接create/fopen路径，不能概括为“所有文件原子且都经统一验收”。
+
+**单文件发布和完整science revision是不同事务**：`aio_hips_product_begin`先移除旧manifest/选中子产品目录，启动后失效的对象对AIO reader会因为无manifest而被拒；`aio_hips_abort`等待在途发布后只是删除句柄，**没有自动删除全部已写tile/MOC/目录**。新manifest写出之前失败可留未提交残骸但读侧fail-closed。更高层P2使用自己的run-private staging后再完整发布；P1 HiPS最终清单与`p1_op_writer::publish_staged_frame_science`并非共同commit pointer。旧版本完成目标覆盖与目录fsync失败的可恢复性还需单独实测，不能把单文件atomic_replace等同于所有子产品+model的ACID事务。ARS multi-file revision target是`private staging -> all tiles/model hashes/geometry/BUNIT validated -> durable status -> CAS/serial COMPLETE pointer`；pointer可见但持久化未证应COMMIT_UNCERTAIN，不能盲删正式目标。CURRENT是否真把这套ARS接到三个CLI须逐一查证；本批文档只给实施接口和验证路线。
+
+### 12.8 算法复杂度、内存预算与测试/外部Oracle（D7-C设计，不冒充实验完成）
+
+叶tile信号+support散射每tile固定`512²`次，分子/denominator和FITS输出至少O(Tleaf·512²)时间与实际tile数成正比的I/O，层级若T较大每叶涉及O(T)祖先映射；稀疏hier驻留按当前未释放祖先cell数×已分配`hier_sparse`子块增长，不能表述为严格常数。scratch按dtype、方差和诊断flags按需申请；单文件发布池持有路径/状态、失败先排空，CPU生产写库自身序列化句柄而非共享可写。真实峰值还含源tile集合、压缩/磁盘策略、AIO publish workers、合法SNR点数和临时文件；低nside的#74停滞未有根因剖析。
+
+| ID | 输入/独立Oracle | 正反例与验收条件 | 证据 |
+|---|---|---|---|
+| H-W01 | nside512/2048/8192、12face/极区、标准Dir/legacy读取、外部healpy或astropy-healpix | 叶K/T映射、NESTED Morton/FITS扇区、MOC UNIQ、目录及checksum逐项一致；伪K−9被识别而非自动修补 | STATIC，E2E NOT_RUN |
+| H-W02 | pixfrac0.5/0.8/1、人工F_p/N_p/D_p、含L标度 | 核对k=D/N、S=F/N、Var=V_F/N²与support；故障漏k时值偏差/方差平方项必须红 | 数学/调用链，MC NOT_RUN |
+| H-W03 | 负/零signal，D>Ω clamp，D>0但flux NaN，方差0/0、-1、Inf | 三态几何/科学值/精度及DATA_CORRUPT独立读回，任何var=0不进无限逆权重；新父级NaN面积丢失反例需能判红 | SOURCE_CONFIRMED条件风险，注入NOT_RUN |
+| H-W04 | 不同叶数/同父、多层与不同输入tile写序、f32/f64 | 未clamp面积加权恢复8.02对5.05旧错、稀疏与稠密oracle同科学值；开启f32_step fault应判红；测真实峰RSS与磁盘吞吐 | 旧oracle设计保留，新NOT_RUN |
+| H-W05 | 原子tmp、kill、ENOSPC、fsync、checksum、dir sync、重跑/覆盖 | 正式单tile无半写；根manifest最后发布、失败读侧不可当成功产品；旧产品恢复和P1 sidecar统一revision分别判断，不能凭单个rename自证 | SOURCE路径，故障NOT_RUN |
+| H-W06 | frame-science/v1/v2、错误K/T、坏model/hash、unknown precision | v1拒为UNSUPPORTED_SCHEMA，v2完整且precision unavailable为合法信号，损坏为DATA_CORRUPT；P2消费Canonical而非legacy时核实T和单位 | TARGET schema未上线，NOT_RUN |
+| H-W07 | 混合阶T0+T1反例（同tip不同sky）和角色交换 | 不同阶输入未重映射时直接fail-closed；完成后用独立天空真值验证不出现ghost、PSF/area正确 | #19 SOURCE_CONFIRMED，E2E NOT_RUN |
+| H-W08 | 实测M42低nside显式512/2048 vs auto、增量构建变SHA | 各阶段CPU/RSS/I/O剖面定位#74真实根因，软件SHA用二进制/版本与实际源头对拍#75，不猜循环 | #74/#75既有观察，D7-C NOT_RUN |
+
+参考：IVOA HiPS 1.0 https://www.ivoa.net/documents/HiPS/ 与MOC https://www.ivoa.net/documents/MOC/；Fernique et al. 2015 A&A 578 A114 DOI 10.1051/0004-6361/201526075；Górski et al. 2005 ApJ622 759 DOI10.1086/427976；Fruchter & Hook 2002 PASP114 144 DOI10.1086/338393；FITS4.0 https://fits.gsfc.nasa.gov/fits_standard.html 与CFITSIO https://heasarc.gsfc.nasa.gov/fitsio/；独立 astropy-healpix与Astropy FITS/WCS（BSD-3）。上述论文/标准提供方法与参照，**本D7-C未新下载逐段核对外部文献版本/具体软件许可，亦未执行可编译单测、生产CLI、HST/M42、MC/RSS或跨平台测试**；旧 §9 的test ID只代表设计及历史证据，不是D7-C新增PASS。
+

@@ -35,3 +35,17 @@
 ## 验证入口
 
 从上述 C API 与 `aio_hips_verify_product_set` 进入检查；[阶段一管线测试](../../../eng/tests/pipeline/test_stage_normalize.py)核对调用路径。应独立读回索引手性、父层、MOC、真实单位、无覆盖、flags、ABI 拒绝及失败残留，不能用同库读写往返单独证明天球方向或原子性。本页未执行验证。
+
+
+## D7-C｜来源算法与当前工程、数据接口（2026-10-17）
+
+本页作为[ALG-HIPS正式长文](../../science/algorithms/export/HIPS_WRITER.md)的函数级应用说明：其历史完整公式、测试设计、修正分级和正反oracle已在正文，不另行再复制一个治理台账。**CURRENT** C ABI是`aio_hips.h`(405行)声明、`aio_hips_writer.cpp`(3138行)实现，且并非第三个单独CLI命令；Normalize入口为`astro_sphere_sink.cpp::write_hips_phase1`、后由`p1_op_writer`补正式frame-science sidecar，Mosaic入口为`module_adapters.cpp::p2_op_write`。后者只要求SIGNAL最终图像，不能用AIO可写VARIANCE/IVAR的接口证明Mosaic发布了它们。
+
+**公共接口顺序**：`aio_hips_product_begin(out_dir,nside,tile_width,data_type,flags,creator_did,obs_title,obs_filter,exposure_s,obs_date,moc_order)`创建opaque `AioHipsProductSet*`；`aio_hips_write_signal_support_tile(ps,view)`消费`AstroSphereTileView`的NESTED-local `flux_sum`与`covered_area`，按`view.valid_mask`发布signal/support；有经证明的方差分子时可调用`aio_hips_write_variance_tile`，并可选`aio_hips_write_diag_tile`、`aio_hips_write_snr_points`及set_geometry/set_drizzle_provenance/set_frame_snr/set_provenance；最终`aio_hips_finalize`或故障时`aio_hips_abort`。flags为SIGNAL=1、SUPPORT=2、SNR=4、VARIANCE=8、IVAR=16、NREJ=32、NUSED=64。nside=2^K∈[512,2^29]且width=512、`tile_order=K-9`，view要`aio_hips_tile_view_abi_init`，首两字段struct_size/abi_version不符返回`AIO_HIPS_ABI_MISMATCH=-9`；view指针缓冲由调用方持有至同步API返回，单opaque writer句柄不支持多线程无锁并写。
+
+**归一不是文件字段重命名**：P1实际Drizzle累计`F_p=sum w_jp*x_j`、`N_p=sum w_jp*Omega_j`，sink以`k=D_p/N_p`把`view.flux_sum=F_p*k`、`view.covered_area=D_p`交给AIO，再得`signal=F_p/N_p`；方差分子乘`k²`保持二次律。Signal单位`L/sr`随真实native/applied线性计量，不是恒ADU/sr（#9）；covered_area是累计权重面积，可>真实leaf面积，support写出`min(1,D_p/Omega_leaf)`只为coverage fraction，不是随机精度也不是无重叠几何并集。leaf有效面积>0但flux非有限时AIO保留support>0、signal NaN；父层现行逐signal过滤同时跳过area是本批静态确认的条件性跨层覆盖误差风险。高nside #15曲边问题发生在上游Drizzle，AIO正确NESTED序列化不修正交叠几何。
+
+**variance编码**：有面积且var_num>0时`V=var_num/area²,ivar=1/V`，有面积但var_num=0时FITS两数值0/0表示精度不可用、**不是零随机噪声或可用无限ivar**，无覆盖NaN/NaN；有覆盖但var_num<0/NaN/Inf或area非有限视为损坏而硬失败。缺失canonical球面精度与数据损坏不是同态：#10真实leaf_order赋值已修正但正式v2写读与机器schema仍是TARGET；#13 Stage2仍走legacy sparse layer，未消费经v2审计的precision；#19混阶帧需重映射或临时fail-closed；#74低nside实测停滞根因未知，#75增量构建源码SHA可能陈旧。
+
+**层级与发布**：现行Hierarchy是稀疏double祖先累加、仅使用未钳制area，完备即写出并释放，浮点累加历史缺陷已修；每个HiPS tile采用`write_fits_atomic`的tmp/checksum/fsync/rename及父目录尽力sync，properties由`aio_atomic::write_file_atomic`、finalize两次排空异步publish pool后**最后原子写manifest.json**。AIO读侧以完成清单为最小前提；abort只排空并释放，不承诺清理所有已落盘的orphan文件。P1 HiPS正式manifest与随后发布的`frame_science.json`当前没有共享整个revision commit pointer；P2另在private staging生成并发布产品根，必须区分单文件原子与多文件产品完整性。源头oracle、资源/故障测试、schema v2生产均未在D7-C运行。
+
