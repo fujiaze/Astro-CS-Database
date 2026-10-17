@@ -192,3 +192,24 @@ stream 持有读句柄，调用者持有期望子块并复用有界缓冲；校�
 本节点证明生产写读相符与文件完整性的实际范围；相同 WCS 公式两端同错仍可能通过。绝对 sky/手性、独立源通量、有效 PSF、低频星云与噪声统计须用外部 WCS/HEALPix reader、已知天空模拟或真实观测另验。
 
 验证入口为本页 stream/整幅接口、[WCS 单元入口](../../../eng/tests/unit/test_wcs_plausibility.py)与生产五节点调用。应注入头/像元/hash 篡改、截断、非对称 crop、工作文件版本分叉及合法空洞。本页未运行验证，不继承无复现载体的通过结论。
+
+
+## D5｜P2→P3 单 Signal 响应与 provenance 正式施工合同（Issue #79）
+
+本节补全[Phase2 Writer 算法](../../science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md)所定义的跨阶段身份。**生产已核事实**：`p2_op_write` 在 `p2_final.json` 保存 `obs_filter/response_distribution`、`signal/properties` 保存名义 `obs_filter`；`p3_op_properties`（`module_adapters.cpp` 16055 起）目前只从 `p3n_guard_input_units/p3_sampler_open_ex` 获取 BUNIT/order，不读取前述响应；`p3_op_writer`（16614 起）从 resampled/WCS/run_context 构建 FITS，未绑定 P2 response。#79 的真实 `acsd export` exit0 后 `p3_props.json` 与 `output_phase3.fits` 均缺名义通带/响应身份。以下是**TARGET/NOT_RUN**，不宣称新的机器 Schema 或 C++ 已实现。
+
+| 函数/生产者 | 明确选择的输入、输出与消费 | 错误策略 |
+|---|---|---|
+| `p2_op_write` | 当前 sole `signal/` 和 `p2_final.json.obs_filter/response_distribution`；目标为每帧 `frame_id,input_occurrence,source_sha256,nominal_filter,filter_curve_sha256,qe_curve_sha256,photometric_application_id,sky_model_hash` 与 signal revision 同步绑定，及可用支持域、缺项 reason | 若有名义标签却缺真实曲线，明确 `nominal_only`，不冒称具物理可求值 `R_eff` |
+| `p3_op_properties` | 必须先解析已完成 P2 manifest、`signal/properties`、`p2_final.json` 并验证同一 revision/hash/BUNIT/order；新增 `p3_props.json.obs_filter,response_distribution,response_identity_refs,response_provenance_sha256,response_status` | P2 宣称有字段而 P3 不读取/冲突为 DATA_CONFLICT；文件/哈希错误为 DATA_CORRUPT；独立外部合规非 ACSD HiPS 来源写 `unknown_origin`，不伪造 P2 |
+| `p3_op_wcs` 与 `p3_op_resample` | 原 WCS、crop 与 signal 重采样保持数值定义不变；真实 BUNIT 与响应/输入身份透传到 `p3_resampled.json` 及运行 manifest | 传递身份不等于做新的滤镜/增益转换；同一 run/response 不一致时拒绝 |
+| `p3_op_writer` / `P3FitsStream` | 仅一个 PRIMARY signal FITS HDU；BUNIT 为真实 signal 单位；`FILTER` **只在全部源帧非空同一名义标签**时写；新增目标 FITS 关键字 `ACSDRESP=SINGLE|UNKNOWN|MIXED` 与 `RSPHASH`（配套完整响应 JSON 的 64 位 hex SHA-256） | 不把 `mixed:m_passbands` 填进 FILTER；不得用短 hash 冒充完整；FITS 8 字符关键字/quoted hash card 需在真实 CFITSIO 写读验证 |
+| `p3_op_verify` 与独立读侧 | 重开真实 FITS、核对 WCS/crop/BUNIT/FILTER/ACSDRESP/RSPHASH 与 sidecar；验证本次 P2→P3 revision、科学数值误差范围和运行 ID | 不能把 FITS 自读成功当空间有效响应或 P5 无接缝的科学证明 |
+
+### D5.1 名义通带响应三态的完整定义
+
+`labels` 是全部真实参与的每帧声明多重集，包括**已声明空值**。`counts` 用确定性有序 key，`obs_filter` 仅当所有相等时取原单值（可以是空），否则取 `mixed:<distinct-key-count>_passbands`，其中 distinct 数包含空 key。目标 Export 表达：全部 Halpha→`ACSDRESP=SINGLE,FILTER=Halpha`；全部空→`UNKNOWN` 且不写 FILTER；`["",Halpha]`、`[Halpha,""]`、`[Red,Blue]`→`MIXED` 且不写单 FILTER。完整 `response_distribution` 及曲线身份必须存可通过 `RSPHASH` 定位和验证的配套 JSON；若 only nominal data，明确 `response_status=nominal_only`，不是 `physical_response_validated`。真实 \(R_{\mathrm{eff}}(\lambda;\omega)\) 还需要每帧响应、位置依赖权重、PSF/Drizzle、rejection 集合及标度状态，不可从 label/count 推导；该研究归 #14/#76，不限制用户混合不同滤镜。
+
+### D5.2 真实生产数据与独立 oracle
+
+以 #11 已通过的标签-only 矩阵为基线复跑：全同 Halpha、全 unknown、unknown+known 顺序互换、Red+Blue、unknown+Red+Blue 六种排列。逐条执行当前 CLI Mosaic→Export，再以外部 CFITSIO/astropy 检查 P2 `p2_final`、P3 `p3_props` 和 FITS FILTER/ACSDRESP/RSPHASH/侧车 hash 的同一性；**仅修改 FILTER 名义标签不应改变 science DATA**（除 Export 自身固定算法的声明舍入），而 FITS Header 必须跟随身份变化。负例：删 `obs_filter` 属性键（与有空值不同）、换 run/model/source SHA、损坏完整 sidecar、跨 revision 混拼、BUNIT/leaf_order 冲突，明确拒绝。真实不同光谱响应的 M42/星云结构无偏性由 #14/P5 独立合成与真实 E2 证明，不用标签不变性自证。此 D5 只冻结文档，**不修改 C++、不更新机器 Schema、不声称已运行或已关闭 #79**。

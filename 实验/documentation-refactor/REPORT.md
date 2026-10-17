@@ -296,3 +296,26 @@ Q10旧t_norm2−proj已修，历史反例保留，剩余秩阈值/误差证书�
 
 
 **#75 生成规则精确性补注（2026-10-17）**：再次核对现有 `gen_build_stamp.py::build_stamp/render_header/write_if_different`，发现已有 header 内容包含由 `datetime.now` 产生的 `stamp_utc`；若仅新增 always-run Ninja target 会每次构建改变 header 并触发重复编译。现将正式工程合同裁定为：always-run 比较四项身份，身份相同保持原 UTC/header 字节不变；身份变化才刷新生成时间和小 TU，采样检查时间另行记录。纯文档改 HEAD 的源码摘要不变但 build_head 必须更新；不造二进制 SHA。本批只更新文档，生产构建与增量矩阵仍 **NOT_RUN**。
+
+
+## Issue #6 D5｜原 191 篇两篇长文的完整语义保全与当前生产对照（2026-10-17）
+
+**任务唯一范围与证据**：本批完整逐行复读 `63eccbb6133aef56389641d43c55df6e243819c5:docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md`（**580行、44844 B、Git blob `f9cb801d4dbef42da8caa96bc6c65dc07a29986b`**）和 `63eccbb6:docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md`（**524行、40606 B、blob `ade52b4f0f307c7503a29b224eb04c7bd81c7483`**）。原文条目已有 `ORIGINAL_FILES.tsv`；此批只将这**两行**实际状态标为全文语义保全/重写，不将其他 189 篇、实验集合或已有部分阅读统计伪增为全部完成。审查生产冻结 HEAD 为 `322da061bd9f46cd001a5a45c0f226a05b57777b`，对照 `docs/science/sky/UPM.md`、`docs/science/integration/INTEGRATION.md`、`docs/science/noise_snr/NOISE_SNR.md`、`docs/detail/mosaic/modules.md`、`docs/detail/export/modules.md` 与大文件 `module_adapters.cpp` 定点函数（upm-fit/apply/write/p3_properties/p3_writer）、`coverage/src/{sky_plane,upm}.cpp` 的模型/接口，以及 `sky_plane.h`。源码为定点函数和相关头/推导对照，**未宣称逐行审完整 17565 行 module_adapters**。
+
+**原文一 UPM 已恢复且可独立实施的有效部分**：
+- 原 F1–F6 的背景 control 方差/资格与原 `quality_factor×control_ivar`、仅作消融的 SNR 权重、局部归一、Huber/M+C/CG、centered 8×8/tile 内插值、frame-control 图与逐分量锚、模型序列化/dense stale，明确标为**退役旧 `upm.h/upm.cpp`**（非生产）；另完整保留旧 convergence 的 `tolerance/tolerance_relative`、`converged=0/1/2/3`、stalled 与 gs_damping 等，独立复现实验，不让其覆盖现行参数。
+- 现生产 `module_adapters.cpp::p2_op_upm_fit`（11309）→ `p2_sky_plane_build_joint`（11542）→ `p2_sky_plane.bin`（11617）；`p2_op_upm_apply`（11769）→ `p2_sky_plane_open/eval_delta_block`；`sky_plane.cpp` 的 `B_ref + delta_poly + F_k`、Schur `H_red`、Huber IRLS、列均衡有效秩、按真实控制构图逐分量 gauge/anchor、逐帧 own 的同资格估计与去公共模、效应 hash（#77/#78 当前已有静态修补）、错误码、单位、矩阵诊断和外推限制均写进算法及模块 API。**库默认 `max_nodes=2048` 与 adapter 默认覆写 `8192` 两者区别明确**。完整 C ABI 函数族、输入输出 POD、寿命、出错状态及测试入口在 `docs/detail/mosaic/modules.md`，不会要求执行者回看旧 source 才能施工。
+- P5 #76 是 `g·H S+a+noise` **残余乘加**的研究问题，P1 增益已施加后不重复施加；公共加性/乘性 gauge 不可识别方向、Jacobian 秩、同响应与异响应边界、真实背景 shot noise、模型误差/交叉协方差、负例 `g=1` 与 E2 负责人目检保留 OPEN。原文历史“去天光不影响 SNR、拟合平滑即完全消缝、乘性联合已上线”的过强表述不进入当前正本。
+
+**原文二 Writer 已恢复且可独立实施的有效部分**：
+- ALG-P2-HIPS-001..004 有效的 FITS/HEALPix/NESTED local↔FITS index、`K_leaf=K_tile+9`、面积/flux numerator/covered area、候选加权/状态/NaN、AIO staged/finalize/verify、运行资源估算、错误与独立 oracle 已按真实 `p2_op_write`（14461–15035）重新编排。**最终只有 `signal/` 一个 HiPS 科学图像子产品**；内部 `signal/support/wsum` 与 `uncertainty_available` 等仍用于计算和审计，但不能把旧 `signal+support+variance+ivar` 四科学层强制对外发布。`p2_final.products=["signal"]`、合法混合滤镜、不拒绝跨滤镜，旧 `coverage/tools/stage2.cpp`、`acsd-stage2` 命令、ACR fallback/老退出码/固定 microchunk 上界均明确标为历史实现而非当前 CLI。
+- 名义 `obs_filter` 与有序 `response_distribution` 对每帧标签多重集对称，空标签参与种类计数；#11 的冻结真实 overlay **12/12 CLI + 185/185 signal tile 数组不变** 证明其当时标签层修复，**不**证明不同响应物理等价，也不自动证明其旧版四图层产物就是当前 D02 单 signal。实际 `p3_op_properties`（16055）与 `p3_op_writer`（16614）不消费 P2 响应；#79 已在真实 Export 成功时观察 `p3_props.json/FITS` 缺 filter/response。本批将 P2 response/QE/model/occurrence 身份、P3 props、FITS FILTER(sole known only) + 目标 `ACSDRESP/RSPHASH` + 外部响应 JSON/hash/readback 规定为唯一工程目标，**机器 Schema / FITS 关键字仍未实现**。
+- 真实不同 `R_k(λ)` 的 `R_eff(λ,ω)` 依赖位置有效权重/PSF/rejection，`response_distribution` 只有 nominal label count；用户自由混合，但不能据首帧 filter 宣称一个统一物理 bandpass。最终只发布 signal，不制造方差图，也不从较小 seam RMS 声称科学完成。
+
+**Issue #80 的观察与未裁决**：在 #11 真实 2×Halpha600s +1×Red300s 输入中 coverage/sample 产生 116 union cells、17237 observations、5807 overlap controls，`p2_sky_plane_build_joint` 报 `reduced normal matrix not SPD`，无 `p2_sky_plane.bin`、apply 中止/CLI exit2；已写成 `M_k/H_red/H_solve` 三层矩阵的对称性、最小 pivot、列均衡谱/秩/条件、组件 gauge/响应/控制权重/FP64 Schur cancellation 的**可执行取证方案**。原因保留 `ROOT_CAUSE_UNKNOWN`；本批没有在最新 main 重跑此真实构型，更未“加 ridge 判绿”或将异响应本身认定为根因。
+
+**真实代码与失败实验的对应证据**：`sky_plane.cpp::{p2_sky_plane_build_joint,sky_make_residual_fields,p2_sky_plane_save,chol_spd,p5_component_graph}`、`sky_plane.h` 的 API enum/布局；`module_adapters.cpp::{p2_op_upm_fit,p2_op_upm_apply,p2_op_write,p3_op_properties,p3_op_writer}`；[Issue #11 真实报告](../../实验/issue11-passband-identity/evidence/REPORT.md)、[#79](https://github.com/fujiaze/Astro-CS-Database/issues/79)、[#80](https://github.com/fujiaze/Astro-CS-Database/issues/80)、[#76](https://github.com/fujiaze/Astro-CS-Database/issues/76) 和 P5 S07 阴性实验。#77/#78 已有源码层修正，但**本批未重跑**全套模型 hash、控制资格、数值矩阵与 E2。
+
+**本批边界/验收状态**：仅修改正式 `docs/`、本 `REPORT.md` 和两行 `ORIGINAL_FILES.tsv`。**未修改生产 C++/机器 Schema/科学算法/测试**；未编译、未跑 CLI/Issue #80 profile、HST/真实 E2、P3 #79 回归、数值 Monte Carlo 或原191篇其余文章，均 `NOT_RUN`。本批的覆盖是这两篇**有效信息经当代正式算法与工程章节可独立执行**，不是全项目问题闭合。
+
+**下一批 D6 的精确范围（只处理原始两篇）**：`63eccbb6:docs/science/algorithms/mosaic/PHASE2_SAMPLER.md` 与 `PHASE2_REJECTION.md` 原文全文，对照 `coverage/src/sampler.cpp,rejection.cpp` 及公共头、`module_adapters.cpp::p2_op_sample/p2_op_reject` 和正式 SAMPLE/REJECTION/NOISE_SNR 分册。重点是背景 control 统计量 `median/MAD/k_corr` 及 mask/污染/有效域/控制精度、噪声与相关传播、Gaia halo/PSF/SNR 来源、重复/退役对象、排异六态/预筛选/样本数/回归/权重的条件选择、代码形参与内存/CPU预算/负例；直接修正式文件、已有文档报告与清单，不改算法，不扩大到其它长卷。**D5 完成后停止，D6 不在本批执行。**

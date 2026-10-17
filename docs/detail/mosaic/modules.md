@@ -557,3 +557,107 @@ n_candidates=count；n_accepted计掩膜接受数；当前n_finite在检查value
 coverage/src/upm.cpp保留p2_upm_build、raw_weight、convergence及持久化库能力，当前mosaic adapter生产拟合/施加使用p2_sky_plane_build_joint、p2_sky_plane_open与p2_sky_plane_eval_delta_block。不能把保留M+C内核、同名upm端口和旧模型文件当作当前扣除路径。
 
 p2_upm_control_variance输入k_corr、sigma_bg、n_retained及域/标定身份，输出控制方差和逆方差；当前拒k_corr<1、=1以及缺少规定身份的情况，具体码值从upm.h/实现核对，不直接映射CLI。其科学适用域、弱锚和格内归一问题记录在Q31，本轮未改。库调用者持有输入数组，opaque model按公开释放接口回收，在途求值结束后才销毁；构建成功与converged标志分开报告。
+
+
+## D5｜sky-plane、旧 UPM 与 P5 的生产接口细节
+
+本节承接原 `PHASE2_UPM_IMPL.md` 580 行的 API/配置/所有权和数学有效内容，并以[新的算法正文](../../science/algorithms/mosaic/PHASE2_UPM_IMPL.md)为唯一科学设计。现行生产 `module_adapters.cpp::p2_op_upm_fit` 真调 `p2_sky_plane_build_joint`、`p2_sky_plane_info`、`p2_sky_plane_save`；`p2_op_upm_apply` 真调 `p2_sky_plane_open/eval_delta_block/close`。旧 `p2_upm_build[_geo]` 与 `p2_upm_calibrate_block` 在当前 CLI 已退役，其 centered 8×8 tile 局部 C 校正和 `acsd-upm-v2` 存储**不构成生产备用路径**；联合 PMM 式乘性场只属于 #76 研究，不在当次生产 apply。
+
+### D5.1 C ABI 签名与生产所有权
+
+下列接口已经在 `lib/algorithms/coverage/include/astro/phase2/sky_plane.h` 声明，实际导出宏 `P2_API`、外部 C 链接。这里列出真实签名的参数顺序，省略 `P2_API` 前缀，模型是 opaque handle，不能由调用方解释成连续数组。
+
+```cpp
+P2SkyPatchConfig p2_sky_patch_default_config(void);
+int p2_sky_patch_estimate(const double* values,const uint8_t* valid,uint64_t n,
+                          const P2SkyPatchConfig* cfg,P2SkyPatchEstimate* out,
+                          char* err,size_t err_size);
+int p2_sky_plane_derive_node_spacing(const P2SkyPlaneGeometry* geom,
+                                     P2SkyPlaneNodeSpacing* out,char* err,size_t err_size);
+P2SkyPlaneConfig p2_sky_plane_default_config(void);
+P2SkyPlaneAdaptiveConfig p2_sky_plane_default_adaptive_config(void);
+int p2_sky_plane_build(const P2SkySample* samples,uint64_t n,
+                       const P2SkyPlaneConfig* cfg,void** out_model,
+                       char* err,size_t err_size);
+int p2_sky_plane_build_adaptive(const P2SkySample* samples,uint64_t n,
+                                const P2SkyPlaneConfig* cfg,
+                                const P2SkyPlaneAdaptiveConfig* adaptive,
+                                void** out_model,P2SkyPlaneAdaptiveReport* out_report,
+                                char* err,size_t err_size);
+int p2_sky_plane_build_joint(const P2SkySample* samples,uint64_t n,
+                             const P2SkyPlaneConfig* cfg,
+                             const P2SkyPlaneAdaptiveConfig* adaptive,
+                             void** out_model,P2SkyPlaneAdaptiveReport* out_report,
+                             char* err,size_t err_size);
+int p2_sky_plane_adaptive_report(const void* model,P2SkyPlaneAdaptiveReport* out);
+int p2_sky_plane_info(const void* model,P2SkyPlaneInfo* out);
+int p2_sky_plane_normal_matrix_size(const void* model,uint64_t* out_n_free);
+int p2_sky_plane_normal_matrices(const void* model,double* out_h_red,
+                                 double* out_penalty,uint64_t ld);
+int p2_sky_plane_eval(const void* model,uint64_t frame_id,double ra_deg,
+                       double dec_deg,double* out_value,int* out_status);
+int p2_sky_plane_eval_block(const void* model,uint64_t frame_id,
+                             const double* ra_deg,const double* dec_deg,uint64_t n,
+                             double* out_values,uint8_t* out_status);
+int p2_sky_plane_eval_delta(const void* model,uint64_t frame_id,double ra_deg,
+                             double dec_deg,double* out_value,int* out_status);
+int p2_sky_plane_eval_delta_block(const void* model,uint64_t frame_id,
+                                   const double* ra_deg,const double* dec_deg,
+                                   uint64_t n,double* out_values,uint8_t* out_status);
+int p2_sky_plane_frame_delta(const void* model,uint64_t frame_id,
+                              double* out_coeffs,uint64_t cap,uint64_t* out_n);
+int p2_sky_plane_save(const void* model,const char* path);
+int p2_sky_plane_open(const char* path,void** out_model);
+void p2_sky_plane_close(void* model);
+int p2_sky_estimate_gain_dc(const P2SkySample* samples,uint64_t n,
+                            uint64_t ref_frame,uint64_t frame,double* out_g);
+int p2_sky_plane_residuals(const void* model,const P2SkySample* samples,uint64_t n,
+                            double* out_rms_weighted,double* out_rms_unweighted,
+                            uint64_t* out_n_used);
+```
+
+借用的 `samples/valid/ra/dec/config` 至少在同步调用内有效；`build/open` 成功产出的 `void*` 须分别调用一次 `p2_sky_plane_close`，不能用退役 `p2_upm_close`；`out_values/out_status/err` 均由调用方分配并明确容量。`frame_delta(out_coeffs=NULL)` 可查所需输出系数数量。`eval_delta_block` 的逐点 `out_status`（OK/OUT_OF_DOMAIN/UNKNOWN_FRAME/INVALID）是校正有效性真源，部分越域或未知帧的块 rc=2；不能把槽值0当成“无天光差”直接应用。
+
+输入结构 `P2SkySample={frame_id,control_id,ra_deg,dec_deg,value,variance,snr,flags}`，`value` 允许负数，默认 `weight_mode=0` 的控制估计方差须正且有限；`P2ControlObservation.control_variance/control_ivar` 是 patch 中位数的方差/逆方差，不是 `ivar` 单像元或 `reference_snr` 的点源信息。`MASKED=1/LOW_SUPPORT=2/HIGH_CONTAMINATION=4/NO_LOCAL_SNR=8/REJECTED=16`；base Schur 和 own 残差采用同一资格过滤，已在当前 `sky_plane.cpp::sky_make_residual_fields` 对 #78 有静态修复；需以额外无效样本插入实验验证完全不改变模型。
+
+`P2SkyPlaneConfig` 依次含 `spline_degree/node_spacing_deg/frame_gradient_order/own_surface_enabled/own_surface_step_deg/joint_outer_iterations/huber_delta/max_iterations/tolerance/gauge_mode/weight_mode/rank_rtol/retain_normal_matrices/min_samples/min_samples_per_frame/max_nodes/max_extrapolation_deg/geometry`。源码 `sky_plane.cpp::p2_sky_plane_default_config` 当前默认为 **3 / 0 / 1 / 1 / 0.02 / 1 / 1.345 / 30 / 1e−10 / 0 / 0 / 1e−10 / 0 / 8 / 4 / 2048 / 0**；但**生产 adapter 在配置未指定 max_nodes 时覆盖成 8192**（`module_adapters.cpp` 约 11505–11535），这不是两个可任选的默认。环境变量 `ACSD_SKY_MAX_ITER` 当前可覆写库默认迭代次数，实验必须记录；库存在的字段不等于 CLI 对应配置可选。自适应 config 的 `enabled` 在已查源码路径仍缺真实读取点；要单次尝试需明确限制 `max_attempts/refinements`，不能将传 `enabled=0` 宣称已停用。
+
+`P2SkyPlaneGeometry` 保存 `overlap_band_width_deg/pointing_spacing_deg/sample_pitch_deg/pixel_scale_arcsec`；正本节点间距上界 `min(overlap_width,pointing_spacing)/2`、下界 `max(sample_pitch,pixel_scale_arcsec/3600)`；几何不可行明确失败，不把 1° 当普适默认。 `P2SkyPlaneAdaptiveReport` 有最多12个 `P2SkyPlaneAttempt`，记录每档 `node_spacing_deg/lambda_numerical/kappa/kappa_solve/rank/n_params/chi2_red/rms_weighted/rc/action/adopted` 与最终尝试数、refine/coarsen 次数。 `P2SkyPlaneInfo` 的 `n_samples/n_used/n_frames/n_nodes/n_params/n_params_full/rank/rank_full/kappa_data/kappa_solve/chi2_red/dof_eff/rms_weighted/rms_unweighted/model_hash/n_unidentified/identifiable/rank_rtol_effective/lambda_numerical/lambda_min/lambda_max/node_spacing_source/upper/lower` 逐项记录原始数据矩阵与求解矩阵的不同意义；完整字段/ABI 顺序以头文件实际结构为准，不能照旧 UPM `P2ModelInfo` 重新解释。
+
+`normal_matrix_size/normal_matrices` 为诊断 API，只有 `retain_normal_matrices=1` 的**本次内存模型**能返回 `n_free×n_free` 的 row-major H_red 和惩罚矩阵，`ld>=n_free`，默认不保存且 `open` 后不持有。若 #80 的 Cholesky **在模型建成之前**失败，不能只依赖这个成功对象的 API，须在构建中途加入只读、有内存与字节预算的矩阵摘要 probe。当前返回码：`OK=0/INVALID_ARGS=1/NO_USABLE_SAMPLES=2/TOO_FEW_SAMPLES=3/FRAME_UNDERDETERMINED=4/TOO_MANY_NODES=5/RANK_DEFICIENT=6/NOT_IDENTIFIABLE=7/NONFINITE_SOLUTION=8/IO_ERROR=9/GEOMETRY_REQUIRED=10`，不是 CLI exit code。rc=6 的数值非 SPD 与 rc=7 的未正则化矩阵秩亏是不同诊断；不得对 `H_solve` 岭正定后宣称数据可辨识。模型最终 hash 包含 own/grid、帧绑定、分量/gauge (#77 已有静态修改)，但仍需要与 P1 response/QE/PSF、最终 signal product 完整绑定和 save→open 对照。
+
+### D5.2 #80 真实三帧错误的唯一取证接口
+
+冻结三帧真实输入及当前代码 SHA，记录 `2×Halpha 600s + 1×Red 300s`、116 union cells、17237 control observations、5807 overlap controls、`reduced normal matrix not SPD` 等原实验口径。于 `sky_plane.cpp` 构造 `M_k`、Schur `H_red`、加数值项的 `H_solve`、`chol_spd`、列均衡 `identifiability` 和分量 gauge 分别采集 `n_valid/n_component/n_frame/anchor/n_nodes/n_free/weight percentiles/finite/symmetric error/diagonal scale/failed pivot/eigenspectrum/rank/tau/condition`。优先独立装配 `X^TWX` 与 Schur 对拍，再判断数学秩亏、非负权错误、浮点消去误差、单帧空支持、响应诱导的真实差模；只改变 nominal `FILTER` 字符串的 A/B 不得改变算子数据。真实三帧和解析 SPD/PSD/indefinite 负例需另建测试；本 D5 无新运行，不能预断根因。
+
+### D5.3 退役 UPM API 的历史有效角色
+
+保留 `upm.h` 的 `p2_upm_build/build_geo/save/open/info/convergence/calibrate_block/evaluate_c/raw_weight/geometry_hash/component_gauges/materialize_dense_n/materialize_dense/dense_info/dense_read_block/close` 对照清单、旧 `acsd-upm-v2`/dense-v2 内容身份和 F1–F6：背景原生权重 `quality_factor×control_ivar`、control 归一、Huber M+C/CG、centered 8×8 tile 求值、frame-control 分量 gauge、稀疏模型/dense cache stale 判决。该族可以为研究/旧工具复现，但**不是**任何生产阶段的损坏模型兼容方案。
+
+## D5｜最终单 Signal Writer 真实产物合同
+
+正式数学及旧长卷 ALG-001..004 语义归属见[Writer 算法](../../science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md)。`p2_op_write` 消费 `p2_integrated.json.files.{signal,support,wsum}`、`tiles[].tile_ipix/offset`、`uncertainty_available/weight_basis`，`p2_coverage.json.target_order/frames[].filter_passband`，`p2_samples.json.input_manifest_hash`、`p2_sky_plane.bin.info.model_hash`、排异 profile。真实序列：
+
+```text
+validate coverage uniform target_order (0..20), integrated uncertainty/weight_basis
+nside = 1 << (target_order + 9); leaf_order = target_order+9; tile_width=512
+response_distribution = sorted counts of every filter label (empty is one real key)
+obs_filter = sole label if identical else "mixed:" + number_distinct + "_passbands"
+staging = private mosaic revision
+ps = aio_hips_product_begin(staging,nside,512,FLOAT32,SIGNAL_ONLY,...,obs_filter,...)
+lut[FITS_index] = fits_index_to_nested_local(FITS_index,9,512)
+parallel transform each tile's double signal/support/wsum to float32 NESTED:
+  A = positive_finite(support) ? support*(4*pi/(12*nside*nside)) : 0
+  view.flux_sum[local] = float32(signal* A)
+  view.covered_area[local] = float32(A)
+  // optional var_num diagnostic; no extra final image product
+serialize aio_hips_write_signal_support_tile(ps,view) for tiles in deterministic order
+aio_hips_finalize(ps); declare BUNIT/pixel_semantics; verify_product_set(staging)
+p2_publish_mosaic_tree(staging→final); completed manifest last; reopen final properties
+p2_final.products = ["signal"]; p2_final.properties = final/signal/properties
+persist obs_filter/response_distribution/uncertainty_state/model+input hashes/phase2_audit
+```
+
+`AstroSphereTileView` 的 `parent_ipix=tile_ipix`、`leaf_order=target_order+9`、`width=512`、`data_type=AIO_HIPS_FLOAT32`、`flux_sum/covered_area`、`valid_mask=nullptr` 是实际传入 AIO 的端口；`covered_area` 是 **signal归一分母**，不是可选的 support 子产品。AIO 输出 `signal=flux_sum/covered_area`，无覆盖 NaN；生产唯一 `AIO_HIPS_PRODUCT_SIGNAL`，`p2_final.products=["signal"]`，不输出 support/variance/ivar 三张附加科学面。`uncertainty_available` 是运行统计事实，不触发附加 HiPS 层。tile 变换可按 Runtime worker 预算并行，AIO 的 shared scratch、祖先合并与 cfitsio 句柄按 tile 升序单线程写；错误 abort/丢弃 staging，不能把有 tile 的临时目录当完整发布。每 tile 至少同时持 `2×262144×4` 字节 float reorder，uncertainty 路径再加 1 面、输入 double tile 和 AIO scratch；当前预分配 **T 个 tile**，空间上界是 `O(T×512²)`，不同于旧 `stage2.cpp` 的 chunk 内存声明。原文工具旧 rc、ACR fallback、variance 子产品方案不是今日生产操作规格。
+
+`p2_final.json` 必须保留 `obs_filter`、排序后 `response_distribution`、`weight_basis/uncertainty_available/unavailable_reason`、`phase2_audit`、`ACSD_INPUT_MANIFEST_HASH/ACSD_MODEL_HASH/ACSD_REJECT_PROFILE`，与 final signal 的 geometry/BUNIT/manifest 同一版本。旧滤镜全等限制和首帧滤镜偷代全图皆退役；`mixed:m_passbands` 的 m 是不同标签**种类数**而非帧数，空标签不等于缺少属性键。#11 真实 label-only 已证明当时 12/12 CLI 和 185/185 signal DATA 不变，不能外推为物理有效响应闭合。Writer→Export 当前缺 response identity (#79)，唯一修复入口见[Export D5](../export/modules.md)，本 D5 不修改实现。

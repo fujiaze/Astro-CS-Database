@@ -130,3 +130,8 @@ A_k 是逐帧低阶多项式/样条基，\rho 是稳健损失，σ_kc 是与**�
 [2] Fruchter, A. S., Hook, R. N. Drizzle: A Method for the Linear Reconstruction of Undersampled Images. PASP, 114, 144–152. [论文](https://arxiv.org/html/astro-ph/9808087v2)。
 
 [3] Zackay, B., Ofek, E. O. How to Coadd Images? I. Optimal Source Detection and Photometry Using Ensembles of Images. ApJ, 836, 187. [论文](https://arxiv.org/pdf/1512.06872)。
+
+
+## D5 数值与产物执行定位（2026-10-17）
+
+本页仍是物理与可辨识性的科学正本；现行 **`sky_plane.cpp` 公共面/逐帧差模、退役 `upm.cpp` F1–F6、P5 乘加研究 #76 与三帧非 SPD #80 独立取证**的完整算法、数学、伪代码、状态、资源及文献保全见 [Phase2 sky-plane 算法](../algorithms/mosaic/PHASE2_UPM_IMPL.md)。单个完成的 Phase2 `signal/` HiPS 子产品、响应分布与 Writer→Export #79 身份责任见 [Phase2 Writer](../algorithms/mosaic/PHASE2_MOSAIC_WRITE.md)。原长卷旧“同滤镜才可合并”“四个最终科学图层”“旧 UPM 模型是生产数值核”均不得覆盖当前正本。两篇长文已在 Issue #6 D5 报告中逐篇复核，**静态文档不等于真实 E2 科学通过**。
