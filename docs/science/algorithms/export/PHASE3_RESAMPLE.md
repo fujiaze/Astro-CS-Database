@@ -64,14 +64,29 @@ G4 (ALG-P3-003) leaf 采样（桥接口径：本 G4 只承接 SCI 的连续定�
 
 G5 (ALG-P3-004) FITS 写:
   BITPIX=−32/−64, BSCALE=1, BZERO=0
-  BUNIT 科学上应是实际 applied signal 的 L/sr 和响应标度，不凭算法单独猜单位；
-          CURRENT 五节点 adapter 缺源BUNIT立即拒绝，仅认约定面亮度词汇；
-          库内部的 ADU/sr fallback 不代表 CLI 允许缺失元数据（#9）。
+  BUNIT 科学上应是实际 applied signal 的 L/sr 与响应标度，不凭算法单独猜单位；
+          导出侧只接受输入声明的、可唯一判定的面亮度身份（#9 的 applied/relative
+          标度单位族未闭合，本轮不自行发明，遇不可判定即显式失败）。
+  BUNIT = 输入 signal/properties 声明的单位（**必须经面亮度量纲校验**）；
+          **通过** ⇔ 声明经冻结单位表归类为 signal 面亮度身份
+          （`p3rsmp::resolve_bunit`：ADU 幂次 1 × 立体角幂次 −1）且**不**使用
+          legacy 像元面积拼写 `px`/`pixel`；裸 `ADU` 须同时声明
+          `ACSD_PIXEL_SEMANTICS=surface_brightness` + `ACSD_PIXEL_AREA_POWER=-2`
+          **拒绝** ⇒ 缺失 / 空串 / 同一逻辑键重复声明（含 `BUNIT`-`bunit`
+          大小写别名）/ 单位声明面互相冲突 / 冻结词汇表外串 / 与
+          `ACSD_PIXEL_SEMANTICS`、`ACSD_PIXEL_AREA_POWER` 矛盾 /
+          可解析但非面亮度身份 ⇒ **显式错误，不产出任何 FITS**
+          （禁 silent default；不得把错误读取变成正常无覆盖或普通 NaN）
+          通过 ⇒ 产品单位一律写冻结 canonical 'ADU/sr'（**禁**缺省 'ADU'，禁 Jy/beam；
+          亦**禁**在无输入证据时补写 'ADU/sr' —— 库内不再有单位 fallback）
   # 依据 `docs/science/unified/DATA_SEMANTICS.md`「单位与量纲表」与「面亮度单位的推导」两节（FZ-UNIT-SIGNAL-SB FROZEN）：重采样值是输入
   # tile 值的凸组合 ⇒ 与输入同量纲（面亮度）；'ADU/sr' 是计数按立体角归一的合法串，
-  # 裸 'ADU' 是每像素计数口径（与数值不符且量纲不可判）；§31.1a 同时否定 'ADU/px^2'。
-  # 实现锚：p3_resample.cpp p3_sampler_open_ex（缺省串）→ p3_session.cpp 透传
-  # → p3_output.cpp 三处（写盘缺省同串）。
+  # 裸 'ADU' 是每像素计数口径（与写入数值不符且量纲不可判）；§31.1a 同时否定 'ADU/px^2'。
+  # 唯一实现（session 与 scheduler 两个入口同源同判）：
+  # lib/algorithms/resample/p3_input_unit.cpp::p3_input_unit_verdict（Issue #91）
+  # ← 单位串归类 = 冻结单位表 p3_rsmp_units.cpp::resolve_bunit（不另建第二套单位体系）
+  # → p3_sampler_open_ex 只回填裁决给出的 canonical 串；
+  # → p3_output.cpp 在创建任何临时文件之前拒绝缺声明/非 canonical 串。
   WCS: G1 全量 + CTYPE=RA---<proj>/DEC--<proj> + CUNIT=deg
   (<proj> 取自已校验 projection, alpha 唯一合法值 "TAN";
    未实现投影在写前 fail-closed, 不落任何 FITS)
