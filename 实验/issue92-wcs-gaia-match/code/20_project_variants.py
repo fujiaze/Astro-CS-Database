@@ -74,10 +74,12 @@ def main() -> int:
 
     def run(kind):
         APu, BPu = AP.copy(), BP.copy()
-        if kind.startswith("ap0_zeroed"):
+        if kind.startswith("apbp_allzero"):
+            APu[:] = 0.0; BPu[:] = 0.0
+        elif kind.startswith("ap0_zeroed"):
             APu[0] = 0.0; BPu[0] = 0.0
         pol_order = ap_order if "order5" in kind else order
-        if kind.startswith(("production", "ap0_zeroed", "ap_order5")):
+        if kind.startswith(("production", "ap0_zeroed", "ap_order5", "apbp_allzero")):
             dx = u + sip_poly(APu, u, v, pol_order)
             dy = v + sip_poly(BPu, u, v, pol_order)
             polished = False
@@ -115,7 +117,7 @@ def main() -> int:
             "ap0": float(APu[0]),
         }
 
-    kinds = ["production_ap_order3", "ap0_zeroed_ap_order3",
+    kinds = ["production_ap_order3", "ap0_zeroed_ap_order3", "apbp_allzero_ap_order3",
              "ap_order5", "ap0_zeroed_ap_order5",
              "iterative", "seeded_iterative_ap_order3", "seeded_iterative_ap_order5"]
     out = {"p1_wcs": a.p1wcs, "stars": a.stars, "n_stars": int(len(ra)),

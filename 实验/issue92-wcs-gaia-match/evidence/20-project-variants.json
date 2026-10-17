@@ -28,6 +28,16 @@
       "ap_eval_order": 3,
       "ap0": 0.0
     },
+    "apbp_allzero_ap_order3": {
+      "gate_pass": 0,
+      "n_nan_or_reject": 2309,
+      "n_in_frame": 0,
+      "resid_max_px": 45.79032262097815,
+      "resid_median_px": 14.420542107142957,
+      "polished": false,
+      "ap_eval_order": 3,
+      "ap0": 0.0
+    },
     "ap_order5": {
       "gate_pass": 0,
       "n_nan_or_reject": 2309,
