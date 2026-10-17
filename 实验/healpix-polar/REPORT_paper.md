@@ -185,3 +185,13 @@ HEALPix face 可用局部参数化寻址，等面积 chart 的 Jacobian 性质�
 [R05] Zackay & Ofek (2017), ApJ 836, 188, [10.3847/1538-4357/836/2/188](https://doi.org/10.3847/1538-4357/836/2/188)。
 
 共有文献核验清单：`../shared/references/CORE_REFERENCES_VERIFIED.md`。
+
+ 
+## B09-D1｜证据审查补充：局部质量守恒并非真实曲边球面准确
+
+本篇P3是**Stage1 HEALPix球面Drizzle**，不是Stage3平面Export。理论被估计量先固定为每帧积分像元 `x_j` [L]，其在缩小drop与leaf真交叠a_jp[sr]的权 `w=a/A_drop`，输出面亮度 `B_p=Σw_jp x_j / Σw_jp Ω_j` [L/sr]。内部ε_j=Σ_pa_jp/A_drop,j−1检验面积分配的代数守恒，输出协方差为 `C_B=R C_x R^T`；Σ面积闭合不能独立证明是真球面HEALPix曲边，更不证明PSF/孔径通量与SNR已经保真。AIO的support可按累计D/Ω裁到1，不等于真实几何并集且不能逆回F/N。Górski HEALPix、Fruchter–Hook Drizzle已有基础，本篇的候选原创只能是**真实曲边及高动态数值误差有界实施与证据**。
+
+历史证据 `docs/S02_P3_acceptance_matrix.json`给出的旧生产探针在1500个格中218格|ε|>1e−6，修复版本0格；post最大1.3755e−8，故障注入恢复旧218格。此结果可以描述旧退化norm/cross表达式的改善，必须列明原S02源码基线/编译hash，不是当前全部画幅精度证明。独立#15研究指出现行 `spherical_overlap.cpp`把真实HEALPix曲边用四角短弧近似，局部极端构型的面积差约−9.968%，这一构型误差不等于已经测出相同百分比的最终M42/HST科学flux偏差。原报告中辅助REC-1在HST原指向有50倍错交叠，系**实验侧辅助实现未定位的错误**，不能当生产函数的50×结果。真实HST M16 drz图有约0.8975 valid掩膜，HST coadd自身不是无噪真值。
+
+#19当前生产已经在 `module_adapters.cpp::p2_hips_order_uniform`遇到mixed hips_order显式fail-closed，因此现阶段是**同阶支持、真实跨阶映射未实现**，不能继续宣称跨阶已经静默混算或跨阶能力已完成。下一轮逐份对拍真曲边球面Oracle和现行生产，从12faces/poles/seams、pixfrac0.5..1、真实nside和0.04″到宽像元做高精度交叠、解析常量SB、星孔径/PSF、方差及跨叶相关噪声；冻结几何子集/独立oracle的mask、差异热图、错误面和真实输入配置；单独比较FP32/64、所选tile阶与真正sky leaf阶。资料仍要有HST有效区真值前向和M42无真值真帧评估。B10逐项核Górski、HEALPix图元真实曲边、IVOA HiPS、Fruchter & Hook原始公式和参考代码；本轮独立真实真值/E2/MC均NOT_RUN。
+

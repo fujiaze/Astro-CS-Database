@@ -160,3 +160,13 @@ P4 可辩护的研究贡献是“物理估计量不变 + HEALPix 稀疏支持域
 [R05] Zackay & Ofek (2017), ApJ 836, 188, [10.3847/1538-4357/836/2/188](https://doi.org/10.3847/1538-4357/836/2/188)。
 
 同一书目与范围核验见 `../shared/references/CORE_REFERENCES_VERIFIED.md`。
+
+ 
+## B09-D1｜证据审查补充：参考精度的重建域与生产证据
+
+本篇估计量先写成特定参考源/PSF/噪声条件下的 `u(x)=log V_F(x)` 或 `log SNR_ref(x)`，两者须有参考通量、来源和同一条件的可比较映射；**只有点源I_F，不能凭插值就称知道天空背景的V_B或场景亮源最优权重**。真实pixel-weight需要#8的T=V_B/V_F以及#13 sphere canonical已经成功读取才可作统计推断。自然三次样条/IDW只保证在定义数学域内的插值性质；若真实控制值有估计噪声、样条越界或域外缺控制，未知精度须有具名state。所有权重不会因为图像局部RMS降低就自动提高SNR。
+
+历史S06确有 `docs/S06_P4_evidence.json` 与旧probe及 `code/s06`，不是此时最新C++运行。旧2×2/3×3节点网域外占55.5556%/43.7500%，natural spline正过冲+0.011326、下冲−0.307920；条件控制点精确时表示能力误差7.43e−4不等于真实MAD²等有噪控制点的端到端误差。旧结构场比较cell0.00903<dense0.577<frame1.159，HST物理前向cell0.206<frame0.416<<dense2.57e5；所谓真实M42数据中的cell0.171/dense6.46e4是**局部MAD²代理，不是外部绝对真方差**。旧生产idw_power=2.0与论文规范默认1.0不一致曾构成配置分裂，#68/#69后来调整路径，修复后需用当前加载的生产符号重新对拍。相关 noise、空洞填充和near-source置信度仍未证实。
+
+论文可限定地称：早期解析与物理前向研究发现稠密方差插值并非普遍最优，且域外外推/负值明显破坏物理可用性；不能说已经实现了一个有保守真实置信保证的场景SNR图。下一轮先提供已知真logV光滑场和独立node误差，比较cell/natural/shape-preserving/IDW/kriging，验证真实曲率M、node噪声δ、support几何误差及bootstrap/覆盖概率；再接同一Gaia reference PSF与#13真正frame-science/v2控制点、同nside/PSF前向和M42真实观测，报告绝对bias、覆盖、误拒、延伸目标/点源残差、CPU/RSS，真实观测不能用MAD²代理冒充真值。B10精读Wahba、Fritsch–Carlson、Hyman并按实现实际条件比较。本轮最新生产E2、外部数值/物理Oracle和真实absolute V_B：NOT_RUN。
+

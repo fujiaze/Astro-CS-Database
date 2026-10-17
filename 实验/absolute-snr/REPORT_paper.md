@@ -170,3 +170,13 @@ P2 的解析式有严格、可复算的成立域：在已知背景与固定 PSF 
 [R06] Fruchter, A. S. & Hook, R. N. (2002), PASP 114, 144–152, [10.1086/338393](https://doi.org/10.1086/338393)。
 
 完整书目与可引用范围见 `../shared/references/CORE_REFERENCES_VERIFIED.md`。
+
+ 
+## B09-D1｜证据审查补充：参考通量、条件 Fisher 与真实误差覆盖
+
+本篇原数学、四臂Oracle、旧MC、真帧报告和已刊先例仍保留，不能因当前#8/#13未闭合就删除其有价值的统计结果。但论文中心estimand必须固定为**参考星点通量的条件估计方差 V_F（F²）**：给定PSF像元积分向量h、nuisance基Z和协方差C，在背景已知时 `I_F=h^T C^-1 h`；背景未知且Z满列秩时应先在C^-1内积下投影Z、再给出F的有效信息，数值实现应以白化QR/SVD独立核；源Poisson取决于明确的参考F_ref而非本次真实星云亮度。P1的空间标度下参考参数不是实际积分总F，均匀α情况下SNR虽不变而1/V_F需单位匹配。将旧论文中任何“所有像元的绝对SNR与权重最优”等字句限定成**同F_ref、同PSF、同nuisance、同response、同条件C下的参考深度描述**。未建立T=V_B/V_F时，不得从 `SNR_ref²/F_ref²` 推出马赛克面亮度权重；P5 patch median控制方差是另一统计对象。
+
+证据对应：S05真正存档文件 `docs/S05_P2_evidence.json`、`docs/S05_REPORT.md`、`code/s05/s05_arms_oracle.py`、`s05_kcorr_units.py`及`s05_real117.py`；以前报告的MC标准差/解析σ0.9929–1.0095与135覆盖检验、真实M42共星2195pair经验散度超标、117星控制组、`k_corr`模拟2.33 vs旧生产探针2.054–2.058，均属于**特定旧输入+代码版本**而非本轮run的新结果。生产源码含sampler.cpp和weight_chain.cpp，当前真正P2稀疏层仍读legacy `ACSD_SPARSE_SNR_LAYER`而非已定义但尚未真正写读的Canonical v2。`k_corr`表只明确在某300/600″/px源尺度内有标定而真实Red约0.967″/px，fallback1.4是工程假设不是置信区间；历史文件还含非标准Infinity，必须归为数据状态/格式缺陷单独复核。
+
+投稿可说：**已发表的GLS/Fisher理论为本篇模型基线，早期S05揭示参考深度对场景、未知背景与Drizzle相关噪声的适用边界**；不得称生产跨仪器绝对SNR与球面真实precision消费已经验证。下批P2工作：按本稿表2/3冻结同一真实FITS及相机gain/QE、统一训练/留出星/响应，独立重算包含flat/sky等共享参数的V_F和单源Poisson MC；用已验证R算子和patch median估计器重标`k_corr`、逐星bootstrap报告68/95%覆盖及bias，真实球面v2 reader+T(B←F)实际消费与完整误差分类E2；以one-by-one消融对照known/free background、iid/相关源和真实同夜重复星，不调门过关。B10对Newberry1991、Horne1986、Zackay–Ofek2017、Fruchter–Hook2002逐公式/样本任务和本文不同点做原文核。新运行、现行C++、外部Oracle、HST/M42 E2：NOT_RUN。
+

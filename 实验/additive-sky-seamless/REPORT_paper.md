@@ -186,3 +186,18 @@ log f_is - log f_js ≈ eta_i - eta_j + color/PSF terms + noise
 [R11] Murphy, J., [AstroProcessing: NSG and PMM（作者官方文档）](https://www.astroprocessing.com/)；**为工程算法比较材料，而非同行评审数学证明**。
 
 主干共享文献与适用边界见 `../shared/references/CORE_REFERENCES_VERIFIED.md`。
+
+ 
+## B09-D1｜证据审查补充：真正共同场、加性规范、研究增益和数值稳定性的四种命题
+
+本文的物理模型必须先声明 `y_k = g_k H_k[R_k,PSF,WCS] S + a_k + epsilon_k`，其中R_k是实际响应，观测若Hα与Red不同，S通常不能被同一单通带量直接替换；“可混合生成有定义的有效响应”不等于“同一未知天区连续谱已被恢复”。现行真正Mosaic `sky_plane.cpp`是相对加性差/公共场研究，生产乘性g=1；有独立证据的PMM/NSG方法是先例，不能把未接入的S07乘性研究说成已生产技术。Sky control variance属于patch median估计量，不是P2点源Fisher或一个像素的var；可恢复每个连通分量内的相对差，**跨断连分量绝对背景零点无外锚不可辨**。共模天光与真实弥散星云低频若没有光谱/时空先验也不自动可分。
+
+旧S03 `docs/S03_P5_COMPONENT_evidence.json`两分量S9b症状0.1281497→0.00059817（214×），只是跨分量gauge原数值读数，不应直接叫真实天体物理接缝改善。S07 `docs/S07_P5_GAIN_evidence.json`十个g=1阴性seed中，独立matched-star gain仍“改善”heldout RMS中位约+0.00968、95%CI [+0.00681,+0.01740]排除0——**违反不应有系统提升的阴性控制，FAIL**，不可被阳性g≠1赢得的实验抵消。历史C1合成6条缝4.80→0.383e−不是实际footprint，C7真实4帧512²裁剪中x=128..448是合成cell边界，不能替代原49帧真实重叠缝；49帧产品原FITS已回收，旧记录只可作冻结历史档案。#80真实2Hα+1Red控制n_obs17237、overlap5807，原权跨度1.4e32、Schur小负特征比例-1.727e−16说明在旧数学坐标下存在病态消减的可能，**不是跨通带物理正确或错误的独立判别**。#83 own floor-bin拟合与bilinear_eval使用不同基函数，即使正常方程精确正定，也不能据此宣称迭代每步对真正应用的曲面是严格最小二乘。#76用户要求同时检验sky去除、共模保护、额外增益并让其本人审阅E2出片。
+
+可发表的限定性进展是连通分量独立gauge与某些纯加性模拟条件下相对sky差可辨；真正联合A/G/common signal不是已验证论文结论。下一轮先重现#80完整原矩阵/源输入BUNIT和响应R_k（不能借c=5.7e−17作为物理通带转换），按列单位规范和白化rank分别比较SVD/QR/Schur与真实残差；让#83拟合/eval使用同一basis，包含#82自己的支持域；按独立star + aperture/PSF/颜色控制修复g=1阴性，再跑g≠1阳性；HST需合成已知连续谱、Hα、[N II]及真实valid mask，M42按同滤镜和mixed分别做RAW/additive/gain/共同场/PMM参考与真实缝带、暗云低频、点源/弥散flux和相关SNR，产出真正HiPS→FITS E2供用户目检。B10对PMM/NSG、Padmanabhan ubercal、Montage与共同天空建模逐篇界定实际先例。生产科学保真/外部Oracle/E2/用户目检：NOT_RUN。
+
+ 
+### B09-D1并行S3研究更新（源文件在本批准备提交时入main；非生产复跑）
+
+`实验/innovation-closure/S3_SCIENCE_REPORT_2026-10-17.md`在独立复审中给出了两条更严格的数学反例：#83 floor-bin更新与最终bilinear求值不同目标，在冻结两帧解析样本上旧拟合的平方误差1，按真实双线性基的最小二乘误差0；这只证假“严格LS”断言，不是M42真实场误差。#80针对二阶差分D的临时锚Q-only修正，二维完整矩形网格核空间含[1,x,y,xy]四维而不是假定三维。在单独构造42维SPD H、λ=0.5、α=3的受控toy上，旧Q-only修正相对原惩罚线性方程残差0.123484、精确Woodbury修正5.19e−16、增广QR约2.00e−15；`λDᵀD`与无惩罚解相距4.12577，**正则化会改变物理估计量**。研究还构造3帧×23位置和36独立匹配星、500组独立零gain激活MC；结果局限于同响应、identity PSF、已知Gaussian噪声、无bad-pixel/rejection的toy。该S3研究明确`PRODUCTION_NOT_RUN/REAL_E2_NOT_RUN/USER_VISUAL_PENDING`，不能把toy公式故障的0.123484冒充当前真实#80发生过同等偏差；旧S07 g=1阴性FAIL仍有效，S3的新star-only激活策略未经现行生产接线，不能覆盖旧失败记录。P5-D2必须新增对生产实际 fallback矩阵残差、完整四维零空间、可信penalty身份及未惩罚目标的对照。
+

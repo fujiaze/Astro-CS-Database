@@ -156,3 +156,71 @@
 均如实登记为 `NOT_RUN`，缺口为：① 冻结的同天区/同滤镜/同相机数据链；② 上游缺陷注入后
 各下游**预声明**红灯读数；③ P2 条件 SNR 与 P4 真实控制点端到端未闭合。
 **禁止**用单篇内部反例冒充跨篇已闭合。
+
+ 
+## 十、B09-D1：五篇论文的 Claim—Estimand—Implementation—Evidence 全局对应（2026-10-17）
+
+本节直接作为科研正文的共享实验设计和结果溯源，不新建门禁文件。起始主线参考 `6f1410e1084c87265e59d2d9a7bc109405c9d714`；本轮已经读取五篇原始 REPORT_paper.md（176/173/188/163/189 行）、各自 REPORT_experiment.md（319/280/499/335/697 行）、源脚本与存在的固化证据、原 S1/S2 数学研究及 #8/#9/#13/#14/#80。每篇完整主稿与本节共同构成可用的论文研究材料；**本节本身不是当前 C++ 的实验证明**。
+
+### 10.1 读数身份、独立性与估计量定义
+
+每一条主张分别记录以下相互独立的地位：`MATH`（有明确前提的代数/反例）、`TOY_ORACLE_HIST`（旧版给定真值或独立 Python 的解析数值）、`PRODUCTION_PROBE_HIST`（按当时二进制和模型哈希构建的生产符号探针）、`REAL_HIST`（旧报告从真实FITS得出但本轮未重读）、`FORWARD_HST_HIST`（HST真实结构模板加模拟物理噪声，不是原始HST无噪真值）、`PROD_E2E_CURRENT`、`SCIENCE_FIDELITY_CURRENT`、`BIB_ONLY`、`USER_VISUAL`。最后三类**本次全部 NOT_RUN**。每次真实重验还应锁定源输入sha256、build/dll sha256、加载的真实C++函数、模型/响应/参考SED版本、配置、seed、实际有效mask、源/帧/像元各级分母、CI方法。不能把原报告的PASS填入最新main的运行状态。
+
+P1 `F_ref(u)`是PSF模板的参考振幅，不等于像素应用位置标度后的积分总flux。P2 点源条件 Fisher 信息 `I_F=1/V_F` 的单位是 flux^-2；球面面亮度权重是 `1/V_B`，单位 `sr²/L²`，需在相同场景条件下的 transfer `T=V_B/V_F`。P3输入积分量L、面亮度L/sr、交叠面积sr和累计覆盖D不能混用；P4重建reference information field不是凭插值就自动有scientific `V_B`；P5控制patch median方差不是pixel variance，消除背景均值不消除sky shot noise，混通带不等于同一天空场。正确科学信号、精度缺失和资料损坏必须不同状态。
+
+
+**Git中证据的完整性**：五个原单元的 `results/` 和 `run/` 均未被本次远端Git树追踪；P1的 S04逐星表/原始FITS/Gaia锥在仓外，P2–P5若干 `docs/S0*_evidence.json`（和脚本、图hash）在仓内。S05证据文件中还含有非标准JSON的 `Infinity` 常量，必须先单独辨识坏数值/状态，不能把它无损当标准JSON可靠精度。`evidence.json`历史记录、SHA、图像hash和生成脚本各自是不同证据层；本次没运行任何C++、数据、Monte Carlo、HST/M42或外部包。
+
+### 10.2 全篇核心主张的证据映射表
+
+下表每一行的“生产”指当前静态可核对的函数，历史数字始终来自对应旧REPORT或已提交小型evidence，不默许历史构建等于当前main。
+
+| Claim及假设、创新性边界 | Estimand、单位、数学与CURRENT实现 | 旧实验、Oracle、样本量/CI、真实数据与mask | 失败、文献先例及论文可发表的限定表述 |
+|---|---|---|---|
+| **P1-C01** GaiaXP合成参考、逐帧相对零点；XP合成已有先例 | `q=∫Fλ TQ λ/(hc)dλ` photons m^-2 s^-1，旧`F_syn=∫FλTQλdλ`单位W m^-2 nm只是相对proxy；生产 `module_adapters.cpp::p1_op_photometry`→Photometer/`spectrum_integrator.cpp` | `code/step1_analytic.py`、`code/s04/s04_common.py`，真实XP sampled343点336–1020nm，历史827个Gaia锥源（原缓存仓外），analytic oracle和GaiaXPy本轮未跑 | 历史误将Baader R选成Antlia B已更正，响应限XP支持域，不能称新发明或绝对物理标定；一手Gaia Collaboration/Montegriffo 2023 A33/A3、Xiao2025须B10核具体式 |
+| **P1-C02** 空间增益、PSF/孔径及颜色系统的非独立残差 | `d=-2.5log10(F_instr/F_syn)-µ` mag，σ_obs=2.5MAD(log残差inliers)/0.67448975，finite PSF窗η、亚像元相位/WCS影响F_instr；CURRENT p1_sources与photoapplied链 | S04真实M42 M1 Red300s，T2×2 T3×6，旧版σ_obs0.0265198375mag（n157、151内点）vs历史方差修订后0.0268730673mag（n178、171内点）；主帧171独立星色斜率-0.02467±0.00245 mag/标准轴，按星bootstrap 800–1200次seed20261014；全八帧734行只有177独立星；`code/s04/{s04_measure,s04_strata}.py`和图hash | 434候选星在各帧有效比例0.106–0.410，跨版本不同星不能写成同样本性能提升；色项存在只适用受检SED/PSF/仪器；Padmanabhan ubercal已有相对校准工作，真实现版C++E2未跑 |
+| **P1-C03** 参考振幅、应用图与球面BUNIT一致性；贡献候选是防双标度和不确定度完整建模 | `F_ref=alpha_*F_native`≠`F_applied,total=F_nativeΣalpha_jP_j`，S1数学例200 vs250；`C'=Dalpha C Dalphaᵀ`仅条件协方差，边际应另含`Jθ Cθ Jθᵀ`与x/θ交叉。生产`p1_op_drizzle`真读photoapplied并缩放噪声，`p1_stack.bunit=ADU/sr`仍固定 | S04 `s04_sigmaflat.py` flat去二阶0.001766/0.002311mag、未去0.007579/0.009526mag；母版施加8帧3改善5变差，sigma_obs中位+0.00122mag，pair 1802行仅145独立星；gain=1.333e-/ADU和RN8.59e-硬编码UNVERIFIED | #9真实数值/声明错位、#51 sigma_psfsys与fit残差或双计；sigma_flat=0.0007mag未独立验证，Hα300/600斜率−3.6%/dex不能说明探测器非线性拐点。真实新E2及单位Oracle未跑 |
+| **P1-C04** 负对照检出污染，不能用筛选制造成功 | 旧`ABOVE_CEILING`仅超出**已登记误差下包络**，不是实际测量错误率上界；`s04_negatives.py`并未调用新生产C++ | 历史错通带9.68/16.15/18.57×、重复Gaia G25.37×；把同一历史残差作1.5MAD再次截尾可令红翻绿；HST模板独立forward在本次NOT_RUN | 只能表述旧脚本有部分判别力且存在选择效应漏洞；不得称完整instrument noise已通过或P1→P5真实故障传播PASS |
+| **P2-C01** 参考通量条件Fisher及GLS，前例已有Horne、Newberry等 | 固定PSF与噪声时`SNR_ref=F_ref/√V_F`；已知背景 `I_F=PᵀC⁻¹P`，未知背景投影后`I_F=Pᵀ(C⁻¹−C⁻¹Z(ZᵀC⁻¹Z)⁻¹ZᵀC⁻¹)P`；`noise_snr/cpp/src/{sparse_reference,information_weight}.cpp` | S05 `code/s05/s05_arms_oracle.py`、`docs/S05_P2_evidence.json`，历史白噪MC sd/理论σ 0.9929–1.0095、135个Wilson覆盖比较5不合目标、历史解析oracle；真实星不同质量需另分层 | 源Poisson、有限PSF、相关master/sky使假设失效；#8要求面亮度variance transfer，不能简单`SNR²/F_ref²`当像素权重。Horne为光谱抽取不是成像PSF逐项最优证明 |
+| **P2-C02** Drizzle后真正协方差与k_corr经验定标 | `C_sphere=R C_source Rᵀ`；`k_corr`需标定源PSF/像元尺度/pixfrac和patch median统计量；生产 `sampler.cpp`、`astro_sphere_sink.cpp` | 旧S05 `s05_kcorr_units.py`,`s05_real117.py`与真实M42：MC kcorr2.33、旧探针2.054–2.058、默认回退1.4；报告2195星对sigma_emp/sigma_model约3.37，加入系统地板后名义68.27%覆盖约0.8611（过覆盖），真正CI/样本选择未本轮重跑 | 真实约0.97″/px超k_corr表300/600″域；#17/#64/#71失效边界，S05证据含Infinity异常，不应称生产真值精度已校准；Fruchter–Hook相关噪声先例 |
+| **P2-C03** Canonical precision真正供Mosaic权重 | `I_F=1/V_F=SNR_ref²/F_ref²` flux^-2；`T=V_B/V_F`，若同条件`w_B=I_F/T`单位sr²/L²；旧点源SNR不是sky patch median `control_ivar` | P1目标`frame_science/v2`尚是TARGET；Stage2 `p2_sparse_layer_probe`仍读`ACSD_SPARSE_SNR_LAYER`，S1数学Toy oracle与当前消费者分离；真实C++S1→S2未跑 | #8与#13是科学实现阻断，不能由旧sparse层的节点拟合声称SB科学权重已闭合 |
+| **P3-C01** HEALPix曲面Drizzle几何守恒：F&H和HEALPix都非新算法 | `w_jp=a_jp/A_drop,j`、`epsilon_j=Σp a_jp/A_drop,j−1`、`B_p=Σwx/ΣwΩ` L/sr，`C_B=R C_in Rᵀ`。源`spherical_overlap.cpp`,`drizzle_engine.cpp`,`astro_sphere_sink.cpp` | S02历史探针`docs/S02_P3_acceptance_matrix.json`在旧二进制：1500格218/1500超1e-6→修后0/1500，修后最大1.3755e-8；故障注入旧偏差恢复。HST M16 f502n drizzled模板0.04″/px，不是独立未叠加真噪声 | #15真HEALPix曲边并非连四顶点的geodesic直线，局部−9.968%属于边形面积而非已测flux损失；原报告的自闭合PASS不能证明真实曲边，FP32和真实E2尚未跑。Górski、HiPS、Fruchter&Hook为先例 |
+| **P3-C02** 同天空位置跨阶重采样而非只改tile order | NESTED真实叶K=log2(nside)，512tile目录K−9；不同输入阶必须在共同sphere grid重投或拒绝。生产`module_adapters.cpp::p2_hips_order_uniform`已fail-closed | #19历史静默跨阶问题已被同阶检查挡住；旧S02跨face/极区toy不能替代真实跨阶精度；face和apex曲边oracle需独立数值积分 | 当前是**同阶可用、异阶明确拒绝，真正跨阶重映射未实现**；也不能把P3创新点（Stage1 Drizzle）和Stage3 Export局部bilinear混写 |
+| **P4-C01** 固定reference precision连续场有统计前提，非“插值越密信息越多” | `u=log V_F`或logSNR_ref；控制节点有实际σ估计误差/支持，不能在无T时叫`log V_B`；生产`weight_chain.cpp::SparseSnrReconstructor::prepare/eval`与`nearest_valid_fill` | S06 `docs/S06_P4_evidence.json`、`code/s06`：历史2×2/3×3域外占55.56%/43.75%，natural spline过冲+0.011326、下冲−0.307920；HST真实结构模拟和真实M42的MAD²代理没有真方差 | #68/69近期静态修改不能由旧S06探针盖当下PASS；#70最近邻填充可把未知精度当已知；#8/#13阻断实际V_B传播。经典splines/IDW不可当新算法 |
+| **P4-C02** 三种重建表示并非一个普遍最优 | `dex-RMSE(log V)`、方差比例/efficiency必须标明真值是cell/reference/scene，实际节点有误差时和理想节点不同 | 历史解析结构场cell0.00903<dense0.577<frame1.159；HST前向cell0.206<frame0.416<<dense2.57e5；真实帧MAD²proxy cell0.171、frame11.8、dense6.46e4，旧S06 CV和6种场型；bootstrap/跨场假设需分别记录 | 0.000743理想控制点“表示上限”不是有噪end-to-end；当前idw_power2.0与旧规范1.0分裂需当代真实C++对拍 |
+| **P5-C01** 公共信号/相对加性天空差、连通分量各自gauge | `y_k=g_k H_kS+a_k+epsilon`，目前生产固定g=1；每个连通分量只可辨相对additive，绝对sky需外锚；源 `sky_plane.cpp::p2_sky_plane_build_joint`、`p2_sky_plane_eval_delta_block` | S03 `docs/S03_P5_COMPONENT_evidence.json`：历史S9b规范症状0.1281497→0.00059817（214×），不是实际星云接缝改善值；低频暗云/外域未独立保真 | #82 own无支持外延与#83 floor-bin训练/bilinear应用基函数不一致，不能写每步严格LS保证收敛；P5数值来源与绝对天光本身不同 |
+| **P5-C02** PMM式剩余乘性是研究设想，阴性特异性必须先成立 | 重叠matched stars估计g须分开PSF/颜色/sky/随机参数；现行生产g=1，S07 `code/s07_gain_experiment.py`并未生产接线 | 入库`docs/S07_P5_GAIN_evidence.json`：历史g=1阴性世界10seed，A+G伪改善heldout RMS中位约+0.00968，95%CI约[+0.00681,+0.01740]排除0，**FAIL**；阳性不抵消阴性 | #76 A+G+S共同解尚未生产，不能发布“自动增益科学有效”。PMM、NSG及ubercal公开先例待B10实质对拍 |
+| **P5-C03** 接缝、通带可比性与低频/SNR都要同时证明 | sky subtraction不移除shot noise；不同`R_k(λ)`给不同`B_k`且混合权重决定空间变化的`R_eff`，Schur精确PSD只在有效权和模型同被估量/正规矩阵假设下成立 | 旧C1合成6条人工缝median4.80→0.383e⁻，C7真实4帧512²裁剪的6条x边是合成cell界而非真实footprint；旧49帧成品FITS已回收；真实#80 E0 2Hα+1Red观测17237/overlap5807、旧exit2、权尺度差1.4e32、Schurλmin/λmax≈−1.727e−16 | #14跨响应不能强加单公共天光，#80数值消减和单位不等于物理自洽，#83基函数仍未闭合；#76真实E2和用户本人目检为必需，不能把toy/seam RMS评为科学保真 |
+| **P5-C04** 条件数值稳定性、真实共同天空和PMM可辨识性 | whitened QR/SVD /列规范的rank和相同物理预测比法向方程Schur减差更稳；有明显负特征不能仅随意ridge | S2 `innovation-closure/code/s2_oracle.py` 21×11 toy，同响应/列缩放/失秩Oracle；旧#80需回放完整真实矩阵及有量纲R_k/同响应H，而不是摘要 | 尚无HST已知谱星云真值（Hα/[N II]/连续谱分开）、同band与mixed的真实E2对照、跨帧完整联合协方差，故只`TOY_MATH + REAL_FAILURE_REVIEWED` |
+
+### 10.3 五套报告版本身份与可用原证据
+
+| Paper | 此次原paper blob（行） | 原实验报告blob（行） | 真正可回读资产 / 尚缺 |
+|---|---|---|---|
+| P1 | `fe7f9f9c5e7888e42a3b0f8733f46cd51f6b832a` (176) | `bc981668ca625a65d183bd8532beea380bfeb47c` (319) | code/s04 + Figures manifest、历史补丁/refs；S04运行树与原FITS此批未回读。**本批主稿作逐段科学修订** |
+| P2 | `0f9a31f8ca97240f9199a158ae2b71ee105916d1` (173) | `5de5ec579e2ee7d75e9bde5b834ae0f6d995bbbf` (280) | docs/S05_P2_evidence.json、S05_REPORT.md、s05脚本；运行results缺失 |
+| P3 | `bda5e7858a7e909784b39393d445e2dd36a1b99f` (188) | `c33b1b5b224dbcdc8c6818e02ed8251c1b99ad21` (499) | docs/S02_P3_acceptance_matrix.json、S02_P3_NORM_evidence.json、s02脚本；真实几何E2缺 |
+| P4 | `312e2027439fa8ee68e93f2d5eea4bc24a2acb4b` (163) | `20a8981eb5751b29c4a56696a1c129e30869106b` (335) | docs/S06_P4_evidence.json、s06脚本；真实方差与运行树缺 |
+| P5 | `37cd36497f8c456d58f4178e10e4792aedf9ad4e` (189) | `6f733a43e4ba61c05febef02b8658e941c5abcfe` (697) | docs/S03/S07 evidence、旧探针；真实49帧产品FITS已回收 |
+
+### 10.4 下一轮P2–P5具体工作包，不冒充五篇全部完成
+
+**P2**：以固定F_ref/PSF/sky nuisance建立白化设计矩阵及有/无已知背景GLS，对实际生产的sphere R/C/h/Z取独立SVD/QR和可证明conditional confidence；将Poisson参考源与实际source分开；回放S05各个seed、真实117星/2195对、与当前ABI建立配对版本及effective psf/flat covariance，重新按同估计器的pixfrac、局部patch大小、实际0.96″/px、nside多档标定k_corr。把#8 T转换和#13真实v2消费者、#64缺variance源的UNKNOWN状态纳入同一次FITS E2；B10精读Newberry、Horne、Zackay&Ofek和相关Drizzle，补原文真正求解条件。
+
+**P3**：保留drop完备性/F/N/SNR关联方程，真正以独立HEALPix曲边数值Oracle对全部12face、极区、跨face、顶点、0.04″–更大角尺度、nside与pixfrac扫真area fraction，而不是仅查Σa/A=1；明确对比四角弦、真实曲边、源constant亮度/星点flux、PSF/MTF、源/叶cov、S02数值版本。#15局部−9.968%曲边面积构型必须单独观测，FP32和真实M42/HST有效掩膜下E2未通过不能夸大；#19当前拒绝异阶仅是安全措施，需设计实跨阶重映射及保守误差核。B10逐式核Górski、Fruchter&Hook和IVOA HiPS。
+
+**P4**：先在#8同estimand条件下把reference_IF转实际V_B或仅保留reference诊断，再以有M（曲率）及节点观测不确定δ_i的已知logV场做解析上/下界与真实coverage，加入2×2/3×3、洞、孤岛、亮源星云、不同PSF/seeing/源泊松；比较natural spline、IDW/cell/kriging和旧dense/frame，控制点来源和运行CPU/RSS也记录。按新main重跑#68/#69修后、#70缺点合理不确定、#13正式Canonical读入；旧HST MAD²代理不能叫真方差，B10方法先例分辨Wahba/Fritsch–Carlson/Hyman。
+
+**P5**：先以#80真实2Hα+1Red完整`D,F,G,Σ`矩阵/输入hash/源实际BUNIT/响应复核物理与数值各自原因，考虑#83 own floor-bin与bilinear eval实际基函数，检验gauge/秩与白化QR/SVD/Schur预条件；加入#82支持域，正确分同band与mixed共同光谱子空间。S07 g=1阴性十seed存在显著伪gain，必须先修阴性特异性，再做g≠1阳性、颜色/PSF/孔径/holdout matched stars、共模低频保真、sky shot噪声/参数协方差与PMM公开代码参考比较。使用HST已知SED模拟及M42真实E2单signal HiPS→FITS，独立计算point/extended flux、Hα线比、真实footprint seam、conditional/bias/CI及噪声功率谱，#76完成前必须有负责人目检E2产品。已有加性生产≠A+G联合完成。
+
+### 10.5 B10一手 prior art 与本批证据上限
+
+P1 Gaia Collaboration/Montegriffo A&A674 A33/A3、De Angeli A2、Xiao2025、Padmanabhan2008、Akima1970/Huber；P2 Newberry/Horne/Zackay&Ofek；P3 Górski2005/Fruchter&Hook2002/IVOA HiPS；P4 Wahba、Fritsch–Carlson、Hyman；P5 Fixsen联合标定、SDSS ubercal、PhotometricMosaic/NSG/Montage。现存 `references/CORE_REFERENCES_VERIFIED.md` 与 `references/PRIOR_ART_CLAIM_MATRIX.md` 提供书目/部分公开方法信息，**B09-D1没有逐篇下载原全文、核对原式号页码、参数/公开代码许可**。B10需把每个已声明贡献对照到一手实际estimand、假设、实现与实验，不能从DOI有效直接推出原创性。
+
+D1审查性质：上述数学/源函数和已存历史证据映射；**NOT_RUN**现行生产C++编译、三CLI、真实/模拟FITS E2E、M42/HST新真值、外部GaiaXPy/HEALPix/WCSLIB、MC、资源与Windows、用户目检。只有P1已进入逐段正式修稿；P2–P5留下具体算法/实验包而不是假称全篇完成。等待独立复审后才开始B09-D2与B10。
+
+ 
+### B09-D1并行S3研究更新（源文件在本批准备提交时入main；非生产复跑）
+
+`实验/innovation-closure/S3_SCIENCE_REPORT_2026-10-17.md`在独立复审中给出了两条更严格的数学反例：#83 floor-bin更新与最终bilinear求值不同目标，在冻结两帧解析样本上旧拟合的平方误差1，按真实双线性基的最小二乘误差0；这只证假“严格LS”断言，不是M42真实场误差。#80针对二阶差分D的临时锚Q-only修正，二维完整矩形网格核空间含[1,x,y,xy]四维而不是假定三维。在单独构造42维SPD H、λ=0.5、α=3的受控toy上，旧Q-only修正相对原惩罚线性方程残差0.123484、精确Woodbury修正5.19e−16、增广QR约2.00e−15；`λDᵀD`与无惩罚解相距4.12577，**正则化会改变物理估计量**。研究还构造3帧×23位置和36独立匹配星、500组独立零gain激活MC；结果局限于同响应、identity PSF、已知Gaussian噪声、无bad-pixel/rejection的toy。该S3研究明确`PRODUCTION_NOT_RUN/REAL_E2_NOT_RUN/USER_VISUAL_PENDING`，不能把toy公式故障的0.123484冒充当前真实#80发生过同等偏差；旧S07 g=1阴性FAIL仍有效，S3的新star-only激活策略未经现行生产接线，不能覆盖旧失败记录。P5-D2必须新增对生产实际 fallback矩阵残差、完整四维零空间、可信penalty身份及未惩罚目标的对照。
+
