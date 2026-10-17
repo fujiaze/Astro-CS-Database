@@ -37,7 +37,7 @@
 | width,height | int px | [1,20000]（会话层 `lib/phase3_session/p3_session.cpp`；内核 width<1 拒） | `lib/algorithms/fits_output/p3_output.h` |
 | bitpix | int | -32 \| -64（真实决定 buffer，`lib/algorithms/fits_output/p3_output.h`） | `lib/algorithms/fits_output/p3_output.cpp` |
 | BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 [S-1]「参数与常数」一节 规定浮点，取值 TDOUBLE） | `lib/algorithms/fits_output/p3_output.cpp` |
-| BUNIT | string | 主 HDU 面亮度单位；调用方给空串/`nullptr` ⇒ 取 canonical `ADU/sr`（唯一事实源 `lib/algorithms/fits_output/p3_output.cpp`，与 `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节「产品写盘 BUNIT 一律取该串」同口径）。**上游同口径**：重采样器 `p3_sampler_open_ex` 对无 BUNIT 的源 properties 亦回填 `ADU/sr`（`lib/algorithms/resample/p3_resample.cpp`），会话 `lib/phase3_session/p3_session.cpp` 原样透传 ⇒ 全链缺省串一致，**不出现裸 `ADU`** | `lib/algorithms/fits_output/p3_output.cpp` / `lib/algorithms/resample/p3_resample.cpp` |
+| BUNIT | string | 主 HDU 面亮度单位；调用方**必须**给出经输入单位身份裁决证实的 canonical `ADU/sr` —— 空串/`nullptr`/表外串一律在创建任何临时文件之前 `P3_OUT_PARAM` 拒绝（Issue #91: 旧行为「空串取 `ADU/sr`」是**捏造确定量纲**的缺陷本体，已删除）。唯一事实源 `lib/algorithms/fits_output/p3_output.cpp`，与 `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节「产品写盘 BUNIT 一律取该串」同口径。**上游同口径**：输入单位身份裁决 `p3_input_unit_verdict`（`lib/algorithms/resample/p3_input_unit.cpp`）在裁决未通过时**不给串**，`p3_sampler_open_ex` 只回填裁决给出的 canonical 串（`lib/algorithms/resample/p3_resample.cpp`），会话 `lib/phase3_session/p3_session.cpp` 原样透传 ⇒ 全链单位一律有输入身份证据，**不出现裸 `ADU`**，也不出现无证据的 `ADU/sr` | `lib/algorithms/fits_output/p3_output.cpp` / `lib/algorithms/resample/p3_input_unit.cpp` / `lib/algorithms/resample/p3_resample.cpp` |
 | CRPIX1/2 | f64 px | FITS 1-based pixel-center | `lib/algorithms/projection/p3_wcs.h` / `lib/algorithms/fits_output/p3_output.cpp` |
 | CRVAL1/2 | f64 deg | ICRS 中心 | `lib/algorithms/projection/p3_wcs.h` / `lib/algorithms/fits_output/p3_output.cpp` |
 | CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | `lib/algorithms/projection/p3_wcs.h` / `lib/algorithms/fits_output/p3_output.cpp` |
@@ -128,6 +128,7 @@
 ```text
 function p3_output_write_atomic(signal, coverage, W, H, wcs, bunit, path, prov, bitpix, cancelled_at_row, out result):
   if signal/coverage/wcs/path null or W<1 or H<1: return P3_OUT_PARAM
+  if bunit null/"" or bunit != canonical "ADU/sr": return P3_OUT_PARAM          # Issue #91: 禁 silent default（在创建任何临时文件之前拒）
   lock(aio::CfitsioLockGuard)                                                # RT-008 全程
   tmp = path + "." + getpid() + ".tmp"; unlink(tmp)                          # DISP-P3FITS-002
   f = fits_create_file(tmp) else IO
@@ -135,7 +136,7 @@ function p3_output_write_atomic(signal, coverage, W, H, wcs, bunit, path, prov, 
   fits_create_img(f, bitpix, [W,H]) else IO
   write CTYPE1=RA---TAN, CTYPE2=DEC--TAN, CUNIT1/2=deg
   write CRPIX1/2, CRVAL1/2, CD1_1..CD2_2
-  write BSCALE=1, BZERO=0, BUNIT=bunit or "ADU/sr"
+  write BSCALE=1, BZERO=0, BUNIT=bunit   # 调用方已证明该串来自经校验的输入身份
   if prov: write HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER + HISTORY(source,manifest)
   fits_write_pix(f, TFLOAT, signal)
   if cancelled_at_row >= 0: close; unlink; return P3_OUT_CANCELLED             # 不落盘

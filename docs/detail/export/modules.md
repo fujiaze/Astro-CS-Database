@@ -22,6 +22,8 @@ properties 节点确认输入 HiPS 的信号、几何、层级与单位，形成
 
 公开读取入口为 [p3_resample.h](../../../lib/algorithms/resample/p3_resample.h) 的 `p3_sampler_open_ex(product_dir,out,out_order,out_bunit,err)`；底层文本解释由 [hips_properties.h](../../../lib/algorithms/coverage/hips_properties.h) / [hips_properties.cpp](../../../lib/algorithms/coverage/hips_properties.cpp)承担。不是另一个科学像素算法。
 
+单位身份的判定本体只有一处：[p3_input_unit.cpp](../../../lib/algorithms/resample/p3_input_unit.cpp) 的 `p3_input_unit_verdict`（Issue #91）。`scheduler 入口`（`p3_op_properties`/`p3_op_resample` 经 `p3n_guard_input_units`）与`正式 session 入口`（`p3_session_run` 经 `p3_sampler_open_ex`）都经它判定，同一输入文件、同一身份条件下 verdict 必须相同；`p3_sampler_open_ex` 只回填裁决给出的 canonical 串，裁决未通过时不回填任何单位。未通过时：缺失/空串/重复（含大小写别名）/声明面冲突/表外语汇 → 输入错误（CLI 3）；可解析但非面亮度/与 `ACSD_PIXEL_SEMANTICS`、`ACSD_PIXEL_AREA_POWER` 矛盾 → 科学语义错误（CLI 4）；两者都不产出 FITS。
+
 ### 字段、寿命和错误
 
 | 字段 | 语义 |
@@ -39,7 +41,6 @@ sampler 由 open 获取，在元数据读取后 close；输出字符串/JSON 由
 ### 验证入口
 
 从 `p3_op_properties`、`p3_sampler_open_ex` 与 parser 进入核对缺必需键、显式非法值、NESTED/阶数、BUNIT 分叉和单信号产品。合法零/负信号无需在属性阶段拒绝；没有输入误差层也不妨碍正式导出。本页未运行测试，属性可解析不能充当 WCS 或图像保真证据。
-
 ## wcs
 
 **Export WCS 与裁剪几何。**

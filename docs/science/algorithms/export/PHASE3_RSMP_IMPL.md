@@ -177,20 +177,25 @@ kMaxOrder=20 来自 `lib/algorithms/coverage/hips_properties.h`（ARCH-P3 [S-1]�
 
 ### 6.3 sampler 生命周期
 
-- `p3_sampler_open_ex`（`lib/algorithms/resample/p3_resample.cpp`）: ①`hips_properties_parse`
-  严格校验（必需 keys `hips_order, hips_tile_width, hips_frame,
+- `p3_sampler_open_ex`（`lib/algorithms/resample/p3_resample.cpp`）: ①**输入单位身份裁决**
+  （唯一实现 `acsd::phase3::p3_input_unit_verdict`，`lib/algorithms/resample/p3_input_unit.cpp`；
+  session 与 scheduler 两个入口同源同判）—— 缺失 / 空串 / 同一逻辑键重复声明（含
+  `BUNIT`-`bunit` 大小写别名）/ 单位声明面互相冲突 / 冻结词汇表外串 / 与
+  `ACSD_PIXEL_SEMANTICS`、`ACSD_PIXEL_AREA_POWER` 矛盾一律拒绝，**绝不**补写确定量纲；
+  未通过即 `P3_RS_PARAM`，`err` 携带机器可判错误码（`P3-INPUT-*`）。②`hips_product_validate`
+  → `hips_properties_parse` 严格校验（必需 keys `hips_order, hips_tile_width, hips_frame,
   dataproduct_type`；`hips_order ∈ [0,20]`；`hips_tile_width` 必须
-  512——`lib/algorithms/coverage/hips_properties.cpp` 显式拒非 512；NESTED 唯一）②校验
-  `hips_frame` ICRS ③构造 `P3SamplerImpl`（nside=512·2^order）④
-  `out_order`/`out_bunit` 回填实际值；BUNIT **必须**取输入 tile 的 BUNIT，
-  输入 properties 无 BUNIT 时取 **canonical `ADU/sr`**（**绝不**缺省 `ADU`、
-  **绝不**缺省 Jy/beam）。依据 `docs/science/unified/DATA_SEMANTICS.md`「单位与量纲表」与「面亮度单位的推导」两节（`FZ-UNIT-SIGNAL-SB`
+  512——`lib/algorithms/coverage/hips_properties.cpp` 显式拒非 512；NESTED 唯一；`BUNIT`
+  逻辑键重复声明亦在此拒）③构造 `P3SamplerImpl`（nside=512·2^order）④
+  `out_order`/`out_bunit` 回填实际值；`out_bunit` **只**取裁决给出的冻结 canonical
+  `ADU/sr`（**绝不**缺省 `ADU`、**绝不**缺省 Jy/beam、**绝不**在裁决未通过时给串）。
+  依据 `docs/science/unified/DATA_SEMANTICS.md`「单位与量纲表」与「面亮度单位的推导」两节（`FZ-UNIT-SIGNAL-SB`
   FROZEN）：采样值是输入 tile 值的凸组合 ⇒ 与输入同量纲；`ADU/sr` = 计数按立体角
   归一的面亮度串，裸 `ADU` = 每像素计数口径，与写盘数值不符且量纲不可判
   （§31.1a 并明确否定 `ADU/px^2`）。**实现锚**：`p3_resample.cpp`
-  `p3_sampler_open_ex`（`out_bunit = p.bunit.empty() ? "ADU/sr" : p.bunit`）。失败路径: properties
-  校验失败/路径不存在 → `P3_RS_IO`；语义不符 → `P3_RS_PARAM` 或
-  `P3_RS_UNSUPPORTED`（frame≠ICRS）；err 缓冲写人类可读消息。
+  `p3_sampler_open_ex`（`*out_bunit = unit.bunit_canonical`）。失败路径: 单位身份裁决
+  未通过 / properties 结构校验失败 / 路径不存在 → `P3_RS_PARAM`（前者 `err` 带
+  `P3-INPUT-*`）；`aio_hips_open` 打开数据集失败 → `P3_RS_IO`；err 缓冲写人类可读消息。
 - `p3_sampler_open`（`p3_resample.cpp`）: open_ex 缺参薄封装（out_order/
   out_bunit 传 nullptr）。
 - `p3_sampler_set_max_tiles`（同文件）: 设置 TileCache 容量；
