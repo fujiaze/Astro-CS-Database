@@ -78,3 +78,10 @@ p_low、p_high 无量纲，其带宽随 |m| 变化，不能解释为相同数值
 [3] Gruen D., Seitz S., Bernstein G. M. Implementation of robust image artifact removal in SWarp through clipped-mean stacking. PASP, 2014, 126: 158–165. [DOI](https://doi.org/10.1086/675080)。
 
 Siril、IRAF 和 CCDProc 可提供方法族或掩膜行为对照，具体版本和许可需要在实际采用处核实；不复制传染性许可代码。参考实现的同名方法不直接定义 ACSD 的路由与状态。当前生产入口、兼容 API 和实现差异见[模块正文](../../detail/mosaic/modules.md#reject)与[实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)，待统一研究的统计问题见[问题记录](../../../实验/documentation-refactor/docs/SCIENTIFIC_QUESTIONS.md)。
+
+
+## D6：当前默认生产路由与 library status 的明确边界
+
+[Rejection 算法完整规格](../algorithms/mosaic/PHASE2_REJECTION.md)和[模块 C API](../../detail/mosaic/modules.md)已对照实际生产。**CURRENT**：p2_op_reject 用每像素原始帧 support 正值数作为 geometric nominal N，AUTO 在 acsd_adaptive_pixel profile 下 N<6→percentile、N≥6→winsorized，而 N≤3 的 eligible 小栈由 underdetermined 保护并全部接受；它不在 N>15 默认改用 ESD/linear-fit。production large_scale.enabled 默认1，库缺省0，不得混称。公开的其他显式内核和分类 API 不是 CLI 已执行的功能。当前 gather 传入 weights/valid/support/quality/frame_ids 皆为 nullptr，不能仅依据共享 API 的完整资格能力声称生产已对这些量逐项校验。kernel rc=0 仍可有 INVALID_INPUT/INVALID_CONFIGURATION/INVALID_METHOD 栈 status，而 adapter 尚未读取 dec.status，属于工程与真实负例待闭合。
+
+**SCIENCE_TARGET**：后选择的源结构完整性、条件协方差与有效单 Signal 归约须结合候选集合及其数据依赖；尤其 near-zero median percentile、长轨迹与真正移动天体、星点宽翼、星云低频损失、不同真实通带都不得只靠 seam RMS 或被拒率宣告通过。D6只更新文档，不运行新科学测试。
