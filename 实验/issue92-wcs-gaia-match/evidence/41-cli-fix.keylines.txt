@@ -1,0 +1,31 @@
+[INFO] 锥形搜索: ra=83.2831 dec=-6.3754 r=0.925 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=1085 / 2309
+[INFO] [star_matcher] P12-002 阶段4/5/6: spatial_candidates=954 (正向命中), unique_matches=954 (双向唯一), rejected_ambiguous=0 (非互为最近邻), rejected_distance=1280 (距离超阈值)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=25 (quality=3 + invalid=0 + mag=0 + irls=22), fit_used=929, robust_iterations=6, scale=6.222285e-17, sigma=0.024987
+[pc_api] 匹配+清洗完成: 929 颗, scale=6.222285e-17, sigma_residual=0.024987
+[INFO] 锥形搜索: ra=83.2832 dec=-6.3754 r=0.925 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=1085 / 2309
+[INFO] [star_matcher] P12-002 阶段4/5/6: spatial_candidates=985 (正向命中), unique_matches=985 (双向唯一), rejected_ambiguous=0 (非互为最近邻), rejected_distance=1251 (距离超阈值)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=29 (quality=2 + invalid=0 + mag=0 + irls=27), fit_used=956, robust_iterations=6, scale=5.972444e-17, sigma=0.020069
+[pc_api] 匹配+清洗完成: 956 颗, scale=5.972444e-17, sigma_residual=0.020069
+[INFO] 锥形搜索: ra=83.2833 dec=-6.3773 r=0.925 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=1087 / 2306
+[INFO] [star_matcher] P12-002 阶段4/5/6: spatial_candidates=987 (正向命中), unique_matches=987 (双向唯一), rejected_ambiguous=0 (非互为最近邻), rejected_distance=1186 (距离超阈值)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=28 (quality=4 + invalid=0 + mag=0 + irls=24), fit_used=959, robust_iterations=6, scale=6.003670e-17, sigma=0.022659
+[pc_api] 匹配+清洗完成: 959 颗, scale=6.003670e-17, sigma_residual=0.022659
+[INFO] 锥形搜索: ra=83.2835 dec=-6.3778 r=0.926 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=1090 / 2307
+[INFO] [star_matcher] P12-002 阶段4/5/6: spatial_candidates=980 (正向命中), unique_matches=980 (双向唯一), rejected_ambiguous=0 (非互为最近邻), rejected_distance=1232 (距离超阈值)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=20 (quality=2 + invalid=0 + mag=0 + irls=18), fit_used=960, robust_iterations=4, scale=6.554059e-17, sigma=0.026375
+[pc_api] 匹配+清洗完成: 960 颗, scale=6.554059e-17, sigma_residual=0.026375
+[INFO] 锥形搜索: ra=83.2832 dec=-6.3747 r=0.926 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=1083 / 2310
+[INFO] [star_matcher] P12-002 阶段4/5/6: spatial_candidates=1005 (正向命中), unique_matches=1005 (双向唯一), rejected_ambiguous=0 (非互为最近邻), rejected_distance=1128 (距离超阈值)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=33 (quality=2 + invalid=0 + mag=0 + irls=31), fit_used=972, robust_iterations=6, scale=6.487244e-17, sigma=0.019988
+[pc_api] 匹配+清洗完成: 972 颗, scale=6.487244e-17, sigma_residual=0.019988
+[INFO] 锥形搜索: ra=83.2834 dec=-6.3739 r=0.925 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=1084 / 2307
+[INFO] [star_matcher] P12-002 阶段4/5/6: spatial_candidates=986 (正向命中), unique_matches=986 (双向唯一), rejected_ambiguous=0 (非互为最近邻), rejected_distance=1273 (距离超阈值)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=30 (quality=2 + invalid=0 + mag=0 + irls=28), fit_used=956, robust_iterations=6, scale=6.209759e-17, sigma=0.022245
+[pc_api] 匹配+清洗完成: 956 颗, scale=6.209759e-17, sigma_residual=0.022245
+"exit_code":0

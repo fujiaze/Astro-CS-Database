@@ -1,0 +1,137 @@
+{
+  "gate_tol_px": 1e-07,
+  "frames": [
+    {
+      "tag": "20251126_041940-300S-Red",
+      "n": 2309,
+      "oneshot": {
+        "gate_pass": 0,
+        "n_nan": 0,
+        "resid_min": 9.015655095367947e-06,
+        "resid_median": 0.2347324126778858,
+        "resid_p99": 1.5571880225129282,
+        "resid_max": 1.8332243704103348,
+        "in_frame": 1085
+      },
+      "refined": {
+        "gate_pass": 2309,
+        "n_nan": 0,
+        "resid_min": 0.0,
+        "resid_median": 0.0,
+        "resid_p99": 4.547473508864641e-13,
+        "resid_max": 4.547473508864641e-13,
+        "in_frame": 1085
+      }
+    },
+    {
+      "tag": "20251127_042719-300S-Red",
+      "n": 2309,
+      "oneshot": {
+        "gate_pass": 0,
+        "n_nan": 0,
+        "resid_min": 7.659747780053294e-06,
+        "resid_median": 0.2348838512407383,
+        "resid_p99": 1.5694028728648846,
+        "resid_max": 1.8151339208725403,
+        "in_frame": 1085
+      },
+      "refined": {
+        "gate_pass": 2309,
+        "n_nan": 0,
+        "resid_min": 0.0,
+        "resid_median": 0.0,
+        "resid_p99": 4.547473508864641e-13,
+        "resid_max": 4.547473508864641e-13,
+        "in_frame": 1085
+      }
+    },
+    {
+      "tag": "20251128_043530-300S-Red",
+      "n": 2306,
+      "oneshot": {
+        "gate_pass": 0,
+        "n_nan": 0,
+        "resid_min": 2.1715666207455797e-06,
+        "resid_median": 0.22562093713781906,
+        "resid_p99": 1.520096774992362,
+        "resid_max": 1.7502560881753197,
+        "in_frame": 1088
+      },
+      "refined": {
+        "gate_pass": 2306,
+        "n_nan": 0,
+        "resid_min": 0.0,
+        "resid_median": 0.0,
+        "resid_p99": 4.547473508864641e-13,
+        "resid_max": 4.547473508864641e-13,
+        "in_frame": 1087
+      }
+    },
+    {
+      "tag": "20251211_013548-300S-Red",
+      "n": 2307,
+      "oneshot": {
+        "gate_pass": 0,
+        "n_nan": 0,
+        "resid_min": 3.4600905109982705e-06,
+        "resid_median": 0.22250826640447485,
+        "resid_p99": 1.4769281243724801,
+        "resid_max": 1.7413374165848836,
+        "in_frame": 1090
+      },
+      "refined": {
+        "gate_pass": 2307,
+        "n_nan": 0,
+        "resid_min": 0.0,
+        "resid_median": 0.0,
+        "resid_p99": 4.547473508864641e-13,
+        "resid_max": 4.547473508864641e-13,
+        "in_frame": 1090
+      }
+    },
+    {
+      "tag": "20251212_021119-300S-Red",
+      "n": 2310,
+      "oneshot": {
+        "gate_pass": 0,
+        "n_nan": 0,
+        "resid_min": 6.2774028037893e-06,
+        "resid_median": 0.23032307334847246,
+        "resid_p99": 1.5366317308852058,
+        "resid_max": 1.7443459440924016,
+        "in_frame": 1083
+      },
+      "refined": {
+        "gate_pass": 2310,
+        "n_nan": 0,
+        "resid_min": 0.0,
+        "resid_median": 0.0,
+        "resid_p99": 4.547473508864641e-13,
+        "resid_max": 4.547473508864641e-13,
+        "in_frame": 1083
+      }
+    },
+    {
+      "tag": "20251213_021555-300S-Red",
+      "n": 2307,
+      "oneshot": {
+        "gate_pass": 0,
+        "n_nan": 0,
+        "resid_min": 3.605489268920792e-06,
+        "resid_median": 0.22641545386977668,
+        "resid_p99": 1.5123201941246225,
+        "resid_max": 1.7869749375690844,
+        "in_frame": 1084
+      },
+      "refined": {
+        "gate_pass": 2307,
+        "n_nan": 0,
+        "resid_min": 0.0,
+        "resid_median": 0.0,
+        "resid_p99": 4.547473508864641e-13,
+        "resid_max": 4.547473508864641e-13,
+        "in_frame": 1084
+      }
+    }
+  ]
+}
