@@ -7,6 +7,7 @@
 | 项 | 值 |
 |---|---|
 | base SHA（本轮唯一基线） | `51e06540eb021c7272e87cf67b34e53c0648cf7a` |
+| 生产修复提交 | `42f7fa4bb7ad446b29e137075633df5a7c3325ed` |
 | 修复前构建（git archive 导出 51e06540e + 本地合成 commit） | `ed60d8eb4696524a8f6b8bd2fa1ac08197d58fa1` |
 | 修复后 acsd 二进制 SHA-256 | `6f046ca96863fe6edd575d13f6de09eeafcb5559c8ac29d7c3623b3a466df1be` |
 | 修复前 acsd 二进制 SHA-256 | `c39e8fd840ea16ac122a9ed5dd351468ec726d8a36efa5dafc2306b08c0d9082` |

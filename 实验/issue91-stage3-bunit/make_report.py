@@ -30,6 +30,10 @@ def git(*a) -> str:
                           text=True).stdout.strip()
 
 
+# 本轮唯一参考基线（用户指定；不随本地 HEAD/变基漂移）
+BASE_SHA = "51e06540eb021c7272e87cf67b34e53c0648cf7a"
+
+
 def md_table(rows, header):
     out = ["| " + " | ".join(header) + " |",
            "|" + "|".join(["---"] * len(header)) + "|"]
@@ -113,7 +117,8 @@ def main() -> int:
 
 | 项 | 值 |
 |---|---|
-| base SHA（本轮唯一基线） | `{git('rev-parse', 'HEAD')}` |
+| base SHA（本轮唯一基线） | `{BASE_SHA}` |
+| 生产修复提交 | `{git('log', '--format=%H', '-1', '--', 'lib/algorithms/resample/p3_input_unit.cpp')}` |
 | 修复前构建（git archive 导出 51e06540e + 本地合成 commit） | `ed60d8eb4696524a8f6b8bd2fa1ac08197d58fa1` |
 | 修复后 acsd 二进制 SHA-256 | `{fixed['acsd_sha256']}` |
 | 修复前 acsd 二进制 SHA-256 | `{base['acsd_sha256']}` |
