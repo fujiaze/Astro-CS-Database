@@ -106,7 +106,7 @@ class AnalyticChecks(unittest.TestCase):
         for members in ([0,1,2], [3,4]):
             self.assertAlmostEqual(sum(eta[i] for i in members), 0, places=12)
         self.assertAlmostEqual(obj, 0.0, places=12)
-        self.assertEqual(cov[0,4], 0.)
+        self.assertAlmostEqual(float(cov[0,4]), 0.0, places=12)
 
     def test_triangle_affine_and_rectangle_shortcut_failure(self):
         corners = np.array([[-1.,-1.], [1.,-1.], [-2.,1.], [1.,1.]])
