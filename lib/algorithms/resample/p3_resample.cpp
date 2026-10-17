@@ -344,6 +344,8 @@ P3ResampleStatus p3_sample_bilinear_nanmask_ex(P3Sampler* s, double ra_deg, doub
                                                P3SampleRejection* rejection) {
     if (rejection) *rejection = P3SampleRejection{};   // 计数 0 与「字段缺失」可区分
     if (!s || !s->impl || !value || !coverage) return P3_RS_PARAM;
+    // #89: 四角权重是完整输出参数；被 NaN 掩膜的角也必须写出精确 0。
+    if (weights) std::fill(weights, weights + 4, 0.0);
     auto* impl = s->impl;
     const uint32_t nside = impl->leaf_nside;
     const uint64_t ipix = acsd::healpix::ang2pix_nest(nside, ra_deg, dec_deg);
@@ -552,11 +554,27 @@ P3ResampleStatus p3_uncertainty_propagate(P3Sampler* u, const double* weights,
     if (npts == 1 && !leaf_ipix) return P3_RS_PARAM;
     *u_out = std::nanf("");
     *st = P3_U_OK;
+    // #88: 退化四角可能指向同一个输入 leaf；重复读取同一个随机变量并非
+    // 独立样本。先按 leaf 身份合并信号系数，再累加每个唯一 leaf 的 a_j^2 u_j。
+    // 所有 leaf 的原始读取/产品损坏检查依旧执行（含零权角）。
+    double grouped_weights[4] = {0.0, 0.0, 0.0, 0.0};
+    if (npts == 4) {
+        for (int k = 0; k < 4; ++k) {
+            int representative = k;
+            for (int j = 0; j < k; ++j) {
+                if (leaf_ipix[j] == leaf_ipix[k]) {
+                    representative = j;
+                    break;
+                }
+            }
+            grouped_weights[representative] += weights[k];
+        }
+    }
     double acc = 0.0;                     // FP64 累加 (§30.4 精度合同)
     bool any_nan = false, any_missing = false;
     int n_masked = 0;                     // 生效权重 0 = signal 路径已剔除的样本
     for (int k = 0; k < npts; ++k) {
-        const double w = (npts == 1) ? 1.0 : weights[k];
+        const double w = (npts == 1) ? 1.0 : grouped_weights[k];
         double u_k = 0;
         P3UncPixelState s_k = P3_U_OK;
         const P3ResampleStatus r = read_u_leaf(u, leaf_ipix[k], &u_k, &s_k);
