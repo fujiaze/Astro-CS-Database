@@ -40,6 +40,28 @@
 \]
 只有分母为正且有限才定义 y_i。这个选择相当于不同的**有效核**，会改变局部采样形状；空洞边缘需要与保守不外推的替代方法对照。
 
+### 3.1 不规则 HEALPix 邻域的一次再现定理与保守替代核（2026-10-17）
+
+对局部切平面已实际确定的叶中心位置 `q_j=(x_j,y_j)`、目标方向在同一平面的位置 `t=(x_t,y_t)`，任意固定线性插值 `\widehat B(t)=Σ_j c_j B(q_j)` 对**所有**仿射天空 `B(x,y)=b_0+b_xx+b_yy` 精确，当且仅当
+\[
+\sum_j c_j=1,\qquad
+\sum_j c_jx_j=x_t,\qquad
+\sum_j c_jy_j=y_t.
+\]
+必要性由代入三个基函数 `1,x,y` 立即得到；充分性由线性组合得到。标准矩形四角系数仅对**其自身几何约定的矩形四角**自动保证这三个条件，切平面上实际 HEALPix 最近邻四象限不一定构成该矩形。这是 Stage3 #90 的数值精度问题，不涉及 Stage1 curved spherical Drizzle #15。
+
+一种无需猜测的**替代候选**：在真实候选叶中心集合寻找包含 t 的非退化三角形 `q_0,q_1,q_2`，求 `V c=(1,x_t,y_t)^T`，其中
+\[
+V=\begin{pmatrix}1&1&1\\x_0&x_1&x_2\\y_0&y_1&y_2\end{pmatrix}.
+\]
+当 `det V≠0` 且三个重心系数 `c_i≥0`，目标位于三角形闭凸包、权和为1且仿射一次精确；不得把不稳定的近共线 `V` 当有可靠解。若目标缺少可支持三角形，返回 `unsupported` 并按明确的 fallback policy 处理，不得悄悄将多次引用同一 leaf 当独立观测。对连续二阶可微球面场（**将完整观测算子固定后，在局部切平面上**）有 `||H_B||_2≤M` 时，重心插值误差满足
+\[
+|\widehat B(t)-B(t)|\le \frac M2\sum_i c_i\|q_i-t\|^2,
+\]
+但输入是 HEALPix **叶面积平均值** 时尚有 cell averaging/source PSF/球面曲率与 WCS 的模型误差，不能把本式用作整个 Stage3 physical brightness error certificate。针对不规则点集的真实影响需真实几何采样与有真值的 forward scene 实验。
+
+同一个输入 leaf 在候选角重复时，对随机变量的权要先按完整 leaf ID 聚合：`a_j=\sum_{k:id(k)=j}c_k`，再在**不同叶独立**条件下得到 `Var(\widehat B)=\sum_j a_j^2V_j`；一般含跨叶相关时为 `a^TCa`。当前 `p3_uncertainty_propagate` 已包含重复叶聚合，不应沿用 #88 旧行号把现版误判为未修。纯数学对照见 [graph_and_affine_oracles.py](../../../实验/innovation-closure/code/graph_and_affine_oracles.py)；真实 Stage3 full-sky 几何和 E2 尚待 #90/#88 分别验证。
+
 ## 4. 面积交叠核与相关性
 
 面积交叠核使用真实球面边界。精确的 HEALPix 叶边界一般不是四条大圆弧，所用球面多边形/切平面近似必须登记与真实曲边的独立误差。输出 FOV 边缘像元与输入 tile 面缝需有专门测试；仅依靠“每个权重正且和为 1”无法发现整体 WCS 手性错误。
