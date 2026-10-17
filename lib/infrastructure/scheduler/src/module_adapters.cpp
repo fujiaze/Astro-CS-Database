@@ -12598,7 +12598,8 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                       std::to_string(grc);
         return;
       }
-      uint8_t acc = 1;
+      // 没有候选样本的像元不可标为已接受：accepted 与逐样本 mask 一致 (#84)。
+      uint8_t acc = eligible_count > 0 ? 1 : 0;
       uint16_t nrej = 0;
       const uint16_t cand = static_cast<uint16_t>(eligible_count);
       // 门 = **逐像素 plan** 的同式判定（几何 n 解析, 资格数判门）
