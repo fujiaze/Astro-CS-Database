@@ -661,3 +661,92 @@ persist obs_filter/response_distribution/uncertainty_state/model+input hashes/ph
 `AstroSphereTileView` 的 `parent_ipix=tile_ipix`、`leaf_order=target_order+9`、`width=512`、`data_type=AIO_HIPS_FLOAT32`、`flux_sum/covered_area`、`valid_mask=nullptr` 是实际传入 AIO 的端口；`covered_area` 是 **signal归一分母**，不是可选的 support 子产品。AIO 输出 `signal=flux_sum/covered_area`，无覆盖 NaN；生产唯一 `AIO_HIPS_PRODUCT_SIGNAL`，`p2_final.products=["signal"]`，不输出 support/variance/ivar 三张附加科学面。`uncertainty_available` 是运行统计事实，不触发附加 HiPS 层。tile 变换可按 Runtime worker 预算并行，AIO 的 shared scratch、祖先合并与 cfitsio 句柄按 tile 升序单线程写；错误 abort/丢弃 staging，不能把有 tile 的临时目录当完整发布。每 tile 至少同时持 `2×262144×4` 字节 float reorder，uncertainty 路径再加 1 面、输入 double tile 和 AIO scratch；当前预分配 **T 个 tile**，空间上界是 `O(T×512²)`，不同于旧 `stage2.cpp` 的 chunk 内存声明。原文工具旧 rc、ACR fallback、variance 子产品方案不是今日生产操作规格。
 
 `p2_final.json` 必须保留 `obs_filter`、排序后 `response_distribution`、`weight_basis/uncertainty_available/unavailable_reason`、`phase2_audit`、`ACSD_INPUT_MANIFEST_HASH/ACSD_MODEL_HASH/ACSD_REJECT_PROFILE`，与 final signal 的 geometry/BUNIT/manifest 同一版本。旧滤镜全等限制和首帧滤镜偷代全图皆退役；`mixed:m_passbands` 的 m 是不同标签**种类数**而非帧数，空标签不等于缺少属性键。#11 真实 label-only 已证明当时 12/12 CLI 和 185/185 signal DATA 不变，不能外推为物理有效响应闭合。Writer→Export 当前缺 response identity (#79)，唯一修复入口见[Export D5](../export/modules.md)，本 D5 不修改实现。
+
+
+## D6｜Sampler + Rejection 可直接实施的 ABI、生命周期与生产交接
+
+本章节与 [Sampler 算法](../../science/algorithms/mosaic/PHASE2_SAMPLER.md) 和 [Rejection 算法](../../science/algorithms/mosaic/PHASE2_REJECTION.md) 一体，完整保留原 63eccbb6 的两篇长卷 API 目的，但以 **当前 main sampler.h/rejection.h + module_adapters.cpp** 为函数声明与调用真源。CURRENT 是库已经实现，USED 是当前 CLI 实际调用，SCIENCE_TARGET 为尚未实现的科学/统计要求。
+
+### D6.1 Sampler 公开函数、实参及缓冲生命周期
+
+以下声明与现有头一致；忽略 P2_API 宏以便同时阅读导出接口（类型定义和 ABI 编译须引用对应头）。C 接口无任意分配归属转换：输入为调用期间的借用缓冲；容量查询先查所需大小，然后 caller 为 observation 和 control 各自分配**独立**数组；错误不可消费未完成数组。
+
+~~~cpp
+P2SamplerConfig p2_sampler_default_config(void);
+uint64_t p2_frame_id(const char* hips_path);
+double p2_stats_median(const double* vals, uint64_t n);
+double p2_stats_mad(const double* vals, uint64_t n, double* out_median);
+
+int p2_sample_controls(const P2CoverageResult* coverage,
+    const char* const* hips_paths, const P2SamplerConfig* cfg,
+    P2ControlObservation* out_obs, uint64_t out_capacity,
+    uint64_t* out_n_obs, uint64_t* out_n_controls,
+    P2SampleStats* out_stats, P2ControlNode* out_controls,
+    uint64_t ctrl_capacity, char* err, size_t err_size);
+
+int p2_sample_controls_cached(const P2CoverageResult* coverage,
+    const char* const* hips_paths, const uint64_t* frame_ids,
+    const P2SamplerConfig* cfg, P2ControlObservation* out_obs,
+    uint64_t out_capacity, uint64_t* out_n_obs, uint64_t* out_n_controls,
+    P2SampleStats* out_stats, P2ControlNode* out_controls,
+    uint64_t ctrl_capacity, char* err, size_t err_size);
+
+int p2_sample_controls_cached_with_halos(const P2CoverageResult* coverage,
+    const char* const* hips_paths, const uint64_t* frame_ids,
+    const P2SamplerConfig* cfg, const P2GaiaHaloCaps* halos,
+    P2ControlObservation* out_obs, uint64_t out_capacity,
+    uint64_t* out_n_obs, uint64_t* out_n_controls,
+    P2SampleStats* out_stats, P2ControlNode* out_controls,
+    uint64_t ctrl_capacity, char* err, size_t err_size);
+
+int p2_spatial_model_eval(const P2SpatialGridModel* model,
+    double ra_deg, double dec_deg, P2SpatialEval* out);
+int p2_spatial_model_summary(const P2SpatialGridModel* model,
+    P2SpatialSummary* out, char* err, size_t err_size);
+int p2_scalar_degrade_gate(const P2ScalarGateThresholds* th,
+    const P2ScalarSummaryInput* s, P2ScalarDegradeVerdict* out_verdict,
+    char* err, size_t err_size);
+~~~
+
+**POD/字段**：P2SamplerConfig 有 control_grid_per_tile、patch_radius_leaf、min_samples、snr_search_radius_deg，全部 background_patch_radius/clip_sigma/clip_iters/max_contamination/contamination_sigma/min_retained_fraction/tolerance/neighbor_radius/catalog_veto，control_k_corr，star_mask_snr_factor/radius_deg，cpu_workers，halo_mag_thresh/r8/a/r_min/r_max，seam_fallback_factor/r_max。当前库默认依次以 sampler.cpp::p2_sampler_default_config 为准：8、2、5、0.05；8、3、3、0.20、3、0.60、3、2、1；1.4；10、0.012；1；8、150、1.5、30、300；1.5、450。**生产最后总是由 node_thread_budget_of 改写 cpu_workers**。P2ControlNode 包含 control_id/tile_ipix/gx/gy/ra_deg/dec_deg/leaf_ipix；P2SampleStats 含 candidate/accepted_observations、各拒绝 reason、accepted/overlap_controls 等互斥状态。P2ControlObservation 的 value/uncertainty/control_variance/control_ivar 与 ivar 源不可混淆；P2SkySample 的单帧 clean 支持不同于需要 >=2 clean 的 overlap obs；二者都由该库同遍构造，供 sky-plane 的 model/own 同资格应用。
+
+**CURRENT adapter**：p2_op_sample 先检 coverage JSON→P2CoverageView，计算每帧稳定内容 id 和 input_manifest_hash，验证模型 config，Runtime worker 预算，使用 with_halos 的双调用 query/fill，写 p2_samples.json 与 sampler_config 全量字段。Gaia 查询和 simple/halo veto 在当前源码 **#if 0**，传空 P2GaiaHaloCaps；仍启用可配置 SNR catalogue veto。失败返回 ErrorDomain::DATA，上层不得将仅几何 nodes 的产物冒充 background-clean controls。p2_frame_id 用 properties/signal/support/SNR catalogue 内容的 SHA256 截64bit，返回0是失败哨兵，而不是编号0的真实帧。统计函数 p2_stats_median 全 NaN 返回0属于数值库兼容事实，**不能**据此形成“合法背景值0/有效控制方差”的 SCI 声明。空间网格模型和 scalar degrade gate 是另外的研究 C API；即使存在库符号，也不等于 P2 已消费 canonical frame_science v2（#13）。
+
+**SCIENCE_TARGET**：零 MAD、非高斯或高度相关 patch 须记 precision unavailable，禁止 sampler.cpp 当前使用 1e−12 作为“真实噪声精度”；k_corr 的 pixfrac 0.5/0.8/1.0、scale=300/600 arcsec/pixel 域内插值/域外默认1.4与真实小像素尺度的误差证书分开；采样值实际 L/sr，方差 (L/sr)^2，逆方差 (L/sr)^−2，随 P1 applied linear_unit 而变。#9、#17、#71 和 D5 sky-plane 的背景/PSF/低频保真由精度验证与 mask A/B 独立测试闭合，不改变参数或生产科学算法。
+
+### D6.2 Rejection 完整生产 API 与计数/状态机
+
+~~~cpp
+int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
+     P2RejectionPlan* out, char* err, size_t err_cap);
+int p2_reject_plan_resolve_n(uint32_t nominal_n,
+     const P2RejectionPlanRequest* req, P2RejectionPlan* out,
+     char* err, size_t err_cap);
+const char* p2_rejection_semantic_id(int method);
+uint32_t p2_rejection_percentile_band_min_n(void);
+int p2_rejection_applicability(int method, uint32_t nominal_n,
+                               char* warn_code, size_t warn_cap);
+int p2_eligibility_filter(const P2EligibilityInput* in,
+                          P2EligibilityOutput* out);
+int p2_collect_candidate_stack(const P2EligibilityGatherInput* in,
+                                P2EligibilityGatherOutput* out);
+int p2_reject_stack_ex(const P2CandidateStack* stack,
+                       const P2RejectionPlan* plan,
+                       P2RejectionDecision* out);
+int p2_large_scale_apply(uint8_t* low, uint8_t* high,
+                         int width, int height, int depth,
+                         const P2LargeScaleParams* params);
+int p2_reject_stack(const P2SampleStackView* in,
+                    P2RejectionResult* out); // compat: not used by p2_op_reject
+int p2_reject_classify(const P2RejectClassifyInput* in,
+                       const P2RejectClassifyConfig* cfg,
+                       P2RejectClassifyOutput* out); // library, not current CLI
+~~~
+
+**POD 有效位/所有权**：P2RejectionPlanRequest=(request,nominal_contributors,profile,underdetermined_n)，P2RejectionPlan 含 explicit method、minimum_n、normalization/normalization_floor、typed Sigma/Winsor/Average/LinearFit/ESD/Percentile/MedianSigma/Minmax/RCR/ExtremePrior、large_scale、nominal_n。P2EligibilityGatherInput 的 values/weight/valid/support/quality/frame_ids 是可空字段分别申明的借用缓冲；value_dtype=0(fp32)/1(fp64)，stride以**同类型元素**计，index=s×stride+pixel。P2EligibilityGatherOutput.values/weights/support/frame_ids/source_indices 存在时均由调用方按 count 分配；source_indices 保存 compact→原始 slot。P2CandidateStack 的 values 必须与 count 一致，frame_ids 可空（若要稳定 tie 就明确提供），prior_sigma/prior_sky 仅显式先验法消费；P2RejectionDecision.reasons 由 caller 按 count 分配，accepted_count/rejected_low/rejected_high/iterations/status 与库 rc 分开判。相同 frame 数不表示 n_eligible 相同。输入/输出空间在同步 kernel 调用期间持有，不跨运行异步引用。
+
+**CURRENT 真实生产**：P2 以 corrected frame-major FP64 构造候选，sample_mask 按 frame_slot 与 tile/pixel 锚定，几何 n 用原 P1 support>0 计；p2_reject_plan_resolve_n 决定每像素 profile，gather 当前把 weights/valid/support/quality/frame_ids 传 null，src_idx 回写至原始帧 slot；low/high 连通掩膜二次扩张和统计回算由 p2_large_scale_apply 完成。大尺度参数 adapter 默认 enabled=1/min_structure_pixels=8/radii=2/2，**不要从仅库默认 enabled=0 误推 CLI 不执行**。当前 AUTO 对几何 N<6 为 percentile 且有效 N≤3 underdetermined 全接受，N≥6 为 winsorized；其余显式方法仅库支持，AUTO=10 进入 kernel 为 INVALID_METHOD。四 reason 与八 stack status 的数值定义由 rejection.h 正本提供，rc=0/status INVALID_* 时必须由上层另外处理——当前 adapter 尚未核验 dec.status，已列为 SCIENCE_TARGET，不在本批修改代码。
+
+**资源复杂度**：每个 kernel 栈 n≤64 固定 scratch，其余堆 scratch；排序 O(nlogn)，重复 robust/ESD/RCR 的迭代成本与分支相关；生产内存另含每 union tile 的3个 512² 计数面和深度×512² sample_mask，以及 frame-major corrected/support tile、每 worker 独立 AIO 句柄。不能拿纯 kernel 的 O(n) 隐去全局内存压力。Runtime 预算 worker，按 tile 固定 offset 输出、升序首错和整数归约；取消/IO 错应停止发布有效 revision。
+
+**独立核验**：Sampler 针对负 MAD/零 MAD、Drizzle 相关、Gaia disabled vs activated mask A/B、扩展源、BUNIT native/applied (#9)、1-vs-N worker；Rejection 针对十方法 exact set、ESD NIST/RCR/Siril(次生)原始参考、非法 status rc0、n0..20、geom_n ≠ eligible_count、compact source_indices、PSF/轨迹 false positives、conditional coadd 方差/源真值和最终单 signal 的确定性。两模块的 D6 验证是设计，编译/真实 CLI/HST/Gaia/MC/Windows ABI 均 NOT_RUN。

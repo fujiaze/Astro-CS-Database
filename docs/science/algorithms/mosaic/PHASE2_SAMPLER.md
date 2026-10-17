@@ -47,24 +47,23 @@ y_ik/σ_ik/snr_ik/support_ik/quality_ik，产出 UPM 联合加性校准的
 | cell_side | tile 边长/G=64（kTileWidth=512） | leaf 像素 | sampler.cpp:78/:671 |
 | cell (t,gx,gy) | 控制点拓扑 = tile × 网格坐标 | — | sampler.cpp:812-821 |
 | leaf_ipix | cell 中心 leaf 像素（order+9） | 无量纲 | sampler.cpp:815-816 |
-| y_ik | 控制观测（patch 位置估计） | **面亮度 ADU·sr⁻¹**（与上游 Phase1 HiPS signal 层同标度；帧间标度差由 PHOTAPPL/PHOTSCAL 承载） | sampler.cpp:878-906/:909 |
-| σ_bg | patch 内样本的稳健尺度（MAD×1.482602218505602）；**量的是 patch 样本离散度**，含结构分量 | ADU·sr⁻¹（同 y_ik 标度） | sampler.cpp:882-906 |
+| y_ik | 控制观测（patch 位置估计） | **与实际 P1 signal 相同的已声明线性面亮度单位 L/sr**；#9 存在 BUNIT 未按光度 application 更新的生产缺口，详见 D6 复核 | sampler.cpp:878-906/:909 |
+| σ_bg | patch 内样本的稳健尺度（MAD×1.482602218505602）；**量的是 patch 样本离散度**，含结构分量 | L/sr；仅 native 且验证 BUNIT 为 ADU/sr 时可写 ADU/sr | sampler.cpp:882-906 |
 | k_corr | Drizzle 输出协方差导致的 control estimator 方差放大因子；定义域 **1 < k_corr**（无量纲） | 无量纲 | sampler.cpp:85/:915 |
 | N_retained | clipping 后保留样本数；域 [min_samples, (2·background_patch_radius+1)²]，默认 [5, 289] | 无量纲 | sampler.cpp:909 |
-| control_variance | 控制点估计统计方差 | (ADU·sr⁻¹)² | sampler.cpp:916 |
-| control_ivar | 1/control_variance | (ADU·sr⁻¹)⁻² | sampler.cpp:918 |
+| control_variance | 控制点估计统计方差 | (L/sr)²；同一实际信号单位的平方 | sampler.cpp:916 |
+| control_ivar | 1/control_variance | (L/sr)⁻²；仅当方差科学有效时 | sampler.cpp:918 |
 | snr_available | 局部星点存在性标志 | 0/1 | sampler.cpp:939/:1149 |
 | reason | 内部拒绝原因 0..5 | 无量纲 | sampler.cpp:684/:775-791/:1100-1119 |
 
-**单位约束（正向）**：value / uncertainty / σ_bg / y_ik = 面亮度 **ADU·sr⁻¹**；
-control_variance = **(ADU·sr⁻¹)²**；control_ivar = **(ADU·sr⁻¹)⁻²**；
+**单位约束（D6 实测源码语义）**：value / uncertainty / σ_bg / y_ik 的单位随输入真实 linear_unit 为 **L/sr**；control_variance 的单位为 **(L/sr)²**、control_ivar 为 **(L/sr)⁻²**。仅当 P1 数据确实属于 native ADU 且 BUNIT 与 application 身份一致时可特化为 ADU/sr；#9 的当前产品元数据不足以在所有应用后情形证明该前提。
 ra_deg / dec_deg = 度（J2000）；snr / support / quality_flags = 无量纲；
 连续数学定义见 §5，dtype/shape 唯一权威=`docs/detail/mosaic/modules.md`。
 
 **适用域与证据**（本条是上表的量纲依据，不是约定）：
 
 - 上游 Phase1 HiPS signal 层的量纲由写盘门冻结为面亮度族：合法 BUNIT 集 =
-  {`ADU/sr`, `ADU^2/sr^2`, `sr^2/ADU^2`}，裸 `ADU` 判红（rc=-2）——
+  （旧文列出的 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}` 为不同估计量单位，不能统一当作 signal BUNIT）；裸 `ADU` 不能冒充面亮度——
   `lib/infrastructure/aio/src/hiss_writer.cpp:338-365`（其依据注释 `:321-334`
   指向 `docs/science/unified/DATA_SEMANTICS.md` [U-1]「面亮度单位的推导」一节：全链
   signal 承载的物理量是面亮度；帧间标度由 PHOTAPPL/PHOTSCAL 承载，标度 ≠ 量纲类别）；
@@ -470,7 +469,7 @@ SHA 流 = 9 关键 properties（creator_did/obs_title/obs_filter/
 - p2_stats_mad：median 后 1.482602218505602×median(|x−med|)（:508-511），
   out_median 回传收敛 median；UPM 侧共享同一实现（sampler.h:109-110 导出声明；upm.h:43-48 冻结注释同源定义）。
 
-### 5.8 普通星简单掩膜（已废弃）
+### 5.8 普通星简单掩膜（当前生产禁用；函数/研究接口仍存在）
 
 **废弃声明（本节与 §5.9、§5.10 全体适用）**：星掩膜通道已停止使用——
 采样器侧 simple(6)/halo(7) 两个拒绝分支在代码中整段注释，只保留 catalog(5)；
@@ -508,7 +507,7 @@ rad = star_mask_radius_deg                          # 默认 0.012° = 43.2″
 叠加。暗端离群（坏列、暗斑、负向结构）不落本分支判别面，由上游
 坏帧与坏列掩膜承担（§5.5 bfrac 适用域同理）。
 
-### 5.9 Gaia 晕掩膜（星等定半径分支，已废弃）
+### 5.9 Gaia 晕掩膜（当前生产禁用；函数/研究接口仍存在）
 
 星等定半径分支处理普通掩膜罩不住的亮星散射晕。触发按 Gaia 星等
 绝对口径，半径按星等函数给出，与 SNR 相对阈值正交。默认阈值为
@@ -576,7 +575,7 @@ union 不可用时取各帧 footprint 并集，之外天区不发起查询；
 （默认 `mag_high=8.0`），阈值被显式改动时上沿随阈值同动、下沿保持 -1.5。
 阈值以上查出的星全部逐星按本节半径函数成帽，无最亮颗数限制。
 
-### 5.10 缝回退（回退放大与全量重跑语义，已废弃）
+### 5.10 缝回退（当前 CLI 不自动触发；半径函数/研究接口仍存在）
 
 缝回退是验收失败时的保守重算规则。回退将 §5.9 半径整体乘 1.5，
 并以回退上限封顶：
@@ -1001,3 +1000,72 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 - [3] Racine, R. 1996, The telescopic point-spread function, PASP 108, 699, DOI [10.1086/133788](https://doi.org/10.1086/133788)（§5.9 光环幂律翼方法证据）。
 - [4] Bazkiaei, A., et al. 2024, Bright Star Subtraction Pipeline for LSST: Phase one report, [arXiv:2408.04387](https://arxiv.org/abs/2408.04387)（§5.9 减法路线的互补选项对照，只读不复制）。
 - [5] Riello, M., De Angeli, F., Evans, D. W., et al. 2021, Gaia Early Data Release 3: Photometric content and validation, [arXiv:2012.01916](https://arxiv.org/abs/2012.01916)（§5.9 G 波段 Vega 星等零点 25.6874 与内部校准通量口径的依据）。
+
+
+## D6 正式科学勘误与当前生产合同（2026-10-17；CURRENT / SCIENCE_TARGET / RESEARCH_OPEN）
+
+**证据身份**：本卷在原 63eccbb6 的 1004 行 / 77933 UTF-8 字节、blob `c45afdeb67ae2a3dac4a810e18a04f239f5d8aa6` 上作逐主题保全，保留前述详细公式与实验但以本节更新的**当前函数语义、物理单位和能力状态**裁决旧源码行号/已废弃假设。对照 main `f0f28f5f28a1ef00a548b85031c85a07dd9bd9e6` 的 `sampler.cpp`（2009行）、`sampler.h`（324行）、`module_adapters.cpp::p2_op_sample`、D5 `sky_plane.cpp` / Writer / [Mosaic API](../../../detail/mosaic/modules.md)。**本 D6 未执行真实/合成科学测试**；旧文中的 MC 数字仍是旧实验报告的结果，不是本批重新产生。
+
+### D6.1 三种输入和三种不同精度
+
+| 对象 | 真实数据与量纲 | 有效性 |
+|---|---|---|
+| Phase1 逐帧 `signal` | 单位 \(L/{\rm sr}\)，\(L\) 为实际已施加光度标度后的 `linear_unit`；例如 native ADU 或带应用 ID 的 relative/model 通量 | 先验证 P1 当前 `BUNIT/scale_state/application_id` 一致性；[#9](https://github.com/fujiaze/Astro-CS-Database/issues/9) 已确认应用数值与固定 ADU/sr 头之间仍可能不一致。Sampler 原样读像元，**不重新进行物理定标** |
+| 天空背景 control \(\hat b_{kc}\) | 局部 patch 中位数，\(L/{\rm sr}\)；尺度 \(\hat\sigma_{\rm MAD}\) 同单位；\(V_{\hat b}\) 是 \((L/{\rm sr})^2\)，\(\mathrm{control\_ivar}\) 为其倒量纲 | 方差基于局部统计模型，是背景 control 自身的精度，**不等于**单像元 `ivar` 或参考恒星 \(I_F=(\mathrm{SNR}_{\rm ref}/F_{\rm ref})^2\) |
+| P2 sky-plane / Final Signal | 在单位可比较的相对天空 \(B_{\rm ref}\) 中拟合和扣 \(\delta_k\)，最终 signal \(L/{\rm sr}\) | 来自背景拟合的参数协方差和帧间相关性须另算；[#8](https://github.com/fujiaze/Astro-CS-Database/issues/8) 的 \(T=V_B/V_F\) 和 [#13](https://github.com/fujiaze/Astro-CS-Database/issues/13) 球面 canonical 读取，不由 sampler 的星点 SNR 邻域完成 |
+
+特别校正旧文“写盘合法 BUNIT 集”为 `ADU/sr`、`ADU^2/sr^2`、`sr^2/ADU^2` 的并列说法：后两项仅分别能描述**方差**和**逆方差**，绝不是 `signal` 的合法物理单位。旧 M42 的 `control_ivar` 数量级“与 upm.cpp 读数同量级”的论证受当次仪器转换支配，不是 #9 完整生产标定证书，也不能自行更改 P1 头。异通带可合并但响应与单位条件须如实声明，详 D5 Writer。
+
+### D6.2 几何、三遍真实步骤与控制样本产物
+
+`coverage union` 只决定固定的控制点**拓扑**，不是每帧该处科学可用的证明。当前 `G=control_grid_per_tile=8`、HiPS tile 512×512，cell 中心 \((g_x\,512/G+256/G,\ g_y\,512/G+256/G)\) 在 tile-local FITS↔NESTED 权威映射后生成全局 `leaf_ipix` 和球面 \((ra,dec)\)；叶阶为 `target_order+9`，`control_id=tile_index×G²+gy×G+gx`。不可按平面 \(x/y\) 直接推导极区/RA wrap 球面控制身份。
+
+现 `p2_sample_controls_cached_with_halos` 的同步执行分为：①预开 P1 signal/support/可选 ivar 与 star SNR catalogue，并逐帧确定 `frame_id` / kcorr；②每 `(cell,frame)` 取**同 tile**、中心 ±8 的默认 17×17 patch，将 `nested_local_to_fits_index` 后的 signal/support 同下标过滤 finite 与 `support>0`；③计算位置估计与单侧亮端剪裁、SNR catalogue veto；④同 tile 内的邻域 median 基线/tolerance 门及亮污染/保留比门；⑤为各 clean control 输出几何节点与两类观测：
+- `P2SkySample`：**单帧区也保留**，送真实 `sky_plane.build_joint`；合法 `variance>0` 的资格与后续 own/residual 全面同源（#78）。
+- `P2ControlObservation`：仅在 `nclean>=2` 的 overlap control 输出，保留 `control_variance/control_ivar` 与可选原始像元 `ivar`；它是重叠统计接口，不是最终 per-pixel flux 的定义。
+- `P2ControlNode`：所有 union control 的完整节点，包括无可用帧时的几何占位。结构和 `accepted_controls/overlap_controls` 不互相替代。
+
+**CURRENT**：adapter 在 `p2_op_sample` 已消费 `p2_coverage.json`，用内容稳定 `frame_id` 及 `input_manifest_hash`，读取配置并用 Runtime thread budget 覆写 `cpu_workers`，以一次 probe/一次 fill 调 `p2_sample_controls_cached_with_halos`，写 `p2_samples.json` 中每条 obs 的 `value/uncertainty/snr/ivar/control_variance/control_ivar/snr_available/support/quality_flags`、control topology 和 `sampler_config`。**库默认 `cpu_workers=1` 只代表串行参考，真实生产使用租约预算**；probe 的真实计数由输出指针提供，非零 rc 不可以猜是科学通过。
+
+### D6.3 Patch 位置估计、置信方差与“没有有效精度”的处理
+
+令 \(J\) 是有效 finite 信号和 support 正值的像元集合，令 \(n_0=|J|\)。局部中位数 \(m_0=\mathrm{med}(x_j)\)，稳健尺度
+\[
+ s_0=c_{\rm MAD}\,\mathrm{med}(|x_j-m_0|),\qquad c_{\rm MAD}=1/\Phi^{-1}(3/4)=1.482602218505602.
+\]
+当前源码执行 **最多 3 轮单侧亮端**裁剪 \(\{x\le m_t+3s_t\}\)，候选留存不足 `min_samples` 则停止；迭代改变 median、MAD 和 retained 样本数。定义污染比例时是在**未裁剪的有效 patch**上计 \(x>m_{\rm final}+3\sigma_{\rm used}\)，不是将裁剪后的亮端比例冒充污染真值。邻域 tolerance、`max_contamination=.20`、`min_retained_fraction=.60` 的门继续在采样器自己的 cell 审查阶段执行；不能把 `p2_sky_patch_estimate` 的 5个纯函数 status 宣称为此完整三遍工作流的返回码，二者只共享位置/尺度主公式。
+
+对于 iid 高斯且局部无真实结构的一致位置估计，\(\operatorname{Var}(\mathrm{median})\sim [4n f(m)^2]^{-1}=(\pi/2)\sigma^2/n\)。现库使用
+\[
+ V^{\rm impl}_{kc}=k_{\rm corr}(\mathrm{pixfrac},\mathrm{scale})\,
+       \frac{\pi}{2}\,\frac{s_{\rm used}^2}{n_{\rm retained}},
+ \qquad I^{\rm impl}_{kc}=1/V^{\rm impl}_{kc}.
+\]
+这里 \(n_{\rm retained}\) 不是有效独立样本数，\(s_{\rm used}\) 包括可能的真实空间亮度梯度和污染；公式的可辩护域必须同时具备“近似高斯/非结构污染主导、受控 clipping、可测局部 covariance、正确实际标度、有效样本数量充分”。在相关场可用一阶线性化中位数影响函数 \(\psi_j=\frac12-\mathbf1(x_j\le m)\) 表示
+\[
+ V_{\hat m}\simeq\frac{1}{n^2 f(m)^2}\sum_{j,\ell}
+             \mathrm{Cov}(\psi_j,\psi_\ell),\quad
+ N_{\rm eff}:= \frac{n}{k_{\rm corr}},
+\]
+其中 \(N_{\rm eff}=n/k_{\rm corr}\) 只在采用等价 iid-Gauss 相同估计量近似时是有意义的“有效样本数”；不能在非均匀方差/非高斯/数据驱动裁剪后无条件这样解释。更一般地，必须由该 median+mask+Drizzle+selection **联合算子**的 MC/重采样给经验方差与偏差区间。
+
+**CURRENT 与科学差距**：`sampler.cpp::kcorr_lookup` 含 pixfrac `0.5/0.8/1.0` × 源尺度 `300/600 arcsec/pixel` 的经验矩阵、scale 域外返回 1.4；实际约 `0.96 arcsec/pixel` 的真实来源显著超域。源码的 pixfrac 在域内被 `clamp(0.5,1.0)`，亦不应描述成“pixfrac 双维全域外回退”。`kControlCorrDefault=1.4` 的依据为固定 pixfrac=0.8 实验中 `k≈1.3883` 的局部读数，但**不能作为所有仪器/Drizzle kernel/pixfrac/尺度/像元相关性下的通用误差证书**。落地 #71 的单独研究要在真实 P1 应用条件上估计 \(k\) 与置信区间、域内外状态、同数据裁剪效应，不能以默认值表示科学 `VALID`。
+
+更严重地，当前 `sampler.cpp` 在 `s_0<=0` 时将其置为 `1e-12` 参与 cvar/ivar，且未从代码层一律剔除该候选。**这不是有来源的传感器读出噪声地板**：零 MAD 可能是量化、平台、过剪裁或真实常值。**SCIENCE_TARGET** 必须以 `variance_unavailable/zero_scale` 等具名资格、`control_ivar=0` 和 sky-plane 禁止用无效控制为硬证据，而不是在文档中宣称生产已经这样实现；不修改本批 C++。应以负例注入 `MAD=0` 的非恒定像素平台，断言模型不会获得伪高权且不改变无关控制的解。
+
+### D6.4 Gaia、亮星晕、星云/暗云延伸结构与污染误差
+
+**CURRENT 生产路径不是“全掩膜已启用”**：在 `module_adapters.cpp::p2_op_sample` 中 Gaia cone-query/去重被 `#if 0` 禁用，`halo_src="disabled-halo-falsified"`、无查询星；`sampler.cpp` 中普通 simple 8邻域强亮连通 veto 与 `gaia_halo_hit` 同被 `#if 0` 禁用。SNR catalogue 定半径 veto **仍启用**（满足 `background_catalog_veto` 和已读取 SNR 目录），消费实际 `star_mask_snr_factor/radius_deg`。头中的 `P2GaiaHaloCaps`、星等半径和 `seam_fallback` 函数只是仍存在的**库能力**，不是当前 CLI 做过 Gaia 查询或 seam 验收触发扩大重算的证据。旧文若将普通/halo 全部标“已废弃”，也应更精确地区分**编译禁用分支与头文件实际可用符号**。
+
+**SCIENCE_TARGET** 不自动重启已被真实证伪停用的掩膜；先分别对照有/无 SNR catalogue、Gaia bright halo、简单阈值、源结构保护：星点及宽翼/ghost、有真实扩展源的星云/暗云梯度、短时 seeing 分布和低频光照不均；报告 \(P(\mathrm{veto}\mid \mathrm{true\ extended\ source})\)、控制点支持域、sky-plane 的独立低频功率损失。绝不可仅因高 SNR、亮端污染大或 sky-plane seam RMS 下降，认定某 patch 就是可扣的空气辉光。对扩展源可设置结构/物理证据质量标记，并保持真实源亮度作为 signal 而不吸收到 \(\delta_k\)。无 SNR Catalogue = provenance unavailable，不等于“安全无星”；Gaia 查询禁用是主动状态，不等于查询成功零颗星。
+
+### D6.5 生产中间数据、复杂度、失败和 Oracle
+
+按确定性 union tile、control、frame 次序，分别记录 `n_geometry_controls=n_union*G²`，`n_clean_sky`，`n_overlap_observations`，`rejected_reason` 的**互斥实际计数**；#17 应核对观察 `reason`、统计补偿、accepted 与 under-two 的计数守恒。当前 #DISP-P2SMP-002 的 pass3 双计数已见源代码注释修补，不能沿用旧断言称它仍然重复计数，也不能假定其它统计项已通过真实完整 E2E。
+
+复杂度：\(C=n_{\rm union}G^2\) 个控制，每帧潜在 \((2r+1)^2\) 个 patch leaf，采样基本 \(O(C F r^2)\)，median/MAD/clip 排序可到 \(O(CF\,I\,r^2\log(r^2))\)，SNR spatial index 查询另计；CPU worker 按 Runtime 预算，AIO handles 每 worker 独立，排序归约按稳定帧索引恢复确定性。内存至少有 \(O(CF)\) 的 candidate/Stats、tile 数据和每 worker \(O(r^2)\) 临时 patch，**不只有已接受控制数**；frame_id 的全 payload SHA 读取另具 \(O(\mathrm{bytes\ of\ HiPS})\) I/O 成本，不能把调用两遍视为免成本。取消/临时失败必须传播，不发布半个 `p2_samples.json` 为完成 science input。
+
+独立 oracle：恒定 patch 与量化平台 MAD=0、带正负梯度的星云、亮星宽 halo、强波段颜色差、不同 pixfrac/scale 域内外 kcorr lookup、非高斯 shot noise、Drizzle 实际相关系数和 bootstrap variance、cross-face / 极区 512 tile leaf/FITS 序映射、单帧区 `sky_samples` vs overlap `observations`、非法 variance 不污染 own（#78）、按 bytes 相同的 frame_id、relabel 不变、1 worker vs N workers bitwise 对照。**数值误差 oracle**：median 解析值精确；同条件 iid Gaussian 方差在已声明 MC 置信区间内；真实相关样本只用测得 \(V_{\hat b}\) 而非在失配的默认 kcorr 下强制通过。P1 native/applied `L/sr`、方差平方和逆方差缩放另按 #9 真实链复跑。以上新增 D6 设计未经执行，`NOT_RUN`。
+
+**旧文保全说明**：前文 §5.1–5.11 的 F1–F9 真值、采样片段、k_gauss 实验、finite N 对照、Gaia 半径函数、错误/统计枚举、TEST-001 与参考文献继续作为原始研究与算法细则保留；源码 1544 行/旧 line anchor 等仅指当时版本，已被上述 `sampler.cpp` 2009行/实际函数名的当前合同取代，不可据老行号认定现在的生产条件。
+

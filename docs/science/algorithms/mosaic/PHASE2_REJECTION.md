@@ -633,9 +633,9 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
   WINSORIZED、16/20→LINEAR_FIT；非法 profile rc≠0）；
   V16ProfileGroupVsAdaptive（wbpp_current（wbpp_2_9_1 的别名）
   group 一次 vs acsd_adaptive tile depth）。容差=方法枚举精确。
-  **门面缺口（正向约束）**：现有门只覆盖**对照档**的 \`N<6 → percentile\`
-  下界；生产档 \`acsd_adaptive_pixel\` 的 \`1≤N≤3 → none\` 与 \`4≤N≤5 →
-  percentile\` 边界由 \`p2_rejection_percentile_band_min_n\` 查询值锁定，
+  **门面缺口（正向约束）**：现有门只覆盖**对照档**的 `N<6 → percentile`
+  下界；生产档 `acsd_adaptive_pixel` 的 `1≤N≤3 → none` 与 `4≤N≤5 →
+  percentile` 边界由 `p2_rejection_percentile_band_min_n` 查询值锁定，
   该值必须与路由表同源（改一处必须同时改另一处）。
 - **F3 small-N/状态穷尽门**（SCI [S-1]「参考文献与参考代码」一节）:
   V15SatelliteN2Underdetermined（n=2 全 UNDERDETERMINED、
@@ -773,7 +773,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
 - **输入**：每像素候选栈 `values[]`、`weights[]`、`support[]`、`accepted[]`、`frame_id[]`，打包在 `P2EligibilityGatherInput`（`lib/algorithms/coverage/include/astro/phase2/rejection.h`）。布局为**帧主序**：`value_stride = support_stride = chunk_pixels`，元素寻址 `gidx = s·stride + pixel`，`s` 为帧槽序号、`pixel` 为该子域像素序号；kernel 与 ACR 共享同一布局。
 - **规划层**：`p2_reject_plan_resolve` 以 `n`（该输出像素的 nominal contributors，一次解析）路由到 method，request 与 plan 两处结构同源；同一 `n` 的 method 解析结果唯一（§5 F1）。
-- **布局单位**：`values` = 面亮度 ADU·sr⁻¹；`weights` = (ADU·sr⁻¹)⁻²；`support` 无量纲 [0,1]；`frame_id` 无量纲 u64。单位权威 = `docs/science/integration/REJECTION.md` [S-1]「判据与误差」一节 与 `docs/detail/mosaic/modules.md` 的单位/dtype 面。
+- **布局单位（D6）**：`values` = 当前实际光度应用后的面亮度 L/sr（#9 BUNIT 仍待修）；`weights` 在与同一被估量正确配对时才为 (L/sr)⁻²；`support` 无量纲 [0,1]；`frame_id` 无量纲 u64。单位权威 = `docs/science/integration/REJECTION.md` [S-1]「判据与误差」一节 与 `docs/detail/mosaic/modules.md` 的单位/dtype 面。
 - **输出**：reject plan（method + 阈值）、per-sample reason（`P2_REASON_*`）、stack status（`P2_STATUS_*`）。large_scale 结构按两种形态给出——**trail 生长**（被拒掩膜的连通分量达标后作 Chebyshev 半径扩张）与 **compact 不生长**（cosmic 形态，分量不达标时原样保留）。
 - **内存**：候选栈占用 O(n)；逐像素拒绝就地完成；无整帧副本。
 
@@ -792,7 +792,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 
   低侧阈高于高侧阈 ⇒ **高侧更敏感**，正离群先被剔。冻结值不随数据分布调整。
 - **数值精度**：kernel 工作域全链路 FP64；归一化取 `acsd_median_center_v1`（默认）；ESD 与 RCR 的判定经 NIST 独立实现对照。
-- **ESD 标准差取单次 `sqrt`**；非有限 `values`/`weights` 一律判 `INVALID_INPUT`，该状态码即最终读法。
+- **ESD 标准差取单次 `sqrt`**；非有限 values/weights 的库科学状态为 INVALID_INPUT；其 API rc 仍可能为0，调用方必须另外处理 status，当前 adapter 尚无此明确检查（见 D6）。
 - **归约确定性**：按固定顺序归约；`n ≤ underdetermined_n` 判全接受且 `recall = 0`（不做伪剔除）。
 - **阈值不变量**：同一 `n` 的 `plan.resolve` 输出 method 唯一；非有限 `weights`/`support` 判 `INVALID_INPUT` 硬失败。
 - **公式到实现的映射**：候选栈收集（gather）由 Stage2 与 ACR 共享；`linear_fit` 与 ESD 方法核同处一实现文件；ESD 判定经 `rejection_oracle_compare` 与 NIST 对照；计划路由由 `p2_reject_plan_resolve` 承担并由 synthetic gate 锁定。
@@ -836,3 +836,58 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :2163-2177
 - 该组数字只作**对照档行为证据**登记，不改变 §5 四档路由与阈值表；复跑入口 = `lib/algorithms/coverage/tools/controlled_rejection_truth.py`（受控真值）与 `lib/algorithms/coverage/tools/rejection_oracle_compare.py`（Siril 1.4.3 harness 逐位对照，**次生参考实现对拍**）。
 - **真实数据判据（M42 沿线，口径与分母显式）**：显著点以「卫星帧留一稳健 z>5」判定，分母口径 = 全域显著点；漏检率与检出率按分档（`n ≥ 16`、`n = 6..15`）分别统计。读数正本 = 实验/m42-realdata/。权威口径见 `docs/science/integration/REJECTION.md` [S-1]「判据与误差」一节；复现入口 = 生产 kernel 与受控真值脚本 `lib/algorithms/coverage/tools/controlled_rejection_truth.py`。
 
+
+## D6：真实生产与后选择误差的科学/接口重构（2026-10-17）
+
+本卷完整保留基线 63eccbb6 的原始839行/64329 UTF-8字节/原 Git blob daae10b08edf33765afea8f724318f08195e330d 中 F1–F14 公式、算法阈值、TEST、ABI、参考文献。审查当前 main f0f28f5f28a1ef00a548b85031c85a07dd9bd9e6 的 rejection.cpp（3065行）、rejection.h（605行）、module_adapters.cpp::p2_op_reject/p2_op_integrate 与 D5 Writer；旧绝对行号和“接口存在=生产执行”不再作为事实。术语分为 **CURRENT 实际调用**、**SCIENCE_TARGET 正确边界**与 **RESEARCH_OPEN 尚待独立验证**。
+
+### D6.1 十种显式算法，不包括 AUTO 与 NONE
+
+| 方法及枚举 | 当前定义、阈值、迭代与关键异常 |
+|---|---|
+| SIGMA=1 | robust_mad_clip: median 中心、1.482602218505602×MAD 近高斯尺度，低4σ、高3σ，最多8轮；零 MAD 与小样本处理须独立校验 |
+| WINSORIZED_SIGMA=2 | 对两尾作 winsorization 后迭代中心/尺度，低4、高3、外循环8次；旧实现内层最多64次、5e-4×σ 稳定阈值，不能与普通 sigma 混称 |
+| AVERAGED_SIGMA=3 | mean/std，低4、高3、最多8轮；显式承认对污染敏感 |
+| LINEAR_FIT=4 | 每轮按数值排序，秩 j 对值 y_j 拟合 a+bj，尺度为 mean absolute residual；低5、高3、最多8轮，保留约束至少4个；必须把排序结果映回原 frame slot |
+| GENERALIZED_ESD=5 | 迭代计算 R_i=max(abs(y−mean_i))/s_i，s_i=sqrt(sum residual²/(n_i−1)) **单次 sqrt**；t-quantile 临界 λ_i、α=.05，最多10个；最终选择满足 R_i>λ_i 的最大 k，回看前k个 removed，稳定 frame_id 打破1e-15 tie |
+| RCR=6 | Robust Chauvenet 3段 Median+DoubleLine→Median+68th→Mean+StdDev；要求 normalization NONE，含加权/未加权分支和小样本修正；独立出处 Maples 2018/RCR2.4.7，原文件相关源码证明不是当前新实验 |
+| PERCENTILE=7 | 中心 m=median，u=x−m，低拒 u<−.2abs(m)，高拒 u>+.1abs(m)，只一次；m=0时区间退化为0，不采用 Siril median=0 跳过行为，低天空值真值是高优先级负例 |
+| MEDIAN_SIGMA=8 | median 中心、standard deviation 尺度，低4、高3、最多8轮；不是 MAD 核 |
+| MINMAX=9 | 按排序一次取最低1/最高1，min_kept=4；当前同值 comparator 的帧身份稳定性待独立证明 |
+| EXTREME_VALUE_PRIOR_SIGMA=11 | 外部 prior_sky/prior_sigma>0，z=(x−prior)/sigma 与 Φ_inverse(1−.05/(2N_nominal)) 双侧门比较；显式 opt-in、normalization NONE，缺独立先验则 UNDERDETERMINED 不做伪剔除 |
+
+NONE=0 是全不剔除参考臂；AUTO=10 只属于 planning，绝不可传给 p2_reject_stack_ex 作为方法；large_scale_apply 和 reject_classify 是后处理/分类工具，不另算 sigma 方法。原 F1–F14 的精确迭代、RCR DoubleLine、NIST Rosner 临界、Siril harness、独立测试、文献和所有符号继续作为正文细节保留，不靠历史 SOURCE。
+
+### D6.2 真实 adapter 调用和资格映射
+
+CURRENT 生产从 p2_corrected.json 的 frames/tiles 建 union tiles，读取逐帧原始 P1 support；对每个最终像元 **geom_n=#帧的 finite且support>0**，经 p2_reject_plan_resolve_n(profile=acsd_adaptive_pixel,request=AUTO,nominal_n=geom_n) 在缓存中查本地计划。当前 AUTO 对 N<6 选择 percentile，N≥6 选择 winsorized_sigma；由于默认 underdetermined_n=3，几何 N≤3 的真实结果是不排异、保留合法候选，而不是“NONE 进入 kernel”。其它显式核虽可通过库 API 使用，当前 CLI AUTO 并没有调用它们；旧 wbpp_2_9_1 对照档 N>15 选择 linear_fit，并非现在生产默认。
+
+随后将 corrected FP64 frame-major values 与 stride=512² 交给 p2_collect_candidate_stack，**真实入参 weights/valid/support/quality/frame_ids 都是 nullptr**；此阶段仅通过数值 finite 资格（另一个几何计数使用 support），不得把公共 gather 可支持的五类检查误说成当前全部启用。`P2EligibilityGatherOutput.source_indices`（eligible_index→原始 frame_slot）是紧凑 reason 回写的唯一依据；不能将 compact 索引直接写 per-frame sample_mask。若 eligible_count 低于方法可判定数或 underdetermined 上限，所有合格有限样本保留，但记“未作可靠判定”，而不是“噪声被检查且通过”。
+
+当前 p2_op_reject **真正调用 p2_large_scale_apply**，以每 tile、每原始帧分别构造 low/high mask；adapter 默认 large_scale.enabled=1（与库默认 enabled=0 有区别）、min_structure_pixels=8、low/high grow radius=2/2；对长连通组件扩大拒集且只增不减，重新汇总 per-pixel accepted/nrej 和 sample_mask。该步骤在 tile 内扩张，长卫星线跨 tile 边界和缓动真实天体是未闭合对照。公开 p2_reject_classify 的移动源/PSF 分类**当前并未由此 adapter 调用**，不能称已具完备源保护。生产按 Runtime 预算 tile 并行、worker 独立 AIO support 句柄、固定 tile 序归约整数计数/首错误，之后 p2_op_integrate 使用 frame slot 的 sample_mask；D5 Writer 最终只发布一个 Signal HiPS。
+
+### D6.3 四种 reason、八种 status 与调用方未读状态
+
+reason=ACCEPTED(0),REJECTED_LOW(1),REJECTED_HIGH(2),UNDERDETERMINED(3)；低/高指相对两侧阈值，不由像素正负号决定。stack status=OK(0),MIN_SAMPLES(1),ALL_REJECTED(2),INVALID_INPUT(3),UNDERDETERMINED(4),INVALID_CONFIGURATION(5),INVALID_METHOD(6),INTERNAL_ERROR(7)。N=0 返回 MIN_SAMPLES，不存在第九个 NO_CANDIDATES（它属于 Integration）。N≤underdetermined_n、小于方法 minimum_n 或缺 extreme prior 时以 UNDERDETERMINED 保护合格样本，不能将它当正常完成拒绝。非有限值/权重、NaN 阈值、非法 normalization/AUTO 误入应使用具名错误科学状态。
+
+**CURRENT 代码缺口**：p2_reject_stack_ex 的 rc=0 只表示函数成功交付一个 decision，INVALID_INPUT/INVALID_CONFIGURATION/INVALID_METHOD 可返回 **rc=0,status=INVALID_*,reason=UNDERDETERMINED**。p2_op_reject 当前只检查 rc、逐项按 reason 回写，未显式检视 dec.status；当前 AUTO 默认配置有效且 gather 有 finite 过滤，**未证实正在触发非法状态**，但引入手工 plan 或资格失败时可能误把错误当作接受。SCIENCE_TARGET 是调用者对 status ∈ {OK,UNDERDETERMINED} 和 INVALID_* 分别履行拒绝/审计，并对错误 plan 做真实 E2E 注入；D6 仅登记，不改生产代码。
+
+### D6.4 后选择统计、相关方差和天体结构
+
+给原始 B 估计 x_k=B+epsilon_k，排异接受集 A_k=A_k(x) 由本次数据本身决定。归约值为
+\[
+\hat B=\frac{\sum_k A_k w_k x_k}{\sum_k A_k w_k},\quad
+E[\hat B-B]=E\left[\frac{\sum_k A_k w_k\epsilon_k}{\sum_k A_k w_k}\right].
+\]
+不能把无条件 E[epsilon_k]=0 直接推出右侧为零，因为 A_k 和 epsilon_k 相关，且生产高侧3σ低侧4σ不对称。固定已选择集合和权重时
+\[
+Var(\hat B\mid A,w)=\sum_{k,l}a_k\,Cov(x_k,x_l\mid A,w)\,a_l,\quad
+a_k=A_kw_k/\sum_j A_jw_j.
+\]
+跨帧共同模板/同数据 sky-plane 拟合/Drizzle/数据驱动生长会产生相关项；无条件总方差还含 Var(E[hat B|A])，不能以 n_kept、1/Σw、较小 reject ratio 或更平滑缝直接证明 SNR/科学保真提高。源保护真值至少包含长卫星线与真实移动源区分、宇宙线小连通块、PSF 宽翼、低频星云、不同通带、负背景和接近零 median 的恒等样本。
+
+### D6.5 API、资源与独立数值验证
+
+原有 P2RejectionPlanRequest/Plan、P2EligibilityGatherInput/Output、P2CandidateStack、P2RejectionDecision、P2LargeScaleParams、分类参数、10种 typed 参数仍为完整规范；实际 C 函数参数/所有权见[模块细则](../../../detail/mosaic/modules.md)。kernel <=64 候选走固定 scratch，>64 堆 scratch；线性/排序/迭代方法的基本开销 O(n) 或 O(nlogn)，多轮排序和 RCR 需再乘迭代数或按源码分支实际 profile，不能全部宣称严格一次 O(nlogn)。生产完整内存要另加 union tile ×512² 的 accepted/nrej/candidates，和按 tile 各帧深度复制的 sample_mask/support/读缓冲，容量随真实深度增加。线程靠 Runtime 租约，取消/磁盘错误必须由上层阻止 partial product 进入最终完成态。
+
+独立 oracle：NIST Rosner 54值和 ESD 单 sqrt/回看k；Siril 1.4.3 winsor/linear harness（**次生对照实现**）、Maples 2018 RCR 加权/未加权3段；方法1/2/3/8在非高斯/离群下确实不同、percentile median=0、minmax等值 tie，十种显式方法的 n=0/1/2/3/4/5/6/15/16/20、NaN/Inf/坏阈值/非法 plan；strided gather/source_indices、低/高的 reason、large_scale tile seam、同输入 1 vs N worker mask bitwise、输出信号误拒/召回/星点通量/扩展源低频功率/噪声方差。与 #20/#21 的统计与 PSF 保护一同分析；旧 NIST、Siril 8000 样本、M42 FPR 数据只是原实验证据，不冒充 D6 新运行。**科学真值、真实 CLI、MC、ABI 本批全部 NOT_RUN**。

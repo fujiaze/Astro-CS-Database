@@ -226,3 +226,10 @@ Mosaic 最终仅发布 signal HiPS；本节方差用于内部估计与评价，�
 [4] Zackay, B., Ofek, E. O. How to Coadd Images? I. Optimal Source Detection and Photometry Using Ensembles of Images. ApJ, 836, 187. [原文](https://arxiv.org/pdf/1512.06872)。
 
 [5] Fruchter, A. S., Hook, R. N. Drizzle: A Method for the Linear Reconstruction of Undersampled Images. PASP, 114, 144–152. [原文](https://arxiv.org/html/astro-ph/9808087v2)，相关噪声见第7节。
+
+
+## D6：背景控制与排异的真实实现差距
+
+[Sampler 正式算法](../algorithms/mosaic/PHASE2_SAMPLER.md)已独立定义 median/MAD、单侧剪裁、相关样本有效数和 Drizzle k_corr 的条件适用域。P2 control_variance 的被估计量是**patch 中位数**，单位随已施加 P1 linear_unit 为 (L/sr)^2，不能因该帧标为 ADU/sr 就忽略 #9 的光度应用后 BUNIT 错配，也不能把 #8 的参考点源 Fisher 或实际像元 variance 填入这一字段。当前 Sampler 对 MAD=0 使用 1e−12 的数值地板，并把脱离 300/600 arcsec/pixel 标定域的 k_corr 回退为1.4；这些是**实现事实而非误差证书**，科学闭合要求对应被估计量的独立 MC、相关场 Bootstrap 和单位/资格有效性检验，#17/#71 仍 OPEN。
+
+[Rejection 详细算法](../algorithms/mosaic/PHASE2_REJECTION.md)已明确实际逐像素几何N路由、十显式核及其状态、真实 production large_scale、per-sample source index 和后选择真值。数据驱动选择不能把一个未条件化的 1/Σw 当真实覆盖区间的方差；当前 status 消费与真实 E2E 科学验证尚未闭合。两篇均未更改科学算法/参数。
