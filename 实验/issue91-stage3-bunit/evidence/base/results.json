@@ -1,0 +1,754 @@
+{
+  "tag": "base",
+  "acsd": "/tmp/acsd-issue91-base-build/acsd",
+  "acsd_sha256": "c39e8fd840ea16ac122a9ed5dd351468ec726d8a36efa5dafc2306b08c0d9082",
+  "n_cases": 22,
+  "n_fail": 11,
+  "results": [
+    {
+      "case": "legal_explicit",
+      "kind_expected": "ok",
+      "code_expected": null,
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/legal_explicit",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/legal_explicit.json",
+      "config_sha256": "83bd99821826dc63ec35fe529cc93c03e79c728d9674d3f883e2d123bf393cd9",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/legal_explicit.log",
+      "log_sha256": "60fe44cc9bfd234293edb2d10cebad6017ac912e6adcdd51d908d78fb265a260",
+      "exit_code": 0,
+      "fits_present": true,
+      "manifest": {
+        "file": "acsd_run_9de48e6646a0.json",
+        "status": "complete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": {
+        "bunit": "ADU/sr",
+        "bunit_input": "ADU/sr",
+        "pixel_semantics": "surface_brightness",
+        "pixel_area_power": -2
+      },
+      "emit_events": [],
+      "semantic_codes": [],
+      "fits": {
+        "header": {
+          "NAXIS1": 64,
+          "NAXIS2": 64,
+          "CTYPE1": "RA---TAN",
+          "CTYPE2": "DEC--TAN",
+          "CUNIT1": "deg",
+          "CUNIT2": "deg",
+          "CRPIX1": 32.5,
+          "CRPIX2": 32.5,
+          "CRVAL1": 10.0,
+          "CRVAL2": 0.0,
+          "CD1_1": -0.01,
+          "CD1_2": 0.0,
+          "CD2_1": 0.0,
+          "CD2_2": 0.01,
+          "BUNIT": "ADU/sr",
+          "BITPIX": -32
+        },
+        "shape": [
+          64,
+          64
+        ],
+        "finite_px": 4096,
+        "nan_px": 0,
+        "data_sha256": "a5953a3241011112d26443ab50922739b88218be7e70b84f1072870a74645de7",
+        "data_sum": 18502.302714824677
+      },
+      "verdict": "PASS"
+    },
+    {
+      "case": "legal_bare_adu_sb",
+      "kind_expected": "ok",
+      "code_expected": null,
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/legal_bare_adu_sb",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/legal_bare_adu_sb.json",
+      "config_sha256": "c5200ffdc471a56a1b077183ad3feff3ee8e700cf5f38c3c712d0e14dd8df392",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/legal_bare_adu_sb.log",
+      "log_sha256": "969293d1969b72255ce33d556d60d190f8277ece76c354414293c2cd5eedf1fa",
+      "exit_code": 0,
+      "fits_present": true,
+      "manifest": {
+        "file": "acsd_run_9de4b551c293.json",
+        "status": "complete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": {
+        "bunit": "ADU/sr",
+        "bunit_input": "ADU",
+        "pixel_semantics": "surface_brightness",
+        "pixel_area_power": -2
+      },
+      "emit_events": [],
+      "semantic_codes": [],
+      "fits": {
+        "header": {
+          "NAXIS1": 64,
+          "NAXIS2": 64,
+          "CTYPE1": "RA---TAN",
+          "CTYPE2": "DEC--TAN",
+          "CUNIT1": "deg",
+          "CUNIT2": "deg",
+          "CRPIX1": 32.5,
+          "CRPIX2": 32.5,
+          "CRVAL1": 10.0,
+          "CRVAL2": 0.0,
+          "CD1_1": -0.01,
+          "CD1_2": 0.0,
+          "CD2_1": 0.0,
+          "CD2_2": 0.01,
+          "BUNIT": "ADU/sr",
+          "BITPIX": -32
+        },
+        "shape": [
+          64,
+          64
+        ],
+        "finite_px": 4096,
+        "nan_px": 0,
+        "data_sha256": "a5953a3241011112d26443ab50922739b88218be7e70b84f1072870a74645de7",
+        "data_sum": 18502.302714824677
+      },
+      "verdict": "PASS"
+    },
+    {
+      "case": "legal_sr_power_written",
+      "kind_expected": "ok",
+      "code_expected": null,
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/legal_sr_power_written",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/legal_sr_power_written.json",
+      "config_sha256": "76f12ac0da4c0c5f141bc8ffcd844f8e216f8b7ee05848bd645f8533f7d740a9",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/legal_sr_power_written.log",
+      "log_sha256": "785ce4c69404c4ccf7c6088c60a0d63b9bf3d23d6d5cba52ff6c876af2662af9",
+      "exit_code": 4,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de4dc5c959d.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-NOT-SURFACE-BRIGHTNESS"
+      ],
+      "verdict": "FAIL"
+    },
+    {
+      "case": "legacy_px2_alias",
+      "kind_expected": "r4",
+      "code_expected": "P3-INPUT-NOT-SURFACE-BRIGHTNESS",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/legacy_px2_alias",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/legacy_px2_alias.json",
+      "config_sha256": "b1fbd4db699b5fd6dbeada60cdb54a2adc40a38a8acdde243336871440bbcf1a",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/legacy_px2_alias.log",
+      "log_sha256": "88ba80fa1af400bf30e0541c38512ca03461b60caaf1e748e99bce64cb05b985",
+      "exit_code": 4,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de4fc6a61ba.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-NOT-SURFACE-BRIGHTNESS"
+      ],
+      "verdict": "PASS"
+    },
+    {
+      "case": "legacy_pixel2_alias",
+      "kind_expected": "r4",
+      "code_expected": "P3-INPUT-NOT-SURFACE-BRIGHTNESS",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/legacy_pixel2_alias",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/legacy_pixel2_alias.json",
+      "config_sha256": "095bd1690173487db55e4fcc01e2cfb787b741285c16331cebe01c057d1ada65",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/legacy_pixel2_alias.log",
+      "log_sha256": "4f0c57dda263e63aade526319e5d307c256e5c6b000a2c9e1ab4704b603b92e6",
+      "exit_code": 4,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de51b8cad0c.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-NOT-SURFACE-BRIGHTNESS"
+      ],
+      "verdict": "PASS"
+    },
+    {
+      "case": "legal_covered_all_faces",
+      "kind_expected": "ok",
+      "code_expected": null,
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/base_hips",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/legal_covered_all_faces.json",
+      "config_sha256": "439782690249ec8d4b18f92ac5a405e624bc4878b5754810b3de5e9c1d3001f8",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/legal_covered_all_faces.log",
+      "log_sha256": "68f8e1491f0c678defaa46c645bf4f0e41a6d995cdbc0f33afda7e04fe72b06d",
+      "exit_code": 0,
+      "fits_present": true,
+      "manifest": {
+        "file": "acsd_run_9de53bfdf844.json",
+        "status": "complete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": {
+        "bunit": "ADU/sr",
+        "bunit_input": "ADU/sr",
+        "pixel_semantics": "surface_brightness",
+        "pixel_area_power": -2
+      },
+      "emit_events": [],
+      "semantic_codes": [],
+      "fits": {
+        "header": {
+          "NAXIS1": 64,
+          "NAXIS2": 64,
+          "CTYPE1": "RA---TAN",
+          "CTYPE2": "DEC--TAN",
+          "CUNIT1": "deg",
+          "CUNIT2": "deg",
+          "CRPIX1": 32.5,
+          "CRPIX2": 32.5,
+          "CRVAL1": 10.0,
+          "CRVAL2": 0.0,
+          "CD1_1": -0.01,
+          "CD1_2": 0.0,
+          "CD2_1": 0.0,
+          "CD2_2": 0.01,
+          "BUNIT": "ADU/sr",
+          "BITPIX": -32
+        },
+        "shape": [
+          64,
+          64
+        ],
+        "finite_px": 4096,
+        "nan_px": 0,
+        "data_sha256": "a5953a3241011112d26443ab50922739b88218be7e70b84f1072870a74645de7",
+        "data_sum": 18502.302714824677
+      },
+      "verdict": "PASS"
+    },
+    {
+      "case": "legal_partial_coverage",
+      "kind_expected": "ok",
+      "code_expected": null,
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/partial_hips",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/legal_partial_coverage.json",
+      "config_sha256": "3f9ae96d1b7430679244a4251e01cb10f7d4dbe0ce0aab183319715282827eb6",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/legal_partial_coverage.log",
+      "log_sha256": "cf550cfc7caad41812c7993d6445148a313519ae08f5901a295482181409559a",
+      "exit_code": 0,
+      "fits_present": true,
+      "manifest": {
+        "file": "acsd_run_9de5632e6de1.json",
+        "status": "complete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": {
+        "bunit": "ADU/sr",
+        "bunit_input": "ADU/sr",
+        "pixel_semantics": "surface_brightness",
+        "pixel_area_power": -2
+      },
+      "emit_events": [],
+      "semantic_codes": [],
+      "fits": {
+        "header": {
+          "NAXIS1": 64,
+          "NAXIS2": 64,
+          "CTYPE1": "RA---TAN",
+          "CTYPE2": "DEC--TAN",
+          "CUNIT1": "deg",
+          "CUNIT2": "deg",
+          "CRPIX1": 32.5,
+          "CRPIX2": 32.5,
+          "CRVAL1": 45.0,
+          "CRVAL2": 0.0,
+          "CD1_1": -0.01,
+          "CD1_2": 0.0,
+          "CD2_1": 0.0,
+          "CD2_2": 0.01,
+          "BUNIT": "ADU/sr",
+          "BITPIX": -32
+        },
+        "shape": [
+          64,
+          64
+        ],
+        "finite_px": 292,
+        "nan_px": 3804,
+        "data_sha256": "83ba3218987dc948b389d277c044e28556479694616a7321d70ec8ca996d481b",
+        "data_sum": 1253.2011737823486
+      },
+      "verdict": "PASS"
+    },
+    {
+      "case": "missing_bunit",
+      "kind_expected": "r3",
+      "code_expected": "P3-INPUT-BUNIT-MISSING",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/missing_bunit",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/missing_bunit.json",
+      "config_sha256": "256c0cc5871e66f76c663a98f9ba056704e68f0adb443f9a721472e990e11b3b",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/missing_bunit.log",
+      "log_sha256": "9376950292f5860920c2496f9c39371541b99a26442d9810eca3dc80d962f3b8",
+      "exit_code": 3,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de589a1fcfa.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-BUNIT-MISSING"
+      ],
+      "verdict": "PASS"
+    },
+    {
+      "case": "missing_both",
+      "kind_expected": "r3",
+      "code_expected": "P3-INPUT-BUNIT-MISSING",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/missing_both",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/missing_both.json",
+      "config_sha256": "73286f5d129a28f85e2e24bb425cfc226314e276cfedfe9db847cd6071de1eba",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/missing_both.log",
+      "log_sha256": "62ec27111e42b2f430ed5347a2915a08a878cac66d97beae870023e4f640c14b",
+      "exit_code": 3,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de5a8e2295b.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-BUNIT-MISSING"
+      ],
+      "verdict": "PASS"
+    },
+    {
+      "case": "empty_bunit",
+      "kind_expected": "r3",
+      "code_expected": "P3-INPUT-BUNIT-EMPTY",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/empty_bunit",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/empty_bunit.json",
+      "config_sha256": "ed56282d59aa2f9625a4c3f271f2b27c80de7587ddb65908a27e10f54b4e9f54",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/empty_bunit.log",
+      "log_sha256": "0431f50b04f4b037c99ece42f7a4dd1f51c6790ff6ff3a52d10f0ba421fce37a",
+      "exit_code": 3,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de5c8a8e1bc.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-BUNIT-MISSING"
+      ],
+      "verdict": "FAIL"
+    },
+    {
+      "case": "dup_same",
+      "kind_expected": "r3",
+      "code_expected": "P3-INPUT-BUNIT-DUPLICATE",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/dup_same",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/dup_same.json",
+      "config_sha256": "3654d541b5071744943cdf573e286ea4fce95fd8ea080636d398515c291c6e8d",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/dup_same.log",
+      "log_sha256": "ae4ff91ede63bfadccb5f61098ef1c1cb45f758683f7326e3b6e35e2bc68f950",
+      "exit_code": 3,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de5e829afef.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-PROPERTIES-UNREADABLE"
+      ],
+      "verdict": "FAIL"
+    },
+    {
+      "case": "dup_diff",
+      "kind_expected": "r3",
+      "code_expected": "P3-INPUT-BUNIT-CONFLICT",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/dup_diff",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/dup_diff.json",
+      "config_sha256": "38645c5597b4b5dfc406ae5591bcf2ad48c52f79f85d1d97fa1e7d3a71d38ab8",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/dup_diff.log",
+      "log_sha256": "3bd89a83293ce7045562952c738a8b33e1a40bb81025204ed88d7b5669f5be1f",
+      "exit_code": 3,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de6080187d3.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-PROPERTIES-UNREADABLE"
+      ],
+      "verdict": "FAIL"
+    },
+    {
+      "case": "case_alias_dup",
+      "kind_expected": "r3",
+      "code_expected": "P3-INPUT-BUNIT-DUPLICATE",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/case_alias_dup",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/case_alias_dup.json",
+      "config_sha256": "d01fb7a71e1ee267d2bbf738198f871eba496e9c976b077fa2f930454847cc40",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/case_alias_dup.log",
+      "log_sha256": "d0e454ccde70054f049dd667aa115dc405c961c168885f7455bb7731ae954989",
+      "exit_code": 0,
+      "fits_present": true,
+      "manifest": {
+        "file": "acsd_run_9de62720c555.json",
+        "status": "complete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": {
+        "bunit": "ADU/sr",
+        "bunit_input": "ADU/sr",
+        "pixel_semantics": "surface_brightness",
+        "pixel_area_power": -2
+      },
+      "emit_events": [],
+      "semantic_codes": [],
+      "fits": {
+        "header": {
+          "NAXIS1": 64,
+          "NAXIS2": 64,
+          "CTYPE1": "RA---TAN",
+          "CTYPE2": "DEC--TAN",
+          "CUNIT1": "deg",
+          "CUNIT2": "deg",
+          "CRPIX1": 32.5,
+          "CRPIX2": 32.5,
+          "CRVAL1": 10.0,
+          "CRVAL2": 0.0,
+          "CD1_1": -0.01,
+          "CD1_2": 0.0,
+          "CD2_1": 0.0,
+          "CD2_2": 0.01,
+          "BUNIT": "ADU/sr",
+          "BITPIX": -32
+        },
+        "shape": [
+          64,
+          64
+        ],
+        "finite_px": 4096,
+        "nan_px": 0,
+        "data_sha256": "a5953a3241011112d26443ab50922739b88218be7e70b84f1072870a74645de7",
+        "data_sum": 18502.302714824677
+      },
+      "verdict": "FAIL"
+    },
+    {
+      "case": "alias_conflict",
+      "kind_expected": "r3",
+      "code_expected": "P3-INPUT-UNIT-DECLARATION-CONFLICT",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/alias_conflict",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/alias_conflict.json",
+      "config_sha256": "c03764a3e81b3e0a61c4cf90e0395944854a287a528978688f33e692e250d3c4",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/alias_conflict.log",
+      "log_sha256": "3439192cd02aa43fa32322ed3aaa1ab5fb94df71f20a9582cef15e682c64799e",
+      "exit_code": 0,
+      "fits_present": true,
+      "manifest": {
+        "file": "acsd_run_9de64ff5ccea.json",
+        "status": "complete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": {
+        "bunit": "ADU/sr",
+        "bunit_input": "ADU/sr",
+        "pixel_semantics": "surface_brightness",
+        "pixel_area_power": -2
+      },
+      "emit_events": [],
+      "semantic_codes": [],
+      "fits": {
+        "header": {
+          "NAXIS1": 64,
+          "NAXIS2": 64,
+          "CTYPE1": "RA---TAN",
+          "CTYPE2": "DEC--TAN",
+          "CUNIT1": "deg",
+          "CUNIT2": "deg",
+          "CRPIX1": 32.5,
+          "CRPIX2": 32.5,
+          "CRVAL1": 10.0,
+          "CRVAL2": 0.0,
+          "CD1_1": -0.01,
+          "CD1_2": 0.0,
+          "CD2_1": 0.0,
+          "CD2_2": 0.01,
+          "BUNIT": "ADU/sr",
+          "BITPIX": -32
+        },
+        "shape": [
+          64,
+          64
+        ],
+        "finite_px": 4096,
+        "nan_px": 0,
+        "data_sha256": "a5953a3241011112d26443ab50922739b88218be7e70b84f1072870a74645de7",
+        "data_sum": 18502.302714824677
+      },
+      "verdict": "FAIL"
+    },
+    {
+      "case": "illegal_format",
+      "kind_expected": "r3",
+      "code_expected": "P3-INPUT-BUNIT-UNPARSABLE",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/illegal_format",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/illegal_format.json",
+      "config_sha256": "47a99b162cec0762c6264c3c7ac460ba9c3ff83c6b124d84411c262a587b7c13",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/illegal_format.log",
+      "log_sha256": "4d653022062b02b631152cf16a996179db86eec3a5f753bec731cebd40cfd409",
+      "exit_code": 4,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de6767674d1.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-UNIT-UNSUPPORTED"
+      ],
+      "verdict": "FAIL"
+    },
+    {
+      "case": "legal_but_unknown_vocab",
+      "kind_expected": "r3",
+      "code_expected": "P3-INPUT-BUNIT-UNPARSABLE",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/legal_but_unknown_vocab",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/legal_but_unknown_vocab.json",
+      "config_sha256": "47e1e2bce2ad9cf24d2b8a0657c65999784e6f33612f981939e3bbcea4a120a8",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/legal_but_unknown_vocab.log",
+      "log_sha256": "eab9b2ab3d2841d13a74db4eb62525dc6bd74c6f31b43b47fa7137fe9729bfa6",
+      "exit_code": 4,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de69644dd67.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-UNIT-UNSUPPORTED"
+      ],
+      "verdict": "FAIL"
+    },
+    {
+      "case": "applied_relative_unit",
+      "kind_expected": "r3",
+      "code_expected": "P3-INPUT-BUNIT-UNPARSABLE",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/applied_relative_unit",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/applied_relative_unit.json",
+      "config_sha256": "4ceeb5ab3d5dfb5b9f88de478faf67344cad59c3de8e0aeb5c2b8136f98b0b11",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/applied_relative_unit.log",
+      "log_sha256": "7d1fd078aabfa266b51be2862f4143c413bafa5e184f0274d5935aa44e2b21db",
+      "exit_code": 4,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de6b7a4a004.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-UNIT-UNSUPPORTED"
+      ],
+      "verdict": "FAIL"
+    },
+    {
+      "case": "bare_adu_no_semantics",
+      "kind_expected": "r3",
+      "code_expected": "P3-INPUT-BUNIT-UNDECIDABLE",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/bare_adu_no_semantics",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/bare_adu_no_semantics.json",
+      "config_sha256": "8383310ee4f4a8e1a6df2ed9a6695d1cc7367cb2948b12f1cb1a6ed7bc87a605",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/bare_adu_no_semantics.log",
+      "log_sha256": "58b6fd9d53a4adeff11d4674687733226140b2de97337f9292590fb4a18d343e",
+      "exit_code": 3,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de6d6c090b7.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-BUNIT-UNDECIDABLE"
+      ],
+      "verdict": "PASS"
+    },
+    {
+      "case": "semantics_conflict",
+      "kind_expected": "r4",
+      "code_expected": "P3-INPUT-UNIT-SEMANTICS-CONFLICT",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/semantics_conflict",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/semantics_conflict.json",
+      "config_sha256": "564fb0ee992f5a7e93bd2839475f4f6325f7a6fd4e5996969376b639b4e17f42",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/semantics_conflict.log",
+      "log_sha256": "ca9a97b3dee64b644ccf9b757ecb46bff3d82e612f8bdf1be3ee233f0b0e924c",
+      "exit_code": 0,
+      "fits_present": true,
+      "manifest": {
+        "file": "acsd_run_9de6f962c36f.json",
+        "status": "complete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": {
+        "bunit": "ADU/sr",
+        "bunit_input": "ADU/sr",
+        "pixel_semantics": "surface_brightness",
+        "pixel_area_power": -2
+      },
+      "emit_events": [],
+      "semantic_codes": [],
+      "fits": {
+        "header": {
+          "NAXIS1": 64,
+          "NAXIS2": 64,
+          "CTYPE1": "RA---TAN",
+          "CTYPE2": "DEC--TAN",
+          "CUNIT1": "deg",
+          "CUNIT2": "deg",
+          "CRPIX1": 32.5,
+          "CRPIX2": 32.5,
+          "CRVAL1": 10.0,
+          "CRVAL2": 0.0,
+          "CD1_1": -0.01,
+          "CD1_2": 0.0,
+          "CD2_1": 0.0,
+          "CD2_2": 0.01,
+          "BUNIT": "ADU/sr",
+          "BITPIX": -32
+        },
+        "shape": [
+          64,
+          64
+        ],
+        "finite_px": 4096,
+        "nan_px": 0,
+        "data_sha256": "a5953a3241011112d26443ab50922739b88218be7e70b84f1072870a74645de7",
+        "data_sum": 18502.302714824677
+      },
+      "verdict": "FAIL"
+    },
+    {
+      "case": "power_conflict",
+      "kind_expected": "r4",
+      "code_expected": "P3-INPUT-UNIT-SEMANTICS-CONFLICT",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/power_conflict",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/power_conflict.json",
+      "config_sha256": "a8e642a654e069575484933d1976d8eb70e532314274d54fbfc037e425fe220f",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/power_conflict.log",
+      "log_sha256": "9d941b27ca7118a33f70f2fc5e81552abd1448a0229a3ab04c162971b0f05621",
+      "exit_code": 3,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de7233c29b9.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-BUNIT-UNDECIDABLE"
+      ],
+      "verdict": "FAIL"
+    },
+    {
+      "case": "not_surface_brightness",
+      "kind_expected": "r4",
+      "code_expected": "P3-INPUT-NOT-SURFACE-BRIGHTNESS",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/not_surface_brightness",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/not_surface_brightness.json",
+      "config_sha256": "10cc80a7901e578e997caa8e698db18ff73f2707f0efe0ad666d6125b3300e02",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/not_surface_brightness.log",
+      "log_sha256": "ac52a82ba90b369501ab61aadd3bfcf56c5f310c4c2fb27256d34f0f7c144bfd",
+      "exit_code": 4,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de7441f17a5.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-NOT-SURFACE-BRIGHTNESS"
+      ],
+      "verdict": "PASS"
+    },
+    {
+      "case": "bad_pixel_semantics",
+      "kind_expected": "r4",
+      "code_expected": "P3-INPUT-PIXEL-SEMANTICS-UNSUPPORTED",
+      "hips_dir": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/variants/bad_pixel_semantics",
+      "config_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/work/configs/base/bad_pixel_semantics.json",
+      "config_sha256": "cacc3f70501a3fc0d61b12c38a593dc1e2dfe49bb19a4dfd3b00b21c1ba78cb3",
+      "log_path": "/workspace/Astro CS Database/实验/issue91-stage3-bunit/evidence/base/bad_pixel_semantics.log",
+      "log_sha256": "007e1ff5785bee1232d89d096df653464a1e40757dbc2668ab51e5b2cf146015",
+      "exit_code": 4,
+      "fits_present": false,
+      "manifest": {
+        "file": "acsd_run_9de7655b7c3a.json",
+        "status": "incomplete",
+        "kind": "acsd_run_manifest",
+        "exit_codes": null
+      },
+      "p3_props": null,
+      "emit_events": [],
+      "semantic_codes": [
+        "P3-INPUT-PIXEL-SEMANTICS-UNSUPPORTED"
+      ],
+      "verdict": "PASS"
+    }
+  ]
+}
