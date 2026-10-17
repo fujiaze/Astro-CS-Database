@@ -92,6 +92,8 @@ descriptor/窗口由调用方持有，函数同步、无内部线程或文件 I/
 
 `acsd.phase3.resample` 另为聚合 session 适配描述符，不能与本五节点生产 operation 混称。reader、WCS 与写出有各自责任。
 
+**子块 work unit 的失败语义（Issue #91/E1-R）**：并发 worker 各自打开自己的 sampler（独立数据集句柄，共享同一有界 tile 缓存）。任一 worker 的 `p3_sampler_open_ex` 失败时，失败**不得**被计入正常完成：节点以线程安全状态保留首错的机器码（`P3-RESAMPLE-WORKER-OPEN-INPUT` / `-IO`）、打开目标与输入产品身份，在全部 worker 退出后显式判红；已写入临时对象的 `p3_resampled.bin` 被丢弃删除，不执行原子 rename，下游 writer/verify 因 DAG 依赖不运行 ⇒ 无 FITS、无 complete manifest。成功 run 的子块计数随 `p3_resampled.json` 的 `worker_bands`（planned/executed/active_peak/sub_blocks）落盘，供独立核对「任务数与产品一致」。故障注入仅经既有 `ACSD_RT001_FAULT` 测试钩子（`resample_worker_open_fail[:k]`），生产不设该变量即不可达。
+
 ### 公开 API 与字段
 
 [p3_resample.h](../../../lib/algorithms/resample/p3_resample.h)和 [p3_resample.cpp](../../../lib/algorithms/resample/p3_resample.cpp)提供：

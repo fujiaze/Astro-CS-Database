@@ -16241,12 +16241,80 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     return true;
   };
 
-  auto worker = [&](long b0, long b1) {
+  // ── Issue #91/E1-R: worker sampler 打开失败的可靠传播 ──────────────────────
+  // 缺陷（本轮实测确认）: worker 在 `p3_sampler_open_ex != P3_RS_OK` 时直接 return，
+  // 外层 band_task 仍 `band_executed.fetch_add(1)` ⇒ 该行带从未被采样（bin 临时对象
+  // 留下未写区间），却满足 `band_executed == nw` 完整性判据 ⇒ 发布伪成功产品。
+  // 修复: 失败进入线程安全状态（首错保留, 确定性），主调度器在 wait_all 后显式
+  // 判红；临时 bin 丢弃, 不发布 p3_resampled.bin / FITS / complete manifest。
+  std::mutex worker_open_fail_mu;
+  std::atomic<bool> worker_open_failed{false};
+  bool worker_open_fail_is_io = false;      // true → ErrorDomain::IO, 否则 DATA
+  bool worker_open_fail_is_input = false;   // true → man.error_kind=input（CLI 退出 3）
+  std::string worker_open_fail_code;        // 机器可判码
+  std::string worker_open_fail_detail;      // 人类可读（含输入产品身份）
+  auto record_worker_open_failure = [&](bool is_io, bool is_input,
+                                        const std::string& code,
+                                        const std::string& detail) {
+    std::lock_guard<std::mutex> lk(worker_open_fail_mu);
+    if (worker_open_fail_code.empty()) {   // 首错保留（不随时序抖动）
+      worker_open_fail_is_io = is_io;
+      worker_open_fail_is_input = is_input;
+      worker_open_fail_code = code;
+      worker_open_fail_detail = detail;
+      worker_open_failed.store(true);
+    }
+  };
+
+  // 确定性故障注入（测试门禁；生产默认不可达）:
+  //   ACSD_RT001_FAULT=resample_worker_open_fail[:k]
+  //     —— 仅 worker k（默认 1，保证 worker 0 与主 sampler 均成功）的
+  //        `p3_sampler_open_ex` 打开一个确定不存在的产品目录 ⇒ 走**真实 open 失败
+  //        分支**（P3-INPUT-PROPERTIES-UNREADABLE），不伪造错误串、不影响其它 worker。
+  //   ACSD_RT001_FAULT=resample_drop_band —— 既有先例（首个 work unit 被吞），语义不变。
+  // 单次读取（module_state_hygiene 的 ENV_READ_REGISTRY 按出现次数核对）。
+  const char* rt001_fault = std::getenv("ACSD_RT001_FAULT");
+  const bool fault_drop_band =
+      (rt001_fault != nullptr && std::strcmp(rt001_fault, "resample_drop_band") == 0);
+  int fault_worker_open_k = -1;
+  if (rt001_fault) {
+    static const char kTok[] = "resample_worker_open_fail";
+    if (std::strncmp(rt001_fault, kTok, sizeof(kTok) - 1) == 0) {
+      fault_worker_open_k = 1;
+      const char* rest = rt001_fault + (sizeof(kTok) - 1);
+      if (*rest == ':' || *rest == '=') {
+        char* end = nullptr;
+        const long v = std::strtol(rest + 1, &end, 10);
+        if (end != rest + 1 && v >= 0 && v <= 4096) fault_worker_open_k = (int)v;
+      }
+    }
+  }
+
+  auto worker = [&](long b0, long b1, uint32_t wk) -> bool {
     P3Sampler w_samp{};
     std::string wserr;
-    if (p3_sampler_open_ex(g.hips_dir.c_str(), &w_samp, nullptr, nullptr, &wserr) !=
-        P3_RS_OK)
-      return;
+    const bool inject_open_fail =
+        (fault_worker_open_k >= 0 && (int)wk == fault_worker_open_k);
+    // 注入面只替换**打开目标**（确定不存在的产品目录）: 仍走生产 open 调用与
+    // 真实失败分支, 不绕过任何判定。
+    const std::string wdir =
+        inject_open_fail ? (g.hips_dir + "/__rt001_worker_open_fault__") : g.hips_dir;
+    const P3ResampleStatus wst =
+        p3_sampler_open_ex(wdir.c_str(), &w_samp, nullptr, nullptr, &wserr);
+    if (wst != P3_RS_OK) {
+      const bool is_io = (wst == P3_RS_IO);
+      const bool is_input = !is_io;   // P3_RS_PARAM = 输入产品不可用/身份不可证
+      const std::string code =
+          is_io ? "P3-RESAMPLE-WORKER-OPEN-IO" : "P3-RESAMPLE-WORKER-OPEN-INPUT";
+      record_worker_open_failure(
+          is_io, is_input, code,
+          code + ": worker " + std::to_string(wk) + " sampler open failed (status=" +
+              std::to_string((int)wst) + ") on '" + wdir + "'; input hips_dir='" +
+              g.hips_dir + "', band_blocks=[" + std::to_string(b0) + "," +
+              std::to_string(b1) + "); detail: " + wserr +
+              (inject_open_fail ? " [injected via ACSD_RT001_FAULT]" : ""));
+      return false;
+    }
     // P30: 与本节点唯一的有界 tile 缓存共享 (容量 = max_tiles 总量, 与 worker
     // 数无关 → 内存有界; 同一 tile 全节点只解码一次)。只读数据 + 缺失负缓存,
     // 不改变任何像素值; 每个 worker 仍各有独立 AioHipsDataset/句柄。
@@ -16299,6 +16367,7 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
       }
     }
     p3_sampler_close(&w_samp);
+    return true;
   };
 
   // 行带执行 (RT-001): 行带 = work unit, 提交到 Runtime 唯一 executor
@@ -16319,19 +16388,20 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   std::atomic<uint32_t> band_executed{0};
   std::shared_ptr<CpuHeavyExecutor> band_pool;
   if (ctx && nw >= 2) band_pool = rt::shared_work_executor(ctx->budget());
-  auto band_task = [&](long b0, long b1, RunContext&) {
-    // 故障注入 (ACSD_RT001_FAULT): resample_drop_band 模拟"首个 work unit 被
+  auto band_task = [&](long b0, long b1, RunContext&, uint32_t wk) {
+    // 既有故障注入 (ACSD_RT001_FAULT=resample_drop_band): 模拟"首个 work unit 被
     // 取消丢弃"缺陷 → fail-closed 路径必须拒绝 (P2-002/P3-002 注入先例同构)。
-    const char* fault = std::getenv("ACSD_RT001_FAULT");
-    if (fault && std::strcmp(fault, "resample_drop_band") == 0 && b0 == 0) {
+    if (fault_drop_band && b0 == 0) {
       return;  // 首个 work unit 被吞: 不执行、不计数 (确定性: 无时序竞争)
     }
     const uint32_t cur = band_active.fetch_add(1) + 1;
     uint32_t p = band_active_peak.load();
     while (cur > p && !band_active_peak.compare_exchange_weak(p, cur)) {}
-    worker(b0, b1);
+    // Issue #91/E1-R: worker 打开失败 ⇒ **不**计入正常完成（旧实现无条件 +1，
+    // 使失败行带伪装成已完成）。失败状态由 record_worker_open_failure 承载。
+    const bool ok = worker(b0, b1, wk);
     band_active.fetch_sub(1);
-    band_executed.fetch_add(1);
+    if (ok) band_executed.fetch_add(1);
   };
   // 子块区间按 [k*nblocks/nw, (k+1)*nblocks/nw) 均分（连续区间，负载均衡且
   // 与 worker 数无关的确定性划分）。
@@ -16345,18 +16415,18 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
       long b0 = 0, b1 = 0;
       block_range(k, &b0, &b1);
       if (band_pool) {
-        band_pool->enqueue([&band_task, b0, b1](RunContext& c) {
-          band_task(b0, b1, c);
+        band_pool->enqueue([&band_task, b0, b1, k](RunContext& c) {
+          band_task(b0, b1, c, k);
         });
       } else {
         // 防御路径（池不可得且 cap>=2, 生产不可达）: 串行执行全部子块,
         // 不自建线程池（禁止回退到调用点 spawn）—— 完整性与确定性优先。
-        band_task(b0, b1, no_ctx);
+        band_task(b0, b1, no_ctx, k);
       }
     }
     if (band_pool) band_pool->wait_all();
   } else {
-    band_task(0, nblocks, no_ctx);
+    band_task(0, nblocks, no_ctx, 0u);
   }
   p3_sampler_close(&samp);
   // P30: 取消优先于"work unit 被丢弃"判定 (两者都 fail-closed; 取消更具体)。
@@ -16366,6 +16436,26 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     aio_atomic::remove_file(bin_tmp);
     return Result<void>::fail(Error(ErrorDomain::CANCELLED,
         "resample cancelled by cancellation token: fail-closed, no partial product"));
+  }
+  // Issue #91/E1-R: worker sampler 打开失败优先于"work unit 被丢弃"判定 ——
+  // 具体错因（机器码 + 输入产品身份 + 目标目录）必须可诊断，且**先于**任何发布动作
+  // 失败：bin 只在临时对象里（atomic_replace 未执行）⇒ 无 p3_resampled.bin 成功版本，
+  // 下游 writer/verify 因 DAG 依赖不运行 ⇒ 无 FITS、无 complete manifest。
+  if (worker_open_failed.load()) {
+    std::lock_guard<std::mutex> lk(worker_open_fail_mu);
+    const bool is_io = worker_open_fail_is_io;
+    const bool is_input = worker_open_fail_is_input;
+    const std::string code = worker_open_fail_code;
+    const std::string detail = worker_open_fail_detail;
+    binw.close();
+    aio_atomic::remove_file(bin_tmp);
+    if (man) {
+      (*man)["semantic_code"] = code;
+      (*man)["worker_open_failed"] = true;
+      (*man)["input_hips_dir"] = g.hips_dir;
+      if (is_input) (*man)["error_kind"] = "input";
+    }
+    return Result<void>::fail(Error(is_io ? ErrorDomain::IO : ErrorDomain::DATA, detail));
   }
   if (band_executed.load() != nw) {
     binw.close();
@@ -16438,6 +16528,13 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
            {"order_sel", order_sel},
            {"sampler", g.sampler},
            {"bitpix", g.bitpix},
+           // Issue #91/E1-R: 子块 work unit 计数随产物落盘（供独立核对
+           // 「任务数与产品一致」；失败 run 到不了此处 ⇒ 无伪成功计数）。
+           {"worker_bands", Json{{"planned", nw},
+                                 {"executed", band_executed.load()},
+                                 {"active_peak", band_active_peak.load()},
+                                 {"sub_blocks", nblocks},
+                                 {"sub_block_px", sb}}},
            // 单位/像素语义（下游 writer/FITS BUNIT 唯一来源; 禁 loose default）
            {"bunit", guard.bunit_canonical},
            {"bunit_input", guard.bunit_raw},
