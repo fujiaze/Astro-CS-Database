@@ -1,0 +1,25 @@
+303:[2026-10-17 12:52:33][INFO] Step 2: 星点检测 (sdet_detect_ex_f64, double 不降级)
+455:[2026-10-17 12:52:59][INFO] Step 2: 星点检测 (sdet_detect_ex_f64, double 不降级)
+612:[2026-10-17 12:53:46][INFO] Step 2: 星点检测 (sdet_detect_ex_f64, double 不降级)
+765:[2026-10-17 12:54:39][INFO] Step 2: 星点检测 (sdet_detect_ex_f64, double 不降级)
+925:[2026-10-17 12:55:08][INFO] Step 2: 星点检测 (sdet_detect_ex_f64, double 不降级)
+1080:[2026-10-17 12:55:34][INFO] Step 2: 星点检测 (sdet_detect_ex_f64, double 不降级)
+31693:[INFO] 锥形搜索: ra=83.2831 dec=-6.3754 r=0.925 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+31712:[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=0 / 2309
+31721:[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000 ======
+31730:[INFO] 锥形搜索: ra=83.2832 dec=-6.3754 r=0.925 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+31749:[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=0 / 2309
+31758:[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000 ======
+31767:[INFO] 锥形搜索: ra=83.2833 dec=-6.3773 r=0.925 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+31786:[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=0 / 2306
+31795:[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000 ======
+31804:[INFO] 锥形搜索: ra=83.2835 dec=-6.3778 r=0.926 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+31823:[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=0 / 2307
+31832:[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000 ======
+31841:[INFO] 锥形搜索: ra=83.2832 dec=-6.3747 r=0.926 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+31860:[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=0 / 2310
+31869:[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000 ======
+31878:[INFO] 锥形搜索: ra=83.2834 dec=-6.3739 r=0.925 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+31897:[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=0 / 2307
+31906:[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000 ======
+"exit_code":4
