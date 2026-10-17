@@ -70,6 +70,45 @@ A_k 是逐帧低阶多项式/样条基，\rho 是稳健损失，σ_kc 是与**�
 
 同时求解公共场与差模，通常比先把每一帧各自高阶拟合、再对高频结果修补接缝更能保留大尺度信号。
 
+### 4.1 正确的共模消元、联合加性场拟合与 rank 判据（2026-10-17 推导）
+
+先限制为**物理响应可共同解释**且增益/噪声/样本资格已冻结的一个有效重叠连通分量。将像元/控制点观测堆叠为 `y=H_g S+A\alpha+\epsilon`；`H_g` 含逐帧有效 PSF、几何及当前残余增益，`A` 由加性曲面的**实际求值基函数**装配，`W=C^{-1}\succ0`。在线性参数下，对固定 `α` 可将 S 精确按 GLS profile out：
+
+\[
+Q_H=I-H_g(H_g^TWH_g)^+H_g^TW,\qquad
+Q_HH_g=0,\quad WQ_H=Q_H^TW\succeq0,
+\]
+
+\[
+L_{\rm prof}(\alpha)=(y-A\alpha)^T WQ_H(y-A\alpha)
++\lambda_a\|L_a\alpha\|^2 .
+\]
+
+这**只在 H_g 对被保护公共场描述充分**时删除共同天体结构；其结果是识别相对加性参数，不是恢复绝对背景。对于 `H_k=I`，同一像素处 `H_g=g=(g_1,\ldots,g_K)^T`，退化为局部 `Q_g=I-g(g^TWg)^{-1}g^TW`。不同 PSF/通带应使用真正的 `H_g` 和 SED 模型；无共同物理场时，应按响应组估计独立的 S，不得在跨滤镜组强行相减。
+
+在**明确固定每个连通分量的 gauge 后**，`Q_H A` 对待估参数列满秩，才可能由观测唯一识别相对加性场。规范可由具名参考帧/系数空间零均值确定；其取值是坐标约定，不代表物理天空为零。若无星/外部锚，额外自由增益 `g_k=\exp(\Phi_k\eta_k)` 的 Jacobian `J_\eta=\operatorname{diag}(g_k H_kS)\Phi`，若与 `H_g` 和 A 的列空间重合，就不能从图像自身分别识别 g、S、a；应加入独立未饱和 matched-star 相对光度及颜色/PSF/孔径模型，只在保留样本的真实秩充足时更新 η。
+
+**数值实现的具体修订**：现行 `sky_plane.cpp::sky_make_residual_fields` 按 `floor(u/step)` 将一个 residual 分配给唯一格点，但后续 `sky_own_eval` 用四结点双线性基求值。这个 F-step 并非对应真实作用算子的精确最小二乘，不能由“分箱均值更新”推导每轮优化收敛。应从**同一 sky_own_eval 四结点 basis**构造稀疏设计行 `B_{tj}`，以 `r_{kt}=y_{kt}-[H_gS+A_{\rm base}\alpha_{\rm base}]_{kt}` 解当前实际掩膜/权重的
+\[
+\min_{f,S_c}\sum_{k,t}w_{kt}
+\left[r_{kt}-\sum_j B_{tj}f_{kj}-[H_gS_c]_{kt}\right]^2
++\lambda_f\sum_k\|L_ff_k\|^2,
+\]
+并将每个分量 gauge 和实际支持域显式编码。可用白化稀疏 QR/LSQR 求解，或在条件数/秩可诊断时使用带检查的正规方程；floor-bin 只做可选初始值，不能取代精确 F-step。每次更新必须按**同一冻结目标、同一完整拟合/评价 basis**比较 `L_before/L_after`，若没有改善则拒绝这次更新。稳健 IRLS 改权后重新定义目标，单步下降不能自动推出跨 IRLS 目标下降。多轮要明确可识别域、参数尺度、收敛与不收敛；不需把“迭代多次”当创新点。
+
+对于正半定 W 与正半定惩罚矩阵，固定 g 下正规矩阵 `D^TWD+L^T\Lambda L` 必为 PSD。若精确消去的是 SPD 主块，对应 Schur 补仍 PSD；只有剩余规范自由度已固定且可辨识时才严格 SPD。因此 [#80](https://github.com/fujiaze/Astro-CS-Database/issues/80) 的 reduced not-SPD：数值上近零特征值与真实 gauge/未支持方向一致；明显负特征值提示有效权、装配/Schur 消去或计算精度问题；若实现用非线性完整 Hessian 而不是正权最小二乘 Gauss–Newton 正规矩阵，则 Hessian 可真不定，须独立辨别。**禁止单凭增加 ridge 便宣布模型可识别**。
+
+本解法属于 additive-only 生产替代候选；乘性 A+G 联合扩展可参照 Golub–Pereyra variable projection [DOI:10.1137/0710036](https://doi.org/10.1137/0710036)，以外部星点证据与留出负例决定是否增加 η，当前没有生产与真实 E2 支持，不冒称已部署。
+
+### 4.2 加性/增益校正后的完整线性化误差
+
+对`z_k=(y_k-a_k)/g_k`、`g_k=e^{\eta_k}`，
+\[
+\delta z_k=g_k^{-1}\delta y_k-g_k^{-1}\delta a_k-z_k\delta\eta_k,
+\qquad C_z=J\,\operatorname{Cov}(y,a,\eta)\,J^T .
+\]
+同数据拟合产生的 `Cov(y,a)`、不同帧共享 Gaia/Master/背景锚引起的交叉项及低频参数系统项均须计入。仅当 a、g 是固定已知外参，`SNR(z)` 才在正的确定性增益除法下保持配对不变；sky shot noise 已在光子读出时产生，扣除其均值不能消去 shot-noise。若残余场只从同一组 y 估计，则 `C_z` 可能含负的交叉协方差、相关核及真实天体泄漏，不能一律简单把拟合方差加到像元方差，也不能声称“共模增强不损失任何 SNR”。背景差分若有无法识别的低频共模，应当保留该模式及其相对零点不确定性，而非将平滑结果误当真值。
+
 ## 5. 背景控制点与空间相关
 
 一个背景 patch 的测量值可以是中位数、稳健位置或其他已定义估计量。其方差不等于单像元方差。对 iid 高斯，样本中位数渐近有 Var(median)≈(π/2)σ²/N；有 Drizzle 相关、剪裁、非高斯结构和天体污染时，这一公式需要额外估计。实测的 k_corr 需按精确的 patch 统计量、HEALPix leaf/source 尺度、pixfrac 与相关模型重新标定。
