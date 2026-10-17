@@ -1,0 +1,107 @@
+{
+  "entry": "acsd_phase1_photometry_v1",
+  "failed_frames": [
+    "M42_M1_T3_flying_dutchman-20251126_041940-300S-Red",
+    "M42_M1_T3_flying_dutchman-20251127_042719-300S-Red",
+    "M42_M1_T3_flying_dutchman-20251128_043530-300S-Red",
+    "M42_M1_T3_flying_dutchman-20251211_013548-300S-Red",
+    "M42_M1_T3_flying_dutchman-20251212_021119-300S-Red",
+    "M42_M1_T3_flying_dutchman-20251213_021555-300S-Red"
+  ],
+  "frames": [
+    {
+      "degraded_reason": "no_data_n_matched_0",
+      "error": "photometry fit failed for M42_M1_T3_flying_dutchman-20251126_041940-300S-Red: photometry fit produced no scale (NO_DATA): n_matched=0 < 3 (SCI-PHOT-001 §4/§8) (degraded_reason=no_data_n_matched_0, n_matched=0)",
+      "error_domain": "SCIENCE_PRECONDITION",
+      "error_status": "PHOT_FIT_NO_SCALE",
+      "frame_key": "M42_M1_T3_flying_dutchman-20251126_041940-300S-Red",
+      "input_light": "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251126@041940-300S-Red.fts",
+      "n_matched": 0,
+      "photometry_applied": false,
+      "sigma_residual_dex": 0.0,
+      "status": "fail"
+    },
+    {
+      "degraded_reason": "no_data_n_matched_0",
+      "error": "photometry fit failed for M42_M1_T3_flying_dutchman-20251127_042719-300S-Red: photometry fit produced no scale (NO_DATA): n_matched=0 < 3 (SCI-PHOT-001 §4/§8) (degraded_reason=no_data_n_matched_0, n_matched=0)",
+      "error_domain": "SCIENCE_PRECONDITION",
+      "error_status": "PHOT_FIT_NO_SCALE",
+      "frame_key": "M42_M1_T3_flying_dutchman-20251127_042719-300S-Red",
+      "input_light": "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251127@042719-300S-Red.fts",
+      "n_matched": 0,
+      "photometry_applied": false,
+      "sigma_residual_dex": 0.0,
+      "status": "fail"
+    },
+    {
+      "degraded_reason": "no_data_n_matched_0",
+      "error": "photometry fit failed for M42_M1_T3_flying_dutchman-20251128_043530-300S-Red: photometry fit produced no scale (NO_DATA): n_matched=0 < 3 (SCI-PHOT-001 §4/§8) (degraded_reason=no_data_n_matched_0, n_matched=0)",
+      "error_domain": "SCIENCE_PRECONDITION",
+      "error_status": "PHOT_FIT_NO_SCALE",
+      "frame_key": "M42_M1_T3_flying_dutchman-20251128_043530-300S-Red",
+      "input_light": "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251128@043530-300S-Red.fts",
+      "n_matched": 0,
+      "photometry_applied": false,
+      "sigma_residual_dex": 0.0,
+      "status": "fail"
+    },
+    {
+      "degraded_reason": "no_data_n_matched_0",
+      "error": "photometry fit failed for M42_M1_T3_flying_dutchman-20251211_013548-300S-Red: photometry fit produced no scale (NO_DATA): n_matched=0 < 3 (SCI-PHOT-001 §4/§8) (degraded_reason=no_data_n_matched_0, n_matched=0)",
+      "error_domain": "SCIENCE_PRECONDITION",
+      "error_status": "PHOT_FIT_NO_SCALE",
+      "frame_key": "M42_M1_T3_flying_dutchman-20251211_013548-300S-Red",
+      "input_light": "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251211@013548-300S-Red.fts",
+      "n_matched": 0,
+      "photometry_applied": false,
+      "sigma_residual_dex": 0.0,
+      "status": "fail"
+    },
+    {
+      "degraded_reason": "no_data_n_matched_0",
+      "error": "photometry fit failed for M42_M1_T3_flying_dutchman-20251212_021119-300S-Red: photometry fit produced no scale (NO_DATA): n_matched=0 < 3 (SCI-PHOT-001 §4/§8) (degraded_reason=no_data_n_matched_0, n_matched=0)",
+      "error_domain": "SCIENCE_PRECONDITION",
+      "error_status": "PHOT_FIT_NO_SCALE",
+      "frame_key": "M42_M1_T3_flying_dutchman-20251212_021119-300S-Red",
+      "input_light": "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251212@021119-300S-Red.fts",
+      "n_matched": 0,
+      "photometry_applied": false,
+      "sigma_residual_dex": 0.0,
+      "status": "fail"
+    },
+    {
+      "degraded_reason": "no_data_n_matched_0",
+      "error": "photometry fit failed for M42_M1_T3_flying_dutchman-20251213_021555-300S-Red: photometry fit produced no scale (NO_DATA): n_matched=0 < 3 (SCI-PHOT-001 §4/§8) (degraded_reason=no_data_n_matched_0, n_matched=0)",
+      "error_domain": "SCIENCE_PRECONDITION",
+      "error_status": "PHOT_FIT_NO_SCALE",
+      "frame_key": "M42_M1_T3_flying_dutchman-20251213_021555-300S-Red",
+      "input_light": "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/M42_M1_T3_flying_dutchman-20251213@021555-300S-Red.fts",
+      "n_matched": 0,
+      "photometry_applied": false,
+      "sigma_residual_dex": 0.0,
+      "status": "fail"
+    }
+  ],
+  "n_frames": 6,
+  "n_frames_applied": 0,
+  "n_frames_failed": 6,
+  "n_frames_ok": 0,
+  "n_passband_identity_mismatch": 0,
+  "n_spatial_applied": 0,
+  "node": "acsd.phase1.photometry",
+  "operation": "measure_flux",
+  "passband_identity": {
+    "declared_filter_passband": "Baader R",
+    "gate": "not_applicable (no fitted scale)"
+  },
+  "photometry_applied": false,
+  "photscal": 1.0,
+  "photscale_fit": {},
+  "photscale_source": "gaia_star_matcher_tukey_irls",
+  "photscale_spread_dex": 0.0,
+  "photscale_spread_gate": "none (owner ruling 9.49: frame-independent)",
+  "photscale_spread_warn": false,
+  "pixel_scaling": "none",
+  "schema": "DATA-P1-PHOTPROV-001",
+  "spatial_gain_mode": "absent"
+}

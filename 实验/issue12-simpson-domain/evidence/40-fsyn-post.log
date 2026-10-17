@@ -1,0 +1,5 @@
+grid: N=343 x0=336 x_last=1020 step_nm=2 h=2 min_dx=2 max_dx=2 max_dev=0.000e+00 tau=3.624e-12 res16epsM=3.624e-12 reltol=2.000e-08
+curves: filter=21 pts qe=6 pts (on)
+cone_search rc=0 n=1906
+stars: n=1906 finite_fsyn=1906 nan_fsyn=0 -> /workspace/issue12-scratch/fsyn_post.csv
+[INFO] [spec_int] prepare_filter_cache: 滤光片 21 点 + QE 6 点 -> 光谱 343 点, 范围 F[640.0,672.0] Q[1.0,2500.0] nm

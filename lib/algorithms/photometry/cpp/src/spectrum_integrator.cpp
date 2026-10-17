@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <limits>
 #include <vector>
 
 namespace photo_calib {
@@ -125,61 +126,103 @@ std::vector<double> akima_interpolate(
 }
 
 // ----------------------------------------------------------------------------
-// Simpson 1/3 复合积分 (末尾奇数区间用 Simpson 3/8)
+// 光谱 nm 轴"严格等距"合法域判据
+// 正本: docs/science/algorithms/normalize/PHOTOMETRIC_FIT.md §Simpson 有效域 (Issue #12)
+//
+// 固定 n=N-1, h=(x_{N-1}-x_0)/n>0, eps=2^-52, M=max(|x_0|,|x_{N-1}|,h):
+//     tau = min(1e-8*h, 16*eps*M)
+//     forall i=1..n: x_i - x_{i-1} > 0 且 |(x_i-x_{i-1}) - h| <= tau
+// 并要求坐标分辨率前提 16*eps*M <= 1e-8*h; 不满足时该轴在声明的相对判别率下
+// 无法可靠识别等距 —— 具名拒绝, 不靠大 x 的机器舍入放宽容差。
+// 不含不带单位的 max(1,|h|); 检查全部 n 个局部间隔, 绝不只比较首尾。
+// ----------------------------------------------------------------------------
+namespace {
+bool spectral_grid_equidistant_nm(const std::vector<double>& x, const char** why) {
+    const size_t N = x.size();
+    if (N < 2) { *why = "N<2"; return false; }
+    if (N > static_cast<size_t>(std::numeric_limits<int>::max())) {
+        *why = "N>INT_MAX"; return false;
+    }
+    for (size_t i = 0; i < N; ++i) {
+        if (!std::isfinite(x[i])) { *why = "x not finite"; return false; }
+    }
+    const int n_int = static_cast<int>(N) - 1;
+    const double x0 = x[0];
+    const double xN = x[N - 1];
+    const double span = xN - x0;
+    if (!std::isfinite(span)) { *why = "span not finite"; return false; }
+    const double h = span / static_cast<double>(n_int);
+    if (!(h > 0.0) || !std::isfinite(h)) { *why = "h<=0 or not finite"; return false; }
+    const double eps = std::numeric_limits<double>::epsilon(); // 2^-52
+    const double M = std::max(std::max(std::fabs(x0), std::fabs(xN)), h);
+    const double resolution = 16.0 * eps * M;
+    const double rel_tol = 1e-8 * h;
+    if (!(resolution <= rel_tol)) { *why = "16*eps*M > 1e-8*h"; return false; }
+    const double tau = std::min(rel_tol, resolution);
+    for (int i = 1; i <= n_int; ++i) {
+        const double step = x[static_cast<size_t>(i)] - x[static_cast<size_t>(i - 1)];
+        if (!std::isfinite(step) || !(step > 0.0)) {
+            *why = "axis not strictly increasing"; return false;
+        }
+        if (std::fabs(step - h) > tau) { *why = "step differs from h beyond tau"; return false; }
+    }
+    return true;
+}
+} // namespace
+
+// ----------------------------------------------------------------------------
+// Simpson 1/3 复合积分 (严格等距 nm 轴; 末尾奇数区间用 Simpson 3/8)
+//
+// 非法输入 (N<2、x/y 长度不等、非有限、非严格递增、非等距、坐标分辨率不足、
+// 累加溢出) 一律返回 quiet NaN —— 绝不以 0 伪装成"合法零积分"; 合法网格上被积
+// 函数恒零返回真 0。调用方 (cache/API 边界) 必须据非有限值判无效并具名上报。
 // ----------------------------------------------------------------------------
 double simpson_integrate(const std::vector<double>& x, const std::vector<double>& y) {
-    const int n_pts = (int)x.size();
-    if (n_pts < 2 || (int)y.size() < n_pts) return 0.0;
-
-    // 复合 Simpson 权重仅适用于严格递增、近似等间距的波长网格。
-    // 非等距网格不可偷偷用平均h；返回 NaN 由光度调用方判作无效F_syn。
-    const double h = (x[n_pts - 1] - x[0]) / (n_pts - 1);
-    if (!(h > 0.0) || !std::isfinite(h)) return NAN;
-    const double spacing_tol = 1e-8 * std::max(1.0, std::fabs(h));
-    for (int i = 1; i < n_pts; ++i) {
-        const double step = x[i] - x[i - 1];
-        if (!std::isfinite(x[i]) || !std::isfinite(x[i - 1]) ||
-            !(step > 0.0) || std::fabs(step - h) > spacing_tol)
-            return NAN;
+    const char* why = nullptr;
+    if (!spectral_grid_equidistant_nm(x, &why))
+        return std::numeric_limits<double>::quiet_NaN();
+    if (y.size() != x.size()) return std::numeric_limits<double>::quiet_NaN();
+    for (size_t i = 0; i < y.size(); ++i) {
+        if (!std::isfinite(y[i])) return std::numeric_limits<double>::quiet_NaN();
     }
-    int n_int = n_pts - 1; // 区间数
 
-    double sum = 0.0;
+    const int n_pts = static_cast<int>(x.size());
+    const int n_int = n_pts - 1; // 区间数
+    const double h = (x[static_cast<size_t>(n_pts) - 1] - x[0]) /
+                     static_cast<double>(n_int);
+
+    double result = std::numeric_limits<double>::quiet_NaN();
 
     if (n_int % 2 == 0) {
         // 纯 Simpson 1/3
-        sum = y[0] + y[n_pts - 1];
+        double sum = y[0] + y[static_cast<size_t>(n_pts) - 1];
         for (int i = 1; i < n_pts - 1; ++i) {
-            sum += (i % 2 == 1 ? 4.0 : 2.0) * y[i];
+            sum += (i % 2 == 1 ? 4.0 : 2.0) * y[static_cast<size_t>(i)];
         }
-        return sum * h / 3.0;
-    }
-
-    // 奇数区间: 前 n_int-3 用 Simpson 1/3, 末尾 3 用 Simpson 3/8
-    //
-    // n_int == 3（4 点）是退化分支: 前段区间数 n_13 == 0 ⇒ 1/3 部分**必须为 0**。
-    // 历史实现在该分支先把 y[0] 计入一次（sum = y[0] + y[0] = 2·y[0]），再叠加 3/8，
-    // 使常数被积函数得 3.6667 而真值 3.0（+22.2%）。XPSD 343 点网格 n_int = 342 为偶，
-    // 不触发该分支；订正见变更 claim PHOT-SIMPSON-N3-001（33/8 与 1/3 对三次式均精确，
-    // 故该分支的正确值可由闭式独立给出）。
-    if (n_int >= 3) {
-        const int n_13 = n_int - 3; // 前 n_13 个区间用 Simpson 1/3 (n_13 为偶数)
-        sum = 0.0;
+        result = sum * h / 3.0;
+    } else if (n_int >= 3) {
+        // 奇数区间: 前 n_int-3 用 Simpson 1/3 (n_13 为偶数), 末尾 3 区间用 3/8。
+        // n_int == 3 (4 点) 是退化分支: n_13 == 0 ⇒ 1/3 部分必须严格为 0
+        // (历史实现在此把 y[0] 计两次, 使常数得 3.6667; 见 claim PHOT-SIMPSON-N3-001)。
+        const int n_13 = n_int - 3;
+        double sum = 0.0;
         if (n_13 > 0) {
-            double s13 = y[0] + y[n_13];
+            double s13 = y[0] + y[static_cast<size_t>(n_13)];
             for (int i = 1; i < n_13; ++i) {
-                s13 += (i % 2 == 1 ? 4.0 : 2.0) * y[i];
+                s13 += (i % 2 == 1 ? 4.0 : 2.0) * y[static_cast<size_t>(i)];
             }
             sum = s13 * h / 3.0;
         }
-
-        // Simpson 3/8: 3 区间, 4 点 (y[n_13], y[n_13+1], y[n_13+2], y[n_pts-1])
-        sum += (y[n_13] + 3.0 * y[n_13 + 1] + 3.0 * y[n_13 + 2] + y[n_pts - 1]) * 3.0 * h / 8.0;
-        return sum;
+        sum += (y[static_cast<size_t>(n_13)] + 3.0 * y[static_cast<size_t>(n_13) + 1] +
+                3.0 * y[static_cast<size_t>(n_13) + 2] +
+                y[static_cast<size_t>(n_pts) - 1]) * 3.0 * h / 8.0;
+        result = sum;
+    } else {
+        // n_int == 1: 单区间梯形
+        result = 0.5 * h * (y[0] + y[1]);
     }
-
-    // n_int == 1: 单区间梯形
-    return 0.5 * h * (y[0] + y[1]);
+    if (!std::isfinite(result)) return std::numeric_limits<double>::quiet_NaN();
+    return result;
 }
 
 // ----------------------------------------------------------------------------
@@ -350,8 +393,19 @@ SpectrumIntegratorCache prepare_filter_cache(
         LOG_INFO("[spec_int] prepare_filter_cache: QE curve not provided, F_syn without Q(λ)");
     }
 
-    // 3. 复制光谱波长网格作为积分网格
+    // 3. 先验证原始 nm 光谱轴 (严格等距合法域, 正本 §Simpson 有效域), 再缓存/插值:
+    //    防止在非法 x 上先做二分索引/Akima, 把网格错误延后成"数值看似正常"的 F_syn。
     cache.spectrum_wl.assign(spectrum_wl, spectrum_wl + spectrum_count);
+    {
+        const char* why = nullptr;
+        if (!spectral_grid_equidistant_nm(cache.spectrum_wl, &why)) {
+            std::fprintf(stderr,
+                "[spec_int] prepare_filter_cache: INVALID_SPECTRAL_GRID (%s); N=%d\n",
+                why, spectrum_count);
+            cache = SpectrumIntegratorCache();  // 具名失败: 空缓存 ⇒ caller 判无效
+            return cache;
+        }
+    }
 
     // 4. Akima 插值: 滤光片透过率重采样到光谱波长网格 (范围外 = 0)
     cache.filter_trans = akima_interpolate(fw, fv, cache.spectrum_wl, 0.0);
@@ -436,26 +490,30 @@ double compute_f_syn_cached_xpsd(
     const uint8_t* spectrum_uint8, int spectrum_count,
     double flux_min, double flux_mul) {
 
+    // 非法输入一律 quiet NaN 具名上报, 绝不返回 0: 0 是"合法零积分"的取值,
+    // 用它代表失败会把缺格/量化解码失败伪装成"零光子"。caller 以非有限值判无效。
     if (spectrum_uint8 == nullptr) {
-        std::fprintf(stderr, "[spec_int] compute_f_syn_cached_xpsd: 空指针参数\n");
-        return 0.0;
+        std::fprintf(stderr, "[spec_int] compute_f_syn_cached_xpsd: INVALID_INTEGRAND (null spectrum)\n");
+        return std::numeric_limits<double>::quiet_NaN();
     }
 
     const int n_pts = (int)cache.spectrum_wl.size();
     if (n_pts < 2 || (int)cache.filter_trans.size() < n_pts ||
         (int)cache.weighted_wl.size() < n_pts) {
-        std::fprintf(stderr, "[spec_int] compute_f_syn_cached_xpsd: 缓存尺寸无效 wl=%zu filt=%zu wwl=%zu\n",
+        std::fprintf(stderr, "[spec_int] compute_f_syn_cached_xpsd: INVALID_SPECTRAL_GRID "
+                    "(缓存尺寸无效 wl=%zu filt=%zu wwl=%zu)\n",
                     cache.spectrum_wl.size(), cache.filter_trans.size(), cache.weighted_wl.size());
-        return 0.0;
+        return std::numeric_limits<double>::quiet_NaN();
     }
     if (spectrum_count != n_pts) {
-        std::fprintf(stderr, "[spec_int] compute_f_syn_cached_xpsd: spectrum_count(%d) != cache(%d)\n",
-                    spectrum_count, n_pts);
-        return 0.0;
+        std::fprintf(stderr, "[spec_int] compute_f_syn_cached_xpsd: INVALID_SPECTRAL_GRID "
+                    "(spectrum_count(%d) != cache(%d))\n", spectrum_count, n_pts);
+        return std::numeric_limits<double>::quiet_NaN();
     }
     if (!(flux_mul > 0.0) || !std::isfinite(flux_min) || !std::isfinite(flux_mul)) {
-        // 非法量化参数: 无法解码, 返回 0 (调用方按无效 F_syn 处理)
-        return 0.0;
+        std::fprintf(stderr, "[spec_int] compute_f_syn_cached_xpsd: INVALID_INTEGRAND "
+                    "(flux_min=%g flux_mul=%g)\n", flux_min, flux_mul);
+        return std::numeric_limits<double>::quiet_NaN();
     }
 
     // F(λ_i) = byte_i*flux_mul + flux_min (官方 PCL 线性解码)
@@ -465,7 +523,13 @@ double compute_f_syn_cached_xpsd(
         integrand[i] = f * cache.weighted_wl[i];
     }
 
+    // simpson_integrate 对非法网格/非有限 y/累加溢出返回 quiet NaN。
     double integral = simpson_integrate(cache.spectrum_wl, integrand);
+    if (!std::isfinite(integral)) {
+        std::fprintf(stderr, "[spec_int] compute_f_syn_cached_xpsd: INVALID_INTEGRAND "
+                    "(non-finite quadrature)\n");
+        return std::numeric_limits<double>::quiet_NaN();
+    }
 
     LOG_DEBUG("[spec_int] compute_f_syn_cached_xpsd: flux_min=%.4e flux_mul=%.4e, %d点, F_syn=%.6e",
               flux_min, flux_mul, n_pts, integral);

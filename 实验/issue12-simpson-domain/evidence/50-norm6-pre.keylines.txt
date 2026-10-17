@@ -1,0 +1,40 @@
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[wcs_transform] 初始化: CRVAL=(83.283136,-6.375372), CRPIX=(2048.500,2048.500), CD=[-1.624e-06,2.663e-04;-2.663e-04,-1.617e-06], det=7.090e-08, sip_order=3
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=0 / 2309
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000 ======
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=0 / 2309
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000 ======
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=0 / 2306
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000 ======
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=0 / 2307
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000 ======
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=0 / 2310
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000 ======
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=0 / 2307
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=0, scale=1.000000e+00, sigma_residual=0.000000 ======
+acsd: phase1 failed: node wr failed: frame photometric calibration failed upstream: frame=M42_M1_T3_flying_dutchman-20251126_041940-300S-Red upstream_status=PHOT_FIT_NO_SCALE upstream_error=photometry fit failed for M42_M
+[2026-10-17T04:28:40Z] seq=5 error final (normalize/n/a)：node wr failed: frame photometric calibration failed upstream: frame=M42_M1_T3_flying_dutchman-20251126_041940-300S-Red upstream_status=PHOT_FIT_NO_SCALE upstream_error=photometry fit failed for M42_M1_T3_flying_dutchman-20251126_041940-300S-Red: photometry fit produced no scale (NO_DATA): n_matched=0 < 3 (SCI-PHOT-001 §4/§8) (degraded_reason=no_data_n_matched_0, n_matched=0) (docs/ACSD_DESIGN §4.4: 任何一帧失败都显式判红; 该帧不产出产品, 其余帧产物已写出但数据集清单不发布)（exit_code=4）

@@ -1,0 +1,6 @@
+# Issue #12 binaries (built at main f1082869562bedfb6ab9d81b632bc99e39e48de2)
+post12 acsd : d9d0510d03e3e2dbbfc098e83645e457f02ef9d045f9d34bf0223da7c76151f6
+pre12  acsd : ec8d9dca155186ad5e13e5e266d93eb3d42d8688e09634cadb2878c804ad148d
+post oracle : 62/62 PASS (30-post12-oracle.log)
+pre  oracle : 14/62 FAIL (31-pre12-oracle.log)
+pre12 source sha256: 06333af4e1dbace7a42b07c75e4fd83df8516a82e3ad9e9f8d79dab7e2eb8b0d
