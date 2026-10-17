@@ -179,6 +179,43 @@ Canonical controls 的 C_ref 是加入规定参考源后的条件协方差。实
 
 如需写 V_B,scene=T_ref V_F,ref，必须额外证明 C_scene 与 C_ref 在所用估计量上的关系；否则重新求 T_scene 和配对的 V_F,scene，或明确采用经检验的背景主导近似。不同帧的 T 在同一输出位置为共同正因子时，才可在该位置的归一加权平均中消去；无需强迫该因子在整个天区为常数。
 
+### 6.1 P2→P4→Mosaic：从实际算子求同被估计量的权重（2026-10-17 独立推导）
+
+这一桥梁的**可执行解法**不是把 \`SNR_ref²/F_ref²\` 改名为 \`ivar\`，而是从实际输出估计量出发。给帧 k 定义已冻结的 calibrated + Drizzle + sky-correction + gain 线性化算子 \`L_k\`，将输入观测/拟合参数扰动 \`ξ_k\` 映到最终同一个球面位置 p 的校正面亮度：\`δz_{kp}=l_{kp}^T ξ_k\`。若完整联合协方差为 \`Σ_k\`，则
+
+\[
+V_{B,kp}=l_{kp}^{T}\Sigma_k l_{kp},
+\qquad w_{B,kp}=V_{B,kp}^{-1}\quad(V_{B,kp}>0).
+\]
+
+这里 \`l\` 必须来自正式**已归一** Drizzle signal、实际天空参数更新和 gain，不能从 Drizzle 的 drop 原始面积或点源 h 猜测。若单独定义点源条件信息 \`I_{F,kp}>0\`，同条件的 \`T_{kp}=V_{B,kp} I_{F,kp}\`，才有 \`w_B=I_F/T\`。当 \`C_{B,kp}\` 已可直接计算时无需绕 SNR/T 回转。若某个 \`V_B\` 不含天空/增益**参数不确定性及交叉项**，它只代表冻结这些参数后的条件方差，不能将其称为完整边际方差。经 rejection 的自适应选择集合也不能由固定 L 自动保证无选择偏差。
+
+一个很重要的**可证明降级条件**是：若独立校准能在相同随机贡献空间上保证
+\[
+(1-\delta)C_{\rm ref}\preceq C_{\rm scene}\preceq (1+\delta)C_{\rm ref},
+\qquad 0\leq\delta<1,
+\]
+则对同一个输出线性泛函 l，
+\[
+(1-\delta)V_{B,\rm ref}\leq V_{B,\rm scene}\leq
+(1+\delta)V_{B,\rm ref}.
+\]
+所以可以用上界 \`V^+_{B,\rm scene}=(1+\delta)V_{B,\rm ref}\` 作**条件保守**合成权重。前提是 \`C_ref\` 与 \`C_scene\` 用相同单位、模板、可观测空间和相关结构，并且 δ 有独立来源；参考源 Poisson 与实际星云/暗场差异未知时不能凭空指定 δ。仅知 SNR_ref、F_ref 与 gain，不足以得到此 \`V^+\`。
+
+**可执行状态组合**：优先采用实际同对象 \`corrected_scene_variance\`；其次用有外部误差界的 \`certified_scene_variance_upper\` 并声明 \`conditional_conservative\`；再下才是 \`reference_flux_information_only\` 或 \`heuristic_snr_weight\`，这两种数值可供明确用户选择的近似/诊断，不能在 manifest 中自动声称 \`inverse_variance_closed\`。未识别支持、单位或参数模型，报告 \`precision_unavailable\`。Stage2 仍只发布 signal HiPS；这些状态随运行 provenance/内部评估传递。
+
+### 6.2 独立噪声下的 minimax 合成：为什么保守权重不是随意削弱 SNR
+
+若多帧在**同一个被估计量**上无偏、资格固定且条件相互独立，每帧真实方差只知 \`0<V_k≤U_k\`，选择非负系数 \`a_k≥0\`、\`Σa_k=1\`，其最坏方差恰为 \`sup Var(Σa_kz_k)=Σa_k² U_k\`。Lagrange 乘子或 Cauchy–Schwarz 证明其唯一最优（所有 U 有限正）为
+
+\[
+a_k^*=\frac{U_k^{-1}}{\sum_j U_j^{-1}},
+\qquad \sup\operatorname{Var}(\widehat B)=
+\left(\sum_k U_k^{-1}\right)^{-1}.
+\]
+
+这是**方差上界明确且独立**时的 minimax 解释，不是无条件证明比真实精确逆方差更好。若允许未知、最大程度正相关（\`|\Gamma_{ij}|\le\sqrt{U_iU_j}\`），则最坏方差可达 \`(\sum_k a_k\sqrt{U_k})^2\`，其最优可能只用一个最小 U 的帧。故**不知道帧间相关性就无法证明随合成帧数增加必然提高 SNR**。共享 Master、零点、天空面与增益参数的协方差必须建模或分开报预算。此结论不要求发布第二张科学图像。
+
 ## 7. 缺项上界的适用域
 
 设固定观测域、固定 A、相同参考 F，C_true=C_0+Δ，Δ半正定。对估计 F 的同一组线性无偏系数 a（aᵀh=1、aᵀZ=0），有 aᵀC_true a≥aᵀC_0 a；在两侧对同一个可行集合取最小，得到 V_F,true≥V_F,0。因此省略这些噪声分量所得 SNR_0 是条件上界。
