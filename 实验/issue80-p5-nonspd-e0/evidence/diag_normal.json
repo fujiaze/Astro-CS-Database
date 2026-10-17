@@ -1,0 +1,266 @@
+[
+ {
+  "arm": "abc_real",
+  "fault": "none",
+  "exit": 2,
+  "wall_s": 9.66,
+  "sky_plane_line": "[sky_plane] surface build FAILED rc=6 adaptive node spacing exhausted: rc=6 at h=0.553742 (upper=0.553742 lower=0.0143966 coarsenings=0, last: reduced normal matrix not SPD) -> production deduction unavailable",
+  "component_dump_written": false,
+  "frame_ids": [
+   8477435787220171510,
+   17937401722011391352,
+   13095713314048628290
+  ],
+  "n_obs": 17237,
+  "per_frame": {
+   "8477435787220171510": {
+    "n": 5776,
+    "control_variance_min": 3.802911414745122e+20,
+    "control_variance_max": 8.996349093848502e+22,
+    "control_variance_median": 7.751406081228514e+20,
+    "value_min": 1870616461312.0,
+    "value_max": 12757387706368.0,
+    "value_median": 2646927933440.0,
+    "weight_median": 1.2900885310207678e-21
+   },
+   "17937401722011391352": {
+    "n": 5759,
+    "control_variance_min": 3.993953088981202e+20,
+    "control_variance_max": 4.144419400332119e+22,
+    "control_variance_median": 7.932870422463783e+20,
+    "value_min": 2073902317568.0,
+    "value_max": 15641683165184.0,
+    "value_median": 2913297891328.0,
+    "weight_median": 1.2605777565309343e-21
+   },
+   "13095713314048628290": {
+    "n": 5702,
+    "control_variance_min": 2.8877614866452828e-12,
+    "control_variance_max": 8.262336994487588e-10,
+    "control_variance_median": 5.647852881400044e-12,
+    "value_min": 0.0004226476594340056,
+    "value_max": 0.0014203457976691425,
+    "value_median": 0.000512089958647266,
+    "weight_median": 177058436452.61615
+   }
+  }
+ },
+ {
+  "arm": "abc_label_swap_all_red",
+  "fault": "none",
+  "exit": 0,
+  "wall_s": 41.21,
+  "sky_plane_line": "[sky_plane] ok n_used=17237 n_nodes=30 n_frames=3 rms_w=2.35377e-05",
+  "component_dump_written": true,
+  "component_dump": {
+   "anchor_by_frame": {
+    "13095713314048628290": 1,
+    "14631869317637202187": 0,
+    "15503380071733165221": 0
+   },
+   "anchor_delta_zero": 1,
+   "component_anchor_frames": [
+    13095713314048628290
+   ],
+   "component_id_by_frame": {
+    "13095713314048628290": 0,
+    "14631869317637202187": 0,
+    "15503380071733165221": 0
+   },
+   "components": [
+    {
+     "anchor": 13095713314048628290,
+     "cell_edges": 11430,
+     "component_id": 0,
+     "cross_component_comparable": 1,
+     "delta_const_span": 0.0,
+     "delta_ramp_max": 0.0,
+     "edge_count": 3,
+     "frame_ids": [
+      13095713314048628290,
+      14631869317637202187,
+      15503380071733165221
+     ],
+     "identifiable": 1,
+     "kappa": 26099.820903880052,
+     "lambda_max": 6.204261329724837,
+     "lambda_min": 0.00023771279322466532,
+     "n_cells": 5807,
+     "n_free_delta": 2,
+     "n_nodes": 25,
+     "n_params": 25,
+     "n_samples": 17237,
+     "n_unidentified": 0,
+     "overlap_pair_abs_max": 0.0,
+     "overlap_pair_abs_median": 0.0,
+     "overlap_pair_n": 0,
+     "rank": 25,
+     "status": 0,
+     "support_frac": 1.0
+    }
+   ],
+   "cross_component_absolute_zero_identifiable": 1,
+   "fault": "",
+   "format": "acsd-sky-plane-p5-components-v1",
+   "gauge_constraints_applied": 1,
+   "gauge_constraints_expected": 1,
+   "gauge_explicit_ok": 1,
+   "gauge_mode_cfg": 0,
+   "global": {
+    "identifiable": 1,
+    "kappa": 26099.820903880052,
+    "lambda_max": 6.204261329724837,
+    "lambda_min": 0.00023771279322466532,
+    "n_free": 25,
+    "n_unidentified": 0,
+    "n_used": 17237,
+    "rank": 25,
+    "rank_rtol": 1e-10
+   },
+   "n_components": 1,
+   "node_spacing_deg": 0.5537417834846583,
+   "solve_deflated": 0,
+   "solve_perturbation_gain": 726.9724097584486
+  },
+  "frame_ids": [
+   15503380071733165221,
+   14631869317637202187,
+   13095713314048628290
+  ],
+  "n_obs": 17237,
+  "per_frame": {
+   "15503380071733165221": {
+    "n": 5776,
+    "control_variance_min": 3.802911414745122e+20,
+    "control_variance_max": 8.996349093848502e+22,
+    "control_variance_median": 7.751406081228514e+20,
+    "value_min": 1870616461312.0,
+    "value_max": 12757387706368.0,
+    "value_median": 2646927933440.0,
+    "weight_median": 1.2900885310207678e-21
+   },
+   "14631869317637202187": {
+    "n": 5759,
+    "control_variance_min": 3.993953088981202e+20,
+    "control_variance_max": 4.144419400332119e+22,
+    "control_variance_median": 7.932870422463783e+20,
+    "value_min": 2073902317568.0,
+    "value_max": 15641683165184.0,
+    "value_median": 2913297891328.0,
+    "weight_median": 1.2605777565309343e-21
+   },
+   "13095713314048628290": {
+    "n": 5702,
+    "control_variance_min": 2.8877614866452828e-12,
+    "control_variance_max": 8.262336994487588e-10,
+    "control_variance_median": 5.647852881400044e-12,
+    "value_min": 0.0004226476594340056,
+    "value_max": 0.0014203457976691425,
+    "value_median": 0.000512089958647266,
+    "weight_median": 177058436452.61615
+   }
+  }
+ },
+ {
+  "arm": "ab_2halpha",
+  "fault": "none",
+  "exit": 0,
+  "wall_s": 30.4,
+  "sky_plane_line": "[sky_plane] ok n_used=11456 n_nodes=25 n_frames=2 rms_w=2.14254e+11",
+  "component_dump_written": true,
+  "component_dump": {
+   "anchor_by_frame": {
+    "17937401722011391352": 0,
+    "8477435787220171510": 1
+   },
+   "anchor_delta_zero": 1,
+   "component_anchor_frames": [
+    8477435787220171510
+   ],
+   "component_id_by_frame": {
+    "17937401722011391352": 0,
+    "8477435787220171510": 0
+   },
+   "components": [
+    {
+     "anchor": 8477435787220171510,
+     "cell_edges": 5728,
+     "component_id": 0,
+     "cross_component_comparable": 1,
+     "delta_const_span": 0.0,
+     "delta_ramp_max": 0.0,
+     "edge_count": 1,
+     "frame_ids": [
+      8477435787220171510,
+      17937401722011391352
+     ],
+     "identifiable": 1,
+     "kappa": 14914.025707507459,
+     "lambda_max": 5.174967831590528,
+     "lambda_min": 0.00034698665089369796,
+     "n_cells": 5728,
+     "n_free_delta": 1,
+     "n_nodes": 25,
+     "n_params": 25,
+     "n_samples": 11456,
+     "n_unidentified": 0,
+     "overlap_pair_abs_max": 0.0,
+     "overlap_pair_abs_median": 0.0,
+     "overlap_pair_n": 0,
+     "rank": 25,
+     "status": 0,
+     "support_frac": 1.0
+    }
+   ],
+   "cross_component_absolute_zero_identifiable": 1,
+   "fault": "",
+   "format": "acsd-sky-plane-p5-components-v1",
+   "gauge_constraints_applied": 1,
+   "gauge_constraints_expected": 1,
+   "gauge_explicit_ok": 1,
+   "gauge_mode_cfg": 0,
+   "global": {
+    "identifiable": 1,
+    "kappa": 14914.025707507459,
+    "lambda_max": 5.174967831590528,
+    "lambda_min": 0.00034698665089369796,
+    "n_free": 25,
+    "n_unidentified": 0,
+    "n_used": 11456,
+    "rank": 25,
+    "rank_rtol": 1e-10
+   },
+   "n_components": 1,
+   "node_spacing_deg": 0.553735639305885,
+   "solve_deflated": 0,
+   "solve_perturbation_gain": 276.3907276098174
+  },
+  "frame_ids": [
+   8477435787220171510,
+   17937401722011391352
+  ],
+  "n_obs": 11456,
+  "per_frame": {
+   "8477435787220171510": {
+    "n": 5728,
+    "control_variance_min": 3.802911414745122e+20,
+    "control_variance_max": 8.996349093848502e+22,
+    "control_variance_median": 7.73542595229581e+20,
+    "value_min": 1870616461312.0,
+    "value_max": 12757387706368.0,
+    "value_median": 2651135475712.0,
+    "weight_median": 1.29275363457609e-21
+   },
+   "17937401722011391352": {
+    "n": 5728,
+    "control_variance_min": 3.993953088981202e+20,
+    "control_variance_max": 4.144419400332119e+22,
+    "control_variance_median": 7.929626498657134e+20,
+    "value_min": 2073902317568.0,
+    "value_max": 14010285031424.0,
+    "value_median": 2912025051136.0,
+    "weight_median": 1.2610934456105258e-21
+   }
+  }
+ }
+]
