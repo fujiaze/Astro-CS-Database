@@ -83,6 +83,27 @@ Drizzle通过缩小足迹控制额外卷积和噪声相关[2]。输入像元 j �
 
 目标是用**物理量与误差曲线**解释几何，而不是让固定宽容差决定结果可信度。
 
+### 3.3 P3 物理曲边误差的可证明上界（2026-10-17）
+
+设真实球面源 drop `D_j`、真实 HEALPix 曲边叶 `H_p`，实际近似实现为 `\widetilde D_j,\widetilde H_p`。几何交叠的绝对误差具有**无需任何随机假设**的集合界：
+\[
+\left|{\rm area}(D_j\cap H_p)-
+{\rm area}(\widetilde D_j\cap\widetilde H_p)\right|
+\le {\rm area}(D_j\triangle\widetilde D_j)
++{\rm area}(H_p\triangle\widetilde H_p).
+\]
+原因是两个交集的对称差包含于两个基础集合各自的对称差并集。这里 `△` 为球面集合对称差；必须通过独立真实参数曲边/可验证的自适应细分上、下面积界测量右侧，不能用**同一四角近似**在内部做 partition check 取代它。因而即使常数天空保持、每个源 drop 的 `Σ_p\widetilde a_{jp}/\widetilde A_j=1`，也不推出真实球面 leaf membership 正确。
+
+把这个界传到**实际**信号归一：固定一个目标 p，令 `b_j=a_{jp}\Omega_j/A_j\ge0`、近似系数 `\widetilde b_j\ge0`，令 `B=\sum b_j>0`、`\widetilde B=\sum\widetilde b_j>0`，输入面亮度区间 `[L_{\min},L_{\max}]`。定义真实与近似归一均值 `S=\sum_j(b_j/B)L_j`、`\widetilde S=\sum_j(\widetilde b_j/\widetilde B)L_j`。则
+\[
+|S-\widetilde S|
+\le (L_{\max}-L_{\min})
+\frac{\sum_j|b_j-\widetilde b_j|}{\min(B,\widetilde B)}.
+\]
+证明：两组归一权是离散概率分布，均值差至多局部亮度幅度乘其总变差；归一权之差的 L1 范数不超过 `2Σ|b_j−\widetilde b_j|/\min(B,\widetilde B)`。原来的 `a_{jp}` 若只用于积分 count 分配，与这里的面亮度系数 `b_j` **不是同一种权**。此界不包含额外 WCS、源像元真实足迹和光度系统误差，那些误差需另行预算，也不保证输出任意孔径的物理通量严格守恒。
+
+**直接科学判据**：P3 生产应对全 12 face、极区、NESTED 接缝及不同 nside/pixfrac 各取真实曲边的独立误差证书；报告 `partition_error`、`leaf_symmetric_difference_area`、`overlap_error_bound` 和条件 signal bound，而不是只取一个守恒 residual。可在解析高阶 HEALPix chart 或有界自适应曲边积分中独立求证。真实数值误差/计算代价是待实验量，不可从该定理编造为已达成的 arcsec/ppm。这里是 **Stage1 的 spherical Drizzle**，与 Stage3 irregular bilinear 插值 (#90) 及导出 WCS 错误是不同数学问题。
+
 ## 4. 方差与空间协方差严格传播
 
 Drizzle 是随几何冻结后对**输入线性信号**的线性算子；矩阵 R_{pj}=c_pj。输入 C_in 是源像元计数/线性信号的随机协方差。于是
