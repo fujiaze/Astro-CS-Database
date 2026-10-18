@@ -1,0 +1,87 @@
+[
+ {
+  "arm": "abc_real",
+  "exit": 2,
+  "wall_s": 9.64,
+  "output_dir": "/workspace/issue80-scratch/runs_a1/final_verify_b8dc684b7/abc_real",
+  "config": {
+   "schema_version": "1",
+   "hips_paths": [
+    "/workspace/issue80-scratch/frozen/abc_real/M42_M1_T2_flying_dutchman-20251212_014241-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/abc_real/M42_M1_T2_flying_dutchman-20251216_031003-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/abc_real/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red"
+   ],
+   "output_dir": "/workspace/issue80-scratch/runs_a1/final_verify_b8dc684b7/abc_real",
+   "snr_path": "sparse_reconstruct"
+  },
+  "acsd": "/workspace/acsd-a1-clone/build/sci/acsd",
+  "env_extra": "",
+  "stderr_has::not SPD": false,
+  "stderr_has::adaptive node spacing exhausted": true,
+  "stderr_has::reduced normal matrix": true,
+  "stderr_has::surface build FAILED": true,
+  "stderr_has::identifiability criterion RED": false,
+  "stderr_has::UNIDENTIFIABLE": false,
+  "stderr_has::P5 disconnected graph": false,
+  "stderr_has::P5 per-component": false,
+  "sky_plane_line": "[sky_plane] surface build FAILED rc=7 adaptive node spacing exhausted: rc=7 at h=0.553742 (upper=0.553742 lower=0.0143966 coarsenings=0, last: reduced normal matrix does not determine the solution: anchored system factorable but the penalty-null-space directions are not resolvable in double (I-alpha*Q^T A_a^-1 Q singular, or original-equation backward error above the arithmetic floor) (status=3 branch=1 n_free=25 mq=4 lambda=1.695e+02 alpha=2.034e+03 chol_fail_col=0 chol_fail_pivot=-1.350e-06 backward_error=nan gate=3.827e-12)) -> production deduction unavailable",
+  "sample_line": "stage sample ok: obs=17237 overlap_controls=5807",
+  "artifacts": {
+   "p2_coverage.json": {
+    "sha256": "700b78e83db0d349a9eb1f8a491f32c576941d83f19c0292b85c9c557f33f079",
+    "size": 7641
+   },
+   "p2_samples.json": {
+    "sha256": "3653bbdca89f2cc92609ec8810f09f8788fd4f977b714131adb2db53b2a84900",
+    "size": 10014770
+   },
+   "_n_files_total": 9
+  }
+ },
+ {
+  "arm": "ab_2halpha",
+  "exit": 0,
+  "wall_s": 35.25,
+  "output_dir": "/workspace/issue80-scratch/runs_a1/final_verify_b8dc684b7/ab_2halpha",
+  "config": {
+   "schema_version": "1",
+   "hips_paths": [
+    "/workspace/issue80-scratch/frozen/ab_2halpha/M42_M1_T2_flying_dutchman-20251212_014241-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/ab_2halpha/M42_M1_T2_flying_dutchman-20251216_031003-600S-H-alpha"
+   ],
+   "output_dir": "/workspace/issue80-scratch/runs_a1/final_verify_b8dc684b7/ab_2halpha",
+   "snr_path": "sparse_reconstruct"
+  },
+  "acsd": "/workspace/acsd-a1-clone/build/sci/acsd",
+  "env_extra": "",
+  "stderr_has::not SPD": false,
+  "stderr_has::adaptive node spacing exhausted": false,
+  "stderr_has::reduced normal matrix": false,
+  "stderr_has::surface build FAILED": false,
+  "stderr_has::identifiability criterion RED": false,
+  "stderr_has::UNIDENTIFIABLE": false,
+  "stderr_has::P5 disconnected graph": false,
+  "stderr_has::P5 per-component": false,
+  "sky_plane_line": "[sky_plane] ok n_used=11456 n_nodes=25 n_frames=2 rms_w=2.14254e+11",
+  "sample_line": "stage sample ok: obs=11456 overlap_controls=5728",
+  "artifacts": {
+   "p2_final.json": {
+    "sha256": "4d95956211fe2ba2153aac708ff4d2af6e410a7e1e02a1cc29e772a02e31c7ec",
+    "size": 5064
+   },
+   "p2_coverage.json": {
+    "sha256": "81748422ba93b7dadf3ff94743fa0a6a3ee2c9c6c3b28f509486693821d298d1",
+    "size": 7228
+   },
+   "p2_sky_plane.bin": {
+    "sha256": "1864fae7af8f81346de736feacf3540c3ad03a46aae680b16b77cb9ca6aae6be",
+    "size": 186624
+   },
+   "p2_samples.json": {
+    "sha256": "b459c3ce3414cdda2a7980a66285ad21faeba924506f5ce5899bfc1cb792a292",
+    "size": 7105050
+   },
+   "_n_files_total": 216
+  }
+ }
+]

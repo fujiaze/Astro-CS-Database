@@ -1,0 +1,47 @@
+{
+ "schema": "acsd.issue80.a1.post-commit-verification/v1",
+ "verified_commit": "b8dc684b7",
+ "note": "推送后以隔离副本 git checkout <sha> 重建（sci=ACSD_DEV_MODE OFF，dev=ON），在该提交树上重跑单元测试/独立 oracle/真实生产臂。",
+ "isolated_copy": "/workspace/acsd-a1-clone (git clone --shared of the workspace repo)",
+ "unit_test_release": {
+  "build_dir": "build/sci",
+  "cases": 7,
+  "failing_assertions": 0,
+  "dump_case": "production_abc_real_iter0"
+ },
+ "unit_test_dev": {
+  "build_dir": "build/dev",
+  "cases": 6,
+  "failing_assertions": 0
+ },
+ "independent_oracle": {
+  "verdict": "PASS",
+  "checks": 94,
+  "failed": 0
+ },
+ "real_arm_abc_real": {
+  "exit": 2,
+  "sky_plane_rc": 7,
+  "last_reason": "anchored system factorable but the penalty-null-space directions are not resolvable in double",
+  "status": 3,
+  "branch": 1,
+  "n_free": 25,
+  "mq": 4,
+  "lambda": 169.48966496122742,
+  "alpha": 2033.87890625,
+  "chol_fail_col": 0,
+  "chol_fail_pivot": -1.3495319968193087e-06,
+  "backward_error_gate": 3.827382855092765e-12
+ },
+ "real_arm_ab_2halpha": {
+  "exit": 0,
+  "n_used": 11456,
+  "n_nodes": 25,
+  "p2_sky_plane_sha256": "1864fae7af8f81346de736feacf3540c3ad03a46aae680b16b77cb9ca6aae6be",
+  "same_as_postfix_release_run": true
+ },
+ "evidence_files": {
+  "final_verify_arms": "evidence/final_verify_b8dc684b7/arms.json",
+  "final_verify_stderr": "evidence/final_verify_b8dc684b7/*.stderr"
+ }
+}
