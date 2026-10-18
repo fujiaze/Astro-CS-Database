@@ -1,0 +1,162 @@
+{
+  "nodes": [
+    {
+      "duration_ms": 12.361935,
+      "ended_utc": "2026-10-18T11:48:44Z",
+      "inputs": {
+        "hips": "artifact:hips_in"
+      },
+      "module_id": "acsd.phase3.properties",
+      "module_version": "1.x",
+      "node_id": "properties",
+      "output_artifacts": [
+        {
+          "id": "artifact:properties",
+          "path": "<root>/ok/p3_props.json",
+          "sha256": "41834e64eb9f91fb788a883fbd37d4348225747e8d80c60a619d82141a4d3018"
+        }
+      ],
+      "outputs": {
+        "props": "artifact:properties"
+      },
+      "provider": "baseline",
+      "resources": {
+        "class": "cpu_heavy",
+        "parallel": true
+      },
+      "started_utc": "2026-10-18T11:48:44.447Z",
+      "status": "COMPLETED",
+      "workers": 16
+    },
+    {
+      "duration_ms": 7.412455,
+      "ended_utc": "2026-10-18T11:48:44Z",
+      "inputs": {
+        "props": "artifact:properties"
+      },
+      "module_id": "acsd.phase3.wcs",
+      "module_version": "1.x",
+      "node_id": "wcs",
+      "output_artifacts": [
+        {
+          "id": "artifact:wcs",
+          "path": "<root>/ok/p3_wcs.json",
+          "sha256": "ab03f30201746a8da2bbe0753160b73afc3bada57b207c2c31d61a7c9e8687a5"
+        }
+      ],
+      "outputs": {
+        "wcs_plan": "artifact:wcs"
+      },
+      "provider": "baseline",
+      "resources": {
+        "class": "cpu_heavy",
+        "parallel": true
+      },
+      "started_utc": "2026-10-18T11:48:44.460Z",
+      "status": "COMPLETED",
+      "workers": 16
+    },
+    {
+      "duration_ms": 16.867676,
+      "ended_utc": "2026-10-18T11:48:44Z",
+      "inputs": {
+        "wcs_plan": "artifact:wcs"
+      },
+      "module_id": "acsd.phase3.resample2",
+      "module_version": "1.x",
+      "node_id": "resample2",
+      "output_artifacts": [
+        {
+          "id": "artifact:resample2",
+          "path": "<root>/ok/p3_resampled.json",
+          "sha256": "a945c29161faf0277c208e1026bb5462b8b74dd781ac766a3045ef962f7e04f5"
+        },
+        {
+          "id": "artifact:resample2",
+          "path": "<root>/ok/p3_resampled.bin",
+          "sha256": "b8c9dd2101e08986c09d42c8c5794cbb369bd9b9459d0132faf9340d88b3df44"
+        }
+      ],
+      "outputs": {
+        "resampled": "artifact:resample2"
+      },
+      "provider": "baseline",
+      "resources": {
+        "class": "cpu_heavy",
+        "parallel": true
+      },
+      "started_utc": "2026-10-18T11:48:44.467Z",
+      "status": "COMPLETED",
+      "workers": 16
+    },
+    {
+      "duration_ms": 16.044948,
+      "ended_utc": "2026-10-18T11:48:44Z",
+      "inputs": {
+        "resampled": "artifact:resample2"
+      },
+      "module_id": "acsd.phase3.writer",
+      "module_version": "1.x",
+      "node_id": "writer",
+      "output_artifacts": [
+        {
+          "id": "artifact:writer",
+          "path": "<root>/ok/output_phase3.fits",
+          "sha256": "ff12d9de8d988a3422ab431b5dc1b81adbfd1edd6465778648e5563eb08cd4a1"
+        },
+        {
+          "id": "artifact:writer",
+          "path": "<root>/ok/p3_writer.json",
+          "sha256": "93d97ef70cb8c720ec6ab7eb0f77f28bc676631d5c6abf2e4292975830d07f02"
+        },
+        {
+          "id": "artifact:out_writer",
+          "path": "<root>/ok/output_phase3.fits",
+          "sha256": "ff12d9de8d988a3422ab431b5dc1b81adbfd1edd6465778648e5563eb08cd4a1"
+        }
+      ],
+      "outputs": {
+        "fits": "artifact:writer"
+      },
+      "provider": "baseline",
+      "resources": {
+        "class": "io",
+        "parallel": false
+      },
+      "started_utc": "2026-10-18T11:48:44.484Z",
+      "status": "COMPLETED",
+      "workers": 16
+    },
+    {
+      "duration_ms": 7.187648,
+      "ended_utc": "2026-10-18T11:48:44Z",
+      "inputs": {
+        "fits": "artifact:writer"
+      },
+      "module_id": "acsd.phase3.verify",
+      "module_version": "1.x",
+      "node_id": "verify",
+      "output_artifacts": [
+        {
+          "id": "artifact:verify",
+          "path": "<root>/ok/p3_verify.json",
+          "sha256": "09d85c7edd2adfa002ff6be5f1f5b993ff0f39a4478e2753e3f0d22383132add"
+        }
+      ],
+      "outputs": {
+        "verified": "artifact:verify"
+      },
+      "provider": "baseline",
+      "resources": {
+        "class": "cpu_heavy",
+        "parallel": true
+      },
+      "started_utc": "2026-10-18T11:48:44.500Z",
+      "status": "COMPLETED",
+      "workers": 16
+    }
+  ],
+  "pipeline_id": "cli.run.preset",
+  "run_id": "efae80e59c2d",
+  "schema": "acsd.observed-trace/v1"
+}

@@ -1,0 +1,18 @@
+{
+  "cd11": -0.01,
+  "cd12": 0.0,
+  "cd21": 0.0,
+  "cd22": 0.01,
+  "crop": {
+    "active": false
+  },
+  "crpix_x": 32.5,
+  "crpix_y": 32.5,
+  "crval_dec_deg": 0.0,
+  "crval_ra_deg": 0.0,
+  "fits_keywords": "CTYPE1= 'RA---TAN'\nCTYPE2= 'DEC--TAN'\nCUNIT1 = 'deg'\nCUNIT2 = 'deg'\nCRPIX1 = 32.5000000000\nCRPIX2 = 32.5000000000\nCRVAL1 = 0.0000000000\nCRVAL2 = 0.0000000000\nCD1_1 = -1.000000000000e-02\nCD1_2 = 0.000000000000e+00\nCD2_1 = 0.000000000000e+00\nCD2_2 = 1.000000000000e-02\n",
+  "height_px": 64,
+  "projection": "TAN",
+  "schema": "DATA-P3-WCS",
+  "width_px": 64
+}

@@ -1,0 +1,12 @@
+{
+  "config_path": "<root>/prefix/pixel_change.json",
+  "input_manifest_sha256": "cf623897fd3e8376009d67da33568e04fa042ab59ec02db00816c2a79507cf32",
+  "ir_sha256": "e873d2f6000d036de544da93c2087dabad52a1f9c30a87b237de424296358e49",
+  "phases": [
+    3
+  ],
+  "profile_id": null,
+  "run_id": "efaea65761d7",
+  "schema": "acsd.graph-sidecar/v1",
+  "source_commit": "9c85100b8b38"
+}

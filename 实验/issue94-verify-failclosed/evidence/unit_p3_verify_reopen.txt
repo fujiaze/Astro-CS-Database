@@ -1,0 +1,22 @@
+# command: python3 eng/tests/unit/run_p3_verify_reopen_test.py
+# acsd sha256: bd3804e1d9c8b70a80408183064f4c92a506c890443dfd7c4a850c7958526be7
+
+PASS write_atomic_ex OK
+PASS written product reopen_ok==1
+PASS matching verify reopen_ok==1
+PASS tamper pixel byte
+PASS pixel-changed: verify close()==P3_OUT_OK
+PASS pixel-changed: reopen_ok==0
+PASS tamper CRVAL1
+PASS wcs-changed: verify close()==P3_OUT_OK
+PASS wcs-changed: reopen_ok==0
+PASS canonical hash before tamper
+PASS tamper SWVER
+PASS canonical hash after tamper
+PASS SWVER tamper changes canonical hash
+PASS SWVER tamper leaves reopen_ok==1 (canonical must be consumed separately)
+PASS rename COVSTAT card
+PASS missing COVSTAT => P3_OUT_PARAM (not silent VERIFIED)
+16/16 checks passed
++ g++ -std=c++17 -O2 -o /tmp/p3_verify_reopen_3xfsc29p/t /workspace/.e2r-clean/eng/tests/unit/p3_verify_reopen_test.cpp -I/workspace/.e2r-clean/lib/algorithms/fits_output -I/workspace/.e2r-clean/lib/algorithms/projection -I/workspace/.e2r-clean/lib/include -I/workspace/.e2r-clean/lib/include/acsd -I/workspace/.e2r-clean/lib/algorithms/shared -I/workspace/.e2r-clean/lib/infrastructure/aio/include /workspace/.e2r-clean/build/linux-dev/lib/algorithms/fits_output/libacsd_p3_fits_output.a /workspace/.e2r-clean/build/linux-dev/lib/algorithms/projection/libacsd_p3_projection_wcs.a /workspace/.e2r-clean/build/linux-dev/lib/algorithms/resample/libacsd_p3_rsmp.a /workspace/.e2r-clean/build/linux-dev/libacsd_core.a /workspace/.e2r-clean/build/linux-dev/libacsd_aio.a /workspace/.e2r-clean/build/linux-dev/libacsd_common.a /workspace/.e2r-clean/build/linux-dev/libacsd_cfitsio.a -lz -lpthread -lm
+exit_code=0

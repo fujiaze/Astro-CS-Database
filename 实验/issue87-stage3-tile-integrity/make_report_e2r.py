@@ -90,7 +90,8 @@ def main() -> int:
       "把「证据缺席」当「证据为空」）。`aio_hips_coverage_verified()` 仅对完整叶级 MOC（`MOC_LEAF`）返回 1。")
     A("2. **兼容政策**：`UNKNOWN_LEGACY_COVERAGE` 非 fail-closed（合法稀疏 HiPS 仍可 best-effort 出图，NaN/coverage=0），"
       "但 `coverage_verified=false` / `input_completeness=UNVERIFIED_LEGACY` 必须随 "
-      "`p3_resampled.json`、writer/verify 产物、run manifest 与 FITS 头 `COVSTAT`/`COVVERIF` 发布；"
+      "`p3_resampled.json`、writer/verify 节点产物、phase3 session 结果 JSON 与 FITS 头 `COVSTAT`/`COVVERIF` 发布"
+      "（run manifest 只汇总节点状态/错误）；"
       "已声明覆盖下的真实缺损保持 fail-closed。")
     A("3. **校验一致性**：`fits_is_compressed_image` 判为 tile 压缩时快速路径（已读像元位样）不再使用，"
       "回退 cfitsio 全 HDU 校验（磁盘原始字节口径）；标准 tile-compressed 布局（空 PRIMARY + HDU2 ZIMAGE）"

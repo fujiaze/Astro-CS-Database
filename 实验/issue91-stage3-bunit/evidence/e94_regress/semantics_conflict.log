@@ -1,0 +1,23 @@
+  [correct] output_dir = /workspace/.e2r-clean/实验/issue91-stage3-bunit/work/out/e94_regress/semantics_conflict
+  [correct] source.hips_dir = /workspace/.e2r-clean/实验/issue91-stage3-bunit/work/variants/semantics_conflict
+  [correct] 磁盘预估：output_dir = /workspace/.e2r-clean/实验/issue91-stage3-bunit/work/out/e94_regress/semantics_conflict 可用 67722 MiB；预估需求下限 12 MiB（输入 14 文件/1 目录）
+{"event_id":"evt-efcc0fc54f36-0","kind":"stage_start","message":"stage started","phase":"export","run_id":"efcc0fc54f36","schema_version":"1","sequence":0,"severity":"info","stage":"phase3_session","timestamp_utc":"2026-10-18T11:50:51Z"}
+[2026-10-18T11:50:51Z] seq=0 info stage_start (export/phase3_session)：stage started
+{"completed":0,"eta_seconds":null,"event_id":"evt-efcc0fc54f36-1","kind":"progress","message":"progress update","phase":"export","rate":null,"run_id":"efcc0fc54f36","schema_version":"1","sequence":1,"severity":"info","stage":"progress","timestamp_utc":"2026-10-18T11:50:51Z","total":1,"unit":"phases"}
+[2026-10-18T11:50:51Z] seq=1 info progress (export/progress)：progress update
+session run: cpu_profile source=user-data-fallback path=/workspace/.local/share/ACSD/cpu_profile.json
+acsd: cpu profile invalid: schema != acsd.cpu-profile/v2 — rerun 'acsd benchmark cpu'
+acsd: cpu_profile '/workspace/.local/share/ACSD/cpu_profile.json' rejected (rc=5) — conservative baseline
+session run: memory budget=18496111001 B (available=19469590528 B, percent=95, source=probe)
+session run: backend=acsd.cpu.baseline provider=baseline (route table: 0/12 kernels on variant provider)
+session run: memory pressure ledger=/workspace/.e2r-clean/实验/issue91-stage3-bunit/work/out/e94_regress/semantics_conflict/memory_pressure_ledger.jsonl
+{"completed":1,"eta_seconds":null,"event_id":"evt-efcc0fc54f36-2","kind":"progress","message":"progress update","phase":"export","rate":6.020265683234594,"run_id":"efcc0fc54f36","schema_version":"1","sequence":2,"severity":"info","stage":"progress","timestamp_utc":"2026-10-18T11:50:51Z","total":1,"unit":"phases"}
+[2026-10-18T11:50:51Z] seq=2 info progress (export/progress)：progress update
+{"event_id":"evt-efcc0fc54f36-3","kind":"stage_end","message":"stage finished","phase":"export","run_id":"efcc0fc54f36","schema_version":"1","sequence":3,"severity":"info","stage":"phase3_session","timestamp_utc":"2026-10-18T11:50:51Z"}
+[2026-10-18T11:50:51Z] seq=3 info stage_end (export/phase3_session)：stage finished
+{"event_id":"evt-efcc0fc54f36-4","kind":"artifact","message":"run manifest written","path":"/workspace/.e2r-clean/实验/issue91-stage3-bunit/work/out/e94_regress/semantics_conflict/acsd_run_efcc0fc54f36.json","phase":"export","role":"run_manifest","run_id":"efcc0fc54f36","schema_version":"1","sequence":4,"severity":"info","sha256":"f2ff4595c20f8c65d5c0fc0d16008829f27ca8dd65c255b9138e0cd8958ffc68","size_bytes":2042,"stage":"manifest","timestamp_utc":"2026-10-18T11:50:51Z"}
+[2026-10-18T11:50:51Z] seq=4 info artifact (export/manifest)：run manifest written
+acsd: phase3 failed: node properties failed: P3-INPUT-UNIT-SEMANTICS-CONFLICT: BUNIT 'ADU/sr' is an explicit surface-brightness unit but ACSD_PIXEL_SEMANTICS=integrated_flux contradicts it (???????????????): /workspace/.e
+[dev_diag] run=efcc0fc54f36 snapshots_written=0 diag_io_error=0 root=/workspace/.e2r-clean/实验/issue91-stage3-bunit/work/out/e94_regress/semantics_conflict/_dev_diagnostics/efcc0fc54f36
+{"event_id":"evt-efcc0fc54f36-5","exit_code":4,"kind":"final","message":"node properties failed: P3-INPUT-UNIT-SEMANTICS-CONFLICT: BUNIT 'ADU/sr' is an explicit surface-brightness unit but ACSD_PIXEL_SEMANTICS=integrated_flux contradicts it (禁自行猜测): /workspace/.e2r-clean/实验/issue91-stage3-bunit/work/variants/semantics_conflict/signal/properties","phase":"export","run_id":"efcc0fc54f36","run_manifest":"/workspace/.e2r-clean/实验/issue91-stage3-bunit/work/out/e94_regress/semantics_conflict/acsd_run_efcc0fc54f36.json","schema_version":"1","sequence":5,"severity":"error","stage":"n/a","status":"phase3_failed","summary":"node properties failed: P3-INPUT-UNIT-SEMANTICS-CONFLICT: BUNIT 'ADU/sr' is an explicit surface-brightness unit but ACSD_PIXEL_SEMANTICS=integrated_flux contradicts it (禁自行猜测): /workspace/.e2r-clean/实验/issue91-stage3-bunit/work/variants/semantics_conflict/signal/properties","timestamp_utc":"2026-10-18T11:50:51Z"}
+[2026-10-18T11:50:51Z] seq=5 error final (export/n/a)：node properties failed: P3-INPUT-UNIT-SEMANTICS-CONFLICT: BUNIT 'ADU/sr' is an explicit surface-brightness unit but ACSD_PIXEL_SEMANTICS=integrated_flux contradicts it (禁自行猜测): /workspace/.e2r-clean/实验/issue91-stage3-bunit/work/variants/semantics_conflict/signal/properties（exit_code=4）

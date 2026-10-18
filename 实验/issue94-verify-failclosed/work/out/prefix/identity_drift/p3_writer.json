@@ -1,0 +1,49 @@
+{
+  "algorithm_id": "ALG-P3-004",
+  "bunit": "ADU/sr",
+  "canonical_hash_spec": "acsd.canonical-product-hash/v1",
+  "canonical_sha256": "12d453d635168c43eddd2d34535355839f02f456d99cfc76cc5989eeaec80fd9",
+  "coordinate_frame": "equatorial",
+  "coverage_stats": {
+    "covered_px": 4096,
+    "total_px": 4096
+  },
+  "coverage_verified": true,
+  "crop": {
+    "active": false
+  },
+  "export_stream": {
+    "fits_hdu_streaming": true,
+    "peak_inflight_bytes": 32768,
+    "queue_depth": 4,
+    "scheduler": "ExportStreamScheduler",
+    "schema": "acsd.export-stream-manifest/v1",
+    "sub_block_px": 64,
+    "sub_blocks": 1,
+    "whole_frame_fault": false
+  },
+  "frame_height_px": 64,
+  "frame_width_px": 64,
+  "hips_id": "ivo://acsd/phase3",
+  "input_completeness": "VERIFIED",
+  "input_manifest_hash": "76f77bc5f0d459a3c51fb44a6f36c454f9b4d3c613dc4ddf1e9ddf5548e00c77",
+  "integrity_sha256": "d274c827117df64e29c4116ccd29723e99875f1c646d0a36e4e06952f758107a",
+  "measurement_capable": true,
+  "output_fits": "/workspace/.e2r-clean/实验/issue94-verify-failclosed/work/out/prefix/identity_drift/output_phase3.fits",
+  "output_mode": "surface_brightness",
+  "pixel_area_power": -2,
+  "pixel_semantics": "surface_brightness",
+  "provider": "baseline",
+  "reopen_ok": 1,
+  "run_id": "efb00b02a0a2",
+  "schema": "DATA-P3-WRITER-MANIFEST",
+  "software_version": "0.1.0-alpha.1+g9c85100b8b389dbd9df93c2ab579f0980da3b3eb",
+  "source_sha": "9c85100b8b389dbd9df93c2ab579f0980da3b3eb",
+  "sub_block_px": 64,
+  "uncertainty_available": false,
+  "uncertainty_missing_pixels": 0,
+  "uncertainty_source": "none",
+  "variance_propagation": "C_out = R C_in R^T",
+  "variance_propagation_rule": "nearest: [R C_in R^T]_ii = u_in",
+  "whole_frame_fault": false
+}
