@@ -1,0 +1,1 @@
+{"status":4,"status_name":"ACS_ERR_IO","last_error":"tile integrity failure (1 unique tile(s)): P3-TILE-IO-ERROR tile_ipix=4 detail=tile path exists but is a directory (not a regular FITS file)","output_fits":"/workspace/Astro CS Database/实验/issue87-stage3-tile-integrity/work/out_session/fixed/io_error/output_phase3.fits","output_fits_size":-1}

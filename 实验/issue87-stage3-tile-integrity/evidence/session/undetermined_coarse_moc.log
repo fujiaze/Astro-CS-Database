@@ -1,0 +1,1 @@
+{"status":1,"status_name":"ACS_ERR_PARAM","last_error":"tile integrity failure (1 unique tile(s)): P3-TILE-FOOTPRINT-UNDETERMINED tile_ipix=5 detail=tile missing and coverage identity is insufficient","output_fits":"/workspace/Astro CS Database/实验/issue87-stage3-tile-integrity/work/out_session/fixed/undetermined_coarse_moc/output_phase3.fits","output_fits_size":-1}

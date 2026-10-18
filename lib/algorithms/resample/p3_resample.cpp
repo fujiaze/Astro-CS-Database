@@ -16,11 +16,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <list>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <new>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -51,8 +54,11 @@ using TileData = std::vector<float>;
 //  - 容量 cap = max_tiles 个 512²f32 tile (1 MiB/个), 与 worker 数无关:
 //    峰值内存 = cap MiB + Σ(每线程热缓存 pin ≤ kHotSlots 个), 有界。
 //  - LRU 逐出顺序确定, 但只影响命中率, 不影响任何像素值 (tile 内容只读)。
-//  - absent = 负缓存: tile 不存在或读失败 → 记一次, 之后直接返回缺失,
-//    不再对不存在的文件调 fits_open_file。语义与"每次 open 都失败"完全等价。
+//  - absent = **合法无覆盖**负缓存（OUTSIDE_DECLARED_FOOTPRINT）：之后直接返回
+//    缺失，不再对不存在的文件调 fits_open_file。语义与"每次 open 都失败"等价。
+//  - errors = **完整性错误**独立存储（DECLARED_MISSING/INVALID/CHECKSUM/IO/
+//    UNDETERMINED）。命中错误缓存复现同一 code/path/detail，不会把失败降级成
+//    缺失，也不会重新读文件改变故障语义。按 tile_ipix 升序（std::map）聚合。
 //  - 表操作在 mu 内, tile I/O 在 mu 外 (read_tile 自带进程级 CFITSIO 互斥),
 //    避免缓存锁与 I/O 锁嵌套。
 struct SharedTileCache {
@@ -60,15 +66,28 @@ struct SharedTileCache {
         std::shared_ptr<const TileData> data;
         std::list<uint64_t>::iterator it;
     };
+    struct ErrorRec {
+        P3TileFailure f;
+        std::set<int> workers;
+    };
+    static constexpr size_t kMaxErrorEntries = 4096;   // 故障聚合上限（失败路径）
+
     mutable std::mutex mu;
     size_t cap = 8;                        // 默认 (可配置 max_tiles)
     std::list<uint64_t> lru;               // front = MRU
     std::unordered_map<uint64_t, Entry> map;
-    std::unordered_map<uint64_t, uint8_t> absent;
+    std::unordered_map<uint64_t, uint8_t> absent;   // 合法无覆盖
+    std::map<uint64_t, ErrorRec> errors;            // 完整性错误（tile_ipix 升序）
     uint64_t stat_hits = 0;
     uint64_t stat_misses = 0;
-    uint64_t stat_absent = 0;              // 负缓存写入次数 (=真实失败 open 次数)
+    uint64_t stat_absent = 0;              // 合法无覆盖负缓存写入次数
     uint64_t stat_evict = 0;
+    uint64_t stat_open_fail = 0;           // 真实失败 open/read 总次数
+    uint64_t stat_error_read = 0;          // 完整性错误真实读取次数
+    uint64_t stat_error_hit = 0;           // 错误缓存命中次数
+    uint64_t stat_outside = 0;             // 合法无覆盖真实 open 失败次数
+    uint64_t stat_checksum_present = 0;    // 成功读取且做了校验的次数
+    uint64_t stat_checksum_absent = 0;     // 成功读取但缺校验字段的次数
 
     std::shared_ptr<const TileData> get(uint64_t k) {
         std::lock_guard<std::mutex> lk(mu);
@@ -103,20 +122,112 @@ struct SharedTileCache {
     }
     void mark_absent(uint64_t k) {
         std::lock_guard<std::mutex> lk(mu);
-        // absent 的 value_type 是 uint8_t；原先写 1u（unsigned int）在 emplace 时
-        // 隐式窄化，MSVC 在 <utility> 的 pair 构造处报 C4244（GCC 把 STL 头当系统头
-        // 不报 ⇒ 双平台差异）。显式给元素类型，落入的值仍是 1，语义不变。
         absent.emplace(k, uint8_t{1});
         ++stat_absent;
     }
-    // P30 证据/回归: 真实失败的 tile open 次数 (与负缓存命中区分)。负缓存关闭时
-    // 该计数按"每像素重试"线性增长 —— 回归用例的阴性对照正是据此判红。
+    void note_outside_read() {
+        std::lock_guard<std::mutex> lk(mu);
+        ++stat_open_fail;
+        ++stat_outside;
+    }
+    void note_checksum(bool present) {
+        std::lock_guard<std::mutex> lk(mu);
+        if (present) ++stat_checksum_present;
+        else ++stat_checksum_absent;
+    }
+    // P30 证据/回归: 真实失败的 tile open/read 次数 (与缓存命中区分)。
     void note_open_failure() {
         std::lock_guard<std::mutex> lk(mu);
         ++stat_open_fail;
     }
-    uint64_t stat_open_fail = 0;
+
+    static void sync_workers(ErrorRec* r) {
+        if (r->workers.empty()) {
+            r->f.worker_min = -1;
+            r->f.worker_max = -1;
+            r->f.worker_count = 0;
+            return;
+        }
+        r->f.worker_min = *r->workers.begin();
+        r->f.worker_max = *r->workers.rbegin();
+        r->f.worker_count = (uint64_t)r->workers.size();
+    }
+
+    // 错误缓存命中：只增加 access_hits / worker 集合（不重复计 read_failures）。
+    bool get_error(uint64_t k, int worker_id, P3TileFailure* out) {
+        std::lock_guard<std::mutex> lk(mu);
+        auto it = errors.find(k);
+        if (it == errors.end()) return false;
+        ++stat_error_hit;
+        ++it->second.f.access_hits;
+        if (worker_id >= 0) it->second.workers.insert(worker_id);
+        sync_workers(&it->second);
+        if (out) *out = it->second.f;
+        return true;
+    }
+    // 首次/再次真实读失败：read_failures/access_hits 各 +1；code 保留**首错**
+    // （同一 tile 在运行期间被并发改写时，不把不同错因混成一条）。
+    void put_error(uint64_t k, const P3TileFailure& f, int worker_id) {
+        std::lock_guard<std::mutex> lk(mu);
+        ++stat_open_fail;
+        ++stat_error_read;
+        auto it = errors.find(k);
+        if (it == errors.end()) {
+            if (errors.size() >= kMaxErrorEntries) return;   // 上限保护，仍判红
+            ErrorRec r;
+            r.f = f;
+            r.f.read_failures = 1;
+            r.f.access_hits = 1;
+            if (worker_id >= 0) r.workers.insert(worker_id);
+            sync_workers(&r);
+            errors.emplace(k, std::move(r));
+            return;
+        }
+        ++it->second.f.read_failures;
+        ++it->second.f.access_hits;
+        if (worker_id >= 0) it->second.workers.insert(worker_id);
+        sync_workers(&it->second);
+    }
+    // 热缓存错误槽命中：与 get_error 同语义（不含锁内 map 查找）。
+    void note_error_hit(uint64_t k, int worker_id) {
+        std::lock_guard<std::mutex> lk(mu);
+        auto it = errors.find(k);
+        if (it == errors.end()) return;
+        ++stat_error_hit;
+        ++it->second.f.access_hits;
+        if (worker_id >= 0) it->second.workers.insert(worker_id);
+        sync_workers(&it->second);
+    }
 };
+
+// AIO 分类码 -> 采样状态（IO 独立，其余完整性错误统一 P3_RS_INTEGRITY）。
+int status_from_tile_code(int code) {
+    if (code == P3_TILE_IO_ERROR) return P3_RS_IO;
+    if (code == P3_TILE_OK ||
+        code == P3_TILE_OUTSIDE_DECLARED_FOOTPRINT)
+        return P3_RS_OK;
+    return P3_RS_INTEGRITY;
+}
+
+P3TileFailure make_tile_failure(const AioHipsTileStatus& st, uint64_t tip,
+                                int worker_id) {
+    P3TileFailure f;
+    f.code = (st.code >= P3_TILE_DECLARED_MISSING && st.code <= P3_TILE_FOOTPRINT_UNDETERMINED)
+                 ? st.code
+                 : P3_TILE_IO_ERROR;
+    f.tile_ipix = tip;
+    f.cfitsio_status = st.cfitsio_status;
+    f.footprint_identity = st.footprint_identity;
+    f.declared = st.declared;
+    f.read_failures = 1;
+    f.access_hits = 1;
+    f.worker_min = worker_id >= 0 ? worker_id : -1;
+    f.worker_max = worker_id >= 0 ? worker_id : -1;
+    f.worker_count = worker_id >= 0 ? 1u : 0u;
+    std::snprintf(f.tile_path, sizeof(f.tile_path), "%s", st.tile_path);
+    std::snprintf(f.detail, sizeof(f.detail), "%s", st.detail);
+    return f;
+}
 }  // namespace
 
 struct P3SamplerImpl {
@@ -126,13 +237,17 @@ struct P3SamplerImpl {
     // 共享有界 tile 缓存: 同一工作集合的多个 worker 指向同一实例 (P30)。
     std::shared_ptr<SharedTileCache> cache;
     // 本 sampler 专属前端热缓存 (每线程一个 sampler ⇒ 无锁访问)。
-    //   hot_state: 0=空槽 1=命中(hot_val 有效, pin 住 tile) 2=已知缺失
+    //   hot_state: 0=空槽 1=命中(hot_val 有效) 2=合法无覆盖 3=完整性错误
     uint64_t hot_key[kHotSlots];
     uint8_t hot_state[kHotSlots];
     std::shared_ptr<const TileData> hot_val[kHotSlots];
+    P3TileFailure hot_err[kHotSlots];
     std::string root;
     std::string last_err;
     P3UncertaintySource unc_src = P3_UNC_NONE;   // uncertainty 子产品类型标记
+    int footprint_identity = -1;                 // AIO_HIPS_FOOTPRINT_*
+    int worker_id = -1;                          // 聚合用（不改变数学）
+    P3TileFailure last_failure;                  // 本 sampler 最近一次采样失败
     // P30: "缺失 tile 负缓存"开关 (默认开)。1=正常生产语义; 0=仅回归阴性对照
     // (退化为修复前"每个缺失像素重试一次失败 open"), 不得用于生产配置。
     int absent_cache = 1;
@@ -147,47 +262,91 @@ struct P3SamplerImpl {
     }
 };
 
-// 取一个 tile (命中返回 pin 住的共享指针; 缺失/读失败返回 nullptr)。
-// 顺序: 线程本地热缓存 → 共享 LRU(锁) → 负缓存 → 真读(进程级 CFITSIO 互斥)。
-static std::shared_ptr<const TileData> fetch_tile(P3SamplerImpl* s, uint64_t tip) {
+// 取一个 tile 的结果：数据 / 合法无覆盖 / 完整性错误。
+enum class TileFetch { Ok, Outside, Error };
+
+// 取一个 tile。顺序: 线程本地热缓存 → 共享 LRU(锁) → 错误缓存 → 合法 absent
+// → 真读(进程级 CFITSIO 互斥)。失败时 last_failure 必被置为具体错误身份。
+static TileFetch fetch_tile(P3SamplerImpl* s, uint64_t tip,
+                            std::shared_ptr<const TileData>* out) {
+    out->reset();
     const size_t slot = static_cast<size_t>(tip * 0x9E3779B97F4A7C15ull) &
                         (kHotSlots - 1);
-    if (s->hot_state[slot] != 0 && s->hot_key[slot] == tip)
-        return s->hot_state[slot] == 1 ? s->hot_val[slot]
-                                       : std::shared_ptr<const TileData>();
+    if (s->hot_state[slot] != 0 && s->hot_key[slot] == tip) {
+        if (s->hot_state[slot] == 1) {
+            *out = s->hot_val[slot];
+            return TileFetch::Ok;
+        }
+        if (s->hot_state[slot] == 2) return TileFetch::Outside;
+        s->last_failure = s->hot_err[slot];
+        s->cache->note_error_hit(tip, s->worker_id);
+        return TileFetch::Error;
+    }
     if (std::shared_ptr<const TileData> hit = s->cache->get(tip)) {
         s->hot_key[slot] = tip; s->hot_state[slot] = 1; s->hot_val[slot] = hit;
-        return hit;
+        *out = hit;
+        return TileFetch::Ok;
+    }
+    P3TileFailure cached_failure;
+    if (s->cache->get_error(tip, s->worker_id, &cached_failure)) {
+        s->last_failure = cached_failure;
+        s->hot_key[slot] = tip; s->hot_state[slot] = 3;
+        s->hot_err[slot] = cached_failure;
+        return TileFetch::Error;
     }
     if (s->absent_cache && s->cache->is_absent(tip)) {
         s->hot_key[slot] = tip; s->hot_state[slot] = 2; s->hot_val[slot].reset();
-        return std::shared_ptr<const TileData>();
+        return TileFetch::Outside;
     }
     auto tile = std::make_shared<TileData>(static_cast<size_t>(kReaderBuf));
-    if (aio_hips_read_tile_f32(s->ds, tip, tile->data()) != 0) {
-        s->last_err = std::string("read_tile ") + std::to_string(tip) + ": " +
-                      aio_hips_reader_last_error();
-        s->cache->note_open_failure();       // 观测: 真实失败 open (含关闭负缓存时)
-        if (s->absent_cache) {
-            s->cache->mark_absent(tip);      // 负缓存 (修复前: 每像素重试)
-            s->hot_key[slot] = tip; s->hot_state[slot] = 2; s->hot_val[slot].reset();
-        }
-        return std::shared_ptr<const TileData>();
+    AioHipsTileStatus st{};
+    const int rc = aio_hips_read_tile_f32_ex(s->ds, tip, tile->data(), &st);
+    if (rc == AIO_HIPS_TILE_OK) {
+        s->cache->note_checksum(st.checksum_present != 0);
+        s->cache->put(tip, tile);
+        s->hot_key[slot] = tip; s->hot_state[slot] = 1; s->hot_val[slot] = tile;
+        *out = tile;
+        return TileFetch::Ok;
     }
-    s->cache->put(tip, tile);
-    s->hot_key[slot] = tip; s->hot_state[slot] = 1; s->hot_val[slot] = tile;
-    return tile;
+    if (rc == AIO_HIPS_TILE_OUTSIDE_DECLARED_FOOTPRINT) {
+        s->cache->note_outside_read();       // 观测: 合法无覆盖代价
+        if (s->absent_cache) s->cache->mark_absent(tip);
+        s->hot_key[slot] = tip; s->hot_state[slot] = 2; s->hot_val[slot].reset();
+        return TileFetch::Outside;
+    }
+    // Issue #87: 真实读取失败/损坏/声明内缺失/校验失败 —— **不**进 absent 负缓存，
+    // 进独立错误缓存并保留具体身份；下次命中复现同一故障，不会变成"缺失"。
+    P3TileFailure f = make_tile_failure(st, tip, s->worker_id);
+    if (rc < 0) {   // 参数/异常屏障（正常不可达）
+        f.code = P3_TILE_IO_ERROR;
+        f.cfitsio_status = 0;
+        std::snprintf(f.detail, sizeof(f.detail), "reader returned %d: %s", rc,
+                      aio_hips_reader_last_error());
+    }
+    s->last_err = std::string("read_tile ") + std::to_string(tip) + ": " + f.detail;
+    s->last_failure = f;
+    s->cache->put_error(tip, f, s->worker_id);
+    s->hot_key[slot] = tip; s->hot_state[slot] = 3; s->hot_err[slot] = f;
+    return TileFetch::Error;
 }
 
-// 读一个叶级像素: 命中=值; tile 缺失=false(coverage=0); NaN 像素=命中(值 NaN)
-static bool read_leaf(P3SamplerImpl* s, uint64_t leaf_ipix, float* out) {
+// 读一个叶级像素：
+//   *present=true  → *out 有效（tile 内 NaN 也是有效值, §4）;
+//   *present=false → 合法无覆盖（OUTSIDE, coverage=0）;
+//   返回 P3_RS_INTEGRITY/P3_RS_IO → 真实故障，调用方不得当 OK 继续。
+static P3ResampleStatus read_leaf(P3SamplerImpl* s, uint64_t leaf_ipix, float* out,
+                                  bool* present) {
+    *present = false;
     // leaf nside = 512·2^K → tile_order=K 的父 ipix; 局部 512² 由 nested_local 映射
     const int tile_order = s->order;
     const uint32_t leaf_order = static_cast<uint32_t>(tile_order) + 9;
-    const uint64_t tip = acsd::healpix::leaf_to_tile_nest(leaf_ipix, leaf_order,
-                                                             static_cast<uint32_t>(tile_order));   // 传"阶"非 nside
-    const std::shared_ptr<const TileData> tile = fetch_tile(s, tip);
-    if (!tile) return false;   // 缺 tile
+    const uint64_t tip = acsd::healpix::leaf_to_tile_nest(
+        leaf_ipix, leaf_order, static_cast<uint32_t>(tile_order));   // 传"阶"非 nside
+    std::shared_ptr<const TileData> tile;
+    const TileFetch fs = fetch_tile(s, tip, &tile);
+    if (fs == TileFetch::Outside) return P3_RS_OK;   // 合法无覆盖
+    if (fs == TileFetch::Error)
+        return static_cast<P3ResampleStatus>(status_from_tile_code(s->last_failure.code));
     // leaf→tile 内标准 HiPS 排列索引
     const uint64_t first = acsd::healpix::tile_to_leaf_nest(
         tip, static_cast<uint32_t>(tile_order), leaf_order);
@@ -195,7 +354,8 @@ static bool read_leaf(P3SamplerImpl* s, uint64_t leaf_ipix, float* out) {
     const uint64_t fits_index = acsd::healpix::nested_local_to_fits_index(
         local, 9, kTileWidth);
     *out = (*tile)[fits_index];   // NaN 是命中(值语义, §4)
-    return true;
+    *present = true;
+    return P3_RS_OK;
 }
 
 P3ResampleStatus p3_order_select(int max_order, double scale_deg_per_px,
@@ -250,6 +410,60 @@ void p3_sampler_cache_stats(const P3Sampler* s, P3CacheStats* out) {
     out->open_failures = c->stat_open_fail;
     out->absent_entries = c->absent.size();
     out->evictions = c->stat_evict;
+    out->tile_error_reads = c->stat_error_read;
+    out->tile_error_hits = c->stat_error_hit;
+    out->tile_error_entries = c->errors.size();
+    out->outside_reads = c->stat_outside;
+    out->checksum_present_reads = c->stat_checksum_present;
+    out->checksum_absent_reads = c->stat_checksum_absent;
+    out->footprint_identity = s->impl->footprint_identity;
+    for (const auto& kv : c->errors) {
+        switch (kv.second.f.code) {
+            case P3_TILE_DECLARED_MISSING: ++out->declared_missing; break;
+            case P3_TILE_INVALID: ++out->invalid_tiles; break;
+            case P3_TILE_CHECKSUM_FAILED: ++out->checksum_failures; break;
+            case P3_TILE_IO_ERROR: ++out->io_errors; break;
+            case P3_TILE_FOOTPRINT_UNDETERMINED: ++out->undetermined; break;
+            default: break;
+        }
+    }
+}
+
+void p3_sampler_set_worker_id(P3Sampler* s, int worker_id) {
+    if (!s || !s->impl) return;
+    s->impl->worker_id = worker_id;
+}
+
+int p3_sampler_tile_failures(const P3Sampler* s, P3TileFailure* out, int max) {
+    if (!s || !s->impl || !s->impl->cache) return 0;
+    SharedTileCache* c = s->impl->cache.get();
+    std::lock_guard<std::mutex> lk(c->mu);
+    if (!out || max <= 0) return (int)c->errors.size();
+    int n = 0;
+    for (const auto& kv : c->errors) {
+        if (n >= max) break;
+        out[n++] = kv.second.f;
+    }
+    return n;
+}
+
+uint64_t p3_sampler_tile_failure_count(const P3Sampler* s) {
+    if (!s || !s->impl || !s->impl->cache) return 0;
+    std::lock_guard<std::mutex> lk(s->impl->cache->mu);
+    return (uint64_t)s->impl->cache->errors.size();
+}
+
+int p3_sampler_last_tile_failure(const P3Sampler* s, P3TileFailure* out) {
+    if (!out) return 0;
+    *out = P3TileFailure{};
+    if (!s || !s->impl || s->impl->last_failure.code == 0) return 0;
+    *out = s->impl->last_failure;
+    return 1;
+}
+
+int p3_sampler_footprint_identity(const P3Sampler* s) {
+    if (!s || !s->impl) return -1;
+    return s->impl->footprint_identity;
 }
 
 void p3_sampler_set_absent_cache(P3Sampler* s, int enabled) {
@@ -291,6 +505,7 @@ P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
     s->order = p.order;
     s->leaf_nside = kTileWidth << p.order;
     s->root = product_dir;
+    s->footprint_identity = aio_hips_footprint_identity(s->ds);
     out->impl = s;
     // 暴露输入实际 order 与**经裁决的**单位身份。
     if (out_order) *out_order = p.order;
@@ -316,7 +531,18 @@ P3ResampleStatus p3_sample_nearest_ex(P3Sampler* s, double ra_deg, double dec_de
     const uint64_t leaf = acsd::healpix::ang2pix_nest(impl->leaf_nside, ra_deg, dec_deg);
     if (leaf_ipix) *leaf_ipix = leaf;   // 恒输出 (c=0 时供 missing 语义消费)
     float v = 0;
-    if (!read_leaf(impl, leaf, &v)) { *value = std::nanf(""); *coverage = 0; return P3_RS_OK; }
+    bool present = false;
+    const P3ResampleStatus r = read_leaf(impl, leaf, &v, &present);
+    if (r != P3_RS_OK) {          // Issue #87: 真实故障不得折叠成 OK+NaN
+        *value = std::nanf("");
+        *coverage = 0;
+        return r;
+    }
+    if (!present) {               // 合法无覆盖
+        *value = std::nanf("");
+        *coverage = 0;
+        return P3_RS_OK;
+    }
     *value = v;              // NaN 直传(§4: S=NaN, C=1)
     *coverage = 1;
     return P3_RS_OK;
@@ -411,12 +637,35 @@ P3ResampleStatus p3_sample_bilinear_nanmask_ex(P3Sampler* s, double ra_deg, doub
     for (int i = 0; i < 2; ++i)
         for (int j = 0; j < 2; ++j)
             if (!q[i][j]) q[i][j] = nearest_pt;
-    // 角点值读取(缺 tile → coverage=0)
-    float v00, v10, v01, v11;
-    const bool g00 = read_leaf(impl, q[0][0]->ipix, &v00);
-    const bool g10 = read_leaf(impl, q[1][0]->ipix, &v10);
-    const bool g01 = read_leaf(impl, q[0][1]->ipix, &v01);
-    const bool g11 = read_leaf(impl, q[1][1]->ipix, &v11);
+    // 角点值读取(缺 tile → coverage=0)。Issue #87: 读取失败必须保留故障——
+    // 四角全部读取（确定性与角序无关），选 tile_ipix 最小的失败作为确定性首错；
+    // 任一角真实故障 ⇒ 返回 P3_RS_INTEGRITY/P3_RS_IO，不得返回 OK+NaN。
+    float v00 = 0, v10 = 0, v01 = 0, v11 = 0;
+    bool g00 = false, g10 = false, g01 = false, g11 = false;
+    P3ResampleStatus fail_status = P3_RS_OK;
+    P3TileFailure first_fail{};
+    uint64_t first_fail_tip = UINT64_MAX;
+    auto read_corner = [&](uint64_t ip, float* out, bool* present) {
+        const P3ResampleStatus r = read_leaf(impl, ip, out, present);
+        if (r != P3_RS_OK) {
+            const P3TileFailure f = impl->last_failure;
+            if (fail_status == P3_RS_OK || f.tile_ipix < first_fail_tip) {
+                fail_status = r;
+                first_fail = f;
+                first_fail_tip = f.tile_ipix;
+            }
+        }
+    };
+    read_corner(q[0][0]->ipix, &v00, &g00);
+    read_corner(q[1][0]->ipix, &v10, &g10);
+    read_corner(q[0][1]->ipix, &v01, &g01);
+    read_corner(q[1][1]->ipix, &v11, &g11);
+    if (fail_status != P3_RS_OK) {
+        impl->last_failure = first_fail;
+        *value = std::nanf("");
+        *coverage = 0;
+        return fail_status;
+    }
     if (!g00 || !g10 || !g01 || !g11) {
         *value = std::nanf(""); *coverage = 0; return P3_RS_OK;
     }
@@ -526,6 +775,7 @@ P3ResampleStatus p3_uncertainty_open(const char* product_dir, int signal_order,
         s->leaf_nside = kTileWidth << p.order;
         s->root = product_dir;
         s->unc_src = c.src;
+        s->footprint_identity = aio_hips_footprint_identity(s->ds);
         out->impl = s;
         *out_src = c.src;
         return P3_RS_OK;
@@ -542,7 +792,10 @@ static P3ResampleStatus read_u_leaf(P3Sampler* u, uint64_t leaf, double* out,
                                     P3UncPixelState* st) {
     auto* impl = u->impl;
     float v = 0;
-    if (!read_leaf(impl, leaf, &v)) { *out = std::nanf(""); *st = P3_U_MISSING; return P3_RS_OK; }
+    bool present = false;
+    const P3ResampleStatus r = read_leaf(impl, leaf, &v, &present);
+    if (r != P3_RS_OK) return r;   // Issue #87: 真实故障不得当 missing 吞掉
+    if (!present) { *out = std::nanf(""); *st = P3_U_MISSING; return P3_RS_OK; }
     if (std::isnan(v)) { *out = std::nanf(""); *st = P3_U_NAN; return P3_RS_OK; }
     const double d = static_cast<double>(v);
     // ivar==0 → u 无效 (§30.4-1: 像素级规则, NaN 传播态, 非产品损坏);

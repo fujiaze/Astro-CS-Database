@@ -20,6 +20,18 @@ using nlohmann::json;
 
 namespace acsd::phase3 {
 namespace {
+const char* tile_code_name(int code) {
+    switch (code) {
+        case P3_TILE_DECLARED_MISSING:           return "P3-TILE-DECLARED-MISSING";
+        case P3_TILE_IO_ERROR:                   return "P3-TILE-IO-ERROR";
+        case P3_TILE_INVALID:                    return "P3-TILE-INVALID";
+        case P3_TILE_CHECKSUM_FAILED:            return "P3-TILE-CHECKSUM-FAILED";
+        case P3_TILE_FOOTPRINT_UNDETERMINED:     return "P3-TILE-FOOTPRINT-UNDETERMINED";
+        case P3_TILE_OUTSIDE_DECLARED_FOOTPRINT: return "P3-TILE-OUTSIDE-DECLARED-FOOTPRINT";
+        default:                                 return "P3-TILE-UNKNOWN";
+    }
+}
+
 struct SessionState {
     const acsd_host_services_v1* host = nullptr;
     std::string last_error;
@@ -227,8 +239,11 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
     // 承载（确定性: 首个失败 worker 的错误被保留）。
     std::mutex werkerr_mu;
     std::string werkerr;
+    // Issue #87: worker 采样遇到真实 tile 故障（声明内缺失/损坏/校验失败/IO/
+    // 足迹不可判）⇒ 置位并**继续扫描**，让共享 tile cache 汇总输出网格实际触及的
+    // 全部坏 tile（按 tile_ipix 升序）；写出 FITS 之前统一判红。
+    std::atomic<bool> tile_integrity_failed{false};
     auto worker = [&](int wid, int y0, int y1) {
-        (void)wid;
         // 每 worker 独立 sampler(独立 tile cache; 读共享只读 HiPS 无写锁)
         P3Sampler w_samp{};
         std::string wserr;
@@ -244,6 +259,7 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
         // P30: 与本 run 唯一的有界 tile 缓存共享 (容量 = max_tiles 总量, 与
         // worker 数无关 → 峰值内存有界; 同一 tile 只解码一次)。只读 + 缺失负缓存。
         p3_sampler_attach_cache(&w_samp, &samp);
+        p3_sampler_set_worker_id(&w_samp, wid);
         // slim 唯一形态（task-9）：不打开 uncertainty 子产品。
         P3WcsDescriptor w_wcs = wcs;   // 值拷贝, worker 本地
         for (int y = y0; y < y1 && cancelled_at.load() < 0;
@@ -263,7 +279,16 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
                     (sampler == "nearest")
                         ? p3_sample_nearest_ex(&w_samp, px_ra, px_dec, &v, &c, &lf[0])
                         : p3_sample_bilinear_ex(&w_samp, px_ra, px_dec, &v, &c, w, lf);
-                if (rst != P3_RS_OK) continue;
+                if (rst != P3_RS_OK) {
+                    // Issue #87: 不得 continue 把故障静默成 NaN/0 并继续出图。
+                    // **继续扫描**剩余行带，让共享 cache 汇总输出网格实际触及的
+                    // 全部坏 tile（按 tile_ipix 升序, 与 worker 时序无关）；写出
+                    // FITS 之前统一判红，不发布任何产物。
+                    tile_integrity_failed.store(true);
+                    sig[(size_t)i] = std::nanf("");
+                    cov[(size_t)i] = 0.0f;
+                    continue;
+                }
                 sig[(size_t)i] = (c == 1) ? v : std::nanf("");
                 cov[(size_t)i] = (c == 1) ? 1.0f : 0.0f;
             }
@@ -282,6 +307,10 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
         worker(0, 0, hpx);
     }
     cancelled_row = cancelled_at.load();
+    // Issue #87: 故障聚合必须在 sampler close 之前取（cache 是唯一载体）。
+    P3TileFailure tile_fails[64];
+    const int n_tile_fail_shown = p3_sampler_tile_failures(&samp, tile_fails, 64);
+    const uint64_t n_tile_fail = p3_sampler_tile_failure_count(&samp);
     if (cancelled_row >= 0) {
         p3_sampler_close(&samp);
         s->last_error = "cancelled at row " + std::to_string(cancelled_row);
@@ -299,6 +328,32 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
         s->log(3, "p3_session",
                s->last_error + "; hips_dir=" + hips_dir);
         return ACS_ERR_IO;
+    }
+    // Issue #87: tile 完整性故障（声明内缺失/损坏/校验失败/IO/足迹不可判）必须
+    // 在写出 FITS 之前判红；不产生成功 FITS、不掩盖具体 tile 身份。
+    if (tile_integrity_failed.load() || n_tile_fail > 0) {
+        p3_sampler_close(&samp);
+        std::string msg = "tile integrity failure (" + std::to_string(n_tile_fail) +
+                          " unique tile(s))";
+        bool is_io = false;
+        if (n_tile_fail_shown > 0) {
+            const P3TileFailure& f = tile_fails[0];   // 按 tile_ipix 升序的确定性首错
+            is_io = (f.code == P3_TILE_IO_ERROR);
+            msg += std::string(": ") + tile_code_name(f.code) +
+                   " tile_ipix=" + std::to_string(f.tile_ipix) +
+                   " detail=" + f.detail;
+            if (n_tile_fail_shown > 1) {
+                msg += "; next: ";
+                for (int i = 1; i < n_tile_fail_shown && i < 4; ++i) {
+                    if (i > 1) msg += ", ";
+                    msg += std::to_string(tile_fails[i].tile_ipix) + ":" +
+                           tile_code_name(tile_fails[i].code);
+                }
+            }
+        }
+        s->last_error = msg;
+        s->log(3, "p3_session", msg + "; hips_dir=" + hips_dir);
+        return is_io ? ACS_ERR_IO : ACS_ERR_PARAM;
     }
 
     // provenance

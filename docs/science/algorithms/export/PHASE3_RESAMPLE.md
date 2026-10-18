@@ -140,10 +140,15 @@ function phase3_resample(hips_dir, params):
 
 | 条件 | 行为 |
 |---|---|
-| 缺 tile 文件 | 当前样本 S=NaN,C=0；聚合的 missing_tiles provenance 并未接线，已声明tile损坏/读取失败也可能同态折叠，必须额外验证 |
+| 缺 tile 文件（`OUTSIDE_DECLARED_FOOTPRINT`） | 合法无覆盖：该样本 S=NaN,C=0（经 absent 负缓存，命中不改变像素值）；bilinear 任一角如此则该足迹 C=0,S=NaN |
+| 缺 tile 文件（`DECLARED_MISSING`） | 声明覆盖内缺失：返回 `P3_RS_INTEGRITY`，run 层 fail-closed，不发布 FITS/bin |
+| 损坏/非法 tile（`INVALID_TILE`） | FITS 截断、NAXIS/尺寸、BITPIX/头部损坏：返回 `P3_RS_INTEGRITY`，run fail-closed |
+| 读取 I/O 故障（`IO_ERROR`） | 返回 `P3_RS_IO`，run fail-closed（CLI I/O 域） |
+| 校验失败（`CHECKSUM_FAILED`） | 存在 DATASUM/CHECKSUM 但验证失败：返回 `P3_RS_INTEGRITY`，run fail-closed；缺校验字段不是失败但计入 `checksum_absent_reads` |
+| 覆盖身份不足（`FOOTPRINT_UNDETERMINED`） | MOC 仅低阶父级/覆盖声明不完整/仅 manifest 计数：返回 `P3_RS_INTEGRITY`，不冒充合法空洞 |
 | tile 内 NaN（nearest，单样本） | 零合格样本 ⇒ S=NaN（覆盖级 NaN）, C=1(mask 语义=coverage+NaN 判定) |
 | bilinear 四邻域**部分**非有限 | 不合格邻域样本按**样本级掩膜**剔除、剩余有效邻域**重归一**后求加权和，并暴露被剔除样本计数 `n_rejected_nonfinite`（**强制计数**，按原因分类、互斥可加）；C=1（4 tile 均可读）——禁「零填」替代语义。方差项随重归一权重传播（Σc'_k²u_k，c'=生效权重） |
-| bilinear 四邻域 tile 全缺失 | 该足迹 C=0, S=NaN, provenance 记 missing |
+| bilinear 四邻域 tile 全缺失（合法无覆盖） | 该足迹 C=0, S=NaN |
 | bilinear 邻域含 ±Inf | ±Inf 与 NaN 同属不合格样本，按样本级掩膜剔除并重归一；coverage 规则同上 |
 | RA wrap 0/360 | 球面角差归一, 无接缝 |
 | 中心距极点 <5° / 输出跨 TAN 半球 | 显式拒(G2 前) |
@@ -164,7 +169,7 @@ function phase3_resample(hips_dir, params):
 
 - CPU O(W_out·H_out)次像元位置映射/采样外加真实tile I/O；bilinear每像素还用3×3邻叶查找和动态vector，不是纯四次浮点运算。
 - CURRENT CLI 采用 Runtime 子块写中间 p3_resampled.bin（2×W×H×sizeof(f32)磁盘字节），随后流式写单 PRIMARY FITS；RAM约为子块×在途任务、共享成功tile LRU、每worker热缓存pin、读解码及调度元数据，而不是整幅S/C必常驻。
-- 成功tile LRU可配置 max_tiles，但 absent负缓存独立map没有相同cap；内存峰值与miss竞态须真实测量。原O(W×H)RAM属兼容整幅会话/历史设想，不是默认生产条件。
+- 成功tile LRU可配置 max_tiles，但 absent负缓存独立map没有相同cap；Issue #87 的完整性错误表是独立 `std::map<tile_ipix,ErrorRec>`（按 tile 升序、上限 4096、失败路径专用），不占成功 LRU 容量；内存峰值与miss竞态须真实测量。原O(W×H)RAM属兼容整幅会话/历史设想，不是默认生产条件。
 
 ## 7 CPU-only 后端策略（V5）
 

@@ -20,6 +20,23 @@ tile定位分PRESENT、MISSING、INVALID；MISSING表示该请求层没有块，
 
 局部树允许缺子树；无覆盖signal按NaN/明确状态，不能填0。tile内合法非有限表示、数据损坏和读取错误按接口策略区分。Moc.fits可作可选枚举提示，损坏提示不应制造伪覆盖；查询候选和实际有效像元不同。
 
+### 3.1 tile 读取完整性分类（Issue #87，生产合同）
+
+reader 的整 tile 读取入口 `aio_hips_read_tile_f32/f64/i32_ex` 返回稳定分类，旧 `aio_hips_read_tile_*` 保留 `0=成功/非0=失败` 与旧负码兼容：
+
+| code | 语义 | 生产处置 |
+|---|---|---|
+| `OUTSIDE_DECLARED_FOOTPRINT` | 证明确实没有覆盖 | 合法：NaN / coverage=0，可进 absent 负缓存 |
+| `DECLARED_MISSING` | 覆盖声明内 tile 缺失 | 输入完整性错误，fail-closed |
+| `IO_ERROR` | 真实打开/读取/权限/IO 故障 | fail-closed，CLI I/O 域 |
+| `INVALID_TILE` | FITS 截断/NAXIS/尺寸/BITPIX/头部损坏 | fail-closed，输入域 |
+| `CHECKSUM_FAILED` | 存在 DATASUM/CHECKSUM 且验证失败 | fail-closed，输入域 |
+| `FOOTPRINT_UNDETERMINED` | 覆盖声明存在但身份不足以判定缺失是否合法 | fail-closed，不冒充合法空洞 |
+
+覆盖身份按强弱分级并随成功产物显式落盘：`MOC_LEAF`（MOC 完整枚举 `order==hips_order` 叶级单元）→ 集合内缺失 `DECLARED_MISSING`、集合外缺失 `OUTSIDE_DECLARED_FOOTPRINT`；`MOC_UNDETERMINED`（MOC 含低阶父级/非法阶条目，或 `manifest.n_leaf_tiles` 大于 MOC 叶级条目）→ 集合外缺失 `FOOTPRINT_UNDETERMINED`（父级覆盖归约是独立任务 #95，本 reader 不静默归约）；`MANIFEST_ONLY`（无 MOC 但 manifest 声称有覆盖）→ 缺失 `FOOTPRINT_UNDETERMINED`；`NONE`（无 MOC 且无覆盖计数）按“MOC 是可选枚举提示”把未声明单元的缺失记为 `OUTSIDE_DECLARED_FOOTPRINT`，身份等级随产物显式记录，不暗中冒充 `MOC_LEAF`。
+
+校验规则：DATASUM/CHECKSUM 存在时以已读字节计算 1's-complement 校验和（不额外重读 1 MiB 数据）；缺失校验字段不是失败，但必须在缓存统计 `checksum_absent_reads` 中显式计数；BSCALE/BZERO/BLANK/压缩等改变原始字节语义的路径回退 cfitsio 全 HDU 校验。表观 absent 与完整性错误必须在 tile cache 中**分开存储**：错误缓存命中复现同一 code/path/CFITSIO 状态，不会降级成“缺失”。多 worker 聚合按 `tile_ipix` 升序、同一 tile 合并一条并记录 `worker_min/max/count`；失败运行不得发布 FITS、resampled bin 或 complete manifest。
+
 ## 4. 句柄与缓冲
 
 open解析产品/子产品并校验属性，调用方分配输出缓冲，使用完close。单句柄串行，不同worker各有reader或在读层串行化共享句柄。dtype转换、缓冲容量、部分读和取消采用对应FITS接口合同，不能把旧整数码按CLI退出码直接解释。
