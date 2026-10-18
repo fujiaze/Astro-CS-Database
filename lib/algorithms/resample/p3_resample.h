@@ -13,8 +13,45 @@ typedef enum {
     P3_RS_OK = 0,
     P3_RS_PARAM = 1,
     P3_RS_UNSUPPORTED = 2,
-    P3_RS_IO = 3
+    P3_RS_IO = 3,
+    /* Issue #87: tile 完整性失败（声明内缺失/损坏/校验失败/足迹不可判）。
+     * 具体 code/tile id/CFITSIO 原因经 p3_sampler_last_tile_failure /
+     * p3_sampler_tile_failures 读取；采样函数不再把它折叠成 P3_RS_OK+NaN。 */
+    P3_RS_INTEGRITY = 4
 } P3ResampleStatus;
+
+/* Issue #87: tile 读取完整性分类（与 AIO reader 的 AioHipsTileCode 一一对应）。 */
+typedef enum {
+    P3_TILE_OK = 0,
+    P3_TILE_OUTSIDE_DECLARED_FOOTPRINT = 1,  /* 合法无覆盖: NaN/coverage=0 */
+    P3_TILE_DECLARED_MISSING = 2,            /* 声明覆盖内缺失: 输入完整性错误 */
+    P3_TILE_IO_ERROR = 3,                    /* 真实打开/读取/权限/IO 故障 */
+    P3_TILE_INVALID = 4,                     /* FITS 截断/维度/BITPIX/头部损坏 */
+    P3_TILE_CHECKSUM_FAILED = 5,             /* DATASUM/CHECKSUM 存在但验证失败 */
+    P3_TILE_FOOTPRINT_UNDETERMINED = 6       /* 覆盖身份不足, 不冒充合法空洞 */
+} P3TileErrorCode;
+
+/* 聚合故障记录（按 tile_ipix 升序; 同一 tile 多 worker 访问合并为一条）。
+ * read_failures = 真实进入文件 open/read 并失败的次数（错误缓存命中不计）;
+ * access_hits  = 采样路径遇到该错误的次数（观测值, 受 worker 停止点影响）;
+ * worker_min/max/count = 访问过该错误的 worker 集合（确定性统计量）。 */
+typedef struct P3TileFailure {
+    int code = 0;                 /* P3TileErrorCode */
+    uint64_t tile_ipix = 0;
+    int cfitsio_status = 0;
+    int footprint_identity = 0;   /* AIO_HIPS_FOOTPRINT_* */
+    int declared = -1;            /* 1=声明内, 0=声明外, -1=不可判 */
+    uint64_t read_failures = 0;
+    uint64_t access_hits = 0;
+    int worker_min = -1;
+    int worker_max = -1;
+    uint64_t worker_count = 0;
+    char tile_path[1024] = {0};
+    char detail[512] = {0};
+} P3TileFailure;
+
+/* 设置 sampler 的 worker 身份（仅用于故障聚合的确定性 worker_min/max/count;
+ * 不改变数学路径）。默认 -1（主 sampler / 串行路径）。 */
 
 /* order selector(确定性): 选最小 order L∈[0,max] 使 HiPS 叶级分辨率 ≤ 输出 scale;
  * 无更细层时取 max_order。 */
@@ -42,6 +79,26 @@ P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
                                     int* out_order, std::string* out_bunit,
                                     std::string* err);
 
+/* ── Issue #87: tile 完整性故障身份与聚合 ───────────────────────────────────
+ * 语义: OUTSIDE_DECLARED_FOOTPRINT 仍是合法无覆盖（S=NaN,C=0,P3_RS_OK）；
+ * DECLARED_MISSING / INVALID / CHECKSUM_FAILED / FOOTPRINT_UNDETERMINED 返回
+ * P3_RS_INTEGRITY，IO_ERROR 返回 P3_RS_IO；具体原因由下列接口给出。
+ * 正常 absent 负缓存与错误状态分开存储：错误缓存命中复现同一 code/path/detail，
+ * 不会把失败降级成"缺失"，也不会重新读文件改变语义。 */
+void p3_sampler_set_worker_id(P3Sampler* s, int worker_id);
+
+/* 共享缓存上的聚合故障（按 tile_ipix 升序）。返回写入 out 的条数（≤max）；
+ * 无故障返回 0。max<=0 或 out==NULL 只返回唯一错误 tile 数。 */
+int p3_sampler_tile_failures(const P3Sampler* s, P3TileFailure* out, int max);
+uint64_t p3_sampler_tile_failure_count(const P3Sampler* s);
+
+/* 最近一次采样失败（单次 nearest 的 tile / bilinear 四角中 tile_ipix 最小的
+ * 确定性首错）。code==0 表示无失败。 */
+int p3_sampler_last_tile_failure(const P3Sampler* s, P3TileFailure* out);
+
+/* 输入覆盖身份（AIO_HIPS_FOOTPRINT_*; -1=不可用）。 */
+int p3_sampler_footprint_identity(const P3Sampler* s);
+
 /* P3-006/DOC-003: 配置 tile cache 容量上限(内存守卫 ARCH-P3 §3)。
  * max_tiles≤0 → 恢复默认(8); 请求可降不可升超物理内存守卫由上层校验。
  * P30: 容量作用在**共享** tile 缓存上 (单位 = 512²f32 tile = 1 MiB); 多 worker
@@ -67,10 +124,23 @@ struct P3CacheStats {
     unsigned long long resident_tiles = 0;    // 当前常驻 (含已知缺失项)
     unsigned long long hits = 0;
     unsigned long long misses = 0;
-    unsigned long long absent_reads = 0;      // 写入负缓存的次数 (= 去重后的失败 open)
+    unsigned long long absent_reads = 0;      // 写入合法无覆盖负缓存的次数
     unsigned long long open_failures = 0;     // 真实失败 open 总次数 (含重试)
-    unsigned long long absent_entries = 0;    // 负缓存条目数
+    unsigned long long absent_entries = 0;    // 合法无覆盖负缓存条目数
     unsigned long long evictions = 0;
+    // ── Issue #87: 完整性错误状态与缓存命中（与合法 absent 分开）──────────────
+    unsigned long long tile_error_reads = 0;    // 真实失败读取（进入 open/read）
+    unsigned long long tile_error_hits = 0;     // 错误缓存命中（不改变故障语义）
+    unsigned long long tile_error_entries = 0;  // 唯一错误 tile 数
+    unsigned long long outside_reads = 0;       // 合法无覆盖的失败 open 次数
+    unsigned long long declared_missing = 0;    // 唯一声明内缺失 tile 数
+    unsigned long long invalid_tiles = 0;       // 唯一 INVALID tile 数
+    unsigned long long checksum_failures = 0;   // 唯一 CHECKSUM_FAILED tile 数
+    unsigned long long io_errors = 0;           // 唯一 IO_ERROR tile 数
+    unsigned long long undetermined = 0;        // 唯一 FOOTPRINT_UNDETERMINED tile 数
+    unsigned long long checksum_present_reads = 0; // 成功读取中带可验证校验字段的次数
+    unsigned long long checksum_absent_reads = 0;  // 成功读取中缺校验字段的次数（非失败）
+    int footprint_identity = -1;                // AIO_HIPS_FOOTPRINT_*
 };
 void p3_sampler_cache_stats(const P3Sampler* s, P3CacheStats* out);
 

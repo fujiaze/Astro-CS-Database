@@ -49,6 +49,65 @@ AIO_HIPS_RD_EXPORT int aio_hips_tile_count(AioHipsDataset* d);
 // 获取第 i 个叶级 tile 的 NESTED ipix
 AIO_HIPS_RD_EXPORT int aio_hips_tile_ipix(AioHipsDataset* d, int i, uint64_t* out_ipix);
 
+// ── Issue #87: tile 读取完整性分类 ──────────────────────────────────────────
+// 旧 *_f32/_f64/_i32 返回 0=成功、负=失败，保留原有负码语义（见下）；新增的
+// *_ex 入口把"合法无覆盖"、"声明内缺失"、"I/O 故障"、"FITS 损坏"、"校验失败"、
+// "足迹不可判"分开，并携带 CFITSIO 原始状态/路径/声明身份。
+//
+// 覆盖身份（footprint identity）来源与强弱（数据合同见 docs/engineering/contracts/
+// HIPS_IO.md「状态与缺覆盖」）:
+//   MOC_LEAF        : signal/Moc.fits 完整枚举 order==hips_order 的叶级单元
+//                     ⇒ 集合内缺失 = DECLARED_MISSING；集合外缺失 = OUTSIDE。
+//   MOC_UNDETERMINED: MOC 存在但含低阶(父级)或非法阶条目，无法归约到叶级；
+//                     或 manifest.n_leaf_tiles 大于 MOC 叶级条目数（覆盖声明不完整）
+//                     ⇒ 集合外缺失 = FOOTPRINT_UNDETERMINED（不冒充合法空洞；
+//                     父级覆盖归约是独立任务 #95，本 reader 不做静默归约）。
+//   MANIFEST_ONLY   : 无 MOC，但 manifest.n_leaf_tiles>0 声称有覆盖却无 tile 身份
+//                     ⇒ 任意缺失 = FOOTPRINT_UNDETERMINED。
+//   NONE            : 无 MOC 且 manifest 无覆盖计数。HiPS 的 MOC 是可选枚举提示
+//                     （HIPS_IO §3）：产品未声明任何覆盖单元 ⇒ 缺失不是"声明内缺失"，
+//                     记为 OUTSIDE（合法无覆盖，NaN/coverage=0），且身份等级
+//                     随产品成功产物显式落盘，绝不暗中冒充 MOC_LEAF。
+//
+// 失败分类（缺省不改变旧调用方 "0=成功 / 非0=失败" 的判法）:
+//   OUTSIDE_DECLARED_FOOTPRINT  合法无覆盖（旧码 -2，负缓存可缓存）
+//   DECLARED_MISSING            声明覆盖内 tile 缺失（旧码 -7，输入完整性错误）
+//   IO_ERROR                    真实打开/读取/权限/IO 故障（旧码 -8）
+//   INVALID_TILE                FITS 截断/维度/BITPIX/头部损坏（旧码 -3..-6）
+//   CHECKSUM_FAILED             存在 DATASUM/CHECKSUM 且验证失败（旧码 -9）
+//   FOOTPRINT_UNDETERMINED      覆盖声明存在但身份不足（旧码 -10）
+typedef enum AioHipsTileCode {
+    AIO_HIPS_TILE_OK = 0,
+    AIO_HIPS_TILE_OUTSIDE_DECLARED_FOOTPRINT = 1,
+    AIO_HIPS_TILE_DECLARED_MISSING = 2,
+    AIO_HIPS_TILE_IO_ERROR = 3,
+    AIO_HIPS_TILE_INVALID = 4,
+    AIO_HIPS_TILE_CHECKSUM_FAILED = 5,
+    AIO_HIPS_TILE_FOOTPRINT_UNDETERMINED = 6
+} AioHipsTileCode;
+
+typedef enum AioHipsFootprintIdentity {
+    AIO_HIPS_FOOTPRINT_NONE = 0,
+    AIO_HIPS_FOOTPRINT_MOC_LEAF = 1,
+    AIO_HIPS_FOOTPRINT_MOC_UNDETERMINED = 2,
+    AIO_HIPS_FOOTPRINT_MANIFEST_ONLY = 3
+} AioHipsFootprintIdentity;
+
+#define AIO_HIPS_TILE_PATH_MAX 1024
+#define AIO_HIPS_TILE_DETAIL_MAX 512
+
+typedef struct AioHipsTileStatus {
+    int code;                 // AioHipsTileCode
+    int legacy_code;          // 旧 *_f32 返回码（0 或 -2..-10），供旧调用方兼容
+    int cfitsio_status;       // 底层 CFITSIO status（0 = 无）
+    int footprint_identity;   // AioHipsFootprintIdentity
+    int declared;             // 1=在覆盖声明集合内, 0=不在, -1=不可判
+    int checksum_present;     // 1=存在可验证校验字段, 0=缺省（缺省不算失败）
+    uint64_t tile_ipix;
+    char tile_path[AIO_HIPS_TILE_PATH_MAX];
+    char detail[AIO_HIPS_TILE_DETAIL_MAX];
+} AioHipsTileStatus;
+
 // 读取一个叶级 tile 为 float32 (signal/support)。out 至少 512*512*sizeof(float)。
 // 返回 0=成功。
 // out 为 standard HiPS row-major —— out[y*512+x] 中
@@ -62,6 +121,22 @@ AIO_HIPS_RD_EXPORT int aio_hips_read_tile_f64(AioHipsDataset* d, uint64_t ipix, 
 // out 至少 512*512*sizeof(int32_t)。tile BITPIX 必须 = 32, 否则返回 -6
 // (诊断平面 dtype 由 §30.2 固定 int32, 不接受 float 冒充)。
 AIO_HIPS_RD_EXPORT int aio_hips_read_tile_i32(AioHipsDataset* d, uint64_t ipix, int32_t* out);
+
+// Issue #87 分类入口: 返回 AioHipsTileCode（OK=0; 其它见 enum）。st 可为 NULL。
+// 成功时写满 out；非 OK 时不写 out。底层 CFITSIO 错因保留在 st->cfitsio_status
+// 与 st->detail（诊断串，不用于判成败）。
+AIO_HIPS_RD_EXPORT int aio_hips_read_tile_f32_ex(
+    AioHipsDataset* d, uint64_t ipix, float* out, AioHipsTileStatus* st);
+AIO_HIPS_RD_EXPORT int aio_hips_read_tile_f64_ex(
+    AioHipsDataset* d, uint64_t ipix, double* out, AioHipsTileStatus* st);
+AIO_HIPS_RD_EXPORT int aio_hips_read_tile_i32_ex(
+    AioHipsDataset* d, uint64_t ipix, int32_t* out, AioHipsTileStatus* st);
+
+// 覆盖身份/声明查询（诊断与传播用；失败返回 -1）。
+AIO_HIPS_RD_EXPORT int aio_hips_footprint_identity(AioHipsDataset* d);
+AIO_HIPS_RD_EXPORT int aio_hips_declared_tile_count(AioHipsDataset* d);
+// 1=在覆盖声明集合内, 0=不在, -1=不可判/参数错误。
+AIO_HIPS_RD_EXPORT int aio_hips_tile_declared(AioHipsDataset* d, uint64_t ipix);
 
 // 按 NESTED leaf ipix 查询单像素值。
 // 内部执行 leaf_ipix -> local nested -> 标准 tile xy -> FITS row-major。

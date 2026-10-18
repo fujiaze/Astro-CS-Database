@@ -15951,6 +15951,23 @@ Result<void> p3n_guard_fail(const P3InputUnit& g, Json* man) {
   return Result<void>::fail(Error(dom, g.code + ": " + g.reason));
 }
 
+// ── Issue #87: 失败 run 不得留下**上一次**成功产物冒充本次结果 ──────────────
+// 生产 5 节点链的第一个节点 (properties) 在写任何本 run 产物前清掉同名成功
+// artifact。这样无论本次在哪个节点失败 (含 properties 输入拒绝)，output_dir 里
+// 都不会残留可被误读的 output_phase3.fits / p3_resampled.bin / p3_resampled.json /
+// p3_writer.json / p3_verify.json / p3_tile_failures.json；run manifest 的
+// status=incomplete 是唯一运行状态。p3_props.json / p3_wcs.json 由各自节点重写，
+// 不在此清理。resample 节点直调 (旁路 properties) 时再做一次同样清理。
+void p3n_clear_stale_success_artifacts(const std::string& out_dir) {
+  const char* names[] = {"p3_resampled.bin", "p3_resampled.json",
+                         "p3_tile_failures.json", "output_phase3.fits",
+                         "p3_writer.json", "p3_verify.json"};
+  for (const char* n : names) {
+    const std::string p = out_dir + "/" + n;
+    aio_atomic::remove_file(p);
+  }
+}
+
 // ── op: properties (ALG-P3-001 唯一真实入口 = 严格 properties 校验 + 实测
 //    order/BUNIT; slim 唯一形态: 不探测 uncertainty) ───────────────────────────
 Result<void> p3_op_properties(const Json& doc, Json* man) {
@@ -15958,6 +15975,7 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
   std::string err;
   if (!p3n_geom(doc, &g, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  p3n_clear_stale_success_artifacts(g.out_dir);
   // 输入语义守卫（先于任何像素/子产品读取; 非面亮度或单位不可判 →
   // 显式拒且不产任何半成品）
   const P3InputUnit guard = p3n_guard_input_units(g.hips_dir);
@@ -16076,6 +16094,66 @@ Result<void> p3_op_wcs(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
+// ── Issue #87: tile 完整性错误码/身份名的机器可判映射（manifest + 诊断 JSON）──
+const char* p3_tile_code_name(int code) {
+  switch (code) {
+    case acsd::phase3::P3_TILE_DECLARED_MISSING:
+      return "P3-TILE-DECLARED-MISSING";
+    case acsd::phase3::P3_TILE_IO_ERROR:
+      return "P3-TILE-IO-ERROR";
+    case acsd::phase3::P3_TILE_INVALID:
+      return "P3-TILE-INVALID";
+    case acsd::phase3::P3_TILE_CHECKSUM_FAILED:
+      return "P3-TILE-CHECKSUM-FAILED";
+    case acsd::phase3::P3_TILE_FOOTPRINT_UNDETERMINED:
+      return "P3-TILE-FOOTPRINT-UNDETERMINED";
+    case acsd::phase3::P3_TILE_OUTSIDE_DECLARED_FOOTPRINT:
+      return "P3-TILE-OUTSIDE-DECLARED-FOOTPRINT";
+    default:
+      return "P3-TILE-UNKNOWN";
+  }
+}
+
+const char* p3_footprint_name(int id) {
+  switch (id) {
+    case AIO_HIPS_FOOTPRINT_NONE:            return "NONE";
+    case AIO_HIPS_FOOTPRINT_MOC_LEAF:        return "MOC_LEAF";
+    case AIO_HIPS_FOOTPRINT_MOC_UNDETERMINED:return "MOC_UNDETERMINED";
+    case AIO_HIPS_FOOTPRINT_MANIFEST_ONLY:   return "MANIFEST_ONLY";
+    default:                                 return "UNKNOWN";
+  }
+}
+
+// 聚合故障 → 稳定 JSON（按 tile_ipix 升序；计数/worker 统计确定性）。
+Json p3_tile_failures_json(const acsd::phase3::P3TileFailure* f, int n) {
+  Json arr = Json::array();
+  for (int i = 0; i < n; ++i) {
+    arr.push_back(Json{{"tile_ipix", f[i].tile_ipix},
+                       {"code", f[i].code},
+                       {"machine_code", p3_tile_code_name(f[i].code)},
+                       {"cfitsio_status", f[i].cfitsio_status},
+                       {"footprint_identity", p3_footprint_name(f[i].footprint_identity)},
+                       {"declared", f[i].declared},
+                       {"tile_path", f[i].tile_path},
+                       {"detail", f[i].detail},
+                       {"read_failures", f[i].read_failures},
+                       {"access_hits", f[i].access_hits},
+                       {"worker_min", f[i].worker_min},
+                       {"worker_max", f[i].worker_max},
+                       {"worker_count", f[i].worker_count}});
+  }
+  return arr;
+}
+
+Json p3_tile_error_by_code(const acsd::phase3::P3TileFailure* f, int n) {
+  Json by = Json::object();
+  for (int i = 0; i < n; ++i) {
+    const std::string k = p3_tile_code_name(f[i].code);
+    by[k] = by.value(k, 0) + 1;
+  }
+  return by;
+}
+
 // ── op: resample (ALG-P3-003 唯一真实入口 = order 选择 + 反向映射采样;
 //    slim 唯一形态: 不探测/不打开/不传播 uncertainty; 重计算面, 行带 work unit
 //    经 Runtime 唯一 executor 执行 — RT-001) ─
@@ -16124,6 +16202,9 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   std::string err;
   if (!p3n_geom(doc, &g, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  // Issue #87: 旁路直调本节点时同样先失效上一次成功产物（生产链已由
+  // properties 节点清理；重复调用幂等）。
+  p3n_clear_stale_success_artifacts(g.out_dir);
   // 输入语义守卫（与 properties 节点同源同判; 旁路直调本节点也不放行）
   const P3InputUnit guard = p3n_guard_input_units(g.hips_dir);
   if (!guard.ok) return p3n_guard_fail(guard, man);
@@ -16217,6 +16298,8 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   std::atomic<int> corrupt{-1};          // work unit 缺失/取消哨位（slim：无 u 面）
   std::atomic<bool> cancelled{false};    // P30: 协作取消 (子块循环安全点)
   std::atomic<bool> write_failed{false}; // 位置写失败 (fail-closed, 不发布)
+  // Issue #87: worker 采样遇到真实 tile 故障 ⇒ 全节点尽快停止并 fail-closed。
+  std::atomic<bool> tile_integrity_failed{false};
 
   // 子块位置写：平面 p 的第 y 行第 x 列 = (p*nelem + y*g.w + x) 个 float。
   // 行内连续 ⇒ 每行一次位置写（与子块 x0 对齐，行区间互不重叠）。
@@ -16319,6 +16402,7 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     // 数无关 → 内存有界; 同一 tile 全节点只解码一次)。只读数据 + 缺失负缓存,
     // 不改变任何像素值; 每个 worker 仍各有独立 AioHipsDataset/句柄。
     p3_sampler_attach_cache(&w_samp, &samp);
+    p3_sampler_set_worker_id(&w_samp, (int)wk);
     // slim 唯一形态（task-9）：不打开 uncertainty 子产品。
     P3WcsDescriptor w_wcs = wcs;
     std::vector<float> bsig, bcov;
@@ -16352,7 +16436,16 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
               (g.sampler == "nearest")
                   ? p3_sample_nearest_ex(&w_samp, px_ra, px_dec, &v, &c, &lf[0])
                   : p3_sample_bilinear_ex(&w_samp, px_ra, px_dec, &v, &c, w, lf);
-          if (rst != P3_RS_OK) continue;
+          if (rst != P3_RS_OK) {
+            // Issue #87: 不得 continue 把故障静默成 NaN/0 并继续发布。
+            // **继续扫描**剩余像素：故障按 tile_ipix 升序汇总，聚合集合 = 输出
+            // 网格实际触及的全部坏 tile（与 worker 停止时序无关, 确定性）；临时
+            // bin 仍只在内存/临时对象里，wait_all 后统一判红并丢弃。
+            tile_integrity_failed.store(true);
+            bsig[i] = std::nanf("");
+            bcov[i] = 0.0f;
+            continue;
+          }
           bsig[i] = (c == 1) ? v : std::nanf("");
           bcov[i] = (c == 1) ? 1.0f : 0.0f;
         }
@@ -16428,7 +16521,36 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   } else {
     band_task(0, nblocks, no_ctx, 0u);
   }
+  // Issue #87: 故障聚合与缓存统计必须在 sampler close 之前取（共享 cache 是唯一
+  // 载体；旧实现在 close 之后才查 stats ⇒ p3_resampled.json 的 tile_cache 恒 0）。
+  P3TileFailure tile_fails[256];
+  const int n_tile_fail_shown = p3_sampler_tile_failures(&samp, tile_fails, 256);
+  const uint64_t n_tile_fail = p3_sampler_tile_failure_count(&samp);
+  P3CacheStats cs{};
+  p3_sampler_cache_stats(&samp, &cs);
   p3_sampler_close(&samp);
+  auto cache_json = [](const P3CacheStats& c) {
+    return Json{{"cap_tiles", c.cap_tiles},
+                {"resident_tiles", c.resident_tiles},
+                {"hits", c.hits},
+                {"misses", c.misses},
+                {"absent_reads", c.absent_reads},
+                {"absent_entries", c.absent_entries},
+                {"open_failures", c.open_failures},
+                {"evictions", c.evictions},
+                {"tile_error_reads", c.tile_error_reads},
+                {"tile_error_hits", c.tile_error_hits},
+                {"tile_error_entries", c.tile_error_entries},
+                {"outside_reads", c.outside_reads},
+                {"declared_missing", c.declared_missing},
+                {"invalid_tiles", c.invalid_tiles},
+                {"checksum_failures", c.checksum_failures},
+                {"io_errors", c.io_errors},
+                {"undetermined", c.undetermined},
+                {"checksum_present_reads", c.checksum_present_reads},
+                {"checksum_absent_reads", c.checksum_absent_reads},
+                {"footprint_identity", p3_footprint_name(c.footprint_identity)}};
+  };
   // P30: 取消优先于"work unit 被丢弃"判定 (两者都 fail-closed; 取消更具体)。
   // 取消时 p3_resampled.bin 只在临时对象里 → 无半成品产物。
   if (cancelled.load() || (ctx && ctx->cancelled())) {
@@ -16457,6 +16579,58 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     }
     return Result<void>::fail(Error(is_io ? ErrorDomain::IO : ErrorDomain::DATA, detail));
   }
+  // ── Issue #87: tile 完整性故障传播 ─────────────────────────────────────────
+  // 判定优先于"work unit 被丢弃"（更具体的错因），且先于任何发布动作：
+  // p3_resampled.bin 仍是临时对象 → atomic_replace 不执行；writer/verify 因 DAG
+  // 依赖不运行 → 无 output_phase3.fits、无 complete manifest。
+  // 确定性聚合 = 按 tile_ipix 升序（p3_sampler_tile_failures 的 std::map 顺序），
+  // 同一 tile 被多 worker 访问只产生一条记录（worker_min/max/count + 计数）。
+  if (tile_integrity_failed.load() || n_tile_fail > 0) {
+    binw.close();
+    aio_atomic::remove_file(bin_tmp);
+    const P3TileFailure first = (n_tile_fail_shown > 0)
+                                    ? tile_fails[0]
+                                    : P3TileFailure{};
+    const bool is_io = (first.code == acsd::phase3::P3_TILE_IO_ERROR);
+    std::string detail =
+        std::string(p3_tile_code_name(first.code)) +
+        ": tile integrity failure in input HiPS (" +
+        std::to_string(n_tile_fail) + " unique tile(s), first tile_ipix=" +
+        std::to_string(first.tile_ipix) + ", footprint=" +
+        p3_footprint_name(cs.footprint_identity) + "); input hips_dir='" +
+        g.hips_dir + "'; detail: " + first.detail;
+    // 失败诊断 JSON（不是成功产物；明确 fail_closed=true）。
+    const std::string fail_path = g.out_dir + "/p3_tile_failures.json";
+    Json fj{{"schema", "DATA-P3-TILE-FAILURES"},
+            {"fail_closed", true},
+            {"input_hips_dir", g.hips_dir},
+            {"input_manifest_hash", p3n_input_manifest_hash(g.hips_dir)},
+            {"output_dir", g.out_dir},
+            {"footprint_identity", p3_footprint_name(cs.footprint_identity)},
+            {"tile_error_count", n_tile_fail},
+            {"tile_error_by_code",
+             p3_tile_error_by_code(tile_fails, n_tile_fail_shown)},
+            {"tile_errors", p3_tile_failures_json(tile_fails, n_tile_fail_shown)},
+            {"tile_cache", cache_json(cs)},
+            {"note",
+             "no p3_resampled.bin / output_phase3.fits / complete manifest "
+             "published for this failed run"}};
+    (void)p2_write_text_atomic(fail_path, fj.dump(2) + "\n");
+    if (man) {
+      (*man)["semantic_code"] = p3_tile_code_name(first.code);
+      (*man)["tile_integrity_failed"] = true;
+      (*man)["tile_error_count"] = n_tile_fail;
+      (*man)["tile_error_by_code"] =
+          p3_tile_error_by_code(tile_fails, n_tile_fail_shown);
+      (*man)["tile_errors"] = p3_tile_failures_json(tile_fails, n_tile_fail_shown);
+      (*man)["tile_failures_artifact"] = fail_path;
+      (*man)["input_hips_dir"] = g.hips_dir;
+      (*man)["footprint_identity"] = p3_footprint_name(cs.footprint_identity);
+      if (!is_io) (*man)["error_kind"] = "input";
+    }
+    return Result<void>::fail(
+        Error(is_io ? ErrorDomain::IO : ErrorDomain::DATA, detail));
+  }
   if (band_executed.load() != nw) {
     binw.close();
     aio_atomic::remove_file(bin_tmp);
@@ -16473,15 +16647,10 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     (*man)["sub_block_px"] = sb;
     (*man)["sub_blocks"] = nblocks;
     (*man)["sub_block_streaming"] = true;
-    // P30 (§10.5 证据): tile 缓存命中率 / 真实 tile 读次数 / 失败 open 次数。
-    P3CacheStats cs{};
-    p3_sampler_cache_stats(&samp, &cs);
-    (*man)["tile_cache"] = Json{{"cap_tiles", cs.cap_tiles},
-                                {"resident_tiles", cs.resident_tiles},
-                                {"hits", cs.hits},
-                                {"misses", cs.misses},
-                                {"absent_reads", cs.absent_reads},
-                                {"evictions", cs.evictions}};
+    // P30/Issue #87: tile 缓存命中率 / 真实读次数 / 合法性 absent 与错误分列。
+    (*man)["tile_cache"] = cache_json(cs);
+    (*man)["footprint_identity"] = p3_footprint_name(cs.footprint_identity);
+    (*man)["tile_error_count"] = 0;
   }
   if (write_failed.load()) {
     binw.close();
@@ -16563,6 +16732,18 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
             std::string("slim single-HDU product: variance/ivar layers are not"
                         " produced (uncertainty_available=false)")},
            {"uncertainty_missing_pixels", 0},
+           // Issue #87: 覆盖身份等级与 tile 完整性证据（成功产物必须显式记录
+           // "哪些缺失是合法无覆盖"以及校验/错误计数，消费者可独立核对）。
+           {"tile_integrity",
+            Json{{"footprint_identity", p3_footprint_name(cs.footprint_identity)},
+                 {"tile_error_count", 0},
+                 {"outside_reads", cs.outside_reads},
+                 {"tile_error_reads", cs.tile_error_reads},
+                 {"tile_error_hits", cs.tile_error_hits},
+                 {"checksum_verified_reads_note",
+                  "DATASUM/CHECKSUM verified from the bytes read; absence is "
+                  "recorded but is not a failure"}}},
+           {"tile_cache", cache_json(cs)},
            {"bin", "p3_resampled.bin"},
            {"bin_sha256", bin_sha}};
   // §9 原子提交
@@ -16625,6 +16806,24 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
   if (!p3n_read_json(g.out_dir + "/p3_wcs.json", &plan, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  // Issue #87 防御性复核: 即使上游 artifact 被伪造/陈旧，resample 产物声明的
+  // tile 完整性失败或 work unit 未全部执行都不允许进入 FITS 发布。
+  if (res.contains("tile_integrity") && res["tile_integrity"].is_object()) {
+    const long long te = res["tile_integrity"].value("tile_error_count", 0LL);
+    if (te > 0)
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "p3_resampled.json declares tile_error_count=" + std::to_string(te) +
+          "; refusing to publish a FITS from an incomplete input read"));
+  }
+  if (res.contains("worker_bands") && res["worker_bands"].is_object()) {
+    const long long planned = res["worker_bands"].value("planned", 0LL);
+    const long long executed = res["worker_bands"].value("executed", -1LL);
+    if (planned < 1 || executed != planned)
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "p3_resampled.json worker_bands incomplete (planned=" +
+          std::to_string(planned) + ", executed=" + std::to_string(executed) +
+          "); refusing to publish"));
+  }
   using namespace acsd::phase3;
   P3WcsDescriptor wcs{};
   if (!p3n_wcs_from_json(plan, &wcs, &err))

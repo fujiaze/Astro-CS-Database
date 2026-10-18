@@ -1,0 +1,880 @@
+{
+  "schema": "acsd.issue87.verify/v1",
+  "prefix_tag": "prefix",
+  "fixed_tag": "fixed",
+  "prefix_acsd_sha256": "66614b2995bfcf8332c5aae22b8e17887159f8f69a4bc9e2dd6c3d44537cf1a6",
+  "fixed_acsd_sha256": "586000f5c62497be88d64242f2bbbf1627da6da312870abfb80780122705a6f7",
+  "n_checks": 67,
+  "n_fail": 0,
+  "checks": [
+    {
+      "check": "prefix_defect[checksum_bad]",
+      "expected": "exit=0 && FITS && manifest=complete",
+      "actual": {
+        "exit": 0,
+        "fits": true,
+        "manifest": "complete"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "fixed_failclosed[checksum_bad]",
+      "expected": "nonzero exit && no FITS/bin/resampled/writer/verify && manifest=incomplete && p3_tile_failures.json && no tmp",
+      "actual": {
+        "exit": 3,
+        "fits": false,
+        "bin": false,
+        "resampled_json": false,
+        "writer": false,
+        "verify": false,
+        "manifest": "incomplete",
+        "tile_failures": true,
+        "tmp": []
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "prefix_defect[declared_missing]",
+      "expected": "exit=0 && FITS && manifest=complete",
+      "actual": {
+        "exit": 0,
+        "fits": true,
+        "manifest": "complete"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "fixed_failclosed[declared_missing]",
+      "expected": "nonzero exit && no FITS/bin/resampled/writer/verify && manifest=incomplete && p3_tile_failures.json && no tmp",
+      "actual": {
+        "exit": 3,
+        "fits": false,
+        "bin": false,
+        "resampled_json": false,
+        "writer": false,
+        "verify": false,
+        "manifest": "incomplete",
+        "tile_failures": true,
+        "tmp": []
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "prefix_defect[invalid_bitpix]",
+      "expected": "exit=0 && FITS && manifest=complete",
+      "actual": {
+        "exit": 0,
+        "fits": true,
+        "manifest": "complete"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "fixed_failclosed[invalid_bitpix]",
+      "expected": "nonzero exit && no FITS/bin/resampled/writer/verify && manifest=incomplete && p3_tile_failures.json && no tmp",
+      "actual": {
+        "exit": 3,
+        "fits": false,
+        "bin": false,
+        "resampled_json": false,
+        "writer": false,
+        "verify": false,
+        "manifest": "incomplete",
+        "tile_failures": true,
+        "tmp": []
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "prefix_defect[invalid_dims]",
+      "expected": "exit=0 && FITS && manifest=complete",
+      "actual": {
+        "exit": 0,
+        "fits": true,
+        "manifest": "complete"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "fixed_failclosed[invalid_dims]",
+      "expected": "nonzero exit && no FITS/bin/resampled/writer/verify && manifest=incomplete && p3_tile_failures.json && no tmp",
+      "actual": {
+        "exit": 3,
+        "fits": false,
+        "bin": false,
+        "resampled_json": false,
+        "writer": false,
+        "verify": false,
+        "manifest": "incomplete",
+        "tile_failures": true,
+        "tmp": []
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "prefix_defect[io_error]",
+      "expected": "exit=0 && FITS && manifest=complete",
+      "actual": {
+        "exit": 0,
+        "fits": true,
+        "manifest": "complete"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "fixed_failclosed[io_error]",
+      "expected": "nonzero exit && no FITS/bin/resampled/writer/verify && manifest=incomplete && p3_tile_failures.json && no tmp",
+      "actual": {
+        "exit": 7,
+        "fits": false,
+        "bin": false,
+        "resampled_json": false,
+        "writer": false,
+        "verify": false,
+        "manifest": "incomplete",
+        "tile_failures": true,
+        "tmp": []
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "prefix_defect[multi_bad]",
+      "expected": "exit=0 && FITS && manifest=complete",
+      "actual": {
+        "exit": 0,
+        "fits": true,
+        "manifest": "complete"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "fixed_failclosed[multi_bad]",
+      "expected": "nonzero exit && no FITS/bin/resampled/writer/verify && manifest=incomplete && p3_tile_failures.json && no tmp",
+      "actual": {
+        "exit": 3,
+        "fits": false,
+        "bin": false,
+        "resampled_json": false,
+        "writer": false,
+        "verify": false,
+        "manifest": "incomplete",
+        "tile_failures": true,
+        "tmp": []
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "prefix_defect[same_bad_multi_worker]",
+      "expected": "exit=0 && FITS && manifest=complete",
+      "actual": {
+        "exit": 0,
+        "fits": true,
+        "manifest": "complete"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "fixed_failclosed[same_bad_multi_worker]",
+      "expected": "nonzero exit && no FITS/bin/resampled/writer/verify && manifest=incomplete && p3_tile_failures.json && no tmp",
+      "actual": {
+        "exit": 3,
+        "fits": false,
+        "bin": false,
+        "resampled_json": false,
+        "writer": false,
+        "verify": false,
+        "manifest": "incomplete",
+        "tile_failures": true,
+        "tmp": []
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "prefix_defect[truncated]",
+      "expected": "exit=0 && FITS && manifest=complete",
+      "actual": {
+        "exit": 0,
+        "fits": true,
+        "manifest": "complete"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "fixed_failclosed[truncated]",
+      "expected": "nonzero exit && no FITS/bin/resampled/writer/verify && manifest=incomplete && p3_tile_failures.json && no tmp",
+      "actual": {
+        "exit": 3,
+        "fits": false,
+        "bin": false,
+        "resampled_json": false,
+        "writer": false,
+        "verify": false,
+        "manifest": "incomplete",
+        "tile_failures": true,
+        "tmp": []
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "prefix_defect[undetermined_coarse_moc]",
+      "expected": "exit=0 && FITS && manifest=complete",
+      "actual": {
+        "exit": 0,
+        "fits": true,
+        "manifest": "complete"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "fixed_failclosed[undetermined_coarse_moc]",
+      "expected": "nonzero exit && no FITS/bin/resampled/writer/verify && manifest=incomplete && p3_tile_failures.json && no tmp",
+      "actual": {
+        "exit": 3,
+        "fits": false,
+        "bin": false,
+        "resampled_json": false,
+        "writer": false,
+        "verify": false,
+        "manifest": "incomplete",
+        "tile_failures": true,
+        "tmp": []
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "prefix_defect[undetermined_manifest_only]",
+      "expected": "exit=0 && FITS && manifest=complete",
+      "actual": {
+        "exit": 0,
+        "fits": true,
+        "manifest": "complete"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "fixed_failclosed[undetermined_manifest_only]",
+      "expected": "nonzero exit && no FITS/bin/resampled/writer/verify && manifest=incomplete && p3_tile_failures.json && no tmp",
+      "actual": {
+        "exit": 3,
+        "fits": false,
+        "bin": false,
+        "resampled_json": false,
+        "writer": false,
+        "verify": false,
+        "manifest": "incomplete",
+        "tile_failures": true,
+        "tmp": []
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_signal[checksum_absent]",
+      "expected": "6d1ca50083d9fad8acac8ccb7b7a3c3775f0a9207f1d9d323a74237efd3aacf0",
+      "actual": "6d1ca50083d9fad8acac8ccb7b7a3c3775f0a9207f1d9d323a74237efd3aacf0",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_bin[checksum_absent]",
+      "expected": "3adaf1dfdfd978fad712c1ee5737570809f5be0d70db2751ab97d6f89797576d",
+      "actual": "3adaf1dfdfd978fad712c1ee5737570809f5be0d70db2751ab97d6f89797576d",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_signal[checksum_ok]",
+      "expected": "6d1ca50083d9fad8acac8ccb7b7a3c3775f0a9207f1d9d323a74237efd3aacf0",
+      "actual": "6d1ca50083d9fad8acac8ccb7b7a3c3775f0a9207f1d9d323a74237efd3aacf0",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_bin[checksum_ok]",
+      "expected": "3adaf1dfdfd978fad712c1ee5737570809f5be0d70db2751ab97d6f89797576d",
+      "actual": "3adaf1dfdfd978fad712c1ee5737570809f5be0d70db2751ab97d6f89797576d",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_signal[legal_full_bilinear]",
+      "expected": "a11ee210352d1ff722914ef5be38bb429e1959bab44af4388c5868fa5d2d52d8",
+      "actual": "a11ee210352d1ff722914ef5be38bb429e1959bab44af4388c5868fa5d2d52d8",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_bin[legal_full_bilinear]",
+      "expected": "4e3469dc86e672d6a436c990de60b61cf7f1433493993bea70a831f6ef9bad89",
+      "actual": "4e3469dc86e672d6a436c990de60b61cf7f1433493993bea70a831f6ef9bad89",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_signal[legal_full_nearest]",
+      "expected": "f78e175e943113a7bd478439c34a424b90483dc9c56e60977102b5f06124c30a",
+      "actual": "f78e175e943113a7bd478439c34a424b90483dc9c56e60977102b5f06124c30a",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_bin[legal_full_nearest]",
+      "expected": "b8c9dd2101e08986c09d42c8c5794cbb369bd9b9459d0132faf9340d88b3df44",
+      "actual": "b8c9dd2101e08986c09d42c8c5794cbb369bd9b9459d0132faf9340d88b3df44",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_signal[real_covered]",
+      "expected": "d515d58870a398f928e9b67ccff29d543de309d60a6502c0099d4e043a71465e",
+      "actual": "d515d58870a398f928e9b67ccff29d543de309d60a6502c0099d4e043a71465e",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_bin[real_covered]",
+      "expected": "d5ee2149e925c5749e53f743552c3819a9868160dab1fd21e81cda929ce85dc5",
+      "actual": "d5ee2149e925c5749e53f743552c3819a9868160dab1fd21e81cda929ce85dc5",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_signal[real_partial]",
+      "expected": "8e1d36ab34666908912c095608fe01f7e0395c00e821eaadbb3de644d5da7e4d",
+      "actual": "8e1d36ab34666908912c095608fe01f7e0395c00e821eaadbb3de644d5da7e4d",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_bin[real_partial]",
+      "expected": "1d028f4b6bf00e12a086751ad07b2ac33ed3279dc42acf7735069a8033aa7fa5",
+      "actual": "1d028f4b6bf00e12a086751ad07b2ac33ed3279dc42acf7735069a8033aa7fa5",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_signal[sparse_moc_covered]",
+      "expected": "01558e2bb86ea6a05ed31455481452a047f22004455a2a0316d43b608a9d3f87",
+      "actual": "01558e2bb86ea6a05ed31455481452a047f22004455a2a0316d43b608a9d3f87",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_bin[sparse_moc_covered]",
+      "expected": "f4b545ffb9827ac4324265ff6c09f9d3855fd085a7703f28d1625076fa9fe68d",
+      "actual": "f4b545ffb9827ac4324265ff6c09f9d3855fd085a7703f28d1625076fa9fe68d",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_signal[sparse_moc_outside]",
+      "expected": "372ef8aab241d43a427888ccb6c2aeee10f4aa494bc4fc373744421b6d6943fb",
+      "actual": "372ef8aab241d43a427888ccb6c2aeee10f4aa494bc4fc373744421b6d6943fb",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_bin[sparse_moc_outside]",
+      "expected": "019ac46f4f136ddaa7413a7a9175f9fdd00ffd9fc75b314d0e2ba3b32417ee61",
+      "actual": "019ac46f4f136ddaa7413a7a9175f9fdd00ffd9fc75b314d0e2ba3b32417ee61",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_signal[unhinted_covered]",
+      "expected": "35ba8f45257d18e6a1fd8cb49ec370d9cbc7d14d45ad6c751272b2804c7ce4a1",
+      "actual": "35ba8f45257d18e6a1fd8cb49ec370d9cbc7d14d45ad6c751272b2804c7ce4a1",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_bin[unhinted_covered]",
+      "expected": "f1eaecd8dd57b99c9c7c9008fc2ef6a6e8e92400984ccc9d526ccf251ef802c3",
+      "actual": "f1eaecd8dd57b99c9c7c9008fc2ef6a6e8e92400984ccc9d526ccf251ef802c3",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_signal[unhinted_outside]",
+      "expected": "372ef8aab241d43a427888ccb6c2aeee10f4aa494bc4fc373744421b6d6943fb",
+      "actual": "372ef8aab241d43a427888ccb6c2aeee10f4aa494bc4fc373744421b6d6943fb",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "bitwise_bin[unhinted_outside]",
+      "expected": "019ac46f4f136ddaa7413a7a9175f9fdd00ffd9fc75b314d0e2ba3b32417ee61",
+      "actual": "019ac46f4f136ddaa7413a7a9175f9fdd00ffd9fc75b314d0e2ba3b32417ee61",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "classification[declared_missing]",
+      "expected": {
+        "code": "P3-TILE-DECLARED-MISSING",
+        "tiles": [
+          5
+        ]
+      },
+      "actual": {
+        "codes": [
+          "P3-TILE-DECLARED-MISSING"
+        ],
+        "tiles": [
+          5
+        ],
+        "per_tile_codes": [
+          "P3-TILE-DECLARED-MISSING"
+        ]
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "classification[invalid_dims]",
+      "expected": {
+        "code": "P3-TILE-INVALID",
+        "tiles": [
+          4
+        ]
+      },
+      "actual": {
+        "codes": [
+          "P3-TILE-INVALID"
+        ],
+        "tiles": [
+          4
+        ],
+        "per_tile_codes": [
+          "P3-TILE-INVALID"
+        ]
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "classification[invalid_bitpix]",
+      "expected": {
+        "code": "P3-TILE-INVALID",
+        "tiles": [
+          4
+        ]
+      },
+      "actual": {
+        "codes": [
+          "P3-TILE-INVALID"
+        ],
+        "tiles": [
+          4
+        ],
+        "per_tile_codes": [
+          "P3-TILE-INVALID"
+        ]
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "classification[truncated]",
+      "expected": {
+        "code": "P3-TILE-INVALID",
+        "tiles": [
+          4
+        ]
+      },
+      "actual": {
+        "codes": [
+          "P3-TILE-INVALID"
+        ],
+        "tiles": [
+          4
+        ],
+        "per_tile_codes": [
+          "P3-TILE-INVALID"
+        ]
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "classification[checksum_bad]",
+      "expected": {
+        "code": "P3-TILE-CHECKSUM-FAILED",
+        "tiles": [
+          4
+        ]
+      },
+      "actual": {
+        "codes": [
+          "P3-TILE-CHECKSUM-FAILED"
+        ],
+        "tiles": [
+          4
+        ],
+        "per_tile_codes": [
+          "P3-TILE-CHECKSUM-FAILED"
+        ]
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "classification[io_error]",
+      "expected": {
+        "code": "P3-TILE-IO-ERROR",
+        "tiles": [
+          4
+        ]
+      },
+      "actual": {
+        "codes": [
+          "P3-TILE-IO-ERROR"
+        ],
+        "tiles": [
+          4
+        ],
+        "per_tile_codes": [
+          "P3-TILE-IO-ERROR"
+        ]
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "classification[undetermined_coarse_moc]",
+      "expected": {
+        "code": "P3-TILE-FOOTPRINT-UNDETERMINED",
+        "tiles": [
+          5
+        ]
+      },
+      "actual": {
+        "codes": [
+          "P3-TILE-FOOTPRINT-UNDETERMINED"
+        ],
+        "tiles": [
+          5
+        ],
+        "per_tile_codes": [
+          "P3-TILE-FOOTPRINT-UNDETERMINED"
+        ]
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "classification[undetermined_manifest_only]",
+      "expected": {
+        "code": "P3-TILE-FOOTPRINT-UNDETERMINED",
+        "tiles": [
+          5
+        ]
+      },
+      "actual": {
+        "codes": [
+          "P3-TILE-FOOTPRINT-UNDETERMINED"
+        ],
+        "tiles": [
+          5
+        ],
+        "per_tile_codes": [
+          "P3-TILE-FOOTPRINT-UNDETERMINED"
+        ]
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "classification[multi_bad]",
+      "expected": {
+        "code": "P3-TILE-DECLARED-MISSING",
+        "tiles": [
+          0,
+          4,
+          5,
+          8
+        ]
+      },
+      "actual": {
+        "codes": [
+          "P3-TILE-DECLARED-MISSING"
+        ],
+        "tiles": [
+          0,
+          4,
+          5,
+          8
+        ],
+        "per_tile_codes": [
+          "P3-TILE-DECLARED-MISSING",
+          "P3-TILE-INVALID",
+          "P3-TILE-CHECKSUM-FAILED",
+          "P3-TILE-IO-ERROR"
+        ]
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "aggregate[multi_bad_by_code]",
+      "expected": {
+        "P3-TILE-DECLARED-MISSING": 1,
+        "P3-TILE-INVALID": 1,
+        "P3-TILE-CHECKSUM-FAILED": 1,
+        "P3-TILE-IO-ERROR": 1
+      },
+      "actual": {
+        "P3-TILE-CHECKSUM-FAILED": 1,
+        "P3-TILE-DECLARED-MISSING": 1,
+        "P3-TILE-INVALID": 1,
+        "P3-TILE-IO-ERROR": 1
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "aggregate[same_bad_repeat_stable]",
+      "expected": {
+        "tiles": [
+          [
+            4
+          ],
+          [
+            4
+          ],
+          [
+            4
+          ]
+        ]
+      },
+      "actual": {
+        "tiles": [
+          [
+            4
+          ],
+          [
+            4
+          ],
+          [
+            4
+          ]
+        ],
+        "codes": [
+          [
+            "P3-TILE-CHECKSUM-FAILED"
+          ],
+          [
+            "P3-TILE-CHECKSUM-FAILED"
+          ],
+          [
+            "P3-TILE-CHECKSUM-FAILED"
+          ]
+        ]
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "aggregate[same_bad_multi_worker]",
+      "expected": "one entry + worker_count>1",
+      "actual": [
+        16,
+        16,
+        16
+      ],
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "checksum[present_verified]",
+      "expected": "checksum_present_reads>0",
+      "actual": 1,
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "checksum[absent_not_failure]",
+      "expected": "exit=0 && checksum_absent_reads>0 && no tile error",
+      "actual": {
+        "exit": 0,
+        "absent_reads": 1,
+        "tile_error_entries": 0
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "legal_nan[sparse_moc_outside]",
+      "expected": "all NaN, exit 0",
+      "actual": {
+        "exit": 0,
+        "nan": 4096,
+        "finite": 0
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "legal_nan[unhinted_outside]",
+      "expected": "all NaN, exit 0",
+      "actual": {
+        "exit": 0,
+        "nan": 4096,
+        "finite": 0
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "real_partial[uncovered_nan_kept]",
+      "expected": "exit 0 && nan>0 && finite>0",
+      "actual": {
+        "exit": 0,
+        "nan": 2858,
+        "finite": 1238,
+        "sha": "8e1d36ab34666908912c095608fe01f7e0395c00e821eaadbb3de644d5da7e4d"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "product_shape[checksum_absent]",
+      "expected": "1 HDU PRIMARY, NAXIS=2, BITPIX=-32, BUNIT=ADU/sr",
+      "actual": {
+        "nhdu": 1,
+        "naxis": 2,
+        "bitpix": -32,
+        "bunit": "ADU/sr"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "product_shape[checksum_ok]",
+      "expected": "1 HDU PRIMARY, NAXIS=2, BITPIX=-32, BUNIT=ADU/sr",
+      "actual": {
+        "nhdu": 1,
+        "naxis": 2,
+        "bitpix": -32,
+        "bunit": "ADU/sr"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "product_shape[legal_full_bilinear]",
+      "expected": "1 HDU PRIMARY, NAXIS=2, BITPIX=-32, BUNIT=ADU/sr",
+      "actual": {
+        "nhdu": 1,
+        "naxis": 2,
+        "bitpix": -32,
+        "bunit": "ADU/sr"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "product_shape[legal_full_nearest]",
+      "expected": "1 HDU PRIMARY, NAXIS=2, BITPIX=-32, BUNIT=ADU/sr",
+      "actual": {
+        "nhdu": 1,
+        "naxis": 2,
+        "bitpix": -32,
+        "bunit": "ADU/sr"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "product_shape[real_covered]",
+      "expected": "1 HDU PRIMARY, NAXIS=2, BITPIX=-32, BUNIT=ADU/sr",
+      "actual": {
+        "nhdu": 1,
+        "naxis": 2,
+        "bitpix": -32,
+        "bunit": "ADU/sr"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "product_shape[real_partial]",
+      "expected": "1 HDU PRIMARY, NAXIS=2, BITPIX=-32, BUNIT=ADU/sr",
+      "actual": {
+        "nhdu": 1,
+        "naxis": 2,
+        "bitpix": -32,
+        "bunit": "ADU/sr"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "product_shape[sparse_moc_covered]",
+      "expected": "1 HDU PRIMARY, NAXIS=2, BITPIX=-32, BUNIT=ADU/sr",
+      "actual": {
+        "nhdu": 1,
+        "naxis": 2,
+        "bitpix": -32,
+        "bunit": "ADU/sr"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "product_shape[sparse_moc_outside]",
+      "expected": "1 HDU PRIMARY, NAXIS=2, BITPIX=-32, BUNIT=ADU/sr",
+      "actual": {
+        "nhdu": 1,
+        "naxis": 2,
+        "bitpix": -32,
+        "bunit": "ADU/sr"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "product_shape[unhinted_covered]",
+      "expected": "1 HDU PRIMARY, NAXIS=2, BITPIX=-32, BUNIT=ADU/sr",
+      "actual": {
+        "nhdu": 1,
+        "naxis": 2,
+        "bitpix": -32,
+        "bunit": "ADU/sr"
+      },
+      "pass": true,
+      "note": ""
+    },
+    {
+      "check": "product_shape[unhinted_outside]",
+      "expected": "1 HDU PRIMARY, NAXIS=2, BITPIX=-32, BUNIT=ADU/sr",
+      "actual": {
+        "nhdu": 1,
+        "naxis": 2,
+        "bitpix": -32,
+        "bunit": "ADU/sr"
+      },
+      "pass": true,
+      "note": ""
+    }
+  ]
+}

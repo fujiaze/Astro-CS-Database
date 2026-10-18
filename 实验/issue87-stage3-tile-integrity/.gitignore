@@ -1,0 +1,6 @@
+# Issue #87 实验大体积/可再生对象：受控夹具、symlink 真实产品视图、输出目录、编译的探针二进制
+work/
+evidence/session/session_tile_probe
+evidence/p3_tile_semantics_test
+evidence/checksum_probe_prefix
+evidence/checksum_probe_fixed

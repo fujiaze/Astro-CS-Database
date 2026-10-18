@@ -452,7 +452,9 @@ fits_index = nested_local_to_fits_index(local,9,512)
 tile_file = signal/NorderK/Dir{floor(tile/10000)*10000}/Npix{tile}.fits
 ```
 
-**目录形态是重要纠偏**：旧版本 `Dir{tile >> 28}` 与真实 IVOA/代码不一致，AIO 当前标准路径优先，若 `tile>=10000` 标准路径不存在，会尝试仅读兼容的旧 `Dir{tile/10000}/Npix{tile%10000}.fits`。只读兼容不能变成新产物的默认写路径，必须分别验证 standard/legacy。MOC 缺失当前 AIO `load_tiles_from_moc` 允许空列表，但存在而读损坏则 fail-closed；产品完成清单缺失直接拒绝，这不是单个尚未观测 tile 的合法空洞。采样 tile open/read 失败只返回 null/coverage=0，当前一类错误与真缺失无法在输出逐像素精确分离，因此 **缺 tile 应按“输入宣称已覆盖的 tile 却读失败 / 实际未覆盖”分别外部核验并补 provenance**，属研究/工程 GAP，不得报告“损坏已自动阻断”。
+**目录形态是重要纠偏**：旧版本 `Dir{tile >> 28}` 与真实 IVOA/代码不一致，AIO 当前标准路径优先，若 `tile>=10000` 标准路径不存在，会尝试仅读兼容的旧 `Dir{tile/10000}/Npix{tile%10000}.fits`。只读兼容不能变成新产物的默认写路径，必须分别验证 standard/legacy。MOC 缺失当前 AIO `load_tiles_from_moc` 允许空列表，但存在而读损坏则 fail-closed；产品完成清单缺失直接拒绝，这不是单个尚未观测 tile 的合法空洞。
+
+**Issue #87 已闭合 tile 缺失/损坏的同态折叠**：AIO reader 的整 tile 读取入口返回稳定分类（`OUTSIDE_DECLARED_FOOTPRINT` / `DECLARED_MISSING` / `IO_ERROR` / `INVALID_TILE` / `CHECKSUM_FAILED` / `FOOTPRINT_UNDETERMINED`），覆盖身份按 `MOC_LEAF` / `MOC_UNDETERMINED` / `MANIFEST_ONLY` / `NONE` 分级并随成功产物落盘；DATASUM/CHECKSUM 存在时校验、缺失时显式计数而非失败；P3 sampler 的合法 absent 负缓存与完整性错误缓存分开，错误命中复现同一 code/path；采样函数对真实故障返回 `P3_RS_INTEGRITY`/`P3_RS_IO`，`p3_op_resample`/`p3_session_run` 在写 FITS 前 fail-closed，不发布 resampled bin、FITS 或 complete manifest。多 worker 按 `tile_ipix` 升序聚合、同一 tile 一条并记录 `worker_min/max/count`。父级覆盖归约仍属独立任务 #95，本 reader 对低阶 MOC 显式判 `FOOTPRINT_UNDETERMINED` 而不静默归约。
 
 ### B2. 实际 G3、G4 与受控矩阵近似
 
@@ -468,7 +470,7 @@ tile_file = signal/NorderK/Dir{floor(tile/10000)*10000}/Npix{tile}.fits
 
 ### B3. 两层缺数与有效系数精确含义
 
-CURRENT 函数签名是 `P3ResampleStatus` 返回，`float* value`、`int* coverage` 输出，不是原文过时的 void / float* coverage。Tile 未读到（bilinear 任一角）⇒ **S=NaN,C=0**；四角都来自存在 tile，但值全 NaN/±Inf 或有效权重总和≤0⇒ **S=NaN,C=1**，这表明几何覆盖、科学值资格两个轴分离。只有部分值无效时取有效角集合 `E` 并令：
+CURRENT 函数签名是 `P3ResampleStatus` 返回，`float* value`、`int* coverage` 输出，不是原文过时的 void / float* coverage。合法无覆盖（`OUTSIDE_DECLARED_FOOTPRINT`）的 tile 未读到（bilinear 任一角）⇒ **S=NaN,C=0**；真实完整性故障（声明内缺失/INVALID/CHECKSUM/IO/UNDETERMINED）⇒ 返回 `P3_RS_INTEGRITY`/`P3_RS_IO`，由 run 层 fail-closed，不得折叠成 S=NaN,C=0。四角都来自存在 tile，但值全 NaN/±Inf 或有效权重总和≤0⇒ **S=NaN,C=1**，这表明几何覆盖、科学值资格两个轴分离。只有部分值无效时取有效角集合 `E` 并令：
 \[
 c_k=\begin{cases}w_k/\sum_{j\in E} w_j & k\in E,\ \sum_{E}w>0\\0&\mathrm{otherwise}\end{cases},\quad
 S=\sum_k c_k X_{\mathrm{id}(k)}.
@@ -483,9 +485,9 @@ S=\sum_k c_k X_{\mathrm{id}(k)}.
 
 ### B5. 真实 Cache/IO 资源与当前静态风险
 
-`P3Sampler` 仅包含 `P3SamplerImpl* impl`，由 `open/open_ex` 分配、`close` 释放；调用者拥有句柄和 `err` 的 std::string，对同一 sampler 并发读不安全。每工作线程有自己的 sampler/AioHipsDataset 和8槽热缓存；`p3_sampler_attach_cache` 共享 `SharedTileCache` 的 mutex+list+map LRU，容量默认8片、允许 `set_max_tiles` 按资源预算设置，tile的数据为 `shared_ptr<const vector<float>>`，每片512²f32≈1MiB。读取优先热槽→共享LRU→负缓存→实际AIO tile。旧“FIFO”仅是历史已被P30修正。实际 AIO Reader 对每 tile 使用独立READONLY CFITSIO句柄，在 _REENTRANT 4.6.4路径**不再使用同一全局Cfitsio写锁**；FITS写端有全局串行锁，不能把两端混称全局I/O串行。
+`P3Sampler` 仅包含 `P3SamplerImpl* impl`，由 `open/open_ex` 分配、`close` 释放；调用者拥有句柄和 `err` 的 std::string，对同一 sampler 并发读不安全。每工作线程有自己的 sampler/AioHipsDataset 和8槽热缓存；`p3_sampler_attach_cache` 共享 `SharedTileCache` 的 mutex+list+map LRU，容量默认8片、允许 `set_max_tiles` 按资源预算设置，tile的数据为 `shared_ptr<const vector<float>>`，每片512²f32≈1MiB。读取优先热槽→共享LRU→**错误缓存**→合法 absent 负缓存→实际AIO tile；错误缓存与合法 absent 分开（命中复现同一故障身份）。旧“FIFO”仅是历史已被P30修正。实际 AIO Reader 对每 tile 使用独立READONLY CFITSIO句柄，在 _REENTRANT 4.6.4路径**不再使用同一全局Cfitsio写锁**；FITS写端有全局串行锁，不能把两端混称全局I/O串行。
 
-**资源审查必须如实限定当前实现**：SharedTileCache::absent 是与LRU map**分离的 unordered_map，没有按cap淘汰**；缺失 tile 负缓存不能无条件称为“与cap同界的有界缓存”。hot槽的 `shared_ptr` 会 pin住已逐出的tile，瞬时同一tile在多worker竞态失误后可能并行重复I/O（底层读在共享锁外），并不能保证“每tile全球唯一open”。峰值由正常LRU `cap*1MiB`、每worker热槽pin、in-flight解码、std::vector neighbors临时分配、Runtime子块和未封顶负缓存键共同决定，须用工作集含大量缺失和并发的真实M42测RSS/IO锁等待/重复open和缺块规模；缓存结构自洽不等于符合总体 OOM 预算。 `p3_sample_bilinear_ex` 每次调用 `healpix::neighbors` 返回动态vector，故旧的“每像素严格O(1)且无分配”不能解释实际内存分配成本。
+**资源审查必须如实限定当前实现**：SharedTileCache 的成功 tile LRU 按 `cap` 淘汰；合法 absent 是与 LRU map**分离的 unordered_map，没有按cap淘汰**；Issue #87 的完整性错误表是独立 `std::map<tile_ipix, ErrorRec>`（按 tile 升序、上限 4096 条，失败路径专用），同样不占成功 LRU 容量。缺失 tile 负缓存不能无条件称为“与cap同界的有界缓存”。hot槽的 `shared_ptr` 会 pin住已逐出的tile，瞬时同一tile在多worker竞态失误后可能并行重复I/O（底层读在共享锁外），并不能保证“每tile全球唯一open”。峰值由正常LRU `cap*1MiB`、每worker热槽pin、in-flight解码、std::vector neighbors临时分配、Runtime子块和未封顶负缓存键共同决定，须用工作集含大量缺失和并发的真实M42测RSS/IO锁等待/重复open和缺块规模；缓存结构自洽不等于符合总体 OOM 预算。 `p3_sample_bilinear_ex` 每次调用 `healpix::neighbors` 返回动态vector，故旧的“每像素严格O(1)且无分配”不能解释实际内存分配成本。
 
 **CURRENT 真 DAG 资源**：`p3_op_resample` 用 Runtime 单一executor按 `sub_block_px` 分割 W×H，工作线程每块缓冲 `float signal,coverage`，经 AIO RandomWriter 将2×W×H×4B**整幅中间文件**以不相交行区间写到磁盘；仅RAM缓冲按子块受限（不等于磁盘大小不随画幅变化），临时文件全部块成功才fsync+rename。writer随后经有界 `ExportStreamScheduler` 逐块读并写PRIMARY FITS；当前不是“生产整幅 f32 signal+coverage 常驻RAM”，原 §10仅适用于独立全帧`p3_session`/故障注入对照。默认 max_tiles 按输入画幅估测、上界1024、请求可降低，`queue_depth/sub_block_px`来自运行资源配置，实际 worker 从Runtime lease而不是 `hardware_concurrency`；中途取消/作业缺块写入/队列未执行任务都必须 fail-closed。
 
