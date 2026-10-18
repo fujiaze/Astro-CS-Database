@@ -5,9 +5,10 @@
 //   ② 单位声明面: BUNIT 逻辑键（大小写不敏感）+ ACSD_SIGNAL_UNIT 辅助面
 //        缺声明 → MISSING；空串 → EMPTY；同键重复同值 → DUPLICATE；重复异值/两面对立 → CONFLICT/…
 //   ③ 像素语义声明 ACSD_PIXEL_SEMANTICS / ACSD_PIXEL_AREA_POWER 的解析与内部一致性
-//   ④ 冻结单位表归类（resolve_bunit）；裸 ADU 无 provenance → UNDECIDABLE；
+//   ④ 冻结单位表归类（resolve_bunit）；裸线性基单位（ADU/XPMODEL）无 provenance → UNDECIDABLE；
 //      表外语汇 → UNPARSABLE（要求上游科学模型裁决，本轮不自行映射）
-//   ⑤ 身份 = signal 面亮度（adu_power=1, px_power=-2）→ 通过，canonical "ADU/sr"；
+//   ⑤ 身份 = signal 面亮度（线性基幂次=1, px_power=-2）→ 通过，canonical 由该线性基导出
+//      （Issue #9: "ADU/sr" 或 "XPMODEL/sr"）；
 //      可解析但非面亮度 → NOT-SURFACE-BRIGHTNESS（科学语义，exit 4）
 //   ⑥ 显式面亮度身份与已声明像素语义/面积幂次矛盾 → UNIT-SEMANTICS-CONFLICT（exit 4）
 #include "p3_input_unit.h"
@@ -256,19 +257,28 @@ P3InputUnitVerdict p3_input_unit_verdict_from_text(const std::string& text,
     // ── ⑤ 冻结单位表归类（唯一实现 resolve_bunit）────────────────────────────
     const BunitResolution res = resolve_bunit(v.bunit_raw, prov);
     if (!res.resolvable) {
-        if (ascii_upper(strip_ws(v.bunit_raw)) == "ADU")
+        // 裸线性基单位（大小写敏感）: 缺像素语义/面积幂次 ⇒ 身份不可判。
+        const std::string raw_u = strip_ws(v.bunit_raw);
+        if (raw_u == "ADU" || raw_u == "XPMODEL")
             return reject_input(v, "P3-INPUT-BUNIT-UNDECIDABLE",
-                                "input BUNIT 'ADU' without ACSD_PIXEL_SEMANTICS="
+                                "input BUNIT '" + raw_u + "' without ACSD_PIXEL_SEMANTICS="
                                 "surface_brightness + ACSD_PIXEL_AREA_POWER=-2 is not"
                                 " dimensionally decidable (FZ-BUNIT-SEMANTICS; 禁按 ADU"
-                                " 猜测); 面亮度输入须逐字写 'ADU/sr' 或补像素语义声明: " +
+                                " 猜测); 面亮度输入须逐字写 '" + raw_u + "/sr' 或补像素语义声明: " +
                                     properties_path);
         return reject_input(v, "P3-INPUT-BUNIT-UNPARSABLE",
                             "BUNIT '" + v.bunit_raw +
                                 "' is outside the frozen unit vocabulary"
                                 " (p3rsmp::resolve_bunit: " + res.reason +
-                                "); 合法的非 ADU 承载单位需上游科学模型裁决（未闭合项），"
+                                "); 合法的其它线性基承载单位需上游科学模型裁决（未闭合项），"
                                 "本轮不自行映射为 'ADU/sr': " + properties_path);
+    }
+    if (res.resolved.mixed_base) {
+        return reject_science(v, "P3-INPUT-UNIT-MIXED-BASE",
+                              "BUNIT '" + v.bunit_raw +
+                                  "' mixes incompatible linear base units (ADU and"
+                                  " XPMODEL); unit identity is not decidable: " +
+                                  properties_path);
     }
     if (res.resolved.adu_power != 1 || res.resolved.px_power != -2) {
         if (prov.pixel_semantics == PixelSemantics::IntegratedFlux)
@@ -282,7 +292,8 @@ P3InputUnitVerdict p3_input_unit_verdict_from_text(const std::string& text,
                               "export accepts surface-brightness inputs only"
                               " (docs/ACSD_DESIGN §6.3): BUNIT '" + v.bunit_raw +
                                   "' resolves to '" + res.resolved.canonical() +
-                                  "' (expected 'ADU/sr'): " + properties_path);
+                                  "' (expected a surface-brightness unit '<linear_base>/sr'): " +
+                                  properties_path);
     }
     // 维度等价但使用 legacy 像元面积写法（"px"/"pixel"）：冻结口径明确否定
     // （docs/science/algorithms/export/PHASE3_RESAMPLE.md / PHASE3_RSMP_IMPL.md），
@@ -309,10 +320,11 @@ P3InputUnitVerdict p3_input_unit_verdict_from_text(const std::string& text,
                                   " ACSD_PIXEL_AREA_POWER=" + pap_raw +
                                   " contradicts it: " + properties_path);
 
-    // ── 通过: 身份 = signal 面亮度; 产品串取冻结 canonical ───────────────────
+    // ── 通过: 身份 = signal 面亮度; 产品串取该线性基单位的冻结 canonical ─────
     v.accepted = true;
     v.input_error = false;
-    v.bunit_canonical = kP3SignalBunitCanonical;
+    v.bunit_canonical = res.resolved.canonical();
+    v.linear_base = p3rsmp::to_string(res.resolved.base);
     return v;
 }
 

@@ -5,10 +5,11 @@
 //   · 单位串解析/归类 = acsd::p3rsmp::resolve_bunit（冻结单位表，
 //     lib/algorithms/resample/p3_rsmp_units.cpp 已是唯一实现，本文件只调用它）;
 //   · docs/science/unified/DATA_SEMANTICS.md §3「区分观测计数、线性通量和面亮度」;
-//   · FZ-BUNIT-SEMANTICS（产品 signal 面亮度单位唯一 canonical 串 "ADU/sr"，
-//     裸 "ADU" 需 ACSD_PIXEL_SEMANTICS=surface_brightness + ACSD_PIXEL_AREA_POWER=-2）。
+//   · FZ-BUNIT-SEMANTICS（产品 signal 面亮度单位 canonical 串由线性基单位导出，
+//     裸 "ADU"/"XPMODEL" 需 ACSD_PIXEL_SEMANTICS=surface_brightness + ACSD_PIXEL_AREA_POWER=-2）。
 //
-// 通过 ⇒ accepted=true 且 bunit_canonical="ADU/sr"（冻结产品串）。
+// 通过 ⇒ accepted=true 且 bunit_canonical = 冻结单位表对该线性基单位导出的 canonical
+//        面亮度串（Issue #9: 原生 "ADU/sr"、已施加 Gaia XP 模型标度 "XPMODEL/sr"）。
 // 拒绝 ⇒ accepted=false，code/reason 可诊断；input_error 决定 CLI 退出码类别:
 //        true  → 3（输入缺失/格式错/声明冲突）
 //        false → 4（科学语义/身份矛盾）
@@ -19,11 +20,17 @@
 
 #include <string>
 
+#include "p3_rsmp.h"
+
 namespace acsd::phase3 {
 
 // 冻结产品 signal 面亮度单位串（唯一单源；docs/science/unified/DATA_SEMANTICS.md §3）。
-// 通过裁决后写出的所有单位面（p3_props.json / p3_resampled.json / FITS BUNIT）一律取本串。
-inline constexpr const char* kP3SignalBunitCanonical = "ADU/sr";
+// 通过裁决后写出的所有单位面（p3_props.json / p3_resampled.json / FITS BUNIT）一律取
+// **裁决返回的 canonical 串**（= 该输入线性基单位的面亮度串）。
+inline constexpr const char* kP3SignalBunitCanonical =
+    "ADU/sr";  // 原生校准计数族（LinearBase::Adu）
+inline constexpr const char* kP3SignalBunitCanonicalModel =
+    "XPMODEL/sr";  // Gaia XP 合成通带模型通量族（LinearBase::XpModel; Issue #9）
 
 struct P3InputUnitVerdict {
     bool accepted = false;
@@ -32,7 +39,8 @@ struct P3InputUnitVerdict {
     std::string reason;            // 人类可读（含定位）
     std::string properties_path;   // 本裁决实际读取的文件（定位信息）
     std::string bunit_raw;         // 文件中 BUNIT 的原始声明（未归一）
-    std::string bunit_canonical;   // 通过时 = "ADU/sr"
+    std::string bunit_canonical;   // 通过时 = 该线性基单位的 canonical 面亮度串
+    std::string linear_base;       // 通过时 = "ADU" | "XPMODEL"（Issue #9 身份面）
     int unit_declarations = 0;     // 单位声明面数量（BUNIT 逻辑键 + ACSD_SIGNAL_UNIT）
     std::string pixel_semantics;   // ACSD_PIXEL_SEMANTICS 原值（未声明 = 空）
     std::string pixel_area_power;  // ACSD_PIXEL_AREA_POWER 原值（未声明 = 空）

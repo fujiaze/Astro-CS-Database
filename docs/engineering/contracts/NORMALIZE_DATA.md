@@ -37,7 +37,7 @@ C++ 内部可用 RAII、`std::optional` 和 `shared_ptr<const T>`；跨 DLL 用�
 
 外部天球坐标 ICRS degrees，RA `[0,360)`、Dec `[-90,90]`；内部向量/弧度依函数签名。Gaia 参考历元和实际使用的 epoch propagation 必须登记，ICRS 不等于把所有星的位置冻结在 J2000。SIP 的 A/B 与 AP/BP 同属于像元偏移域；无 AP/BP 时可迭代反演 A/B，不能忽略畸变。天区支持以球面多边形/MOC/model ref 表示，不能仅靠 RA 最小最大值。
 
-`linear_unit` 给出积分信号的数值尺度；sphere signal 单位是该尺度/sr。每个控制点的 `reference_flux` 使用与其模板 h 配对的积分通量尺度，`flux_variance` 用该尺度平方，`reference_snr` 无量纲。相对标度必须记录归一参考 ID，不能无依据写 SI 或沿用未经标度的 ADU。BUNIT 和物理状态由实际应用结果生成，不按拟合是否存在猜测。
+`linear_unit` 给出积分信号的数值尺度；sphere signal 单位是该尺度/sr。冻结线性基单位词表（#9）只有两个成员：`ADU`（未施加带单位标度）与 `XPMODEL`（已施加 Gaia XP 合成通带标度后的模型通带通量单位，由该帧实际 response 归一，相对模型量、非 SI）；canonical 串为 `L/sr`、`L^2/sr^2`、`sr^2/L^2`，由冻结单位表唯一实现导出（`lib/algorithms/resample/p3_rsmp_units.cpp`）。每个控制点的 `reference_flux` 使用与其模板 h 配对的积分通量尺度，`flux_variance` 用该尺度平方，`reference_snr` 无量纲。相对标度必须记录归一参考 ID，不能无依据写 SI 或沿用未经标度的 ADU。BUNIT 和物理状态由实际应用结果生成，不按拟合是否存在猜测。
 
 ## 4. 端口与因果图
 
@@ -162,7 +162,7 @@ local-factor/v2 量纲一致性同时包括**线性单位自身**与立体角幂
 
 - `input_occurrence`：0-based、非负整数，按冻结输入序列中的每次出现分别计数；`frame_id` 唯一绑定该 occurrence，不能只取 basename；`source_sha256` 是原始 FITS 内容身份，`run_id/config_sha256` 绑定此次执行。
 - `source_dimensions=[width,height]` 为两个正整数，`exposure_seconds` 为已知时正有限数，否则在上游给出具名不可用状态，禁止 0 充当合法曝光；WCS solved 时 `crval_deg/crpix` 各二元素，`cd_deg_per_pixel` 四元素非奇异、SIP 全系数有限且索引域有效。
-- `signal`：`hips_path` 为产品根内安全相对路径，`ordering="nested"`，`tile_width=512`，`scale_state` 限 `native_calibrated|relative_scaled|response_calibrated`，`invalid_policy` 显式给出。声明数值 `linear_unit=L` 时 `bunit=L/sr`；`photometry.scale_applied` 和 `application_id` 必须与真实像素运算、variance/ivar 单位及相应响应模型一一匹配，不能无条件写 `ADU/sr`。
+- `signal`：`hips_path` 为产品根内安全相对路径，`ordering="nested"`，`tile_width=512`，`scale_state` 限 `native_calibrated|relative_scaled|response_calibrated`，`invalid_policy` 显式给出。声明数值 `linear_unit=L` 时 `bunit=L/sr`（`L` ∈ {`ADU`,`XPMODEL`}，由实际施加状态派生：`native_calibrated` ⇒ `ADU`，逐帧实际施加 `k_photo` ⇒ `XPMODEL`）；`photometry.scale_applied` 和 `application_id` 必须与真实像素运算、variance/ivar 单位及相应响应模型一一匹配，不能无条件写 `ADU/sr`。
 - 核心几何不变量：`Nside=2^K`（正整数 2 的幂），`signal.leaf_order=K=log2(Nside)`；`tile_order=K-log2(tile_width)=K-9` 且 **tile_order 仅用于 HiPS 目录** `Norder{tile_order}`。本 512 tile 帧产品可接受的基础域为 `9<=K<=29`（还须满足生产几何、资源和 id 溢出检查）；`signal.leaf_order`、所有可用的 `precision.controls[].leaf_order`、模型 support/operator leaf order **严格相等**，不做容差或自动 +9。
 - 叶下标是 NESTED 的无符号 64-bit 整数，JSON `leaf_ipix` 必须以不带指数/前导 + 的十进制**字符串**存储，解析后满足 `0<=ipix<12*4^K`；包括 ipix=0。由同一 HEALPix oracle 求 `ang2pix_nest(K,ra,dec)`，不得拿 tile `Npix` 或局部 x/y 替代球面位置。叶立体角 `Omega_leaf=4*pi/(12*4^K)` sr；K=11 时 Nside=2048、tile_order=2，误用 2 的叶面积会相差 `4^9=262144`。
 - `precision` 在 `drizzled_sphere` 域用 float64 保存控制点；`available` 控制点的 `F_ref>0,V_F>0,SNR=F_ref/sqrt(V_F)` 有限且单位配对，模型 ID、PSF h、noise C、nuisance Z、R、支持域和 reference 定义完整；`unavailable` 给具名 reason，不能伪造 0、NaN、Inf 或空模型为可用。成功且 `precision.status=unavailable` 的 **v2 sidecar 仍必须存在**；`frame_summary` 的有效数目、非重复支持面积和加权中位数从 controls 可复算。

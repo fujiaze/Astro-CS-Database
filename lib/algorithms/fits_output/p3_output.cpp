@@ -41,6 +41,9 @@
 // Issue #91: 产品 signal 面亮度 canonical 串的唯一单源（header-only 常量，
 // 不引入链接依赖 —— 只是拒绝在写出边界捏造缺省单位）。
 #include "../resample/p3_input_unit.h"
+// Issue #9: 单位串解析/二次律导出的**唯一实现**（冻结单位表）。本文件不再自建
+// 第二套单位解析词表（bunit_square_canonical 直接调用它）。
+#include "../resample/p3_rsmp.h"
 
 #include <memory>
 #include <vector>
@@ -57,92 +60,35 @@ std::string g_last_err;
 // 报 Datasum verification failed），已删除。
 // FZ-P3-BUNIT-QUADRATIC / docs/science/unified/DATA_SEMANTICS.md
 // 「单位与量纲表」+「面亮度单位的推导」两节:
-// variance BUNIT = (signal BUNIT)^2, ivar = 1/variance —— 用**冻结单位表的 canonical
-// 串**（ADU^a × 立体角幂次代数；写侧一律 "sr"），禁朴素字符串拼接（"ADU/sr" + "^2"
-// = "ADU/sr^2" 既非 canonical 也不可判）。解析失败 → false（调用方显式拒绝，
-// 禁写出非二次律 BUNIT）。
+// variance BUNIT = (signal BUNIT)^2, ivar = 1/variance —— 由**冻结单位表唯一实现**
+// （acsd::p3rsmp::resolve_bunit + Bunit::canonical，lib/algorithms/resample/
+// p3_rsmp_units.cpp）导出，本文件不再自建第二套单位解析/书写词表（Issue #9:
+// 线性基单位可为 ADU 或 XPMODEL，二者各自的二次律串都由该表给出）。
+// 解析失败 → false（调用方显式拒绝，禁写出非二次律 BUNIT）。
 bool bunit_square_canonical(const std::string& signal, std::string* variance,
                             std::string* ivar) {
-    // 解析单因子 "ADU^a"（幂次可省略=1、可带负号；"1" = 0/0）
-    auto parse_pow = [](const std::string& s, const char* base, int* out) -> bool {
-        if (s.rfind(base, 0) != 0) return false;
-        const size_t bl = std::strlen(base);
-        if (s.size() == bl) { *out = 1; return true; }
-        if (s.size() > bl + 1 && s[bl] == '^') {
-            try {
-                size_t used = 0;
-                const int v = std::stoi(s.substr(bl + 1), &used);
-                if (used != s.size() - bl - 1) return false;
-                *out = v;
-                return true;
-            } catch (...) { return false; }
-        }
-        return false;
-    };
-    // 分母因子的立体角幂次（符号 "sr"；legacy 读侧别名 "px"/"pixel" 同幂次，
-    // docs/science/unified/DATA_SEMANTICS.md「单位与量纲表」一节：写盘单位串一律用
-    // `sr`，读侧兼容同幂次的 `px`、`pixel` 写法 ⇒ 旧冻结表把像元面积记作 px^N
-    // 与 sr^(N/2) 是同一立体角维）。
-    auto parse_area_pow = [&parse_pow](const std::string& s, int* sr_out) -> bool {
-        int e = 0;
-        if (parse_pow(s, "sr", &e)) { *sr_out = e; return true; }
-        if (parse_pow(s, "pixel", &e) || parse_pow(s, "px", &e)) {
-            if (e % 2 != 0) return false;   // 面积幂次须为偶（无整数 sr 等价）
-            *sr_out = e / 2;
-            return true;
-        }
-        return false;
-    };
-    // 冻结表书写形式（分母正幂次，符号一律 "sr"）: {+1,-1} → "ADU/sr";
-    // {+2,-2} → "ADU^2/sr^2"; {-2,+2} → "sr^2/ADU^2"; {+1,0} → "ADU";
-    // {-2,0} → "ADU^-2"（(adu, sr) = ADU 幂次 × 立体角符号幂次）。
-    auto canon = [](int adu, int sr) -> std::string {
-        if (adu == 0 && sr == 0) return "1";
-        if (adu > 0) {
-            std::string s = "ADU";
-            if (adu != 1) s += "^" + std::to_string(adu);
-            if (sr != 0) {
-                s += "/sr";
-                if (sr != -1) s += "^" + std::to_string(-sr);
-            }
-            return s;
-        }
-        if (adu < 0) {
-            if (sr != 0) {
-                std::string s = "sr";
-                if (sr != 1) s += "^" + std::to_string(sr);
-                s += "/ADU";
-                if (adu != -1) s += "^" + std::to_string(-adu);
-                return s;
-            }
-            // 纯 ADU 负幂次: 冻结表写带符号指数（flux ivar = "ADU^-2"）
-            return std::string("ADU^-") + std::to_string(-adu);
-        }
-        std::string s = "sr";
-        if (sr != 1) s += "^" + std::to_string(sr);
-        return s;
-    };
-    std::string t;
-    for (char c : signal) {
-        if (c != ' ' && c != '\t') t += c;
-    }
-    if (t.empty()) return false;
-    int adu = 0, sr = 0;
-    if (t == "1") {
-        adu = 0; sr = 0;
-    } else {
-        const size_t slash = t.find('/');
-        const std::string left = (slash == std::string::npos) ? t : t.substr(0, slash);
-        if (!parse_pow(left, "ADU", &adu)) return false;
-        if (slash != std::string::npos) {
-            int written = 0;
-            if (!parse_area_pow(t.substr(slash + 1), &written)) return false;
-            sr = -written;   // 分母形式 "sr^N" ⇒ 带符号幂次 -N
-        }
-    }
-    if (variance) *variance = canon(adu * 2, sr * 2);
-    if (ivar) *ivar = canon(-adu * 2, -sr * 2);
+    // 显式立体角幂次（canonical 面亮度串）恒可判；provenance 面不需要（输入串已带 sr）。
+    const acsd::p3rsmp::BunitProvenance prov{};
+    const acsd::p3rsmp::BunitResolution res =
+        acsd::p3rsmp::resolve_bunit(signal, prov);
+    if (!res.resolvable || res.resolved.mixed_base) return false;
+    const acsd::p3rsmp::Bunit sq = acsd::p3rsmp::bunit_square(res.resolved);
+    if (variance) *variance = sq.canonical();
+    if (ivar) *ivar = acsd::p3rsmp::bunit_inverse(sq).canonical();
     return true;
+}
+
+// 写出边界接受的 signal BUNIT = 冻结单位表的**面亮度 canonical 串**
+// （<linear_base>/sr；线性基 = ADU 或 XPMODEL，Issue #9）。判据（缺一即拒，禁 loose
+// default）: 可解析、非 mixed base、线性基幂次=1、立体角幂次=-2、且**书写本身就是
+// 该单位的 canonical 形式**（legacy px/pixel 别名、非规范幂次书写一律拒绝）。
+bool is_frozen_surface_brightness_bunit(const char* bunit) {
+    if (!bunit || !*bunit) return false;
+    const acsd::p3rsmp::BunitProvenance prov{};
+    const acsd::p3rsmp::BunitResolution r = acsd::p3rsmp::resolve_bunit(bunit, prov);
+    if (!r.resolvable || r.resolved.mixed_base) return false;
+    if (r.resolved.adu_power != 1 || r.resolved.px_power != -2) return false;
+    return r.resolved.canonical() == std::string(bunit);
 }
 
 bool fits_write_std_chksum(fitsfile* f, std::string* why) {
@@ -283,19 +229,20 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
     // ── Issue #91: 主 HDU 单位必须由调用方给出**已经输入单位裁决证实的**科学身份 ──
     // 旧行为 `(bunit && *bunit) ? bunit : "ADU/sr"` 在调用方漏传时捏造确定量纲，
     // 使无单位证据的输入产出被标为 ADU/sr 的"成功"产品。此处 fail-closed：
-    // 缺声明 / 非冻结 canonical 串 → 在创建任何临时文件之前拒绝。
-    // 产品 signal 面亮度唯一 canonical 串 = "ADU/sr"
-    // （唯一单源 acsd::phase3::kP3SignalBunitCanonical，见
-    //  lib/algorithms/resample/p3_input_unit.h；本写出边界逐字核对同一串）。
+    // 缺声明 / 非冻结 canonical 面亮度串 → 在创建任何临时文件之前拒绝。
+    // Issue #9: 面亮度 canonical 串由线性基单位导出（ADU/sr 或 XPMODEL/sr），
+    // 唯一实现 = 冻结单位表（acsd::p3rsmp::resolve_bunit）；本边界逐字核对
+    // canonical 书写，**不**接受表外/别名/非规范拼写。
     if (!bunit || !*bunit) {
         g_last_err = "BUNIT missing: 调用方必须给出经输入单位裁决证实的 canonical 面亮度串"
                      " (FZ-BUNIT-SEMANTICS; 禁 silent default ADU/sr)";
         return P3_OUT_PARAM;
     }
-    if (std::strcmp(bunit, kP3SignalBunitCanonical) != 0) {
+    if (!is_frozen_surface_brightness_bunit(bunit)) {
         g_last_err = std::string("BUNIT '") + bunit +
-                     "' != canonical signal surface-brightness '" +
-                     kP3SignalBunitCanonical + "' (FZ-BUNIT-SEMANTICS; 禁 loose default)";
+                     "' is not a frozen canonical signal surface-brightness unit"
+                     " ('<linear_base>/sr'; ADU/sr or XPMODEL/sr)"
+                     " (FZ-BUNIT-SEMANTICS; 禁 loose default)";
         return P3_OUT_PARAM;
     }
     if (result) std::memset(result, 0, sizeof(*result));
@@ -709,22 +656,24 @@ P3OutputStatus P3FitsStream::open(const char* output_path,
     }
     // ── Issue #91: 与整幅路径同判 —— 缺声明/非 canonical 串一律拒绝 ─────────
     // （旧行为 `bunit ? bunit : "ADU/sr"` 捏造确定量纲，是缺陷本体之一。）
+    // Issue #9: canonical 串由线性基单位导出（ADU/sr 或 XPMODEL/sr）。
     if (!bunit || !*bunit) {
         g_last_err = "BUNIT missing: 调用方必须给出经输入单位裁决证实的 canonical 面亮度串"
                      " (FZ-BUNIT-SEMANTICS; 禁 silent default ADU/sr)";
         return P3_OUT_PARAM;
     }
-    if (std::strcmp(bunit, kP3SignalBunitCanonical) != 0) {
+    if (!is_frozen_surface_brightness_bunit(bunit)) {
         g_last_err = std::string("BUNIT '") + bunit +
-                     "' != canonical signal surface-brightness '" +
-                     kP3SignalBunitCanonical + "' (FZ-BUNIT-SEMANTICS; 禁 loose default)";
+                     "' is not a frozen canonical signal surface-brightness unit"
+                     " ('<linear_base>/sr'; ADU/sr or XPMODEL/sr)"
+                     " (FZ-BUNIT-SEMANTICS; 禁 loose default)";
         return P3_OUT_PARAM;
     }
     impl_->width = width;
     impl_->height = height;
     impl_->bitpix = bitpix;
     // 主 HDU = 重采样后的**面亮度**平面（与整幅路径同面）: 单位已在上方校验为
-    // canonical "ADU/sr"（Issue #91: 不再有缺省补写）。
+    // 冻结表的 canonical 面亮度串（Issue #91/#9: 不再有缺省补写）。
     impl_->bunit = bunit;
     impl_->out = output_path;
     impl_->lock.reset(new aio::CfitsioLockGuard());

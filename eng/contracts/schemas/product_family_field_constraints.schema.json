@@ -356,11 +356,12 @@
           "type": "string",
           "enum": [
             "ADU/sr",
+            "XPMODEL/sr",
             "ADU",
             "BUNIT(声明)"
           ],
           "x-acsd": {
-            "anchor": "FZ-UNIT-SIGNAL-SB; FZ-UNIT-FLUX; ADJ-GEN-01",
+            "anchor": "FZ-UNIT-SIGNAL-SB; FZ-UNIT-FLUX; ADJ-GEN-01; Issue #9",
             "domain": "全部",
             "fail_closed": "units 缺失或非可判量纲 -> unavailable/REJECT(FZ-BUNIT-SEMANTICS)",
             "gate": "G-UNITS-JUDGEABLE"
@@ -1169,6 +1170,8 @@
                 "ADU^2",
                 "ADU^2/sr^2",
                 "sr^2/ADU^2",
+                "XPMODEL^2/sr^2",
+                "sr^2/XPMODEL^2",
                 "BUNIT^2",
                 "1/BUNIT^2"
               ]

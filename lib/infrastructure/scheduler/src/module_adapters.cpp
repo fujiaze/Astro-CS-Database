@@ -8326,6 +8326,14 @@ Json p1_variance_audit_block(const Json& var_diag, const std::string& status,
   return block;
 }
 
+// ── Issue #9: 逐帧线性基单位派生（定义在文件后段；drizzle 节点先于定义使用）──────
+// 唯一实现 = 冻结单位表（acsd::p3rsmp）；此处仅前置声明，避免第二套字面量。
+acsd::p3rsmp::LinearBase p1_frame_linear_base(bool frame_applied);
+std::string p1_frame_linear_unit(bool frame_applied);
+std::string p1_frame_signal_bunit(bool frame_applied);
+std::string p1_frame_variance_bunit(bool frame_applied);
+std::string p1_frame_ivar_bunit(bool frame_applied);
+
 // ── op: drizzle_stack（唯一真实入口 hp_drizzle_run_phase1_hips; nside 科学参数无缺省）──
 Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   auto p1_lights_rc = p1_require_lights(doc);
@@ -9325,6 +9333,14 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       preq.background_constant_fit = true;  // 常量背景 nuisance（合同 §5 默认口径）
       preq.photometry_applied = frame_applied;
       preq.applied_scale = frame_applied ? frame_photscal : 1.0;
+      // Issue #9: 存储的 F_ref 与 h（applied 面模板）配对 ⇒ 其积分单位必须 = 本帧
+      // **输入面的线性单位**（NORMALIZE_DATA §5「F_ref 单位与 applied 积分量一致」）:
+      // native ⇒ 冻结 token "ADU"；applied ⇒ "XPMODEL"（数值已含 α）。同一帧的
+      // signal.linear_unit / factor_variance_unit / derived_covariance_unit 必须用
+      // **同一个 token**（读者按 doc.signal.linear_unit 逐字核对因子单位，大小写敏感）。
+      // normalization 仍是推导口径字段（native_calibrated 表示逐点由实际 α_* 转换），
+      // 二者不互相冒充。
+      preq.reference.flux_unit = p1_frame_linear_unit(frame_applied);
       preq.master_uncertainty_modelled = false;  // 母版方差未传播 ⇒ 显式缺项
       // P5 空间 alpha（NOISE_SNR §11.3; PHOT-MXY-01 语义 α_j = k_photo·m(x_j,y_j)）:
       // 仅当本帧真的施加了空间项（applied + order>0 + status ok）时组装求值器;
@@ -9555,8 +9571,15 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           leaf_order = k;
         }
         fdoc.signal.leaf_order = leaf_order;
+        // ── Issue #9: 单位与 scale 身份由**实际施加结果**生成（不是拟合是否存在）──
+        // frame_applied ⇒ 本帧像素 = α·ADU（α = frame_photscal，带单位 U_out/ADU，
+        // U_out = 本帧 response 归一的 Gaia XP 合成通带模型通量）⇒ signal 数值不再
+        // 是 ADU 积分量: linear_unit/bunit 必须同步改为模型通带单位族（XPMODEL/sr），
+        // 并保留 scale_state/provenance；不得继续声明 ADU/sr（Issue #9 缺陷本体）。
         fdoc.signal.scale_state = frame_applied ? "relative_scaled"
                                                 : "native_calibrated";
+        fdoc.signal.linear_unit = p1_frame_linear_unit(frame_applied);
+        fdoc.signal.bunit = p1_frame_signal_bunit(frame_applied);
         fdoc.wcs.status = "solved";
         fdoc.wcs.source = p1_has(wj_storage, "wcs_source") &&
                                   wj_storage["wcs_source"].is_string()
@@ -9582,9 +9605,15 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           }
         }
         fdoc.wcs.epoch_propagation = "not_applicable";
-        // reference 段单位/归一在 unavailable 时也要如实表达输入面的真实状态
-        // （schema 要求非空; 不用空串假装缺单位, 也不用响应标定状态冒充）。
-        if (fdoc.reference.flux_unit.empty()) fdoc.reference.flux_unit = "adu";
+        // Issue #9: 存储的 F_ref 与 h（applied 面模板）配对 ⇒ 其单位必须 = 本帧
+        // **输入面的线性单位**（NORMALIZE_DATA §5「F_ref 单位与 applied 积分量一致」）:
+        // native ⇒ "ADU"；applied ⇒ "XPMODEL"（数值已含 α），不得再写 adu。
+        // normalization 仍如实登记 F_ref 的**推导口径**（native_calibrated 表示
+        // 由实际 α_* 逐点转换而来），两者是不同字段，不互相冒充。
+        // 注：reference 段最终由 stage_frame_precision 按 preq.reference 重建；此处
+        // 赋值是其不可用/未发布路径的同源默认（不产生第二套口径）。
+        fdoc.reference.flux_unit = p1_frame_linear_unit(frame_applied);
+        if (fdoc.reference.flux_unit.empty()) fdoc.reference.flux_unit = "ADU";
         if (fdoc.reference.normalization.empty()) {
           fdoc.reference.normalization =
               frame_applied ? "photo_applied" : "native_calibrated";
@@ -9641,6 +9670,8 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           fdoc.photometry.response_id = acsd::phase1::precision::photo_response_identity(
               phot_response_filter_key, phot_response_filter_sha,
               phot_response_qe_key, phot_response_qe_sha);
+          // 参考量的响应身份在 stage_frame_precision 之后回填（该函数由 ref_def
+          // 重建 reference 段 ⇒ 在此设置会被覆盖；见调用点后的补写）。
         }
         fdoc.photometry.reason =
             frame_applied
@@ -9661,6 +9692,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           preq, prec_windows, fdoc, p1_frame_key(lp), &f_prec_var[fi], &payloads);
       if (staged.ok) {
         f_prec_doc[fi] = staged.document;
+        // Issue #9: 参考量与 signal 的响应身份成对登记（stage_frame_precision 由
+        // ref_def 重建 reference 段 ⇒ 在此把实际 response 身份补回, 缺失保持 null）。
+        if (frame_applied)
+          f_prec_doc[fi].reference.response_id = f_prec_doc[fi].photometry.response_id;
         f_prec_payloads[fi] = std::move(payloads);
         if (!staged.psf_integration_summary.empty())
           std::fprintf(stderr, "[drizzle_node][precision] %s\n",
@@ -9732,13 +9767,20 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                           {"nside_clamped", auto_res.clamped != 0},
                           {"n_healpix_pixels", static_cast<int64_t>(res.n_healpix_pixels)},
                           {"n_source_pixels", static_cast<int64_t>(res.n_source_pixels)},
-                          // BUNIT 口径 = canonical 面亮度串，**与 frame_applied 无关**：
-                          // 测光归一化是线性乘性标度，只改零点、不改量纲类别，标度由
-                          // photappl/photscal 逐帧承载（docs/science/unified/DATA_SEMANTICS.md
-                          // §31.1a:2808-2810 与 :2827-2830）。同一份像素的另一个声明面
-                          // <fdir>/signal/properties 的 BUNIT 由 declare_hips_surface_
-                          // brightness_units 写同一串；两串不一致由该函数判红（B1 守卫）。
-                          {"bunit", "ADU/sr"},
+                          // BUNIT 口径 = 冻结单位表的 canonical 面亮度串，由**实际施加
+                          // 结果**派生（Issue #9）：frame_applied ⇒ 像素 = α·ADU（α 带单位
+                          // U_out/ADU）⇒ signal 属模型通带单位族 "XPMODEL/sr"；未施加 ⇒
+                          // 原生计数族 "ADU/sr"。旧口径「与 frame_applied 无关、恒 ADU/sr」
+                          // 是缺陷本体：同一数值既称 relative_scaled 又称 ADU/sr，外部 FITS
+                          // 读者会按错误物理单位解释（docs/science/unified/DATA_SEMANTICS.md
+                          // §3 / docs/science/photometry/PHOTOMETRY.md §4）。
+                          // 同一份像素的另一个声明面 <fdir>/signal/properties 的 BUNIT 由
+                          // declare_hips_surface_brightness_units 写同一串；两串不一致由该
+                          // 函数判红（B1 守卫）。单位串由 p1_frame_signal_bunit 唯一派生。
+                          {"bunit", p1_frame_signal_bunit(frame_applied)},
+                          {"linear_unit", p1_frame_linear_unit(frame_applied)},
+                          {"scale_state", frame_applied ? "relative_scaled"
+                                                        : "native_calibrated"},
                           {"photappl", frame_applied ? 1 : 0},
                           {"photscal", frame_photscal},
                           {"photometry_provenance", have_phot_prov ? "p1_phot.json" : "absent"},
@@ -9874,10 +9916,64 @@ constexpr const char* kP3BunitSurfaceBrightness = acsd::phase3::kP3SignalBunitCa
 constexpr const char* kP3BunitSbVariance = "ADU^2/sr^2";
 constexpr const char* kP3BunitSbIvar = "sr^2/ADU^2";
 
+// ── Issue #9: 逐帧线性基单位 = 实际施加状态（不是拟合是否存在）──────────────────
+// native（未施加带单位标度）⇒ ADU；已施加 Gaia XP 合成通带标度 ⇒ XPMODEL
+// （该帧实际 response 归一的相对模型通带通量单位，显式非 SI）。
+// 唯一实现 = 冻结单位表（acsd::p3rsmp::surface_brightness_bunit 等），本处零字面量。
+acsd::p3rsmp::LinearBase p1_frame_linear_base(bool frame_applied) {
+  return frame_applied ? acsd::p3rsmp::LinearBase::XpModel
+                       : acsd::p3rsmp::LinearBase::Adu;
+}
+std::string p1_frame_linear_unit(bool frame_applied) {
+  return acsd::p3rsmp::to_string(p1_frame_linear_base(frame_applied));
+}
+std::string p1_frame_signal_bunit(bool frame_applied) {
+  return acsd::p3rsmp::surface_brightness_bunit(p1_frame_linear_base(frame_applied));
+}
+std::string p1_frame_variance_bunit(bool frame_applied) {
+  return acsd::p3rsmp::surface_brightness_variance_bunit(
+      p1_frame_linear_base(frame_applied));
+}
+std::string p1_frame_ivar_bunit(bool frame_applied) {
+  return acsd::p3rsmp::surface_brightness_ivar_bunit(
+      p1_frame_linear_base(frame_applied));
+}
+
+// 面亮度 signal 单位是否属冻结单位表的 canonical 面亮度串（线性基 <linear_base>/sr；
+// 原生 "ADU/sr"、已施加 Gaia XP 模型标度 "XPMODEL/sr"）。唯一实现 =
+// acsd::p3rsmp::resolve_bunit；本处只做 canonical 书写规范核对（legacy px/pixel
+// 别名、非规范幂次、mixed base 一律拒）。
+bool p3n_is_frozen_sb_bunit(const std::string& s) {
+  acsd::p3rsmp::BunitProvenance prov{};
+  const acsd::p3rsmp::BunitResolution r = acsd::p3rsmp::resolve_bunit(s, prov);
+  if (!r.resolvable || r.resolved.mixed_base) return false;
+  if (r.resolved.adu_power != 1 || r.resolved.px_power != -2) return false;
+  return r.resolved.canonical() == s;
+}
+
+// Issue #9: 由 signal 面亮度 canonical 串导出 variance/ivar 的 canonical 串
+// （二次律 variance = signal²、ivar = 1/variance；唯一实现 = 冻结单位表）。
+// 返回 false = signal 串不可解析/非面亮度（调用方显式拒绝，禁拼接字符串）。
+bool p3n_sb_quadratic_bunits(const std::string& signal, std::string* var,
+                             std::string* ivar) {
+  acsd::p3rsmp::BunitProvenance prov{};
+  const acsd::p3rsmp::BunitResolution r = acsd::p3rsmp::resolve_bunit(signal, prov);
+  if (!r.resolvable || r.resolved.mixed_base) return false;
+  const acsd::p3rsmp::Bunit sq = acsd::p3rsmp::bunit_square(r.resolved);
+  if (var) *var = sq.canonical();
+  if (ivar) *ivar = acsd::p3rsmp::bunit_inverse(sq).canonical();
+  return true;
+}
+
 // HiPS 产品单位/像素语义声明（properties + manifest.json 双写）。
 // 定义在 p2_read_json 之后（依赖它）; 此处前置声明供 Phase1 writer 调用。
+// signal_bunit = 该产品实际数值的 canonical 面亮度串（Issue #9: 由实际施加状态
+// 派生；variance/ivar 串由冻结单位表二次律唯一导出，调用方不得另写字面量）。
+// resolved_bunit（可空）回填最终采用的一致单位串，供同一节点的产品摘要同源双写。
 bool declare_hips_surface_brightness_units(const std::string& product_root,
                                            bool uncertainty_available,
+                                           const std::string& expected_signal_bunit,
+                                           std::string* resolved_bunit,
                                            std::string* err);
 
 Result<void> p1_op_writer(const Json& doc, Json* man) {
@@ -9929,10 +10025,18 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   // NORMALIZE_DATA §7: 每帧 sidecar 发布状态（逐帧分名; 不把部分成功报成 N/N）。
   bool frame_science_published = false;
   std::string frame_science_sha256;
+  // Issue #9: 运行级单位身份普查（逐帧实际采用的 canonical signal 面亮度串）。
+  // 全部一致才可在运行摘要里声明单一单位；不一致 ⇒ 显式 MIXED（不得冒充可比）。
+  std::vector<std::string> run_frame_units;
   for (const auto& l : doc["input_lights"]) {
     const std::string lp = l.get<std::string>();
     const std::string fdir = p1_frame_dir(doc, lp);
     const std::string props = fdir + "/signal/properties";
+    // Issue #9: 本帧实际采用的 canonical signal 面亮度串（由 declare 由实际施加状态
+    // 派生并核对后回填）; 帧级产品摘要（p1_final.json）与 properties 同源双写。
+    std::string frame_signal_bunit;
+    std::string frame_variance_bunit;
+    std::string frame_ivar_bunit;
     // FAILSEM-01: 该帧是否已被上游判 fail（逐帧判决是唯一真相, 不看组级摘要）。
     auto pit = phot_failed.find(p1_frame_key(lp));
     if (pit != phot_failed.end()) {
@@ -10202,16 +10306,27 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
           " (SCI-NOISE-001 §5d:270-271 缺任一项即视为该帧的方差面不可审计;"
           " §8: 登记并 fail-closed, 不得静默出片)"));
     }
-    // 逐帧 HiPS 产品单位/像素语义声明（Phase1 Drizzle/HiPS signal 亦为
-    // 面亮度 signal_sb = ADU/sr; 冻结单位表 §1 + FZ-BUNIT-SEMANTICS）。未声明
-    // ⇒ Phase3 输入语义守卫按"单位不可判"拒绝（Phase1→Phase3 直连流不可用）。
+    // 逐帧 HiPS 产品单位/像素语义声明（Issue #9: 单位由该帧**实际施加状态**派生，
+    // 与 p1_stack.json 的 bunit/photappl 互相核对；冻结单位表 + FZ-BUNIT-SEMANTICS）。
+    // 未声明 ⇒ Phase3 输入语义守卫按"单位不可判"拒绝（Phase1→Phase3 直连流不可用）。
     {
       std::string uerr;
-      if (!declare_hips_surface_brightness_units(fdir, variance_products_present, &uerr)) {
+      // 空 expected = 由本产品自身 p1_stack.json 的 photappl 事实派生（Phase1 路径）。
+      if (!declare_hips_surface_brightness_units(fdir, variance_products_present,
+                                                 std::string(), &frame_signal_bunit,
+                                                 &uerr)) {
         (*man)["error_kind"] = "output";
         return Result<void>::fail(Error(ErrorDomain::IO,
             "phase1 HiPS 单位/像素语义声明失败 (frame " + lp + "): " + uerr));
       }
+      // 二次律派生（唯一实现 = 冻结单位表）供帧级摘要同源双写。
+      if (!p3n_sb_quadratic_bunits(frame_signal_bunit, &frame_variance_bunit,
+                                   &frame_ivar_bunit)) {
+        (*man)["error_kind"] = "output";
+        return Result<void>::fail(Error(ErrorDomain::IO,
+            "phase1 单位二次律派生失败 (frame " + lp + "): " + frame_signal_bunit));
+      }
+      run_frame_units.push_back(frame_signal_bunit);
     }
     // ── NORMALIZE_DATA §7: frame_science.json 唯一正式发布（writer 是唯一发布者）
     // staging 由 drizzle 节点写在 run-private 工作区; 本节点在 AIO 任务结束后
@@ -10278,16 +10393,18 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
                           {"products", products},
                           {"filter_passband", filter_passband},
                           {"covered_area_model", "support_ratio_x_A_cell"},
-                          // 单位/像素语义随 DATA-P1-HIPS manifest 落盘
-                          {"bunit", kP3BunitSurfaceBrightness},
+                          // 单位/像素语义随 DATA-P1-HIPS manifest 落盘（Issue #9:
+                          // 本帧实际采用的一致单位，与 signal/properties 同源双写；
+                          // variance/ivar 串由冻结单位表二次律导出，非硬编码 ADU 族）。
+                          {"bunit", frame_signal_bunit},
                           {"units", Json{
-                              {"bunit", kP3BunitSurfaceBrightness},
+                              {"bunit", frame_signal_bunit},
                               {"pixel_semantics", "surface_brightness"},
                               {"pixel_area_power", -2},
                               {"variance_bunit", variance_products_present
-                                   ? std::string(kP3BunitSbVariance) : std::string()},
+                                   ? frame_variance_bunit : std::string()},
                               {"ivar_bunit", variance_products_present
-                                   ? std::string(kP3BunitSbIvar) : std::string()}}},
+                                   ? frame_ivar_bunit : std::string()}}},
                           {"properties", props},
                           // NORMALIZE_DATA §7: 本帧 canonical precision sidecar
                           // 的发布事实（存在/哈希）。false = 该帧只出版 signal 等
@@ -10405,7 +10522,18 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   (*man)["products_artifact"] = products_path;
   (*man)["artifacts"] = artifacts;
   // B2-A10（宪章 §4.3）: 单位/坐标系/观测 passband 随节点 manifest 上报。
-  (*man)["bunit"] = kP3BunitSurfaceBrightness;
+  // Issue #9: 仅当全部帧单位一致时才声明单一 bunit；否则显式 MIXED（+逐帧普查），
+  // 不把"字符串相等"当成可比性证明。
+  {
+    const std::string first_unit =
+        run_frame_units.empty() ? std::string() : run_frame_units.front();
+    bool uniform = !first_unit.empty();
+    for (const auto& u : run_frame_units)
+      if (u != first_unit) uniform = false;
+    (*man)["bunit"] = uniform ? first_unit : std::string("MIXED");
+    (*man)["frame_bunits"] = run_frame_units;
+    (*man)["bunit_uniform"] = uniform;
+  }
   (*man)["pixel_semantics"] = "surface_brightness";
   (*man)["pixel_area_power"] = -2;
   // P0-19 同步: HiPS properties 的 hips_frame 按 IVOA REC-HIPS-1.0 §4.4.1
@@ -10943,6 +11071,107 @@ bool p2_sample_cfg_from_doc(const Json& doc, P2SamplerConfig* sc,
   return true;
 }
 
+// Issue #9: 冻结契约常量（kP3Bunit*，machine schema 的 const 值）与冻结单位表
+// 唯一实现的一致性自检——防止"两处词表各自漂移"。返回空串 = 一致。
+std::string p3n_frozen_contract_selfcheck() {
+  using acsd::p3rsmp::LinearBase;
+  if (std::string(kP3BunitSurfaceBrightness) !=
+      acsd::p3rsmp::surface_brightness_bunit(LinearBase::Adu))
+    return "kP3BunitSurfaceBrightness != frozen table surface_brightness_bunit(Adu)";
+  if (std::string(kP3BunitSbVariance) !=
+      acsd::p3rsmp::surface_brightness_variance_bunit(LinearBase::Adu))
+    return "kP3BunitSbVariance != frozen table surface_brightness_variance_bunit(Adu)";
+  if (std::string(kP3BunitSbIvar) !=
+      acsd::p3rsmp::surface_brightness_ivar_bunit(LinearBase::Adu))
+    return "kP3BunitSbIvar != frozen table surface_brightness_ivar_bunit(Adu)";
+  return std::string();
+}
+
+// ── Issue #9: P2 消费帧的 signal 单位/响应身份可诊断规则 ──────────────────────
+// 逐帧从 <frame>/signal/properties 用**唯一实现**（acsd::phase3::p3_input_unit_verdict，
+// 与 P3 输入同源同判）取 canonical 面亮度串；要求所有被消费帧**线性基单位一致**：
+// native（ADU 积分量）与 applied（Gaia XP 模型通带量）是不同量纲族，不可直接合成 ⇒
+// 显式失败并给出逐帧声明，不伪造可比较的统一单位、不静默取其一。
+// 响应身份从 <frame>/frame_science.json 读取（缺失 = 不登记，不冒充）：
+// 多于一个 distinct 响应 ⇒ response_mixed 如实登记——用户自定的跨滤镜合并选择保留，
+// 但产品不得声称单一参考响应/单一可比标度。
+struct P2ConsumedUnit {
+  bool ok = false;
+  std::string error;
+  std::string signal_bunit;                 // 一致 canonical 面亮度串
+  std::string linear_base;                  // "ADU" | "XPMODEL"
+  std::vector<std::string> frame_units;     // 逐帧 raw 声明（诊断，保序）
+  std::vector<std::string> response_ids;    // 去重升序（非空者）
+  bool response_mixed = false;
+};
+
+P2ConsumedUnit p2_consumed_signal_unit(const std::vector<std::string>& hips_paths) {
+  P2ConsumedUnit out;
+  if (hips_paths.empty()) {
+    out.error = "no consumed frames (hips_paths empty); signal unit undecidable";
+    return out;
+  }
+  std::string unit;
+  std::string base;
+  for (const std::string& hp : hips_paths) {
+    const acsd::phase3::P3InputUnitVerdict v =
+        acsd::phase3::p3_input_unit_verdict(hp);
+    if (!v.accepted) {
+      out.error = "consumed frame signal unit rejected (" + hp + "): " + v.code +
+                  ": " + v.reason;
+      return out;
+    }
+    out.frame_units.push_back(v.bunit_raw);
+    if (unit.empty()) {
+      unit = v.bunit_canonical;
+      base = v.linear_base;
+    } else if (v.bunit_canonical != unit) {
+      std::string all;
+      for (const auto& u : out.frame_units) all += " \"" + u + "\"";
+      out.error = "consumed frames declare incompatible signal units"
+                  " (canonical '" + unit + "' vs '" + v.bunit_canonical +
+                  "' at " + hp + "); native (ADU) and applied (XPMODEL) frames"
+                  " cannot be co-added into one comparable unit — split the run"
+                  " or re-normalize; 逐帧声明:" + all;
+      return out;
+    }
+    // 响应身份（frame_science.json；缺失/无 sidecar ⇒ 不登记，不冒充）
+    const std::string fs_path = hp + "/frame_science.json";
+    std::string fstext;
+    if (aio_fs::read_all(fs_path, &fstext)) {
+      try {
+        const Json fs = Json::parse(fstext);
+        std::string rid;
+        if (fs.contains("photometry") && fs["photometry"].is_object())
+          rid = fs["photometry"].value("response_id", std::string());
+        if (rid.empty() && fs.contains("reference") && fs["reference"].is_object())
+          rid = fs["reference"].value("response_id", std::string());
+        if (!rid.empty()) out.response_ids.push_back(rid);
+      } catch (...) {
+        // sidecar 损坏不在此判（reader 侧另有 DATA 判据）；此处不登记身份。
+      }
+    }
+  }
+  std::sort(out.response_ids.begin(), out.response_ids.end());
+  out.response_ids.erase(std::unique(out.response_ids.begin(), out.response_ids.end()),
+                         out.response_ids.end());
+  out.response_mixed = out.response_ids.size() > 1;
+  out.signal_bunit = unit;
+  out.linear_base = base;
+  out.ok = true;
+  return out;
+}
+
+// 二次律派生（冻结单位表唯一实现；P2 产品摘要用）。解析失败返回空串（不拼接）。
+std::string p2_consumed_variance_bunit(const std::string& signal) {
+  std::string v, i;
+  return p3n_sb_quadratic_bunits(signal, &v, &i) ? v : std::string();
+}
+std::string p2_consumed_ivar_bunit(const std::string& signal) {
+  std::string v, i;
+  return p3n_sb_quadratic_bunits(signal, &v, &i) ? i : std::string();
+}
+
 // ── op: sample_frames（唯一真实入口 p2_frame_id + p2_sample_controls_cached_with_halos;
 //      两阶段查询/回填; 消费上游 coverage artifact, 缺失即 DATA fail-closed）──
 // task-7（PHASE2_SAMPLER.md §5.9 流程必经语义，无开关）：
@@ -10963,6 +11192,19 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
   if (!p2_coverage_from_artifact(cov_doc, &view, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "coverage artifact rebuild failed: " + err));
+
+  // ── Issue #9: 消费帧单位身份准入（在采样任何像素之前 fail-closed）───────────
+  // 被消费帧的 signal 单位必须一致（native ADU 与 applied XPMODEL 不可直接合成）；
+  // 不一致 ⇒ 不产出任何 p2_samples.json（不把不可比数值带进后续链）。
+  const P2ConsumedUnit consumed_unit = p2_consumed_signal_unit(view.hips_paths);
+  if (!consumed_unit.ok)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "sample 单位身份准入失败: " + consumed_unit.error));
+  (*man)["bunit"] = consumed_unit.signal_bunit;
+  (*man)["linear_base"] = consumed_unit.linear_base;
+  (*man)["response_ids"] = consumed_unit.response_ids;
+  (*man)["response_mixed"] = consumed_unit.response_mixed;
+  (*man)["frame_bunits"] = consumed_unit.frame_units;
 
   // 内容稳定帧标识缓存（DATA-FRAME-ID-001; 0 = p2_frame_id 失败哨兵 → 拒绝）
   std::vector<uint64_t> frame_ids(view.hips_paths.size());
@@ -14217,28 +14459,97 @@ bool p2_publish_mosaic_tree(const std::string& out_dir,
   return true;
 }
 
-// ══ Phase2 mosaic 产品单位声明（BUNIT + 像素语义 provenance）═════════════════
-// 依据: docs/science/unified/DATA_SEMANTICS.md「单位与量纲表」一节（signal_sb = ADU/sr;
-// 方差/ivar 由二次律唯一导出，见同篇「二次律只约束单位层」一节）;
-// FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC。单位串 = 冻结单位表的 canonical
-// 产品串（kP3Bunit* 常量），本节点不另发明第二套词表、不做任何"猜测"。
+// ══ Phase1/Phase2 产品单位声明（BUNIT + 像素语义 provenance）═════════════════
+// 依据: docs/science/unified/DATA_SEMANTICS.md §3（单位由实际校准定义给出：
+// 未校准 ADU/sr、模型通带量/sr；不得不论状态都写 ADU/sr）+
+// docs/science/photometry/PHOTOMETRY.md §4；FZ-BUNIT-SEMANTICS /
+// FZ-P3-BUNIT-QUADRATIC。单位串 = 冻结单位表（acsd::p3rsmp）的 canonical 串，
+// 本节点不另发明第二套词表、不做任何"猜测"。
 //
 // 写出面 = 双写（与 AIO writer 的 properties ↔ manifest.json 双写纪律同构）:
-//   * 每个 image 子产品 properties: BUNIT（signal=ADU/sr, variance=(BUNIT)^2,
-//     ivar=1/(BUNIT)^2）+ ACSD_SIGNAL_UNIT / ACSD_PIXEL_SEMANTICS /
-//     ACSD_PIXEL_AREA_POWER（canonical 幂次: signal -2 / variance -4 / ivar +4）;
+//   * 每个 image 子产品 properties: BUNIT（signal=<signal_bunit>,
+//     variance=(BUNIT)^2, ivar=1/(BUNIT)^2）+ ACSD_SIGNAL_UNIT /
+//     ACSD_PIXEL_SEMANTICS / ACSD_PIXEL_AREA_POWER（canonical 幂次:
+//     signal -2 / variance -4 / ivar +4）;
 //   * 产品根 manifest.json（完成清单）: units 块（键名同义, 值同源）。
 // 幂等: 同名键先摘除再追加（HiPS properties 解析器禁重复键）。
 // variance_products_present = variance/ivar 图像子产品**是否真的在磁盘上**。
 // Phase1 单帧产品按自身需要保留 variance/ivar（D02 明确"阶段一仍可按其自身需要
 // 保留辅助层"）⇒ 传 true；Phase2 最终只发布 signal（D02）⇒ 传 false。
 // 这不是"方差是否可算"，而是"哪些 BUNIT 声明面存在"——两个面必须同源。
+//
+// Issue #9: signal_bunit 由**实际数值状态**唯一确定，本函数不再硬编码 "ADU/sr"：
+//   * Phase1 产品（有 p1_stack.json）: 从该帧自己的 `photappl` 事实派生期望单位
+//     （applied ⇒ XPMODEL/sr；native ⇒ ADU/sr），并与 p1_stack.json 的 `bunit`
+//     声明面**互相核对**（不一致 = 数值状态与单位声明矛盾 ⇒ fail-closed）。
+//   * Phase2 mosaic（无 p1_stack.json）: 调用方给出被消费帧的一致线性基单位串。
+// expected_signal_bunit 为空 = 由本产品自身状态派生（Phase1 路径）。
 bool declare_hips_surface_brightness_units(const std::string& product_root,
                                         bool variance_products_present,
+                                        const std::string& expected_signal_bunit,
+                                        std::string* resolved_bunit,
                                         std::string* err) {
-  const std::string sb = kP3BunitSurfaceBrightness;
-  const std::string var = kP3BunitSbVariance;
-  const std::string ivar = kP3BunitSbIvar;
+  // Issue #9: 冻结契约常量 ↔ 冻结单位表唯一实现自检（两处词表不得漂移）。
+  {
+    const std::string drift = p3n_frozen_contract_selfcheck();
+    if (!drift.empty()) {
+      if (err) *err = "冻结单位表自检失败: " + drift;
+      return false;
+    }
+  }
+  // ── ① 确定 signal BUNIT：实际施加状态（Phase1）或调用方一致单位（Phase2）─────
+  std::string sb = expected_signal_bunit;
+  const std::string st_path = product_root + "/p1_stack.json";
+  std::string stext;
+  if (aio_fs::read_all(st_path, &stext)) {
+    Json sd;
+    bool parsed = false;
+    try { sd = Json::parse(stext); parsed = sd.is_object(); } catch (...) { parsed = false; }
+    if (!parsed) {
+      if (err) *err = "p1_stack.json 不可解析（BUNIT 口径核对失败）: " + st_path;
+      return false;
+    }
+    // photappl 的机器形态：本仓库既写 0/1 整数也接受布尔；缺失 = 无法判定施加状态。
+    bool applied = false;
+    if (sd.contains("photappl") && sd["photappl"].is_number_integer())
+      applied = sd["photappl"].get<int>() != 0;
+    else if (sd.contains("photappl") && sd["photappl"].is_boolean())
+      applied = sd["photappl"].get<bool>();
+    else {
+      if (err) *err = "p1_stack.json 缺 photappl（无法判定实际施加状态 ⇒ 单位不可判）: " + st_path;
+      return false;
+    }
+    const std::string from_state = p1_frame_signal_bunit(applied);
+    const std::string declared = sd.value("bunit", std::string());
+    if (declared != from_state) {
+      if (err)
+        *err = "BUNIT 与实际施加状态矛盾（同一帧的数值与单位声明不一致）: "
+               "p1_stack.json photappl=" + std::to_string(applied ? 1 : 0) +
+               " bunit=\"" + declared + "\" 应为 \"" + from_state +
+               "\"（docs/science/unified/DATA_SEMANTICS.md §3 / PHOTOMETRY §4："
+               "frame_applied 的像素不再是 ADU 积分量）";
+      return false;
+    }
+    if (!sb.empty() && sb != from_state) {
+      if (err)
+        *err = "调用方期望的 signal BUNIT \"" + sb + "\" 与该帧实际施加状态派生值 \"" +
+               from_state + "\" 不一致: " + st_path;
+      return false;
+    }
+    sb = from_state;
+  }
+  if (!p3n_is_frozen_sb_bunit(sb)) {
+    if (err)
+      *err = "signal BUNIT 不是冻结单位表的 canonical 面亮度串: \"" + sb +
+             "\"（唯一实现 acsd::p3rsmp::resolve_bunit；禁表外/别名/非规范拼写）";
+    return false;
+  }
+  std::string var, ivar;
+  if (!p3n_sb_quadratic_bunits(sb, &var, &ivar)) {
+    if (err) *err = "signal BUNIT 的二次律派生失败（冻结单位表）: \"" + sb + "\"";
+    return false;
+  }
+  if (resolved_bunit) *resolved_bunit = sb;
   struct SubUnit {
     const char* sub;
     const char* bunit;
@@ -14300,37 +14611,10 @@ bool declare_hips_surface_brightness_units(const std::string& product_root,
     if (err) *err = "manifest.json 原子写失败: " + man_path + " (" + werr + ")";
     return false;
   }
-  // ── B1 守卫：同一份像素的两个 BUNIT 声明面必须同串（Phase1 直写路径覆盖）──────
-  // Phase1 末端由 AstroSphereSink 直写标准 HiPS 树（signal/ + support/ + properties），
-  // **不经** HissWriter::open 的元数据校验 —— 这正是「两个单位串并存而运行期无信号」
-  // 的成因。故在此显式核对本帧 p1_stack.json 的 bunit 键与刚写出的 properties BUNIT：
-  // 不一致即判红（fail-closed，禁静默）。
-  // 规范：docs/science/unified/DATA_SEMANTICS.md「面亮度单位的推导」一节（产品 BUNIT
-  // 一律取 canonical 面亮度串）+ 同篇「标度类别与线性标度律」一节（测光标度由
-  // PHOTSCAL/PHOTAPPL 承载，BUNIT 相等不蕴含标度相等，不改量纲类别）。
-  // 注：p1_stack.json 缺失 = 该产品族无此声明面（如 Phase2 mosaic 产品），不判。
-  {
-    const std::string st_path = product_root + "/p1_stack.json";
-    std::string stext;
-    if (aio_fs::read_all(st_path, &stext)) {
-      Json sd;
-      bool parsed = false;
-      try { sd = Json::parse(stext); parsed = sd.is_object(); } catch (...) { parsed = false; }
-      if (!parsed) {
-        if (err) *err = "p1_stack.json 不可解析（BUNIT 口径核对失败）: " + st_path;
-        return false;
-      }
-      const std::string declared = sd.value("bunit", std::string());
-      if (declared != sb) {
-        if (err)
-          *err = "BUNIT 口径不一致（同一份像素两个单位串）: p1_stack.json bunit=\"" +
-                 declared + "\" vs signal/properties BUNIT=\"" + sb +
-                 "\"（docs/science/unified/DATA_SEMANTICS.md「面亮度单位的推导」一节：产品 BUNIT 一律取 "
-                 "canonical 面亮度串；测光标度由 PHOTAPPL/PHOTSCAL 承载）";
-        return false;
-      }
-    }
-  }
+  // ── B1 守卫已前置（见本函数 ①）: p1_stack.json 的 bunit 与 photappl 事实、
+  // 以及调用方期望串三面在写 properties 之前就已互相核对（fail-closed）。
+  // 此处只留登记：同一份像素的两个声明面（p1_stack.json / signal/properties）
+  // 必须同串，且**都**由实际施加状态派生，不以字符串相等替代物理正确性。
   return true;
 }
 
@@ -14903,6 +15187,27 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   // 内部方差面（p2_integrated_wsum.bin / var_num 变换）继续存在并参与 signal
   // 之外的运行摘要，不进入最终 HiPS 图像层。
   const Json products = Json::array({"signal"});
+  // ── Issue #9: 最终 mosaic 产品的 signal 单位 = 被消费帧的一致线性基单位 ────────
+  // 逐帧从 <frame>/signal/properties 用唯一实现（P3 输入同源同判）取 canonical 面
+  // 亮度串：native（ADU）与 applied（XPMODEL）是不同量纲族，混合即显式拒，不伪造
+  // 可比较的统一单位；响应身份多于一个 distinct ⇒ response_mixed 如实登记（用户
+  // 自定的跨滤镜合并选择保留，但不得声称单一参考响应）。
+  P2ConsumedUnit consumed_unit;
+  {
+    P2CoverageView unit_view;
+    std::string unit_view_err;
+    if (!p2_coverage_from_artifact(cov_doc, &unit_view, &unit_view_err)) {
+      aio_atomic::remove_tree(staging, 0);
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "mosaic 单位裁决：coverage artifact 重建失败: " + unit_view_err));
+    }
+    consumed_unit = p2_consumed_signal_unit(unit_view.hips_paths);
+    if (!consumed_unit.ok) {
+      aio_atomic::remove_tree(staging, 0);
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "mosaic 单位裁决失败（不发布无可比单位的 mosaic）: " + consumed_unit.error));
+    }
+  }
   // 单位/像素语义声明（在暂存区内完成 → 随产品集一起原子发布;
   // properties 与 manifest.json 双写同源）。声明失败 = 产品单位面不完整 →
   // 丢弃暂存区显式拒（output_dir 不出现无单位声明的 mosaic）。
@@ -14910,7 +15215,10 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     std::string uerr;
     // D02: 阶段二只发布 signal ⇒ variance/ivar 不在磁盘上, 传 false。
     // uncertainty_available（方差面完整性事实）仍单独写进 p2_final.json。
-    if (!declare_hips_surface_brightness_units(staging, false, &uerr)) {
+    // Issue #9: expected = 被消费帧的一致单位（本产品无 p1_stack.json，不自行派生）。
+    if (!declare_hips_surface_brightness_units(staging, false,
+                                               consumed_unit.signal_bunit, nullptr,
+                                               &uerr)) {
       aio_atomic::remove_tree(staging, 0);
       return Result<void>::fail(Error(ErrorDomain::IO,
           "mosaic 单位/像素语义声明失败: " + uerr));
@@ -14979,17 +15287,22 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                         {"response_distribution", passband_distribution},
                         // 像素语义/单位随产品 manifest 落盘（与已发布的
                         // signal/properties BUNIT 声明同源同值; FZ-BUNIT-SEMANTICS）。
-                        {"bunit", kP3BunitSurfaceBrightness},
+                        // Issue #9: 串由被消费帧的一致线性基单位给出（native ⇒ ADU/sr；
+                        // applied ⇒ XPMODEL/sr），variance/ivar 由冻结单位表二次律导出。
+                        {"bunit", consumed_unit.signal_bunit},
+                        {"linear_base", consumed_unit.linear_base},
+                        {"response_ids", consumed_unit.response_ids},
+                        {"response_mixed", consumed_unit.response_mixed},
                         {"units", Json{
-                            {"bunit", kP3BunitSurfaceBrightness},
-                            {"signal_unit", kP3BunitSurfaceBrightness},
+                            {"bunit", consumed_unit.signal_bunit},
+                            {"signal_unit", consumed_unit.signal_bunit},
                             {"pixel_semantics", "surface_brightness"},
                             {"pixel_area_power", -2},
                             {"variance_bunit", uncertainty_available
-                                 ? std::string(kP3BunitSbVariance)
+                                 ? p2_consumed_variance_bunit(consumed_unit.signal_bunit)
                                  : std::string()},
                             {"ivar_bunit", uncertainty_available
-                                 ? std::string(kP3BunitSbIvar)
+                                 ? p2_consumed_ivar_bunit(consumed_unit.signal_bunit)
                                  : std::string()},
                             // FZ-P3-BUNIT-QUADRATIC 的串是**冻结契约值**（product_family_field_constraints
                             // .schema.json $defs/units 的 const 逐字规定），本处**逐字照抄、不得改写**。
@@ -15048,9 +15361,13 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   (*man)["ivar_product_missing_frames"] = ivar_missing_frames;
   (*man)["uncertainty_unavailable_reason"] = uncertainty_unavailable_reason;
   // B2-A10（宪章 §4.3）: 单位/坐标系/输入产品哈希随节点 manifest 上报，
-  // 供 run manifest provenance 汇总（Phase2 mosaic 单位 = ADU，
-  // 坐标系 = ICRS，P0-19 与 properties 的 hips_frame=equatorial 同源）。
-  (*man)["bunit"] = kP3BunitSurfaceBrightness;
+  // 供 run manifest provenance 汇总（Phase2 mosaic 单位 = 被消费帧的一致线性基
+  // 单位（Issue #9: ADU/sr 或 XPMODEL/sr），坐标系 = ICRS，P0-19 与 properties 的
+  // hips_frame=equatorial 同源）。
+  (*man)["bunit"] = consumed_unit.signal_bunit;
+  (*man)["linear_base"] = consumed_unit.linear_base;
+  (*man)["response_ids"] = consumed_unit.response_ids;
+  (*man)["response_mixed"] = consumed_unit.response_mixed;
   (*man)["pixel_semantics"] = "surface_brightness";
   (*man)["pixel_area_power"] = -2;
   (*man)["coordinate_frame"] = "equatorial";
@@ -16855,12 +17172,14 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
   // 输出面单位必须来自 resample 的 canonical 面亮度声明（禁 loose default
   // "ADU"）; 输出模式/可测量性同样必须显式随产物落盘（FZ-P3-MODES）。
   const std::string bunit_canon = res.value("bunit", std::string());
-  if (bunit_canon != kP3BunitSurfaceBrightness)
+  // Issue #9: 面亮度 canonical 串由线性基单位导出（ADU/sr 或 XPMODEL/sr）；判据 =
+  // 冻结单位表可解析 + canonical 书写规范（唯一实现 p3n_is_frozen_sb_bunit）。
+  if (!p3n_is_frozen_sb_bunit(bunit_canon))
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "p3_resampled.json bunit '" + bunit_canon +
-        "' != surface-brightness canonical '" +
-        std::string(kP3BunitSurfaceBrightness) +
-        "' (FZ-BUNIT-SEMANTICS; 禁 loose default)"));
+        "' is not a frozen canonical signal surface-brightness unit"
+        " ('<linear_base>/sr'; ADU/sr or XPMODEL/sr)"
+        " (FZ-BUNIT-SEMANTICS; 禁 loose default)"));
   const std::string omode = res.value("output_mode", std::string());
   if (omode != "surface_brightness" && omode != "visualization")
     return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -17257,11 +17576,13 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   // resampled ↔ writer 声明分叉 → 显式拒（不把分叉当"已验证"）。
   const std::string v_bunit = res.value("bunit", std::string());
   const std::string w_bunit = wr.value("bunit", std::string());
-  if (v_bunit != kP3BunitSurfaceBrightness || w_bunit != v_bunit)
+  // Issue #9: 合法集 = 冻结单位表的 canonical 面亮度串（ADU/sr 或 XPMODEL/sr）；
+  // resampled ↔ writer 分叉 → 显式拒（不把分叉当"已验证"）。
+  if (!p3n_is_frozen_sb_bunit(v_bunit) || w_bunit != v_bunit)
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "verify: bunit drift (resampled '" + v_bunit + "', writer '" + w_bunit +
-        "'; expected canonical '" +
-        std::string(kP3BunitSurfaceBrightness) + "')"));
+        "'; expected a frozen canonical surface-brightness unit"
+        " '<linear_base>/sr' (ADU/sr or XPMODEL/sr))"));
   if (res.value("output_mode", std::string()) != wr.value("output_mode", std::string()))
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "verify: output_mode drift between resampled and writer artifacts"));
