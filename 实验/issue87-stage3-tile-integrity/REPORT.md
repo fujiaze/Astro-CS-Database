@@ -14,7 +14,7 @@
 | 修复后 acsd SHA-256 | `586000f5c62497be88d64242f2bbbf1627da6da312870abfb80780122705a6f7` |
 | 输入夹具清单哈希 | `313f2e38da592e3148dbe7da17944ac15f365881964de86807eae55b120f2ad6` |
 
-证据二进制构建于**提交前工作树**（`build_dirty=true`，版本串 `+g476c023…`）；提交后源码同一，重建的 `build_source_digest` 会变化，因此二进制字节 SHA 可能不同。运行溯源以产物内 `run_context.json` 的 `build_source_digest` 为准。
+修复后二进制构建于**提交前工作树**（`build_dirty=true`，版本串 `+g476c023…`）；修复前二进制由 `476c023` 的独立干净检出构建（`build_dirty=false`）。提交后源码同一，但 `build_source_digest` 随工作树 dirty 状态与提交状态变化，因此重建的二进制字节 SHA 可能不同（`evidence/prefix_rebuild`、`evidence/fixed_rebuild`、`evidence/clean` 即重建复算，判据同 67/0）；运行溯源以产物内 `run_context.json` 的 `build_source_digest` 为准。
 
 机器校验：`evidence/verify.json` 67 条判据，0 条失败。
 
@@ -94,11 +94,12 @@ session 用例 7 个，失败 0 个。合法无覆盖仍 `ACS_OK` + FITS；完�
 
 ## 7. 自动化测试
 
-- `eng/tests/unit/p3_tile_semantics_test.cpp` + `run_p3_tile_semantics_test.py`：**115/115 checks passed**（真实生产库；分类/缓存/聚合/身份）。
+- `eng/tests/unit/p3_tile_semantics_test.cpp` + `run_p3_tile_semantics_test.py`：**115/115 checks passed**（真实生产库；分类/缓存/聚合/身份）；落盘输出 `evidence/unit/p3_tile_semantics_test.txt`。
 - `实验/issue87-stage3-tile-integrity/run_matrix.py`：受控矩阵 22 例（修复后 0 fail）。
 - `实验/issue87-stage3-tile-integrity/run_session.py`：session 入口 7 例（0 fail）。
 - `实验/issue87-stage3-tile-integrity/stale_output_test.py`：同 output_dir 陈旧产物失效（修复后 PASS）。
 - 提交前工作树**从零构建**（`/workspace/.e87-verify-build`）成功；该 clean 二进制跑同一受控矩阵 22 例 0 红（`evidence/clean/results.json`）。
+- 提交后由同一源码重建（`build_dirty=false`，字节 SHA 不同）跑同一矩阵 22 例 0 红（`evidence/postcommit/results.json`，实测 SHA 见该文件 `acsd_sha256`），证明字节 SHA 差异不改变判据结论。
 
 ## 8. 既有回归
 
@@ -106,7 +107,7 @@ session 用例 7 个，失败 0 个。合法无覆盖仍 `ACS_OK` + FITS；完�
 |---|---|---|---|
 | #91 22 例 CLI（e87_regress） | 22 | 0 | 0/22 红 |
 | #91/E1-R 故障注入（e87_regress） | 5 | 0 | 0/5 红 |
-| 立项 30 条单位裁决单测 | 30 | 0 | 30/30 passed |
+| 立项 30 条单位裁决单测 | 30 | 0 | 30/30 passed（evidence/unit/p3_input_unit_guard_test.txt） |
 
 22 例退出码 / 机器码 / FITS data sha256 / finite·NaN 计数与 #91 已提交证据逐例一致（见 `verify_matrix.py` 的 bitwise 段落与本报告 §3 的同源方法）。
 
@@ -129,7 +130,7 @@ session 用例 7 个，失败 0 个。合法无覆盖仍 `ACS_OK` + FITS；完�
 
 reader 层微基准（同源 `checksum_probe.cpp` 分别链接修复前/后 `libacsd_hips`，遍历该产品 MOC 声明的 523 个叶级 tile）：修复前 372227 ns/tile，修复后 434683 ns/tile，差 +62456 ns/tile (+16.8%)。
 
-结论：所有合法/真实用例修复前后 FITS signal 逐位一致；reader 层每 tile 开销 +63 µs 量级（DATASUM/CHECKSUM 的 1's-complement 求和，以已读字节计算、不二次读盘），对 523 个唯一 tile 约 +33 ms。cache-resident 小工作集端到端 wall/RSS 与修复前同量级；real_stress 大工作集（工作集远大于默认 `max_tiles` 导致缓存抖动）端到端 wall 受 I/O 抖动支配，min 值同量级、RSS 不增。修复前 manifest 的 `tile_cache` 恒为 null/0（旧实现 close 后才取 stats 的缺陷），修复后随产物落盘真实计数。
+结论：所有合法/真实用例修复前后 FITS signal 逐位一致；reader 层每 tile 开销 +63 µs 量级（DATASUM/CHECKSUM 的 1's-complement 求和，以已读字节计算、不二次读盘），对 523 个唯一 tile 约 +33 ms。cache-resident 小工作集端到端 wall 与修复前同量级；real_stress 大工作集（工作集远大于默认 `max_tiles` 导致缓存抖动）端到端 wall 受 I/O 抖动支配，min 值同量级。RSS 与修复前同量级，但**不能声称“RSS 不增”**：上表 RSS 为各配置 4 次重复取最大峰值，real_stress sb384 146.8→154.3 MB（+5.1%）、sb768 71.8→72.4 MB（+0.8%），而 cache_resident 同为峰值口径却双向大幅波动（sb192 12.7→34.5 MB、sb96 44.1→16.2 MB），说明单次峰值噪声与并发调度主导，本轮数据不足以支撑任何单调性结论。修复前 manifest 的 `tile_cache` 恒为 null/0（旧实现 close 后才取 stats 的缺陷），修复后随产物落盘真实计数。
 
 ## 10. 失败 run 的输出目录完整性
 
@@ -149,8 +150,13 @@ reader 层微基准（同源 `checksum_probe.cpp` 分别链接修复前/后 `lib
 ```bash
 python3 实验/issue87-stage3-tile-integrity/make_fixtures.py
 python3 实验/issue87-stage3-tile-integrity/run_matrix.py --acsd build/linux-dev/acsd --tag fixed --expect fixed
-python3 实验/issue87-stage3-tile-integrity/run_matrix.py --acsd /tmp/acsd-e87-base-build/acsd --tag prefix --expect prefix
+# 规范 prefix 证据的二进制确为 /workspace/.e87-base-build/acsd (sha 66614b29…)；
+# 独立重建基线 (同 476c023 源码, 字节 SHA 因 build stamp 而异) 跑同一矩阵:
+python3 实验/issue87-stage3-tile-integrity/run_matrix.py --acsd /workspace/.e87-base-build/acsd --tag prefix --expect prefix
+python3 实验/issue87-stage3-tile-integrity/run_matrix.py --acsd /tmp/acsd-e87-base-build/acsd --tag prefix_rebuild --expect prefix
+python3 实验/issue87-stage3-tile-integrity/run_matrix.py --acsd build/linux-dev/acsd --tag fixed_rebuild --expect fixed
 python3 实验/issue87-stage3-tile-integrity/verify_matrix.py
+python3 实验/issue87-stage3-tile-integrity/verify_matrix.py --prefix-tag prefix_rebuild --fixed-tag fixed_rebuild --out evidence/verify_rebuild.json
 python3 实验/issue87-stage3-tile-integrity/run_session.py --build build/linux-dev
 python3 实验/issue87-stage3-tile-integrity/stale_output_test.py --acsd build/linux-dev/acsd --tag fixed
 python3 实验/issue87-stage3-tile-integrity/perf_matrix.py --baseline /workspace/.e87-base-build/acsd --fixed build/linux-dev/acsd

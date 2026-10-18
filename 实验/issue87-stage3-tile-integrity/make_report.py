@@ -81,8 +81,11 @@ def main() -> int:
     A(f"| 修复后 acsd SHA-256 | `{ (fix or {}).get('acsd_sha256','?') }` |")
     A(f"| 输入夹具清单哈希 | `{ sha256_file(os.path.join(WORK,'fixtures.json'))[:64] if os.path.isfile(os.path.join(WORK,'fixtures.json')) else '?' }` |")
     A("")
-    A("证据二进制构建于**提交前工作树**（`build_dirty=true`，版本串 `+g476c023…`）；"
-      "提交后源码同一，重建的 `build_source_digest` 会变化，因此二进制字节 SHA 可能不同。"
+    A("修复后二进制构建于**提交前工作树**（`build_dirty=true`，版本串 `+g476c023…`）；"
+      "修复前二进制由 `476c023` 的独立干净检出构建（`build_dirty=false`）。"
+      "提交后源码同一，但 `build_source_digest` 随工作树 dirty 状态与提交状态变化，"
+      "因此重建的二进制字节 SHA 可能不同（`evidence/prefix_rebuild`、"
+      "`evidence/fixed_rebuild`、`evidence/clean` 即重建复算，判据同 67/0）；"
       "运行溯源以产物内 `run_context.json` 的 `build_source_digest` 为准。")
     A("")
 
@@ -208,13 +211,17 @@ def main() -> int:
     A("## 7. 自动化测试")
     A("")
     A("- `eng/tests/unit/p3_tile_semantics_test.cpp` + `run_p3_tile_semantics_test.py`："
-      "**115/115 checks passed**（真实生产库；分类/缓存/聚合/身份）。")
+      "**115/115 checks passed**（真实生产库；分类/缓存/聚合/身份）；"
+      "落盘输出 `evidence/unit/p3_tile_semantics_test.txt`。")
     A("- `实验/issue87-stage3-tile-integrity/run_matrix.py`：受控矩阵 22 例（修复后 0 fail）。")
     A("- `实验/issue87-stage3-tile-integrity/run_session.py`：session 入口 7 例（0 fail）。")
     A("- `实验/issue87-stage3-tile-integrity/stale_output_test.py`：同 output_dir 陈旧产物"
       "失效（修复后 PASS）。")
     A("- 提交前工作树**从零构建**（`/workspace/.e87-verify-build`）成功；该 clean 二进制"
       "跑同一受控矩阵 22 例 0 红（`evidence/clean/results.json`）。")
+    A("- 提交后由同一源码重建（`build_dirty=false`，字节 SHA 不同）跑同一矩阵 22 例 0 红"
+      "（`evidence/postcommit/results.json`，实测 SHA 见该文件 `acsd_sha256`），"
+      "证明字节 SHA 差异不改变判据结论。")
     A("")
 
     # ── 回归 ────────────────────────────────────────────────────────────────
@@ -228,7 +235,8 @@ def main() -> int:
         rows.append(["#91/E1-R 故障注入（e87_regress）",
                      f"{len(e1r.get('results', []))}",
                      f"{e1r['n_fail']}", "0/5 红"])
-    rows.append(["立项 30 条单位裁决单测", "30", "0", "30/30 passed"])
+    rows.append(["立项 30 条单位裁决单测", "30", "0",
+                 "30/30 passed（evidence/unit/p3_input_unit_guard_test.txt）"])
     tbl(["回归项", "用例数", "失败", "结论"], rows)
     if e1:
         A("22 例退出码 / 机器码 / FITS data sha256 / finite·NaN 计数与 #91 已提交证据"
@@ -272,8 +280,12 @@ def main() -> int:
         A("结论：所有合法/真实用例修复前后 FITS signal 逐位一致；reader 层每 tile "
           "开销 +63 µs 量级（DATASUM/CHECKSUM 的 1's-complement 求和，以已读字节计算、"
           "不二次读盘），对 523 个唯一 tile 约 +33 ms。cache-resident 小工作集端到端 "
-          "wall/RSS 与修复前同量级；real_stress 大工作集（工作集远大于默认 `max_tiles` "
-          "导致缓存抖动）端到端 wall 受 I/O 抖动支配，min 值同量级、RSS 不增。"
+          "wall 与修复前同量级；real_stress 大工作集（工作集远大于默认 `max_tiles` "
+          "导致缓存抖动）端到端 wall 受 I/O 抖动支配，min 值同量级。RSS 与修复前同量级，"
+          "但**不能声称“RSS 不增”**：上表 RSS 为各配置 4 次重复取最大峰值，real_stress "
+          "sb384 146.8→154.3 MB（+5.1%）、sb768 71.8→72.4 MB（+0.8%），而 cache_resident "
+          "同为峰值口径却双向大幅波动（sb192 12.7→34.5 MB、sb96 44.1→16.2 MB），说明单次"
+          "峰值噪声与并发调度主导，本轮数据不足以支撑任何单调性结论。"
           "修复前 manifest 的 `tile_cache` 恒为 null/0（旧实现 close 后才取 stats 的"
           "缺陷），修复后随产物落盘真实计数。")
         A("")
@@ -312,8 +324,13 @@ def main() -> int:
     A("```bash")
     A("python3 实验/issue87-stage3-tile-integrity/make_fixtures.py")
     A("python3 实验/issue87-stage3-tile-integrity/run_matrix.py --acsd build/linux-dev/acsd --tag fixed --expect fixed")
-    A("python3 实验/issue87-stage3-tile-integrity/run_matrix.py --acsd /tmp/acsd-e87-base-build/acsd --tag prefix --expect prefix")
+    A("# 规范 prefix 证据的二进制确为 /workspace/.e87-base-build/acsd (sha 66614b29…)；")
+    A("# 独立重建基线 (同 476c023 源码, 字节 SHA 因 build stamp 而异) 跑同一矩阵:")
+    A("python3 实验/issue87-stage3-tile-integrity/run_matrix.py --acsd /workspace/.e87-base-build/acsd --tag prefix --expect prefix")
+    A("python3 实验/issue87-stage3-tile-integrity/run_matrix.py --acsd /tmp/acsd-e87-base-build/acsd --tag prefix_rebuild --expect prefix")
+    A("python3 实验/issue87-stage3-tile-integrity/run_matrix.py --acsd build/linux-dev/acsd --tag fixed_rebuild --expect fixed")
     A("python3 实验/issue87-stage3-tile-integrity/verify_matrix.py")
+    A("python3 实验/issue87-stage3-tile-integrity/verify_matrix.py --prefix-tag prefix_rebuild --fixed-tag fixed_rebuild --out evidence/verify_rebuild.json")
     A("python3 实验/issue87-stage3-tile-integrity/run_session.py --build build/linux-dev")
     A("python3 实验/issue87-stage3-tile-integrity/stale_output_test.py --acsd build/linux-dev/acsd --tag fixed")
     A("python3 实验/issue87-stage3-tile-integrity/perf_matrix.py --baseline /workspace/.e87-base-build/acsd --fixed build/linux-dev/acsd")
