@@ -1,0 +1,41 @@
+[
+ {
+  "arm": "abc_real",
+  "exit": 2,
+  "wall_s": 8.57,
+  "output_dir": "/workspace/issue80-scratch/runs_a1/devdiag_abcreal/abc_real",
+  "config": {
+   "schema_version": "1",
+   "hips_paths": [
+    "/workspace/issue80-scratch/frozen/abc_real/M42_M1_T2_flying_dutchman-20251212_014241-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/abc_real/M42_M1_T2_flying_dutchman-20251216_031003-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/abc_real/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red"
+   ],
+   "output_dir": "/workspace/issue80-scratch/runs_a1/devdiag_abcreal/abc_real",
+   "snr_path": "sparse_reconstruct"
+  },
+  "acsd": "/workspace/acsd-a1-clone/build/dev/acsd",
+  "env_extra": "ACSD_DEV_SELECTOR=/tmp/a1_selector.json",
+  "stderr_has::not SPD": false,
+  "stderr_has::adaptive node spacing exhausted": true,
+  "stderr_has::reduced normal matrix": true,
+  "stderr_has::surface build FAILED": true,
+  "stderr_has::identifiability criterion RED": false,
+  "stderr_has::UNIDENTIFIABLE": false,
+  "stderr_has::P5 disconnected graph": false,
+  "stderr_has::P5 per-component": false,
+  "sky_plane_line": "[sky_plane] surface build FAILED rc=7 adaptive node spacing exhausted: rc=7 at h=0.553742 (upper=0.553742 lower=0.0143966 coarsenings=0, last: reduced normal matrix does not determine the solution: anchored system factorable but the penalty-null-space directions are not resolvable in double (I-alpha*Q^T A_a^-1 Q singular, or original-equation backward error above the arithmetic floor) (status=3 branch=1 n_free=25 mq=4 lambda=1.695e+02 alpha=2.034e+03 chol_fail_col=0 chol_fail_pivot=-1.350e-06 backward_error=nan gate=3.827e-12)) -> production deduction unavailable",
+  "sample_line": "stage sample ok: obs=17237 overlap_controls=5807",
+  "artifacts": {
+   "p2_coverage.json": {
+    "sha256": "700b78e83db0d349a9eb1f8a491f32c576941d83f19c0292b85c9c557f33f079",
+    "size": 7641
+   },
+   "p2_samples.json": {
+    "sha256": "3653bbdca89f2cc92609ec8810f09f8788fd4f977b714131adb2db53b2a84900",
+    "size": 10014770
+   },
+   "_n_files_total": 12
+  }
+ }
+]

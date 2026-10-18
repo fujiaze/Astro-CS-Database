@@ -71,6 +71,11 @@ const ProbeEntry kRegistry[] = {
     {"mosaic.sky.relative_field", "snapshot/table",
      "per-connected-component additive background offsets and residuals",
      "background_surface_brightness_unit", CoordSpace::Icrs},
+    {"mosaic.sky.normal_matrix", "snapshot/model",
+     "Schur-reduced penalized normal equation of the P5 sky plane "
+     "(H_data/H_red/H_solve/rhs/Q, D stencil index, solve branch, pivots and "
+     "original-equation backward error)",
+     "JSON body states each matrix unit", CoordSpace::None},
     {"mosaic.rejection.sample_mask", "snapshot/image",
      "per-sample rejection eligibility and reason summary",
      "boolean/reason", CoordSpace::HealpixNested},

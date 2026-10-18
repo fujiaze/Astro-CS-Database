@@ -51,6 +51,23 @@ b_{\rm red}=b_B-\sum_k S_kM_k^{-1}b_k.
 
 以列均衡的 \(H_{\rm red}\) 上的奇异/特征值谱定义唯一相对判据：\(\tau_{\rm eff}=\max(\texttt{rank_rtol},\max(m,n)\epsilon_{\rm FP64})\)，有效秩 \(r_{\rm eff}=\#\{\lambda_i>\tau_{\rm eff}\lambda_{\max}\}\)；可辨识性要求 \(r_{\rm eff}=n_{\rm free}\)，\(\kappa_{\rm data}\) 与 \(\kappa_{\rm solve}\) **分开**报告。默认 `rank_rtol=1e-10`；求解正则化 \(\lambda_{\rm numerical}\) 不能作为“已被数据识别”的证据。只有实际模型可辨识时才解释系数不确定度；正规矩阵本身不等于完整观测协方差，相关背景控制会改变 Fisher 信息。
 
+### 3.1 罚法方程的生产求解语义：惩罚零空间候选基、精确 deflation 与具名失败
+
+求解对象是罚法方程 \(A B=b\)，其中 \(A=H_{\rm red}+\lambda_{\rm numerical}P\)、\(P=D^\top D\)（三节点二阶差分；\(\lambda_{\rm numerical}=\tau_{\rm eff}\cdot\operatorname{mean}(\operatorname{diag}H_{\rm red})\) 是由判据派生的数值岭，不是自由参数）。\(P\) 的零空间（记 \(\ker D\)）非空是**结构性事实**：它至少包含支撑上的双线性系数空间，且当支撑被掩膜切成 \(C\) 个 stencil 连通块时维数可达 \(4C\)（S3-R 实测：完整 7×6 为 4，缺整行为 8，双 3×3 孤岛为 8）。因此候选基 \(Q\)（列正交）按连通块逐块取 \(\{1,x,y,xy\}\)（单块即全局四列），**\(Q\) 只是 \(\ker D\) 的候选子集，不得假称 \(\ker D=\operatorname{span}Q\)**；覆盖不足由下一步的分解如实报出。
+
+当 \(\lambda P\) 的量级远大于数据在 \(\ker D\) 方向上的曲率时，\(A\) 在浮点下失去正定性。生产路径：先直接 Cholesky \(A\)；失败则取 \(\alpha=\max_{i}(A_{ii}-H_{{\rm red},ii})>0\)，用 \(A_\alpha=A+\alpha QQ^\top\) 抬成正定，再把锚偏置**精确**扣回。由 \(A_\alpha B=b+\alpha QQ^\top B\) 的不动点解出
+
+\[
+X=A_\alpha^{-1}Q,\quad R=Q^\top X,\quad c=Q^\top A_\alpha^{-1}b,\quad
+(I-\alpha R)\,w=\alpha c,\quad B=A_\alpha^{-1}b+Xw,
+\]
+
+该式在 \((I-\alpha R)\) 可解时**恒有 \(AB=b\)**（与 \(A\) 是否奇异无关），故不改变科学目标。已退休的旧形式 \(B=B_a+Q(Q^\top H_{\rm red}Q)^{-1}(Q^\top b-Q^\top H_{\rm red}B_a)\) 假定 \(H_{\rm red}Q\subseteq\operatorname{span}Q\)，一般留下 \(Q^\perp\) 残差 \(b-AB=\alpha QQ^\top B_a-H_{\rm red}Qt\neq0\)（闭式反例见 S3；生产可达分支反例见 Issue #80 P0-A1），不得再用。
+
+**回退分支的判据有定理支撑**：\(A\succ0\Rightarrow M\mathrel{:=}I-\alpha R=(I+\alpha Q^\top A^{-1}Q)^{-1}\)，特征值落在 \((0,1]\)；\(A\) 在 \(\operatorname{span}Q\) 上奇异 \(\Rightarrow M\) 出现零特征值；\(A\) 不定 \(\Rightarrow M\) 不定。故「\(M\) 的 Cholesky 成功」就是「\(A\) 在算术可分辨意义下正定」的判据，它把 \(\ker D\)、\(\ker A\) 与物理 gauge 分开。另以原方程 normwise 后向误差 \(\eta=\|b-AB\|_\infty/(\|A\|_\infty\|B\|_\infty+\|b\|_\infty)\) 复核，门取本仓唯一由算术推出的 \(\tau_{\rm floor}=\max(n_{\rm obs},n_{\rm free})\epsilon\)。直接 Cholesky 成功时只记 \(\eta\)、不设门（常规档逐位不变）。
+
+不可分辨、或锚外仍有非正曲率时返回具名 `P2_SKY_PLANE_NOT_IDENTIFIABLE`（附 status/branch/\(n_{\rm free}\)/\(m_q\)/\(\lambda\)/\(\alpha\)/失败列/主元/\(\eta\)/门），**不**加任意 ridge、不降低阈值、不丢像元换取正定；失败路径不产出 `p2_sky_plane.bin`，故下游 apply/Writer 不会发布伪完成产品。
+
 ## 4. Huber IRLS、own 残差场与唯一加性执行序
 
 Huber 损失及重权由标准化残差 \(z=r/\sigma\) 定义：
@@ -132,6 +149,20 @@ sky_apply(frame, position, raw):
 | 结果作用 | `F_k` 残差 support、公共模求值组、最终作用校正、model hash/reopen | 残差复用不合格控制、可读性与身份脱钩 |
 
 独立 oracle 三臂：①正常相同响应/同帧可解组；②**只更改名义 FILTER 字符串**、信号数字及精度恒定的控制组（可识别“标签”是否影响求解）；③原 2+1 不同响应的真实数值组，保留原始物理差异。加小型明示秩的 SPD、PSD(gauge)、indefinite 矩阵，对照单次 Schur 与 `X^T W X` 直接装配；高精度重算给 \(\lambda_{\min}\) 的可信区间。对缺约束，报告不可识别的空间方向与分量；对实现错误，先给复现实验和独立矩阵，再提交代码修复；**不得**悄悄加任意 ridge、换参考帧、去除 Red 帧或降资格来获取虚假的绿。
+
+**施工状态（P0-A1，2026-10-18）**：上表要求的只读取数已按 §3.1 落在
+`sky_plane.cpp` 的开发态快照 `mosaic.sky.normal_matrix`（`ACSD_DEV_MODE=ON` +
+`ACSD_DEV_SELECTOR` 选择，`<work_root>/_dev_diagnostics/<run_id>/snapshots/`；release
+二进制不含该路径）。同一冻结真本上：`abc_real`（2×Hα+1×Red）仍 exit=2，但末因由未命名
+`rc=6 not SPD` 变为具名 `rc=7` 且附 status/branch/\(n_{\rm free}\)=25/\(m_q\)=4/\(\lambda\)/\(\alpha\)/
+失败列/主元/后向误差/门；独立 oracle 在同一导出矩阵上得
+\(\lambda_{\min}(A)=-2.9783\times10^{-2}\)、\(\tau=10^{-10}\) 下秩 22/25、`scipy` pivoted QR
+拒绝唯一解、\(M=I-\alpha Q^\top A_\alpha^{-1}Q\) 的最小特征值 \(-1.4759\times10^{-5}\)
+（非舍入级）⇒ 生产拒绝与独立读数一致。同尺度可解臂（`ab_2halpha`、`def_samefilter`、
+全红标签臂、单位归一臂）的 `p2_sky_plane.bin` **逐位不变**；\(D\) 的零空间维数按连通块
+重算与 S3-R 独立结论逐例相同（4/8/8/4）。完整源码、单元测试、oracle、真实 A/B 与复跑命令见
+`实验/issue80-p5-a1-production-fix/REPORT.md`。跨代光度身份（C1）与跨通带响应模型（C3）
+仍未解决，因此不宣称 P5 科学闭合。
 
 ## 7. P5 联合乘加：待验证的独立前向问题
 

@@ -773,6 +773,12 @@ target_include_directories(acsd_phase2 PUBLIC
 target_link_libraries(acsd_phase2 PUBLIC acsd_contracts acsd_common acsd_aio acsd_hips
   # PHOT-MXY-01: 唯一可辨识性判据实现 (identifiability.cpp, 见 acsd_identifiability)
   acsd_identifiability
+  # DEV-MODE-001: 开发态被动快照 sink。OFF ⇒ INTERFACE-only（仅 include 面，
+  # 无符号/无落盘路径）；ON ⇒ PUBLIC ACSD_DEV_MODE=1 沿链接闭包传入本 target，
+  # 使 sky_plane.cpp 的开发态 matrix dump 段（#if ACSD_DEV_DIAGNOSTICS）进二进制。
+  # 依据 docs/engineering/architecture/DEV_MODE.md §2/§3（同一主开关控制编译边界）
+  # 与 #80 P0-A1（生产可达分支的只读矩阵取证）。
+  acsd_dev_diagnostics
   # RELEASE-02 探针 (OFF 时仅 include 面, 零开销)
   acsd_probes)
 

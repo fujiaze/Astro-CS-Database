@@ -25,6 +25,12 @@
 
 #include "acsd/probe.h"  // 探针 (ACSD_PROBES=OFF 时宏为空语句)
 
+// DEV-MODE-001: 开发态被动快照 sink（ACSD_DEV_MODE=OFF ⇒ 宏展开 (void)0，无符号）。
+#include "acsd/dev_diagnostics.h"
+
+// 内部测试接缝声明（与下方定义成对；不进公开 include 面）。
+#include "sky_plane_test_hooks.h"
+
 #include "crypto/sha256.h"
 
 // CLEAN-403 (docs/ACSD_DESIGN §10「统一 I/O 是文件级唯一边界」): 文件读写机制
@@ -247,8 +253,12 @@ void delta_basis(double u, double v, double uc, double vc, double us, double vs,
 //
 // 线程团队生命周期 = 单次 chol_spd 调用（瞬态并行区，非长期池）：块面板更新
 // 时按需 fork/join（同步 ~n/B 次/分解），块内面板串行。barrier 开销可忽略。
+// fail_col / fail_pivot（可空）：失败时回填**首个**非正定列与当时的对角主元
+// （sum = A_jj − Σ L_jk²，即未开方主元）。只写这两个标量，不改变任何数值路径；
+// 成功时保持调用方传入值不变（调用方以 -1 初始化）。
 bool chol_spd(const std::vector<double>& A, int n, std::vector<double>& L,
-              unsigned budget = 1) {
+              unsigned budget = 1, int* fail_col = nullptr,
+              double* fail_pivot = nullptr) {
     L.assign(static_cast<std::size_t>(n) * n, 0.0);
     constexpr int kCholParMin = 128;   // 小于此阶并行无收益，直接串行
     constexpr int kBlock = 64;         // 块宽（L1 友好；同步 n/B 次/分解）
@@ -263,10 +273,18 @@ bool chol_spd(const std::vector<double>& A, int n, std::vector<double>& L,
             const double l = L[static_cast<std::size_t>(j) * n + k];
             sum -= l * l;
         }
-        if (!(sum > 0.0) || !std::isfinite(sum)) return false;
+        if (!(sum > 0.0) || !std::isfinite(sum)) {
+            if (fail_col) *fail_col = j;
+            if (fail_pivot) *fail_pivot = sum;
+            return false;
+        }
         const double djj = std::sqrt(sum);
         L[static_cast<std::size_t>(j) * n + j] = djj;
-        if (!(djj > 0.0)) return false;
+        if (!(djj > 0.0)) {
+            if (fail_col) *fail_col = j;
+            if (fail_pivot) *fail_pivot = sum;
+            return false;
+        }
         for (int i = j + 1; i < n; ++i) {
             double s2 = A[static_cast<std::size_t>(i) * n + j];
             for (int k = 0; k < j; ++k)
@@ -319,10 +337,18 @@ bool chol_spd(const std::vector<double>& A, int n, std::vector<double>& L,
                 const double l = L[static_cast<std::size_t>(j) * n + k];
                 sum -= l * l;
             }
-            if (!(sum > 0.0) || !std::isfinite(sum)) return false;
+            if (!(sum > 0.0) || !std::isfinite(sum)) {
+                if (fail_col) *fail_col = j;
+                if (fail_pivot) *fail_pivot = sum;
+                return false;
+            }
             const double djj = std::sqrt(sum);
             L[static_cast<std::size_t>(j) * n + j] = djj;
-            if (!(djj > 0.0)) return false;
+            if (!(djj > 0.0)) {
+                if (fail_col) *fail_col = j;
+                if (fail_pivot) *fail_pivot = sum;
+                return false;
+            }
             for (int i = j + 1; i < n; ++i) {
                 double s2 = L[static_cast<std::size_t>(i) * n + j];
                 for (int k = jb; k < j; ++k)
@@ -355,10 +381,527 @@ void chol_solve(const std::vector<double>& L, int n, std::vector<double>& b) {
 // astro/phase2/identifiability.h::p2_identifiability_assess 提供（同一函数供
 // UPM/GLS 侧共用），避免「每处各留一套口径」。本地只保留求解所需的 Cholesky。
 
+// ===========================================================================
+// 罚法方程的**唯一**求解实现：直接 Cholesky → 惩罚零空间极小锚 + 精确 deflation
+// ===========================================================================
+// 问题：解 A B = b，A = H_red + λ·P（P = DᵀD ⪰ 0，A 理论 PSD）。当 λP 的量级
+// 远大于数据在惩罚零空间 ker(D) 上的曲率时，A 在 float64 下失去正定性，直接
+// Cholesky 失败。补救只能加**锚**把 A 抬成 SPD，再把锚的偏置**精确**扣回。
+//
+// 锚：A_α = A + α·Q Qᵀ（Q 列正交，span(Q) ⊆ ker(P)：P Q = 0）。
+// 线性方程 A B = b 与 A_α B = b + α QQᵀB 等价，后者是 B 的不动点：
+//     令 B = B_a + X w， X = A_α⁻¹ Q， B_a = A_α⁻¹ b， c = Qᵀ B_a， R = Qᵀ X
+//     ⇒  A_α B = b + Q w， 右端要求 Q w = α Q (c + R w)
+//     ⇒  (I − α R) w = α c,  B = B_a + X w.                      （★）
+// ★ 是**精确**等价式：只要 (I − αR) 非奇异，B 就是 A B = b 的解（与 A 是否奇异
+// 无关的方向上也成立），而锚只经 X 出现在校正项里。
+//
+// 已退休的错误形式：B = B_a + Q t, t = (QᵀH_red Q)⁻¹(Qᵀb − QᵀH_red B_a)。它假定
+// H_red Q 落在 span(Q) 内，一般 H_red 与 Q 的耦合会留下 Q⊥ 方向残差
+//     b − A B = α Q Qᵀ B_a − H_red Q t ≠ 0
+// （闭式反例与高维反例见 实验/innovation-closure/S3_SCIENCE_REPORT_2026-10-17.md、
+//  S3R_SCIENCE_REPORT_2026-10-18.md；生产可达分支修正见 #80 P0-A1）。
+//
+// 后向误差门：float64 下 A B = b 的**可达**精度由算术本身给定。锚定解经
+// (I − αR) 求逆，其误差放大正比于 κ(I − αR)——正是 A 在 ker(D) 方向上的不可
+// 分辨程度。故对原方程算 normwise 后向误差
+//     η = ‖b − A B‖∞ / (‖A‖∞·‖B‖∞ + ‖b‖∞)
+// 并以**本仓已有的、由算术推出的**唯一阈值 τ_floor = max(n_obs, n_free)·ε
+// （p2_identifiability_rank_rtol_floor；与判据同一来源）为门。η > τ_floor 说明
+// 该方程在双精度下根本不决定 B——如实返回 NOT_IDENTIFIABLE，**不**用任何 ridge、
+// 放宽容差或丢像元伪造一个解。
+// 直接 Cholesky 分支只**记**η、不设门（保持常规档逐位不变）。
+//
+// **(I − αR) 的正定性与 A 的正定性等价**（本模块挑选回退判据的根据）：
+// 设 A ≻ 0 且 Q 列正交，则 A_α = A + αQQᵀ，Woodbury 恒等式给出
+//     R = QᵀA_α⁻¹Q = S(I + αS)⁻¹,   S = QᵀA⁻¹Q  (S ≻ 0),
+//     M = I − αR = (I + αS)⁻¹  ⇒  M ≻ 0 且 σ(M) ⊆ (0,1].
+// 反过来：A 在 span(Q) 上奇异 ⇒ S 无界 ⇒ M 出现零特征值；A 不定 ⇒ QᵀA⁻¹Q 不定
+// ⇒ M 不定。故「chol(M) 成功」正是「A 在算术可分辨意义下正定」的判据，且它与
+// ker(D)、ker(A) **分开**：Q 只是 ker(D) 的候选基（见上方支撑域说明），M 由实际的
+// A 与 Q 决定，因此报出的是 A 的真实（数值）正定性而不是对 Q 的假设。
+enum SkyPenalizedSolveStatus {
+    SKY_PS_OK_DIRECT = 0,        // 直接 Cholesky 成功（与历史路径逐位相同）
+    SKY_PS_OK_WOODBURY = 1,      // 锚定 + 精确 deflation 成功且过后向误差门
+    SKY_PS_ANCHOR_NOT_SPD = 2,   // A + αQQᵀ 仍非正定 ⇒ ker(D) 候选基外仍有非正曲率
+    SKY_PS_NOT_RESOLVABLE = 3,   // 锚定矩阵可分解，但 (I−αR) 奇异或 η 超门
+    SKY_PS_BAD_ARGS = 4,
+};
+
+struct SkyPenalizedSolveResult {
+    int status = SKY_PS_BAD_ARGS;
+    int branch = 0;              // 0=直接；1=锚定+deflation
+    int n = 0;
+    int mq = 0;
+    int chol_fail_col = -1;      // 失败列（-1 = 无失败）
+    double alpha = 0.0;
+    double chol_fail_pivot = 0.0;
+    double residual_rel = std::numeric_limits<double>::quiet_NaN();
+    double residual_gate = std::numeric_limits<double>::quiet_NaN();
+    double a_norm_inf = 0.0, b_norm_inf = 0.0, x_norm_inf = 0.0;
+};
+
+// ‖b − A x‖∞ 与 (‖A‖∞·‖x‖∞ + ‖b‖∞) 的比（O(n²)，与一次 matvec 同阶）。
+inline double sky_penalized_backward_error(const std::vector<double>& A, int n,
+                                           const std::vector<double>& b,
+                                           const std::vector<double>& x,
+                                           double* a_inf, double* b_inf,
+                                           double* x_inf) {
+    double an = 0.0, bn = 0.0, xn = 0.0, rn = 0.0;
+    for (int i = 0; i < n; ++i) {
+        double row = 0.0;
+        for (int j = 0; j < n; ++j)
+            row += std::fabs(A[static_cast<std::size_t>(i) * n + j]);
+        if (row > an) an = row;
+        const double ax = std::fabs(b[static_cast<std::size_t>(i)]);
+        if (ax > bn) bn = ax;
+        const double xx = std::fabs(x[static_cast<std::size_t>(i)]);
+        if (xx > xn) xn = xx;
+    }
+    for (int i = 0; i < n; ++i) {
+        double s = 0.0;
+        for (int j = 0; j < n; ++j)
+            s += A[static_cast<std::size_t>(i) * n + j] * x[static_cast<std::size_t>(j)];
+        const double r = std::fabs(b[static_cast<std::size_t>(i)] - s);
+        if (r > rn) rn = r;
+    }
+    if (a_inf) *a_inf = an;
+    if (b_inf) *b_inf = bn;
+    if (x_inf) *x_inf = xn;
+    const double den = an * xn + bn;
+    if (den > 0.0 && std::isfinite(den)) return rn / den;
+    return (rn > 0.0) ? std::numeric_limits<double>::infinity() : 0.0;
+}
+
+// 求解 A B = b。A 为 n×n row-major 对称矩阵，Q 为 n×mq row-major、列正交的
+// 惩罚零空间候选基（P Q ≈ 0）。alpha<=0 或 mq<=0 ⇒ 无锚可用。
+// 输出 B_out（长度 n；仅在 status ∈ {OK_DIRECT, OK_WOODBURY} 时有意义）。
+inline SkyPenalizedSolveResult sky_penalized_solve(
+    const std::vector<double>& A, int n, const std::vector<double>& b,
+    const std::vector<double>& Q, int mq, double alpha, unsigned budget,
+    double residual_gate, std::vector<double>& L_direct, std::vector<double>& B_out,
+    bool force_anchor = false) {
+    SkyPenalizedSolveResult r;
+    r.n = n;
+    r.mq = mq;
+    r.alpha = alpha;
+    r.residual_gate = residual_gate;
+    B_out.clear();
+    if (n <= 0 ||
+        A.size() != static_cast<std::size_t>(n) * static_cast<std::size_t>(n) ||
+        b.size() != static_cast<std::size_t>(n))
+        return r;   // status 保持 BAD_ARGS
+    std::vector<double> L;
+    // force_anchor 只由测试接缝置位（确定性分支注入，非 env/非生产路径）：
+    // 用来在同一 A,b 上强制走锚定分支，与直接解对拍 deflation 的精确性。
+    if (!force_anchor &&
+        chol_spd(A, n, L, budget, &r.chol_fail_col, &r.chol_fail_pivot)) {
+        B_out = b;
+        chol_solve(L, n, B_out);
+        r.branch = 0;
+        r.status = SKY_PS_OK_DIRECT;
+        // 直接分支的因子交回调用方（下游「求解扰动敏感性」诊断按历史语义只用它）。
+        L_direct.swap(L);
+        r.residual_rel = sky_penalized_backward_error(A, n, b, B_out,
+                                                      &r.a_norm_inf, &r.b_norm_inf,
+                                                      &r.x_norm_inf);
+        return r;
+    }
+    if (mq <= 0 || !(alpha > 0.0) || !std::isfinite(alpha) ||
+        Q.size() < static_cast<std::size_t>(n) * static_cast<std::size_t>(mq)) {
+        return r;   // ANCHOR_NOT_SPD：无锚可用 ⇒ 无法把 A 抬成 SPD
+    }
+    // A_α = A + α Q Qᵀ（对称：i,j 与 j,i 都写同一表达式，逐位一致）
+    std::vector<double> Aa = A;
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < n; ++j) {
+            double s = 0.0;
+            for (int k = 0; k < mq; ++k)
+                s += Q[static_cast<std::size_t>(i) * mq + k] *
+                     Q[static_cast<std::size_t>(j) * mq + k];
+            Aa[static_cast<std::size_t>(i) * n + j] += alpha * s;
+        }
+    std::vector<double> La;
+    int fcol = -1;
+    double fpiv = 0.0;
+    if (!chol_spd(Aa, n, La, budget, &fcol, &fpiv)) {
+        r.status = SKY_PS_ANCHOR_NOT_SPD;
+        r.chol_fail_col = fcol;
+        r.chol_fail_pivot = fpiv;
+        return r;
+    }
+    std::vector<double> Ba = b;
+    chol_solve(La, n, Ba);
+    // X = A_α⁻¹ Q：逐列三角回代（mq ≤ 4·n_components，代价 O(mq·n²)）
+    std::vector<double> X(static_cast<std::size_t>(n) * static_cast<std::size_t>(mq), 0.0);
+    std::vector<double> col(static_cast<std::size_t>(n), 0.0);
+    for (int k = 0; k < mq; ++k) {
+        for (int i = 0; i < n; ++i)
+            col[static_cast<std::size_t>(i)] = Q[static_cast<std::size_t>(i) * mq + k];
+        chol_solve(La, n, col);
+        for (int i = 0; i < n; ++i)
+            X[static_cast<std::size_t>(i) * mq + k] = col[static_cast<std::size_t>(i)];
+    }
+    // R = QᵀX, c = QᵀB_a, M = I − α R  （mq×mq；M 奇异 ⇔ A 在 span(Q) 上奇异）
+    std::vector<double> M(static_cast<std::size_t>(mq) * static_cast<std::size_t>(mq), 0.0);
+    std::vector<double> c(static_cast<std::size_t>(mq), 0.0);
+    for (int p = 0; p < mq; ++p)
+        for (int q = 0; q < mq; ++q) {
+            double s = 0.0;
+            for (int i = 0; i < n; ++i)
+                s += Q[static_cast<std::size_t>(i) * mq + p] *
+                     X[static_cast<std::size_t>(i) * mq + q];
+            M[static_cast<std::size_t>(p) * mq + q] =
+                ((p == q) ? 1.0 : 0.0) - alpha * s;
+        }
+    for (int p = 0; p < mq; ++p) {
+        double s = 0.0;
+        for (int i = 0; i < n; ++i)
+            s += Q[static_cast<std::size_t>(i) * mq + p] * Ba[static_cast<std::size_t>(i)];
+        c[static_cast<std::size_t>(p)] = s;
+    }
+    std::vector<double> Lm;
+    if (!chol_spd(M, mq, Lm, 1, &fcol, &fpiv)) {
+        r.status = SKY_PS_NOT_RESOLVABLE;
+        r.branch = 1;
+        r.chol_fail_col = fcol;
+        r.chol_fail_pivot = fpiv;
+        return r;   // (I − αR) 奇异：A 在 span(Q) 上不可分辨（gauge 或数值不可表示）
+    }
+    std::vector<double> w(static_cast<std::size_t>(mq), 0.0);
+    for (int p = 0; p < mq; ++p)
+        w[static_cast<std::size_t>(p)] = alpha * c[static_cast<std::size_t>(p)];
+    chol_solve(Lm, mq, w);
+    B_out = Ba;
+    for (int i = 0; i < n; ++i) {
+        double s = 0.0;
+        for (int k = 0; k < mq; ++k)
+            s += X[static_cast<std::size_t>(i) * mq + k] * w[static_cast<std::size_t>(k)];
+        B_out[static_cast<std::size_t>(i)] += s;
+    }
+    r.branch = 1;
+    r.residual_rel = sky_penalized_backward_error(A, n, b, B_out, &r.a_norm_inf,
+                                                  &r.b_norm_inf, &r.x_norm_inf);
+    r.status = (std::isfinite(r.residual_rel) && r.residual_rel <= residual_gate)
+                   ? SKY_PS_OK_WOODBURY
+                   : SKY_PS_NOT_RESOLVABLE;
+    return r;
+}
+
+}  // namespace
+
+// ── 测试接缝（见 sky_plane_test_hooks.h）：驱动与生产**同一份**求解实现 ──
+// 仅供 eng/tests 使用；不进入任何产品入口、不改变导出面语义（static 库内部符号）。
+extern "C" int acsd_sky_plane_penalized_solve_for_test(
+    const double* A, int n, const double* b, const double* Q, int mq, double alpha,
+    double residual_gate, int force_anchor, double* B_out, AcsdSkyDeflationDiag* diag) {
+    if (diag) {
+        AcsdSkyDeflationDiag z{};
+        z.status = SKY_PS_BAD_ARGS;
+        z.branch = 0;
+        z.n = n;
+        z.mq = mq;
+        z.chol_fail_col = -1;
+        z.alpha = alpha;
+        z.residual_rel = std::numeric_limits<double>::quiet_NaN();
+        z.residual_gate = residual_gate;
+        *diag = z;
+    }
+    if (A == nullptr || b == nullptr || B_out == nullptr || n <= 0) return -1;
+    std::vector<double> Am(A, A + static_cast<std::size_t>(n) * n);
+    std::vector<double> bm(b, b + n);
+    std::vector<double> Qm;
+    if (mq > 0 && Q != nullptr)
+        Qm.assign(Q, Q + static_cast<std::size_t>(n) * static_cast<std::size_t>(mq));
+    std::vector<double> B;
+    std::vector<double> Ld;   // 直接分支的 Cholesky 因子（本接缝不消费）
+    const SkyPenalizedSolveResult r = sky_penalized_solve(
+        Am, n, bm, Qm, mq, alpha, 1u, residual_gate, Ld, B, force_anchor != 0);
+    if (diag) {
+        diag->status = r.status;
+        diag->branch = r.branch;
+        diag->n = r.n;
+        diag->mq = r.mq;
+        diag->chol_fail_col = r.chol_fail_col;
+        diag->alpha = r.alpha;
+        diag->chol_fail_pivot = r.chol_fail_pivot;
+        diag->residual_rel = r.residual_rel;
+        diag->residual_gate = r.residual_gate;
+        diag->a_norm_inf = r.a_norm_inf;
+        diag->b_norm_inf = r.b_norm_inf;
+        diag->x_norm_inf = r.x_norm_inf;
+    }
+    if (r.status == SKY_PS_OK_DIRECT || r.status == SKY_PS_OK_WOODBURY) {
+        for (int i = 0; i < n; ++i) B_out[i] = B[static_cast<std::size_t>(i)];
+        return 0;
+    }
+    return 1;
+}
+
+namespace {
+
 struct SkyFrame {
     std::uint64_t frame_id = 0;
     std::vector<std::uint64_t> idx;   // usable sample indices
 };
+
+// ===========================================================================
+// DEV-MODE 只读取证：罚法方程 / 分支 / 尺度的确定性 matrix dump（#80 P0-A1）
+// ===========================================================================
+// 落点：`p2_sky_plane_build` 每次 IRLS 迭代**求解之后**。只读借用已有矩阵，不构造
+// 科学中间数组、不改数值/控制流/返回值（DEV_MODE.md §5 被动观察）。
+// 体积策略（DEV_MODE.md §2「大数组快照缺省不自动全量落盘」）：
+//   · 恒落：形状/身份、active-node 掩膜与索引（free_of_full）、stencil 行（可重算
+//     D 的索引）、逐帧权重汇总、λ/α、四个 Cholesky 主元/失败列、原方程后向误差、
+//     各矩阵 sha256；
+//   · n_free ≤ kSkyDumpDenseMax：另落 H_data/H_red/H_solve/rhs/Q 稠密本体（供独立
+//     oracle 逐位对拍）；
+//   · n_free ≤ kSkyDumpSpectrumMax：另落 H_red/H_solve 的判据谱读数。
+// 输出经 devdiag sink（<work_root>/_dev_diagnostics/<run_id>/snapshots/...），
+// **任何科学模块都不读它**；ACSD_DEV_MODE=OFF 时本段整体不编译（无符号/无文件/env）。
+#if ACSD_DEV_DIAGNOSTICS
+constexpr int kSkyDumpDenseMax = 128;
+constexpr int kSkyDumpSpectrumMax = 256;
+
+struct SkyMatrixDumpInput {
+    int iter = 0;
+    int n_full = 0, n_free = 0, nx = 0, ny = 0;
+    int spline_degree = 1, frame_gradient_order = 1, m = 0, mq = 0;
+    int n_stencil_components = 0;
+    double node_spacing_deg = 0.0, lambda_numerical = 0.0, alpha = 0.0;
+    std::size_t n_used = 0;
+    const std::vector<double>* H_data = nullptr;
+    const std::vector<double>* H_red = nullptr;
+    const std::vector<double>* H_solve = nullptr;
+    const std::vector<double>* rhs = nullptr;
+    const std::vector<double>* Q = nullptr;
+    const std::vector<int>* free_of_full = nullptr;
+    const std::vector<int>* stencil_comp_of_free = nullptr;
+    const std::vector<SkyFrame>* frames = nullptr;
+    const std::vector<double>* w = nullptr;
+    const std::vector<std::uint64_t>* frame_ids = nullptr;
+    const std::vector<char>* is_anchor = nullptr;
+    const SkyPenalizedSolveResult* solve = nullptr;
+};
+
+inline double sky_dump_median(std::vector<double> v) {
+    if (v.empty()) return std::numeric_limits<double>::quiet_NaN();
+    const std::size_t h = v.size() / 2;
+    std::nth_element(v.begin(), v.begin() + static_cast<std::ptrdiff_t>(h), v.end());
+    double m = v[h];
+    if (v.size() % 2 == 0) {
+        std::nth_element(v.begin(), v.begin() + static_cast<std::ptrdiff_t>(h - 1), v.end());
+        m = 0.5 * (m + v[h - 1]);
+    }
+    return m;
+}
+
+inline std::string sky_dump_hash(const std::vector<double>& v) {
+    if (v.empty()) return std::string();
+    return acsd::crypto::sha256_hex(v.data(), v.size() * sizeof(double));
+}
+
+inline nlohmann::json sky_dump_matrix(const std::vector<double>& v, int n, int cols,
+                                      bool dense, const char* semantic,
+                                      const char* unit) {
+    nlohmann::json j;
+    j["semantic"] = semantic;
+    j["unit"] = unit;
+    j["shape"] = {n, cols};
+    j["sha256"] = sky_dump_hash(v);
+    if (dense) {
+        nlohmann::json d = nlohmann::json::array();
+        for (double x : v) d.push_back(x);
+        j["values_row_major"] = std::move(d);
+    }
+    return j;
+}
+
+inline void sky_plane_matrix_dump(const SkyMatrixDumpInput& in) {
+    const std::size_t n = static_cast<std::size_t>(in.n_free);
+    const bool dense = (in.n_free > 0 && in.n_free <= kSkyDumpDenseMax);
+    nlohmann::json j;
+    j["schema"] = "acsd.sky-plane-normal-matrix/v1";
+    j["stage"] = "mosaic";
+    j["producer"] = "p2_sky_plane_build";
+    j["non_scientific_product"] = true;
+    j["iter"] = in.iter;
+    j["node_spacing_deg"] = in.node_spacing_deg;
+    j["grid"] = {{"nx", in.nx}, {"ny", in.ny}, {"n_full", in.n_full},
+                 {"n_free", in.n_free}, {"spline_degree", in.spline_degree},
+                 {"frame_gradient_order", in.frame_gradient_order},
+                 {"m_delta_basis", in.m}, {"mq_penalty_nullspace_candidate", in.mq},
+                 {"n_stencil_components", in.n_stencil_components}};
+    j["n_used"] = in.n_used;
+    j["lambda_numerical"] = in.lambda_numerical;
+    j["alpha_anchor"] = in.alpha;
+    // active-node 掩膜（可重算索引）：full 节点编号 + 每 free 节点的 stencil 连通块
+    if (in.free_of_full) {
+        nlohmann::json fo = nlohmann::json::array();
+        for (int x : *in.free_of_full) fo.push_back(x);
+        j["free_of_full_index"] = std::move(fo);
+    }
+    if (in.stencil_comp_of_free) {
+        nlohmann::json sc = nlohmann::json::array();
+        for (int x : *in.stencil_comp_of_free) sc.push_back(x);
+        j["stencil_component_of_free"] = std::move(sc);
+    }
+    // stencil 行（D 的可重算索引）：实际加入 D 的三点模板（free 编号）
+    if (in.free_of_full && in.nx > 0 && in.ny > 0) {
+        nlohmann::json rows = nlohmann::json::array();
+        auto fof = [&](int full) {
+            return (*in.free_of_full)[static_cast<std::size_t>(full)];
+        };
+        for (int iy = 0; iy < in.ny; ++iy)
+            for (int ix = 0; ix + 2 < in.nx; ++ix) {
+                const int a = fof(iy * in.nx + ix), b = fof(iy * in.nx + ix + 1),
+                          c = fof(iy * in.nx + ix + 2);
+                if (a < 0 || b < 0 || c < 0) continue;
+                rows.push_back({a, b, c});
+            }
+        for (int ix = 0; ix < in.nx; ++ix)
+            for (int iy = 0; iy + 2 < in.ny; ++iy) {
+                const int a = fof(iy * in.nx + ix), b = fof((iy + 1) * in.nx + ix),
+                          c = fof((iy + 2) * in.nx + ix);
+                if (a < 0 || b < 0 || c < 0) continue;
+                rows.push_back({a, b, c});
+            }
+        j["stencil_rows_free_index"] = std::move(rows);
+    }
+    // 帧身份 / gauge / 权重尺度（求解真正用的 w = base_w × Huber）
+    if (in.frame_ids && in.is_anchor) {
+        nlohmann::json fr = nlohmann::json::array();
+        for (std::size_t k = 0; k < in.frame_ids->size(); ++k) {
+            fr.push_back({{"frame_id", (*in.frame_ids)[k]},
+                          {"is_anchor", (k < in.is_anchor->size() && (*in.is_anchor)[k]) ? 1 : 0}});
+        }
+        j["frames"] = std::move(fr);
+        j["gauge"] = "per-component minimum frame_id is anchor, delta_anchor == 0";
+    }
+    if (in.w) {
+        double wmin = std::numeric_limits<double>::infinity(),
+               wmax = -std::numeric_limits<double>::infinity();
+        std::uint64_t nneg = 0, nnonfin = 0, nzero = 0;
+        std::vector<double> vals;
+        vals.reserve(in.w->size());
+        for (double x : *in.w) {
+            if (!std::isfinite(x)) { ++nnonfin; continue; }
+            if (x < 0.0) ++nneg;
+            if (x == 0.0) ++nzero;
+            if (x < wmin) wmin = x;
+            if (x > wmax) wmax = x;
+            vals.push_back(x);
+        }
+        j["solve_weight"] = {{"semantic", "P5 effective control weight w = base_w * huber_w(z)"},
+                             {"unit", "1/[control_variance]"},
+                             {"n", static_cast<std::uint64_t>(in.w->size())},
+                             {"min", std::isfinite(wmin) ? wmin : -1.0},
+                             {"median", sky_dump_median(vals)},
+                             {"max", std::isfinite(wmax) ? wmax : -1.0},
+                             {"n_negative", nneg}, {"n_zero", nzero},
+                             {"n_nonfinite", nnonfin}};
+    }
+    if (in.solve) {
+        j["solve"] = {{"status", in.solve->status}, {"branch", in.solve->branch},
+                      {"status_name",
+                       in.solve->status == SKY_PS_OK_DIRECT ? "OK_DIRECT"
+                       : in.solve->status == SKY_PS_OK_WOODBURY ? "OK_WOODBURY"
+                       : in.solve->status == SKY_PS_ANCHOR_NOT_SPD ? "ANCHOR_NOT_SPD"
+                       : in.solve->status == SKY_PS_NOT_RESOLVABLE ? "NOT_RESOLVABLE"
+                                                                   : "BAD_ARGS"},
+                      {"chol_fail_col", in.solve->chol_fail_col},
+                      {"chol_fail_pivot", in.solve->chol_fail_pivot},
+                      {"backward_error", in.solve->residual_rel},
+                      {"backward_error_gate", in.solve->residual_gate},
+                      {"a_norm_inf", in.solve->a_norm_inf},
+                      {"b_norm_inf", in.solve->b_norm_inf},
+                      {"x_norm_inf", in.solve->x_norm_inf}};
+    }
+    if (in.H_data)
+        j["H_data"] = sky_dump_matrix(*in.H_data, in.n_free, in.n_free, dense,
+                                      "Schur-reduced data information matrix A^T W A - S M^-1 S^T",
+                                      "mixed (per-sample weight x signal^2); see solve_weight");
+    if (in.H_red)
+        j["H_red"] = sky_dump_matrix(*in.H_red, in.n_free, in.n_free, dense,
+                                     "data-only reduced normal matrix (the identifiability criterion matrix)",
+                                     "same as H_data");
+    if (in.H_solve)
+        j["H_solve"] = sky_dump_matrix(*in.H_solve, in.n_free, in.n_free, dense,
+                                       "solve matrix = H_red + lambda_eff * D^T D (penalized)",
+                                       "same as H_data");
+    if (in.rhs)
+        j["rhs"] = sky_dump_matrix(*in.rhs, in.n_free, 1, dense,
+                                   "normal-equation right-hand side A^T W y", "same as H_data");
+    if (in.Q)
+        j["Q_penalty_nullspace"] = sky_dump_matrix(*in.Q, in.n_free, in.mq, dense,
+                                                   "orthonormal candidate basis of ker(D) (penalty null space)",
+                                                   "dimensionless");
+    if (in.H_red) {
+        double sym = 0.0, hmax = 0.0, dmin = std::numeric_limits<double>::infinity(),
+               dmax = -std::numeric_limits<double>::infinity();
+        for (std::size_t a = 0; a < n; ++a) {
+            const double da = (*in.H_red)[a * n + a];
+            if (da < dmin) dmin = da;
+            if (da > dmax) dmax = da;
+            for (std::size_t b = 0; b < n; ++b) {
+                const double v = std::fabs((*in.H_red)[a * n + b]);
+                if (v > hmax) hmax = v;
+                const double d = std::fabs((*in.H_red)[a * n + b] - (*in.H_red)[b * n + a]);
+                if (d > sym) sym = d;
+            }
+        }
+        j["H_red_readings"] = {{"diag_min", std::isfinite(dmin) ? dmin : 0.0},
+                               {"diag_max", std::isfinite(dmax) ? dmax : 0.0},
+                               {"abs_max_entry", hmax},
+                               {"symmetry_residual_abs", sym},
+                               {"symmetry_residual_rel", (hmax > 0.0) ? sym / hmax : 0.0}};
+        if (in.n_free > 0 && in.n_free <= kSkyDumpSpectrumMax) {
+            P2Identifiability idr{};
+            if (p2_identifiability_assess(in.H_red->data(),
+                                          static_cast<std::uint64_t>(in.n_free),
+                                          static_cast<std::uint64_t>(in.n_used), 1e-10,
+                                          &idr) == 0)
+                j["criterion_H_red"] = {{"lambda_min", idr.lambda_min},
+                                        {"lambda_max", idr.lambda_max},
+                                        {"kappa", std::isfinite(idr.kappa) ? idr.kappa : -1.0},
+                                        {"rank_eff", idr.rank_eff},
+                                        {"n_unidentified", idr.n_unidentified},
+                                        {"identifiable", idr.identifiable},
+                                        {"rank_rtol_effective", idr.rank_rtol_effective}};
+            if (in.H_solve) {
+                P2Identifiability ids{};
+                if (p2_identifiability_assess(in.H_solve->data(),
+                                              static_cast<std::uint64_t>(in.n_free),
+                                              static_cast<std::uint64_t>(in.n_used), 1e-10,
+                                              &ids) == 0)
+                    j["criterion_H_solve"] = {{"lambda_min", ids.lambda_min},
+                                              {"lambda_max", ids.lambda_max},
+                                              {"kappa", std::isfinite(ids.kappa) ? ids.kappa : -1.0},
+                                              {"rank_eff", ids.rank_eff}};
+            }
+        }
+    }
+    acsd::devdiag::SnapshotMeta meta;
+    meta.probe_id = "mosaic.sky.normal_matrix";
+    meta.stage = "mosaic";
+    meta.producer = "p2_sky_plane_build";
+    meta.semantic = "Schur-reduced penalized normal equation A B = b of the P5 sky plane "
+                    "(H_data/H_red/H_solve/rhs/Q, D stencil index, solve branch and errors)";
+    meta.unit = "JSON body states each matrix unit";
+    meta.coord_space = acsd::devdiag::CoordSpace::None;
+    meta.dtype = "float64";
+    meta.shape = "[n_free x n_free] and [n_free]";
+    meta.validity_policy = "passive dev-only snapshot; never read by any science module";
+    meta.extra_json = "\"non_scientific_product\": true";
+    // 每次迭代一个独立 frame 标签 ⇒ 选择器默认的 max_frames 按标签计数，
+    // 不会把同一 build 的多次迭代快照误删。
+    char iter_tag[32];
+    std::snprintf(iter_tag, sizeof(iter_tag), "iter=%d", in.iter);
+    meta.frame_id = iter_tag;
+    meta.tile_note = nullptr;
+    (void)ACSD_DEV_SNAPSHOT_TEXT(meta, j.dump().c_str());
+}
+#endif  // ACSD_DEV_DIAGNOSTICS
 
 // ---- task-3 多尺度低频 δ_k（PHASE2_SAMPLER.md §5.11；P5 单元 C9 推荐档 cS16T20） ----
 // 落点：只在 δ_k 求值段叠加，不碰 Schur/IRLS 求解器、不碰方差链、不碰 gauge。
@@ -1789,38 +2332,103 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     // δ_k 一次多项式 gauge（3 维 {1, ξ, η}）**多一维**——
     // δ_k 只到一阶、无法吸收 bilinear 项，故 bilinear 是真实模型方向，由数据决定，
     // 不是规范自由度。这里只用于：(i) 求解前把惩罚零空间方向锚成正定；(ii) 求解后
-    // 用 deflation 校正精确抵消锚偏置。两处都只作用在该 4 维零空间上。
+    // 用**精确** deflation 校正扣回锚偏置。两处都只作用在惩罚零空间方向上。
+    //
+    // **支撑域诚实性**：`add_stencil` 在三点 stencil 任一节点不自由时整行跳过，故
+    // 实际算子 D 的零空间维数 = Σ_c nullity(D_c)（c = stencil 连通块）**不一定**是 4：
+    // 支撑被 mask 切成 C 个连通块时每块各带一个 bilinear 空间（S3-R 实测：完整 7×6
+    // 4 维；双 3×3 孤岛 8 维；缺整行 8 维）。此时全局四列只是 ker(D) 的**候选子集**，
+    // 故逐块补其多项式列后再做 MGS（秩不足的列自动丢弃）。单连通支撑下 blocks==1，
+    // 列序/列值与历史**逐位一致**。逐块补列是锚加法 O(n²·mq) 的成本，故给 mq 一个
+    // 成本上限（kGaugeQMaxCols；超限退回全局 4 列，由锚定分解如实报出覆盖不足）。
+    constexpr int kGaugeQMaxCols = 64;
     std::vector<double> gauge_q;   // n_free x mq，行主序 [f*mq + k]
     int mq = 0;
+    int n_stencil_comp = 1;                    // stencil 连通块数（诊断）
+    std::vector<int> stencil_comp_of_free;     // 每 free 节点的连通块 id（诊断）
     {
+        // (1) stencil 连通块：union-find，边 = 实际加入 D 的三点 stencil。
+        std::vector<int> uf(static_cast<std::size_t>(n_free));
+        for (int f = 0; f < n_free; ++f) uf[static_cast<std::size_t>(f)] = f;
+        auto find_root = [&uf](int x) {
+            int r = x;
+            while (uf[static_cast<std::size_t>(r)] != r) r = uf[static_cast<std::size_t>(r)];
+            while (uf[static_cast<std::size_t>(x)] != r) {
+                const int nx = uf[static_cast<std::size_t>(x)];
+                uf[static_cast<std::size_t>(x)] = r;
+                x = nx;
+            }
+            return r;
+        };
+        auto unite = [&](int a, int b) {
+            if (a < 0 || b < 0) return;
+            const int ra = find_root(a), rb = find_root(b);
+            if (ra != rb) uf[static_cast<std::size_t>(rb)] = ra;
+        };
+        for (int iy = 0; iy < model->ny; ++iy)
+            for (int ix = 0; ix + 2 < model->nx; ++ix) {
+                const int f0 = free_of_full[static_cast<std::size_t>(iy * model->nx + ix)];
+                const int f1 = free_of_full[static_cast<std::size_t>(iy * model->nx + ix + 1)];
+                const int f2 = free_of_full[static_cast<std::size_t>(iy * model->nx + ix + 2)];
+                if (f0 < 0 || f1 < 0 || f2 < 0) continue;
+                unite(f0, f1);
+                unite(f1, f2);
+            }
+        for (int ix = 0; ix < model->nx; ++ix)
+            for (int iy = 0; iy + 2 < model->ny; ++iy) {
+                const int f0 = free_of_full[static_cast<std::size_t>(iy * model->nx + ix)];
+                const int f1 = free_of_full[static_cast<std::size_t>((iy + 1) * model->nx + ix)];
+                const int f2 = free_of_full[static_cast<std::size_t>((iy + 2) * model->nx + ix)];
+                if (f0 < 0 || f1 < 0 || f2 < 0) continue;
+                unite(f0, f1);
+                unite(f1, f2);
+            }
+        stencil_comp_of_free.assign(static_cast<std::size_t>(n_free), -1);
+        std::vector<int> root_to_comp(static_cast<std::size_t>(n_free), -1);
+        n_stencil_comp = 0;
+        for (int f = 0; f < n_free; ++f) {
+            const int r = find_root(f);
+            if (root_to_comp[static_cast<std::size_t>(r)] < 0)
+                root_to_comp[static_cast<std::size_t>(r)] = n_stencil_comp++;
+            stencil_comp_of_free[static_cast<std::size_t>(f)] =
+                root_to_comp[static_cast<std::size_t>(r)];
+        }
+        // (2) 候选列 = 各连通块的多项式列（块数超成本上限时退回单块全局列）。
+        const int blocks =
+            (n_stencil_comp * 4 <= kGaugeQMaxCols) ? n_stencil_comp : 1;
         std::vector<std::vector<double>> cols;
-        for (int c = 0; c < 4; ++c) {
-            std::vector<double> v(static_cast<std::size_t>(n_free), 0.0);
-            for (int f = 0; f < n_free; ++f) {
-                const int idx = full_of_free[static_cast<std::size_t>(f)];
-                const double ix = static_cast<double>(idx % model->nx);
-                const double iy = static_cast<double>(idx / model->nx);
-                v[static_cast<std::size_t>(f)] =
-                    (c == 0) ? 1.0 : (c == 1) ? ix : (c == 2) ? iy : ix * iy;
-            }
-            double orig = 0.0;
-            for (double x : v) orig += x * x;
-            orig = std::sqrt(orig);
-            for (const auto& q : cols) {   // 修正 Gram-Schmidt（固定列序，确定性）
-                // 重命名 proj：内层 d 遮蔽了外层同名局部量（MSVC C4456）。此处内外
-                // 各自独立、求值顺序与数值不变，只是把两个不同的量分名 ⇒ 零行为变化。
-                double proj = 0.0;
-                for (int f = 0; f < n_free; ++f)
-                    proj += q[static_cast<std::size_t>(f)] * v[static_cast<std::size_t>(f)];
-                for (int f = 0; f < n_free; ++f)
-                    v[static_cast<std::size_t>(f)] -= proj * q[static_cast<std::size_t>(f)];
-            }
-            double nrm = 0.0;
-            for (double x : v) nrm += x * x;
-            nrm = std::sqrt(nrm);
-            if (orig > 0.0 && nrm > 1e-9 * orig) {
-                for (double& x : v) x /= nrm;
-                cols.push_back(std::move(v));
+        for (int comp = 0; comp < blocks; ++comp) {
+            for (int c = 0; c < 4; ++c) {
+                std::vector<double> v(static_cast<std::size_t>(n_free), 0.0);
+                for (int f = 0; f < n_free; ++f) {
+                    if (blocks > 1 &&
+                        stencil_comp_of_free[static_cast<std::size_t>(f)] != comp)
+                        continue;
+                    const int idx = full_of_free[static_cast<std::size_t>(f)];
+                    const double ix = static_cast<double>(idx % model->nx);
+                    const double iy = static_cast<double>(idx / model->nx);
+                    v[static_cast<std::size_t>(f)] =
+                        (c == 0) ? 1.0 : (c == 1) ? ix : (c == 2) ? iy : ix * iy;
+                }
+                double orig = 0.0;
+                for (double x : v) orig += x * x;
+                orig = std::sqrt(orig);
+                for (const auto& q : cols) {   // 修正 Gram-Schmidt（固定列序，确定性）
+                    // 重命名 proj：内层 d 遮蔽了外层同名局部量（MSVC C4456）。此处内外
+                    // 各自独立、求值顺序与数值不变，只是把两个不同的量分名 ⇒ 零行为变化。
+                    double proj = 0.0;
+                    for (int f = 0; f < n_free; ++f)
+                        proj += q[static_cast<std::size_t>(f)] * v[static_cast<std::size_t>(f)];
+                    for (int f = 0; f < n_free; ++f)
+                        v[static_cast<std::size_t>(f)] -= proj * q[static_cast<std::size_t>(f)];
+                }
+                double nrm = 0.0;
+                for (double x : v) nrm += x * x;
+                nrm = std::sqrt(nrm);
+                if (orig > 0.0 && nrm > 1e-9 * orig) {
+                    for (double& x : v) x /= nrm;
+                    cols.push_back(std::move(v));
+                }
             }
         }
         mq = static_cast<int>(cols.size());
@@ -2164,115 +2772,95 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                                     (iy + 1) * model->nx + ix, (iy + 2) * model->nx + ix);
                 }
         }
-        // ---- 求解：先直接 Cholesky；失败才对惩罚零空间做极小锚 + deflation 校正 ----
+        // ---- 求解：唯一实现 = sky_penalized_solve（直接 Cholesky → 锚定 + 精确 deflation）----
         // 数值根因（对生产数据的复核）：惩罚项 ~1e-3 与约化数据项 ~1e-18 相差 ~1e15
         // 量级，惩罚矩阵自身的浮点舍入（~1e-18）会淹没数据在惩罚零空间方向上的曲率
-        // （~1e-20），使 H_solve = H_red + λDᵀD 在浮点下失去正定性（:770 rc=6）。
+        // （~1e-20），使 H_solve = H_red + λDᵀD 在浮点下失去正定性。
         // 数据项与惩罚项同量级的常规档（如单元测试 σ~0.05）直接 Cholesky 成功，本
         // 路径与结果逐位不变；仅当直接 Cholesky 失败时，才对**惩罚零空间方向**做极小
-        // Tikhonov 锚使其严格 SPD，再用 deflation 校正把锚偏置精确扣回（科学解不变）。
+        // Tikhonov 锚使其严格 SPD，再用**精确** deflation（★ 式）把锚偏置扣回，并用
+        // 原方程后向误差门核对；核对不过 ⇒ 具名失败，不得伪造 SPD。
         bool solved = false;
         std::vector<double> Bnew;
+        // alpha 取惩罚项对角量级；只加在 span(Q) 上（Q ⊆ ker(D) 的候选基）。
+        // Q 的构造见上方「惩罚零空间基」：单连通支撑 = 全局 {1,ix,iy,ix·iy}（4 列，
+        // 与历史逐位一致）；支撑被 mask 切成多个 stencil 连通块时，按块补其多项式列
+        // （4 列/块），因为此时真实 ker(D) 维数 > 4，全局四列只是**候选**子集。
+        double alpha = 0.0;
+        for (int i = 0; i < n_free; ++i) {
+            const double pdiag = H_solve[static_cast<std::size_t>(i) * n_free + i] -
+                                 H_red[static_cast<std::size_t>(i) * n_free + i];
+            if (pdiag > alpha) alpha = pdiag;
+        }
+        const double solve_residual_gate =
+            p2_identifiability_rank_rtol_floor(static_cast<std::uint64_t>(used.size()),
+                                               static_cast<std::uint64_t>(n_free));
         // task-10：大 Cholesky 走列内行分片并行（budget 复用；位精确，见 chol_spd）。
-        if (chol_spd(H_solve, n_free, L, par_budget)) {
-            Bnew = rhs;
-            chol_solve(L, n_free, Bnew);
+        SkyPenalizedSolveResult psr = sky_penalized_solve(
+            H_solve, n_free, rhs, gauge_q, mq, alpha, par_budget,
+            solve_residual_gate, L, Bnew);
+        if (psr.status == SKY_PS_OK_DIRECT || psr.status == SKY_PS_OK_WOODBURY) {
             solved = true;
+            solve_deflated = (psr.status == SKY_PS_OK_WOODBURY);
         }
-        if (!solved && mq > 0) {
-            // alpha 取惩罚项对角量级；只加在 mq 个惩罚零空间方向（Q Qᵀ）上。
-            double alpha = 0.0;
-            for (int i = 0; i < n_free; ++i) {
-                const double pdiag = H_solve[static_cast<std::size_t>(i) * n_free + i] -
-                                     H_red[static_cast<std::size_t>(i) * n_free + i];
-                if (pdiag > alpha) alpha = pdiag;
-            }
-            if (alpha > 0.0) {
-                // task-10：锚加法行分片并行（行 i 只写 H_solve[i,:]，互斥；内层
-                // k 求和顺序不变 ⇒ 位精确）+ 第二次大 Cholesky 并行。
-                sky_plane_par_for_rows(
-                    n_free, par_budget, 32,
-                    [&](int lo, int hi) {
-                        for (int i = lo; i < hi; ++i)
-                            for (int j = 0; j < n_free; ++j) {
-                                double s = 0.0;
-                                for (int k = 0; k < mq; ++k)
-                                    s += gauge_q[static_cast<std::size_t>(i) * mq + k] *
-                                         gauge_q[static_cast<std::size_t>(j) * mq + k];
-                                H_solve[static_cast<std::size_t>(i) * n_free + j] += alpha * s;
-                            }
-                    });
-                if (chol_spd(H_solve, n_free, L, par_budget)) {
-                    Bnew = rhs;
-                    chol_solve(L, n_free, Bnew);
-                    // Deflation 校正（只对惩罚零空间方向；O(n_free^2 * mq)）：
-                    //   B = B_a + Q · G^{-1} · (Qᵀ rhs − Qᵀ H_red B_a), G = Qᵀ H_red Q
-                    // 其中 B_a = (H_red + λDᵀD + alpha·Q Qᵀ)^{-1} rhs。因 P Q = 0，
-                    // 校正后的 B 满足 (H_red + λDᵀD) B = rhs（至浮点精度），即把锚
-                    // 偏置精确扣回，与直接求解惩罚法方程等价。
-                    std::vector<double> HrQ(static_cast<std::size_t>(n_free) * mq, 0.0);
-                    // task-10 并行：行 i 只写 HrQ[i,:]（互斥；内层 j 求和顺序不变）。
-                    sky_plane_par_for_rows(
-                        n_free, par_budget, 64,
-                        [&](int lo, int hi) {
-                            for (int i = lo; i < hi; ++i) {
-                                const double* row =
-                                    &H_red[static_cast<std::size_t>(i) * n_free];
-                                for (int k = 0; k < mq; ++k) {
-                                    double s = 0.0;
-                                    for (int j = 0; j < n_free; ++j)
-                                        s += row[j] *
-                                             gauge_q[static_cast<std::size_t>(j) * mq + k];
-                                    HrQ[static_cast<std::size_t>(i) * mq + k] = s;
-                                }
-                            }
-                        });
-                    std::vector<double> G(static_cast<std::size_t>(mq) * mq, 0.0);
-                    for (int p = 0; p < mq; ++p)
-                        for (int q = 0; q < mq; ++q) {
-                            double s = 0.0;
-                            for (int i = 0; i < n_free; ++i)
-                                s += gauge_q[static_cast<std::size_t>(i) * mq + p] *
-                                     HrQ[static_cast<std::size_t>(i) * mq + q];
-                            G[static_cast<std::size_t>(p) * mq + q] = s;
-                        }
-                    std::vector<double> corr(static_cast<std::size_t>(mq), 0.0);
-                    // corr 长度 mq<=4：保持串行（并行无收益；跨 p 归约顺序不变）。
-                    for (int p = 0; p < mq; ++p) {
-                        double s = 0.0;
-                        for (int i = 0; i < n_free; ++i)
-                            s += gauge_q[static_cast<std::size_t>(i) * mq + p] *
-                                 rhs[static_cast<std::size_t>(i)];
-                        for (int j = 0; j < n_free; ++j)
-                            s -= HrQ[static_cast<std::size_t>(j) * mq + p] *
-                                 Bnew[static_cast<std::size_t>(j)];
-                        corr[static_cast<std::size_t>(p)] = s;
-                    }
-                    std::vector<double> Lg;
-                    if (chol_spd(G, mq, Lg)) {
-                        chol_solve(Lg, mq, corr);
-                        // task-10 并行：行 i 只写 Bnew[i]（互斥；内层 k 求和不变）。
-                        sky_plane_par_for_rows(
-                            n_free, par_budget, 64,
-                            [&](int lo, int hi) {
-                                for (int i = lo; i < hi; ++i) {
-                                    double s = 0.0;
-                                    for (int k = 0; k < mq; ++k)
-                                        s += gauge_q[static_cast<std::size_t>(i) * mq + k] *
-                                             corr[static_cast<std::size_t>(k)];
-                                    Bnew[static_cast<std::size_t>(i)] += s;
-                                }
-                            });
-                        solved = true;
-                        solve_deflated = true;
-                    }
-                }
-            }
+#if ACSD_DEV_DIAGNOSTICS
+        // 被动只读快照：成功与失败路径都落；不改变任何科学量/控制流。
+        {
+            SkyMatrixDumpInput di{};
+            di.iter = iter;
+            di.n_full = n_full;
+            di.n_free = n_free;
+            di.nx = model->nx;
+            di.ny = model->ny;
+            di.spline_degree = d;
+            di.frame_gradient_order = cfg.frame_gradient_order;
+            di.m = m;
+            di.mq = mq;
+            di.n_stencil_components = n_stencil_comp;
+            di.node_spacing_deg = model->h;
+            di.lambda_numerical = lam;
+            di.alpha = alpha;
+            di.n_used = used.size();
+            di.H_data = &H_data;
+            di.H_red = &H_red;
+            di.H_solve = &H_solve;
+            di.rhs = &rhs;
+            di.Q = &gauge_q;
+            di.free_of_full = &free_of_full;
+            di.stencil_comp_of_free = &stencil_comp_of_free;
+            di.frames = &frames;
+            di.w = &w;
+            di.frame_ids = &frame_ids;
+            di.is_anchor = &model->is_anchor;
+            di.solve = &psr;
+            sky_plane_matrix_dump(di);
         }
+#endif
         if (!solved) {
+            const char* reason = "no penalty-null-space anchor available "
+                                 "(alpha<=0 或无候选基 Q)";
+            if (psr.status == SKY_PS_ANCHOR_NOT_SPD)
+                reason = "anchored system A+alpha*Q*Q^T still not SPD => "
+                         "non-positive curvature outside the penalty-null-space "
+                         "candidate basis (mask-disconnected support leaving extra "
+                         "ker(D) directions, non-PSD effective weights, or Schur "
+                         "rounding)";
+            else if (psr.status == SKY_PS_NOT_RESOLVABLE)
+                reason = "anchored system factorable but the penalty-null-space "
+                         "directions are not resolvable in double (I-alpha*Q^T A_a^-1 Q "
+                         "singular, or original-equation backward error above the "
+                         "arithmetic floor)";
             sky_plane_free(model);
-            if (err && err_size) std::snprintf(err, err_size, "reduced normal matrix not SPD");
-            return P2_SKY_PLANE_RANK_DEFICIENT;
+            if (err && err_size)
+                std::snprintf(err, err_size,
+                              "reduced normal matrix does not determine the solution: "
+                              "%s (status=%d branch=%d n_free=%d mq=%d lambda=%.3e "
+                              "alpha=%.3e chol_fail_col=%d chol_fail_pivot=%.3e "
+                              "backward_error=%.3e gate=%.3e)",
+                              reason, psr.status, psr.branch, n_free, mq, lam, alpha,
+                              psr.chol_fail_col, psr.chol_fail_pivot,
+                              psr.residual_rel, psr.residual_gate);
+            return P2_SKY_PLANE_NOT_IDENTIFIABLE;
         }
         // 收敛检查
         double db = 0.0, sb = 0.0;
