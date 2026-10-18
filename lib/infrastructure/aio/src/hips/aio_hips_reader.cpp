@@ -350,6 +350,7 @@ int legacy_code_for(int code) {
         case AIO_HIPS_TILE_INVALID:                    return -5;
         case AIO_HIPS_TILE_CHECKSUM_FAILED:            return -9;
         case AIO_HIPS_TILE_FOOTPRINT_UNDETERMINED:     return -10;
+        case AIO_HIPS_TILE_UNKNOWN_LEGACY_COVERAGE:    return -11;
         default:                                       return 0;
     }
 }
@@ -368,7 +369,11 @@ int missing_code_for(const AioHipsDataset* d, uint64_t ipix) {
             return AIO_HIPS_TILE_FOOTPRINT_UNDETERMINED;
         case AioHipsDataset::FP_NONE:
         default:
-            return AIO_HIPS_TILE_OUTSIDE_DECLARED_FOOTPRINT;
+            // Issue #87/E2-R: 无可靠覆盖来源 ⇒ 缺失是"未证实的缺失"，不是"已证实
+            // 的无覆盖"。旧实现返回 OUTSIDE（把证据缺席当证据为空）已被审计判为
+            // 语义缺陷。此码不是 fail-closed（合法稀疏 HiPS 仍可 best-effort 出图），
+            // 但 aio_hips_coverage_verified()==0，调用方必须把产物身份降级。
+            return AIO_HIPS_TILE_UNKNOWN_LEGACY_COVERAGE;
     }
 }
 
@@ -428,6 +433,9 @@ TileHandle open_tile_common(AioHipsDataset* d, uint64_t ipix, bool want_i32) {
                        ? "tile declared by coverage hint but file is missing"
                    : (h.code == AIO_HIPS_TILE_FOOTPRINT_UNDETERMINED)
                        ? "tile missing and coverage identity is insufficient"
+                   : (h.code == AIO_HIPS_TILE_UNKNOWN_LEGACY_COVERAGE)
+                       ? "tile missing and no reliable coverage source exists "
+                         "(legacy unverified coverage; cannot prove outside)"
                        : "tile absent outside declared footprint";
         return h;
     }
@@ -459,6 +467,28 @@ TileHandle open_tile_common(AioHipsDataset* d, uint64_t ipix, bool want_i32) {
         fits_close_file(h.f, &s);
         h.f = nullptr;
         return h;
+    }
+    // Issue #87/E2-R: 标准 tile-compressed 布局（fpack/cfitsio/astropy 同构）=
+    // 空 PRIMARY HDU + HDU2 的 ZIMAGE 压缩图像。旧实现只看 HDU1 ⇒ 压缩 tile
+    // 一律 INVALID（虽 fail-closed，但使"压缩回退 cfitsio 全 HDU 校验"不可达，
+    // 且把合法压缩产品误拒）。此处显式定位压缩图像 HDU；校验仍由 cfitsio 对
+    // 磁盘压缩字节执行（fast path 对压缩明确不可计算）。
+    if (h.naxis == 0) {
+        int nhdu = 0, s2 = 0;
+        if (fits_get_num_hdus(h.f, &nhdu, &s2) == 0 && nhdu >= 2) {
+            int s3 = 0;
+            if (fits_movabs_hdu(h.f, 2, nullptr, &s3) == 0) {
+                int s4 = 0;
+                if (fits_is_compressed_image(h.f, &s4) == 1) {
+                    status = 0;
+                    fits_get_img_param(h.f, 2, &h.bitpix, &h.naxis, h.naxes, &status);
+                } else {
+                    int s5 = 0;
+                    fits_movabs_hdu(h.f, 1, nullptr, &s5);   // 非压缩: 复位
+                }
+            }
+        }
+        fits_clear_errmsg();
     }
     if (h.naxis != 2 || h.naxes[0] != d->tile_width || h.naxes[1] != d->tile_width) {
         h.code = AIO_HIPS_TILE_INVALID;
@@ -556,7 +586,14 @@ ChecksumOutcome verify_tile_checksum(fitsfile* f, const std::string& path,
     if (!out.present && dstate == 0 && cstate == 0) return out;   // 明确规则: 缺校验字段不失败
 
     // 只有 DATASUM/CHECKSUM 都在常规可计算域内才走单次读取路径。
-    const bool computable = (bitpix == -32 || bitpix == -64 || bitpix == 32) &&
+    // Issue #87/E2-R: tile 压缩（fpack/tile-compressed）时磁盘字节 ≠ 解码后像元
+    // 字节，快速路径会把"磁盘原始字节的校验和"算成"解码像元的校验和"（假阳/假阴）。
+    // cfitsio 的 fits_is_compressed_image 是唯一可靠判据 ⇒ 压缩一律回退全 HDU 校验。
+    // 非 0（压缩或查询错误）都按不可计算处理，保守回退。
+    int compressed_status = 0;
+    const int is_compressed = fits_is_compressed_image(f, &compressed_status);
+    const bool computable = (is_compressed == 0) &&
+                            (bitpix == -32 || bitpix == -64 || bitpix == 32) &&
                             !has_transform_keywords(f);
     if (computable && dstate >= 0 && cstate >= 0) {
         std::string hdr;
@@ -1243,6 +1280,19 @@ int aio_hips_footprint_identity(AioHipsDataset* d)  {
 int aio_hips_declared_tile_count(AioHipsDataset* d)  {
     try {
         return d ? (int)d->tiles.size() : -1;
+    } catch (...) {
+        return -1;
+    }
+}
+
+int aio_hips_coverage_verified(AioHipsDataset* d)  {
+    try {
+        if (!d) return -1;
+        // Issue #87/E2-R: 只有完整叶级 MOC 枚举才算"可靠覆盖来源"。MOC_UNDETERMINED
+        // / MANIFEST_ONLY 在缺失时 fail-closed（不会产出成功产品），但它们的身份
+        // 本身不足以声称输入完整性；FP_NONE 是具名 best-effort。故"可证完整性"
+        // 唯一为 MOC_LEAF。
+        return (d->footprint == AioHipsDataset::FP_MOC_LEAF) ? 1 : 0;
     } catch (...) {
         return -1;
     }

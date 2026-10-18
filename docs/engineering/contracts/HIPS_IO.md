@@ -26,16 +26,19 @@ reader 的整 tile 读取入口 `aio_hips_read_tile_f32/f64/i32_ex` 返回稳定
 
 | code | 语义 | 生产处置 |
 |---|---|---|
-| `OUTSIDE_DECLARED_FOOTPRINT` | 证明确实没有覆盖 | 合法：NaN / coverage=0，可进 absent 负缓存 |
+| `OUTSIDE_DECLARED_FOOTPRINT` | **已证实**没有覆盖（可靠覆盖集合判为集合外） | 合法：NaN / coverage=0，可进 absent 负缓存 |
 | `DECLARED_MISSING` | 覆盖声明内 tile 缺失 | 输入完整性错误，fail-closed |
 | `IO_ERROR` | 真实打开/读取/权限/IO 故障 | fail-closed，CLI I/O 域 |
 | `INVALID_TILE` | FITS 截断/NAXIS/尺寸/BITPIX/头部损坏 | fail-closed，输入域 |
 | `CHECKSUM_FAILED` | 存在 DATASUM/CHECKSUM 且验证失败 | fail-closed，输入域 |
 | `FOOTPRINT_UNDETERMINED` | 覆盖声明存在但身份不足以判定缺失是否合法 | fail-closed，不冒充合法空洞 |
+| `UNKNOWN_LEGACY_COVERAGE` | 无任何可靠覆盖来源：缺失既不能证实也不能否证 | 非 fail-closed 的**具名 best-effort**：允许 NaN 可视图，但产物身份必须降级为 `coverage_verified=false`，不得声明科学完整 |
 
-覆盖身份按强弱分级并随成功产物显式落盘：`MOC_LEAF`（MOC 完整枚举 `order==hips_order` 叶级单元）→ 集合内缺失 `DECLARED_MISSING`、集合外缺失 `OUTSIDE_DECLARED_FOOTPRINT`；`MOC_UNDETERMINED`（MOC 含低阶父级/非法阶条目，或 `manifest.n_leaf_tiles` 大于 MOC 叶级条目）→ 集合外缺失 `FOOTPRINT_UNDETERMINED`（父级覆盖归约是独立任务 #95，本 reader 不静默归约）；`MANIFEST_ONLY`（无 MOC 但 manifest 声称有覆盖）→ 缺失 `FOOTPRINT_UNDETERMINED`；`NONE`（无 MOC 且无覆盖计数）按“MOC 是可选枚举提示”把未声明单元的缺失记为 `OUTSIDE_DECLARED_FOOTPRINT`，身份等级随产物显式记录，不暗中冒充 `MOC_LEAF`。
+覆盖身份按强弱分级并随成功产物显式落盘：`MOC_LEAF`（MOC 完整枚举 `order==hips_order` 叶级单元，唯一**可靠覆盖来源**）→ 集合内缺失 `DECLARED_MISSING`、集合外缺失 `OUTSIDE_DECLARED_FOOTPRINT`，且 `aio_hips_coverage_verified()==1`；`MOC_UNDETERMINED`（MOC 含低阶父级/非法阶条目，或 `manifest.n_leaf_tiles` 大于 MOC 叶级条目）→ 集合外缺失 `FOOTPRINT_UNDETERMINED`（父级覆盖归约是独立任务 #95，本 reader 不静默归约）；`MANIFEST_ONLY`（无 MOC 但 manifest 声称有覆盖）→ 缺失 `FOOTPRINT_UNDETERMINED`；`UNVERIFIED_LEGACY`（数值=旧 `NONE`，无 MOC 且无覆盖计数）→ 缺失 `UNKNOWN_LEGACY_COVERAGE`、`aio_hips_coverage_verified()==0`。
 
-校验规则：DATASUM/CHECKSUM 存在时以已读字节计算 1's-complement 校验和（不额外重读 1 MiB 数据）；缺失校验字段不是失败，但必须在缓存统计 `checksum_absent_reads` 中显式计数；BSCALE/BZERO/BLANK/压缩等改变原始字节语义的路径回退 cfitsio 全 HDU 校验。表观 absent 与完整性错误必须在 tile cache 中**分开存储**：错误缓存命中复现同一 code/path/CFITSIO 状态，不会降级成“缺失”。多 worker 聚合按 `tile_ipix` 升序、同一 tile 合并一条并记录 `worker_min/max/count`；失败运行不得发布 FITS、resampled bin 或 complete manifest。
+`UNVERIFIED_LEGACY` 是 Issue #87/E2-R 确立的**证据缺席 ≠ 证据为空**判据：同一无 MOC 产品上，"合法稀疏"与"已有 tile 被删除"在读侧不可辨识，因此 reader 不再把这种缺失记成 `OUTSIDE_DECLARED_FOOTPRINT`（旧行为即审计所指缺陷）。兼容政策：调用方仍可产出 best-effort 可视图（NaN/coverage=0，`P3_RS_OK`），但必须把 `coverage_verified=false` / `input_completeness=UNVERIFIED_LEGACY` 写进 `p3_resampled.json`、writer/verify 产物、run manifest 与 FITS 头 `COVSTAT`/`COVVERIF`；需要可验证科学完整性的 Export 必须提供可靠覆盖来源（完整叶级 MOC）。已声明覆盖下的真实缺损保持 fail-closed，与本政策正交。
+
+校验规则：DATASUM/CHECKSUM 存在时以已读字节计算 1's-complement 校验和（不额外重读 1 MiB 数据）；缺失校验字段不是失败，但必须在缓存统计 `checksum_absent_reads` 中显式计数；BSCALE/BZERO/BLANK 非平凡，或 `fits_is_compressed_image` 判为 tile 压缩（fpack/tile-compressed：磁盘字节 ≠ 解码后像元字节），或 BITPIX 不在 -32/-64/32 时，一律回退 cfitsio `fits_verify_chksum` 全 HDU 校验（对磁盘原始字节计算，与快速路径在合法文件上必须同判）。表观 absent 与完整性错误必须在 tile cache 中**分开存储**：错误缓存命中复现同一 code/path/CFITSIO 状态，不会降级成“缺失”。多 worker 聚合按 `tile_ipix` 升序、同一 tile 合并一条并记录 `worker_min/max/count`；失败运行不得发布 FITS、resampled bin 或 complete manifest。
 
 ## 4. 句柄与缓冲
 
