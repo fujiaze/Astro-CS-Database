@@ -218,5 +218,43 @@
     "mixed_unit_mosaic_exit": 2,
     "missing_bunit_export_exit": 3
   },
+  "p2_mosaic": {
+    "native2": {
+      "signal_properties_bunit": "ADU/sr",
+      "p2_final_bunit": "ADU/sr",
+      "p2_final_units": {
+        "bunit": "ADU/sr",
+        "ivar_bunit": "sr^2/ADU^2",
+        "pixel_area_power": -2,
+        "pixel_semantics": "surface_brightness",
+        "quadratic_law": "variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2",
+        "signal_unit": "ADU/sr",
+        "variance_bunit": "ADU^2/sr^2"
+      },
+      "linear_base": "ADU",
+      "response_ids": [],
+      "response_mixed": false,
+      "p2_to_p3_fits_bunit": "ADU/sr"
+    },
+    "applied2": {
+      "signal_properties_bunit": "XPMODEL/sr",
+      "p2_final_bunit": "XPMODEL/sr",
+      "p2_final_units": {
+        "bunit": "XPMODEL/sr",
+        "ivar_bunit": "sr^2/XPMODEL^2",
+        "pixel_area_power": -2,
+        "pixel_semantics": "surface_brightness",
+        "quadratic_law": "variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2",
+        "signal_unit": "XPMODEL/sr",
+        "variance_bunit": "XPMODEL^2/sr^2"
+      },
+      "linear_base": "XPMODEL",
+      "response_ids": [
+        "Astrodon E-series R@f8ecc5f10b21+KAF-16803@03256b2a8ae6"
+      ],
+      "response_mixed": false,
+      "p2_to_p3_fits_bunit": "XPMODEL/sr"
+    }
+  },
   "alpha_const": 1.5242794038463092e-17
 }
