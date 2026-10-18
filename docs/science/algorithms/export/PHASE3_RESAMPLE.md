@@ -146,6 +146,7 @@ function phase3_resample(hips_dir, params):
 | 读取 I/O 故障（`IO_ERROR`） | 返回 `P3_RS_IO`，run fail-closed（CLI I/O 域） |
 | 校验失败（`CHECKSUM_FAILED`） | 存在 DATASUM/CHECKSUM 但验证失败：返回 `P3_RS_INTEGRITY`，run fail-closed；缺校验字段不是失败但计入 `checksum_absent_reads` |
 | 覆盖身份不足（`FOOTPRINT_UNDETERMINED`） | MOC 仅低阶父级/覆盖声明不完整/仅 manifest 计数：返回 `P3_RS_INTEGRITY`，不冒充合法空洞 |
+| 无可靠覆盖来源（`UNKNOWN_LEGACY_COVERAGE`） | 无 MOC 且无覆盖计数：缺失既不能证实也不能否证（同一产品上"合法稀疏"与"已删除 tile"读侧不可辨识）⇒ 非 fail-closed 的**具名 best-effort**：S=NaN,C=0 可出可视图，但 run 必须发布 `coverage_verified=false`/`input_completeness=UNVERIFIED_LEGACY`（resampled/writer/verify/manifest/FITS 头 `COVSTAT`/`COVVERIF` 同源），不得声明科学完整；不计入 `outside_reads` |
 | tile 内 NaN（nearest，单样本） | 零合格样本 ⇒ S=NaN（覆盖级 NaN）, C=1(mask 语义=coverage+NaN 判定) |
 | bilinear 四邻域**部分**非有限 | 不合格邻域样本按**样本级掩膜**剔除、剩余有效邻域**重归一**后求加权和，并暴露被剔除样本计数 `n_rejected_nonfinite`（**强制计数**，按原因分类、互斥可加）；C=1（4 tile 均可读）——禁「零填」替代语义。方差项随重归一权重传播（Σc'_k²u_k，c'=生效权重） |
 | bilinear 四邻域 tile 全缺失（合法无覆盖） | 该足迹 C=0, S=NaN |

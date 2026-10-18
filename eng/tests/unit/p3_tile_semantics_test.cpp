@@ -106,6 +106,8 @@ int main(int argc, char** argv) {
         P3CacheStats cs{};
         p3_sampler_cache_stats(&s, &cs);
         check(cs.footprint_identity == 1 /* MOC_LEAF */, "legal_full footprint MOC_LEAF");
+        check(cs.coverage_verified == 1, "legal_full coverage_verified true");
+        check(p3_sampler_coverage_verified(&s) == 1, "legal_full sampler coverage_verified");
         check(cs.checksum_present_reads >= 1, "legal_full checksum verified");
         check(cs.tile_error_entries == 0, "legal_full no tile errors");
         p3_sampler_close(&s);
@@ -128,15 +130,24 @@ int main(int argc, char** argv) {
         p3_sampler_close(&s);
     }
 
-    // 3) 无 MOC 无覆盖计数：身份 NONE，缺失仍合法
+    // 3) 无 MOC 无覆盖计数：身份 UNVERIFIED_LEGACY，缺失是"未证实缺失"
+    //    （Issue #87/E2-R：不再冒充已证实无覆盖；best-effort 可出图但身份降级）
     {
         P3Sampler s = open_ok(fixture(root, "legal_unhinted_sparse"), "unhinted");
         p3_sampler_set_worker_id(&s, 0);
         const Sample out = nearest(&s, t7ra, t7dec);
-        check(out.status == P3_RS_OK && out.coverage == 0, "unhinted outside legal");
+        check(out.status == P3_RS_OK && out.coverage == 0, "unhinted outside best-effort NaN");
+        const Sample in = nearest(&s, t4ra, t4dec);
+        check(in.status == P3_RS_OK && in.coverage == 1, "unhinted covered tile present");
         P3CacheStats cs{};
         p3_sampler_cache_stats(&s, &cs);
-        check(cs.footprint_identity == 0 /* NONE */, "unhinted footprint NONE");
+        check(cs.footprint_identity == 0 /* UNVERIFIED_LEGACY */,
+              "unhinted footprint UNVERIFIED_LEGACY");
+        check(cs.coverage_verified == 0, "unhinted coverage_verified false");
+        check(p3_sampler_coverage_verified(&s) == 0, "unhinted sampler coverage_verified");
+        check(cs.unverified_absent_reads >= 1, "unhinted unverified_absent_reads counted");
+        check(cs.outside_reads == 0, "unhinted missing is NOT counted as proven-outside");
+        check(cs.tile_error_entries == 0, "unhinted missing is not an integrity error");
         p3_sampler_close(&s);
     }
 

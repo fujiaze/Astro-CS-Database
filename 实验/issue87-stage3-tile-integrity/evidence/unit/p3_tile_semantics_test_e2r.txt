@@ -1,0 +1,7 @@
+# command: python3 eng/tests/unit/run_p3_tile_semantics_test.py
+# acsd sha256: 7638f0df56816d11af65d475229ad363ce0f4ea838d47a39776646e1c2acc1c0
+
+123/123 checks passed
++ g++ -std=c++17 -O2 -o /workspace/.e2r-clean/实验/issue87-stage3-tile-integrity/evidence/p3_tile_semantics_test /workspace/.e2r-clean/eng/tests/unit/p3_tile_semantics_test.cpp -I/workspace/.e2r-clean/lib/algorithms/resample -I/workspace/.e2r-clean/lib/include -I/workspace/.e2r-clean/lib/include/acsd -I/workspace/.e2r-clean/lib/algorithms/shared -I/workspace/.e2r-clean/lib/algorithms/shared/crypto -I/workspace/.e2r-clean/lib/algorithms/shared/healpix -I/workspace/.e2r-clean/lib/infrastructure/aio/include -I/workspace/.e2r-clean/build/linux-dev /workspace/.e2r-clean/build/linux-dev/lib/algorithms/resample/libacsd_p3_rsmp.a /workspace/.e2r-clean/build/linux-dev/libacsd_hips_properties.a /workspace/.e2r-clean/build/linux-dev/libacsd_hips.a /workspace/.e2r-clean/build/linux-dev/libacsd_aio.a /workspace/.e2r-clean/build/linux-dev/libacsd_common.a /workspace/.e2r-clean/build/linux-dev/libacsd_cfitsio.a -lz -lpthread -lm
++ /workspace/.e2r-clean/实验/issue87-stage3-tile-integrity/evidence/p3_tile_semantics_test /workspace/.e2r-clean/实验/issue87-stage3-tile-integrity/work/fixtures 45.000000000000 41.810314895779 0.000000000000 0.000000000000 90.000000000000 0.000000000000 270.000000000000 0.000000000000 45.000000000000 -41.810314895779 157.500000000000 41.810314895779
+exit_code=0

@@ -88,6 +88,7 @@ struct SharedTileCache {
     uint64_t stat_outside = 0;             // 合法无覆盖真实 open 失败次数
     uint64_t stat_checksum_present = 0;    // 成功读取且做了校验的次数
     uint64_t stat_checksum_absent = 0;     // 成功读取但缺校验字段的次数
+    uint64_t stat_unverified_absent = 0;   // Issue #87/E2-R: 未证实缺失真实 open 次数
 
     std::shared_ptr<const TileData> get(uint64_t k) {
         std::lock_guard<std::mutex> lk(mu);
@@ -129,6 +130,12 @@ struct SharedTileCache {
         std::lock_guard<std::mutex> lk(mu);
         ++stat_open_fail;
         ++stat_outside;
+    }
+    // Issue #87/E2-R: FP_NONE 下缺失 = 未证实缺失（不是已证实无覆盖，也不是错误）。
+    void note_unverified_read() {
+        std::lock_guard<std::mutex> lk(mu);
+        ++stat_open_fail;
+        ++stat_unverified_absent;
     }
     void note_checksum(bool present) {
         std::lock_guard<std::mutex> lk(mu);
@@ -237,7 +244,8 @@ struct P3SamplerImpl {
     // 共享有界 tile 缓存: 同一工作集合的多个 worker 指向同一实例 (P30)。
     std::shared_ptr<SharedTileCache> cache;
     // 本 sampler 专属前端热缓存 (每线程一个 sampler ⇒ 无锁访问)。
-    //   hot_state: 0=空槽 1=命中(hot_val 有效) 2=合法无覆盖 3=完整性错误
+    //   hot_state: 0=空槽 1=命中(hot_val 有效) 2=已证实无覆盖 3=完整性错误
+    //              4=未证实缺失(legacy unverified coverage, Issue #87/E2-R)
     uint64_t hot_key[kHotSlots];
     uint8_t hot_state[kHotSlots];
     std::shared_ptr<const TileData> hot_val[kHotSlots];
@@ -246,6 +254,7 @@ struct P3SamplerImpl {
     std::string last_err;
     P3UncertaintySource unc_src = P3_UNC_NONE;   // uncertainty 子产品类型标记
     int footprint_identity = -1;                 // AIO_HIPS_FOOTPRINT_*
+    int coverage_verified = -1;                  // Issue #87/E2-R: 1=可证完整性
     int worker_id = -1;                          // 聚合用（不改变数学）
     P3TileFailure last_failure;                  // 本 sampler 最近一次采样失败
     // P30: "缺失 tile 负缓存"开关 (默认开)。1=正常生产语义; 0=仅回归阴性对照
@@ -262,8 +271,8 @@ struct P3SamplerImpl {
     }
 };
 
-// 取一个 tile 的结果：数据 / 合法无覆盖 / 完整性错误。
-enum class TileFetch { Ok, Outside, Error };
+// 取一个 tile 的结果：数据 / 已证实无覆盖 / 未证实缺失 / 完整性错误。
+enum class TileFetch { Ok, Outside, Unverified, Error };
 
 // 取一个 tile。顺序: 线程本地热缓存 → 共享 LRU(锁) → 错误缓存 → 合法 absent
 // → 真读(进程级 CFITSIO 互斥)。失败时 last_failure 必被置为具体错误身份。
@@ -278,6 +287,7 @@ static TileFetch fetch_tile(P3SamplerImpl* s, uint64_t tip,
             return TileFetch::Ok;
         }
         if (s->hot_state[slot] == 2) return TileFetch::Outside;
+        if (s->hot_state[slot] == 4) return TileFetch::Unverified;
         s->last_failure = s->hot_err[slot];
         s->cache->note_error_hit(tip, s->worker_id);
         return TileFetch::Error;
@@ -309,10 +319,19 @@ static TileFetch fetch_tile(P3SamplerImpl* s, uint64_t tip,
         return TileFetch::Ok;
     }
     if (rc == AIO_HIPS_TILE_OUTSIDE_DECLARED_FOOTPRINT) {
-        s->cache->note_outside_read();       // 观测: 合法无覆盖代价
+        s->cache->note_outside_read();       // 观测: 已证实无覆盖代价
         if (s->absent_cache) s->cache->mark_absent(tip);
         s->hot_key[slot] = tip; s->hot_state[slot] = 2; s->hot_val[slot].reset();
         return TileFetch::Outside;
+    }
+    // Issue #87/E2-R: FP_NONE（legacy unverified coverage）下的缺失。既不能证实
+    // 也不能否证 ⇒ 不进错误表（不是完整性错误, 不 fail-closed），但必须与已证实
+    // 无覆盖分开计数，使产物身份可判 coverage_verified=false。
+    if (rc == AIO_HIPS_TILE_UNKNOWN_LEGACY_COVERAGE) {
+        s->cache->note_unverified_read();
+        if (s->absent_cache) s->cache->mark_absent(tip);
+        s->hot_key[slot] = tip; s->hot_state[slot] = 4; s->hot_val[slot].reset();
+        return TileFetch::Unverified;
     }
     // Issue #87: 真实读取失败/损坏/声明内缺失/校验失败 —— **不**进 absent 负缓存，
     // 进独立错误缓存并保留具体身份；下次命中复现同一故障，不会变成"缺失"。
@@ -344,7 +363,8 @@ static P3ResampleStatus read_leaf(P3SamplerImpl* s, uint64_t leaf_ipix, float* o
         leaf_ipix, leaf_order, static_cast<uint32_t>(tile_order));   // 传"阶"非 nside
     std::shared_ptr<const TileData> tile;
     const TileFetch fs = fetch_tile(s, tip, &tile);
-    if (fs == TileFetch::Outside) return P3_RS_OK;   // 合法无覆盖
+    if (fs == TileFetch::Outside) return P3_RS_OK;   // 已证实无覆盖
+    if (fs == TileFetch::Unverified) return P3_RS_OK;  // 未证实缺失: best-effort NaN/0
     if (fs == TileFetch::Error)
         return static_cast<P3ResampleStatus>(status_from_tile_code(s->last_failure.code));
     // leaf→tile 内标准 HiPS 排列索引
@@ -416,7 +436,9 @@ void p3_sampler_cache_stats(const P3Sampler* s, P3CacheStats* out) {
     out->outside_reads = c->stat_outside;
     out->checksum_present_reads = c->stat_checksum_present;
     out->checksum_absent_reads = c->stat_checksum_absent;
+    out->unverified_absent_reads = c->stat_unverified_absent;
     out->footprint_identity = s->impl->footprint_identity;
+    out->coverage_verified = s->impl->coverage_verified;
     for (const auto& kv : c->errors) {
         switch (kv.second.f.code) {
             case P3_TILE_DECLARED_MISSING: ++out->declared_missing; break;
@@ -466,6 +488,11 @@ int p3_sampler_footprint_identity(const P3Sampler* s) {
     return s->impl->footprint_identity;
 }
 
+int p3_sampler_coverage_verified(const P3Sampler* s) {
+    if (!s || !s->impl) return -1;
+    return s->impl->coverage_verified;
+}
+
 void p3_sampler_set_absent_cache(P3Sampler* s, int enabled) {
     if (!s || !s->impl) return;
     s->impl->absent_cache = enabled ? 1 : 0;
@@ -506,6 +533,7 @@ P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
     s->leaf_nside = kTileWidth << p.order;
     s->root = product_dir;
     s->footprint_identity = aio_hips_footprint_identity(s->ds);
+    s->coverage_verified = aio_hips_coverage_verified(s->ds);
     out->impl = s;
     // 暴露输入实际 order 与**经裁决的**单位身份。
     if (out_order) *out_order = p.order;
@@ -776,6 +804,7 @@ P3ResampleStatus p3_uncertainty_open(const char* product_dir, int signal_order,
         s->root = product_dir;
         s->unc_src = c.src;
         s->footprint_identity = aio_hips_footprint_identity(s->ds);
+        s->coverage_verified = aio_hips_coverage_verified(s->ds);
         out->impl = s;
         *out_src = c.src;
         return P3_RS_OK;

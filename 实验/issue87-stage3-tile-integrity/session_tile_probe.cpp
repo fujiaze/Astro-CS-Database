@@ -125,12 +125,33 @@ int main(int argc, char** argv) {
     span.count = (uint64_t)req.size();
     st = p3_session_run(handle, span);
     const std::string err = acsd::phase3::last_error(handle);
+    // Issue #87/E2-R: session 产物身份（coverage_verified/input_completeness）必须
+    // 可从 inspect 结果机器可判，而不只是自由文本。
+    bool cov_verified = false;
+    std::string completeness = "-";
+    if (st == ACS_OK) {
+        acsd_span_u8 out{};
+        out.head.struct_size = (uint32_t)sizeof(acsd_span_u8);
+        out.head.abi_version = ACS_ABI_VERSION_V1;
+        if (p3_session_inspect(handle, &out) == ACS_OK && out.data && out.count > 0) {
+            const std::string res(reinterpret_cast<const char*>(out.data), out.count);
+            cov_verified = res.find("\"coverage_verified\":true") != std::string::npos;
+            const size_t k = res.find("\"input_completeness\":\"");
+            if (k != std::string::npos) {
+                const size_t b = k + std::strlen("\"input_completeness\":\"");
+                const size_t e = res.find('"', b);
+                if (e != std::string::npos) completeness = res.substr(b, e - b);
+            }
+        }
+    }
     p3_session_destroy(handle);
 
     const std::string fits = out_dir + "/output_phase3.fits";
     std::printf("{\"status\":%d,\"status_name\":\"%s\",\"last_error\":\"%s\","
-                "\"output_fits\":\"%s\",\"output_fits_size\":%ld}\n",
+                "\"output_fits\":\"%s\",\"output_fits_size\":%ld,"
+                "\"coverage_verified\":%s,\"input_completeness\":\"%s\"}\n",
                 (int)st, status_name(st), json_escape(err).c_str(),
-                json_escape(fits).c_str(), file_size(fits));
+                json_escape(fits).c_str(), file_size(fits),
+                cov_verified ? "true" : "false", completeness.c_str());
     return (st == ACS_OK) ? 0 : 1;
 }

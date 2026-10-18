@@ -111,7 +111,7 @@ sky 为 ICRS degree；叶索引为 NESTED，tile=512，索引/FITS 手性复用�
 
 ### NaN、支持与资源
 
-nearest 的合法无覆盖（`OUTSIDE_DECLARED_FOOTPRINT`）返回 NaN、coverage=0，tile 存在但像元非有限可返回 NaN、coverage=1。Issue #87 起，声明内缺失（`DECLARED_MISSING`）、FITS 损坏（`INVALID_TILE`）、读取 I/O（`IO_ERROR`）、校验失败（`CHECKSUM_FAILED`）与覆盖身份不足（`FOOTPRINT_UNDETERMINED`）不再折叠成 NaN/coverage=0：采样返回 `P3_RS_INTEGRITY`/`P3_RS_IO`，`p3_op_resample`/`p3_session_run` 在写出前 fail-closed。bilinear 区分缺 tile 与已读邻域的无效样本；后者掩除并按剩余有效权重重归一，零合格样本不制造有限信号。coverage 是可用 tile/支持语义，不自动代表数值有限或精度。
+nearest 的合法无覆盖（`OUTSIDE_DECLARED_FOOTPRINT`，已证实）返回 NaN、coverage=0，tile 存在但像元非有限可返回 NaN、coverage=1。Issue #87 起，声明内缺失（`DECLARED_MISSING`）、FITS 损坏（`INVALID_TILE`）、读取 I/O（`IO_ERROR`）、校验失败（`CHECKSUM_FAILED`）与覆盖身份不足（`FOOTPRINT_UNDETERMINED`）不再折叠成 NaN/coverage=0：采样返回 `P3_RS_INTEGRITY`/`P3_RS_IO`，`p3_op_resample`/`p3_session_run` 在写出前 fail-closed。Issue #87/E2-R 起，无可靠覆盖来源的缺失（`UNKNOWN_LEGACY_COVERAGE`）与已证实无覆盖分开：仍返回 NaN/coverage=0 的 best-effort 可视图，但 `coverage_verified=false`/`input_completeness=UNVERIFIED_LEGACY` 必须随 resampled/writer/verify/manifest/FITS 头（`COVSTAT`/`COVVERIF`）发布；verify 节点对三处身份同源对拍。bilinear 区分缺 tile 与已读邻域的无效样本；后者掩除并按剩余有效权重重归一，零合格样本不制造有限信号。coverage 是可用 tile/支持语义，不自动代表数值有限或精度。
 
 sampler 单实例由一个执行线程使用；worker 可各自 open，再 attach 到同一受控共享 cache。不能继续写成每 worker 必有完全独立缓存或总容量必乘 worker 数。缓存只改变 I/O，不改变 order/核；输入子产品不同不得共享同键 cache。sub_block_px、queue_depth、max_tiles 由实际配置/资源解析控制，不能由接口存在推断任意尺寸的资源实测已满足。
 

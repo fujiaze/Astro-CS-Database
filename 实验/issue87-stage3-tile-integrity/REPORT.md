@@ -2,6 +2,10 @@
 
 本报告由 `make_report.py` 从 `evidence/**/*.json`（真实 CLI / 生产 C API 实测）生成，不手抄。
 
+> **E2-R 收尾**（FP_NONE 覆盖身份与 FITS checksum 一致性）见同目录
+> [`REPORT_E2R.md`](REPORT_E2R.md)（由 `make_report_e2r.py` 生成；开工基线
+> `9682b5980`，隔离检出 `/workspace/.e2r-clean`，96 条机器判据 + 15 例 checksum 对拍）。
+
 ## 1. 身份与工具链
 
 | 项 | 值 |

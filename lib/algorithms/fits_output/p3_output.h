@@ -30,6 +30,14 @@ struct P3Provenance {
      * 像素计数 (leaf signal 有限而 u 缺失 → 输出 NaN + provenance 计数不中断)。 */
     const char* uncertainty_source;
     long uncertainty_missing_pixels;
+    /* Issue #87/E2-R: 输入完整性身份（外部发布面的一部分，非自由文本）。
+     *   input_completeness = "VERIFIED" | "UNVERIFIED_LEGACY"（NULL ⇒ 未声明，
+     *     写出时按 UNVERIFIED_LEGACY 保守处理，绝不默认声称完整）；
+     *   coverage_verified  = 1 表示有可靠覆盖来源、缺失可判（可称科学完整）；
+     *                        0 表示 legacy unverified coverage（仅 best-effort）。
+     * 二者随 FITS 头 COVSTAT/COVVERIF 落盘，使"未证完整性"可机判。 */
+    const char* input_completeness;
+    int coverage_verified;
 };
 
 struct P3OutputResult {
@@ -107,6 +115,15 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
                                    const float* variance, const float* ivar,
                                    int width, int height,
                                    P3OutputResult* result);
+
+/* Issue #87/E2-R: 读回 FITS 头里的输入完整性身份（COVSTAT/COVVERIF），供 verify
+ * 节点把"未证完整性"当机器可判事实消费（而不是解析自由文本）。
+ * 返回 P3_OUT_OK 且 *out_verified=1/0；COVSTAT 拷进 out_status（NUL 结尾）。
+ * 缺键（旧产物）/不可解析/参数错误 ⇒ P3_OUT_PARAM（调用方必须显式处理，禁默认
+ * 当成 VERIFIED）。 */
+P3OutputStatus p3_output_read_coverage_identity(const char* output_path,
+                                                char* out_status, int out_size,
+                                                int* out_verified);
 
 /* ── 子块流式写/校验（P3-STREAM-01；docs/ACSD_DESIGN §8.3 export「子块流式」）────
  * 与上列整幅 API **同产品语义、同字节布局**，差别只在驻留面：调用方按子块

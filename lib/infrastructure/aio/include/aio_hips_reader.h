@@ -64,18 +64,24 @@ AIO_HIPS_RD_EXPORT int aio_hips_tile_ipix(AioHipsDataset* d, int i, uint64_t* ou
 //                     父级覆盖归约是独立任务 #95，本 reader 不做静默归约）。
 //   MANIFEST_ONLY   : 无 MOC，但 manifest.n_leaf_tiles>0 声称有覆盖却无 tile 身份
 //                     ⇒ 任意缺失 = FOOTPRINT_UNDETERMINED。
-//   NONE            : 无 MOC 且 manifest 无覆盖计数。HiPS 的 MOC 是可选枚举提示
-//                     （HIPS_IO §3）：产品未声明任何覆盖单元 ⇒ 缺失不是"声明内缺失"，
-//                     记为 OUTSIDE（合法无覆盖，NaN/coverage=0），且身份等级
-//                     随产品成功产物显式落盘，绝不暗中冒充 MOC_LEAF。
+//   UNVERIFIED_LEGACY（数值=旧 NONE，0）: 无 MOC 且 manifest 无覆盖计数。
+//                     没有任何**可靠覆盖来源**可判定"某单元是否本应存在"⇒ 缺失
+//                     是"未证实的缺失"，不是"已证实的无覆盖"；本 reader 返回
+//                     UNKNOWN_LEGACY_COVERAGE（旧 NONE 把它记成 OUTSIDE 是把
+//                     "证据缺席"当成"证据为空"的缺陷）。兼容政策：调用方可继续
+//                     产出 best-effort 可视图（NaN/coverage=0），但**不得**把该
+//                     结果声明为已证输入完整性的科学完整产品；身份必须随成功产物
+//                     显式落盘（aio_hips_coverage_verified()==0）。
 //
 // 失败分类（缺省不改变旧调用方 "0=成功 / 非0=失败" 的判法）:
-//   OUTSIDE_DECLARED_FOOTPRINT  合法无覆盖（旧码 -2，负缓存可缓存）
+//   OUTSIDE_DECLARED_FOOTPRINT  已证实无覆盖（旧码 -2，负缓存可缓存）
 //   DECLARED_MISSING            声明覆盖内 tile 缺失（旧码 -7，输入完整性错误）
 //   IO_ERROR                    真实打开/读取/权限/IO 故障（旧码 -8）
 //   INVALID_TILE                FITS 截断/维度/BITPIX/头部损坏（旧码 -3..-6）
 //   CHECKSUM_FAILED             存在 DATASUM/CHECKSUM 且验证失败（旧码 -9）
 //   FOOTPRINT_UNDETERMINED      覆盖声明存在但身份不足（旧码 -10）
+//   UNKNOWN_LEGACY_COVERAGE     无可靠覆盖来源，缺失无法证实也无从否证（旧码 -11，
+//                               非 fail-closed：best-effort 可视图允许，但身份降级）
 typedef enum AioHipsTileCode {
     AIO_HIPS_TILE_OK = 0,
     AIO_HIPS_TILE_OUTSIDE_DECLARED_FOOTPRINT = 1,
@@ -83,15 +89,21 @@ typedef enum AioHipsTileCode {
     AIO_HIPS_TILE_IO_ERROR = 3,
     AIO_HIPS_TILE_INVALID = 4,
     AIO_HIPS_TILE_CHECKSUM_FAILED = 5,
-    AIO_HIPS_TILE_FOOTPRINT_UNDETERMINED = 6
+    AIO_HIPS_TILE_FOOTPRINT_UNDETERMINED = 6,
+    AIO_HIPS_TILE_UNKNOWN_LEGACY_COVERAGE = 7
 } AioHipsTileCode;
 
 typedef enum AioHipsFootprintIdentity {
+    /* 数值 0 保持 ABI/产物兼容；语义 = legacy unverified coverage（旧名 NONE）。
+     * 覆盖身份不可证 ⇒ 缺失记 UNKNOWN_LEGACY_COVERAGE，coverage_verified=0。 */
     AIO_HIPS_FOOTPRINT_NONE = 0,
     AIO_HIPS_FOOTPRINT_MOC_LEAF = 1,
     AIO_HIPS_FOOTPRINT_MOC_UNDETERMINED = 2,
     AIO_HIPS_FOOTPRINT_MANIFEST_ONLY = 3
 } AioHipsFootprintIdentity;
+
+/* 语义别名：FP_NONE 的正式名字（legacy unverified coverage）。 */
+#define AIO_HIPS_FOOTPRINT_UNVERIFIED_LEGACY AIO_HIPS_FOOTPRINT_NONE
 
 #define AIO_HIPS_TILE_PATH_MAX 1024
 #define AIO_HIPS_TILE_DETAIL_MAX 512
@@ -137,6 +149,14 @@ AIO_HIPS_RD_EXPORT int aio_hips_footprint_identity(AioHipsDataset* d);
 AIO_HIPS_RD_EXPORT int aio_hips_declared_tile_count(AioHipsDataset* d);
 // 1=在覆盖声明集合内, 0=不在, -1=不可判/参数错误。
 AIO_HIPS_RD_EXPORT int aio_hips_tile_declared(AioHipsDataset* d, uint64_t ipix);
+
+// Issue #87/E2-R: 输入完整性是否可证。
+//   1 = 有可靠覆盖来源（MOC_LEAF），缺失可判为声明内/已证实无覆盖 ⇒ 成功产物
+//       可声明 scientifically-verified input completeness；
+//   0 = legacy unverified coverage（FP_NONE）：缺失无从证实/否证 ⇒ 产物只能作为
+//       具名 best-effort，不得声明完整性已验证；
+//  -1 = 参数错误。
+AIO_HIPS_RD_EXPORT int aio_hips_coverage_verified(AioHipsDataset* d);
 
 // 按 NESTED leaf ipix 查询单像素值。
 // 内部执行 leaf_ipix -> local nested -> 标准 tile xy -> FITS row-major。
