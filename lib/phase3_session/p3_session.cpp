@@ -373,6 +373,16 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
     prov.sampler_used = sampler.c_str();
     prov.uncertainty_source = unc_src_str;
     prov.uncertainty_missing_pixels = 0;
+    // Issue #87/E2-R: 输入完整性身份随 FITS 头落盘（外部发布面，机器可判）。
+    // 主 sampler 的覆盖身份在 close 前捕获；legacy unverified coverage 只能
+    // best-effort，绝不默认声称科学完整。
+    const int cov_verified = p3_sampler_coverage_verified(&samp);
+    const char* cov_status = (cov_verified == 1) ? "VERIFIED" : "UNVERIFIED_LEGACY";
+    prov.input_completeness = cov_status;
+    prov.coverage_verified = (cov_verified == 1) ? 1 : 0;
+    P3CacheStats csess{};
+    p3_sampler_cache_stats(&samp, &csess);
+    const int footprint_id = csess.footprint_identity;
 
     const std::string out_path = std::string(hips_dir) + "/../output_phase3.fits";
     // 用 output_dir 若在请求中
@@ -405,6 +415,12 @@ acsd_status p3_session_run(acsd_handle h, const acsd_span_u8 request_json) {
                  {"uncertainty_available", false},
                  {"uncertainty_source", "none"},
                  {"uncertainty_missing_pixels", 0},
+                 // Issue #87/E2-R: 输入完整性身份（机器可判）。coverage_verified=false
+                 // ⇒ 该 session 产物只是 legacy best-effort，不得当科学完整产品。
+                 {"coverage_verified", cov_verified == 1},
+                 {"input_completeness", cov_status},
+                 {"footprint_identity", footprint_id},
+                 {"unverified_absent_reads", csess.unverified_absent_reads},
                  {"coverage_stats", {{"covered_px", covn}, {"total_px", nelem}}},
                  {"provenance",
                   {{"hips_id", "ivo://acsd/phase3"},

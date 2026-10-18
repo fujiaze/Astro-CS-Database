@@ -219,6 +219,7 @@ def add_case(name: str, root: str, *, order: int, expect: str,
              config: dict, oracle: dict, expect_code: str | None = None,
              expect_tiles: list[int] | None = None,
              expect_codes: list[str] | None = None,
+             expect_coverage_verified: bool | None = None,
              repeat: int = 1, note: str = "") -> None:
     SCENARIOS.append({
         "case": name,
@@ -228,6 +229,7 @@ def add_case(name: str, root: str, *, order: int, expect: str,
         "expect_code": expect_code,
         "expect_tiles": expect_tiles,
         "expect_codes": expect_codes,
+        "expect_coverage_verified": expect_coverage_verified,
         "repeat": repeat,
         "config": config,
         "oracle": oracle,
@@ -267,10 +269,12 @@ def build_legal_full() -> None:
     add_case("legal_full_nearest", root, order=0, expect="ok",
              config=cfg(ra, dec, 64, 64, 0.01, "nearest", 64),
              oracle={"kind": "constant", "tile": 4, "value": 1004.0},
+             expect_coverage_verified=True,
              note="完整合法 HiPS；tile 4 常量 1004；nearest 应逐像素精确等于 1004")
     add_case("legal_full_bilinear", root, order=0, expect="ok",
              config=cfg(ra, dec, 128, 128, 0.01, "bilinear", 32),
              oracle={"kind": "bitwise_vs_prefix", "tile": 4},
+             expect_coverage_verified=True,
              note="完整合法 HiPS；bilinear 与修复前逐位一致")
 
 
@@ -286,11 +290,12 @@ def build_legal_sparse_moc() -> None:
     add_case("sparse_moc_covered", root, order=0, expect="ok",
              config=cfg(ra4, dec4, 64, 64, 0.01, "nearest", 64),
              oracle={"kind": "constant", "tile": 4, "value": 2004.0},
+             expect_coverage_verified=True,
              note="合法稀疏 MOC：tile 4 在声明内且存在 → 正常有限值")
     ra7, dec7 = tile_center(0, 7)
     add_case("sparse_moc_outside", root, order=0, expect="ok",
              config=cfg(ra7, dec7, 64, 64, 0.01, "nearest", 64),
-             oracle={"kind": "nan_all"},
+             oracle={"kind": "nan_all"}, expect_coverage_verified=True,
              note="真实无覆盖：tile 7 不在 MOC 声明内 → 合法 NaN/coverage=0，不误判损坏")
 
 
@@ -304,11 +309,12 @@ def build_legal_unhinted() -> None:
     add_case("unhinted_covered", root, order=0, expect="ok",
              config=cfg(ra4, dec4, 64, 64, 0.01, "nearest", 64),
              oracle={"kind": "constant", "tile": 4, "value": 2104.0},
+             expect_coverage_verified=False,
              note="无 MOC 且无覆盖计数：已有 tile 正常；身份等级 NONE 随成功产物落盘")
     ra7, dec7 = tile_center(0, 7)
     add_case("unhinted_outside", root, order=0, expect="ok",
              config=cfg(ra7, dec7, 64, 64, 0.01, "nearest", 64),
-             oracle={"kind": "nan_all"},
+             oracle={"kind": "nan_all"}, expect_coverage_verified=False,
              note="#91 legal_partial_coverage 同构：无 MOC 稀疏产品缺失 ≠ 损坏")
 
 
@@ -543,12 +549,40 @@ def build_real_product() -> None:
     ra, dec = 84.7265625, -6.911928859889699
     add_case("real_covered", REAL_DST, order=9, expect="ok",
              config=cfg(ra, dec, 32, 32, 0.002, "nearest", 32),
-             oracle={"kind": "real"},
+             oracle={"kind": "real"}, expect_coverage_verified=True,
              note="真实 writer 产品（M42 管线 run/HIPS-PACK-01/corpus_big 的只读单位归一化视图）")
     add_case("real_partial", REAL_DST, order=9, expect="ok",
              config=cfg(ra, dec, 64, 64, 0.01, "nearest", 32),
-             oracle={"kind": "real_partial"},
+             oracle={"kind": "real_partial"}, expect_coverage_verified=True,
              note="真实产品未覆盖区域仍为 NaN（覆盖 1778 / 未覆盖 2318 像元），不因严格化把合法空洞变成失败")
+
+
+# 3b) Issue #87/E2-R：同一无 MOC 产品的两个"不可辨识世界"
+#   世界 A 合法稀疏（tile 4 从未存在）；世界 B 曾有 tile 4 但被删除。
+#   读侧仅凭文件集合无法区分 ⇒ 两者都必须发布 UNVERIFIED_LEGACY 身份，
+#   不得把缺失当"已证实无覆盖"（旧行为即审计所指缺陷）。
+def build_legacy_unverified_pair() -> None:
+    ra4, dec4 = tile_center(0, 4)
+    # 世界 A：合法稀疏 —— 只有 tile 7
+    root_a = fresh("unhinted_legacy_sparse")
+    write_props(root_a, 0)
+    write_manifest(root_a, n_leaf_tiles=None)
+    write_tile(root_a, 0, 7, 2207.0, checksum=True)
+    add_case("unhinted_legacy_sparse", root_a, order=0, expect="ok",
+             config=cfg(ra4, dec4, 64, 64, 0.01, "nearest", 64),
+             oracle={"kind": "nan_all"}, expect_coverage_verified=False,
+             note="世界A：合法稀疏无 MOC（tile4 从未存在）→ best-effort NaN + UNVERIFIED_LEGACY")
+    # 世界 B：先写 tile 4 再删除（磁盘状态与世界 A 同构）
+    root_b = fresh("unhinted_deleted")
+    write_props(root_b, 0)
+    write_manifest(root_b, n_leaf_tiles=None)
+    write_tile(root_b, 0, 7, 2207.0, checksum=True)
+    write_tile(root_b, 0, 4, 2204.0, checksum=True)
+    os.remove(tile_path(root_b, 0, 4))   # 删除"本应存在"的 tile
+    add_case("unhinted_deleted", root_b, order=0, expect="ok",
+             config=cfg(ra4, dec4, 64, 64, 0.01, "nearest", 64),
+             oracle={"kind": "nan_all"}, expect_coverage_verified=False,
+             note="世界B：曾有 tile4 被删除；与 A 不可辨识 ⇒ 不得声称完整性已验证")
 
 
 def main() -> int:
@@ -556,6 +590,7 @@ def main() -> int:
     build_legal_full()
     build_legal_sparse_moc()
     build_legal_unhinted()
+    build_legacy_unverified_pair()
     build_declared_missing()
     build_invalid_family()
     build_checksum_family()

@@ -233,9 +233,58 @@ bool sha256_file_checked(const char* path, std::string* hex_out) {
     return true;
 }
 
+// Issue #87/E2-R: 输入完整性身份写进 FITS 头（与 resampled.json/manifest 同源）。
+// 未声明时保守写 UNVERIFIED_LEGACY（绝不默认声称科学完整）。
+void write_coverage_identity_keys(fitsfile* f, const P3Provenance* prov, int* status) {
+    if (!f || !prov || !status) return;
+    const char* covstat = (prov->input_completeness && *prov->input_completeness)
+                              ? prov->input_completeness
+                              : "UNVERIFIED_LEGACY";
+    fits_write_key(f, TSTRING, (char*)"COVSTAT", (void*)covstat, nullptr, status);
+    int covverif = (prov->coverage_verified == 1) ? 1 : 0;
+    fits_write_key(f, TLOGICAL, (char*)"COVVERIF", &covverif, nullptr, status);
+}
+
 }  // namespace
 
 const char* p3_output_last_error() { return g_last_err.c_str(); }
+
+// Issue #87/E2-R: 读回 FITS 头里的输入完整性身份（机器可判，供 verify 消费）。
+P3OutputStatus p3_output_read_coverage_identity(const char* output_path,
+                                                char* out_status, int out_size,
+                                                int* out_verified) {
+    if (!output_path || !out_status || out_size <= 0 || !out_verified)
+        return P3_OUT_PARAM;
+    out_status[0] = '\0';
+    *out_verified = 0;
+    aio::CfitsioLockGuard cfitsio_guard;
+    int status = 0;
+    fitsfile* f = nullptr;
+    if (fits_open_file(&f, output_path, READONLY, &status)) {
+        g_last_err = "coverage identity: fits_open_file failed (status " +
+                     std::to_string(status) + "): " + std::string(output_path);
+        fits_clear_errmsg();
+        return P3_OUT_IO;
+    }
+    char cstat[FLEN_VALUE] = {0};
+    int cov = 0;
+    status = 0;
+    const int rs = fits_read_key(f, TSTRING, (char*)"COVSTAT", cstat, nullptr, &status);
+    int vst = 0;
+    const int rv = fits_read_key(f, TLOGICAL, (char*)"COVVERIF", &cov, nullptr, &vst);
+    int s = 0;
+    fits_close_file(f, &s);
+    fits_clear_errmsg();
+    if (rs != 0 || rv != 0) {
+        g_last_err = "coverage identity: COVSTAT/COVVERIF missing in FITS header";
+        return P3_OUT_PARAM;
+    }
+    std::string cs(cstat);
+    while (!cs.empty() && (cs.back() == ' ' || cs.back() == '\0')) cs.pop_back();
+    std::snprintf(out_status, (size_t)out_size, "%s", cs.c_str());
+    *out_verified = cov ? 1 : 0;
+    return P3_OUT_OK;
+}
 
 P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage,
                                       int width, int height,
@@ -380,6 +429,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
                        nullptr, &status);
         fits_write_key(f, TSTRING, (char*)"SWVER", (void*)prov->software_version,
                        nullptr, &status);
+        write_coverage_identity_keys(f, prov, &status);
         char hist[160];
         std::snprintf(hist, sizeof(hist), "HISTORY phase3 source=%s manifest=%s",
                       prov->hips_id, prov->manifest_hash ? prov->manifest_hash : "");
@@ -777,6 +827,7 @@ P3OutputStatus P3FitsStream::open(const char* output_path,
         fits_write_key(f, TSTRING, (char*)"ORDERSEL", (void*)prov->order_sel_used, nullptr, &status);
         fits_write_key(f, TSTRING, (char*)"SAMPLER", (void*)prov->sampler_used, nullptr, &status);
         fits_write_key(f, TSTRING, (char*)"SWVER", (void*)prov->software_version, nullptr, &status);
+        write_coverage_identity_keys(f, prov, &status);
         char hist[160];
         std::snprintf(hist, sizeof(hist), "HISTORY phase3 source=%s manifest=%s",
                       prov->hips_id, prov->manifest_hash ? prov->manifest_hash : "");

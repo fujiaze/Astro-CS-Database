@@ -162,6 +162,79 @@ def main() -> int:
             {"nhdu": f.get("nhdu"), "naxis": f.get("naxis"),
              "bitpix": f.get("bitpix"), "bunit": f.get("bunit")}, ok)
 
+    # 8) Issue #87/E2-R：输入完整性身份（机器可判 + 三处同源 + A/B 对照）
+    import hashlib as _hashlib
+    fixt = json.load(open(os.path.join(HERE, "work", "fixtures.json"), encoding="utf-8"))
+    by_case = {s["case"]: s for s in fixt["scenarios"]}
+    # 8a) 修复后所有成功用例：resampled ↔ writer ↔ FITS 头同源；身份与独立期望一致
+    for c in ok_cases:
+        r = F[(c, 0)]
+        res = r.get("resampled") or {}
+        wr = r.get("writer") or {}
+        f = r.get("fits") or {}
+        # 独立期望来自 fixtures.json（不由被测输出反推）
+        want_verified = by_case.get(c, {}).get("expect_coverage_verified")
+        same = (res.get("coverage_verified") == wr.get("coverage_verified")
+                and res.get("input_completeness") == wr.get("input_completeness")
+                and f.get("covstat") == res.get("input_completeness")
+                and bool(f.get("covverif")) == bool(res.get("coverage_verified")))
+        add(f"identity_consistent[{c}]", "resampled==writer==FITS header",
+            {"resampled": res.get("input_completeness"),
+             "writer": wr.get("input_completeness"),
+             "fits_covstat": f.get("covstat"), "fits_covverif": f.get("covverif")},
+            same and (want_verified is None
+                      or bool(res.get("coverage_verified")) == bool(want_verified)))
+        if res.get("coverage_verified") is False:
+            ti = res.get("tile_integrity") or {}
+            # 缺失必须是"未证实缺失"，绝不记成已证实无覆盖（outside_reads 恒 0）；
+            # nan_all 用例还必须真的观测到未证实缺失计数 >0。
+            need_unver = (by_case.get(c, {}).get("oracle") or {}).get("kind") == "nan_all"
+            add(f"identity_unverified_named[{c}]",
+                "UNVERIFIED_LEGACY && outside_reads==0" +
+                (" && unverified_absent_reads>0" if need_unver else ""),
+                {"completeness": res.get("input_completeness"),
+                 "outside_reads": ti.get("outside_reads"),
+                 "unverified_absent_reads": ti.get("unverified_absent_reads")},
+                res.get("input_completeness") == "UNVERIFIED_LEGACY"
+                and (ti.get("outside_reads") or 0) == 0
+                and (not need_unver or (ti.get("unverified_absent_reads") or 0) > 0))
+
+    # 8b) 不可辨识世界对：输入文件集合/哈希逐字节相同，两者身份都是 UNVERIFIED_LEGACY
+    ha = by_case["unhinted_legacy_sparse"]["input_hashes"]
+    hb = by_case["unhinted_deleted"]["input_hashes"]
+    add("indistinguishable_inputs[legacy_sparse==deleted]", "identical file sets + hashes",
+        {"n_a": len(ha), "n_b": len(hb),
+         "digest": _hashlib.sha256(
+             json.dumps(ha, sort_keys=True).encode()).hexdigest()[:16]},
+        ha == hb and len(ha) > 0)
+    for c in ("unhinted_legacy_sparse", "unhinted_deleted"):
+        res = (F[(c, 0)].get("resampled") or {})
+        add(f"indistinguishable_identity[{c}]", "UNVERIFIED_LEGACY (best-effort)",
+            res.get("input_completeness"),
+            res.get("input_completeness") == "UNVERIFIED_LEGACY")
+    fa = (F[("unhinted_legacy_sparse", 0)].get("fits") or {}).get("data_sha256")
+    fb = (F[("unhinted_deleted", 0)].get("fits") or {}).get("data_sha256")
+    add("indistinguishable_outputs[legacy_sparse==deleted]", fa, fb,
+        bool(fa) and fa == fb)
+
+    # 8c) A/B：修复前无身份字段（缺陷面）——删除 tile 会被当成普通 complete 产品
+    for c in ("unhinted_deleted", "unhinted_legacy_sparse"):
+        pre_res = (P[(c, 0)].get("resampled") or {})
+        add(f"prefix_identity_absent[{c}]", "no coverage_verified/input_completeness (defect)",
+            {"coverage_verified": pre_res.get("coverage_verified"),
+             "input_completeness": pre_res.get("input_completeness")},
+            pre_res.get("coverage_verified") is None
+            and pre_res.get("input_completeness") is None
+            and (P[(c, 0)].get("manifest") or {}).get("status") == "complete")
+
+    # 8d) 已声明覆盖下真实缺损保持 fail-closed（与 E2-R 政策正交）
+    dm = F[("declared_missing", 0)]
+    add("declared_missing_still_failclosed[deleted_tile_with_moc]",
+        "exit!=0 && no FITS && code P3-TILE-DECLARED-MISSING",
+        {"exit": dm["exit_code"], "fits": dm["fits_present"], "codes": dm.get("codes")},
+        dm["exit_code"] != 0 and not dm["fits_present"]
+        and "P3-TILE-DECLARED-MISSING" in (dm.get("codes") or []))
+
     n_fail = sum(1 for c in checks if not c["pass"])
     out = {"schema": "acsd.issue87.verify/v1",
            "prefix_tag": args.prefix_tag,

@@ -56,6 +56,9 @@ def read_fits(path: str) -> dict:
             "shape": list(data.shape),
             "bitpix": int(hdu.header.get("BITPIX", 0)),
             "bunit": hdu.header.get("BUNIT"),
+            # Issue #87/E2-R: 输入完整性身份（FITS 外部发布面，机器可判）
+            "covstat": hdu.header.get("COVSTAT"),
+            "covverif": hdu.header.get("COVVERIF"),
             "naxis": int(hdu.header.get("NAXIS", 0)),
             "ctype1": hdu.header.get("CTYPE1"),
             "ctype2": hdu.header.get("CTYPE2"),
@@ -84,7 +87,11 @@ def find_manifest(out_dir: str) -> dict | None:
                 continue
             return {"file": fn, "status": m.get("status"),
                     "summary": (m.get("summary") or "")[:2000],
-                    "error": (m.get("error") or {}).get("message")}
+                    "error": (m.get("error") or {}).get("message"),
+                    # Issue #87/E2-R: 输入完整性身份（若 CLI 汇总到 run manifest）
+                    "coverage_verified": m.get("coverage_verified"),
+                    "input_completeness": m.get("input_completeness"),
+                    "footprint_identity": m.get("footprint_identity")}
     return None
 
 
@@ -259,6 +266,25 @@ def judge(sc: dict, rec: dict, expect_mode: str) -> tuple[bool, str]:
         reasons.append(f"shape={f.get('shape')} != {want_shape}")
     if f.get("ctype1") != "RA---TAN" or f.get("ctype2") != "DEC--TAN":
         reasons.append(f"CTYPE={f.get('ctype1')},{f.get('ctype2')}")
+
+    # Issue #87/E2-R: 输入完整性身份必须三处同源、机器可判（FITS 头 ↔ resampled.json）。
+    want_cov = sc.get("expect_coverage_verified")
+    res_cov = (rec.get("resampled") or {}).get("coverage_verified")
+    res_comp = (rec.get("resampled") or {}).get("input_completeness")
+    wr_cov = (rec.get("writer") or {}).get("coverage_verified")
+    wr_comp = (rec.get("writer") or {}).get("input_completeness")
+    if res_comp is None:
+        reasons.append("resampled.json missing input_completeness")
+    if wr_comp != res_comp or wr_cov != res_cov:
+        reasons.append(f"writer identity drift {wr_comp}/{wr_cov} != {res_comp}/{res_cov}")
+    if f.get("covstat") != res_comp:
+        reasons.append(f"FITS COVSTAT={f.get('covstat')} != resampled {res_comp}")
+    if bool(f.get("covverif")) != bool(res_cov):
+        reasons.append(f"FITS COVVERIF={f.get('covverif')} != resampled {res_cov}")
+    if want_cov is not None and bool(res_cov) != bool(want_cov):
+        reasons.append(f"coverage_verified={res_cov} != expected {want_cov}")
+    if want_cov is False and res_comp != "UNVERIFIED_LEGACY":
+        reasons.append(f"input_completeness={res_comp} != UNVERIFIED_LEGACY")
 
     kind = oracle.get("kind")
     if kind == "constant":
