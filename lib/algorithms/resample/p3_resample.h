@@ -23,12 +23,16 @@ typedef enum {
 /* Issue #87: tile 读取完整性分类（与 AIO reader 的 AioHipsTileCode 一一对应）。 */
 typedef enum {
     P3_TILE_OK = 0,
-    P3_TILE_OUTSIDE_DECLARED_FOOTPRINT = 1,  /* 合法无覆盖: NaN/coverage=0 */
+    P3_TILE_OUTSIDE_DECLARED_FOOTPRINT = 1,  /* 已证实无覆盖: NaN/coverage=0 */
     P3_TILE_DECLARED_MISSING = 2,            /* 声明覆盖内缺失: 输入完整性错误 */
     P3_TILE_IO_ERROR = 3,                    /* 真实打开/读取/权限/IO 故障 */
     P3_TILE_INVALID = 4,                     /* FITS 截断/维度/BITPIX/头部损坏 */
     P3_TILE_CHECKSUM_FAILED = 5,             /* DATASUM/CHECKSUM 存在但验证失败 */
-    P3_TILE_FOOTPRINT_UNDETERMINED = 6       /* 覆盖身份不足, 不冒充合法空洞 */
+    P3_TILE_FOOTPRINT_UNDETERMINED = 6,      /* 覆盖身份不足, 不冒充合法空洞 */
+    /* Issue #87/E2-R: 无可靠覆盖来源（FP_NONE/legacy unverified coverage）。
+     * 缺失既不能证实也不能否证 ⇒ 不是完整性错误（best-effort 可视图允许），
+     * 但计入 unverified_absent_reads 且 coverage_verified=0，产物身份必须降级。 */
+    P3_TILE_UNKNOWN_LEGACY_COVERAGE = 7
 } P3TileErrorCode;
 
 /* 聚合故障记录（按 tile_ipix 升序; 同一 tile 多 worker 访问合并为一条）。
@@ -80,7 +84,10 @@ P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
                                     std::string* err);
 
 /* ── Issue #87: tile 完整性故障身份与聚合 ───────────────────────────────────
- * 语义: OUTSIDE_DECLARED_FOOTPRINT 仍是合法无覆盖（S=NaN,C=0,P3_RS_OK）；
+ * 语义: OUTSIDE_DECLARED_FOOTPRINT 是**已证实**无覆盖（S=NaN,C=0,P3_RS_OK）；
+ * UNKNOWN_LEGACY_COVERAGE（Issue #87/E2-R, FP_NONE）是**未证实**缺失：同样
+ * S=NaN,C=0,P3_RS_OK（合法稀疏 HiPS 仍可 best-effort 出图），但单独计数且
+ * p3_sampler_coverage_verified()==0，调用方必须把产物身份降级；
  * DECLARED_MISSING / INVALID / CHECKSUM_FAILED / FOOTPRINT_UNDETERMINED 返回
  * P3_RS_INTEGRITY，IO_ERROR 返回 P3_RS_IO；具体原因由下列接口给出。
  * 正常 absent 负缓存与错误状态分开存储：错误缓存命中复现同一 code/path/detail，
@@ -98,6 +105,10 @@ int p3_sampler_last_tile_failure(const P3Sampler* s, P3TileFailure* out);
 
 /* 输入覆盖身份（AIO_HIPS_FOOTPRINT_*; -1=不可用）。 */
 int p3_sampler_footprint_identity(const P3Sampler* s);
+
+/* Issue #87/E2-R: 输入完整性是否可证（1=有可靠覆盖来源/可声称科学完整;
+ * 0=legacy unverified coverage/只能 best-effort; -1=不可用）。 */
+int p3_sampler_coverage_verified(const P3Sampler* s);
 
 /* P3-006/DOC-003: 配置 tile cache 容量上限(内存守卫 ARCH-P3 §3)。
  * max_tiles≤0 → 恢复默认(8); 请求可降不可升超物理内存守卫由上层校验。
@@ -140,6 +151,9 @@ struct P3CacheStats {
     unsigned long long undetermined = 0;        // 唯一 FOOTPRINT_UNDETERMINED tile 数
     unsigned long long checksum_present_reads = 0; // 成功读取中带可验证校验字段的次数
     unsigned long long checksum_absent_reads = 0;  // 成功读取中缺校验字段的次数（非失败）
+    // ── Issue #87/E2-R: 未证实缺失（legacy unverified coverage）──────────────
+    unsigned long long unverified_absent_reads = 0; // FP_NONE 下真实缺失 open 次数
+    int coverage_verified = -1;                 // 1=可证完整性, 0=legacy unverified
     int footprint_identity = -1;                // AIO_HIPS_FOOTPRINT_*
 };
 void p3_sampler_cache_stats(const P3Sampler* s, P3CacheStats* out);

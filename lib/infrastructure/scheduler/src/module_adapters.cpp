@@ -16426,6 +16426,8 @@ const char* p3_tile_code_name(int code) {
       return "P3-TILE-FOOTPRINT-UNDETERMINED";
     case acsd::phase3::P3_TILE_OUTSIDE_DECLARED_FOOTPRINT:
       return "P3-TILE-OUTSIDE-DECLARED-FOOTPRINT";
+    case acsd::phase3::P3_TILE_UNKNOWN_LEGACY_COVERAGE:
+      return "P3-TILE-UNKNOWN-LEGACY-COVERAGE";
     default:
       return "P3-TILE-UNKNOWN";
   }
@@ -16433,12 +16435,20 @@ const char* p3_tile_code_name(int code) {
 
 const char* p3_footprint_name(int id) {
   switch (id) {
-    case AIO_HIPS_FOOTPRINT_NONE:            return "NONE";
+    // Issue #87/E2-R: 数值 0 的正式身份 = legacy unverified coverage（旧名 NONE）。
+    // 机器名不再叫 "NONE"（有歧义：像"没有覆盖"）；显式表达"覆盖不可证"。
+    case AIO_HIPS_FOOTPRINT_NONE:            return "UNVERIFIED_LEGACY";
     case AIO_HIPS_FOOTPRINT_MOC_LEAF:        return "MOC_LEAF";
     case AIO_HIPS_FOOTPRINT_MOC_UNDETERMINED:return "MOC_UNDETERMINED";
     case AIO_HIPS_FOOTPRINT_MANIFEST_ONLY:   return "MANIFEST_ONLY";
     default:                                 return "UNKNOWN";
   }
+}
+
+// Issue #87/E2-R: 输入完整性身份（机器可判）。有可靠覆盖来源才可称 scientific
+// complete；legacy unverified coverage 只能发布具名 best-effort。
+const char* p3_input_completeness_name(int coverage_verified) {
+  return (coverage_verified == 1) ? "VERIFIED" : "UNVERIFIED_LEGACY";
 }
 
 // 聚合故障 → 稳定 JSON（按 tile_ipix 升序；计数/worker 统计确定性）。
@@ -16866,6 +16876,8 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
                 {"undetermined", c.undetermined},
                 {"checksum_present_reads", c.checksum_present_reads},
                 {"checksum_absent_reads", c.checksum_absent_reads},
+                {"unverified_absent_reads", c.unverified_absent_reads},
+                {"coverage_verified", c.coverage_verified == 1},
                 {"footprint_identity", p3_footprint_name(c.footprint_identity)}};
   };
   // P30: 取消优先于"work unit 被丢弃"判定 (两者都 fail-closed; 取消更具体)。
@@ -16967,6 +16979,12 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     // P30/Issue #87: tile 缓存命中率 / 真实读次数 / 合法性 absent 与错误分列。
     (*man)["tile_cache"] = cache_json(cs);
     (*man)["footprint_identity"] = p3_footprint_name(cs.footprint_identity);
+    // Issue #87/E2-R: 输入完整性身份（机器可判）。coverage_verified=false ⇒ 本
+    // run 只是具名 best-effort（未证实缺失不可伪装成已证实无覆盖），消费方可据此
+    // 拒绝把它当科学完整产品。
+    (*man)["coverage_verified"] = (cs.coverage_verified == 1);
+    (*man)["input_completeness"] = p3_input_completeness_name(cs.coverage_verified);
+    (*man)["unverified_absent_reads"] = cs.unverified_absent_reads;
     (*man)["tile_error_count"] = 0;
   }
   if (write_failed.load()) {
@@ -17055,11 +17073,15 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
             Json{{"footprint_identity", p3_footprint_name(cs.footprint_identity)},
                  {"tile_error_count", 0},
                  {"outside_reads", cs.outside_reads},
+                 {"unverified_absent_reads", cs.unverified_absent_reads},
                  {"tile_error_reads", cs.tile_error_reads},
                  {"tile_error_hits", cs.tile_error_hits},
                  {"checksum_verified_reads_note",
                   "DATASUM/CHECKSUM verified from the bytes read; absence is "
                   "recorded but is not a failure"}}},
+           // Issue #87/E2-R: 外部发布身份（resampled.json + manifest + FITS 头同源）。
+           {"coverage_verified", (cs.coverage_verified == 1)},
+           {"input_completeness", p3_input_completeness_name(cs.coverage_verified)},
            {"tile_cache", cache_json(cs)},
            {"bin", "p3_resampled.bin"},
            {"bin_sha256", bin_sha}};
@@ -17223,6 +17245,13 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
   prov.run_id = run_id_str.c_str();
   prov.order_sel_used = order_sel_str.c_str();
   prov.sampler_used = sampler_str.c_str();
+  // Issue #87/E2-R: 输入完整性身份必须随 FITS 头落盘（外部发布面，机器可判）。
+  // 上游 resampled.json 是唯一来源；缺失/非布尔一律保守为 UNVERIFIED_LEGACY。
+  const std::string input_completeness_str =
+      res.value("input_completeness", std::string("UNVERIFIED_LEGACY"));
+  const bool coverage_verified_bool = res.value("coverage_verified", false);
+  prov.input_completeness = input_completeness_str.c_str();
+  prov.coverage_verified = coverage_verified_bool ? 1 : 0;
   // slim 唯一形态（task-9）：provenance uncertainty 面恒 unavailable。
   prov.uncertainty_source = nullptr;
   prov.uncertainty_missing_pixels = 0;
@@ -17466,6 +17495,9 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
           {"uncertainty_available", false},
           {"uncertainty_source", std::string("none")},
           {"uncertainty_missing_pixels", 0},
+          // Issue #87/E2-R: 输入完整性身份随 writer 产物落盘（与 FITS 头同源）。
+          {"coverage_verified", coverage_verified_bool},
+          {"input_completeness", input_completeness_str},
           // B2-A10（宪章 §4.3）: 真实 provenance（非占位）随节点 manifest 落盘。
           {"run_id", run_id_str},
           {"software_version", version_str},
@@ -17537,6 +17569,8 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
       {"fits_hdu_streaming", !whole_frame}};
   (*man)["sub_block_px"] = sb;
   (*man)["whole_frame_fault"] = whole_frame;
+  (*man)["coverage_verified"] = coverage_verified_bool;
+  (*man)["input_completeness"] = input_completeness_str;
   return Result<void>::success();
 }
 
@@ -17589,6 +17623,20 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   if (res.value("measurement_capable", false) != wr.value("measurement_capable", false))
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "verify: measurement_capable drift between resampled and writer artifacts"));
+  // ── Issue #87/E2-R: 输入完整性身份一致性（resampled ↔ writer ↔ FITS 头）─────
+  // "未证完整性"必须是可机判事实，且三处同源；任一分叉 = 拒绝当已验证产品。
+  const bool res_cov_verified = res.value("coverage_verified", false);
+  const std::string res_completeness =
+      res.value("input_completeness", std::string("UNVERIFIED_LEGACY"));
+  const bool wr_cov_verified = wr.value("coverage_verified", false);
+  const std::string wr_completeness =
+      wr.value("input_completeness", std::string("UNVERIFIED_LEGACY"));
+  if (res_cov_verified != wr_cov_verified || res_completeness != wr_completeness)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "verify: input completeness identity drift (resampled " +
+            res_completeness + "/" + (res_cov_verified ? "true" : "false") +
+            " vs writer " + wr_completeness + "/" +
+            (wr_cov_verified ? "true" : "false") + ")"));
   // ── P3-STREAM-01：独立重开**子块流式**对拍（不整幅驻留）─────────────────
   // 判据与 p3_output_verify_ex 逐条同面：尺寸/WCS 关键字/单 HDU 面/逐像素回环
   // （NaN==NaN 同态）；驻留面 = 单个子块。
@@ -17600,6 +17648,22 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   if (!p3n_sub_block_px(doc, &sb, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
   const std::string verify_fits = wr.value("output_fits", std::string());
+  // ── Issue #87/E2-R: FITS 头的外部发布身份必须与 JSON 声明一致（可机判）──────
+  char fits_covstat[64] = {0};
+  int fits_covverif = 0;
+  if (acsd::phase3::p3_output_read_coverage_identity(
+          verify_fits.c_str(), fits_covstat, (int)sizeof(fits_covstat),
+          &fits_covverif) != acsd::phase3::P3_OUT_OK)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        std::string("verify: FITS coverage identity unavailable: ") +
+            acsd::phase3::p3_output_last_error()));
+  if ((fits_covverif == 1) != res_cov_verified ||
+      res_completeness != std::string(fits_covstat))
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        std::string("verify: FITS header coverage identity mismatch (header ") +
+            fits_covstat + "/" + (fits_covverif ? "true" : "false") +
+            " vs resampled " + res_completeness + "/" +
+            (res_cov_verified ? "true" : "false") + ")"));
   P3OutputResult vres{};
   {
     P3FitsVerifyStream vs;
@@ -17660,6 +17724,9 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
            {"coverage_stats",
             {{"covered_px", vres.covered_px}, {"total_px", vres.total_px}}},
            {"uncertainty_available", false},
+           // Issue #87/E2-R: 输入完整性身份（机器可判；三处同源已对拍）。
+           {"coverage_verified", res_cov_verified},
+           {"input_completeness", res_completeness},
            // B2-A10: verify 侧同源透传 writer 的真实 provenance（禁 CLI 侧再猜）。
            {"run_id", wr.value("run_id", std::string())},
            {"software_version", wr.value("software_version", std::string())},
@@ -17683,6 +17750,8 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   (*man)["integrity_sha256"] = std::string(vres.sha256);
   (*man)["sub_block_px"] = sb;
   (*man)["sub_block_streaming"] = true;
+  (*man)["coverage_verified"] = res_cov_verified;
+  (*man)["input_completeness"] = res_completeness;
   return Result<void>::success();
 }
 

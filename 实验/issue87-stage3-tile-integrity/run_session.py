@@ -79,7 +79,7 @@ def main() -> int:
     scen = [
         dict(case="legal_full", hips="legal_full", ra=t4[0], dec=t4[1],
              w=64, h=64, scale=0.01, expect_status=0, expect_code=None,
-             fits=True),
+             fits=True, expect_coverage_verified=True),
         dict(case="sparse_moc_outside", hips="legal_sparse_moc", ra=t7[0], dec=t7[1],
              w=64, h=64, scale=0.01, expect_status=0, expect_code=None,
              fits=True, expect_nan_all=True),
@@ -99,6 +99,11 @@ def main() -> int:
         dict(case="same_bad_multi_worker", hips="same_bad_multi_worker",
              ra=t4[0], dec=t4[1], w=256, h=256, scale=0.01,
              expect_status=1, expect_code="P3-TILE-CHECKSUM-FAILED", fits=False),
+        # Issue #87/E2-R: 无可靠覆盖来源 ⇒ 具名 best-effort（identity 必须可机判）
+        dict(case="unhinted_deleted", hips="unhinted_deleted", ra=t4[0], dec=t4[1],
+             w=64, h=64, scale=0.01, expect_status=0, expect_code=None,
+             fits=True, expect_nan_all=True, expect_coverage_verified=False,
+             expect_completeness="UNVERIFIED_LEGACY"),
     ]
     results = []
     for sc in scen:
@@ -134,6 +139,17 @@ def main() -> int:
             reasons.append(f"fits_present {rec['fits_present']} != {sc['fits']}")
         if sc["expect_code"] and sc["expect_code"] not in (rec.get("last_error") or ""):
             reasons.append(f"code {sc['expect_code']} not in last_error")
+        # Issue #87/E2-R: session 产物身份（机器可判，不是自由文本）
+        if sc.get("expect_coverage_verified") is not None:
+            if bool(rec.get("coverage_verified")) != sc["expect_coverage_verified"]:
+                reasons.append(
+                    f"coverage_verified {rec.get('coverage_verified')} != "
+                    f"{sc['expect_coverage_verified']}")
+        if sc.get("expect_completeness") is not None:
+            if rec.get("input_completeness") != sc["expect_completeness"]:
+                reasons.append(
+                    f"input_completeness {rec.get('input_completeness')} != "
+                    f"{sc['expect_completeness']}")
         if sc.get("expect_nan_all") and rec["fits_present"]:
             import numpy as np
             from astropy.io import fits as afits
