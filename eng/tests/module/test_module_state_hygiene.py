@@ -451,19 +451,19 @@ RAW_STATIC_BUFFERS = [
     (
         "lib/infrastructure/scheduler/src/module_adapters.cpp",
         "kP3BunitSurfaceBrightness",
-        "8678",
+        "9897",
         """`constexpr const char*` 指向字符串**字面量**，物理单位常量。""",
     ),
     (
         "lib/infrastructure/scheduler/src/module_adapters.cpp",
         "kP3BunitSbVariance",
-        "8679",
+        "9898",
         """`constexpr const char*` 指向字符串**字面量**，物理单位常量。""",
     ),
     (
         "lib/infrastructure/scheduler/src/module_adapters.cpp",
         "kP3BunitSbIvar",
-        "8680",
+        "9899",
         """`constexpr const char*` 指向字符串**字面量**，物理单位常量。""",
     ),
     (

@@ -1,0 +1,3 @@
+[unit] native: stack=ADU/sr signal=ADU/sr ref=ADU factor=ADU^2
+[unit] applied: stack=XPMODEL/sr signal=XPMODEL/sr ref=XPMODEL factor=XPMODEL^2
+[unit] applied-const: stack=XPMODEL/sr signal=XPMODEL/sr ref=XPMODEL factor=XPMODEL^2

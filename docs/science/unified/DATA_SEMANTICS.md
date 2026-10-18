@@ -44,7 +44,16 @@ HiPS 的 Norder/Dir/Npix 目录、NESTED index、HiPS 层级 FITS tile、MOC（�
 
 “ADU/sr”仅在标定后图像数值仍属于 ADU 积分量时准确；若已通过 Gaia XP 模型尺度把计数转换为其他单位，不能保留虚假的 ADU/sr 标签。颜色/目标通带未精确定义时，使用明确的相对模型单位并给出解释限制，不伪称 SI 绝对光谱辐照度。FITS BUNIT 的写法遵守 FITS 大小写和单位语法，不能假定 adu 与 ADU 在正式标准中自动等价。
 
-**产品单位身份的唯一性（导出边界）**：任何消费者（当前为阶段三 Export）都必须从输入 signal 声明的 `BUNIT`（辅以 `ACSD_SIGNAL_UNIT`、`ACSD_PIXEL_SEMANTICS`、`ACSD_PIXEL_AREA_POWER`）**唯一确定**其面亮度单位身份，并经冻结单位表归类校验；对同一逻辑键的重复声明、大小写别名、两个声明面互相冲突、缺失、空串、词汇表外或与像元语义矛盾的声明，一律显式失败，**不得**补写任何确定量纲（尤其不得在无证据时写 `ADU/sr`），也不得把失败读取转成正常无覆盖/普通 NaN。通过校验后，产品面一律写冻结 canonical 串 `ADU/sr`；输入原始声明随产物保留供审计。标度（PHOTSCAL/PHOTAPPL 等）与量纲类别是两件事：标度变化不改变 BUNIT 的写法，未闭合的标度/响应身份按 #9/#79 另行处理，不在导出边界自行发明。
+**线性基单位词表（#9 冻结）**：面亮度链的线性基单位由**实际施加状态**给出，只有两个成员——
+
+| 线性基 token | 含义 | 何时使用 |
+|---|---|---|
+| `ADU` | 原生校准计数积分量 | 未施加带单位标度的帧（`native_calibrated`） |
+| `XPMODEL` | 已施加 Gaia XP 合成通带标度的**模型通带通量**单位：由该帧实际装载的 response（滤镜曲线 + QE + XP 绝对谱归一约定）定义，是相对模型单位，**显式非 SI** | 逐帧实际施加了 `k_photo` 的帧（`relative_scaled`） |
+
+面亮度 canonical 串由线性基单位唯一导出：signal `L/sr`、其方差 `L^2/sr^2`、其逆方差 `sr^2/L^2`（`L` = `ADU` 或 `XPMODEL`）。该词表与导出关系由冻结单位表唯一实现（`lib/algorithms/resample/p3_rsmp_units.cpp`）给出，其它模块不得自建第二套解析/书写词表。`XPMODEL` 的归一约定随 `frame_science.json` 的 `photometry.response_id`/`application_id` 与 `reference.response_id` 落盘；`XPMODEL` 数值只在同一 response 身份内可比。
+
+**产品单位身份的唯一性（导出边界）**：任何消费者（当前为阶段三 Export）都必须从输入 signal 声明的 `BUNIT`（辅以 `ACSD_SIGNAL_UNIT`、`ACSD_PIXEL_SEMANTICS`、`ACSD_PIXEL_AREA_POWER`）**唯一确定**其面亮度单位身份，并经冻结单位表归类校验；对同一逻辑键的重复声明、大小写别名、两个声明面互相冲突、缺失、空串、词汇表外、跨基单位混合或与像元语义矛盾的声明，一律显式失败，**不得**补写任何确定量纲（尤其不得在无证据时写 `ADU/sr`），也不得把失败读取转成正常无覆盖/普通 NaN。通过校验后，产品面写冻结单位表对该线性基单位导出的 canonical 面亮度串（`ADU/sr` 或 `XPMODEL/sr`）；输入原始声明随产物保留供审计。标度（PHOTSCAL/PHOTAPPL 等）与量纲类别的关系分两支：**无量纲**的相对标度只改零点、不改单位串，但必须登记 scale_state/normalization/reference ID；**带单位**的标度（如 `k_photo` 的 `U_out/ADU`）必须让 signal、方差、ivar、F_ref 与模型因子的单位同步切换到 `U_out`，不得继续标 `ADU/sr`。未闭合的标度/响应身份按 #9/#79 处理，不在导出边界自行发明。
 
 星等只是派生对数值，不可对负的天空扣除信号直接取 log 而静默生成有限结果。
 

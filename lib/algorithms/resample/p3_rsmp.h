@@ -59,16 +59,38 @@ bool is_deferred_weight_mode_token(const std::string& token);
 // ---------------------------------------------------------------------------
 // 1. 单位与 BUNIT 二次律（FZ-UNIT-* / FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC）
 // ---------------------------------------------------------------------------
-// BUNIT 表示为 ADU 幂次 × 立体角幂次（sr）（canonical 串固定，不发明第三套词表）。
+// 线性基单位（Issue #9，docs/science/unified/DATA_SEMANTICS.md §3 / PHOTOMETRY §4）:
+//   * Adu     = 原生校准计数积分量（ADU）；未施加带单位标度的帧。
+//   * XpModel = 已施加 Gaia XP 合成通带标度后的**模型通带通量**单位。它由该帧
+//               实际装载的 response（滤镜曲线 + QE + XP 绝对谱约定）归一，是
+//               相对模型单位，**不是** SI 绝对光谱辐照度，也不得写成 ADU。
+// 二者是不同量纲族: 跨基单位相乘/相加无量纲意义 ⇒ mixed_base=true 即不可判。
+enum class LinearBase { Adu = 0, XpModel = 1 };
+// 线性基 canonical token（大小写敏感）: "ADU" | "XPMODEL"。
+const char* to_string(LinearBase b);
+// 解析线性基 token；未知/空/大小写不符 ⇒ false（不静默归一）。
+bool parse_linear_base(const std::string& token, LinearBase* out);
+// 面亮度链三串（signal / 其方差 / 其逆方差）由线性基单位唯一导出。
+std::string surface_brightness_bunit(LinearBase b);           // "ADU/sr" | "XPMODEL/sr"
+std::string surface_brightness_variance_bunit(LinearBase b);  // "ADU^2/sr^2" | "XPMODEL^2/sr^2"
+std::string surface_brightness_ivar_bunit(LinearBase b);      // "sr^2/ADU^2" | "sr^2/XPMODEL^2"
+
+// BUNIT 表示为线性基单位幂次 × 立体角幂次（sr）（canonical 串固定，不发明第三套词表）。
 struct Bunit {
-  int adu_power = 0;
+  int adu_power = 0;   // 线性基单位幂次（历史字段名；base 决定基单位是 ADU 还是 XPMODEL）
   int px_power = 0;
+  LinearBase base = LinearBase::Adu;
+  bool mixed_base = false;   // 跨基单位相乘 ⇒ 量纲不可判（显式失败，不静默取其一）
   std::string canonical() const;
   bool operator==(const Bunit& o) const {
-    return adu_power == o.adu_power && px_power == o.px_power;
+    return adu_power == o.adu_power && px_power == o.px_power &&
+           base == o.base && mixed_base == o.mixed_base;
   }
   bool operator!=(const Bunit& o) const { return !(*this == o); }
 };
+
+// 面亮度 signal 单位 {1,-2,base}（Issue #9）。
+Bunit surface_brightness_unit(LinearBase b);
 
 Bunit bunit_mul(const Bunit& a, const Bunit& b);
 Bunit bunit_square(const Bunit& a);
@@ -84,6 +106,10 @@ extern const Bunit w_info;             // ADU^-2
 extern const Bunit q_stat;             // ADU^-1
 extern const Bunit flux;               // ADU
 extern const Bunit psfsw;              // 1
+// Issue #9: 已施加 Gaia XP 模型标度的对应面亮度链（模型通带通量族）。
+extern const Bunit signal_sb_model;          // XPMODEL/sr
+extern const Bunit sb_variance_out_model;    // XPMODEL^2/sr^2
+extern const Bunit sb_ivar_out_model;        // sr^2/XPMODEL^2
 }  // namespace units
 
 // FZ-P3-BUNIT-QUADRATIC：variance BUNIT == (signal BUNIT)^2 且 ivar == 1/variance。

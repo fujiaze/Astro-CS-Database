@@ -32,12 +32,12 @@
 
 | 符号 | 类型 | 单位/值域 | 锚 |
 |---|---|---|---|
-| signal | f32 [W·H] | **面亮度**（surface brightness）；BUNIT 一律写 canonical `ADU/sr`（`docs/science/unified/DATA_SEMANTICS.md`「单位与量纲表」与「面亮度单位的推导」两节：计数按立体角归一；裸 `ADU` 是每像素计数口径，与本平面数值不符且量纲不可判） | `lib/algorithms/fits_output/p3_output.cpp` |
+| signal | f32 [W·H] | **面亮度**（surface brightness）；BUNIT 写输入裁决给出的 canonical 面亮度串（线性基单位 `ADU` ⇒ `ADU/sr`；已施加 Gaia XP 模型标度 `XPMODEL` ⇒ `XPMODEL/sr`，Issue #9）。依据 `docs/science/unified/DATA_SEMANTICS.md` §3「线性基单位词表」与 `docs/science/photometry/PHOTOMETRY.md` §4：计数按立体角归一；裸 `ADU`/`XPMODEL` 是每像素计数口径，与本平面数值不符且量纲不可判 | `lib/algorithms/fits_output/p3_output.cpp` |
 | coverage | f32 [W·H] | 二值门 {0,1}（>0.5f=covered） | `lib/algorithms/fits_output/p3_output.cpp` |
 | width,height | int px | [1,20000]（会话层 `lib/phase3_session/p3_session.cpp`；内核 width<1 拒） | `lib/algorithms/fits_output/p3_output.h` |
 | bitpix | int | -32 \| -64（真实决定 buffer，`lib/algorithms/fits_output/p3_output.h`） | `lib/algorithms/fits_output/p3_output.cpp` |
 | BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 [S-1]「参数与常数」一节 规定浮点，取值 TDOUBLE） | `lib/algorithms/fits_output/p3_output.cpp` |
-| BUNIT | string | 主 HDU 面亮度单位；调用方**必须**给出经输入单位身份裁决证实的 canonical `ADU/sr` —— 空串/`nullptr`/表外串一律在创建任何临时文件之前 `P3_OUT_PARAM` 拒绝（Issue #91: 旧行为「空串取 `ADU/sr`」是**捏造确定量纲**的缺陷本体，已删除）。唯一事实源 `lib/algorithms/fits_output/p3_output.cpp`，与 `docs/science/unified/DATA_SEMANTICS.md`「面亮度单位的推导」一节「产品写盘 BUNIT 一律取该串」同口径。**上游同口径**：输入单位身份裁决 `p3_input_unit_verdict`（`lib/algorithms/resample/p3_input_unit.cpp`）在裁决未通过时**不给串**，`p3_sampler_open_ex` 只回填裁决给出的 canonical 串（`lib/algorithms/resample/p3_resample.cpp`），会话 `lib/phase3_session/p3_session.cpp` 原样透传 ⇒ 全链单位一律有输入身份证据，**不出现裸 `ADU`**，也不出现无证据的 `ADU/sr` | `lib/algorithms/fits_output/p3_output.cpp` / `lib/algorithms/resample/p3_input_unit.cpp` / `lib/algorithms/resample/p3_resample.cpp` |
+| BUNIT | string | 主 HDU 面亮度单位；调用方**必须**给出经输入单位身份裁决证实的 canonical 面亮度串（`ADU/sr` 或 `XPMODEL/sr`，Issue #9）—— 空串/`nullptr`/表外串/非 canonical 书写一律在创建任何临时文件之前 `P3_OUT_PARAM` 拒绝（Issue #91: 旧行为「空串取 `ADU/sr`」是**捏造确定量纲**的缺陷本体，已删除）。唯一事实源 `lib/algorithms/fits_output/p3_output.cpp`（单位串解析/二次律经冻结单位表 `p3_rsmp_units.cpp`，本文件不再自建第二套词表）。**上游同口径**：输入单位身份裁决 `p3_input_unit_verdict`（`lib/algorithms/resample/p3_input_unit.cpp`）在裁决未通过时**不给串**，`p3_sampler_open_ex` 只回填裁决给出的 canonical 串（`lib/algorithms/resample/p3_resample.cpp`），会话 `lib/phase3_session/p3_session.cpp` 原样透传 ⇒ 全链单位一律有输入身份证据，**不出现裸 `ADU`/`XPMODEL`**，也不出现无证据的 `ADU/sr` | `lib/algorithms/fits_output/p3_output.cpp` / `lib/algorithms/resample/p3_input_unit.cpp` / `lib/algorithms/resample/p3_resample.cpp` |
 | CRPIX1/2 | f64 px | FITS 1-based pixel-center | `lib/algorithms/projection/p3_wcs.h` / `lib/algorithms/fits_output/p3_output.cpp` |
 | CRVAL1/2 | f64 deg | ICRS 中心 | `lib/algorithms/projection/p3_wcs.h` / `lib/algorithms/fits_output/p3_output.cpp` |
 | CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | `lib/algorithms/projection/p3_wcs.h` / `lib/algorithms/fits_output/p3_output.cpp` |
@@ -328,7 +328,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 ## 13 容差与冻结清单（实测）
 
 - BITPIX ∈ {-32,-64}（kernel 侧 `lib/algorithms/fits_output/p3_output.cpp`；session 默认 -32，`lib/phase3_session/p3_session.cpp`）；
-  BSCALE=1/BZERO=0 恒定；BUNIT 一律 canonical `ADU/sr`（`docs/science/unified/DATA_SEMANTICS.md`「单位与量纲表」与「面亮度单位的推导」两节）；CTYPE=TAN/CUNIT=deg。
+  BSCALE=1/BZERO=0 恒定；BUNIT = 输入裁决给出的 canonical 面亮度串（`ADU/sr` 或 `XPMODEL/sr`；`docs/science/unified/DATA_SEMANTICS.md` §3）；CTYPE=TAN/CUNIT=deg。
 - W/H ∈ [1,20000]；abs(dec) ≤ 85°；sampler ∈ {nearest,bilinear}；
   parity ∈ {east_left,east_right}（east_left 默认，CD1_1<0）；
   coverage_output = mask（单一合法值）；bitpix/coverage_output 外

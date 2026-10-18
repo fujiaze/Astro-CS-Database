@@ -13,13 +13,17 @@
 #     acsd_aio               — astro_image_io.h / aio_cfitsio_mutex.h include 面 + AIO 符号
 #     acsd_cfitsio           — CFITSIO (fits_* 调用)
 #     acsd_p3_projection_wcs — p3_wcs_validate_request (批次 1 迁入 projection)
+#     acsd_p3_rsmp           — 冻结单位表唯一实现（Issue #9: BUNIT 解析/二次律
+#                              导出不再由本模块自建第二套词表；acsd_p3_rsmp 不依赖
+#                              本 target ⇒ 无环，且 add_subdirectory(resample) 先于
+#                              add_subdirectory(fits_output)）
 if(NOT TARGET acsd_p3_fits_output)
   add_library(acsd_p3_fits_output STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/p3_output.cpp
   )
   target_include_directories(acsd_p3_fits_output PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(acsd_p3_fits_output PUBLIC
-    acsd_common acsd_aio acsd_cfitsio acsd_p3_projection_wcs)
+    acsd_common acsd_aio acsd_cfitsio acsd_p3_projection_wcs acsd_p3_rsmp)
   set_target_properties(acsd_p3_fits_output PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
