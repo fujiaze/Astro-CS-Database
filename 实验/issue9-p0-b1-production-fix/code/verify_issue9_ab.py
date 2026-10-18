@@ -117,8 +117,39 @@ def quadratic_law(native_tag: str, other_tag: str):
             "p99": float(np.percentile(d, 99)), "max": float(d.max())}
 
 
+def p2_section():
+    """P2 完整 mosaic（2 帧 T3/M1 Red）单位贯通 + P2→P3。"""
+    out = {}
+    for tag in ("native2", "applied2"):
+        d = os.path.join(REPO, "run", "issue9-p2", tag, "p2out")
+        if not os.path.isdir(d):
+            continue
+        props = {}
+        for line in open(os.path.join(d, "signal", "properties")):
+            k, _, v = line.partition("=")
+            if k.strip() in ("BUNIT", "ACSD_SIGNAL_UNIT", "ACSD_PIXEL_AREA_POWER"):
+                props[k.strip()] = v.strip()
+        fin = json.load(open(os.path.join(d, "p2_final.json")))
+        fits_p = os.path.join(REPO, "run", "issue9-p2", tag, "p3out", "output_phase3.fits")
+        p2p3 = None
+        if os.path.exists(fits_p):
+            with fits.open(fits_p) as h:
+                p2p3 = h[0].header.get("BUNIT")
+        out[tag] = {
+            "signal_properties_bunit": props.get("BUNIT"),
+            "p2_final_bunit": fin.get("bunit"),
+            "p2_final_units": fin.get("units"),
+            "linear_base": fin.get("linear_base"),
+            "response_ids": fin.get("response_ids"),
+            "response_mixed": fin.get("response_mixed"),
+            "p2_to_p3_fits_bunit": p2p3,
+        }
+    return out
+
+
 def main() -> int:
-    out = {"frames": {}, "ratios": {}, "quadratic": {}, "p3_fits": {}, "negatives": {}}
+    out = {"frames": {}, "ratios": {}, "quadratic": {}, "p3_fits": {}, "negatives": {},
+           "p2_mosaic": p2_section()}
     for tag in ("native", "applied", "applied-const"):
         out["frames"][tag] = unit_family(tag)
         print(f"[unit] {tag}: stack={out['frames'][tag]['stack']['bunit']} "

@@ -55,6 +55,25 @@ python3 实验/issue9-p0-b1-production-fix/code/verify_issue9_ab.py \
   具有不同 α_j，叶级 signal 是 α 的加权平均、variance 是 Σw²α_j² 的组合，二者不相等；
   α² 律是**逐源像元**律，不是逐输出叶律）。
 
+## 3b. P2 完整 mosaic 贯通（2 帧 T3/M1 Red，真实 CLI）
+
+```bash
+./build/linux-sci/acsd normalize --json run/issue9-p2/{native2,applied2}.json -y
+./build/linux-sci/acsd mosaic    --json run/issue9-p2/mosaic-{native2,applied2}.json -y
+./build/linux-sci/acsd export    --json run/issue9-p2/export-{native2,applied2}.json -y
+```
+
+| 面 | native2 | applied2 |
+|---|---|---|
+| P1 两帧 `signal/properties` BUNIT | `ADU/sr` | `XPMODEL/sr` |
+| P2 `signal/properties` BUNIT | `ADU/sr` | `XPMODEL/sr` |
+| P2 `p2_final.json` bunit / variance / ivar | `ADU/sr` / `ADU^2/sr^2` / `sr^2/ADU^2` | `XPMODEL/sr` / `XPMODEL^2/sr^2` / `sr^2/XPMODEL^2` |
+| P2 `p2_final.json` `linear_base` | `ADU` | `XPMODEL` |
+| P2 `response_ids` / `response_mixed` | `[]` / false | 单一 response / false |
+| P2→P3 `output_phase3.fits` BUNIT（Astropy） | `ADU/sr` | `XPMODEL/sr` |
+
+即 P1→P2→P3 全链在真实双帧 mosaic 上单位身份成对（`mosaic` exit 0，`n_obs=11044`）。
+
 ## 4. 失败语义（不倒退）
 
 | 负例 | 结果 |
@@ -66,9 +85,10 @@ python3 实验/issue9-p0-b1-production-fix/code/verify_issue9_ab.py \
 
 ## 5. 未覆盖 / 缺口
 
-* 真实观测只有单帧；P2 完整合成（≥2 帧）未跑通（单帧无控制点 → 天空面不可建），
-  故 P2 只验证到 `sample` 节点的单位准入与负例，`write` 节点的 `XPMODEL/sr` 落盘
-  由代码路径 + `p2_final.json` 单元字段保证，未取得完整 mosaic 产物。
-* `hiss_writer.cpp` 白名单、`aio_healpix_io.cpp` 硬编码 `ADU/sr`、`aio/product_io`
-  单位代数、`phase1_product`/`phase2_integrate` 与已退役 `p3_export.cpp` 未改；
-  这些入口在当前 `acsd normalize/mosaic/export` 生产调用面上不可达，登记为 finding。
+* 非生产调用面未改（登记为 finding）：`aio/src/hiss_writer.cpp` 白名单、
+  `aio/src/healpix/aio_healpix_io.cpp` 硬编码 `ADU/sr`（仅由无调用者的
+  `aio_hiss_write` C API 可达）、`aio/product_io` 的 `UnitExponents` 单位代数
+  （旧 `phase1_product`/`phase2_integrate` 库）、已退役 `phase3_session/p3_export.cpp`
+  字面量。这些入口在当前 `acsd normalize/mosaic/export` 生产调用面上不可达。
+* `frame_science` 的 reader 侧 `verify_frame_science_factor_models` 当前无生产调用者
+  （单位一致性已按 `factor_variance_unit == linear_unit^2` 静态核对通过）。
