@@ -41,6 +41,7 @@ python3 -m eng.tests.unit.run_unit --exit-code      # 开发期自查：退出�
 | `test_area_ratio_l2.py` | 面积比级 L2：**两条负例**，证明该级门在反推路径与切平面分支下**都恒零**、无判别力 | `docs/science/drizzle/DRIZZLE.md` §3.7 / §5.2 |
 | `test_healpix_kernel.py` | HEALPix 核与候选枚举（S10/S11，**重建已失的 oracle**） | `docs/science/algorithms/HEALPIX_MAPPING.md` |
 | `test_quantization.py` / `test_wcs_plausibility.py` | 量化往返（S12/S13）与 WCS 拒绝组（S5/S5b 同批） | `GAIA_QUERY.md`、`ipv_wcs.cpp` |
+| `sky_plane_deflation_test.cpp`（由 `run_sky_plane_deflation_test.py` 直编运行） | P5 罚法方程求解器：锚定 + 精确 Woodbury deflation、旧 Q-only 反例、(A≻0)⟺(M≻0) 判据、秩亏时具名拒绝；四类 D 算子（7×6 / 缺整行 / 双孤岛 / 单缺点）+ 生产真实矩阵 dump 与独立全主元 Gauss / scipy oracle 对拍 | `docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md` §3.1/§6、Issue #80 P0-A1 |
 | `*_ref.py` | 各用例的**被测参考实现**（按产品源码/正本逐行转写）。它们**不是**期望值来源 | — |
 
 ## 三条硬纪律

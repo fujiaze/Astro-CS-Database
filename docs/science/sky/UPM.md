@@ -100,6 +100,8 @@ L_{\rm prof}(\alpha)=(y-A\alpha)^T WQ_H(y-A\alpha)
 
 本解法属于 additive-only 生产替代候选；乘性 A+G 联合扩展可参照 Golub–Pereyra variable projection [DOI:10.1137/0710036](https://doi.org/10.1137/0710036)，以外部星点证据与留出负例决定是否增加 η，当前没有生产与真实 E2 支持，不冒称已部署。
 
+**数值实现语义（生产已装，2026-10-18）**：求解矩阵 \(A=H_{\rm red}+\lambda_{\rm numerical}D^\top D\) 的直接 Cholesky 失败时，只在**惩罚零空间候选基** \(Q\subseteq\ker D\) 上加极小 Tikhonov 锚 \(A_\alpha=A+\alpha QQ^\top\)，再用精确 deflation \(X=A_\alpha^{-1}Q\)、\((I-\alpha Q^\top X)w=\alpha Q^\top A_\alpha^{-1}b\)、\(B=A_\alpha^{-1}b+Xw\) 把锚偏置扣回（该式恒有 \(AB=b\)，旧 Q-only 形式一般不满足，已退休）。回退分支以「\((I-\alpha Q^\top X)\) 的 Cholesky 成功」为 \(A\) 数值正定的判据——因 \(A\succ0\) 时该矩阵恒等于 \((I+\alpha Q^\top A^{-1}Q)^{-1}\in(0,I]\)——并以原方程 normwise 后向误差与算术门 \(\tau_{\rm floor}=\max(n_{\rm obs},n_{\rm free})\epsilon\) 复核。\(Q\) 只是 \(\ker D\) 的候选子集（掩膜把支撑切成多个 stencil 连通块时 \(\ker D\) 维数大于四），覆盖不足或方向不可分辨时返回具名 `P2_SKY_PLANE_NOT_IDENTIFIABLE` 与读数，**不**加任意 ridge、不降低阈值、不丢像元。算法、反例、独立 oracle 与真实 A/B 见 [Phase2 sky-plane 算法](../algorithms/mosaic/PHASE2_UPM_IMPL.md) §3.1/§6 与 `实验/issue80-p5-a1-production-fix/REPORT.md`。
+
 ### 4.1.1 相对增益图的可辨识性、误差与循环闭合（2026-10-17）
 
 仅当已配准并通过 PSF/颜色/孔径修正的**同一恒星**提供独立观测时，才将帧间 log 通量比用作增益测量。对每个有效重叠边 `e=(i,j)` 的统计量 `d_e`，模型是

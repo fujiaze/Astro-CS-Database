@@ -1,0 +1,9 @@
+{
+  "schema_version": "1",
+  "hips_paths": [
+    "/workspace/issue80-scratch/frozen/ab_2halpha/M42_M1_T2_flying_dutchman-20251212_014241-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/ab_2halpha/M42_M1_T2_flying_dutchman-20251216_031003-600S-H-alpha"
+  ],
+  "output_dir": "/workspace/issue80-scratch/runs_a1/postfix_release/ab_2halpha",
+  "snr_path": "sparse_reconstruct"
+}

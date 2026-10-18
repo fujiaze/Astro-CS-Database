@@ -1,0 +1,39 @@
+{
+ "schema": "acsd.issue80.a1.input-identity/v1",
+ "e0_git_head": "58ee3fe03fe650ae4fce6e0aea6c2fd65dd6bcfd",
+ "frames": {
+  "A_Halpha_600s": {
+   "dir": "/workspace/Astro CS Database/run/science-v2-impl/e2e/out/ab_off/M42_M1_T2_flying_dutchman-20251212_014241-600S-H-alpha",
+   "n_files": 746,
+   "n_mismatched": 0
+  },
+  "B_Halpha_600s": {
+   "dir": "/workspace/Astro CS Database/run/science-v2-impl/e2e/out/ab_off/M42_M1_T2_flying_dutchman-20251216_031003-600S-H-alpha",
+   "n_files": 754,
+   "n_mismatched": 0
+  },
+  "C_Red_300s": {
+   "dir": "/workspace/Astro CS Database/run/PHOT-FIX/p1_wcs_full/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red",
+   "n_files": 748,
+   "n_mismatched": 0
+  },
+  "D_M42M2_Red_300s": {
+   "dir": "/workspace/Astro CS Database/run/PHOT-FIX/p1_wcs_full/M42_M2_T2_flying_dutchman-20251212_020002-300S-Red",
+   "n_files": 732,
+   "n_mismatched": 0
+  },
+  "E_M42M2_Red_300s": {
+   "dir": "/workspace/Astro CS Database/run/PHOT-FIX/p1_wcs_full/M42_M2_T2_flying_dutchman-20251216_033550-300S-Red",
+   "n_files": 736,
+   "n_mismatched": 0
+  },
+  "F_M42M2_Red_300s": {
+   "dir": "/workspace/Astro CS Database/run/PHOT-FIX/p1_wcs_full/M42_M2_T2_flying_dutchman-20251224_033141-300S-Red",
+   "n_files": 760,
+   "n_mismatched": 0
+  }
+ },
+ "n_files_total": 4476,
+ "n_mismatched": 0,
+ "verdict": "ALL_FROZEN_INPUTS_UNCHANGED"
+}

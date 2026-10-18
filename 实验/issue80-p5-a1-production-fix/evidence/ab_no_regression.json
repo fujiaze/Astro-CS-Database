@@ -1,0 +1,79 @@
+{
+ "schema": "acsd.issue80.a1.ab-no-regression/v1",
+ "arms": {
+  "abc_real": {
+   "pre_exit": 2,
+   "post_exit": 2,
+   "solve_artifact_same": true,
+   "p2_final_scientific_fields_same": true,
+   "p2_final_diff_keys": [],
+   "pre_sky_plane_line": "[sky_plane] surface build FAILED rc=6 adaptive node spacing exhausted: rc=6 at h=0.553742 (upper=0.553742 lower=0.0143966 coarsenings=0, last: reduced normal matrix not SPD) -> production deduction unavailable",
+   "post_sky_plane_line": "[sky_plane] surface build FAILED rc=7 adaptive node spacing exhausted: rc=7 at h=0.553742 (upper=0.553742 lower=0.0143966 coarsenings=0, last: reduced normal matrix does not determine the solution: anchored system factorable but the penalty-null-space directions are not resolvable in double (I-alpha*Q^T A_a^-1 Q singular, or original-equation backward error above the arithmetic floor) (status=3 branch=1 n_free=25 mq=4 lambda=1.695e+02 alpha=2.034e+03 chol_fail_col=0 chol_fail_pivot=-1.350e-06 backward_error=nan gate=3.827e-12)) -> production deduction unavailable"
+  },
+  "ab_2halpha": {
+   "pre_exit": 0,
+   "post_exit": 0,
+   "solve_artifact_same": true,
+   "p2_final_scientific_fields_same": true,
+   "p2_final_diff_keys": [
+    "hips_root",
+    "phase2_audit.solvers.sky_plane.artifact",
+    "phase2_audit.sources.sky_plane",
+    "properties"
+   ],
+   "pre_sky_plane_line": "[sky_plane] ok n_used=11456 n_nodes=25 n_frames=2 rms_w=2.14254e+11",
+   "post_sky_plane_line": "[sky_plane] ok n_used=11456 n_nodes=25 n_frames=2 rms_w=2.14254e+11"
+  },
+  "abc_label_swap_all_halpha": {
+   "pre_exit": 2,
+   "post_exit": 2,
+   "solve_artifact_same": true,
+   "p2_final_scientific_fields_same": true,
+   "p2_final_diff_keys": [],
+   "pre_sky_plane_line": "[sky_plane] surface build FAILED rc=6 adaptive node spacing exhausted: rc=6 at h=0.553742 (upper=0.553742 lower=0.0143966 coarsenings=0, last: reduced normal matrix not SPD) -> production deduction unavailable",
+   "post_sky_plane_line": "[sky_plane] surface build FAILED rc=7 adaptive node spacing exhausted: rc=7 at h=0.553742 (upper=0.553742 lower=0.0143966 coarsenings=0, last: reduced normal matrix does not determine the solution: anchored system factorable but the penalty-null-space directions are not resolvable in double (I-alpha*Q^T A_a^-1 Q singular, or original-equation backward error above the arithmetic floor) (status=3 branch=1 n_free=25 mq=4 lambda=1.695e+02 alpha=2.034e+03 chol_fail_col=0 chol_fail_pivot=-1.350e-06 backward_error=nan gate=3.827e-12)) -> production deduction unavailable"
+  },
+  "abc_label_swap_all_red": {
+   "pre_exit": 0,
+   "post_exit": 0,
+   "solve_artifact_same": true,
+   "p2_final_scientific_fields_same": true,
+   "p2_final_diff_keys": [
+    "hips_root",
+    "phase2_audit.solvers.sky_plane.artifact",
+    "phase2_audit.sources.sky_plane",
+    "properties"
+   ],
+   "pre_sky_plane_line": "[sky_plane] ok n_used=17237 n_nodes=30 n_frames=3 rms_w=2.35377e-05",
+   "post_sky_plane_line": "[sky_plane] ok n_used=17237 n_nodes=30 n_frames=3 rms_w=2.35377e-05"
+  },
+  "def_samefilter_red_3frame": {
+   "pre_exit": 0,
+   "post_exit": 0,
+   "solve_artifact_same": true,
+   "p2_final_scientific_fields_same": true,
+   "p2_final_diff_keys": [
+    "hips_root",
+    "phase2_audit.solvers.sky_plane.artifact",
+    "phase2_audit.sources.sky_plane",
+    "properties"
+   ],
+   "pre_sky_plane_line": "[sky_plane] ok n_used=17266 n_nodes=30 n_frames=3 rms_w=0.000222799",
+   "post_sky_plane_line": "[sky_plane] ok n_used=17266 n_nodes=30 n_frames=3 rms_w=0.000222799"
+  },
+  "abc_photscal_harmonized": {
+   "pre_exit": 0,
+   "post_exit": 0,
+   "solve_artifact_same": true,
+   "p2_final_scientific_fields_same": true,
+   "p2_final_diff_keys": [
+    "hips_root",
+    "phase2_audit.solvers.sky_plane.artifact",
+    "phase2_audit.sources.sky_plane",
+    "properties"
+   ],
+   "pre_sky_plane_line": "[sky_plane] ok n_used=17237 n_nodes=30 n_frames=3 rms_w=1.23422e-05",
+   "post_sky_plane_line": "[sky_plane] ok n_used=17237 n_nodes=30 n_frames=3 rms_w=1.23422e-05"
+  }
+ }
+}

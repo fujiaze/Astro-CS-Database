@@ -1,0 +1,267 @@
+[
+ {
+  "arm": "abc_real",
+  "exit": 2,
+  "wall_s": 9.13,
+  "output_dir": "/workspace/issue80-scratch/runs_a1/prefix_clean_head/abc_real",
+  "config": {
+   "schema_version": "1",
+   "hips_paths": [
+    "/workspace/issue80-scratch/frozen/abc_real/M42_M1_T2_flying_dutchman-20251212_014241-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/abc_real/M42_M1_T2_flying_dutchman-20251216_031003-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/abc_real/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red"
+   ],
+   "output_dir": "/workspace/issue80-scratch/runs_a1/prefix_clean_head/abc_real",
+   "snr_path": "sparse_reconstruct"
+  },
+  "acsd": "/workspace/acsd-a1-prefix/build/sci/acsd",
+  "env_extra": "",
+  "stderr_has::not SPD": true,
+  "stderr_has::adaptive node spacing exhausted": true,
+  "stderr_has::reduced normal matrix": true,
+  "stderr_has::surface build FAILED": true,
+  "stderr_has::identifiability criterion RED": false,
+  "stderr_has::UNIDENTIFIABLE": false,
+  "stderr_has::P5 disconnected graph": false,
+  "stderr_has::P5 per-component": false,
+  "sky_plane_line": "[sky_plane] surface build FAILED rc=6 adaptive node spacing exhausted: rc=6 at h=0.553742 (upper=0.553742 lower=0.0143966 coarsenings=0, last: reduced normal matrix not SPD) -> production deduction unavailable",
+  "sample_line": "stage sample ok: obs=17237 overlap_controls=5807",
+  "artifacts": {
+   "p2_coverage.json": {
+    "sha256": "700b78e83db0d349a9eb1f8a491f32c576941d83f19c0292b85c9c557f33f079",
+    "size": 7641
+   },
+   "p2_samples.json": {
+    "sha256": "3653bbdca89f2cc92609ec8810f09f8788fd4f977b714131adb2db53b2a84900",
+    "size": 10014770
+   },
+   "_n_files_total": 9
+  }
+ },
+ {
+  "arm": "ab_2halpha",
+  "exit": 0,
+  "wall_s": 33.99,
+  "output_dir": "/workspace/issue80-scratch/runs_a1/prefix_clean_head/ab_2halpha",
+  "config": {
+   "schema_version": "1",
+   "hips_paths": [
+    "/workspace/issue80-scratch/frozen/ab_2halpha/M42_M1_T2_flying_dutchman-20251212_014241-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/ab_2halpha/M42_M1_T2_flying_dutchman-20251216_031003-600S-H-alpha"
+   ],
+   "output_dir": "/workspace/issue80-scratch/runs_a1/prefix_clean_head/ab_2halpha",
+   "snr_path": "sparse_reconstruct"
+  },
+  "acsd": "/workspace/acsd-a1-prefix/build/sci/acsd",
+  "env_extra": "",
+  "stderr_has::not SPD": false,
+  "stderr_has::adaptive node spacing exhausted": false,
+  "stderr_has::reduced normal matrix": false,
+  "stderr_has::surface build FAILED": false,
+  "stderr_has::identifiability criterion RED": false,
+  "stderr_has::UNIDENTIFIABLE": false,
+  "stderr_has::P5 disconnected graph": false,
+  "stderr_has::P5 per-component": false,
+  "sky_plane_line": "[sky_plane] ok n_used=11456 n_nodes=25 n_frames=2 rms_w=2.14254e+11",
+  "sample_line": "stage sample ok: obs=11456 overlap_controls=5728",
+  "artifacts": {
+   "p2_final.json": {
+    "sha256": "989f571813f1e7a9cd42b250280ed4db1afa2f4f8a4dd989953dda60d64d097b",
+    "size": 5044
+   },
+   "p2_coverage.json": {
+    "sha256": "81748422ba93b7dadf3ff94743fa0a6a3ee2c9c6c3b28f509486693821d298d1",
+    "size": 7228
+   },
+   "p2_sky_plane.bin": {
+    "sha256": "1864fae7af8f81346de736feacf3540c3ad03a46aae680b16b77cb9ca6aae6be",
+    "size": 186624
+   },
+   "p2_samples.json": {
+    "sha256": "b459c3ce3414cdda2a7980a66285ad21faeba924506f5ce5899bfc1cb792a292",
+    "size": 7105050
+   },
+   "_n_files_total": 216
+  }
+ },
+ {
+  "arm": "abc_label_swap_all_halpha",
+  "exit": 2,
+  "wall_s": 9.1,
+  "output_dir": "/workspace/issue80-scratch/runs_a1/prefix_clean_head/abc_label_swap_all_halpha",
+  "config": {
+   "schema_version": "1",
+   "hips_paths": [
+    "/workspace/issue80-scratch/frozen/abc_label_swap_all_halpha/M42_M1_T2_flying_dutchman-20251212_014241-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/abc_label_swap_all_halpha/M42_M1_T2_flying_dutchman-20251216_031003-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/abc_label_swap_all_halpha/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red"
+   ],
+   "output_dir": "/workspace/issue80-scratch/runs_a1/prefix_clean_head/abc_label_swap_all_halpha",
+   "snr_path": "sparse_reconstruct"
+  },
+  "acsd": "/workspace/acsd-a1-prefix/build/sci/acsd",
+  "env_extra": "",
+  "stderr_has::not SPD": true,
+  "stderr_has::adaptive node spacing exhausted": true,
+  "stderr_has::reduced normal matrix": true,
+  "stderr_has::surface build FAILED": true,
+  "stderr_has::identifiability criterion RED": false,
+  "stderr_has::UNIDENTIFIABLE": false,
+  "stderr_has::P5 disconnected graph": false,
+  "stderr_has::P5 per-component": false,
+  "sky_plane_line": "[sky_plane] surface build FAILED rc=6 adaptive node spacing exhausted: rc=6 at h=0.553742 (upper=0.553742 lower=0.0143966 coarsenings=0, last: reduced normal matrix not SPD) -> production deduction unavailable",
+  "sample_line": "stage sample ok: obs=17237 overlap_controls=5807",
+  "artifacts": {
+   "p2_coverage.json": {
+    "sha256": "99a17782dfb4d49042ad5908ede6a4e5298626292a177fa9c9a46dc6e0b5c1e7",
+    "size": 7753
+   },
+   "p2_samples.json": {
+    "sha256": "10656ecea2e4a8ee4ac6746fbc4c5165fe6a94543f0504d9fedbbeb5f1d95c0a",
+    "size": 10014770
+   },
+   "_n_files_total": 9
+  }
+ },
+ {
+  "arm": "abc_label_swap_all_red",
+  "exit": 0,
+  "wall_s": 51.58,
+  "output_dir": "/workspace/issue80-scratch/runs_a1/prefix_clean_head/abc_label_swap_all_red",
+  "config": {
+   "schema_version": "1",
+   "hips_paths": [
+    "/workspace/issue80-scratch/frozen/abc_label_swap_all_red/M42_M1_T2_flying_dutchman-20251212_014241-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/abc_label_swap_all_red/M42_M1_T2_flying_dutchman-20251216_031003-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/abc_label_swap_all_red/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red"
+   ],
+   "output_dir": "/workspace/issue80-scratch/runs_a1/prefix_clean_head/abc_label_swap_all_red",
+   "snr_path": "sparse_reconstruct"
+  },
+  "acsd": "/workspace/acsd-a1-prefix/build/sci/acsd",
+  "env_extra": "",
+  "stderr_has::not SPD": false,
+  "stderr_has::adaptive node spacing exhausted": false,
+  "stderr_has::reduced normal matrix": false,
+  "stderr_has::surface build FAILED": false,
+  "stderr_has::identifiability criterion RED": false,
+  "stderr_has::UNIDENTIFIABLE": false,
+  "stderr_has::P5 disconnected graph": false,
+  "stderr_has::P5 per-component": false,
+  "sky_plane_line": "[sky_plane] ok n_used=17237 n_nodes=30 n_frames=3 rms_w=2.35377e-05",
+  "sample_line": "stage sample ok: obs=17237 overlap_controls=5807",
+  "artifacts": {
+   "p2_final.json": {
+    "sha256": "629ede78c3f4e133af97bda1e9bf9012a1882bdd5c32e165ca6f2bf8e8611635",
+    "size": 5085
+   },
+   "p2_coverage.json": {
+    "sha256": "c2b14581d24ce0a8882cf986dc0f97fe7bbd962c1dd5e761400be094acedf529",
+    "size": 7705
+   },
+   "p2_sky_plane.bin": {
+    "sha256": "3d35c2b8860f02295cf0f124281cdd9df3ebde816b607e6d76313c9a6c6dd678",
+    "size": 278563
+   },
+   "p2_samples.json": {
+    "sha256": "0fc6175ed094adb4ffc5120c9b2bb9f3482f874473db43b1e647b3e447aa10d5",
+    "size": 10020547
+   },
+   "_n_files_total": 218
+  }
+ },
+ {
+  "arm": "def_samefilter_red_3frame",
+  "exit": 0,
+  "wall_s": 53.52,
+  "output_dir": "/workspace/issue80-scratch/runs_a1/prefix_clean_head/def_samefilter_red_3frame",
+  "config": {
+   "schema_version": "1",
+   "hips_paths": [
+    "/workspace/issue80-scratch/frozen/def_samefilter_red_3frame/M42_M2_T2_flying_dutchman-20251212_020002-300S-Red",
+    "/workspace/issue80-scratch/frozen/def_samefilter_red_3frame/M42_M2_T2_flying_dutchman-20251216_033550-300S-Red",
+    "/workspace/issue80-scratch/frozen/def_samefilter_red_3frame/M42_M2_T2_flying_dutchman-20251224_033141-300S-Red"
+   ],
+   "output_dir": "/workspace/issue80-scratch/runs_a1/prefix_clean_head/def_samefilter_red_3frame",
+   "snr_path": "sparse_reconstruct"
+  },
+  "acsd": "/workspace/acsd-a1-prefix/build/sci/acsd",
+  "env_extra": "",
+  "stderr_has::not SPD": false,
+  "stderr_has::adaptive node spacing exhausted": false,
+  "stderr_has::reduced normal matrix": false,
+  "stderr_has::surface build FAILED": false,
+  "stderr_has::identifiability criterion RED": false,
+  "stderr_has::UNIDENTIFIABLE": false,
+  "stderr_has::P5 disconnected graph": false,
+  "stderr_has::P5 per-component": false,
+  "sky_plane_line": "[sky_plane] ok n_used=17266 n_nodes=30 n_frames=3 rms_w=0.000222799",
+  "sample_line": "stage sample ok: obs=17266 overlap_controls=5803",
+  "artifacts": {
+   "p2_final.json": {
+    "sha256": "6b7bdd1fb94cb4b99a11cc445bf3709f923d0a0a9e0e232c1a5485a6972a7e96",
+    "size": 5097
+   },
+   "p2_coverage.json": {
+    "sha256": "74e560f8f94af95d389569b7b3d1632f5b850bdf342bde186b65689a8fad7a06",
+    "size": 7646
+   },
+   "p2_sky_plane.bin": {
+    "sha256": "f8af17ba95556fd92f1a45406dcc253606f05c85737575a214f1db9b4b1b626e",
+    "size": 316218
+   },
+   "p2_samples.json": {
+    "sha256": "1089f80558673efe6944469f0b267009fa625bcaa26a6dc45ba92ff8a0a9e14c",
+    "size": 10138629
+   },
+   "_n_files_total": 219
+  }
+ },
+ {
+  "arm": "abc_photscal_harmonized",
+  "exit": 0,
+  "wall_s": 50.05,
+  "output_dir": "/workspace/issue80-scratch/runs_a1/prefix_clean_head/abc_photscal_harmonized",
+  "config": {
+   "schema_version": "1",
+   "hips_paths": [
+    "/workspace/issue80-scratch/frozen/abc_photscal_harmonized/M42_M1_T2_flying_dutchman-20251212_014241-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/abc_photscal_harmonized/M42_M1_T2_flying_dutchman-20251216_031003-600S-H-alpha",
+    "/workspace/issue80-scratch/frozen/abc_photscal_harmonized/M42_M1_T2_flying_dutchman-20251212_012404-300S-Red"
+   ],
+   "output_dir": "/workspace/issue80-scratch/runs_a1/prefix_clean_head/abc_photscal_harmonized",
+   "snr_path": "sparse_reconstruct"
+  },
+  "acsd": "/workspace/acsd-a1-prefix/build/sci/acsd",
+  "env_extra": "",
+  "stderr_has::not SPD": false,
+  "stderr_has::adaptive node spacing exhausted": false,
+  "stderr_has::reduced normal matrix": false,
+  "stderr_has::surface build FAILED": false,
+  "stderr_has::identifiability criterion RED": false,
+  "stderr_has::UNIDENTIFIABLE": false,
+  "stderr_has::P5 disconnected graph": false,
+  "stderr_has::P5 per-component": false,
+  "sky_plane_line": "[sky_plane] ok n_used=17237 n_nodes=30 n_frames=3 rms_w=1.23422e-05",
+  "sample_line": "stage sample ok: obs=17237 overlap_controls=5807",
+  "artifacts": {
+   "p2_final.json": {
+    "sha256": "93139ffad59903bcf5a426ad80084774ce1244924b14e6ccdee5d65534de6bf5",
+    "size": 5121
+   },
+   "p2_coverage.json": {
+    "sha256": "af198f7eb03db33146ed6f3d4f7a06a54093789de99de7835a4b1f632538630a",
+    "size": 7731
+   },
+   "p2_sky_plane.bin": {
+    "sha256": "f074edfd9646f8de468ef1286381ee478b0e9d72250c19a280aa195ae6989c35",
+    "size": 316599
+   },
+   "p2_samples.json": {
+    "sha256": "ca1ccfd88ed01bbd1b7648aa2342f585ef06d06742a444e746655dfbf4eba9ca",
+    "size": 9990027
+   },
+   "_n_files_total": 218
+  }
+ }
+]
