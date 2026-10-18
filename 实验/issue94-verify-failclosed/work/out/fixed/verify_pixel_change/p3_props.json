@@ -1,0 +1,15 @@
+{
+  "bunit": "ADU/sr",
+  "bunit_input": "ADU/sr",
+  "hips_dir": "/workspace/.e2r-clean/实验/issue87-stage3-tile-integrity/work/fixtures/legal_full",
+  "hips_order": 0,
+  "ivar_available": false,
+  "pixel_area_power": -2,
+  "pixel_semantics": "surface_brightness",
+  "schema": "DATA-P3-PROPS",
+  "tile_width": 512,
+  "uncertainty_available": false,
+  "uncertainty_source": "none",
+  "variance_available": false,
+  "variance_propagation": "C_out = R C_in R^T"
+}

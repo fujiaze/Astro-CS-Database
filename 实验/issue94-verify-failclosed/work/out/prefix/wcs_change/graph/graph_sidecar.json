@@ -1,0 +1,12 @@
+{
+  "config_path": "<root>/prefix/wcs_change.json",
+  "input_manifest_sha256": "1a5c2dc8a04b4c7c175e824783feae2a85badb6fc992f707e540b2e620868337",
+  "ir_sha256": "e19295d292663f0fa75f1ca4f32ffb4e5958384e848bd4178bf15a564783d01a",
+  "phases": [
+    3
+  ],
+  "profile_id": null,
+  "run_id": "efaeee1de68a",
+  "schema": "acsd.graph-sidecar/v1",
+  "source_commit": "9c85100b8b38"
+}

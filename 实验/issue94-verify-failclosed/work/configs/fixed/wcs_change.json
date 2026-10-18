@@ -1,0 +1,18 @@
+{
+  "schema_version": "1",
+  "source": {
+    "hips_dir": "/workspace/.e2r-clean/\u5b9e\u9a8c/issue87-stage3-tile-integrity/work/fixtures/legal_full"
+  },
+  "output_dir": "/workspace/.e2r-clean/\u5b9e\u9a8c/issue94-verify-failclosed/work/out/fixed/wcs_change",
+  "center": {
+    "ra_deg": 0.0,
+    "dec_deg": 0.0
+  },
+  "width_px": 64,
+  "height_px": 64,
+  "scale_deg_per_px": 0.01,
+  "sampler": "nearest",
+  "longitude_parity": "east_left",
+  "output_mode": "surface_brightness",
+  "sub_block_px": 64
+}

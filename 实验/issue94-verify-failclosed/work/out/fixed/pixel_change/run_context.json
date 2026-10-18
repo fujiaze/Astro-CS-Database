@@ -1,0 +1,11 @@
+{
+  "build_dirty": true,
+  "build_head_sha": "9c85100b8b389dbd9df93c2ab579f0980da3b3eb",
+  "build_source_digest": "ee3eb041625642b5bcfc0543302e2a5e118b416184980ed12783125270da67e3",
+  "configure_head_sha": "9c85100b8b389dbd9df93c2ab579f0980da3b3eb",
+  "kind": "acsd_run_context",
+  "run_id": "efaecd4026c4",
+  "schema_version": "1",
+  "software_version": "0.1.0-alpha.1+g9c85100b8b389dbd9df93c2ab579f0980da3b3eb",
+  "source_sha": "9c85100b8b389dbd9df93c2ab579f0980da3b3eb"
+}

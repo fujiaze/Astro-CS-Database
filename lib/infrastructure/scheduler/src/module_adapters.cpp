@@ -172,7 +172,9 @@
 #include <exception>  // PERF-P2: 并行 worker 内异常跨线程回传
 #include <stdexcept> // 守卫内 std::stoi 非法尾字符 → std::invalid_argument
 #include <filesystem>
+#include <fstream>
 #include <functional>
+#include <iterator>
 #include <sstream>
 #include <string>
 #include <limits>
@@ -16451,6 +16453,85 @@ const char* p3_input_completeness_name(int coverage_verified) {
   return (coverage_verified == 1) ? "VERIFIED" : "UNVERIFIED_LEGACY";
 }
 
+// ── Issue #94: 确定性故障注入（测试门禁；生产默认不可达）────────────────────
+// ACSD_P3_VERIFY_FAULT ∈ {pixel_change, wcs_change, canonical_change,
+//                          verify_pixel_change, verify_wcs_change}
+// 语义（"写后 / 独立 verify 前"篡改**已发布**的 FITS）：
+//   pixel_change / wcs_change      : writer 在 fs.publish() 后、自身重开验证前应用
+//                                    ⇒ 证明 writer 必须消费 reopen_ok 并 fail-closed；
+//   canonical_change               : writer 写 p3_writer.json（记录 canonical）之后应用
+//                                    ⇒ 证明 verify 必须消费 canonical_match 并失败；
+//   verify_pixel_change / verify_wcs_change : verify 节点在自身重开前应用
+//                                    ⇒ 证明 verify 必须消费 reopen_ok 并失败。
+// 只篡改一个字节/一张卡，保持 FITS 可重开（结构合法），使"重开成功但判据不符"
+// 这一最易伪成功的形态可复现。
+bool p3_tamper_published_fits(const std::string& path, const std::string& mode) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in.good()) return false;
+  std::string b((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+  in.close();
+  if (b.size() < 2880u) return false;
+  // 定位头记录数（END 卡所在 2880 记录的下一记录 = 数据起点）。
+  size_t hdr_records = 0;
+  bool ended = false;
+  for (size_t blk = 0; blk + 2880u <= b.size() && blk < 2880u * 100u; blk += 2880u) {
+    for (size_t c = 0; c < 36u; ++c) {
+      const char* card = b.data() + blk + c * 80u;
+      if (card[0] == 'E' && card[1] == 'N' && card[2] == 'D' && card[3] == ' ') {
+        ended = true;
+        break;
+      }
+    }
+    if (ended) { hdr_records = blk / 2880u + 1u; break; }
+  }
+  if (!ended) return false;
+  if (mode == "pixel_change" || mode == "verify_pixel_change") {
+    const size_t off = hdr_records * 2880u;
+    if (off >= b.size()) return false;
+    b[off] = static_cast<char>(static_cast<unsigned char>(b[off]) ^ 0x01u);
+  } else {
+    const char* key = (mode == "wcs_change" || mode == "verify_wcs_change")
+                          ? "CRVAL1"
+                          : (mode == "identity_drift") ? "COVSTAT" : "SWVER";
+    bool done = false;
+    for (size_t off = 0; off + 80u <= hdr_records * 2880u && !done; off += 80u) {
+      char* card = &b[off];
+      std::string k(card, 8);
+      while (!k.empty() && k.back() == ' ') k.pop_back();
+      if (k != key) continue;
+      // 翻转 value 字段内的第一个字母/数字（避开引号与注释），保持 FITS 可解析。
+      for (size_t i = 10; i < 80u; ++i) {
+        const char ch = card[i];
+        if ((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') ||
+            (ch >= 'a' && ch <= 'z')) {
+          card[i] = (ch == '9') ? '8' : static_cast<char>(ch + 1);
+          done = true;
+          break;
+        }
+      }
+    }
+    if (!done) return false;
+  }
+  std::ofstream out(path, std::ios::binary | std::ios::trunc);
+  if (!out.good()) return false;
+  out.write(b.data(), static_cast<std::streamsize>(b.size()));
+  out.close();
+  return out.good();
+}
+
+// 单次读取（module_state_hygiene 的 ENV_READ_REGISTRY 按出现次数核对）。
+std::string p3_verify_fault_token() {
+  const char* f = std::getenv("ACSD_P3_VERIFY_FAULT");
+  return f ? std::string(f) : std::string();
+}
+
+// 机器可判码：verify 失败（reopen_ok/canonical_match）——与 tile 完整性码正交。
+const char* p3_verify_failure_code(bool reopen_ok, bool canonical_match) {
+  if (!reopen_ok) return "P3-VERIFY-REOPEN-FAILED";
+  if (!canonical_match) return "P3-VERIFY-CANONICAL-MISMATCH";
+  return "";
+}
+
 // 聚合故障 → 稳定 JSON（按 tile_ipix 升序；计数/worker 统计确定性）。
 Json p3_tile_failures_json(const acsd::phase3::P3TileFailure* f, int n) {
   Json arr = Json::array();
@@ -17400,6 +17481,12 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
     if (fs.publish(&ores) != P3_OUT_OK)
       return Result<void>::fail(Error(ErrorDomain::IO,
           std::string("p3_stream publish failed: ") + p3_output_last_error()));
+    // Issue #94: 写后/自身重开前的确定性故障注入（测试门禁；生产默认不可达）。
+    {
+      const std::string ftok = p3_verify_fault_token();
+      if (ftok == "pixel_change" || ftok == "wcs_change")
+        (void)p3_tamper_published_fits(fits_path, ftok);
+    }
     // 独立重开对拍（与整幅路径同判据；按子块流式，不整幅驻留）
     {
       P3FitsVerifyStream vs;
@@ -17441,6 +17528,23 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
       ores.total_px = vr.total_px;
       covn = vr.covered_px;
     }
+  }
+  // ── Issue #94: writer 必须消费独立重开的 reopen_ok（科学判决，不是报告字段）──
+  // reopen_ok=0 ⇒ 已发布的 FITS 与 p3_resampled.bin / 请求画幅/WCS 不一致：
+  // 显式撤销已发布 FITS，不写 p3_writer.json，不发布 complete manifest。
+  if (ores.reopen_ok != 1) {
+    aio_atomic::remove_file(fits_path);
+    const std::string code = "P3-WRITER-REOPEN-FAILED";
+    if (man) {
+      (*man)["semantic_code"] = code;
+      (*man)["verify_failed"] = true;
+      (*man)["reopen_ok"] = false;
+      (*man)["output_fits_path"] = fits_path;
+    }
+    return Result<void>::fail(Error(ErrorDomain::SCIENCE_PRECONDITION,
+        code + ": independent reopen verify of the published FITS failed"
+        " (reopen_ok=0); FITS withdrawn, p3_writer.json not published"
+        " (fail-closed, Issue #94)"));
   }
   // ── DEV-MODE-001: 导出 signal 平面开发快照（只读旁路）────────────────────
   // 数值 = p3_resampled.bin 的 plane 0（PRIMARY signal）中一个**确定性** ROI，
@@ -17534,6 +17638,13 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
   // §9 原子提交
   if (!p2_write_text_atomic(json_path, wr.dump(2) + "\n"))
     return Result<void>::fail(Error(ErrorDomain::IO, "p3_writer.json atomic write failed"));
+  // Issue #94: canonical 记录之后的确定性故障注入（测试门禁；生产默认不可达）。
+  // 篡改 FITS 但保持其可重开 ⇒ 只有 verify 的 canonical_match 能判红。
+  {
+    const std::string ftok = p3_verify_fault_token();
+    if (ftok == "canonical_change")
+      (void)p3_tamper_published_fits(fits_path, ftok);
+  }
   // A2 单点键名: 节点 manifest 与 CLI 收集端统一用 output_fits_path
   //（旧节点写 output_fits、CLI 只读 output_fits_path → phase3_output role 恒缺）。
   (*man)["output_fits_path"] = fits_path;
@@ -17648,28 +17759,56 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   if (!p3n_sub_block_px(doc, &sb, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
   const std::string verify_fits = wr.value("output_fits", std::string());
+  // Issue #94: 任何 verify 失败都必须显式撤销可被 consumer 选为 complete 的成功
+  // 产物（FITS + writer 成功声明）；只留 run manifest=incomplete 与（可能已写的）
+  // p3_verify.json 失败记录。
+  auto verify_fail = [&](ErrorDomain dom, const char* code,
+                         const std::string& detail) -> Result<void> {
+    aio_atomic::remove_file(verify_fits);
+    aio_atomic::remove_file(g.out_dir + "/p3_writer.json");
+    if (man) {
+      (*man)["semantic_code"] = std::string(code);
+      (*man)["verify_failed"] = true;
+    }
+    return Result<void>::fail(Error(dom, std::string(code) + ": " + detail));
+  };
+  // Issue #94: 身份漂移负例注入（测试门禁；生产默认不可达）：篡改 FITS COVSTAT，
+  // 证明 E2-R 的"resampled ↔ writer ↔ FITS 头同源"检查真的会判红。
+  {
+    const std::string ftok = p3_verify_fault_token();
+    if (ftok == "identity_drift")
+      (void)p3_tamper_published_fits(verify_fits, ftok);
+  }
   // ── Issue #87/E2-R: FITS 头的外部发布身份必须与 JSON 声明一致（可机判）──────
   char fits_covstat[64] = {0};
   int fits_covverif = 0;
   if (acsd::phase3::p3_output_read_coverage_identity(
           verify_fits.c_str(), fits_covstat, (int)sizeof(fits_covstat),
           &fits_covverif) != acsd::phase3::P3_OUT_OK)
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        std::string("verify: FITS coverage identity unavailable: ") +
-            acsd::phase3::p3_output_last_error()));
+    return verify_fail(ErrorDomain::DATA, "P3-VERIFY-IDENTITY-UNAVAILABLE",
+        std::string("FITS coverage identity unavailable: ") +
+            acsd::phase3::p3_output_last_error());
   if ((fits_covverif == 1) != res_cov_verified ||
       res_completeness != std::string(fits_covstat))
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        std::string("verify: FITS header coverage identity mismatch (header ") +
+    return verify_fail(ErrorDomain::SCIENCE_PRECONDITION,
+        "P3-VERIFY-IDENTITY-MISMATCH",
+        std::string("FITS header coverage identity mismatch (header ") +
             fits_covstat + "/" + (fits_covverif ? "true" : "false") +
             " vs resampled " + res_completeness + "/" +
-            (res_cov_verified ? "true" : "false") + ")"));
+            (res_cov_verified ? "true" : "false") + ")");
   P3OutputResult vres{};
+  // Issue #94: verify 节点自身的确定性故障注入（测试门禁；生产默认不可达）：
+  // 在独立重开之前篡改 FITS，证明 verify 必须消费 reopen_ok 并失败。
+  {
+    const std::string ftok = p3_verify_fault_token();
+    if (ftok == "verify_pixel_change" || ftok == "verify_wcs_change")
+      (void)p3_tamper_published_fits(verify_fits, ftok);
+  }
   {
     P3FitsVerifyStream vs;
     if (vs.open(verify_fits.c_str(), &owcs, ow, oh, false) != P3_OUT_OK)
-      return Result<void>::fail(Error(ErrorDomain::IO,
-          std::string("p3_stream verify open failed: ") + p3_output_last_error()));
+      return verify_fail(ErrorDomain::IO, "P3-VERIFY-OPEN-FAILED",
+          std::string("p3_stream verify open failed: ") + p3_output_last_error());
     // slim 唯一形态（task-9）：只校验 plane=0（PRIMARY signal 单 HDU）。
     const int nplanes = 1;
     std::vector<float> fb;
@@ -17686,20 +17825,20 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
                                  (uint64_t)(crop.x0 + x0);
             if (!aio_file::read_range(bin_p.c_str(), row * sizeof(float),
                                       (std::size_t)w * sizeof(float), &buf))
-              return Result<void>::fail(Error(ErrorDomain::DATA,
-                  "p3_resampled.bin truncated (verify)"));
+              return verify_fail(ErrorDomain::DATA, "P3-VERIFY-BIN-TRUNCATED",
+                  "p3_resampled.bin truncated (verify)");
             std::memcpy(fb.data() + (std::size_t)yy * w, buf.data(),
                         (std::size_t)w * sizeof(float));
           }
           if (vs.check_block(plane, x0, y0, w, h, fb.data()) != P3_OUT_OK)
-            return Result<void>::fail(Error(ErrorDomain::IO,
-                std::string("p3_stream verify failed: ") + p3_output_last_error()));
+            return verify_fail(ErrorDomain::IO, "P3-VERIFY-BLOCK-FAILED",
+                std::string("p3_stream verify failed: ") + p3_output_last_error());
         }
       }
     }
     if (vs.close(&vres) != P3_OUT_OK)
-      return Result<void>::fail(Error(ErrorDomain::IO,
-          std::string("p3_stream verify close failed: ") + p3_output_last_error()));
+      return verify_fail(ErrorDomain::IO, "P3-VERIFY-CLOSE-FAILED",
+          std::string("p3_stream verify close failed: ") + p3_output_last_error());
   }
   const std::string json_path = g.out_dir + "/p3_verify.json";
   // DET-001: verify 侧**独立重算**规范产品哈希（不采信 writer 自报值）, 并给出
@@ -17707,11 +17846,15 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   const acsd::core::CanonicalHashResult vcanon =
       acsd::core::canonical_product_hash_file(verify_fits);
   if (!vcanon.ok)
-    return Result<void>::fail(Error(ErrorDomain::IO,
-        "canonical product hash failed (verify): " + vcanon.error));
+    return verify_fail(ErrorDomain::IO, "P3-VERIFY-CANONICAL-HASH-FAILED",
+        "canonical product hash failed (verify): " + vcanon.error);
   const std::string writer_canon = wr.value("canonical_sha256", std::string());
   const bool canon_match = !writer_canon.empty() &&
                            writer_canon == vcanon.canonical_sha256;
+  // ── Issue #94: reopen_ok 与 canonical_match 是**科学判决**，不是报告字段 ─────
+  const bool verify_ok = (vres.reopen_ok == 1) && canon_match;
+  const char* verify_code =
+      verify_ok ? "" : p3_verify_failure_code(vres.reopen_ok == 1, canon_match);
   Json ver{{"schema", "DATA-P3-VER"},
            {"output_fits", verify_fits},
            {"reopen_ok", vres.reopen_ok},
@@ -17720,6 +17863,9 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
            {"canonical_hash_spec", acsd::core::kCanonicalProductHashSpec},
            {"writer_canonical_sha256", writer_canon},
            {"canonical_match", canon_match},
+           // Issue #94: 机器可判总判决（consumer 不必自行组合两个布尔）。
+           {"verify_ok", verify_ok},
+           {"semantic_code", std::string(verify_code)},
            {"integrity_sha256", std::string(vres.sha256)},
            {"coverage_stats",
             {{"covered_px", vres.covered_px}, {"total_px", vres.total_px}}},
@@ -17752,6 +17898,20 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   (*man)["sub_block_streaming"] = true;
   (*man)["coverage_verified"] = res_cov_verified;
   (*man)["input_completeness"] = res_completeness;
+  (*man)["verify_ok"] = verify_ok;
+  // Issue #94: 验证失败 = 科学判决失败：显式撤销可被 consumer 选为 complete 的
+  // 成功产物（FITS + writer 成功声明），只留 p3_verify.json 作失败记录。
+  if (!verify_ok) {
+    aio_atomic::remove_file(verify_fits);
+    aio_atomic::remove_file(g.out_dir + "/p3_writer.json");
+    (*man)["semantic_code"] = std::string(verify_code);
+    (*man)["verify_failed"] = true;
+    return Result<void>::fail(Error(ErrorDomain::SCIENCE_PRECONDITION,
+        std::string(verify_code) + ": independent verify failed (reopen_ok=" +
+            std::to_string(vres.reopen_ok) + ", canonical_match=" +
+            (canon_match ? "true" : "false") +
+            "); FITS withdrawn, writer artifact removed (fail-closed, Issue #94)"));
+  }
   return Result<void>::success();
 }
 
