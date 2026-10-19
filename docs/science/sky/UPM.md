@@ -135,6 +135,23 @@ d=B\eta+e,\qquad B_{e,i}=1,\ B_{e,j}=-1,\qquad\operatorname{Cov}(e)=\Sigma_e\suc
 \]
 同数据拟合产生的 `Cov(y,a)`、不同帧共享 Gaia/Master/背景锚引起的交叉项及低频参数系统项均须计入。仅当 a、g 是固定已知外参，`SNR(z)` 才在正的确定性增益除法下保持配对不变；sky shot noise 已在光子读出时产生，扣除其均值不能消去 shot-noise。若残余场只从同一组 y 估计，则 `C_z` 可能含负的交叉协方差、相关核及真实天体泄漏，不能一律简单把拟合方差加到像元方差，也不能声称“共模增强不损失任何 SNR”。背景差分若有无法识别的低频共模，应当保留该模式及其相对零点不确定性，而非将平滑结果误当真值。
 
+
+### 4.3 正式优先方案：仅相对加性差模（R4 收敛；A+G 非前置依赖）
+
+采用 Montage 重叠差分/全局一致模型（https://irsa.ipac.caltech.edu/Montage/docs/algorithms.html）并借鉴 Planck/Madam 对可辨识公共模式的处理（https://arxiv.org/abs/0907.0367）；扫描式 destriping 的观测几何不原样照搬 CCD。先按可比 response 组分开建立公共天空，PSF 不同时只在**背景拟合控制尺度**构造可比较的 \(H_k S\)，不无条件将高分辨率最终图像模糊到最差 PSF。用户混合 Hα/Red 可继续，但是未有逐位置 SED 模型时不得用异滤镜差帧充当天光差模约束，以免减去真实星云发射线。
+
+对 overlap 样本向量 \(y=HS+A\beta+\epsilon\)[L/sr]，\(S\) 是未测绝对基准的共同真实天空、\(A\) 是按**实际求值函数**构造的每帧 offset/plane/必要低阶空间 basis；只有足够空间分布/独立留出改善时才增加自由度。令 \(W=C_{\rm ctrl}^{-1}\)，对可辨识共同天空列空间 profile out：
+\[
+Q=I-H(H^TWH)^+H^TW,\qquad
+\widehat\beta=\arg\min_{\beta\in\mathcal G}(y-A\beta)^TWQ(y-A\beta).
+\]
+控制的 \(C_{\rm ctrl}\) 必须属于 patch 均值/中位数等实际统计量，不能直接用星点 Fisher 权重；负结构/双符号异常均需审查，零 MAD 不是零噪声。每个有效重叠连通分量单独固定 gauge，未与外部锚联系的组件无法声明绝对背景；对 \(QA\) 的实际秩、奇异谱、弱支持方向进行白化 QR/SVD 判定，降到 offset/plane 或标出不可辨识。正权 Gauss–Newton 正规矩阵 PSD；对 #80 的 not-SPD 先分析真实零空间、尺度及装配，任意 ridge 不能创造可辨识性。
+
+**fit/eval 一致性**：sky_plane.cpp::sky_make_residual_fields 当前用 floor-bin 将 residual 分到唯一结点，而 sky_own_eval 按四结点双线性 basis 评价，这不是严格相同目标的最小二乘。应以实际四权 basis 组装稀疏 A，按冻结样本/同一 \(\rho\)/同一协方差度量检查一次迭代目标，旧 bin 只能作初始化；稳健 IRLS 重算权后需明确新目标。预测只在 overlap 控制域有测量约束；非重叠处可恒等退回或具名外推，未观测区域不报告虚假有限精度。
+
+参数和源图像同数据拟合时 \(z=(I-AL)y\) 的协方差是 \((I-AL)C_y(I-AL)^T\)，不能只在源 variance 上加一个独立 \(\mathrm{Var}(\widehat\beta)\)；跨帧共有 Gaia/master/gauge 另保留交叉组与低秩相关。扣除天光均值不消除 sky photon shot noise。实现先改 fit/eval 与参数支持/方差消费，暂不移植 A+G/PMM；必须同时检查 seam signed difference、真实低频结构、点源测光和留出误差，不以 seam RMS 单指标验收。
+
+
 ## 5. 背景控制点与空间相关
 
 一个背景 patch 的测量值可以是中位数、稳健位置或其他已定义估计量。其方差不等于单像元方差。对 iid 高斯，样本中位数渐近有 Var(median)≈(π/2)σ²/N；有 Drizzle 相关、剪裁、非高斯结构和天体污染时，这一公式需要额外估计。实测的 k_corr 需按精确的 patch 统计量、HEALPix leaf/source 尺度、pixfrac 与相关模型重新标定。
