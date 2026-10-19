@@ -14,6 +14,49 @@
 | [session](#session) | Mosaic 局部模型会话 |
 | [resample](#resample) | Mosaic 聚合会话适配描述符 |
 
+
+## 科学算法重构的最小可编码接口（R1–R5 综合设计；生产尚未迁移）
+
+下述为 C++ **目标内部接口草案**，不是已有 DLL ABI 的声明。公共 C ABI 继续复用现有 opaque handle、span/allocator 与 Runtime/AIO；不允许在跨 DLL 入口直接传 STL。入口顺序必须保持 Normalize → Drizzle → FrameScience → SkyCorrection → CoadditionEngine → Export；单个科学帧原生合法 signal 不因缺 gain/完整 variance 自动失败。上游 Normalize 保证每份 HiPS 的 target HEALPix order 来自用户选择、非 mixed；Mosaic 的 p2_hips_order_uniform 继续对错误 order 拒绝，不新增 mixed-order 重映射。
+
+内部概念结构（f64 代表数值；各数组为借用的 span，生产可由 FrameBlock/AIO 按需读取）：
+
+| 数据视图 | 最小成员与职责 |
+|---|---|
+| FrameScienceView | run/frame/occurrence；NESTED order 与 leaf 绝对 index；signal L/sr、validity、几何 support、native source 操作符 R 的 CSR refs 与面积误差；linear_base 与施加状态 |
+| ResponseView | reference_sed_id、response_id、按波长有序曲线 hash、已知/XP 截断/近似/未知状态；有效空间/时间域；对 mixed 输出保存 frame 来源 |
+| PsfNeighbourhood | 单帧 local effective PSF/MTF 或可查函数、与同一目标叶/单位对齐的有效窗口；近邻块 halo 输入，不必先同质 PSF 模糊 |
+| NoiseFactorView | native variance 的 known mask、局部 covariance stencil、跨叶/跨帧共享组 U 与参数 covariance；estimate_kind、omitted_terms、完整/部分/不可用状态 |
+| SkyCorrectionView | offset/plane/basis ID、gauge/连通分量、actual fit/eval basis、作用区域和外推状态、参数与数据交叉 Jacobian 或可重建的残差算子 |
+| FrameStackProvider | 按 target tile + halo / frame/time 返回上述借用视图，生命周期限定于调用期间；由 Runtime 与 AIO 控制预取/缓存/取消，不持有新的全图复制 |
+| CoaddBlock | 单一 signal tile (finite/NaN)、输入 frame_id→资格/拒绝理由、内部权重/支持/噪声能力/位置相关 response 摘要、provenance；不自动发布第二科学 signal 层 |
+
+建议本地（非公开 ABI）入口签名：
+- PhotometricResult fit_gaia_scale(span<StarDatum>, ResponseView, ReferenceSed, FitOptions)：返回 theta、Cov/状态、彩色/空间秩、留出读数与实际使用曲线身份；apply_scale(FrameScienceView&, PhotometricResult) 保持数值/方差/单位一致。
+- AreaResult compute_true_hpx_overlaps(WcsForwardView, DetectorPixel, pixfrac, target_order, AreaTolerance)：返回唯一排序叶及 a/A/Omega/abs_error；accumulate_drizzle(AreaResult, SourcePixelView, NoiseFactorView) 给 normalized R、signal、support 和 variance capability。
+- ReferencePrecision compute_reference_fisher(PsfNeighbourhood, NoiseFactorView, NuisanceBasis, DrizzleRows)：返回 F_ref,V_F,SNR 与秩；ScenePrecision compute_scene_variance(DrizzleRows, NoiseFactorView, CalibrationJacobian, actual_scene_condition) 针对实际面亮度而非星点 Fisher。
+- SkyModel fit_relative_sky(ControlObservations, ComparableResponseGroups, Basis, Gauge, CovarianceView)：白化 GLS/稳健迭代，返回支持、秩和共享参数；apply_relative_sky(SkyModel, FrameStackProvider) 返回校正面与联合残差协方差视图。
+- CoaddBlock CoadditionEngine::process_tile(TargetTile, Halo, FrameStackProvider, CoaddPolicy)：传统实现内部 gather → rejection → diagonal/GLS weights → weighted reduce → condition response summary。未来 SACoadd 实现相同接口读取 PSF/MTF、多尺度邻域；writer/export 消费相同单 signal+identity，前四个科学模块不变。
+
+伪代码（每输出 tile 均使用确定性的 frame_id 次序）：
+
+    frames = provider.read(target_tile, halo, order_is_uniform=true)
+    for p in target_tile:
+        candidate = frames.with_valid_signal_and_positive_support(p)
+        if candidate.empty(): output[p] = NaN; continue
+        comparable = group_for_rejection_by_response_and_psf(candidate)
+        mask = reject(comparable, DQ, sigma_or_LOO_policy, n_small_conservative)
+        cov = scene_noise_and_shared_factors(mask, p)
+        weight = GLS_if_estimand_same_and_cov_known_else_diagonal_or_declared_heuristic(cov)
+        output[p] = stable_weighted_mean(mask.signal, weight)
+        diagnostics[p] = {input_ids, mask, support, weight_kind, precision_status}
+    publish_one_signal_tile_and_response_provenance(output, diagnostics)
+
+**统计/实现边界**：上述 group_for_rejection 只决定哪些帧可作同分布异常检验，不妨碍用户将不同 response 的保留 signal 最终混合。shared covariance GLS 在帧数 K 小时按有界正定系统求解，K 较大优先 diagonal+low-rank Woodbury/稀疏线性代数；不要全球面 dense covariance。基本 mean 为 O(K) / leaf，排序类排异 O(K log K)，逐叶 dense GLS 上界 O(K³)，SACoadd 邻域成本取决于选择的窗口/尺度。geometry 计算缓存 facet/实际 WCS 结果，noise CSR/局部核按 tile 复用；中间 f64，signal 输出精度由 FITS 合同决定。错误状态需区分 BAD_GEOMETRY/INVALID_SIGNAL/UNIDENTIFIABLE_SKY 与合法的 NO_SUPPORT/UNKNOWN_PRECISION/UNSUPPORTED_RESPONSE_MODEL；最后三者不自动抹除已有数值信号。
+
+**现有函数迁移切口**：P1 保留 frame_photometry_fit.cpp、spectrum_integrator.cpp、drizzle_engine.cpp 主线；将 spherical_overlap.cpp 的 boundary4 替换为真实曲边模块，保留现有 w/N/F/D；以 normalize_precision.cpp 和 sparse_reference.cpp 产物接 frame_science canonical reader（Mosaic 当前仍走 legacy ACSD_SPARSE_SNR_LAYER）；sky_plane.cpp/p2_sky_plane_build_joint 保留公共面与差模，但 own residual 的 fit/eval basis 需一致；rejection.cpp AUTO 在 N4/N5 的 percentile 路由改保守同噪声标准化策略前需实验；p2_integrate_pixel 仍能作数值 weighted reducer，但上游不再把 reference SNR 当 scene IVAR；p2_op_write、p3_op_writer 只处理单 signal 与来源。按这条依赖顺序分阶段小改，既有 FrameBlock、ARS、调度器与 AIO 不重新设计。
+
+
 ## coverage
 
 **Mosaic 输入发现与覆盖并集。**
