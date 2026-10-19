@@ -104,6 +104,28 @@ Drizzle通过缩小足迹控制额外卷积和噪声相关[2]。输入像元 j �
 
 **直接科学判据**：P3 生产应对全 12 face、极区、NESTED 接缝及不同 nside/pixfrac 各取真实曲边的独立误差证书；报告 `partition_error`、`leaf_symmetric_difference_area`、`overlap_error_bound` 和条件 signal bound，而不是只取一个守恒 residual。可在解析高阶 HEALPix chart 或有界自适应曲边积分中独立求证。真实数值误差/计算代价是待实验量，不可从该定理编造为已达成的 arcsec/ppm。这里是 **Stage1 的 spherical Drizzle**，与 Stage3 irregular bilinear 插值 (#90) 及导出 WCS 错误是不同数学问题。
 
+
+### 3.4 HPX 等面积 chart + WCS/SIP 曲边的实际求交算法（R2 方案；生产尚未替换）
+
+采用 Fruchter–Hook (2002, DOI https://doi.org/10.1086/338393) 的线性 drop 分配、Calabretta–Roukema (2007, DOI https://doi.org/10.1111/j.1365-2966.2007.12297.x) 的 HPX 等面积 chart。chart **仅作几何参数域**，源信号不经中间平面重采样。原生探测器像元 \(P_j\) 是中心 \((u_j,v_j)\)、宽高各 1 pixel 的正方形，pixfrac \(f\in(0,1]\) drop \(Q_j(f)\) 是同中心边长 f 的正方形；真实曲边为连续正向 WCS(TAN/CD/SIP) 的映像 \(D_j=W(Q_j)\)，源面积 \(\Omega_j=\Omega(W(P_j))\)，drop 面积 \(A_j=\Omega(D_j)\)，不把 \(f^2\Omega_j\) 当球面精确恒等式。
+
+HPX 赤道 \(|z|=|\sin\beta|\le2/3\) 的 chart 取 \(x=\lambda,\ y=3\pi z/8\)，极区 \(\sigma=\sqrt{3(1-|z|)}\)、\(x=\lambda_c+\sigma(\lambda-\lambda_c),y=\operatorname{sgn}(z)\pi(2-\sigma)/4\)。两区 \(d\Omega=\tfrac{8}{3\pi}dx\,dy\)。12 个 facet 各有独立取向/镜像；其本地 \((s,t)\) 方格经独立 HEALPix/WCSLIB 对拍后，目标叶为边长 \(1/\mathrm{nside}\) 的真正等面积子方格。但**源 SIP 曲边经 chart 后通常依然是曲线**。
+
+针对每个源 drop：
+1. 在 detector 平面建立 P/Q 两套区域，经 WCS 正向映射，检验在像素域连续局部单射、Jacobian 非零和正反取向，求 \(\Omega_j,A_j\) 及误差。
+2. 将真实曲线沿 RA 回绕、赤道/极区 \(|z|=2/3\)、12 facet、polar interruptions/极点分段；每份物理面积只归属一个积分分片。极点用面内极限避免除零。
+3. 用包含曲边误差包络的 facet bbox 枚举保守目标叶候选，薄 sliver 不能因四角 bbox 漏选。
+4. 在各 HPX facet 的叶方格与源曲边间隔离根/切点、细分单调曲线，以 \(\tfrac12\oint(x\,dy-y\,dx)\) 或自适应条带积分给出 \(a_{jp}=\tfrac8{3\pi}\operatorname{Area}_{chart}(D_j\cap H_p)\)[sr]。
+5. 同一数值交叠产生 \(w=a/A\)、\(F=\sum wx\)[L]、\(N=\sum w\Omega\)[sr]、\(D=\sum a\)[sr] 与 \(R=w/N\)[sr⁻¹]；依同一 R 传播源协方差，未知方差输入的非零系数须传递 unknown 状态，不能仅求部分平方和后叫完整 V。
+6. 记录每一 \(a,A,\Omega\) 的绝对误差预算、候选遗漏面积上界和未分配面积；独立验证极冠、面中断、RA=0、pixfrac、不同原生角像元尺度及 SIP 变形。
+
+误差控制不能靠“连续两次细分结果相同”自证。若曲线参数区间 \(\Delta t\) 上真实有 \(\|q''\|\le M\)，端点弦最大偏离 \(\le M\Delta t^2/8\)；进一步以认证包络带、周长及交点余项获得 chart 绝对面积上界，再换 sr。对近零 sliver 使用 \(\epsilon_{\rm abs}+\epsilon_{\rm rel}a\)，不报告发散相对误差。完整包含的快速路径仅在源/叶曲边外包络严格分离时可用，不以 nside 高或短边阈值当曲率证明。
+
+**独立 detector 域面积 oracle**：TAN+SIP 的 \((\xi,\eta)=CD\,(u+A,v+B)\)[rad]，取 \(g(u,v)=|\det CD|\,|\det(I+\nabla(A,B))|/(1+\xi^2+\eta^2)^{3/2}\)[sr/pixel²]，独立积分 \(a_{jp}=\int_{Q_j}\mathbf1_{H_p}(W(u,v))g(u,v)\,du\,dv\)；用外部 HEALPix 库判断成员，指示函数跨边界要定位根并积分，非命中 Monte Carlo 不能证明无 sliver。R2 #99 已推得极冠 apex 叶四角测地边面积可错约 9.97%，和 SIP 曲边半平面 0.49 对四角 0.47 的反例；它们不是生产真实星通量偏差。
+
+C++ 小切口位于现有 spherical_overlap.cpp 的 boundary4/候选/面积函数及 drizzle_engine.cpp 的 60″ 曲率触发；保留后者当前正确的 w/N/F/D 算术和 writer 连续面积。几何、累计与误差界以 f64 为主，病态曲线局部增加精度；预计算 facet 常量、按交叠叶稀疏缓存，不造全图 dense R。单源成本由 K 候选叶、m 分段和 Q 次积分/求根主导，约 O(Km+Q)；需要真实数据验证之后才能判断性能预算。
+
+
 ## 4. 方差与空间协方差严格传播
 
 Drizzle 是随几何冻结后对**输入线性信号**的线性算子；矩阵 R_{pj}=c_pj。输入 C_in 是源像元计数/线性信号的随机协方差。于是
