@@ -39,6 +39,20 @@ C++ 内部可用 RAII、`std::optional` 和 `shared_ptr<const T>`；跨 DLL 用�
 
 `linear_unit` 给出积分信号的数值尺度；sphere signal 单位是该尺度/sr。冻结线性基单位词表（#9）只有两个成员：`ADU`（未施加带单位标度）与 `XPMODEL`（已施加 Gaia XP 合成通带标度后的模型通带通量单位，由该帧实际 response 归一，相对模型量、非 SI）；canonical 串为 `L/sr`、`L^2/sr^2`、`sr^2/L^2`，由冻结单位表唯一实现导出（`lib/algorithms/resample/p3_rsmp_units.cpp`）。每个控制点的 `reference_flux` 使用与其模板 h 配对的积分通量尺度，`flux_variance` 用该尺度平方，`reference_snr` 无量纲。相对标度必须记录归一参考 ID，不能无依据写 SI 或沿用未经标度的 ADU。BUNIT 和物理状态由实际应用结果生成，不按拟合是否存在猜测。
 
+
+### 3.1 给 Mosaic 的科学数值与相关身份（R1–R5 综合）
+
+本合同现有 FrameScientificProduct 保持不变；其可求值内容必须满足下列最小因果义务，而非引入另一整套对象仓：
+
+1. 由 Gaia fit 发布 response 有序 hash、reference SED/XP band support、实际 application_id、alpha(u) 与参数 Cov/Jacobian 的 availability；未知 gain、口径或窄线目标 SED 的系统项按 unknown/omitted 表达。若未施加 Gaia，单位仍为 ADU；不得将两个不同 linear_base 在 P2 内悄然合并。
+2. 由严格几何发布 \(R_{pj}=(a_{jp}/A_j)/N_p\) 的源像元索引与 normalized coefficients（或不可变可重建引用）、\(\Omega_j,A_j,a_{jp},N_p\) 精度预算、valid/signal/support。R 与叶 index 使用同一 NESTED 阶数和 WCS/SIP 身份。仅有角点、closure 或中心定位的记录不能充当物理曲边验证。
+3. 由 noise completion 发布 **不同估计量** 的 reference V_F/SNR 与 scene V_B/noise factors；控制点的 estimator_kind、observed/predicted、support_domain 和 model error 不可混用；对参与 R 的未知 variance 位必须传播 full_variance_unavailable，partial variance 只可作诊断。
+4. 跨共享 Gaia 响应/母版或多帧天空拟合的 Cov group_id、参数协方差与模型缺项供下游低秩消费；不能要求写全局巨大 Cov 矩阵。target leaf p 不因自己的 reference precision unknown 就丢失已可用的合法 signal。
+5. 第三阶段只从 Mosaic 正式 signal/response/provenance 导出 FITS；不能凭一个单 signal 恢复原始 R、full covariance 或真实绝对通带。
+
+默认目标是一个明确的 target_order（所有设备的原始像元在 P1 直接投到这一阶）；P2 混 order 返回显式不支持且无完成产物。不同原始像元尺度、有效 PSF、filter 与设备型号不因此受限。
+
+
 ## 4. 端口与因果图
 
 端口是数据合同，载体可在迁移期为已注册的正式 cache，目标为 Runtime 管理的 typed payload。`data_schema_id` 表示载荷，不能只是安排节点先后、数据仍靠猜文件路径取得。
