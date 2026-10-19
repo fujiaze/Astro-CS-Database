@@ -27,6 +27,31 @@ ACSD 有三个命令：
 
 不可把星等、SNR、像元计数与面亮度互相当作相同对象；显示像素值可为负（扣除加性天空之后），不得默默截断为零。
 
+
+### 2.1 R1–R5 共同的前向算子与估计量（2026-10-19 综合收敛）
+
+以真实天体光谱辐亮度 \(L_\lambda(\omega)\) [W m⁻² sr⁻¹ m⁻¹] 为起点，其中 \(\omega\) 是 ICRS 球面方向，\(\lambda\) 采用 SI 米。第 k 次曝光、原生像元 i 的理想 ADU 观测为
+\[
+d_{ki}=\mathcal H_{ki}[L_\lambda]+b_{ki}+\epsilon_{ki},\quad
+\mathcal H_{ki}[L_\lambda]=
+\int_{\lambda}\int_{\mathbb S^2}L_\lambda(\omega)
+{\lambda\over hc}\,
+{t_k A_{{\rm eff},k}(\lambda,\omega)T_k(\lambda)QE_k(\lambda)T_{{\rm atm},k}(\lambda,\omega)\over g_k}
+P_{ki}(\omega,\lambda)\,d\Omega\,d\lambda .
+\]
+\(t\)[s] 为曝光，\(A_{\rm eff}\)[m²] 是有效集光面积，\(T,QE,T_{\rm atm}\) 无量纲，\(g\)[e⁻/ADU]，\(P_{ki}\) 是含 WCS/SIP、色相关 PSF、探测器像元积分的收集核，采用能使该积分输出 ADU 的归一规范。\(b_{ki}\)[ADU] 是额外天光/暗电流/电子偏置均值，必须区分读出前有 photon shot noise 的天空和纯电子均值；\(\epsilon\) 保留源/天光 Poisson、读噪、master 及校准残差。已经 bias/dark/flat 校准的输入须使用相应的条件观测和噪声模型，而不是二次扣除。未知口径/gain/大气只可由 Gaia 恒星经验拟合乘积，不能虚构各因子物理真值。
+
+对线性像元 \(x_k=A_{\alpha,k}(d_k-\widehat b_k^{\rm instrument})\)[L]，原生总通量与球面面亮度经严格 Drizzle \(y_k=R_kx_k\)[L/sr] 连通。\(R_{kpj}=(a_{kjp}/A_{kj})/N_{kp}\)[sr⁻¹]，\(N_{kp}=\sum_j(a_{kjp}/A_{kj})\Omega_{kj}\)[sr]；这是**源积分量到目标面亮度**的定义，不能把结果继续叫积分总通量。对控制背景的单独观测模型 \(y_k=H_kS+A_k^{\rm sky}\beta_k+\varepsilon_k\)，仅识别在可比响应组内的相对加性差模；校正 \(z_k=y_k-A_k^{\rm sky}\widehat\beta_k\)。传统最终合成 \(\widehat m_p=\sum_k q_{kp}(z)\,z_{kp}\)，若 q 含排异/数据驱动权重，整个算法是非线性估计量，不能套固定矩阵的全误差公式冒充完整选择后方差。
+
+固定几何/掩膜/参数条件下 \(C_y=R A_\alpha C_d A_\alpha^TR^T\)。标定、天光参数与源图像有共享观测时，需令 \(\zeta=(d,\widehat\theta_{\rm Gaia},\widehat\beta_{\rm sky},\ldots)\)，按 \(J_\zeta\operatorname{Cov}(\zeta)J_\zeta^T\) 传播，包括两两交叉项；额外 WCS/响应/PSF 偏差分别作为模型系统误差，不当作 iid photon variance。点源 Fisher \(V_F\)、球面场景方差 \(V_B\)、背景控制统计方差 \(V_{\rm ctrl}\) 是三种不同估计量，不共享无语义的 precision 字段。
+
+同通带/兼容空间算子下可针对同一面亮度目标作 BLUE/GLS。异滤镜或不同 PSF 下，一般输出是观测算子的**用户定义混合**：
+\[
+K_{\rm eff}(p,\omega,\lambda)=\sum_k q_{kp}K_k(p,\omega,\lambda).
+\]
+仅在固定选择/固定权重并且忽略核差异的特定近似下，才能写成位置相关 \(R_{\rm eff}(\lambda,p)=\sum_k q_{kp}R_k(\lambda)\)；不能把任意星云的真实光谱压为一个未证明的共同标量天空。同阶 HEALPix 是 Mosaic 的输入前提：Normalize 全部投到用户选定的阶数，Mosaic 检出混阶应拒绝，不在此层实现混阶 remap。
+
+
 ## 3. 跨设备光度：参考通带与不可辨识部分
 
 给每次 mosaic 定义**参考响应或混合响应规则**。R_0(λ)可以是选定设备响应或具名标准响应；相对参考若无已知曲线，不能把该名称当作已知R_0。Gaia DR3 XP 给出合格恒星的校准光谱 f_{λ,s}；合成参考量按同一响应与光子/能量计数约定计算：
