@@ -50,13 +50,17 @@
 
 响应曲线的名字用于选择输入数据。已知响应应记录滤镜、探测器 QE、波长单位、归一方式和来源；未知或缺失响应必须保留未知状态，不能补成理想响应。不同设备和通带的合法输入不因名字不同而被拒绝，但响应未知或不同会限制绝对定标和合成结果的解释[1][3][5]。
 
+**下一阶段目标配置（尚未进入当前 CLI/schema/parser）**：photometry.fit.response 单一对象二选一。参数窄带例：mode=parametric_narrowband，center_nm=656.28，fwhm_nm=5.0，profile=top_hat_approx，profile_version=1；实测例：mode=measured_curve，curve_name=某已存在库键。普通窄带无须滤镜库文件，但仍须独立提供真实 QE 曲线键或显式理想 QE 假设；它不是关闭 QE 校验的捷径。中心、FWHM 必须有限正值，中心减半带宽也须为正，并报告 XP/QE 有效积分域。参数模式不允许凭 OD5 断言已实测通带，快速光锥蓝移与未知形状属于响应模型误差。两模式 identity 的 canonical 字段和分段积分见[测光 §2.1](../../science/photometry/PHOTOMETRY.md)。
+
+兼容迁移：**未提供新 response** 时继续从现行 photometry.fit.filter / block.filter_passband 按字节一致的库键解析 measured_curve；提供新 response 时这些旧滤镜键与其冲突应返回具名 RESPONSE_SOURCE_CONFLICT，不静默选取；已知 QE 与 frame_overrides 的旧可用结构维持现行生产语义。必须同时更新 schema、解析器、模块请求结构、实际 fit 消费和 run_manifest 之后才能宣称新配置生效。请勿把此设计语法直接提交给旧 CLI 运行。
+
 当前曲线扫描器从可执行文件目录下的 `config/response_curves/` 非递归读取 JSON 文件。每文件一条曲线，含 `name`、`channel`、`wavelength_nm`、`value`、`n_points` 和 `provenance`。名字按字节精确比较，不做大小写、空白或别名转换；重名、结构损坏和所请求曲线缺失须报告具体错误。QE 以 `channel="Q"` 区分类别。这个实现约束描述曲线装载，不能扩大为所有产品必须来自同一物理通带的准入规则。
 
 扫描器检查样本数及 `provenance.curve_stats` 中的范围、和与平方和。这些量可发现部分数据错配，但不是无碰撞的内容身份；完整内容身份应另外记录字节或规范内容摘要。即使原始文件摘要一致，也只证明引用了同一份数据，不证明曲线匹配当前设备。
 
 `None` 是单位透过率的定义性通带，`Ideal QE curve` 是定义性的理想探测器响应；二者不证明真实设备理想。空字符串表示未给定曲线选择，不能在合成积分中暗中等同 `None`。生产测光要求的输入不足时应明确报告不可计算的定标量，并按可用科学信息继续解释信号。
 
-曲线出处使用 `source`、`version`、`acquired`、`original_file_sha256`、`checksum_status` 和相应状态描述。仓内中间文件摘要不能冒充原始文件摘要；按定义构造的条目用 `defined_by_construction` 与 `exact_by_definition` 表达。`source_recorded` 只表示来源已记载，`verified` 应限于声明的来源核对范围。滤镜与 QE 分别记录证据，不互借摘要。
+曲线出处使用 `source`、`version`、`acquired`、`original_file_sha256`、`checksum_status` 和相应状态描述。仓内中间文件摘要不能冒充原始文件摘要；按定义构造的条目用 `defined_by_construction` 与 `exact_by_definition` 表达。`source_recorded` 只表示来源已记载，`verified` 应限于声明的来源核对范围。滤镜与 QE 分别记录证据，不互借摘要。参数响应身份还应包含 mode、profile/version、nm 参数、近似/nominal角度条件、QE 有序 hash、XP 覆盖与误差状态；measured 保存实际有序采样及内容 hash。同中心和 FWHM 不证明真实曲线等价。
 
 测光残差、颜色趋势和独立标准源可用于检验响应一致性；残差小不足以唯一辨认通带，因为参考星光谱集合、噪声和拟合自由度可能使不同响应不可区分。标度因子应来自同一合成通量定义，不能由一个滤镜名字或预置零点推定[5]。
 

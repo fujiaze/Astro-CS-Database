@@ -22,9 +22,9 @@ C++ 内部可用 RAII、`std::optional` 和 `shared_ptr<const T>`；跨 DLL 用�
 | `AstrometrySolution` | status/reason、source、hint/attempt records、ICRS/TAN(+SIP)、CRVAL/CD/CRPIX、A/B 与可选 AP/BP、catalogue/epoch、可用域、残差 | WCS/IPV | guided sources、photometry、Drizzle、writer |
 | `ScienceSourceCatalogue` | 稳定 source/Gaia IDs、predicted/measured x/y、flux estimator、flux unit/variance status、PSF binding、saturation/blend/edge flags | guided source/PSF adapter | photometry、noise |
 | `EffectivePsfModel` | domain、position→pixel-integrated normalized response、fit family/parameters、support/truncation convention、validity、模型误差状态 | PSF library | photometry、noise、Drizzle |
-| `PhotometricSolution` | response/reference IDs、fit coefficient convention、scalar/spatial scale、fit support、parameter covariance state、input/output units、application ID、fit status | photometry | applied plane、noise、writer |
+| `PhotometricSolution` | 响应来源 parametric_narrowband(top_hat_approx/v1,c nm,FWHM nm) 或 measured_curve(有序曲线hash)、QE 独立identity/内容hash、响应适用域、XP覆盖与误差状态；response/reference IDs、fit coefficient convention、scalar/spatial scale、fit support、parameter covariance state、input/output units、application ID、fit status | photometry | applied plane、noise、writer |
 | `PhotoAppliedPlane` | cleaned pixels × actual scale、同标度 validity、`application_id`、unit、corresponding photometric revision | photometry | noise、Drizzle |
-| `ConditionalNoiseModel` | domain、background expectation/statistic、随机分量及来源、gain/RN provenance、source-Poisson conditioning、master/cosmetic correlation、共同参数单独建模状态 | noise library（校准提供其输入） | Drizzle、reference precision |
+| `ConditionalNoiseModel` | actual-scene/source-reference 的明确条件、已知分量位图、未知/遗漏项、共享校准因子组与跨域相关；domain、background expectation/statistic、随机分量及来源、gain/RN provenance、source-Poisson conditioning、master/cosmetic correlation、共同参数单独建模状态 | noise library（校准提供其输入） | Drizzle、reference precision |
 | `DrizzleObservation` | signal 累加器或其 AIO 句柄、有效域、WCS revision、叶阶/ordering/pixfrac、精确面积口径、实际 R 算子或可求值模型、球面 PSF/协方差 refs | Drizzle | spherical precision、writer |
 | `SparseReferencePrecision` | 唯一 reference、sphere domain、支持域、FP64 control records、F_ref/V_F/SNR、PSF/noise/background/geometry refs、精度和缺项 | noise library 的 sphere completion | writer；跨阶段 reader |
 | `FrameScientificProduct` | 发布 signal、frame_science.json、模型文件及 hashes、帧状态、产品完整性 | writer | Mosaic |
@@ -46,7 +46,7 @@ C++ 内部可用 RAII、`std::optional` 和 `shared_ptr<const T>`；跨 DLL 用�
 
 1. 由 Gaia fit 发布 response 有序 hash、reference SED/XP band support、实际 application_id、alpha(u) 与参数 Cov/Jacobian 的 availability；未知 gain、口径或窄线目标 SED 的系统项按 unknown/omitted 表达。若未施加 Gaia，单位仍为 ADU；不得将两个不同 linear_base 在 P2 内悄然合并。
 2. 由严格几何发布 \(R_{pj}=(a_{jp}/A_j)/N_p\) 的源像元索引与 normalized coefficients（或不可变可重建引用）、\(\Omega_j,A_j,a_{jp},N_p\) 精度预算、valid/signal/support。R 与叶 index 使用同一 NESTED 阶数和 WCS/SIP 身份。仅有角点、closure 或中心定位的记录不能充当物理曲边验证。
-3. 由 noise completion 发布 **不同估计量** 的 reference V_F/SNR 与 scene V_B/noise factors；控制点的 estimator_kind、observed/predicted、support_domain 和 model error 不可混用；对参与 R 的未知 variance 位必须传播 full_variance_unavailable，partial variance 只可作诊断。
+3. 由 noise completion 发布 **不同估计量** 的 reference V_F/SNR 与 scene V_B/noise factors；Mosaic 首选 actual-scene (V_B=r_pC_{x,actual}r_p^T)，或先重建可观测场景噪声/PSF 参数再经 R 正向求值，reference Fisher 仅在 same-condition T 有效时桥接；控制点的 estimator_kind、observed/predicted、support_domain 和 model error 不可混用；对参与 R 的未知 variance 位必须传播 full_variance_unavailable，partial variance 只可作诊断。
 4. 跨共享 Gaia 响应/母版或多帧天空拟合的 Cov group_id、参数协方差与模型缺项供下游低秩消费；不能要求写全局巨大 Cov 矩阵。target leaf p 不因自己的 reference precision unknown 就丢失已可用的合法 signal。
 5. 第三阶段只从 Mosaic 正式 signal/response/provenance 导出 FITS；不能凭一个单 signal 恢复原始 R、full covariance 或真实绝对通带。
 
@@ -97,7 +97,7 @@ C++ 内部可用 RAII、`std::optional` 和 `shared_ptr<const T>`；跨 DLL 用�
 
 局部 R 可能秩亏；不得给 C_sphere 盲加 epsilon 后报告更高信息量。在同一保留子空间内处理 h、Z 与 C：使用显式秩判定/分解，报告秩与条件数；若参数不可辨识则 precision unavailable。h 位于协方差零空间可能是精确约束，须单独建模而非默默用伪逆丢弃。基础实现只接受可验证的可估计子空间，不宣称一般精确约束解已完成。
 
-`surface_transfer` 独立于 SNR：available 时有目标 leaf、`surface_variance`、`transfer_factor=V_B/V_F`、单位和 covariance conditioning；unavailable 时只给原因。两种方差必须同源、同位置、同条件，`transfer_factor` 有量纲。有合法参考 SNR 但不能求 T 的点仍可发布；阶段二不得偷偷设 T=1。阶段二生产权重的切换不由本合同自动授权。
+Mosaic 优先从实际场景噪声与球面 operator 求 (V_B)；未知场景时可构建有支持域/模型误差身份的噪声-PSF 预测。`surface_transfer` **不是首选求解路径**，独立于 SNR：available 时有目标 leaf、`surface_variance`、`transfer_factor=V_B/V_F`、单位和 covariance conditioning；unavailable 时只给原因。两种方差必须同源、同位置、同条件，`transfer_factor` 有量纲；对任一非零 Drizzle 系数对应方差或跨系数 covariance 缺失时，完整 scene variance 状态为 unavailable；仅可单独发布 known partial 和 omitted_terms，不生成 full IVAR。有合法参考 SNR 但不能求 T 的点仍可发布；阶段二不得偷偷设 T=1。阶段二生产权重的切换不由本合同自动授权。
 
 ## 7. 唯一正式序列化
 
@@ -188,7 +188,7 @@ local-factor/v2 量纲一致性同时包括**线性单位自身**与立体角幂
 
 返回语义分离：`OK_AVAILABLE`（完整发布、可用 precision）、`OK_PRECISION_UNAVAILABLE`（完整 v2 sidecar、合法 signal、有具名不可用原因）、`NOT_APPLICABLE`（原始 FITS / 尚未发布的私有暂存目录，无 sidecar 是正常工作流）、`DATA_INCOMPLETE`（声称已发布但缺 sidecar/tiles/manifest）、`UNSUPPORTED_SCHEMA`（v1、未知 schema）、`DATA_CORRUPT`（JSON、哈希、坏数值、损坏模型）、`DATA_CONFLICT`（同一帧身份、leaf 几何、模型条件、单位或状态互相矛盾）。前两个是成功能力状态；其余不得被包装成 precision unavailable。v1/旧错误产品直接拒绝；**以原始 FITS 重算，没有识别旧 K-9、无迁移/兼容/自动 +9/回退**。
 
-Stage 1 只负责正确生成与发布；Stage 2 按完成指针 → v2 reader → 验证球面模型 → 解析有效控制域，之后才可在**相同被估计量及噪声条件**下消费精度。现行 `p2_sparse_layer_probe` 仍只读取 `ACSD_SPARSE_SNR_LAYER`，不是 v2 消费；切换时删除将旧 pixel sparse view 当 canonical 的入口。Mosaic 的逐样本真实 variance/ivar 可独立成为面亮度最优权重基线；点源 `I_F=1/V_F` 不直接等于 `1/V_B`，转换须有同条件 `T=V_B/V_F`（#8），actual scene 不满足时 precision 仅供诊断、权重保持具名来源。Stage 3 读取 Stage 2/Stage 1 真正完成的正式产品及保留下来的线性单位、响应/相关误差身份；不得靠产品名猜单位或解读 v1。
+这份 v2 是目标科学合同；response_mode、QE hash 与 SceneNoise 等新增建议须与 schema/serializer/reader/实际 CLI 一起实施，**不可在未更新 schema 时直接写入自造字段并宣称生产已消费**。Stage 1 只负责正确生成与发布；Stage 2 按完成指针 → v2 reader → 验证球面模型 → 解析有效控制域，之后才可在**相同被估计量及噪声条件**下消费精度。现行 `p2_sparse_layer_probe` 仍只读取 `ACSD_SPARSE_SNR_LAYER`，不是 v2 消费；切换时删除将旧 pixel sparse view 当 canonical 的入口。Mosaic 的逐样本**actual-scene** variance/ivar 在误差完整及同估计量前提下成为优先面亮度权重；其次通过真实噪声/PSF/标度模型和 R 预测 scene variance；点源 `I_F=1/V_F` 不直接等于 `1/V_B`，转换须有同条件 `T=V_B/V_F`（#8），actual scene 不满足时 precision 仅供诊断、权重保持具名来源。Stage 3 读取 Stage 2/Stage 1 真正完成的正式产品及保留下来的线性单位、响应/相关误差身份；不得靠产品名猜单位或解读 v1。
 
 ### 9.3 并行代码任务的确定性负例
 
