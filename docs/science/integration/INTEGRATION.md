@@ -58,6 +58,16 @@
 
 输出阶段二产品只有 signal HiPS。support、权重和方差可以服务内部计算与评价，不成为最终第二个科学图像通道。
 
+
+### 4.1 科学权重、共享协方差与有效响应（R5）
+
+输入值必须有同一目标叶、单位和明确 scientific estimand；仅有 reference Fisher \(I_F=(SNR_{\rm ref}/F_{\rm ref})^2\) 不能当真实场景面亮度 \(V_B^{-1}\)。在固定资格和独立实际场景方差已知时，\(a_k\propto 1/V_{B,k}\)；若跨帧 \(\Gamma\) 正定，用 \(a=\Gamma^{-1}1/(1^T\Gamma^{-1}1)\)，方差 \(1/(1^T\Gamma^{-1}1)\)。只知对角时允许相应条件近似；部分未知不得把已知部分 \(1/\sum w\) 标为完整方差。可以对合法 signal 使用用户明示的等权/经验近似，precision_status=approximate_or_unknown 而非无根据阻断所有图像。
+
+不同真实通带下 \(E[y_k(p)]\) 不相等时，上述 BLUE 不再估同一固定 \(B\)。对固定已记录选择/权重 \(a_k(p)\) 输出混合观测，\(K_{\rm eff}=\sum a_k K_k\)；若不同 PSF，不能强行分解为单独波段曲线和统一 PSF。weight/acceptance 随空间或观测改变时有效响应可能依天区变化甚至随机；保留每帧 response_id/曲线状态、参与帧与 tile 级权重/排异来源，Stage3 透传并保留 UNKNOWN。数值 reducer 的 support=max 不表示覆盖并集或置信区间。
+
+今后 CoadditionEngine 消费逐帧 corrected signal 与邻域、PSF/MTF、support、真实几何、noise factor/共享参数和 source identity，不只接受预积累的 \(\Sigma wy,\Sigma w\)。其结果仍是一个 signal HiPS，另携必要 metadata/内部诊断；SACoadd 将来只替换引擎，不重写 Normalize/Drizzle/Sky/Export。生产数值 reducer p2_integrate_pixel 可继续沿用，工程边界见 Mosaic modules 详设。
+
+
 ## 5. 独立核验与实现边界
 
 核验包括解析加权均值、常量场、零/负信号、接受零权样本的支撑、六种状态、有限大值溢出、帧映射和不同 worker。零权样本不改变 signal，但可能改变 support；这两个不变量分别检查。
