@@ -70,6 +70,24 @@ R_{\rm eff}(\lambda,p)=\sum_k a_k(p)c_kR_k(\lambda),
 
 Gaia DR3 BP/RP 系数与协方差参见 [De Angeli et al. 2023](https://doi.org/10.1051/0004-6361/202243680)，外定标和合成测光参见 [Gaia DR3 synthetic photometry](https://doi.org/10.1051/0004-6361/202243709)。XP 光谱有限波段外的真实通量/积分除非另外测量，不存在仅由 XP 决定的严格数值；“截断后 Q>0”不表示完整通带响应已闭合。P1 可投稿的贡献需与已有 synthetic photometry 和 ubercal 比较，重点应是**空间响应身份、适用域和误差传递**，而不是声称首次用 XP 合成恒星标度。
 
+
+### 3.2 可辨识的 Gaia 拟合与响应不确定性（R1 收敛）
+
+Gaia 匹配恒星 s 的实测 \(C_{ks}\)[ADU] 是已定义 PSF/孔径、sky 扣除后的**总星积分测光**，不是峰值 ADU；合成 \(Q_{ks}=\int f_{\lambda,s}T_k QE_k\lambda\,d\lambda\)[XPMODEL 原生积分单位] 目前由生产 compute_f_syn_cached_xpsd 计算，不能在元数据仍用 XPMODEL 时暗称已除 hc 的 photons。经验回归采用
+\[
+r_{ks}=\ln C_{ks}-\ln Q_{ks}
+=\theta_{0k}+b(u_s)^T\theta_{{\rm sp},k}
++\gamma_k(c_s-c_0)+\eta_{ks}.
+\]
+灰色 \(\theta_0\) 吸收口径/曝光/gain/灰效率不可分辨乘积；\(b\) 为零均值空间基 \(\sum_s w_sb(u_s)=0\) 固定 gauge；\(\gamma\) 是可辨识时的恒星颜色/响应失配诊断，而不是在没有未知星云 SED 时逐像元颜色校正。将色形失配物理化须改用低维 \(R(\lambda,\tau)\) 的前向合成积分，并用星色支持与留出样本辨识 \(\tau\)；未知响应零空间不能从有限 XP 恒星恢复。
+
+先用 scalar robust 基线，再对 \(X=[1,b(u_s),c_s-c_0]\) 做白化 QR/SVD 秩与 \(\kappa\) 判定；色度和空间完全相关则退回可辨识子模型。与生产匹配保持相同 global Gaia source_id、积分通量、过滤曲线版本；饱和硬截顶不妨碍其它图像像元处理，但不能直接将平台峰值当未饱和积分恒星通量。对星样本做按 source_id 隔离的颜色/位置留出。无可靠测量方差时允许无权鲁棒回归，不能把 MAD 残差简单等同 \(\mathrm{Cov}(\widehat\theta)\)：使用可靠方差时可采用相应加权最小二乘及稳健 sandwich，否则用重采样/经验状态说明不确定性。
+
+\(\mathrm{Var}(r_s)\simeq \mathrm{Var}(C_s)/C_s^2+\mathrm{Var}(Q_s)/Q_s^2-2\mathrm{Cov}(C_s,Q_s)/(C_sQ_s)\)。XP 谱系数协方差若可用，\(\mathrm{Cov}(Q_{ks},Q_{\ell s})=w_k^TC_{f_s}w_\ell\)，重复 Gaia source 与共享响应造成跨帧相关参数组。对 \(\alpha(u)=\exp[-\theta_0-b(u)^T\theta_{\rm sp}]\) 和 \(x'=\alpha x\)，\(J_{x',\theta}=-x'[1,b(u)^T]\)，因此 \(\mathrm{Cov}(x')=A_\alpha C_xA_\alpha^T+J_\theta C_\theta J_\theta^T\) 加同数据自定标/共享组的交叉项；不得丢掉低秩校准协方差。参考 SED \(f_*\) 与 \(c_k=Q_0(f_*)/Q_k(f_*)\) 必须具名；该比例只为**参考 SED**定义，并非一般发射线源的无偏转换。
+
+**算法/源码最小切口**：保留 spectrum_integrator.cpp 的 XP 字节解码与有效积分路径；filter_curve_json.h 当前的样本数、和/平方和无法识别交换波长位置，改用有序 (wavelength,T,QE) 与积分约定的内容 hash (#42)。窄 Hα 网格在误差预算不足时自适应高精度求积 (#43)，XP 域外能量/模型误差记录而非忽略 (#44)；star_matcher.cpp 零 MAD 多数簇逻辑已有修复，不应回退；spatial_gain.cpp 已有秩检验但边缘支撑及预测协方差仍需补 (#46)。对 XP unavailable 允许原生 ADU/用户定义相对模式继续生成合法信号，不能凭拟合状态要求完整物理单位（#96 延期）。
+
+
 ## 4. 归一化应用和协方差变换
 
 设像素信号 x_k 乘以已确定的尺度 α_k(u)，得到校准信号
