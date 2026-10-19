@@ -216,6 +216,32 @@ a_k^*=\frac{U_k^{-1}}{\sum_j U_j^{-1}},
 
 这是**方差上界明确且独立**时的 minimax 解释，不是无条件证明比真实精确逆方差更好。若允许未知、最大程度正相关（`|\Gamma_{ij}|\le\sqrt{U_iU_j}`），则最坏方差可达 `(\sum_k a_k\sqrt{U_k})^2`，其最优可能只用一个最小 U 的帧。故**不知道帧间相关性就无法证明随合成帧数增加必然提高 SNR**。共享 Master、零点、天空面与增益参数的协方差必须建模或分开报预算。此结论不要求发布第二张科学图像。
 
+
+### 6.3 同条件场景精度、联合相关误差和独立 Oracle（R3–R5 综合）
+
+面亮度行 \(r_p\)[sr⁻¹] 作用于源像元 \(x\)[L]，场景条件方差 \(V_{B,p}=r_pC_xr_p^T\)[L²/sr²]；参考源 Fisher \(I_F=1/V_F\)[F⁻²] 不等于此逆方差。跨帧唯一适合面亮度线性均值的精度是实际 \(1/V_B\)，其转换 \(T=V_B/V_F\) 必须在同一场景、核、PSF、单位及噪声条件下求得。只有 reference-source SNR 时必须保持 reference_information 身份，不能宣称 actual-scene precise weight。
+
+对待应用标度/天光拟合的联合变量 \(\zeta=(x,\widehat\theta,\widehat\beta)\)，正确输出 covariance 是 \(J_\zeta\operatorname{Cov}(\zeta)J_\zeta^T\)，包括源数据与估计参数的交叉项。特殊地，若用同一数据按**实际求值基** A 拟合 \(\widehat\beta=Ly\)，则 \(z=(I-AL)y\)，
+\[
+C_z=(I-AL)C_y(I-AL)^T
+=C_y+A\operatorname{Cov}(\widehat\beta)A^T
+-\operatorname{Cov}(y,\widehat\beta)A^T
+-A\operatorname{Cov}(\widehat\beta,y).
+\]
+只有在外部参数独立时才删除交叉项。跨帧 Gaia XP/母版/sky gauge 共享参数用低秩 \(\,U\Sigma U^T\,\) 加至相应 frame block；同一组参数不能在每帧标成独立噪声重复求和。选择掩膜由数据得出时，固定掩膜 \(a^T\Gamma a\) 是近似条件值，不能自动保证选择后的 68%/95% coverage。
+
+实际内存合同建议用 SourceNoiseView{native_var[],known_mask[],local_cov_kernel,shared_U,shared_parameter_cov,group_id}、DrizzleRow{source_index[],coefficients[],overlap_area,area_error}、SceneNoise{estimate_kind,conditional_var,completeness,omitted_terms} 三类紧凑视图。稀疏 R 的行内积和局部核可按 aperture 查询延迟计算跨叶 covariance，而不是存整个球面的稠密矩阵；低秩共享误差在合成前或之后传播。若某 \(r_{pj}\ne0\) 且对应方差未知，叶的**完整** \(V_B\) 必须为 unavailable；允许数值信号和已知部分方差并存，后者不可冒充完整 precision（#64）。缺少 gain/完整噪声并不意味着非法信号：可用明确标记的 equal/empirical/heuristic weighting 保守合成，而非虚造 IVAR。
+
+稀疏控制点的 estimator_kind/response_id/源 PSF 与实际场景条件必须共存。可选择重建 log(actual \(V_B\)) 或先重建可观测噪声/PSF 参数再由 R 求权；只拥有 Fisher 参考深度时不可无条件升格。外推/nearest-fill 的模型预测不是新观测支持，也不是认证上界。仅当控制误差 \(\delta_i\)、局部 Hessian 范数 M 及非负一次再现系数 \(\lambda_i\) 有证据时，log variance \(u\) 满足
+\[
+|\widehat u-u|\le\sum_i\lambda_i\delta_i+
+\frac12 M\sum_i\lambda_i\|p-p_i\|^2,
+\]
+从而 \(U_V=\exp(\widehat u+\Delta)\) 才是该条件下的 variance upper；否则必须标 approximate/predicted，并标示支持域/最近实测控制距离。
+
+**本轮独立矩阵复算（NumPy f64；非 C++ / 非真实 FITS）**：四观测 \(C=\mathrm{diag}(1,2,3,4)\)，OLS 背景 \(X=[1,t]\)、\(t=(0,1,2,3)^T\)，令 \(M=I-X(X^TX)^{-1}X^T\)；正确残差 covariance \(MCM^T\) 对角为 (0.6,1.3,2.2,0.9)，错误假设拟合参数独立而相加的 \(C+X\operatorname{Cov}(\widehat\beta)X^T\) 给 (2,2.5,4,6.5)。三帧独立方差 (1,4,9) 共享标度误差 covariance \(0.25\mathbf 1\mathbf1^T\)，GLS 权重为 (0.73469388,0.18367347,0.08163265)，真实方差约 0.98469388；把共享项错当每帧独立做逆方差报告约 0.87458287。示例证明一项误差可能被高估、另一项可能被低估；必须看联合 Jacobian 而非统一加法。
+
+
 ## 7. 缺项上界的适用域
 
 设固定观测域、固定 A、相同参考 F，C_true=C_0+Δ，Δ半正定。对估计 F 的同一组线性无偏系数 a（aᵀh=1、aᵀZ=0），有 aᵀC_true a≥aᵀC_0 a；在两侧对同一个可行集合取最小，得到 V_F,true≥V_F,0。因此省略这些噪声分量所得 SNR_0 是条件上界。
