@@ -60,10 +60,10 @@ HiPS 的 Norder/Dir/Npix 目录、NESTED index、HiPS 层级 FITS tile、MOC（�
 ## 4. 三种逆方差严格分名
 
 1. reference flux information：I_F=1/V_F=SNR_ref²/F_ref²，单位 1/[F]²。
-2. surface-brightness precision：w_B=1/V_B=I_F/T，单位 sr²/[x]²。
+2. actual-scene surface-brightness precision：\(w_B=1/V_{B,\rm actual}\)，\(V_{B,p}=r_p C_{\rm actual}r_p^T\)，单位 sr²/[x]²（仅在 same-scene Fisher 与转移比 \(T=V_B/V_F\) 有独立证据时才允许写 \(I_F/T\)）。
 3. background control precision：w_ctrl=1/V_ctrl，依对应背景估计量定义。
 
-只有被估计量、标度、协方差条件和传递T匹配时才能比较随机精度；通带不同的用户组合还须保留空间混合响应的解释。几何 drop 分配权 w_geom=a/A_drop 是无量纲，不属于前述逆方差。所有代码/日志/API 中可缩写的“weight”应结合来源、单位和目标量解释，避免第二种同名口径被误当成第一种。
+**Mosaic 的场景精度优先级**：实际输入 noise/covariance+真实 Drizzle 行直接求 \(V_B\)；其次利用在实际场景下可支持的噪声/PSF/标度场正向预测再传播；只有同源同条件、单位和 PSF/背景模型均匹配且验证 \(T\) 后才从 \(V_F\) 桥接。仅有 Fisher 时只作为 reference depth/具名 heuristic。任一正系数未知方差或其共变项未知，不输出 complete IVAR；记录 partial-known/omitted_terms 并仍允许合法 signal 的保守权重，跨帧共享校准和同数据 sky-fit 必须保留交叉因子。只有被估计量、标度、协方差条件和传递T匹配时才能比较随机精度；通带不同的用户组合还须保留空间混合响应的解释。几何 drop 分配权 w_geom=a/A_drop 是无量纲，不属于前述逆方差。所有代码/日志/API 中可缩写的“weight”应结合来源、单位和目标量解释，避免第二种同名口径被误当成第一种。
 
 ## 5. 无效像元与支持域不是单一布尔概念
 
@@ -83,13 +83,15 @@ HiPS 的 Norder/Dir/Npix 目录、NESTED index、HiPS 层级 FITS tile、MOC（�
 
 每个 frame 的参考通量 F_ref,k 必须与 frame_snr 采用完全配对的光度单位、参考星等/SED 和响应模型。即使所有帧名义上为 R，滤镜曲线、QE、光学系统、大气可能不同。用户允许任意合并：接口需要记录当前参考响应或混合规则，不以设备同名作为输入过滤。
 
+普通窄带滤镜的身份可以是 **PARAMETRIC_APPROX**（center_nm + fwhm_nm + top_hat_approx/v1）；无需提供实测滤镜文件，但 QE 仍需独立身份，显式理想 QE 仅是模型假设。**MEASURED_CURVE** 保存有序实测通带及其内容 hash；同中心与 FWHM 不足以认定相同响应。OD5 的带外截止声明不能证明主通带矩形或快速光束无蓝移。参数通带的数值分段积分误差、XP 分辨率/谱域与未知真实透过率误差相互区别；跨设备相同具名参数也不意味实测相同。
+
 若使用星表颜色项校正恒星，输出信号作为扩展源的物理意义受未知逐位置 SED 限制。颜色残差、PSF 与天空低频差是不同类别，不可都塞入随机方差或背景加性场。跨帧共同系统误差不按独立帧数自然衰减。
 
 光度变换参数不应在 normalize 与 mosaic 各自被当作新绝对未知乘性场无依据地二次估计。
 
 ## 7. Drizzle/HiPS 写盘与层级
 
-- Drizzle 源积分像元 x_j 用 w_geom=a/A_drop 分到 F_p=Σw_geom x_j；面亮度分母 N_p=Σw_geom Ω_j；signal=S_p=F_p/N_p。
+- Drizzle 在**探测器平面**先把原生正方形像元按 pixfrac 缩边、后以 WCS/SIP 映射球面；源面积 Ω(W(P))、drop 面积 Ω(W(Q)) 并非精确的 f² 比例。源积分像元 x_j 用 w_geom=a/A_drop 分到 F_p=Σw_geom x_j；面亮度分母 N_p=Σw_geom Ω_j；signal=S_p=F_p/N_p。
 - 与上式同一线性算子的随机协方差为 C_out=R C_in Rᵀ；输出相关性不能凭更小的单像元 RMS 被忽略。
 - 支持量 D_p=Σa_jp 是可重复累计的 drop 面积，不能未经论证等同覆盖并集；支持 fraction=min(1,D_p/Ω_leaf) 也不能用来恢复超覆盖次数或严格通量。
 - 最终 HiPS 允许 Norder 多层图像分辨率；“最终单层 signal”是**单科学通道**而非所有 HiPS 只存一个角分辨率。父阶由孩子的适当面积/有效覆盖重建，不当作新增独立观测。
@@ -107,11 +109,11 @@ Normalize 每帧唯一正式精度载体为 frame_science.json，包含 Drizzle 
 
 ### 9.1 贯穿三阶段的最小科学数据身份（R1–R5 综合）
 
-生产接口不要把某个 float 数值的 presence 当作物理信息完整。每帧保留：frame_id/input_occurrence、target_nested_order 与实际叶索引、linear_base (ADU 或 XPMODEL)、signal BUNIT（L/sr）、reference_sed/id、response_id 和有序内容 hash/response_known_state、applied_photometry 状态、校准参数及 covariance availability、PSF/空间支持、球面真实 R 几何身份/面积预算、source/local/shared noise 模型、precision estimator_kind、missing_terms、sky_fit/eval basis/gauge/support、rejection masks 的原帧来源。局部有效 signal 与 known variance 分离：known partial variance 不可发布完整 inverse variance；NaN 代表无合法信号，0 可以是真实负背景附近的物理数值，未知不等于0。
+生产接口不要把某个 float 数值的 presence 当作物理信息完整。每帧保留：filter response_mode (PARAMETRIC_APPROX/MEASURED_CURVE/UNKNOWN)、center_nm/fwhm_nm/profile_version 或 ordered measured curve hash、QE 内容身份、响应假设/适用域与 XP 覆盖；frame_id/input_occurrence、target_nested_order 与实际叶索引、linear_base (ADU 或 XPMODEL)、signal BUNIT（L/sr）、reference_sed/id、response_id 和有序内容 hash/response_known_state、applied_photometry 状态、校准参数及 covariance availability、PSF/空间支持、球面真实 R 几何身份/面积预算、source/local/shared noise 模型、precision estimator_kind、missing_terms、sky_fit/eval basis/gauge/support、rejection masks 的原帧来源。局部有效 signal 与 known variance 分离：known partial variance 不可发布完整 inverse variance；NaN 代表无合法信号，0 可以是真实负背景附近的物理数值，未知不等于0。
 
 Mosaic 只接收同一选定 HEALPix target order，混阶明确拒绝（现有 p2_hips_order_uniform 机制保留）；不同原生像素/PSF/滤镜仍是合法异构输入。同阶并不意味着输出叶独立或新增空间信息。对于已知同线性单位而 response 不同的 user-selected composite，记录固定参考 SED 的标度及条件位置相关 \(K_{\rm eff}\)，不能把 mixture 当成唯一固定 R 通带。Export 只转换图像表示和科学元数据，不能从单 signal 重建不存在的原始协方差或混合谱；BUNIT、response mixed/unknown/provenance 必须随产品传递 (#79)。
 
-内部 uncertainty.kind 明确至少区分 reference_flux、actual_scene_surface、background_control；availability 区分 conditional_modelled、approximate、partial_only、unavailable，参数共享组和 omitted_terms 明示。不要因无完整 gain 而宣布正常图像不可处理，亦不把 empirical SNR、geometry support 和 rigorous IVAR 混在同一个数字字段。
+内部 uncertainty.kind 明确至少区分 reference_flux、actual_scene_surface、background_control；availability 区分 known、conditional_modelled、approximate、partial_only、unavailable，actual scene condition、support、frame_id/occurrence、源噪声 known mask、参数共享组和 omitted_terms 明示。sky 应在可比 response 组内采用 additive-only 差模 GLS，fit/eval 同一基，保存 gauge、控制提取与估计参数的 data cross-covariance；A+G 是后续扩展。不要因无完整 gain 而宣布正常图像不可处理，亦不把 empirical SNR、geometry support 和 rigorous IVAR 混在同一个数字字段。
 
 
 ## 10. 研究与实现对照
