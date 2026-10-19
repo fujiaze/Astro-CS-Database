@@ -77,6 +77,31 @@ def percentile_not_translation_equivariant():
     assert statistic(x + 10) != statistic(x) + 10
 
 
+def narrowband_edge_integral():
+    """Boundary-aware analytic integral vs naive 2 nm stepped sampling (#104).
+
+    Units are the existing XPMODEL-style integrand convention: f_lambda * QE * nm.
+    Deliberately holds QE=0.8 known rather than silently setting unknown QE to 1.
+    """
+    grid = np.arange(652., 664., 2.)
+    results = []
+    for width in (3., 5., 7.):
+        center = 656.5  # not aligned with the even-nm grid
+        left, right = center - width / 2., center + width / 2.
+        exact = 0.8 * (right * right - left * left) / 2.
+        values = np.where((grid >= left) & (grid <= right), 0.8 * grid, 0.)
+        sampled = (np.trapezoid(values, grid) if hasattr(np, "trapezoid")
+                   else np.trapz(values, grid))
+        assert abs(sampled - exact) / exact > 0.05, (width, sampled, exact)
+        results.append((width, float(exact), float(sampled)))
+    # Same FWHM 3 nm and center; triangle at offset 1.3 nm differs from top-hat.
+    line = 1.3
+    top_hat = 1.0
+    triangular = 1.0 - line / 3.0
+    assert 0 < triangular < top_hat
+    return results, (top_hat, triangular)
+
+
 def mixed_response():
     # Two line probes: H-alpha and [N II]; spatially fixed weights.
     r = np.array([[1.0, 0.1], [0.6, 0.9]])
@@ -92,9 +117,11 @@ if __name__ == "__main__":
     gls, incorrect = shared_parameter_gls()
     percentile_not_translation_equivariant()
     mixed_response()
+    nb, lines = narrowband_edge_integral()
     print("R2 SIP true/corners:", a, b)
     print("R3 equal Fisher, unequal leaf variance:", fisher)
     print("R4 same-data corrected covariance diagonal:", sky)
     print("R3/R5 shared GLS versus wrong independent:", gls, incorrect)
+    print("R1 top-hat analytic vs coarse 2nm sampling:", nb, "line shapes:", lines)
     print("R5 percentile shift counterexample and mixed response: confirmed")
     print("Scope: mathematical oracle only; C++/HST/M42 NOT RUN")
