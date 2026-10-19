@@ -153,7 +153,10 @@ R 必须是最终 signal 的 w_jp/N_p，不能用尚待除以覆盖面积的中�
 \]
 该界由 I(h,C)=min_β(h−Hβ)ᵀC⁻¹(h−Hβ) 和协方差 Loewner 界推得；方差比取倒数，SNR 比取平方根。秩/支持改变须单独处理。这里约束条件信息的计算误差，不自动约束模板失配引起的通量偏差。
 
-## 6. 参考源与实际场景的精度桥梁
+## 6. 实际场景面亮度优先；参考源仅在可证明条件下桥接
+
+**当前 Mosaic 的直接目标是已校正球面面亮度 \(z_{kp}\)[L/sr]**。对已冻结的 Drizzle 行 \(r_{kp}\)[sr⁻¹] 和实际场景原生协方差 \(C_{x,\rm actual}\)[L²]，第一选择为 \(V_{B,kp}=r_{kp}C_{x,\rm actual}r_{kp}^T\)，再纳入 sky/Gaia/master 的联合 Jacobian、共享组与交叉项；第二选择是在稀疏/局部估计了实际噪声、PSF、标度和支持域后正向预测 \(C_{x,\rm actual}\) 并施加同一 \(r_{kp}\)。仅有参考恒星 \(V_F\) 时默认只表达 reference-depth，不能自动成为场景 IVAR。下述 \(T\) 是**条件桥接检查**，不是与直接计算并列的默认路径。
+
 
 同一位置、同一条件 c 下定义
 \[
@@ -230,9 +233,9 @@ C_z=(I-AL)C_y(I-AL)^T
 \]
 只有在外部参数独立时才删除交叉项。跨帧 Gaia XP/母版/sky gauge 共享参数用低秩 \(\,U\Sigma U^T\,\) 加至相应 frame block；同一组参数不能在每帧标成独立噪声重复求和。选择掩膜由数据得出时，固定掩膜 \(a^T\Gamma a\) 是近似条件值，不能自动保证选择后的 68%/95% coverage。
 
-实际内存合同建议用 SourceNoiseView{native_var[],known_mask[],local_cov_kernel,shared_U,shared_parameter_cov,group_id}、DrizzleRow{source_index[],coefficients[],overlap_area,area_error}、SceneNoise{estimate_kind,conditional_var,completeness,omitted_terms} 三类紧凑视图。稀疏 R 的行内积和局部核可按 aperture 查询延迟计算跨叶 covariance，而不是存整个球面的稠密矩阵；低秩共享误差在合成前或之后传播。若某 \(r_{pj}\ne0\) 且对应方差未知，叶的**完整** \(V_B\) 必须为 unavailable；允许数值信号和已知部分方差并存，后者不可冒充完整 precision（#64）。缺少 gain/完整噪声并不意味着非法信号：可用明确标记的 equal/empirical/heuristic weighting 保守合成，而非虚造 IVAR。
+实际最小数据视图（可为内部借用 span；**非现存 C++ ABI**）统一为 SourceNoiseView{source_frame_id,input_occurrence,linear_unit,native_var[],known_mask[],local_cov_kernel,shared_factor_group_ids[],shared_U,shared_parameter_cov,omitted_terms[],source_support}、DrizzleRow{target_leaf_order,source_index[],coefficients_rp[],overlap_area_sr[],source_area_sr[],drop_area_sr[],area_error_sr[],operator_id}、SceneNoise{estimator_kind=actual_scene_surface,scene_condition_id,signal_unit=L/sr,variance_unit=L²/sr²,known_component_var,conditional_var,completeness=known|partial|unknown,support_domain,shared_factor_refs,omitted_terms[],provenance,prediction_error_state}。若同一观测参与控制背景拟合，另传 control extraction T、fit influence K、output eval E，计算 \(P=I-EKT\)、\(C_z=PC_yP^T\)，不能仅用独立 \(C_\beta\) 加法。稀疏 R 的行内积和局部核可按 aperture 查询延迟计算跨叶 covariance，而不是存整个球面的稠密矩阵；低秩共享误差在合成前或之后传播。若某 \(r_{pj}\ne0\) 且其自身随机方差或**与其它非零系数源的协方差未知**，叶的**完整** \(V_B\) 必须为 unavailable；允许数值信号和已知部分方差并存，后者不可冒充完整 precision（#64）。缺少 gain/完整噪声并不意味着非法信号：可用明确标记的 equal/empirical/heuristic weighting 保守合成，而非虚造 IVAR。
 
-稀疏控制点的 estimator_kind/response_id/源 PSF 与实际场景条件必须共存。可选择重建 log(actual \(V_B\)) 或先重建可观测噪声/PSF 参数再由 R 求权；只拥有 Fisher 参考深度时不可无条件升格。外推/nearest-fill 的模型预测不是新观测支持，也不是认证上界。仅当控制误差 \(\delta_i\)、局部 Hessian 范数 M 及非负一次再现系数 \(\lambda_i\) 有证据时，log variance \(u\) 满足
+稀疏控制点的 estimator_kind/response_id/源 PSF 与实际场景条件必须共存。优先直接求实际 (V_B)；在场景方差需要空间预测时，优先重建有可观测来源的噪声/PSF 参数并通过 (R) 正向传播，已校验同估计量的 actual (V_B) 控制可直接重建 log variance。只拥有 Fisher 参考深度时不可无条件升格。外推/nearest-fill 的模型预测不是新观测支持，也不是认证上界。仅当控制误差 \(\delta_i\)、局部 Hessian 范数 M 及非负一次再现系数 \(\lambda_i\) 有证据时，log variance \(u\) 满足
 \[
 |\widehat u-u|\le\sum_i\lambda_i\delta_i+
 \frac12 M\sum_i\lambda_i\|p-p_i\|^2,
