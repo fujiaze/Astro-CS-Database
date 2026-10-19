@@ -22,6 +22,29 @@
 \]
 其中 f_{\lambda,s} 是 Gaia XP 外定标谱[1,2]。若响应定义已包含 λ/(hc) 或使用能量积分，禁止再乘一次；数值实现应明确物理单位、光谱采样、插值与积分误差。Gaia XP 的有限波段覆盖、外定标误差、颜色极端源和强窄发射线都可能不满足高精度条件。
 
+### 2.1 普通窄带解析响应输入（目标设计，尚未接线 CLI）
+
+普通窄带仅要求中心波长 \(c\)[nm]、半高全宽 \(\Delta\)[nm]，均须有限、正且 \(c-\Delta/2>0\)。默认模型具名为 **parametric_narrowband/top_hat_approx/v1**：
+\[
+T_{\rm approx}(\lambda)=\begin{cases}
+1,&c-\Delta/2\le\lambda\le c+\Delta/2,\\
+0,&\text{其它}.
+\end{cases}
+\]
+峰值按定义归一为1、FWHM等于\(\Delta\)，边界评价规定为包含端点（积分值不受孤立端点影响）。这是工程形状假设，**不是实测透过率**。整体灰色透过率可归入 Gaia 星光度比例因子，谱形、快速光锥角度效应、温漂、发射线相对透过率不可由单个灰度因子恢复。对精密测光或特殊滤镜允许另一互斥来源 **measured_curve**：完整有序的 \((\lambda,T)\) 实测/自定义曲线。即使两者有相同中心/FWHM，也不能认作同一响应。
+
+OD5+ 是在明确声明的阻带范围及测试条件下带外透过率约 \(10^{-5}\) 的指标；既不证明带内为矩形，也不提供带内峰值/边沿/实际中心、更不保证 f/2–f/4 入射角分布下的干涉滤镜没有蓝移、带宽/峰值变化。Hα+[N II] 等窄线谱即使恒星色差拟合很好，也可能产生不可忽略的通带模型偏差。
+
+**QE 必须独立消费**：无需用户提供滤镜库文件不等于相机 \(QE_k(\lambda)\) 可缺省为1。保留当前具名 QE 曲线或用户显式声明理想-QE 的路径，并保留其真实/假想 provenance。可知的光学与大气项另相乘，未知项单独声明。物理光子计数预期为 \(Q_{ks}=(hc)^{-1}\int f_{\lambda,s}T_k QE_k T_{{\rm other},k}\lambda\,d\lambda\)（波长和通量单位先转 SI）；**当前 C++ 的 XPMODEL 惯例是未除 hc 的积分**，在没有同步改变单位合同之前不可悄悄改其量纲。
+
+**窄带求积契约**：根据确切解析端点 \(l=c-\Delta/2,r=c+\Delta/2\)，按滤镜跳变端点、XP 可重建函数结点、QE 连续插值分段与有效谱域切分。分别对连续区间内的 \(f_\lambda(\lambda)QE(\lambda)\lambda\) 使用解析多项式积分（适用时）或自适应高阶带误差求积；不允许把阶跃响应先投到 1/2nm 等距格再用 Akima/Simpson 跨边界积分。3/5/7nm、中心与 XP 格错相、谱域外截断、端点与极窄线响应为必要负例。需分开记录数值求积误差、Gaia XP 的低谱分辨率/外定标及波长覆盖误差、滤镜实际形状误差；数值积分收敛不证明窄发射线物理准确。
+
+**最小生产配置与兼容策略（尚未被当前 parser/schema 消费）**：目标在 photometry.fit 下增加唯一 response 对象，二选一：(A) mode=parametric_narrowband、center_nm、fwhm_nm、profile=top_hat_approx、profile_version=1；(B) mode=measured_curve、curve_name（使用已有曲线库键）。未提供新 response 时，旧 photometry.fit.filter 与块级 filter_passband 继续按原路径映射 measured_curve，并保留二者非空时必须字节相等的校验；新对象和旧滤镜字段同时出现视为 RESPONSE_SOURCE_CONFLICT，不静默择一。未知 profile/version、非正或越界数值为 INVALID_PARAMETRIC_RESPONSE；缺 QE 维持具名异常/无完整拟合时合法原生信号的当前降级语义。frame overrides 必须按每帧绑定而非把第一帧身份传播至其它帧。
+
+响应身份必须冻结 response_mode、profile/version、c/Δ及单位、峰值与形状假设、入射角/温度适用条件、QE 身份与有序曲线内容 hash、实测滤镜有序曲线 hash（若有）、积分约定、XP 覆盖状态、有效响应已知程度和 provenance。规范浮点序列化后构造具名 stable response_id；曲线名或 n/sum/sumsq 不足以唯一识别响应。
+
+**C++ 小切口**：module_adapters.cpp 的 p1_op_photometry 配置/逐帧 binding → frame_photometry_fit.h 的 FramePhotFitRequest/Result 增加 source 枚举及元数据 → frame_photometry_fit.cpp::fit_frame_photometry 在扫描滤镜之前按 mode 分发，参数模式绕开滤镜条目命中（QE 仍须独立读取），measured 沿用原查找 → filter_curve_json.h::scan_curve_library 保留实际曲线/QE资源与有序 hash → spectrum_integrator.h/.cpp::prepare_filter_cache/compute_f_syn_cached_xpsd 增加带不连续边界的分段积分专用路径 → CONFIG schema、帮助与 frame_science/HiPS 响应元数据同时修改。当前无一项新键被证实已接线；不修改原 C++ 的本轮仅设计。
+
 第 k 帧实测恒星通量 \(f_{ks}^{\rm obs}\) 可以表示为
 \[
  f_{ks}^{\rm obs}\approx a_k\,m_k(x_s,y_s)\,Q_{ks}+\epsilon_{ks},
@@ -45,7 +68,7 @@ a_k 含口径、曝光、总体透过率与单位换算之积；如果组成因�
 
 因此须明确选择“参考光谱约定”：可选在某个指定参考颜色/参考 SED 处令各系统响应一致，在支持的恒星样本上估计颜色残差，并把整图线性缩放的适用域记为此约定。**不得对图像每个像素隐式应用只有观测恒星才知道的颜色变换**。若有经独立验证的逐位置 SED 模型，才可以考虑空间变化的物理通带变换。
 
-使用者可把 3 nm 与 7 nm Hα 或不同品牌 R/G/B 组合进行成像；算法不限制。仅需说明结果是所选参考光谱/混合通带规则下的信号，恒星残差不能证明所有星云结构无系统差异。对通带未知或响应曲线缺失的观测，可运行可辨识的相对重叠测光或经验标度模型并注明误差/不可解释部分，而不将未知曲线凭空假定已知。
+使用者可把 3 nm 与 7 nm Hα 或不同品牌 R/G/B 组合进行成像；算法不限制。仅需说明结果是所选参考光谱/混合通带规则下的信号，恒星残差不能证明所有星云结构无系统差异。对真正未知的响应，可以只做具名相对测光并说明限制；**已选择**中心/FWHM 近似的滤镜是 PARAMETRIC_APPROX，不是实测也不需要滤镜文件。
 
 ### 3.1 P1 的有效响应定理和星云不可消除偏差（2026-10-17 补证）
 
