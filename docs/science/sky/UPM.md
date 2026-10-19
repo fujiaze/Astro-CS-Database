@@ -49,30 +49,23 @@
 
 两个无相连有效重叠边的分量，彼此绝对背景差不能从这两组数据内部恢复。弱正则锚只选一组平滑解，不产生真值。允许为用户继续生成图像，但必须保留此科学限制，不能制造“跨分量已统一”的陈述。
 
-## 4. 联合背景和逐帧差模
+## 4. 当前生产目标：可比响应组内 additive-only 相对天光差模 GLS
 
-用有噪声意义的背景控制观测 \(z_{kc}\)，在每个连通分量上求公共天空与逐帧差：
+Normalize/Gaia 已施加光度标度；本阶段**不再拟合相对乘性增益**。对能够以同一响应/可比较观测算子解释的 frame group，构建真实天空 \(S\) 与逐帧**加性**差模的控制模型 \(c=HS+A\beta+e\)，单位 \(c,A\beta\) 均为 L/sr。\(H\) 允许包含为天空拟合控制而匹配的 PSF/采样算子，不把高分辨率最终 signal 强制模糊到最差 PSF。跨 Hα 与 Red 且无可靠逐像元 SED 时不得在组间令 \(H_i=H_j\) 并以 \(c_i-c_j\) 直接消去真实天空；用户仍可在最终 mosaic 自选混合响应。
+
+\(c=T(y)\) 来自实际面积/patch 背景统计，\(C_c=\operatorname{Cov}(c)\) 属于控制估计量而非点源 Fisher 或单像元方差；median、clip 等非线性 T 须具名线性化/重抽样。对可辨识公共天空用 \(W=C_c^{-1}\) 和 \(Q=I-H(H^TWH)^+H^TW\) 进行 profile 消元：
 \[
- \min_{B,\{\alpha_k\}}
- \sum_{(k,c)\in{\cal O}}
- \rho\!\left(\frac{z_{kc}-[HB]_{kc}-
-                  [A_k\alpha_k]_{c}}{\sigma_{kc}}\right)
- +{\cal R}_B(B)+\sum_k {\cal R}_{a,k}(\alpha_k).
+\widehat\beta=\arg\min_{\beta\in\mathcal G}(c-A\beta)^TWQ(c-A\beta).
 \]
-A_k 是逐帧低阶多项式/样条基，\rho 是稳健损失，σ_kc 是与**背景控制统计量**同对象的标准差，不可直接用参考恒星 SNR 反推而不建立模型。
+\(\mathcal G\) 是对**各个有效 overlap 连通分量**单独固定的 gauge；必须检查真实 \(QA\) 在有效样本/权重下的 QR/SVD 秩、支持域和弱方向，不能因图连通就认为任意双线性场可辨。先 offset，再由位置分布/独立留出证据支持 plane/低阶 basis；真实天体低频留在被 profile 的 S，绝不靠“调平背景”强行去除。只在有重叠数据约束的域内估相对场，组外/单帧区域按恒等或标记的外推处理。
 
-若在拟合残差上构建逐帧场 F_k，必须保证：
-- F_k 解释的是联合解未解释的**差模**，不得再次作为独立绝对公共面扣除；
-- 去公共模操作 Σ_k u_k(p)F_k(p)=0 使用相同的有效帧集合、坐标和权重，且权重一旦迭代变化需要一致更新；
-- 即便这条代数恒等式成立，保存的是该加权平均量，并不自动等于无偏真实的星云低频信号；
-- 额外背景自由度只能在有效控制/重叠和独立验证支持的空间尺度上添加，不能单纯靠“缝更少”决定网格越密越好；
-- 在单帧区没有数据驱动的相对场约束时，只能按选定延拓/恒等约定处理并标记外推的影响。
+输出 \(z=y-E\widehat\beta\)，E 是与 **fit 完全相同**的实际多项式/四结点基求值；若冻结线性化并写 \(\widehat\beta=KT y\)，则 \(P=I-EKT\)、\(C_z=P C_y P^T\)。源数据与估计参数共用观测时交叉项不为零，不能一律只加 \(E C_\beta E^T\)；校正均值不去除 sky-photon shot-noise。携带 control operator、参数 Cov、shared factor/gauge、拟合支持与同数据 influence 供 R3/CoadditionEngine 消费。排异选择及模型失配另报告，不以 seam RMS 代替保真。
 
-同时求解公共场与差模，通常比先把每一帧各自高阶拟合、再对高频结果修补接缝更能保留大尺度信号。
+后续需要独立恒星/物理响应证据时才可研究 \(g_k\ne1\) 的 A+G 延伸；下面保留的 log-gain 图论与一般非线性 Jacobian **仅属扩展的数学参考，不是当前必须实现的生产算子**。
 
 ### 4.1 正确的共模消元、联合加性场拟合与 rank 判据（2026-10-17 推导）
 
-先限制为**物理响应可共同解释**且增益/噪声/样本资格已冻结的一个有效重叠连通分量。将像元/控制点观测堆叠为 `y=H_g S+A\alpha+\epsilon`；`H_g` 含逐帧有效 PSF、几何及当前残余增益，`A` 由加性曲面的**实际求值基函数**装配，`W=C^{-1}\succ0`。在线性参数下，对固定 `α` 可将 S 精确按 GLS profile out：
+先限制为**物理响应可共同解释**且增益/噪声/样本资格已冻结的一个有效重叠连通分量。将像元/控制点观测堆叠为 `y=H_g S+A\alpha+\epsilon`；`H_g` 含逐帧有效 PSF、几何及 Normalize 已冻结的尺度（当前令增益残差 g=1，不在 P5 迭代），`A` 由加性曲面的**实际求值基函数**装配，`W=C^{-1}\succ0`。在线性参数下，对固定 `α` 可将 S 精确按 GLS profile out：
 
 \[
 Q_H=I-H_g(H_g^TWH_g)^+H_g^TW,\qquad
@@ -86,7 +79,7 @@ L_{\rm prof}(\alpha)=(y-A\alpha)^T WQ_H(y-A\alpha)
 
 这**只在 H_g 对被保护公共场描述充分**时删除共同天体结构；其结果是识别相对加性参数，不是恢复绝对背景。对于 `H_k=I`，同一像素处 `H_g=g=(g_1,\ldots,g_K)^T`，退化为局部 `Q_g=I-g(g^TWg)^{-1}g^TW`。不同 PSF/通带应使用真正的 `H_g` 和 SED 模型；无共同物理场时，应按响应组估计独立的 S，不得在跨滤镜组强行相减。
 
-在**明确固定每个连通分量的 gauge 后**，`Q_H A` 对待估参数列满秩，才可能由观测唯一识别相对加性场。规范可由具名参考帧/系数空间零均值确定；其取值是坐标约定，不代表物理天空为零。若无星/外部锚，额外自由增益 `g_k=\exp(\Phi_k\eta_k)` 的 Jacobian `J_\eta=\operatorname{diag}(g_k H_kS)\Phi`，若与 `H_g` 和 A 的列空间重合，就不能从图像自身分别识别 g、S、a；应加入独立未饱和 matched-star 相对光度及颜色/PSF/孔径模型，只在保留样本的真实秩充足时更新 η。
+在**明确固定每个连通分量的 gauge 后**，`Q_H A` 对待估参数列满秩，才可能由观测唯一识别相对加性场。规范可由具名参考帧/系数空间零均值确定；其取值是坐标约定，不代表物理天空为零。仅在延后 A+G 方案中，若无星/外部锚，额外自由增益 `g_k=\exp(\Phi_k\eta_k)` 的 Jacobian `J_\eta=\operatorname{diag}(g_k H_kS)\Phi`，若与 `H_g` 和 A 的列空间重合，就不能从图像自身分别识别 g、S、a；应加入独立未饱和 matched-star 相对光度及颜色/PSF/孔径模型，只在保留样本的真实秩充足时更新 η。
 
 **数值实现的具体修订**：现行 `sky_plane.cpp::sky_make_residual_fields` 按 `floor(u/step)` 将一个 residual 分配给唯一格点，但后续 `sky_own_eval` 用四结点双线性基求值。这个 F-step 并非对应真实作用算子的精确最小二乘，不能由“分箱均值更新”推导每轮优化收敛。应从**同一 sky_own_eval 四结点 basis**构造稀疏设计行 `B_{tj}`，以 `r_{kt}=y_{kt}-[H_gS+A_{\rm base}\alpha_{\rm base}]_{kt}` 解当前实际掩膜/权重的
 \[
@@ -98,11 +91,11 @@ L_{\rm prof}(\alpha)=(y-A\alpha)^T WQ_H(y-A\alpha)
 
 对于正半定 W 与正半定惩罚矩阵，固定 g 下正规矩阵 `D^TWD+L^T\Lambda L` 必为 PSD。若精确消去的是 SPD 主块，对应 Schur 补仍 PSD；只有剩余规范自由度已固定且可辨识时才严格 SPD。因此 [#80](https://github.com/fujiaze/Astro-CS-Database/issues/80) 的 reduced not-SPD：数值上近零特征值与真实 gauge/未支持方向一致；明显负特征值提示有效权、装配/Schur 消去或计算精度问题；若实现用非线性完整 Hessian 而不是正权最小二乘 Gauss–Newton 正规矩阵，则 Hessian 可真不定，须独立辨别。**禁止单凭增加 ridge 便宣布模型可识别**。
 
-本解法属于 additive-only 生产替代候选；乘性 A+G 联合扩展可参照 Golub–Pereyra variable projection [DOI:10.1137/0710036](https://doi.org/10.1137/0710036)，以外部星点证据与留出负例决定是否增加 η，当前没有生产与真实 E2 支持，不冒称已部署。
+本节的联合加性/profile 是当前替代实现目标（尚未完成生产接线）；乘性 A+G 联合扩展可参照 Golub–Pereyra variable projection [DOI:10.1137/0710036](https://doi.org/10.1137/0710036)，以外部星点证据与留出负例决定是否增加 η，当前没有生产与真实 E2 支持，不冒称已部署。
 
 **数值实现语义（生产已装，2026-10-18）**：求解矩阵 \(A=H_{\rm red}+\lambda_{\rm numerical}D^\top D\) 的直接 Cholesky 失败时，只在**惩罚零空间候选基** \(Q\subseteq\ker D\) 上加极小 Tikhonov 锚 \(A_\alpha=A+\alpha QQ^\top\)，再用精确 deflation \(X=A_\alpha^{-1}Q\)、\((I-\alpha Q^\top X)w=\alpha Q^\top A_\alpha^{-1}b\)、\(B=A_\alpha^{-1}b+Xw\) 把锚偏置扣回（该式恒有 \(AB=b\)，旧 Q-only 形式一般不满足，已退休）。回退分支以「\((I-\alpha Q^\top X)\) 的 Cholesky 成功」为 \(A\) 数值正定的判据——因 \(A\succ0\) 时该矩阵恒等于 \((I+\alpha Q^\top A^{-1}Q)^{-1}\in(0,I]\)——并以原方程 normwise 后向误差与算术门 \(\tau_{\rm floor}=\max(n_{\rm obs},n_{\rm free})\epsilon\) 复核。\(Q\) 只是 \(\ker D\) 的候选子集（掩膜把支撑切成多个 stencil 连通块时 \(\ker D\) 维数大于四），覆盖不足或方向不可分辨时返回具名 `P2_SKY_PLANE_NOT_IDENTIFIABLE` 与读数，**不**加任意 ridge、不降低阈值、不丢像元。算法、反例、独立 oracle 与真实 A/B 见 [Phase2 sky-plane 算法](../algorithms/mosaic/PHASE2_UPM_IMPL.md) §3.1/§6 与 `实验/issue80-p5-a1-production-fix/REPORT.md`。
 
-### 4.1.1 相对增益图的可辨识性、误差与循环闭合（2026-10-17）
+### 4.1.1 延后研究：相对乘性增益图的可辨识性与循环闭合（非当前生产目标）
 
 仅当已配准并通过 PSF/颜色/孔径修正的**同一恒星**提供独立观测时，才将帧间 log 通量比用作增益测量。对每个有效重叠边 `e=(i,j)` 的统计量 `d_e`，模型是
 \[
@@ -126,7 +119,9 @@ d=B\eta+e,\qquad B_{e,i}=1,\ B_{e,j}=-1,\qquad\operatorname{Cov}(e)=\Sigma_e\suc
 
 独立可运行数学参考（非 production）：[graph_and_affine_oracles.py](../../../实验/innovation-closure/code/graph_and_affine_oracles.py)，含连通/断连分量、正定加权、规范及相对协方差的解析对照；实验预注册见 [#76](https://github.com/fujiaze/Astro-CS-Database/issues/76)。本节不声称生产已装入该参数求解器。
 
-### 4.2 加性/增益校正后的完整线性化误差
+### 4.2 当前 additive-only 校正与扩展增益的一般误差
+
+当前 \(g\equiv1\)，正确的残差联合 covariance 是 \(C_z=(I-EKT)C_y(I-EKT)^T\)（T 为当前控制采样，K 为实际拟合影响矩阵），不能把 sky 参数当独立外参。下式仅用于将来有独立乘性证据的 A+G 扩展，其不改变当前算法优先级。
 
 对`z_k=(y_k-a_k)/g_k`、`g_k=e^{\eta_k}`，
 \[
@@ -136,7 +131,7 @@ d=B\eta+e,\qquad B_{e,i}=1,\ B_{e,j}=-1,\qquad\operatorname{Cov}(e)=\Sigma_e\suc
 同数据拟合产生的 `Cov(y,a)`、不同帧共享 Gaia/Master/背景锚引起的交叉项及低频参数系统项均须计入。仅当 a、g 是固定已知外参，`SNR(z)` 才在正的确定性增益除法下保持配对不变；sky shot noise 已在光子读出时产生，扣除其均值不能消去 shot-noise。若残余场只从同一组 y 估计，则 `C_z` 可能含负的交叉协方差、相关核及真实天体泄漏，不能一律简单把拟合方差加到像元方差，也不能声称“共模增强不损失任何 SNR”。背景差分若有无法识别的低频共模，应当保留该模式及其相对零点不确定性，而非将平滑结果误当真值。
 
 
-### 4.3 正式优先方案：仅相对加性差模（R4 收敛；A+G 非前置依赖）
+### 4.3 当前 additive-only 的数值实现细节（生产实现待对齐）
 
 采用 Montage 重叠差分/全局一致模型（https://irsa.ipac.caltech.edu/Montage/docs/algorithms.html）并借鉴 Planck/Madam 对可辨识公共模式的处理（https://arxiv.org/abs/0907.0367）；扫描式 destriping 的观测几何不原样照搬 CCD。先按可比 response 组分开建立公共天空，PSF 不同时只在**背景拟合控制尺度**构造可比较的 \(H_k S\)，不无条件将高分辨率最终图像模糊到最差 PSF。用户混合 Hα/Red 可继续，但是未有逐位置 SED 模型时不得用异滤镜差帧充当天光差模约束，以免减去真实星云发射线。
 
