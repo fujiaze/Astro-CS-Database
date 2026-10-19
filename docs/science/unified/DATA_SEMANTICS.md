@@ -104,6 +104,16 @@ Normalize 每帧唯一正式精度载体为 frame_science.json，包含 Drizzle 
 
 阶段三从兼容HiPS的信号通道做WCS重采样，典型输入为阶段二的单signal产品；不要求 variance/ivar/snr 帧数据层。WCS 头与 HiPS 来源、滤镜/光度系统解释一致；重采样在高分辨图像上可能改变相关噪声和有效 PSF，但最终单信号图不能凭空恢复它们。对科学评估从独立模拟/保留的内部算子取得真值，不把后期目标格式升级成数据不存在的置信度声明。
 
+
+### 9.1 贯穿三阶段的最小科学数据身份（R1–R5 综合）
+
+生产接口不要把某个 float 数值的 presence 当作物理信息完整。每帧保留：frame_id/input_occurrence、target_nested_order 与实际叶索引、linear_base (ADU 或 XPMODEL)、signal BUNIT（L/sr）、reference_sed/id、response_id 和有序内容 hash/response_known_state、applied_photometry 状态、校准参数及 covariance availability、PSF/空间支持、球面真实 R 几何身份/面积预算、source/local/shared noise 模型、precision estimator_kind、missing_terms、sky_fit/eval basis/gauge/support、rejection masks 的原帧来源。局部有效 signal 与 known variance 分离：known partial variance 不可发布完整 inverse variance；NaN 代表无合法信号，0 可以是真实负背景附近的物理数值，未知不等于0。
+
+Mosaic 只接收同一选定 HEALPix target order，混阶明确拒绝（现有 p2_hips_order_uniform 机制保留）；不同原生像素/PSF/滤镜仍是合法异构输入。同阶并不意味着输出叶独立或新增空间信息。对于已知同线性单位而 response 不同的 user-selected composite，记录固定参考 SED 的标度及条件位置相关 \(K_{\rm eff}\)，不能把 mixture 当成唯一固定 R 通带。Export 只转换图像表示和科学元数据，不能从单 signal 重建不存在的原始协方差或混合谱；BUNIT、response mixed/unknown/provenance 必须随产品传递 (#79)。
+
+内部 uncertainty.kind 明确至少区分 reference_flux、actual_scene_surface、background_control；availability 区分 conditional_modelled、approximate、partial_only、unavailable，参数共享组和 omitted_terms 明示。不要因无完整 gain 而宣布正常图像不可处理，亦不把 empirical SNR、geometry support 和 rigorous IVAR 混在同一个数字字段。
+
+
 ## 10. 研究与实现对照
 
 实现状态见[科学实现差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。外部兼容性依据FITS[1]与HiPS[2]，用独立读者检验坐标、单位和文件方向；本项目writer与reader互相一致不足以证明兼容性。
