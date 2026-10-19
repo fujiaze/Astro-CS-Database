@@ -16,7 +16,7 @@ HEALPix的等面积与曲边由[1]定义。ACSD使用 NESTED、nside=2^K，所�
 
 ## 2. 理想 Drizzle：一份面积定义贯穿全部公式
 
-Drizzle通过缩小足迹控制额外卷积和噪声相关[2]。输入像元 j 的 drop 是原像元在约定的球面收缩映射下得到的 D_j（0<pixfrac≤1）。定义：
+Drizzle 通过缩小探测器足迹控制额外卷积和噪声相关[2]。**唯一正式 pixfrac 约定是 detector plane 先收缩，再 WCS/SIP 正向映射**：原像元 \(P_j=[u_j-1/2,u_j+1/2]\times[v_j-1/2,v_j+1/2]\)（pixel），对 \(f\in(0,1]\) 取同中心、宽高各 \(f\) pixel 的正方形 \(Q_j(f)\)，连续前向映射 \(D_j=W(Q_j(f))\)。源球面面积 \(\Omega_j=\Omega(W(P_j))\)，drop 面积 \(A_j=\Omega(D_j)\)；在球面像素中心周围事后缩边不是当前算法的同义定义。定义：
 - A_j=area(D_j)：**实际**收缩 drop 球面面积；
 - Ω_j=area(未收缩源像元足迹)：真实源面积；
 - H_p：目标 HEALPix 叶的球面区域；
@@ -45,7 +45,7 @@ Drizzle通过缩小足迹控制额外卷积和噪声相关[2]。输入像元 j �
 
 ### 2.2 pixfrac 与双重面积
 
-一般不允许用 A_j=pixfrac²Ω_j 作为精确球面恒等式：球面收缩方式、WCS 曲率和几何近似会引入误差。必须实际求两种面积；当 pixfrac=1 且 drop 几何就是未收缩足迹时，两者应一致。尤其不允许权重分子按 drop 面积归一，面亮度分母却改用 D_p 而没有补偿 N_p，避免出现 B0/pixfrac² 偏差。
+真实 \(A_j=\int_{Q_j(f)}|J_\Omega W(u,v)|\,du\,dv\)、\(\Omega_j=\int_{P_j}|J_\Omega W(u,v)|\,du\,dv\)，所以 **\(A_j=f^2\Omega_j\) 不是畸变 WCS 下严格恒等式**。必须实际求两种面积；当 pixfrac=1 且 drop 几何就是未收缩足迹时，两者应一致。尤其不允许权重分子按 drop 面积归一，面亮度分母却改用 D_p 而没有补偿 N_p，避免出现 B0/pixfrac² 偏差。
 
 这里定义的 c_pj 作用于 x_j，单位 1/sr；作用于 B_j 的等价无量纲系数是 w_jpΩ_j/N_p。不可混读，特别在不同源像元角尺度时。
 
