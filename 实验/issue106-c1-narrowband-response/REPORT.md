@@ -63,10 +63,13 @@ python3 eng/tests/unit/run_photometry_response_config_test.py     # 0（40/40）
 
 日志见 `evidence/`。
 
-## 5. 回归
+## 5. 回归与性能
 
 - measured 路径**逐位不变**（Akima A/B 200/200；`simpson_integrator_domain_test` 62/62；既有 160 项单元集全绿）。
 - 既有产品身份**逐字不变**：`photoapplied:v2:455519fe8018488ad86ff8df6c47952b`（空 response_id ⇒ 规范串不变）。
+- 性能（同一批 343 点 XP 谱，2000 次重复，`--bench` 模式）：参数化分段路径 **4.45–4.53 µs/星**，
+  历史 measured 路径 **3.41–3.46 µs/星** ⇒ 开销约 **1.3×**（≈1.1 µs/星，来自逐星重建 f_λ 的
+  Akima 样条；3 nm 带只切 2 段）。5000 星/帧 ⇒ 每帧多约 5 ms，对 Normalize 无实际影响。
 
 ## 6. 仍未闭合（不宣称已验证）
 

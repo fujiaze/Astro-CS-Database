@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <chrono>
 #include <cstring>
 #include <limits>
 #include <sstream>
@@ -705,9 +706,70 @@ static int run_cases_mode(const char* path) {
     return (n_cases > 0) ? 0 : 3;
 }
 
+// ============================================================================
+// 性能模式: `--bench <n>`
+// ----------------------------------------------------------------------------
+// 在**同一**批真实形状的 XP 谱上分别计时两条 F_syn 路径（每星 343 个 XP 点）:
+//   * 参数化路径 = 分段 Gauss–Legendre（每星重建 f_λ 的 Akima 样条）;
+//   * measured 路径 = 历史 Akima 重采样 + XP 网格 Simpson。
+// 只报**单星平均耗时**（不含进程启动），供实施报告的性能条目使用。
+// ============================================================================
+static int run_bench_mode(int n) {
+    const int n_xp = 343;
+    std::vector<double> xp(n_xp);
+    for (int i = 0; i < n_xp; ++i) xp[i] = 336.0 + 2.0 * i;
+    std::vector<uint8_t> bytes(n_xp);
+    for (int i = 0; i < n_xp; ++i) {
+        const double lam = xp[i];
+        const double f = 1.0e-6 *
+            std::exp(-0.5 * ((lam - 660.0) / 60.0) * ((lam - 660.0) / 60.0));
+        bytes[i] = static_cast<uint8_t>(std::lround(f / 1.0e-8));
+    }
+    std::vector<double> qe_wl{336.0, 1020.0};
+    std::vector<double> qe_val{0.8, 0.8};
+    const photo_calib::ParametricBand band =
+        photo_calib::make_parametric_band(656.28, 3.0);
+    const photo_calib::SegmentedResponseCache seg_cache =
+        photo_calib::prepare_segmented_response_cache(
+            band, qe_wl.data(), qe_val.data(), 2, xp.data(), n_xp);
+    std::vector<double> fw(n_xp), fv(n_xp);
+    for (int i = 0; i < n_xp; ++i) {
+        fw[i] = xp[i];
+        fv[i] = (xp[i] >= band.lo_nm && xp[i] <= band.hi_nm) ? 1.0 : 0.0;
+    }
+    const photo_calib::SpectrumIntegratorCache legacy_cache =
+        photo_calib::prepare_filter_cache(
+            fw.data(), fv.data(), n_xp, qe_wl.data(), qe_val.data(), 2,
+            xp.data(), n_xp);
+    double acc_seg = 0.0, acc_legacy = 0.0;
+    const auto t0 = std::chrono::steady_clock::now();
+    for (int i = 0; i < n; ++i) {
+        acc_seg += photo_calib::compute_f_syn_segmented_xpsd(
+            seg_cache, bytes.data(), n_xp, 0.0, 1.0e-8);
+    }
+    const auto t1 = std::chrono::steady_clock::now();
+    for (int i = 0; i < n; ++i) {
+        acc_legacy += photo_calib::compute_f_syn_cached_xpsd(
+            legacy_cache, bytes.data(), n_xp, 0.0, 1.0e-8);
+    }
+    const auto t2 = std::chrono::steady_clock::now();
+    const double us_seg =
+        std::chrono::duration<double, std::micro>(t1 - t0).count() / n;
+    const double us_legacy =
+        std::chrono::duration<double, std::micro>(t2 - t1).count() / n;
+    std::printf("BENCH n=%d segmented=%.3f us/star legacy=%.3f us/star ratio=%.2f "
+                "(acc_seg=%.6e acc_legacy=%.6e)\n",
+                n, us_seg, us_legacy, us_legacy > 0.0 ? us_seg / us_legacy : 0.0,
+                acc_seg, acc_legacy);
+    return 0;
+}
+
 int main(int argc, char** argv) {
     if (argc >= 3 && std::string(argv[1]) == "--cases") {
         return run_cases_mode(argv[2]);
+    }
+    if (argc >= 3 && std::string(argv[1]) == "--bench") {
+        return run_bench_mode(std::atoi(argv[2]));
     }
     test_akima_ab();
     test_analytic_exactness();
