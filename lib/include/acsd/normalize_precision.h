@@ -59,6 +59,7 @@ bool file_sha256_hex(const std::string& path, std::string* out);
 // 规范串化: 定点/科学计数都不是无损的文本形式依赖格式化规则, 这里用
 // C++17 std::to_chars 的 **hexfloat**（十六进制有效数字 + p 指数）: IEEE-754
 // 值与其文本一一对应（可 strtod 逐位回读）, 且不经过 locale。
+// 唯一实现 = lib/algorithms/shared/canonical_double.h（共享层; 本模块薄封装）。
 std::string canonical_double(double v);
 
 struct AppliedScaleIdentity {
@@ -71,22 +72,33 @@ struct AppliedScaleIdentity {
   std::vector<double> spatial_coef;   // 空间多项式系数（实际施加值）
   std::vector<double> spatial_center;  // 中心化
   std::vector<double> spatial_norm;    // [x_ref, x_scale, y_ref, y_scale]
-  std::string filter_key, filter_content_sha256;   // 曲线库键 + 文件内容
+  // 滤镜/QE 身份 = **曲线库键** + **曲线有序样本内容 sha256**（#42/#104 口径:
+  // 库键/n_points/min-max/和式都不足以定身份; 身份必须绑定有序样本内容）。
+  // 曲线**文件字节**摘要另作 provenance 记录（p1_phot.json 逐帧块）, 不进本
+  // 身份串 —— 文件字节会因排版变化而变, 曲线内容不会。
+  std::string filter_key, filter_content_sha256;
   std::string qe_key, qe_content_sha256;
-  // ── Issue #106: 响应身份 id（response:v1:<sha32>）────────────────────────
+  // ── Issue #106: **逐帧**响应身份 id（response:v1:<sha32>）────────────────
   // 参数化窄带响应**没有**滤镜曲线文件（filter_key 为空）⇒ 只用 filter/qe
   // 键无法区分「中心 656.28/3nm」与「中心 500/5nm」两个响应。本字段携带
-  // 拟合入口算出的**稳定响应 id**（含模式/剖面/中心/带宽/求积约定/内容 hash）。
+  // 该帧拟合入口算出的**物理响应 id**（形状 + 滤镜/QE 有序内容）。
   // **空 = 旧 measured 路径**（规范串不变 ⇒ 既有产品的 application_id 不变）。
+  // 调用方必须传**该帧**的值（#106 独立审核 P1: 组级首帧值不得代入混响应帧）。
   std::string response_id;
 };
 
-// 归一化身份串：photoapplied:v2:<sha256(规范串)[0:32]>（v2 = 本规范）。
+// 归一化身份串：photoapplied:v3:<sha256(规范串)[0:32]>（v3 = 本规范）。
+// v3 相对 v2 的变化（#106 独立审核 P1/P2 后的口径订正）:
+//   · 滤镜/QE 内容摘要 = **有序样本内容** sha256（v2 为曲线**文件字节**摘要）;
+//   · 响应 id = **逐帧物理响应** id（v2 混入 XP 覆盖/求积 ⇒ 换 XP 网格即换
+//     「滤镜身份」）。
+// ⇒ v2 与 v3 的 id **不可混用**（同一物理情形在两版下得到不同 id）。
 // 同一输入 ⇒ 同一 ID；任一参与量变化 ⇒ 新 ID（含极小 k 的末位变化）。
 std::string photo_application_identity(const AppliedScaleIdentity& in);
 
-// 响应身份：<filter_key>@<sha12>+<qe_key>@<sha12>（内容摘要为空时退化为
-// <key>@none, 且不写假摘要）。空 filter_key 与空 qe_key ⇒ 返回空串（未施加）。
+// 响应身份：<filter_key>@<sha12>+<qe_key>@<sha12>[+resp:<response_id>]
+// （曲线**有序样本内容**摘要; 摘要为空时退化为 <key>@none, 且不写假摘要）。
+// 空 filter_key 与空 qe_key 且空 response_id ⇒ 返回空串（未施加）。
 // Issue #106: response_id 非空时追加 "+resp:<response_id>"（参数化窄带没有
 // 滤镜曲线文件, 只有它能区分不同响应）; response_id 为空 ⇒ 规范串不变。
 std::string photo_response_identity(const std::string& filter_key,

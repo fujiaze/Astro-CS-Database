@@ -2,7 +2,7 @@
 #include "acsd/normalize_precision.h"
 
 #include <algorithm>
-#include <charconv>   // std::to_chars（无损 hexfloat 规范串化）
+#include <charconv>   // std::to_chars（无损 hexfloat 规范串化; 实现已移到共享层）
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -11,6 +11,7 @@
 #include <set>
 #include <sstream>
 
+#include "canonical_double.h"      // 无损浮点规范串（唯一实现, 共享层）
 #include "acsd/io/aio_abi_v1.h"       // aio_content_hash_buffer_v1（sha256 唯一 C ABI）
 #include "crypto/sha256.h"            // acsd::crypto::sha256_hex（身份哈希, 单一实现）
 #include "healpix/healpix_core.h"     // acsd::healpix::ang2pix_nest（唯一实现）
@@ -95,14 +96,9 @@ bool file_sha256_hex(const std::string& path, std::string* out) {
 
 // ── 施加标度的规范身份（见头文件口径块）────────────────────────────────────
 std::string canonical_double(double v) {
+  // 唯一实现 = 共享层（lib/algorithms/shared/canonical_double.h）:
   // hexfloat: IEEE-754 值的无损文本形式（strtod 可逐位回读）, 不经过 locale。
-  char buf[64];
-  const auto res = std::to_chars(buf, buf + sizeof(buf), v, std::chars_format::hex);
-  if (res.ec != std::errc()) {
-    // 理论上不可达（64 字节足够任何 binary64 hexfloat）; 具名退化而不是静默截断。
-    return std::string("unrepresentable");
-  }
-  return std::string(buf, res.ptr);
+  return acsd::shared::canonical_double_hex(v);
 }
 
 namespace {
@@ -119,7 +115,11 @@ std::string canon_array(const char* key, const std::vector<double>& v) {
 }  // namespace
 
 std::string photo_application_identity(const AppliedScaleIdentity& in) {
-  std::string canon = "photoapplied/v2|frame=" + in.frame_key +
+  // 规范串版本 = v3（#106 独立审核 P1/P2 后的口径订正; 见头文件说明）:
+  //   · 滤镜/QE 内容摘要 = 曲线**有序样本内容** sha256;
+  //   · 响应 id = 逐帧**物理**响应 id（不含 XP 覆盖/求积）。
+  // v2 与 v3 的 id 不可混用（同一物理情形在两版下得到不同 id）。
+  std::string canon = "photoapplied/v3|frame=" + in.frame_key +
                       "|src=" + in.input_source_sha256 +
                       "|k=" + canonical_double(in.k_photo) +
                       "|sg_order=" + std::to_string(in.spatial_order) +
@@ -131,11 +131,11 @@ std::string photo_application_identity(const AppliedScaleIdentity& in) {
   canon += "|filter=" + in.filter_key + "|filter_sha=" + in.filter_content_sha256;
   canon += "|qe=" + in.qe_key + "|qe_sha=" + in.qe_content_sha256;
   // Issue #106: 响应身份 id 非空时进入规范串（参数化窄带**没有**滤镜曲线文件;
-  // 缺它则两个不同响应会共享同一 application_id）。空 ⇒ 规范串**逐字不变**
-  // （旧 measured 路径的既有产品身份不变）。
+  // 缺它则两个不同响应会共享同一 application_id）。空 ⇒ 该参与量缺席
+  // （旧 measured 路径的既有行为: 规范串不含 resp_id 段）。
   if (!in.response_id.empty()) canon += "|resp_id=" + in.response_id;
   const std::string hex = acsd::crypto::sha256_hex(canon.data(), canon.size());
-  return "photoapplied:v2:" + hex.substr(0, 32);
+  return "photoapplied:v3:" + hex.substr(0, 32);
 }
 
 std::string photo_response_identity(const std::string& filter_key,

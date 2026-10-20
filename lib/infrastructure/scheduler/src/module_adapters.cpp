@@ -82,6 +82,7 @@
                              //  唯一权威常量 206.265 与 m_lim_* 默认值)
 #include "gaia_client.h"     // lib/infrastructure/gaia_xpsd_client: Gaia XPSD cone-search 客户端
 #include "photometry_response_config.h"  // Issue #106: 响应来源 one-of 的站点解析（唯一实现）
+#include "photometry_frame_identity.h"   // Issue #106: 逐帧响应身份落盘/解析（唯一实现）
 #include "star_detector.h"   // lib/algorithms/star_detection: sdet_create/sdet_detect_ex_f64 句柄
 // 注: C++ StarDetector 类头与 sdet C 头同名——裸名 include 命中 lib/algorithms/star_detection
 // (lib/algorithms/star_detection/include 先于 lib/algorithms/star_detection/wrapper_phase1), C++ 类头以相对路径显式引入。
@@ -5888,23 +5889,11 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     int filter_n_points = 0;
     double filter_wl_min_nm = 0.0;
     double filter_wl_max_nm = 0.0;
-    // ── Issue #106: 响应身份（模式/剖面/端点/求积约定/覆盖/内容 hash/稳定 id）──
-    // PARAMETRIC_APPROX ≠ MEASURED_CURVE: 两者即使中心/FWHM 相同也不是同一
-    // 物理响应（top-hat 是具名形状假设, 不是实测透过率）。
-    std::string response_mode;
-    std::string response_profile;
-    int response_profile_version = 0;
-    double response_center_nm = 0.0;
-    double response_fwhm_nm = 0.0;
-    double response_band_lo_nm = 0.0;
-    double response_band_hi_nm = 0.0;
-    std::string response_integration;
-    std::string response_coverage;
-    std::string response_knowledge;
-    std::string response_id;
-    std::string response_source;
-    std::string response_qe_sha256;
-    std::string response_filter_sha256;
+    // ── Issue #106: 响应**身份**（模式/剖面/端点/求积/覆盖/内容 hash/稳定 id）──
+    // 归入 acsd::scheduler::FrameResponseIdentity（逐帧权威记录, 单一实现;
+    // 见 photometry_frame_identity.h）; 本结构**不再**保存身份字段, 避免
+    // 第二份口径。PARAMETRIC_APPROX ≠ MEASURED_CURVE: 两者即使中心/FWHM
+    // 相同也不是同一物理响应（top-hat 是具名形状假设, 不是实测透过率）。
     // ── PHOT-MXY-01: 低阶乘性空间增益 m(x,y)（SCI-PHOT-001 §16.1 ④⑤）──────
     // m_order == 0 ⇒ m ≡ 1（未启用 / 按声明降级）；此时施加走**未改动**的
     // calibration::apply_photometry，与改动前逐位一致。
@@ -5992,6 +5981,13 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   std::string passband_identity_filter;     // FILTER 关键字（fit.filter 或 filter_passband）
   std::string passband_identity_key;        // 解析出的库键（= filters.json 对象键）
   // N04: 组内模型通带 identity 不一致的**计数**（合法输入, 不判失败; 供诊断）
+  //
+  // 判据（#106 独立审核 P1-3）: 以**逐帧真实响应身份** `response_id` 为准,
+  // 不再只看 filter_key/n_points/范围 —— 参数化窄带没有滤镜曲线（filter_key
+  // 空、数量/范围全 0）, 旧判据**检不出**混响应; 且「同滤镜不同 QE」在旧
+  // 判据下也不计数。response_id 含滤镜/QE 的**有序样本内容**摘要 ⇒ 覆盖
+  // 「不同滤镜」「不同 QE」「参数化不同中心/带宽」三类差异。
+  // **合法混通带不判失败**（N04 裁决: 帧间独立, 差异只作具名诊断）。
   std::size_t n_passband_identity_mismatch = 0;
   std::string passband_identity_curve_name; // 曲线对象自述 name（身份门要求 == 库键）
   int passband_identity_n_points = 0;
@@ -6011,13 +6007,26 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   double qe_val_min = 0.0;
   double qe_val_max = 0.0;
   std::string qe_curve_source;                 // 实际装载的 QE 曲线文件（扫描集内路径）
-  // ── Issue #106: 组级响应身份（首帧落定; 逐帧不一致只作具名诊断, 不判失败）──
-  std::string group_response_mode, group_response_profile, group_response_id;
-  std::string group_response_integration, group_response_coverage;
-  std::string group_response_knowledge, group_response_source;
-  std::string group_response_qe_sha256;
-  int group_response_profile_version = 0;
-  double group_response_center_nm = 0.0, group_response_fwhm_nm = 0.0;
+  // ── Issue #106: 逐帧响应身份（权威）+ 组级摘要（首帧落定; 只作摘要/兼容）──
+  // 逐帧身份 = 该帧**实际**用于合成 F_syn 的响应（物理 response_id + 合成模型
+  // synthesis_id + 滤镜/QE 的有序内容摘要 + 实际曲线文件）; 落进
+  // p1_phot.json#photscale_fit[frame].response ⇒ 下游（Drizzle）按**逐帧**
+  // 记录构造 frame_science 的响应/施加身份, 不用组级首帧值代入。
+  // 组级 = 首个拟合成功帧的同一份身份（**摘要**; 混响应 block 的逐帧真相在
+  // photscale_fit 里, 组级值不得当作逐帧值）。
+  std::map<std::string, acsd::scheduler::FrameResponseIdentity> frame_response_ids;
+  acsd::scheduler::FrameResponseIdentity group_response;
+  // 曲线**文件字节**摘要缓存（同一路径只算一次; 只作 provenance, 不进身份串）
+  std::map<std::string, std::string> curve_file_sha_cache;
+  auto curve_file_sha = [&curve_file_sha_cache](const std::string& path) -> std::string {
+    if (path.empty()) return std::string();
+    const auto it = curve_file_sha_cache.find(path);
+    if (it != curve_file_sha_cache.end()) return it->second;
+    std::string sha;
+    if (!acsd::phase1::precision::file_sha256_hex(path, &sha)) sha.clear();
+    curve_file_sha_cache.emplace(path, sha);
+    return sha;
+  };
   std::string photscale_source = "none";
   const Json phot_cfg = (p1_has(doc, "photometry") && doc["photometry"].is_object())
                             ? doc["photometry"] : Json::object();
@@ -6584,21 +6593,8 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         sc.filter_n_points = fr.filter_n_points;
         sc.filter_wl_min_nm = fr.filter_wl_min_nm;
         sc.filter_wl_max_nm = fr.filter_wl_max_nm;
-        // ── Issue #106: 响应身份（逐帧自述; 模式/求积约定/覆盖/内容 hash）────
-        sc.response_mode = fr.response.mode;
-        sc.response_profile = fr.response.profile;
-        sc.response_profile_version = fr.response.profile_version;
-        sc.response_center_nm = fr.response.center_nm;
-        sc.response_fwhm_nm = fr.response.fwhm_nm;
-        sc.response_band_lo_nm = fr.response.band_lo_nm;
-        sc.response_band_hi_nm = fr.response.band_hi_nm;
-        sc.response_integration = fr.response.integration;
-        sc.response_coverage = fr.response.coverage;
-        sc.response_knowledge = fr.response.knowledge;
-        sc.response_id = fr.response.response_id;
-        sc.response_source = fr.response.source;
-        sc.response_qe_sha256 = fr.response.qe_content_sha256;
-        sc.response_filter_sha256 = fr.response.filter_content_sha256;
+        // 响应**身份**不在本结构保存: 逐帧身份走
+        // acsd::scheduler::FrameResponseIdentity（下方统一构造, 单一实现）。
         // FREF-BASELINE-001: 帧自身测光零点（正向合成, 与帧噪声无关）
         sc.synthetic_colour_valid = fr.synthetic_colour_valid;
         sc.synthetic_colour_median_mag = fr.synthetic_colour_median_mag;
@@ -6669,8 +6665,22 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         }
 #endif
         // ── PASSBAND-IDENTITY-GATE-01: 通带身份（组级一致性）─────────────
-        // 首帧落定组级身份；后续帧必须与首帧**逐项**一致（同一组只能有一条
-        // 模型通带）。不一致 ⇒ 该帧 fail（帧间不得混装不同通带的产品）。
+        // 组级身份由**首帧**落定（摘要用）; 逐帧真相在 photscale_fit[frame]。
+        // 逐帧与组级不一致 ⇒ **只作具名诊断**, 不判帧失败（N04 裁决: 帧间独立,
+        // 合法混通带由用户决定是否合并; 不设设备一致性流程关卡）。
+        //
+        // 构造**逐帧**响应身份（权威）: 物理 response_id + 合成模型 synthesis_id
+        // + 滤镜/QE 的有序内容摘要 + 实际曲线文件 + XP 网格。
+        {
+          // 映射 = 唯一实现（photometry_frame_identity.h）; 生产与单测同一条路径。
+          acsd::scheduler::FrameResponseIdentity fri =
+              acsd::scheduler::frame_response_identity_of(
+                  fr.response, fr.filter_curve_source, fr.qe_curve_source);
+          // 曲线**文件字节**摘要（provenance; 身份串用上面的有序内容摘要）
+          fri.filter_file_sha256 = curve_file_sha(fri.filter_curve_source);
+          fri.qe_file_sha256 = curve_file_sha(fri.qe_curve_source);
+          frame_response_ids[key] = fri;
+        }
         if (!passband_identity_valid) {
           passband_identity_valid = true;
           passband_identity_declared = doc.value("filter_passband", std::string());
@@ -6692,38 +6702,29 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           qe_val_min = fr.qe_val_min;
           qe_val_max = fr.qe_val_max;
           qe_curve_source = fr.qe_curve_source;
-          // Issue #106: 组级响应身份（首帧落定）
-          group_response_mode = fr.response.mode;
-          group_response_profile = fr.response.profile;
-          group_response_profile_version = fr.response.profile_version;
-          group_response_center_nm = fr.response.center_nm;
-          group_response_fwhm_nm = fr.response.fwhm_nm;
-          group_response_integration = fr.response.integration;
-          group_response_coverage = fr.response.coverage;
-          group_response_knowledge = fr.response.knowledge;
-          group_response_id = fr.response.response_id;
-          group_response_source = fr.response.source;
-          group_response_qe_sha256 = fr.response.qe_content_sha256;
-        } else if (fr.filter_key != passband_identity_key ||
-                   fr.filter_n_points != passband_identity_n_points ||
-                   fr.filter_wl_min_nm != passband_identity_wl_min_nm ||
-                   fr.filter_wl_max_nm != passband_identity_wl_max_nm) {
+          // Issue #106: 组级响应身份（**摘要**; 首帧落定）
+          group_response = frame_response_ids[key];
+        } else if (fr.response.response_id != group_response.response_id) {
           // N04（NORMALIZE_CONVERGENCE §2 裁决「跨滤镜不得合并」→ 用户自由组合）:
-          // 组内模型通带 identity 不一致**不再判帧失败**。逐帧 response binding 已
-          // 由 frame_filter_header 记录（下方 photscale_fit 落盘）; 该帧的标度
-          // 成败由拟合通道自身判决（PHOT_FIT_NO_SCALE 等），组级身份差异只作
-          // 具名诊断记录，供用户决定是否合并，不设设备一致性流程关卡。
+          // 组内模型响应 identity 不一致**不判帧失败**。逐帧 response binding 与
+          // 逐帧响应身份已由 photscale_fit[frame].response 记录; 该帧的标度成败由
+          // 拟合通道自身判决（PHOT_FIT_NO_SCALE 等），组级身份差异只作具名诊断
+          // 记录，供用户决定是否合并。
+          //
+          // 判据 = **逐帧真实响应身份** response_id（#106 独立审核 P1-3）:
+          // 旧判据（filter_key/n_points/范围）在参数化窄带上**恒等**（filter_key
+          // 空、数量/范围全 0）⇒ 混响应检不出; 且「同滤镜不同 QE」也不计数。
           n_passband_identity_mismatch++;
           std::fprintf(stderr,
-                       "[phot][WARN] 组内模型通带 identity 不一致（合法输入, 不判失败）:"
-                       " frame=%s group_key='%s' frame_key='%s' n_points %zu vs %zu"
-                       " range=[%g,%g] vs [%g,%g] nm -- 逐帧 response binding 见"
-                       " p1_phot.json#photscale_fit[].filter_* / frame_filter_header\n",
-                       key.c_str(), passband_identity_key.c_str(), fr.filter_key.c_str(),
-                       (std::size_t)passband_identity_n_points,
-                       (std::size_t)fr.filter_n_points, passband_identity_wl_min_nm,
-                       passband_identity_wl_max_nm, fr.filter_wl_min_nm,
-                       fr.filter_wl_max_nm);
+                       "[phot][WARN] 组内逐帧响应 identity 不一致（合法输入, 不判失败）:"
+                       " frame=%s group_response_id=%s frame_response_id=%s"
+                       " group_filter='%s' frame_filter='%s' group_qe='%s'"
+                       " frame_qe='%s' -- 逐帧权威身份见"
+                       " p1_phot.json#photscale_fit[].response\n",
+                       key.c_str(), group_response.response_id.c_str(),
+                       fr.response.response_id.c_str(), group_response.filter_key.c_str(),
+                       fr.filter_key.c_str(), group_response.qe_key.c_str(),
+                       fr.qe_key.c_str());
         }
         scales[key] = sc;
       }
@@ -7081,23 +7082,18 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
              {"response_qe_source", sc->response_qe_source},
              {"response_matched_by", sc->response_matched_by},
              {"filter_key", sc->filter_key},
-             // ── Issue #106: 响应身份（逐帧; 模式/剖面/端点/求积/覆盖/内容 hash）──
+             // ── Issue #106: 逐帧响应身份（**权威**; 序列化 = 唯一实现）──────
              // 使「这一帧的 F_syn 是用哪条响应、哪套求积算出来的」在产品里可
-             // 独立核对（PARAMETRIC_APPROX ≠ MEASURED_CURVE）。
-             {"response", Json{{"mode", sc->response_mode},
-                               {"profile", sc->response_profile},
-                               {"profile_version", sc->response_profile_version},
-                               {"center_nm", sc->response_center_nm},
-                               {"fwhm_nm", sc->response_fwhm_nm},
-                               {"band_lo_nm", sc->response_band_lo_nm},
-                               {"band_hi_nm", sc->response_band_hi_nm},
-                               {"integration", sc->response_integration},
-                               {"coverage", sc->response_coverage},
-                               {"knowledge", sc->response_knowledge},
-                               {"response_id", sc->response_id},
-                               {"source", sc->response_source},
-                               {"qe_content_sha256", sc->response_qe_sha256},
-                               {"filter_content_sha256", sc->response_filter_sha256}}},
+             // 独立核对（PARAMETRIC_APPROX ≠ MEASURED_CURVE）, 且**逐帧**可查
+             // （#106 独立审核 P1: 组级首帧值不得当作混响应 block 的逐帧真相）。
+             // 块 = acsd::scheduler::frame_response_identity_json（生产与单测共用）。
+             {"response", [&]() -> Json {
+                 const auto it = frame_response_ids.find(sc->key);
+                 if (it != frame_response_ids.end())
+                   return acsd::scheduler::frame_response_identity_json(it->second);
+                 // 该帧无拟合成功记录 ⇒ 无逐帧响应身份（不伪造; 缺项可见）。
+                 return Json::object();
+             }()},
              {"f_instr_domain", "psf_analytic_flux_2pi_A_sx_sy_over_3"},
              {"synthetic_colour_valid", sc->synthetic_colour_valid},
              {"synthetic_colour_median_mag", sc->synthetic_colour_median_mag},
@@ -7172,7 +7168,9 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                    {"wl_max_nm", qe_wl_max_nm},
                    {"val_min", qe_val_min},
                    {"val_max", qe_val_max},
-                   {"curve_source", qe_curve_source}}
+                   {"curve_source", qe_curve_source},
+                   // 组级摘要的有序内容摘要（与逐帧块同源同口径; 供旧产物兼容回退）
+                   {"content_sha256", group_response.qe_content_sha256}}
             : Json{{"declared_qe_name", qe_declared_name},
                    {"gate", "not_applicable (no fitted scale)"}};
     return Json{{"gate", "enforced (curve identity == declared filter name)"},
@@ -7186,20 +7184,19 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                 {"val_min", passband_identity_val_min},
                 {"val_max", passband_identity_val_max},
                 {"curve_source", passband_identity_curve_source},
-                // ── Issue #106: 响应身份（组级; 首帧落定）──────────────────
+                // ── Issue #106: 组级响应身份（**摘要**; 首帧落定）────────────
                 // PARAMETRIC_APPROX ≠ MEASURED_CURVE: 模式/剖面/端点/求积
                 // 约定/覆盖/内容 hash 全部登记, 使产品可独立核对。
-                {"response", Json{{"mode", group_response_mode},
-                                  {"profile", group_response_profile},
-                                  {"profile_version", group_response_profile_version},
-                                  {"center_nm", group_response_center_nm},
-                                  {"fwhm_nm", group_response_fwhm_nm},
-                                  {"integration", group_response_integration},
-                                  {"coverage", group_response_coverage},
-                                  {"knowledge", group_response_knowledge},
-                                  {"response_id", group_response_id},
-                                  {"source", group_response_source},
-                                  {"qe_content_sha256", group_response_qe_sha256}}},
+                //
+                // **scope = group_summary**: 本块是**首个拟合成功帧**的身份摘要,
+                // 只作摘要与**旧产物兼容回退**; 混响应 block 的**逐帧**真相在
+                // `photscale_fit[frame].response`（#106 独立审核 P1-1）。
+                {"response", [&]() -> Json {
+                     Json r = acsd::scheduler::frame_response_identity_json(group_response);
+                     r["scope"] = "group_summary (first successful frame);"
+                                  " per-frame truth = photscale_fit[frame].response";
+                     return r;
+                 }()},
                 {"qe", qe_identity_block}};
   };
 
@@ -8664,6 +8661,12 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   // 参数化窄带**没有**滤镜曲线文件 ⇒ 帧侧/阶段二的身份必须带上这个 id,
   // 否则「中心 656.28/3nm」与「中心 500/5nm」会共享同一响应身份。
   std::string phot_response_id;
+  // ── Issue #106 独立审核 P1: **逐帧**响应身份（权威）+ 组级摘要（兼容）────
+  // 逐帧真相 = p1_phot.json#photscale_fit[frame].response（光度节点逐帧写入）;
+  // 组级 passband_identity 只作**摘要**与**旧产物兼容回退**, 不得当作混响应
+  // block 的逐帧值（此前本节点读组级首帧值 ⇒ 两张 frame_science 同一响应 id）。
+  std::map<std::string, acsd::scheduler::FrameResponseIdentity> phot_frame_response;
+  acsd::scheduler::GroupResponseIdentity phot_group_response;
   // FAILSEM-01: 上游**逐帧判决**（p1_phot.json.frames[] → frame_key → 记录）。
   // 逐帧真相是本节点选择输入面的唯一依据; 组级 photometry_applied 只作摘要。
   Json frame_status = Json::object();
@@ -8738,6 +8741,19 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           acsd::phase1::precision::file_sha256_hex(phot_response_qe_src,
                                                    &phot_response_qe_sha);
         }
+        // ── Issue #106 独立审核 P1: 逐帧响应身份（**权威**）───────────────
+        // 逐帧记录 = 光度节点写入的 photscale_fit[frame].response; 解析规则
+        // （含旧产物回退与具名不可用）见 photometry_frame_identity.h（唯一实现）。
+        phot_frame_response = acsd::scheduler::collect_frame_response_identities(pj);
+        phot_group_response = acsd::scheduler::parse_group_response_identity(pj);
+        phot_group_response.filter_file_sha256 = phot_response_filter_sha;
+        phot_group_response.qe_file_sha256 = phot_response_qe_sha;
+        if (phot_group_response.response_id.empty())
+          phot_group_response.response_id = phot_response_id;
+        if (phot_group_response.filter_key.empty())
+          phot_group_response.filter_key = phot_response_filter_key;
+        if (phot_group_response.qe_key.empty())
+          phot_group_response.qe_key = phot_response_qe_key;
         have_phot_prov = true;
       } catch (const std::exception& e) {
         return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -9830,9 +9846,21 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         //     写成 "0.000000" ⇒ 不同标度可碰撞成同一身份）;
         //   * 覆盖所有参与量: k_photo + 空间场(order/status/identifiable/coef/center/norm)
         //     + 输入 occurrence 内容 sha256（同名不同输入不再同身份）
-        //     + 滤镜/QE 的库键**与曲线文件内容 sha256**（文件名不是曲线字节身份）。
+        //     + 滤镜/QE 的库键**与曲线有序内容摘要**（文件名不是曲线身份）。
         // 同一施加 ⇒ 同一 ID; 任一参与量变化 ⇒ 新 ID。只表达"施加了什么", 不伪造
         // 未测的光度解算 revision。
+        //
+        // ── Issue #106 独立审核 P1: 响应相关参与量取**逐帧**值 ──────────────
+        // 此前本节点用**组级** passband_identity（首个拟合成功帧冻结）⇒ 同一
+        // block 内两帧不同响应时, 两张 frame_science 拿到同一响应 id。现在按
+        // p1_phot.json#photscale_fit[frame].response 的**逐帧**记录取值; 逐帧
+        // 记录缺失 ⇒ 具名不可用（response_id 置空 + reason 记明）, **不**用别的
+        // 帧的值代入（旧产物整份无逐帧记录时才允许一次组级回退, 且标记
+        // group_legacy）。
+        std::string phot_identity_note;
+        acsd::scheduler::FrameResponseResolution fres =
+            acsd::scheduler::resolve_frame_response_identity(
+                phot_frame_response, phot_group_response, p1_frame_key(lp));
         if (frame_applied) {
           acsd::phase1::precision::AppliedScaleIdentity ident;
           ident.frame_key = p1_frame_key(lp);
@@ -9860,26 +9888,57 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                     nrm.contains(k) && nrm[k].is_number() ? nrm[k].get<double>() : 0.0);
             }
           }
-          ident.filter_key = phot_response_filter_key;
-          ident.filter_content_sha256 = phot_response_filter_sha;
-          ident.qe_key = phot_response_qe_key;
-          ident.qe_content_sha256 = phot_response_qe_sha;
-          // Issue #106: 响应身份 id（参数化窄带没有滤镜曲线文件 ⇒ 必须参与身份）
-          ident.response_id = phot_response_id;
+          // 逐帧响应身份参与施加身份（库键 + 有序内容摘要 + 物理响应 id）
+          if (fres.available) {
+            ident.filter_key = fres.identity.filter_key;
+            ident.filter_content_sha256 = fres.identity.filter_content_sha256;
+            ident.qe_key = fres.identity.qe_key;
+            ident.qe_content_sha256 = fres.identity.qe_content_sha256;
+            // Issue #106: 响应身份 id（参数化窄带没有滤镜曲线文件 ⇒ 必须参与身份）
+            ident.response_id = fres.identity.response_id;
+          }
           fdoc.photometry.application_id =
               acsd::phase1::precision::photo_application_identity(ident);
-          // 响应身份 = 实际装载的曲线库键 + **曲线内容摘要**（同名文件内容更新 ⇒
-          // 身份随之改变; 摘要缺失时写 @none, 不写假摘要）+ Issue #106 的响应 id。
-          fdoc.photometry.response_id = acsd::phase1::precision::photo_response_identity(
-              phot_response_filter_key, phot_response_filter_sha,
-              phot_response_qe_key, phot_response_qe_sha, phot_response_id);
+          // 响应身份 = **逐帧**实际装载的曲线库键 + 曲线有序内容摘要（同内容
+          // 更新 ⇒ 身份随之改变; 摘要缺失时写 @none, 不写假摘要）+ 物理响应 id。
+          fdoc.photometry.response_id = fres.available
+              ? acsd::phase1::precision::photo_response_identity(
+                    fres.identity.filter_key, fres.identity.filter_content_sha256,
+                    fres.identity.qe_key, fres.identity.qe_content_sha256,
+                    fres.identity.response_id)
+              : std::string();
+          // 合成模型身份（标定 provenance: 物理响应 + XP 覆盖/求积/XP 网格）——
+          // 与「仪器响应身份」分列, 换 XP 网格不换响应身份。
+          // 逐帧身份不可得 ⇒ 具名占位（不写空串: schema 要求 relative_only 时
+          // scale_model_id 非空; 空会变成 null 而使产品不符合合同）。
+          fdoc.photometry.scale_model_id = fres.available
+              ? (fres.identity.synthesis_id.empty()
+                     ? std::string("unknown(synthesis_id_absent)")
+                     : fres.identity.synthesis_id)
+              : std::string("unavailable(response_identity_unavailable)");
+          if (!fres.available) {
+            phot_identity_note = fres.reason;
+            std::fprintf(stderr,
+                         "[drizzle][WARN] %s (frame=%s) ⇒ frame_science.response_id"
+                         " 置空, 施加身份不含响应参与量\n",
+                         fres.reason.c_str(), p1_frame_key(lp).c_str());
+          } else if (fres.source != "per_frame") {
+            phot_identity_note = fres.reason;
+          }
           // 参考量的响应身份在 stage_frame_precision 之后回填（该函数由 ref_def
           // 重建 reference 段 ⇒ 在此设置会被覆盖；见调用点后的补写）。
         }
         fdoc.photometry.reason =
             frame_applied
-                ? "per-frame k_photo applied upstream; scale uncertainty not"
-                  " modelled (alpha from p1_phot.json photscales)"
+                ? (phot_identity_note.empty()
+                       ? std::string("per-frame k_photo applied upstream; scale "
+                                     "uncertainty not modelled (alpha from "
+                                     "p1_phot.json photscales)")
+                       : (std::string("per-frame k_photo applied upstream; scale "
+                                      "uncertainty not modelled (alpha from "
+                                      "p1_phot.json photscales); response "
+                                      "identity: ") + fres.source +
+                         (fres.reason.empty() ? "" : " (" + fres.reason + ")")))
                 : "photometric scale channel absent; native calibrated signal";
         fdoc.calibration.uncertainty = "unmodelled";
         fdoc.calibration.omitted_terms = {"master_uncertainty"};

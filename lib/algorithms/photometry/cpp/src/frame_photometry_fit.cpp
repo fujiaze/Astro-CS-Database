@@ -22,6 +22,7 @@
 #include "spectrum_integrator.h" // prepare_filter_cache / compute_f_syn_cached_xpsd
 #include "../include/photometric_calib.h"
 #include "crypto/sha256.h"     // acsd::crypto::sha256_hex（响应身份摘要, 单一实现）
+#include "canonical_double.h"  // 无损浮点规范串（身份串的唯一浮点写法, 单一实现）
 
 extern "C" {
 #include "gaia_client.h"
@@ -51,18 +52,19 @@ namespace {
 // `<可执行文件目录>/config/response_curves/`（`curve_json::scan_curve_library`），
 // 通带名与 QE 名都按库键**字节精确**命中扫描集（无归一、无别名）。
 
-// 规范浮点序列化（响应身份串的**唯一**浮点写法）: 12 位有效数字的 %.12g。
-// 波长以 nm 为单位 ⇒ 该精度远低于任何物理可分辨的差异, 同时保证不同
-// 编译器/平台给出同一字符串（IEEE-754 规定 %.12g 的舍入）。
+// 规范浮点序列化（响应身份串的**唯一**浮点写法）: 无损 hexfloat
+// （IEEE-754 值 ↔ 文本一一对应, strtod 可逐位回读, 与 locale 无关）。
+// 旧写法 "%.12g" **不是单射**（656.28 与 nextafter(656.28,+∞) 同串）⇒
+// 不同响应参数会共享同一身份串（#106 独立审核 P2-1）。
 inline std::string canon_num(double v) {
-    char buf[64];
-    std::snprintf(buf, sizeof(buf), "%.12g", v);
-    return std::string(buf);
+    return acsd::shared::canonical_double_hex(v);
 }
 
-// 响应身份串 → 稳定 id（sha256 前 32 hex）。规范串冻结: 模式/剖面/版本/
-// 中心/带宽/解析端点/求积约定/QE 身份与有序内容 hash/滤镜身份与有序内容 hash。
-inline std::string response_id_of(const ResponseIdentity& id) {
+// ── 物理响应身份（response:v1:…）──────────────────────────────────────────
+// 规范串冻结: 模式/剖面/版本/中心/带宽/解析端点/QE 身份与有序内容 hash/
+// 滤镜身份与有序内容 hash。**不含** XP 覆盖状态、求积约定与 XP 网格
+// ⇒ 换 XP 网格不换「滤镜身份」（#106 独立审核 P2-2）。
+inline std::string response_canonical_string(const ResponseIdentity& id) {
     std::string canon;
     canon += "mode=" + id.mode;
     canon += "|profile=" + id.profile;
@@ -71,15 +73,32 @@ inline std::string response_id_of(const ResponseIdentity& id) {
     canon += "|fwhm_nm=" + canon_num(id.fwhm_nm);
     canon += "|band_lo_nm=" + canon_num(id.band_lo_nm);
     canon += "|band_hi_nm=" + canon_num(id.band_hi_nm);
-    canon += "|integration=" + id.integration;
-    canon += "|coverage=" + id.coverage;
-    canon += "|knowledge=" + id.knowledge;
     canon += "|qe_key=" + id.qe_key;
     canon += "|qe_sha256=" + id.qe_content_sha256;
     canon += "|filter_key=" + id.filter_key;
     canon += "|filter_sha256=" + id.filter_content_sha256;
+    return canon;
+}
+
+inline std::string response_id_of(const ResponseIdentity& id) {
+    const std::string canon = response_canonical_string(id);
     const std::string hex = acsd::crypto::sha256_hex(canon.data(), canon.size());
     return "response:v1:" + hex.substr(0, 32);
+}
+
+// ── 合成模型身份（synthesis:v1:…）──────────────────────────────────────────
+// = 物理响应身份 + XP 覆盖状态 + 求积约定 + XP 可重建谱网格。
+// 它是**标定 provenance**（这一步合成所用的模型状态），与「仪器响应身份」
+// 分列发布: 换 XP 网格 ⇒ synthesis_id 变、response_id 不变。
+inline std::string synthesis_id_of(const ResponseIdentity& id) {
+    std::string canon = response_canonical_string(id);
+    canon += "|integration=" + id.integration;
+    canon += "|coverage=" + id.coverage;
+    canon += "|xp_wl_start=" + std::to_string(id.xp_wl_start);
+    canon += "|xp_wl_step=" + std::to_string(id.xp_wl_step);
+    canon += "|xp_wl_count=" + std::to_string(id.xp_wl_count);
+    const std::string hex = acsd::crypto::sha256_hex(canon.data(), canon.size());
+    return "synthesis:v1:" + hex.substr(0, 32);
 }
 
 }  // namespace
@@ -146,10 +165,19 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
             return out;
         }
     }
+    // 滤镜曲线名取自**请求声明的来源**（不是归一后的 mode）:
+    //   · 旧路径（req.response.mode == kUnspecified）⇒ `req.filter_name`
+    //     （photometry.fit.filter / 块级 filter_passband / 逐帧 override.filter）;
+    //   · 新对象（req.response.mode == kMeasuredCurve）⇒ `req.response.curve_name`。
+    // ⚠ 归一后的局部 `mode`（kUnspecified → kMeasuredCurve）**不能**用来区分这两
+    //   条来源: 按归一 mode 取 curve_name 会让**旧 measured 路径**读到空的
+    //   curve_name ⇒ 具名失败「filter_name required」（#106 第二轮生产 E2E 实测
+    //   发现的回归; 第一轮「旧路径逐位不变」的登记在此订正）。
     const std::string filter_key =
         parametric ? std::string()
-                   : (mode == ResponseMode::kMeasuredCurve ? req.response.curve_name
-                                                           : req.filter_name);
+                   : (req.response.mode == ResponseMode::kMeasuredCurve
+                          ? req.response.curve_name
+                          : req.filter_name);
     if (!parametric && filter_key.empty()) {
         out.error = "filter_name required (photometry.fit.filter / filter_passband)";
         out.failure_scope = FitFailureScope::kEnvironment;
@@ -340,6 +368,14 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     //   full / xp_truncated / qe_truncated / no_overlap。
     // no_overlap ⇒ 该响应在有效谱域内**无支持** ⇒ F_syn ≡ 0 ⇒ 拟合无法产出
     // 标度（由下游 F_syn>0 判据拒绝）, 此处如实登记, 不静默当"零光子"。
+    //
+    // **身份分列**（#106 独立审核 P2-2）:
+    //   response_id  = 物理响应身份（形状 + 滤镜/QE 内容）: 换 XP 网格不变;
+    //   synthesis_id = 合成模型身份（+ 覆盖 + 求积 + XP 网格）: 标定 provenance。
+    // XP 网格在此登记（合成模型身份的一部分）。
+    out.response.xp_wl_start = wl_start;
+    out.response.xp_wl_step = wl_step;
+    out.response.xp_wl_count = wl_count;
     if (parametric) {
         const photo_calib::SegmentedResponseCache probe =
             photo_calib::prepare_segmented_response_cache(
@@ -352,6 +388,7 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
             : "invalid";
     }
     out.response.response_id = response_id_of(out.response);
+    out.response.synthesis_id = synthesis_id_of(out.response);
 
     const size_t npix = static_cast<size_t>(req.width) * static_cast<size_t>(req.height);
     std::vector<double> out_pixels(npix, 0.0);
