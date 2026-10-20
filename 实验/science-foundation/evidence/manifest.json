@@ -1,0 +1,335 @@
+{
+  "research_date_local": "2026-10-20",
+  "baseline_production_sha": "e7d273ed78b7d118cf8344110b97224af7378b2a",
+  "claim": "Candidate scientific foundation and synthetic/analytic evidence; not formal independent acceptance or real HST/M42 validation.",
+  "files": {
+    "docs/DOCUMENT_INDEX.yaml": {
+      "sha256": "9579813931e9c5753f051821131a21bb4ebb717e95b8d5159581d76b241c5c08",
+      "bytes": 44248
+    },
+    "docs/science/foundation/GAIA_RESPONSE.md": {
+      "sha256": "74b6dddd31497ce701d2b90ab15a5d486b611eebee2407f3844144e0e53a1cc2",
+      "bytes": 10541
+    },
+    "docs/science/foundation/INDEPENDENT_ORACLES.md": {
+      "sha256": "cba2fcc78f1d31670e6d354679affee1ea3c3b3b545ccfc51f320b605918f9e4",
+      "bytes": 21235
+    },
+    "docs/science/foundation/OBSERVATION_COORDINATES.md": {
+      "sha256": "9ec15992e88ad30d4a8729dd9ee3afc8209e3d76dae2be2186d1eac8d8179c09",
+      "bytes": 13991
+    },
+    "docs/science/foundation/SPHERICAL_DRIZZLE.md": {
+      "sha256": "918810004356fbe7a9ab61929f46521f7edc12d27580c767a986d49254c0eb84",
+      "bytes": 17470
+    },
+    "docs/science/foundation/STATISTICS_SKY_COADD.md": {
+      "sha256": "f62caa7548cdbd97bd94685c174174fe0323f94022db786034cb24664a95d60e",
+      "bytes": 17530
+    },
+    "docs/science/README.md": {
+      "sha256": "50cbee2f2e202b5b1da897b07304fba7b8ea4ee6026c511175bd97a5880b6489",
+      "bytes": 2235
+    },
+    "实验/science-foundation/.gitattributes": {
+      "sha256": "a58579141a9b70cc5f53dae9b1fa15b44d63def8bc799cdacfa0a78f1600d31a",
+      "bytes": 120
+    },
+    "实验/science-foundation/evidence/chart_overlap_independent_review.json": {
+      "sha256": "cf7e6957c710055de26bdb8b7d47e8aaa33bb58d71bf9de4db2108a10f8c9005",
+      "bytes": 3130
+    },
+    "实验/science-foundation/evidence/chart_smoke.json": {
+      "sha256": "45b02d61128f67e53f7164b7f523e6b732c6066da1de675dec64e8573de0f5cc",
+      "bytes": 1041
+    },
+    "实验/science-foundation/evidence/coordinates_independent.json": {
+      "sha256": "e0113d4a84d0cbe1454a10c4808f92da1d911707863706fe0981b6135be4cc6e",
+      "bytes": 13574
+    },
+    "实验/science-foundation/evidence/coordinates_static_audit.md": {
+      "sha256": "ad1cb4b40da23f257f79b05adfa6a4f81551ea438c289b3d8d392b87146ee8df",
+      "bytes": 9917
+    },
+    "实验/science-foundation/evidence/cross_geometry.json": {
+      "sha256": "aa3cb4a87b3e4626e6eaec3397b2726faf745537ef0ef3394883b5ba091efd85",
+      "bytes": 42656
+    },
+    "实验/science-foundation/evidence/cross_geometry_cone_failure.json": {
+      "sha256": "4b706d47b5a8d787bc40ca431fd1e8e8b9d54fccd6a3002a5cdf15e33315c3e0",
+      "bytes": 40145
+    },
+    "实验/science-foundation/evidence/cross_geometry_interval_pilot.json": {
+      "sha256": "737880c07343d2c1c8bb62d83b85ed18aa2e7cb0ce187f6bd4059be5c1188e7a",
+      "bytes": 41921
+    },
+    "实验/science-foundation/evidence/detector_cone_completeness_counterexample.json": {
+      "sha256": "8c879c8cad3cfc6ec9ca49ce284148c8b82192c8ae68232186144afd86a37af2",
+      "bytes": 15584
+    },
+    "实验/science-foundation/evidence/detector_dual_area.json": {
+      "sha256": "350328dbb337fa58c27e946fa375f484324df1f8e72fbd0f5fe1b56d029f6fd1",
+      "bytes": 6165
+    },
+    "实验/science-foundation/evidence/detector_external_cone_diagnostic.json": {
+      "sha256": "15d95f96b61e673b8b9684f5bfa63860b4dca99c0ffcd687799cd66cb62778d9",
+      "bytes": 4002
+    },
+    "实验/science-foundation/evidence/detector_independent.json": {
+      "sha256": "87861cb812c69e7a66e355d40c340a2c29694e486f7d1bfe9bb9490ff59fdc19",
+      "bytes": 138109
+    },
+    "实验/science-foundation/evidence/detector_independent_cone_invalid_budget26001.json": {
+      "sha256": "5bc440085d098576fa766ef0ca21ac3d67d756c3a3583ab6356ca26e2a286295",
+      "bytes": 133480
+    },
+    "实验/science-foundation/evidence/detector_independent_high_order_budget52001.json": {
+      "sha256": "fe3cc21f6b59478249766aaed82f2987865710e593b233d02db3fa9dd0c99a53",
+      "bytes": 8519
+    },
+    "实验/science-foundation/evidence/detector_independent_midpoint_budget14001.json": {
+      "sha256": "00629450bfe613a6a04b3c7608afafa233817fb80c1df9a0635be343756466f2",
+      "bytes": 132943
+    },
+    "实验/science-foundation/evidence/detector_independent_midpoint_pilot.json": {
+      "sha256": "6d341969d9a0913c60b662d95e046b1805d91a2ea928a6e07a080ae3c38d18ec",
+      "bytes": 19395
+    },
+    "实验/science-foundation/evidence/detector_independent_natural_interval_budget5001.json": {
+      "sha256": "4bcbb9bf52fed10a6d1f99ebe51a37ffc11b7c12e21790c3f1bc57112776c14a",
+      "bytes": 122824
+    },
+    "实验/science-foundation/evidence/detector_interval_refinement_cases/base_face_00.json": {
+      "sha256": "324a26dfe751aeba2d203cf95dff3392c988eeab7d2d6e47dfc933b8f8914a9e",
+      "bytes": 9058
+    },
+    "实验/science-foundation/evidence/detector_interval_refinement_cases/base_face_01.json": {
+      "sha256": "cb9c7ebee1d221c13d6af3351b5cd2ec16e7f1aefd2f6452ac31cfba886e5d65",
+      "bytes": 9065
+    },
+    "实验/science-foundation/evidence/detector_interval_refinement_cases/base_face_02.json": {
+      "sha256": "22072030b273df5971dd69d367187441ad3c755f46ff0c83ca7139e54cdd54ea",
+      "bytes": 9072
+    },
+    "实验/science-foundation/evidence/detector_interval_refinement_cases/base_face_03.json": {
+      "sha256": "54c2aa90c6595256ea1f4531c9c0d90781db9582404d517996d4ce9fbc5d8b12",
+      "bytes": 9070
+    },
+    "实验/science-foundation/evidence/detector_interval_refinement_cases/base_face_08.json": {
+      "sha256": "1665fd398e923ab64ed0bb9bd9efb98a685fbb2ade667ca542faa88108afcf2e",
+      "bytes": 9072
+    },
+    "实验/science-foundation/evidence/detector_interval_refinement_cases/base_face_09.json": {
+      "sha256": "cb54205a8d624e418887cdfb96a75bb6c7b49f865284cd34cce3491fa650c588",
+      "bytes": 9070
+    },
+    "实验/science-foundation/evidence/detector_interval_refinement_cases/base_face_10.json": {
+      "sha256": "4595cc1bbc3d79e23c637be8bf32d1b588519dffada8767bfe492b213e734c16",
+      "bytes": 9071
+    },
+    "实验/science-foundation/evidence/detector_interval_refinement_cases/base_face_11.json": {
+      "sha256": "11ac7b093dd9fc76a27ce574b17a11f4c9c3d7721b91b3a52979d31dacf78770",
+      "bytes": 9071
+    },
+    "实验/science-foundation/evidence/detector_interval_refinement_cases/equatorial_transition_sip.json": {
+      "sha256": "18fa459d3ae8d699348d6ce85224ad129178bf2c9068b8c9f32db075b11eb742",
+      "bytes": 9021
+    },
+    "实验/science-foundation/evidence/detector_interval_refinements.json": {
+      "sha256": "f30fdf37079cc015831512d53ab74088078ab1583dd4c3405fd1d621d24bf85d",
+      "bytes": 72791
+    },
+    "实验/science-foundation/evidence/detector_interval_validation.json": {
+      "sha256": "f0158d886dee603934e10880502dd987192026ccbe3b44195ea89e1084ff275b",
+      "bytes": 15510
+    },
+    "实验/science-foundation/evidence/detector_per_leaf_budget_audit.json": {
+      "sha256": "3e852e5b39c18d746a32268ac591f210e7ed24a0b06c0486488172671ce5b8ba",
+      "bytes": 7880
+    },
+    "实验/science-foundation/evidence/export_independent.json": {
+      "sha256": "8d6fe7ff424a62d4acc8b6a1ec71a3ba33560346faf92459266a300962afe665",
+      "bytes": 26666
+    },
+    "实验/science-foundation/evidence/export_independent_report.md": {
+      "sha256": "5afc001b41e10ee62aa289101f0fbf810a304b2e57f65844b5a8b2d70d8453b7",
+      "bytes": 4301
+    },
+    "实验/science-foundation/evidence/export_initial_precision_failed.json": {
+      "sha256": "19558294c31576b396b20e743bb1655c76a3270730666950942a72da021e9b81",
+      "bytes": 756
+    },
+    "实验/science-foundation/evidence/export_overlap_cache.json": {
+      "sha256": "5121d7a2b8f7234e49025928e4046d3fecef565275660b85f56a8bf48e27c08b",
+      "bytes": 5728
+    },
+    "实验/science-foundation/evidence/geometry_experiments.json": {
+      "sha256": "561dcb64b5cc0dbe0c864928d965d35eba8300722168dc2c7b0d0aa9c245a7ef",
+      "bytes": 46134
+    },
+    "实验/science-foundation/evidence/high_order_polar_independent.json": {
+      "sha256": "631a917e69b2fcae66e6d6ecb20998d31f1f8b48a341c468fae3ccbcb1bc25da",
+      "bytes": 1944
+    },
+    "实验/science-foundation/evidence/hips_orientation.json": {
+      "sha256": "eb390b1d74399e2a6f66c216c02dda494f478f14900c68d09f4c1317f1e61bbc",
+      "bytes": 9944
+    },
+    "实验/science-foundation/evidence/hips_orientation_initial_seam_failure.json": {
+      "sha256": "c7fbd0f99937f9edc7458809da030661695d20129d82b5da844d504a912b77d4",
+      "bytes": 8993
+    },
+    "实验/science-foundation/evidence/source_snapshots/detector_interval_pre_spill_guard.py": {
+      "sha256": "93c3469293b9320e7a8f0a5af73a1468a850f6579036285260120f84a942c20b",
+      "bytes": 34465
+    },
+    "实验/science-foundation/evidence/sparse_variance_reference.json": {
+      "sha256": "ba064aaf97b45007558599554a49f235a6d7fd31af14db9f5d0486d70aa96ec1",
+      "bytes": 5714
+    },
+    "实验/science-foundation/evidence/statistics_independent.json": {
+      "sha256": "eb6e2b31ff2a0fb656c3650b6026453017ab79ee404c1de5731319d4647fea1b",
+      "bytes": 52529
+    },
+    "实验/science-foundation/evidence/statistics_parallel_loo_failed.json": {
+      "sha256": "8cb302349092db8f0a786e3bb8bc5d6c8f0d696d1bab28c44edbabc3ad137fb0",
+      "bytes": 39099
+    },
+    "实验/science-foundation/oracles/chart_overlap.py": {
+      "sha256": "77595336489341c5de7cf72e311b3b371b7eab661f81e91b07485f4918676186",
+      "bytes": 14781
+    },
+    "实验/science-foundation/oracles/chart_overlap_independent_review.py": {
+      "sha256": "83531658768e72124005af32da74188e531f2003c3615dbff2f107d0823d9a6f",
+      "bytes": 7454
+    },
+    "实验/science-foundation/oracles/coordinates_independent.py": {
+      "sha256": "35d75094dee316572e13b801c9fd033aa403ed181c5fdfdfc90c8c406856be3b",
+      "bytes": 17329
+    },
+    "实验/science-foundation/oracles/cross_geometry.py": {
+      "sha256": "026f8b59356fc7beb1b482db2e5513b370d1a68e5b5953d646b7adea20c779ae",
+      "bytes": 2924
+    },
+    "实验/science-foundation/oracles/detector_dual_area_check.py": {
+      "sha256": "2db98ef772e166fc122aa637f8b1b82a4c7dabf1acced8ad2b9d08a068c2f1d8",
+      "bytes": 1538
+    },
+    "实验/science-foundation/oracles/detector_external_cone_diagnostic.py": {
+      "sha256": "ade43e9d91f5f5eb74578e43c93e356c05773bfaa4b8d36488b7549199eb143c",
+      "bytes": 1621
+    },
+    "实验/science-foundation/oracles/detector_independent.py": {
+      "sha256": "fef07f3fd89619ab533185bff715ed69827e4c3461e331d91db7041ed288a5f6",
+      "bytes": 34479
+    },
+    "实验/science-foundation/oracles/detector_independent_notes.md": {
+      "sha256": "92cc0d564800056ae15eefa0c6180b48b1e2b874da1a186b76ae515ad6510b8b",
+      "bytes": 11477
+    },
+    "实验/science-foundation/oracles/detector_interval_validation.py": {
+      "sha256": "68067e6e69dded6328fec1c6e0d2cda0ffe5e706dca431abafde0c9e89a8e04f",
+      "bytes": 6040
+    },
+    "实验/science-foundation/oracles/detector_legacy_cone_snapshot.py": {
+      "sha256": "d41bd69331df8a901dbe54db157d902ad08ec611c334392896226c7084f4065c",
+      "bytes": 28044
+    },
+    "实验/science-foundation/oracles/detector_per_leaf_budget_audit.py": {
+      "sha256": "fd9813c3c9c849dec0924080acaa1e7f452b1f67f4128758c3eadd2b6bb36b4a",
+      "bytes": 2564
+    },
+    "实验/science-foundation/oracles/detector_refine.py": {
+      "sha256": "d6c66a00e1ae7aea09626fc21789bde7345ae98da3dd1e72906c03f89365958c",
+      "bytes": 2414
+    },
+    "实验/science-foundation/oracles/export_independent.py": {
+      "sha256": "5958250f911010247d9df2e8c2b56e504e846fe8a91e9e9646a1ce88a86389c1",
+      "bytes": 12022
+    },
+    "实验/science-foundation/oracles/geometry_experiments.py": {
+      "sha256": "0a3f743242e5f5f5f267613519f54794515839ff4e4db13b6d84ac53a20f0741",
+      "bytes": 7997
+    },
+    "实验/science-foundation/oracles/high_order_polar_independent.py": {
+      "sha256": "6df33e217a8a72124c88fa5ed1067d294f1cebfcf0f9ea7d296fcf30dc98ae29",
+      "bytes": 4681
+    },
+    "实验/science-foundation/oracles/hips_orientation.py": {
+      "sha256": "6e3963ff3cd6db852a078275b2d4f71e7d2e9e4f205c3f14e23b3d26b3235c53",
+      "bytes": 3734
+    },
+    "实验/science-foundation/oracles/record_delivery.py": {
+      "sha256": "8405468db21c16d3ae12e1177be9f92f4d581c994f80086f3d8af7872af9f8ef",
+      "bytes": 4971
+    },
+    "实验/science-foundation/oracles/sparse_variance_reference.py": {
+      "sha256": "bbbcb2d813abda2ec37c679c262a245cb04cc2302d00306b8430b16f5947d53c",
+      "bytes": 11112
+    },
+    "实验/science-foundation/oracles/statistics_independent.py": {
+      "sha256": "4f802064efc8c3a309ab5f375f4ef8ac049c8ea51992ece89b26bdacb344153b",
+      "bytes": 30684
+    },
+    "实验/science-foundation/requirements.txt": {
+      "sha256": "2f7e5c970f7fbaa1f8d2d57999afd5139a05550f5f3a5a0edd32409223f0202b",
+      "bytes": 80
+    },
+    "实验/science-foundation/STATISTICS_RESEARCH.md": {
+      "sha256": "6ce916a0c308fcd1d230bc277851885effbd74c3227131e6c46c36e1cb84e99e",
+      "bytes": 21873
+    }
+  },
+  "review": {
+    "candidate_document_count": 5,
+    "source_hash_checks": {
+      "chart_overlap.py": true,
+      "detector_independent.py": true,
+      "cross_geometry.py": true,
+      "coordinates_independent.py": true,
+      "statistics_independent.py": true,
+      "detector_initial_loaded_snapshot": true
+    },
+    "python_syntax_and_json_finite_literals": true,
+    "production_source_changes": [],
+    "cross_geometry_cases": 8,
+    "cross_geometry_converged_and_joint_intervals": true,
+    "detector_cases_after_refinement": {
+      "base_face_00": "tolerance_met",
+      "base_face_01": "tolerance_met",
+      "base_face_02": "tolerance_met",
+      "base_face_03": "tolerance_met",
+      "base_face_04": "tolerance_met",
+      "base_face_05": "tolerance_met",
+      "base_face_06": "tolerance_met",
+      "base_face_07": "tolerance_met",
+      "base_face_08": "tolerance_met",
+      "base_face_09": "tolerance_met",
+      "base_face_10": "tolerance_met",
+      "base_face_11": "tolerance_met",
+      "equatorial_transition_sip": "tolerance_met",
+      "four_leaf_vertex": "tolerance_met",
+      "high_order_small_drop": "tolerance_met",
+      "north_pole_sip": "tolerance_met",
+      "pixfrac_0p37": "tolerance_met",
+      "ra_wrap_sip": "tolerance_met",
+      "south_pole_sip": "tolerance_met",
+      "tiny_boundary_sliver": "tolerance_met"
+    }
+  },
+  "withdrawn_area_enclosure_evidence": [
+    "detector_independent_cone_invalid_budget26001.json",
+    "detector_independent_natural_interval_budget5001.json",
+    "detector_independent_midpoint_budget14001.json",
+    "detector_independent_midpoint_pilot.json",
+    "detector_independent_high_order_budget52001.json",
+    "detector_per_leaf_budget_audit.json"
+  ],
+  "failure_identity_notes": {
+    "external_cone": "Legacy cone-only area bounds were falsified by a concrete missing-leaf counterexample; retain as failure evidence only.",
+    "parallel_loo": "Parallel rejection-all LOO failed coverage; default reference rejects at most one maximum residual.",
+    "chart_mass": "Historical floating mass and initialization-budget failures were corrected and independently rechecked.",
+    "export_budget": "Tighter initial area budget failed; later explicitly declared coarser bounds propagate into Export, not a claim to initial precision.",
+    "hips_seam": "Initial HPX header crossed face6 longitude interruption; projection center was corrected, array indices unchanged."
+  }
+}

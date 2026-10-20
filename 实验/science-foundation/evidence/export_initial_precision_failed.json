@@ -1,0 +1,9 @@
+{
+  "attempt": "initial independent Export reference run",
+  "target": "2x2 even-sized target; header subsequently preserved in export_independent.json",
+  "absolute_area_tolerance_sr": 0.00002,
+  "max_nodes_per_pixel": 60000,
+  "outcome": "At least one of four A overlap solves did not return bounded; the script stopped on its explicit all-bounded assertion before iid integration.",
+  "limitation": "This failed initial script did not persist each individual overlap result; exact per-pixel status/count/width therefore unavailable. No precision pass is claimed.",
+  "correction": "Next run uses explicit absolute tolerance 0.0003 sr and saves every overlap immediately for reproducible reuse; geometric uncertainty propagates through Export bounds."
+}

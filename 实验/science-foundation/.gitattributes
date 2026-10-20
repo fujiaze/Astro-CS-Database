@@ -1,0 +1,2 @@
+# 研究证据含实际运行文件的字节哈希；保留原始换行字节。
+evidence/** -text whitespace=cr-at-eol

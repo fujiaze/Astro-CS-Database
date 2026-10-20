@@ -1,0 +1,2212 @@
+{
+  "command": [
+    "实验/science-foundation/oracles/detector_independent.py",
+    "--output",
+    "实验/science-foundation/evidence/detector_independent.json",
+    "--relative-tolerance",
+    ".005",
+    "--max-nodes",
+    "14001",
+    "--samples",
+    "200000"
+  ],
+  "environment": {
+    "python": "3.12.2",
+    "numpy": "1.26.4",
+    "astropy": "7.1.0",
+    "astropy_healpix": "1.0.3",
+    "mpmath": "1.3.0"
+  },
+  "definition": "integral_Q 1_H(W(u,v)) abs(det(CD_rad))*abs(det(I+SIP'))/(1+xi_rad^2+eta_rad^2)^1.5 du dv",
+  "method": "Independent detector adaptive interval quadrature with external inclusive cap search; no HPX chart code",
+  "qualification": "Conditional numerical enclosures. External WCSLIB and HEALPix routines are binary64, not formally interval certified. Angular roundoff margin 3e-14 rad is stated, not proved. IID reference confidence is simultaneous per fixture only.",
+  "source_urls": [
+    "https://astropy-healpix.readthedocs.io/en/latest/api/astropy_healpix.HEALPix.html",
+    "https://docs.astropy.org/en/stable/wcs/",
+    "https://mpmath.org/doc/current/contexts.html#arbitrary-precision-interval-arithmetic-iv"
+  ],
+  "cases": [
+    {
+      "name": "base_face_00",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                 45.0                                                  CRVAL2  =   41.810314895778596                                                  CD1_1   =   -5.673111453595901                                                  CD1_2   =   1.9534089267429402                                                  CD2_1   =   1.9534089267429402                                                  CD2_2   =    5.673111453595901                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "15": {
+            "lower_sr": 0.0020897293646421943,
+            "upper_sr": 0.002118073173969343,
+            "mid_sr": 0.0021039012693057687
+          },
+          "26": {
+            "lower_sr": 0.0033782122114172307,
+            "upper_sr": 0.0034059282715668848,
+            "mid_sr": 0.0033920702414920578
+          },
+          "37": {
+            "lower_sr": 0.0033986624363782914,
+            "upper_sr": 0.0034269930960309425,
+            "mid_sr": 0.003412827766204617
+          },
+          "48": {
+            "lower_sr": 0.002014054782947448,
+            "upper_sr": 0.0020415262551197744,
+            "mid_sr": 0.002027790519033611
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.010936256307028656,
+          "upper_sr": 0.010936827375606004
+        },
+        "unresolved_mass_upper_sr": 5.5599297198783555e-05,
+        "classified_integration_width_sr": 5.692830220525685e-07,
+        "per_leaf_width_budget_sr": 5.447082262097961e-05,
+        "uncertainty_bound_sr": 5.616858022083612e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 14.47890290000214
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 7.528289676473543e-05,
+        "total_area_estimate_sr": 0.010936252739154884,
+        "areas": {
+          "15": {
+            "estimate_sr": 0.0020993075459789737,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 38394
+          },
+          "26": {
+            "estimate_sr": 0.0033888015954151997,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 61971
+          },
+          "37": {
+            "estimate_sr": 0.003414756546656364,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 62448
+          },
+          "48": {
+            "estimate_sr": 0.002033387051104345,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 37187
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.01096622699207349,
+        "analytic_density_sr_per_pixel2": 0.010966227112321512,
+        "relative_difference": -1.0965304664267705e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        15,
+        37,
+        48,
+        26
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 0.010936258401277498,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_01",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                135.0                                                  CRVAL2  =   41.810314895778596                                                  CD1_1   =   -5.673111453595901                                                  CD1_2   =   1.9534089267429402                                                  CD2_1   =   1.9534089267429402                                                  CD2_2   =    5.673111453595901                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "79": {
+            "lower_sr": 0.0020897293646421943,
+            "upper_sr": 0.002118073173969343,
+            "mid_sr": 0.0021039012693057687
+          },
+          "90": {
+            "lower_sr": 0.0033782122114172307,
+            "upper_sr": 0.0034059282715668848,
+            "mid_sr": 0.0033920702414920578
+          },
+          "101": {
+            "lower_sr": 0.0033986624363782914,
+            "upper_sr": 0.0034269930960309425,
+            "mid_sr": 0.003412827766204617
+          },
+          "112": {
+            "lower_sr": 0.002014054782947448,
+            "upper_sr": 0.0020415262551197744,
+            "mid_sr": 0.002027790519033611
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.010936256307028656,
+          "upper_sr": 0.010936827375606004
+        },
+        "unresolved_mass_upper_sr": 5.5599297198783555e-05,
+        "classified_integration_width_sr": 5.692830220525685e-07,
+        "per_leaf_width_budget_sr": 5.447082262097961e-05,
+        "uncertainty_bound_sr": 5.616858022083612e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 14.610913399999845
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 7.528289676473543e-05,
+        "total_area_estimate_sr": 0.010936252739154884,
+        "areas": {
+          "79": {
+            "estimate_sr": 0.0020993075459789737,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 38394
+          },
+          "90": {
+            "estimate_sr": 0.0033888015954151997,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 61971
+          },
+          "101": {
+            "estimate_sr": 0.003414756546656364,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 62448
+          },
+          "112": {
+            "estimate_sr": 0.002033387051104345,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 37187
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.01096622699207296,
+        "analytic_density_sr_per_pixel2": 0.010966227112321512,
+        "relative_difference": -1.0965353069991579e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        79,
+        101,
+        112,
+        90
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 0.010936258401277498,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_02",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =   224.99999999999997                                                  CRVAL2  =   41.810314895778596                                                  CD1_1   =   -5.673111453595901                                                  CD1_2   =   1.9534089267429402                                                  CD2_1   =   1.9534089267429402                                                  CD2_2   =    5.673111453595901                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "143": {
+            "lower_sr": 0.0020897293646421943,
+            "upper_sr": 0.002118073173969343,
+            "mid_sr": 0.0021039012693057687
+          },
+          "154": {
+            "lower_sr": 0.0033782122114172307,
+            "upper_sr": 0.0034059282715668848,
+            "mid_sr": 0.0033920702414920578
+          },
+          "165": {
+            "lower_sr": 0.0033986624363782914,
+            "upper_sr": 0.0034269930960309425,
+            "mid_sr": 0.003412827766204617
+          },
+          "176": {
+            "lower_sr": 0.002014054782947448,
+            "upper_sr": 0.0020415262551197744,
+            "mid_sr": 0.002027790519033611
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.010936256307028656,
+          "upper_sr": 0.010936827375606004
+        },
+        "unresolved_mass_upper_sr": 5.5599297198783555e-05,
+        "classified_integration_width_sr": 5.692830220525685e-07,
+        "per_leaf_width_budget_sr": 5.447082262097961e-05,
+        "uncertainty_bound_sr": 5.616858022083612e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 14.295652099994186
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 7.528289676473543e-05,
+        "total_area_estimate_sr": 0.010936252739154884,
+        "areas": {
+          "143": {
+            "estimate_sr": 0.0020993075459789737,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 38394
+          },
+          "154": {
+            "estimate_sr": 0.0033888015954151997,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 61971
+          },
+          "165": {
+            "estimate_sr": 0.003414756546656364,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 62448
+          },
+          "176": {
+            "estimate_sr": 0.002033387051104345,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 37187
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.010966226992069965,
+        "analytic_density_sr_per_pixel2": 0.010966227112321512,
+        "relative_difference": -1.0965626184855637e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        143,
+        165,
+        176,
+        154
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 0.010936258401277498,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_03",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                315.0                                                  CRVAL2  =   41.810314895778596                                                  CD1_1   =   -5.673111453595901                                                  CD1_2   =   1.9534089267429402                                                  CD2_1   =   1.9534089267429402                                                  CD2_2   =    5.673111453595901                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "207": {
+            "lower_sr": 0.0020897293646421943,
+            "upper_sr": 0.002118073173969343,
+            "mid_sr": 0.0021039012693057687
+          },
+          "218": {
+            "lower_sr": 0.0033782122114172307,
+            "upper_sr": 0.0034059282715668848,
+            "mid_sr": 0.0033920702414920578
+          },
+          "229": {
+            "lower_sr": 0.0033986624363782914,
+            "upper_sr": 0.0034269930960309425,
+            "mid_sr": 0.003412827766204617
+          },
+          "240": {
+            "lower_sr": 0.002014054782947448,
+            "upper_sr": 0.0020415262551197744,
+            "mid_sr": 0.002027790519033611
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.010936256307028656,
+          "upper_sr": 0.010936827375606004
+        },
+        "unresolved_mass_upper_sr": 5.5599297198783555e-05,
+        "classified_integration_width_sr": 5.692830220525685e-07,
+        "per_leaf_width_budget_sr": 5.447082262097961e-05,
+        "uncertainty_bound_sr": 5.616858022083612e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 14.361048799997661
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 7.528289676473543e-05,
+        "total_area_estimate_sr": 0.010936252739154884,
+        "areas": {
+          "207": {
+            "estimate_sr": 0.0020993075459789737,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 38394
+          },
+          "218": {
+            "estimate_sr": 0.0033888015954151997,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 61971
+          },
+          "229": {
+            "estimate_sr": 0.003414756546656364,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 62448
+          },
+          "240": {
+            "estimate_sr": 0.002033387051104345,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 37187
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.010966226992065186,
+        "analytic_density_sr_per_pixel2": 0.010966227112321512,
+        "relative_difference": -1.0966061947392802e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        207,
+        229,
+        240,
+        218
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 0.010936258401277498,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_04",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                  0.0                                                  CRVAL2  =                  0.0                                                  CD1_1   =   -5.673111453595901                                                  CD1_2   =   1.9534089267429402                                                  CD2_1   =   1.9534089267429402                                                  CD2_2   =    5.673111453595901                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "271": {
+            "lower_sr": 0.0029966106064022464,
+            "upper_sr": 0.0030242796075928714,
+            "mid_sr": 0.003010445106997559
+          },
+          "282": {
+            "lower_sr": 0.0024440311690590083,
+            "upper_sr": 0.0024716569452814547,
+            "mid_sr": 0.0024578440571702315
+          },
+          "293": {
+            "lower_sr": 0.0024440207385354406,
+            "upper_sr": 0.0024716569458813798,
+            "mid_sr": 0.00245783884220841
+          },
+          "304": {
+            "lower_sr": 0.0029966106064022464,
+            "upper_sr": 0.0030242900387164188,
+            "mid_sr": 0.0030104503225593326
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.01093625634856323,
+          "upper_sr": 0.010936814953415929
+        },
+        "unresolved_mass_upper_sr": 5.498491838303693e-05,
+        "classified_integration_width_sr": 5.569146339461802e-07,
+        "per_leaf_width_budget_sr": 5.447082262097961e-05,
+        "uncertainty_bound_sr": 5.554183301698311e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 14.504480899995542
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 7.528289676473543e-05,
+        "total_area_estimate_sr": 0.010936252739154884,
+        "areas": {
+          "271": {
+            "estimate_sr": 0.0030018162945636387,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 54896
+          },
+          "282": {
+            "estimate_sr": 0.0024615104839433503,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 45016
+          },
+          "293": {
+            "estimate_sr": 0.0024658802087337583,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 45097
+          },
+          "304": {
+            "estimate_sr": 0.003007045751914135,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 54991
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.010966226992080531,
+        "analytic_density_sr_per_pixel2": 0.010966227112321512,
+        "relative_difference": -1.0964662622292565e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        271,
+        293,
+        304,
+        282
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 0.010936258401277498,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_05",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                 90.0                                                  CRVAL2  =                  0.0                                                  CD1_1   =   -5.673111453595901                                                  CD1_2   =   1.9534089267429402                                                  CD2_1   =   1.9534089267429402                                                  CD2_2   =    5.673111453595901                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "335": {
+            "lower_sr": 0.0029966106064022464,
+            "upper_sr": 0.0030242796075928714,
+            "mid_sr": 0.003010445106997559
+          },
+          "346": {
+            "lower_sr": 0.0024440311690590083,
+            "upper_sr": 0.0024716569452814547,
+            "mid_sr": 0.0024578440571702315
+          },
+          "357": {
+            "lower_sr": 0.0024440207385354406,
+            "upper_sr": 0.0024716569458813798,
+            "mid_sr": 0.00245783884220841
+          },
+          "368": {
+            "lower_sr": 0.0029966106064022464,
+            "upper_sr": 0.0030242900387164188,
+            "mid_sr": 0.0030104503225593326
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.01093625634856323,
+          "upper_sr": 0.010936814953415929
+        },
+        "unresolved_mass_upper_sr": 5.498491838303693e-05,
+        "classified_integration_width_sr": 5.569146339461802e-07,
+        "per_leaf_width_budget_sr": 5.447082262097961e-05,
+        "uncertainty_bound_sr": 5.554183301698311e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 14.263819599997078
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 7.528289676473543e-05,
+        "total_area_estimate_sr": 0.010936252739154884,
+        "areas": {
+          "335": {
+            "estimate_sr": 0.0030018162945636387,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 54896
+          },
+          "346": {
+            "estimate_sr": 0.0024615104839433503,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 45016
+          },
+          "357": {
+            "estimate_sr": 0.0024658802087337583,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 45097
+          },
+          "368": {
+            "estimate_sr": 0.003007045751914135,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 54991
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.010966226992072161,
+        "analytic_density_sr_per_pixel2": 0.010966227112321512,
+        "relative_difference": -1.0965425900621995e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        335,
+        357,
+        368,
+        346
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 0.010936258401277498,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_06",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                180.0                                                  CRVAL2  =                  0.0                                                  CD1_1   =   -5.673111453595901                                                  CD1_2   =   1.9534089267429402                                                  CD2_1   =   1.9534089267429402                                                  CD2_2   =    5.673111453595901                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "399": {
+            "lower_sr": 0.0029966106064022464,
+            "upper_sr": 0.0030242796075928714,
+            "mid_sr": 0.003010445106997559
+          },
+          "410": {
+            "lower_sr": 0.0024440311690590083,
+            "upper_sr": 0.0024716569452814547,
+            "mid_sr": 0.0024578440571702315
+          },
+          "421": {
+            "lower_sr": 0.0024440207385354406,
+            "upper_sr": 0.0024716569458813798,
+            "mid_sr": 0.00245783884220841
+          },
+          "432": {
+            "lower_sr": 0.0029966106064022464,
+            "upper_sr": 0.0030242900387164188,
+            "mid_sr": 0.0030104503225593326
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.01093625634856323,
+          "upper_sr": 0.010936814953415929
+        },
+        "unresolved_mass_upper_sr": 5.498491838303693e-05,
+        "classified_integration_width_sr": 5.569146339461802e-07,
+        "per_leaf_width_budget_sr": 5.447082262097961e-05,
+        "uncertainty_bound_sr": 5.554183301698311e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 14.19353029999911
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 7.528289676473543e-05,
+        "total_area_estimate_sr": 0.010936252739154884,
+        "areas": {
+          "399": {
+            "estimate_sr": 0.0030018162945636387,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 54896
+          },
+          "410": {
+            "estimate_sr": 0.0024615104839433503,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 45016
+          },
+          "421": {
+            "estimate_sr": 0.0024658802087337583,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 45097
+          },
+          "432": {
+            "estimate_sr": 0.003007045751914135,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 54991
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.010966226992057748,
+        "analytic_density_sr_per_pixel2": 0.010966227112321512,
+        "relative_difference": -1.0966740293660848e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        399,
+        421,
+        432,
+        410
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 0.010936258401277498,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_07",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                270.0                                                  CRVAL2  =                  0.0                                                  CD1_1   =   -5.673111453595901                                                  CD1_2   =   1.9534089267429402                                                  CD2_1   =   1.9534089267429402                                                  CD2_2   =    5.673111453595901                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "463": {
+            "lower_sr": 0.0029966106064022464,
+            "upper_sr": 0.0030242796075928714,
+            "mid_sr": 0.003010445106997559
+          },
+          "474": {
+            "lower_sr": 0.0024440311690590083,
+            "upper_sr": 0.0024716569452814547,
+            "mid_sr": 0.0024578440571702315
+          },
+          "485": {
+            "lower_sr": 0.0024440207385354406,
+            "upper_sr": 0.0024716569458813798,
+            "mid_sr": 0.00245783884220841
+          },
+          "496": {
+            "lower_sr": 0.0029966106064022464,
+            "upper_sr": 0.0030242900387164188,
+            "mid_sr": 0.0030104503225593326
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.01093625634856323,
+          "upper_sr": 0.010936814953415929
+        },
+        "unresolved_mass_upper_sr": 5.498491838303693e-05,
+        "classified_integration_width_sr": 5.569146339461802e-07,
+        "per_leaf_width_budget_sr": 5.447082262097961e-05,
+        "uncertainty_bound_sr": 5.554183301698311e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 14.176268499999424
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 7.528289676473543e-05,
+        "total_area_estimate_sr": 0.010936252739154884,
+        "areas": {
+          "463": {
+            "estimate_sr": 0.0030018162945636387,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 54896
+          },
+          "474": {
+            "estimate_sr": 0.0024615104839433503,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 45016
+          },
+          "485": {
+            "estimate_sr": 0.0024658802087337583,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 45097
+          },
+          "496": {
+            "estimate_sr": 0.003007045751914135,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 54991
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.010966226992065318,
+        "analytic_density_sr_per_pixel2": 0.010966227112321512,
+        "relative_difference": -1.0966049956984136e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        463,
+        485,
+        496,
+        474
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 0.010936258401277498,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_08",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                 45.0                                                  CRVAL2  =  -41.810314895778596                                                  CD1_1   =   -5.673111453595901                                                  CD1_2   =   1.9534089267429402                                                  CD2_1   =   1.9534089267429402                                                  CD2_2   =    5.673111453595901                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "527": {
+            "lower_sr": 0.002014054782947448,
+            "upper_sr": 0.0020415262551197744,
+            "mid_sr": 0.002027790519033611
+          },
+          "538": {
+            "lower_sr": 0.0033986624363782914,
+            "upper_sr": 0.0034269930960309425,
+            "mid_sr": 0.003412827766204617
+          },
+          "549": {
+            "lower_sr": 0.0033782122114172307,
+            "upper_sr": 0.0034059282715668848,
+            "mid_sr": 0.0033920702414920578
+          },
+          "560": {
+            "lower_sr": 0.0020897293646421943,
+            "upper_sr": 0.002118073173969343,
+            "mid_sr": 0.0021039012693057687
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.010936256307028656,
+          "upper_sr": 0.010936827375606004
+        },
+        "unresolved_mass_upper_sr": 5.5599297198783555e-05,
+        "classified_integration_width_sr": 5.692830220525685e-07,
+        "per_leaf_width_budget_sr": 5.447082262097961e-05,
+        "uncertainty_bound_sr": 5.616858022083612e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 14.809961200000544
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 7.528289676473543e-05,
+        "total_area_estimate_sr": 0.010936252739154884,
+        "areas": {
+          "527": {
+            "estimate_sr": 0.0020235656899495074,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 37008
+          },
+          "538": {
+            "estimate_sr": 0.003408326495549134,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 62329
+          },
+          "549": {
+            "estimate_sr": 0.003392174438501953,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 62034
+          },
+          "560": {
+            "estimate_sr": 0.0021121861151542874,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 38629
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.010966226992053595,
+        "analytic_density_sr_per_pixel2": 0.010966227112321512,
+        "relative_difference": -1.0967118990734548e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        527,
+        549,
+        560,
+        538
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 0.010936258401277498,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_09",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                135.0                                                  CRVAL2  =  -41.810314895778596                                                  CD1_1   =   -5.673111453595901                                                  CD1_2   =   1.9534089267429402                                                  CD2_1   =   1.9534089267429402                                                  CD2_2   =    5.673111453595901                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "591": {
+            "lower_sr": 0.002014054782947448,
+            "upper_sr": 0.0020415262551197744,
+            "mid_sr": 0.002027790519033611
+          },
+          "602": {
+            "lower_sr": 0.0033986624363782914,
+            "upper_sr": 0.0034269930960309425,
+            "mid_sr": 0.003412827766204617
+          },
+          "613": {
+            "lower_sr": 0.0033782122114172307,
+            "upper_sr": 0.0034059282715668848,
+            "mid_sr": 0.0033920702414920578
+          },
+          "624": {
+            "lower_sr": 0.0020897293646421943,
+            "upper_sr": 0.002118073173969343,
+            "mid_sr": 0.0021039012693057687
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.010936256307028656,
+          "upper_sr": 0.010936827375606004
+        },
+        "unresolved_mass_upper_sr": 5.5599297198783555e-05,
+        "classified_integration_width_sr": 5.692830220525685e-07,
+        "per_leaf_width_budget_sr": 5.447082262097961e-05,
+        "uncertainty_bound_sr": 5.616858022083612e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 14.312336199996935
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 7.528289676473543e-05,
+        "total_area_estimate_sr": 0.010936252739154884,
+        "areas": {
+          "591": {
+            "estimate_sr": 0.0020235656899495074,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 37008
+          },
+          "602": {
+            "estimate_sr": 0.003408326495549134,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 62329
+          },
+          "613": {
+            "estimate_sr": 0.003392174438501953,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 62034
+          },
+          "624": {
+            "estimate_sr": 0.0021121861151542874,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 38629
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.01096622699206914,
+        "analytic_density_sr_per_pixel2": 0.010966227112321512,
+        "relative_difference": -1.0965701457976706e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        591,
+        613,
+        624,
+        602
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 0.010936258401277498,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_10",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =   224.99999999999997                                                  CRVAL2  =  -41.810314895778596                                                  CD1_1   =   -5.673111453595901                                                  CD1_2   =   1.9534089267429402                                                  CD2_1   =   1.9534089267429402                                                  CD2_2   =    5.673111453595901                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "655": {
+            "lower_sr": 0.002014054782947448,
+            "upper_sr": 0.0020415262551197744,
+            "mid_sr": 0.002027790519033611
+          },
+          "666": {
+            "lower_sr": 0.0033986624363782914,
+            "upper_sr": 0.0034269930960309425,
+            "mid_sr": 0.003412827766204617
+          },
+          "677": {
+            "lower_sr": 0.0033782122114172307,
+            "upper_sr": 0.0034059282715668848,
+            "mid_sr": 0.0033920702414920578
+          },
+          "688": {
+            "lower_sr": 0.0020897293646421943,
+            "upper_sr": 0.002118073173969343,
+            "mid_sr": 0.0021039012693057687
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.010936256307028656,
+          "upper_sr": 0.010936827375606004
+        },
+        "unresolved_mass_upper_sr": 5.5599297198783555e-05,
+        "classified_integration_width_sr": 5.692830220525685e-07,
+        "per_leaf_width_budget_sr": 5.447082262097961e-05,
+        "uncertainty_bound_sr": 5.616858022083612e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 14.2474746999942
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 7.528289676473543e-05,
+        "total_area_estimate_sr": 0.010936252739154884,
+        "areas": {
+          "655": {
+            "estimate_sr": 0.0020235656899495074,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 37008
+          },
+          "666": {
+            "estimate_sr": 0.003408326495549134,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 62329
+          },
+          "677": {
+            "estimate_sr": 0.003392174438501953,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 62034
+          },
+          "688": {
+            "estimate_sr": 0.0021121861151542874,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 38629
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.01096622699205663,
+        "analytic_density_sr_per_pixel2": 0.010966227112321512,
+        "relative_difference": -1.0966842101112206e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        655,
+        677,
+        688,
+        666
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 0.010936258401277498,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_11",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                315.0                                                  CRVAL2  =  -41.810314895778596                                                  CD1_1   =   -5.673111453595901                                                  CD1_2   =   1.9534089267429402                                                  CD2_1   =   1.9534089267429402                                                  CD2_2   =    5.673111453595901                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "719": {
+            "lower_sr": 0.002014054782947448,
+            "upper_sr": 0.0020415262551197744,
+            "mid_sr": 0.002027790519033611
+          },
+          "730": {
+            "lower_sr": 0.0033986624363782914,
+            "upper_sr": 0.0034269930960309425,
+            "mid_sr": 0.003412827766204617
+          },
+          "741": {
+            "lower_sr": 0.0033782122114172307,
+            "upper_sr": 0.0034059282715668848,
+            "mid_sr": 0.0033920702414920578
+          },
+          "752": {
+            "lower_sr": 0.0020897293646421943,
+            "upper_sr": 0.002118073173969343,
+            "mid_sr": 0.0021039012693057687
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.010936256307028656,
+          "upper_sr": 0.010936827375606004
+        },
+        "unresolved_mass_upper_sr": 5.5599297198783555e-05,
+        "classified_integration_width_sr": 5.692830220525685e-07,
+        "per_leaf_width_budget_sr": 5.447082262097961e-05,
+        "uncertainty_bound_sr": 5.616858022083612e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 14.202232300005562
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 7.528289676473543e-05,
+        "total_area_estimate_sr": 0.010936252739154884,
+        "areas": {
+          "719": {
+            "estimate_sr": 0.0020235656899495074,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 37008
+          },
+          "730": {
+            "estimate_sr": 0.003408326495549134,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 62329
+          },
+          "741": {
+            "estimate_sr": 0.003392174438501953,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 62034
+          },
+          "752": {
+            "estimate_sr": 0.0021121861151542874,
+            "hoeffding_half_width_sr": 7.528289676473543e-05,
+            "hits": 38629
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.010966226992069079,
+        "analytic_density_sr_per_pixel2": 0.010966227112321512,
+        "relative_difference": -1.096570700909183e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        719,
+        741,
+        752,
+        730
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 0.010936258401277498,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "ra_wrap_sip",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN-SIP'                                                        CTYPE2  = 'DEC--TAN-SIP'                                                        CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =               359.99                                                  CRVAL2  =                  2.0                                                  CD1_1   =  -3.7820743023972674                                                  CD1_2   =   1.3022726178286268                                                  CD2_1   =   1.3022726178286268                                                  CD2_2   =   3.7820743023972674                                                  A_ORDER =                    3                                                  B_ORDER =                    3                                                  A_2_0   =                 0.12                                                  A_1_1   =                -0.07                                                  A_0_3   =                0.035                                                  B_0_2   =                 -0.1                                                  B_1_1   =                 0.04                                                  B_3_0   =               -0.025                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "tolerance_met",
+        "areas": {
+          "271": {
+            "lower_sr": 1.630163224198767e-05,
+            "upper_sr": 1.988743952840682e-05,
+            "mid_sr": 1.8094535885197247e-05
+          },
+          "282": {
+            "lower_sr": 0.00045259063686467065,
+            "upper_sr": 0.0004662626874137487,
+            "mid_sr": 0.00045942666213920965
+          },
+          "293": {
+            "lower_sr": 0.0006599141068745946,
+            "upper_sr": 0.0006709421987007667,
+            "mid_sr": 0.0006654281527876806
+          },
+          "304": {
+            "lower_sr": 0.003724188260824024,
+            "upper_sr": 0.00374540398950805,
+            "mid_sr": 0.003734796125166037
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.004877569519060875,
+          "upper_sr": 0.004877756730832014
+        },
+        "unresolved_mass_upper_sr": 2.4599450274996596e-05,
+        "classified_integration_width_sr": 1.626437517394613e-07,
+        "per_leaf_width_budget_sr": 2.4772837773994247e-05,
+        "uncertainty_bound_sr": 2.4762094026736054e-05,
+        "evaluated_nodes": 7409,
+        "terminal_rectangles": 5557,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.20899312189639163
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 16.409492200000386
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 4.3362059780067475e-05,
+        "total_area_estimate_sr": 0.004879026558584761,
+        "areas": {
+          "271": {
+            "estimate_sr": 1.8245089291451686e-05,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 696
+          },
+          "282": {
+            "estimate_sr": 0.0004575053749890235,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 19266
+          },
+          "293": {
+            "estimate_sr": 0.000666813873099837,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 23115
+          },
+          "304": {
+            "estimate_sr": 0.0037364622212044487,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 156923
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.004873878692865503,
+        "analytic_density_sr_per_pixel2": 0.004873878716587336,
+        "relative_difference": -4.867136582653586e-09,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        282,
+        293,
+        304,
+        304
+      ],
+      "candidate_leaves_without_iid_hits": []
+    },
+    {
+      "name": "north_pole_sip",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN-SIP'                                                        CTYPE2  = 'DEC--TAN-SIP'                                                        CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                 17.0                                                  CRVAL2  =                89.99                                                  CD1_1   =  -3.7820743023972674                                                  CD1_2   =   1.3022726178286268                                                  CD2_1   =   1.3022726178286268                                                  CD2_2   =   3.7820743023972674                                                  A_ORDER =                    3                                                  B_ORDER =                    3                                                  A_2_0   =                 0.12                                                  A_1_1   =                -0.07                                                  A_0_3   =                0.035                                                  B_0_2   =                 -0.1                                                  B_1_1   =                 0.04                                                  B_3_0   =               -0.025                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "tolerance_met",
+        "areas": {
+          "63": {
+            "lower_sr": 0.001210766560531423,
+            "upper_sr": 0.0012231542366902299,
+            "mid_sr": 0.0012169603986108264
+          },
+          "127": {
+            "lower_sr": 0.001044324704683681,
+            "upper_sr": 0.0010594929385934735,
+            "mid_sr": 0.0010519088216385773
+          },
+          "191": {
+            "lower_sr": 0.0012094932251094691,
+            "upper_sr": 0.001221802109129379,
+            "mid_sr": 0.0012156476671194242
+          },
+          "255": {
+            "lower_sr": 0.0013884041471540873,
+            "upper_sr": 0.001397933994730526,
+            "mid_sr": 0.0013931690709423068
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.004877573703354807,
+          "upper_sr": 0.00487775376022999
+        },
+        "unresolved_mass_upper_sr": 2.4606279313125706e-05,
+        "classified_integration_width_sr": 1.5884343820230857e-07,
+        "per_leaf_width_budget_sr": 2.4772837773994247e-05,
+        "uncertainty_bound_sr": 2.4765122751328014e-05,
+        "evaluated_nodes": 12165,
+        "terminal_rectangles": 9124,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.20899312189639163
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 26.63052830000379
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 4.3362059780067475e-05,
+        "total_area_estimate_sr": 0.004879026558584761,
+        "areas": {
+          "63": {
+            "estimate_sr": 0.001213637948886801,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 50159
+          },
+          "127": {
+            "estimate_sr": 0.0010550412620977734,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 49943
+          },
+          "191": {
+            "estimate_sr": 0.0012148610905015108,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 49714
+          },
+          "255": {
+            "estimate_sr": 0.0013954862570986757,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 50184
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.004873878692840183,
+        "analytic_density_sr_per_pixel2": 0.004873878716587336,
+        "relative_difference": -4.872331649252715e-09,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        63,
+        255,
+        191,
+        127
+      ],
+      "candidate_leaves_without_iid_hits": []
+    },
+    {
+      "name": "south_pole_sip",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN-SIP'                                                        CTYPE2  = 'DEC--TAN-SIP'                                                        CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                281.0                                                  CRVAL2  =               -89.99                                                  CD1_1   =  -3.7820743023972674                                                  CD1_2   =   1.3022726178286268                                                  CD2_1   =   1.3022726178286268                                                  CD2_2   =   3.7820743023972674                                                  A_ORDER =                    3                                                  B_ORDER =                    3                                                  A_2_0   =                 0.12                                                  A_1_1   =                -0.07                                                  A_0_3   =                0.035                                                  B_0_2   =                 -0.1                                                  B_1_1   =                 0.04                                                  B_3_0   =               -0.025                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "512": {
+            "lower_sr": 0.001122966421950859,
+            "upper_sr": 0.0011379262447818966,
+            "mid_sr": 0.0011304463333663777
+          },
+          "576": {
+            "lower_sr": 0.0013557361903523259,
+            "upper_sr": 0.0013669331901087526,
+            "mid_sr": 0.0013613346902305392
+          },
+          "640": {
+            "lower_sr": 0.0012990496769542705,
+            "upper_sr": 0.0013139271479991929,
+            "mid_sr": 0.0013064884124767318
+          },
+          "704": {
+            "lower_sr": 0.001070112865962921,
+            "upper_sr": 0.0010887326291446591,
+            "mid_sr": 0.0010794227475537902
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.004877584382178685,
+          "upper_sr": 0.00487775047201718
+        },
+        "unresolved_mass_upper_sr": 2.9745482483912524e-05,
+        "classified_integration_width_sr": 1.3983431288941305e-07,
+        "per_leaf_width_budget_sr": 2.4772837773994247e-05,
+        "uncertainty_bound_sr": 2.9885316796801936e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.20899312189639163
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 30.58732100000634
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 4.3362059780067475e-05,
+        "total_area_estimate_sr": 0.004879026558584761,
+        "areas": {
+          "512": {
+            "estimate_sr": 0.0011262372159714464,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 48918
+          },
+          "576": {
+            "estimate_sr": 0.0013603797384405393,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 49677
+          },
+          "640": {
+            "estimate_sr": 0.001312868430723557,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 51134
+          },
+          "704": {
+            "estimate_sr": 0.0010795411734492184,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 50271
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.004873878692820866,
+        "analytic_density_sr_per_pixel2": 0.004873878716587336,
+        "relative_difference": -4.876295034428324e-09,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        512,
+        576,
+        640,
+        704
+      ],
+      "candidate_leaves_without_iid_hits": []
+    },
+    {
+      "name": "equatorial_transition_sip",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN-SIP'                                                        CTYPE2  = 'DEC--TAN-SIP'                                                        CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                 45.0                                                  CRVAL2  =   41.810314895778596                                                  CD1_1   =  -3.7820743023972674                                                  CD1_2   =   1.3022726178286268                                                  CD2_1   =   1.3022726178286268                                                  CD2_2   =   3.7820743023972674                                                  A_ORDER =                    3                                                  B_ORDER =                    3                                                  A_2_0   =                 0.12                                                  A_1_1   =                -0.07                                                  A_0_3   =                0.035                                                  B_0_2   =                 -0.1                                                  B_1_1   =                 0.04                                                  B_3_0   =               -0.025                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "15": {
+            "lower_sr": 0.0009737003045541973,
+            "upper_sr": 0.000987797177269657,
+            "mid_sr": 0.0009807487409119271
+          },
+          "26": {
+            "lower_sr": 0.0013220275105158435,
+            "upper_sr": 0.0013391878922900215,
+            "mid_sr": 0.0013306077014029324
+          },
+          "37": {
+            "lower_sr": 0.0017176427994906457,
+            "upper_sr": 0.0017283569731579903,
+            "mid_sr": 0.001722999886324318
+          },
+          "48": {
+            "lower_sr": 0.0008364963546270044,
+            "upper_sr": 0.000850189852647893,
+            "mid_sr": 0.0008433431036374488
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.0048775784473112415,
+          "upper_sr": 0.004877754629041899
+        },
+        "unresolved_mass_upper_sr": 2.7735421048640457e-05,
+        "classified_integration_width_sr": 1.5223880556600719e-07,
+        "per_leaf_width_budget_sr": 2.4772837773994247e-05,
+        "uncertainty_bound_sr": 2.7887659854206464e-05,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.20899312189639163
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 31.065672199998517
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 4.3362059780067475e-05,
+        "total_area_estimate_sr": 0.004879026558584761,
+        "areas": {
+          "15": {
+            "estimate_sr": 0.0009791575616732143,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 38555
+          },
+          "26": {
+            "estimate_sr": 0.0013297175072329707,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 61686
+          },
+          "37": {
+            "estimate_sr": 0.0017253088740819592,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 63337
+          },
+          "48": {
+            "estimate_sr": 0.0008448426155966167,
+            "hoeffding_half_width_sr": 4.3362059780067475e-05,
+            "hits": 36422
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.004873878692830732,
+        "analytic_density_sr_per_pixel2": 0.004873878716587336,
+        "relative_difference": -4.874270764787525e-09,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        15,
+        37,
+        48,
+        26
+      ],
+      "candidate_leaves_without_iid_hits": []
+    },
+    {
+      "name": "pixfrac_0p37",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN-SIP'                                                        CTYPE2  = 'DEC--TAN-SIP'                                                        CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                 90.0                                                  CRVAL2  =                -30.0                                                  CD1_1   =  -3.7820743023972674                                                  CD1_2   =   1.3022726178286268                                                  CD2_1   =   1.3022726178286268                                                  CD2_2   =   3.7820743023972674                                                  A_ORDER =                    3                                                  B_ORDER =                    3                                                  A_2_0   =                 0.12                                                  A_1_1   =                -0.07                                                  A_0_3   =                0.035                                                  B_0_2   =                 -0.1                                                  B_1_1   =                 0.04                                                  B_3_0   =               -0.025                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.2,
+          -0.1
+        ],
+        "pixfrac": 0.37,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "tolerance_met",
+        "areas": {
+          "320": {
+            "lower_sr": 6.449788451698192e-05,
+            "upper_sr": 6.632612954797185e-05,
+            "mid_sr": 6.541200703247689e-05
+          },
+          "322": {
+            "lower_sr": 0.0006310126992843363,
+            "upper_sr": 0.0006346341576009714,
+            "mid_sr": 0.0006328234284426538
+          },
+          "323": {
+            "lower_sr": 2.4198315042976503e-05,
+            "upper_sr": 2.598195605945452e-05,
+            "mid_sr": 2.509013555121551e-05
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.0007233186581714729,
+          "upper_sr": 0.0007233304519678912
+        },
+        "unresolved_mass_upper_sr": 3.611791240506562e-06,
+        "classified_integration_width_sr": 9.761883089658463e-09,
+        "per_leaf_width_budget_sr": 3.622232824999603e-06,
+        "uncertainty_bound_sr": 3.6215531235962202e-06,
+        "evaluated_nodes": 3653,
+        "terminal_rectangles": 2740,
+        "max_depth_reached": 9,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.07408020033893302
+        },
+        "detector_bounds_xy0": [
+          0.015000000000000013,
+          0.385,
+          -0.28500000000000003,
+          0.08499999999999999
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 8.635553400003118
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 5.464832053770119e-06,
+        "total_area_estimate_sr": 0.0007233934504024123,
+        "areas": {
+          "320": {
+            "estimate_sr": 6.488938830176529e-05,
+            "hoeffding_half_width_sr": 5.464832053770119e-06,
+            "hits": 18192
+          },
+          "322": {
+            "estimate_sr": 0.0006336482312430399,
+            "hoeffding_half_width_sr": 5.464832053770119e-06,
+            "hits": 174362
+          },
+          "323": {
+            "estimate_sr": 2.485583085760693e-05,
+            "hoeffding_half_width_sr": 5.464832053770119e-06,
+            "hits": 7446
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 0.005283430808970229,
+        "analytic_density_sr_per_pixel2": 0.00528343083908366,
+        "relative_difference": -5.699597793729083e-09,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        320,
+        322,
+        322,
+        323
+      ],
+      "candidate_leaves_without_iid_hits": []
+    },
+    {
+      "name": "four_leaf_vertex",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                1E-06                                                  CRVAL2  =                  0.0                                                  CD1_1   =                -0.03                                                  CD1_2   =                  0.0                                                  CD2_1   =                  0.0                                                  CD2_2   =                 0.03                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "tolerance_met",
+        "areas": {
+          "271": {
+            "lower_sr": 7.855840106273994e-08,
+            "upper_sr": 7.92439369590128e-08,
+            "mid_sr": 7.890116901087637e-08
+          },
+          "282": {
+            "lower_sr": 5.7840690724004266e-08,
+            "upper_sr": 5.8527795078614316e-08,
+            "mid_sr": 5.818424290130929e-08
+          },
+          "293": {
+            "lower_sr": 5.782761796317088e-08,
+            "upper_sr": 5.8511584855348397e-08,
+            "mid_sr": 5.816960140925964e-08
+          },
+          "304": {
+            "lower_sr": 7.855840106273994e-08,
+            "upper_sr": 7.92439369590128e-08,
+            "mid_sr": 7.890116901087637e-08
+          }
+        },
+        "total_area": {
+          "lower_sr": 2.7415565901717814e-07,
+          "upper_sr": 2.741556598254978e-07
+        },
+        "unresolved_mass_upper_sr": 1.3705482055760518e-09,
+        "classified_integration_width_sr": 8.072666437188781e-16,
+        "per_leaf_width_budget_sr": 1.3707782481127082e-09,
+        "uncertainty_bound_sr": 1.3705490128426956e-09,
+        "evaluated_nodes": 12165,
+        "terminal_rectangles": 9124,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 11.21041900000273
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 1.8820724191183854e-09,
+        "total_area_estimate_sr": 2.741556590142107e-07,
+        "areas": {
+          "271": {
+            "estimate_sr": 7.879507766129043e-08,
+            "hoeffding_half_width_sr": 1.8820724191183854e-09,
+            "hits": 57482
+          },
+          "282": {
+            "estimate_sr": 5.829234728487136e-08,
+            "hoeffding_half_width_sr": 1.8820724191183854e-09,
+            "hits": 42525
+          },
+          "293": {
+            "estimate_sr": 5.8269044034948644e-08,
+            "hoeffding_half_width_sr": 1.8820724191183854e-09,
+            "hits": 42508
+          },
+          "304": {
+            "estimate_sr": 7.879919003310026e-08,
+            "hoeffding_half_width_sr": 1.8820724191183854e-09,
+            "hits": 57485
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 2.741556776837098e-07,
+        "analytic_density_sr_per_pixel2": 2.741556778080375e-07,
+        "relative_difference": -4.534931319355451e-10,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        271,
+        271,
+        304,
+        304
+      ],
+      "candidate_leaves_without_iid_hits": [],
+      "tan_analytic_total_sr": 2.741556590177053e-07,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "tiny_boundary_sliver",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN'                                                            CTYPE2  = 'DEC--TAN'                                                            CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =                  0.0                                                  CRVAL2  =  0.02772239523293825                                                  CD1_1   =                -0.03                                                  CD1_2   =                  0.0                                                  CD2_1   =                  0.0                                                  CD2_2   =                 0.03                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "enclosure": {
+        "status": "tolerance_met",
+        "areas": {
+          "282": {
+            "lower_sr": 0.0,
+            "upper_sr": 2.677301057258003e-10,
+            "mid_sr": 1.3386505286290014e-10
+          },
+          "293": {
+            "lower_sr": 0.0,
+            "upper_sr": 1.0709204478476376e-09,
+            "mid_sr": 5.354602239238188e-10
+          },
+          "304": {
+            "lower_sr": 2.728170084926596e-07,
+            "upper_sr": 2.741556646832116e-07,
+            "mid_sr": 2.734863365879356e-07
+          }
+        },
+        "total_area": {
+          "lower_sr": 2.7415565898795767e-07,
+          "upper_sr": 2.741556646832116e-07
+        },
+        "unresolved_mass_upper_sr": 1.3386505535734375e-09,
+        "classified_integration_width_sr": 5.6369784839113016e-15,
+        "per_leaf_width_budget_sr": 1.3707782481127082e-09,
+        "uncertainty_bound_sr": 1.3386561905519216e-09,
+        "evaluated_nodes": 33,
+        "terminal_rectangles": 25,
+        "max_depth_reached": 5,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.0
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 0.037459200000739656
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 768,
+        "hoeffding_half_width_sr": 1.8820724191183854e-09,
+        "total_area_estimate_sr": 2.741556590142107e-07,
+        "areas": {
+          "304": {
+            "estimate_sr": 2.741556590142107e-07,
+            "hoeffding_half_width_sr": 1.8820724191183854e-09,
+            "hits": 200000
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 2.741556776491339e-07,
+        "analytic_density_sr_per_pixel2": 2.741556778080375e-07,
+        "relative_difference": -5.796108037969816e-10,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        282,
+        293,
+        304,
+        304
+      ],
+      "candidate_leaves_without_iid_hits": [
+        "282",
+        "293"
+      ],
+      "sliver_witness": {
+        "detector_points_xy0": [
+          [
+            -0.49999999,
+            -0.49999999
+          ],
+          [
+            0.49999999,
+            -0.49999999
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ],
+        "external_leaf_indices": [
+          282,
+          293,
+          304
+        ]
+      },
+      "tan_analytic_total_sr": 2.741556590177053e-07,
+      "analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "high_order_small_drop",
+      "header": "NAXIS   =                    2                                                  NAXIS1  =                   32                                                  NAXIS2  =                   32                                                  CTYPE1  = 'RA---TAN-SIP'                                                        CTYPE2  = 'DEC--TAN-SIP'                                                        CUNIT1  = 'deg     '                                                            CUNIT2  = 'deg     '                                                            CRPIX1  =                  1.0                                                  CRPIX2  =                  1.0                                                  CRVAL1  =            359.99999                                                  CRVAL2  =                 89.9                                                  CD1_1   = -0.00026264404877758                                                  CD1_2   = 9.04355984603213E-05                                                  CD2_1   = 9.04355984603213E-05                                                  CD2_2   = 0.000262644048777588                                                  A_ORDER =                    3                                                  B_ORDER =                    3                                                  A_2_0   =                 0.12                                                  A_1_1   =                -0.07                                                  A_0_3   =                0.035                                                  B_0_2   =                 -0.1                                                  B_1_1   =                 0.04                                                  B_3_0   =               -0.025                                                  END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ",
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 0.7,
+        "nside": 262144
+      },
+      "enclosure": {
+        "status": "budget_exhausted",
+        "areas": {
+          "68719213311": {
+            "lower_sr": 3.6853472524643195e-12,
+            "upper_sr": 3.736006614278536e-12,
+            "mid_sr": 3.710676933371428e-12
+          },
+          "68719213482": {
+            "lower_sr": 1.7008252517692727e-12,
+            "upper_sr": 1.7118678767289115e-12,
+            "mid_sr": 1.7063465642490921e-12
+          },
+          "274877380095": {
+            "lower_sr": 4.09680026616568e-12,
+            "upper_sr": 4.147442836576918e-12,
+            "mid_sr": 4.1221215513712985e-12
+          },
+          "274877380437": {
+            "lower_sr": 1.9839476852948436e-12,
+            "upper_sr": 1.9949778800713317e-12,
+            "mid_sr": 1.9894627826830877e-12
+          }
+        },
+        "total_area": {
+          "lower_sr": 1.1528121344776858e-11,
+          "upper_sr": 1.1528439861521242e-11
+        },
+        "unresolved_mass_upper_sr": 6.122162637145963e-14,
+        "classified_integration_width_sr": 2.9777945566286368e-16,
+        "per_leaf_width_budget_sr": 5.811927976936484e-14,
+        "uncertainty_bound_sr": 6.15194058271225e-14,
+        "evaluated_nodes": 14001,
+        "terminal_rectangles": 10501,
+        "max_depth_reached": 11,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.14408978646142828
+        },
+        "detector_bounds_xy0": [
+          -0.35,
+          0.35,
+          -0.35,
+          0.35
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "conditional_numerical_enclosure_external_WCSLIB_HEALPix_not_interval_certified",
+        "elapsed_seconds": 20.40256130000489
+      },
+      "iid_reference": {
+        "samples": 200000,
+        "seed": 111,
+        "family_failure_probability": 1e-05,
+        "all_leaves_in_union_bound": 824633720832,
+        "hoeffding_half_width_sr": 1.3787453445078852e-13,
+        "total_area_estimate_sr": 1.1530616607608302e-11,
+        "areas": {
+          "68719213311": {
+            "estimate_sr": 3.75377290772357e-12,
+            "hoeffding_half_width_sr": 1.3787453445078852e-13,
+            "hits": 67348
+          },
+          "68719213482": {
+            "estimate_sr": 1.6588730601717927e-12,
+            "hoeffding_half_width_sr": 1.3787453445078852e-13,
+            "hits": 32313
+          },
+          "274877380095": {
+            "estimate_sr": 4.094267539196099e-12,
+            "hoeffding_half_width_sr": 1.3787453445078852e-13,
+            "hits": 65944
+          },
+          "274877380437": {
+            "estimate_sr": 2.0237031005168418e-12,
+            "hoeffding_half_width_sr": 1.3787453445078852e-13,
+            "hits": 34395
+          }
+        }
+      },
+      "all_iid_confidence_intervals_intersect": true,
+      "forward_density_check": {
+        "step_pixel": 0.001,
+        "astropy_vector_finite_difference_sr_per_pixel2": 2.350443029014134e-11,
+        "analytic_density_sr_per_pixel2": 2.350443053909727e-11,
+        "relative_difference": -1.0591872490195442e-08,
+        "qualification": "Finite difference convergence check, not a rigorous error bound"
+      },
+      "corner_leaf_indices": [
+        68719213311,
+        274877380095,
+        274877380437,
+        68719213482
+      ],
+      "candidate_leaves_without_iid_hits": []
+    }
+  ]
+}

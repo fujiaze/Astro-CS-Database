@@ -1,0 +1,546 @@
+{
+  "identity": {
+    "seed": 11120261020,
+    "python": "3.12.2",
+    "numpy": "1.26.4",
+    "astropy": "7.1.0",
+    "wcslib": "8.4",
+    "n_per_case": 1003,
+    "script_sha256": "35d75094dee316572e13b801c9fd033aa403ed181c5fdfdfc90c8c406856be3b"
+  },
+  "meaning": "INDEPENDENTLY_TESTED 是本脚本实际运行；静态结论与真实数据假设另列，非正式验收。",
+  "forward": [
+    {
+      "center_deg": [
+        359.9993,
+        -12.3
+      ],
+      "order": 2,
+      "analytic_vs_astropy_arcsec": {
+        "min": 0.0,
+        "median": 4.3911777065375656e-11,
+        "max": 3.6023434947823117e-10
+      },
+      "astropy_inverse_error_pixel": {
+        "min": 4.050716828981884e-12,
+        "median": 8.463466739031089e-11,
+        "max": 5.08822403570786e-10
+      }
+    },
+    {
+      "center_deg": [
+        359.9993,
+        -12.3
+      ],
+      "order": 3,
+      "analytic_vs_astropy_arcsec": {
+        "min": 0.0,
+        "median": 4.1795202135521934e-11,
+        "max": 3.602301715212142e-10
+      },
+      "astropy_inverse_error_pixel": {
+        "min": 3.089868942145146e-12,
+        "median": 8.872380507727476e-11,
+        "max": 4.969772611056581e-10
+      }
+    },
+    {
+      "center_deg": [
+        359.9993,
+        -12.3
+      ],
+      "order": 4,
+      "analytic_vs_astropy_arcsec": {
+        "min": 0.0,
+        "median": 4.4877839268208755e-11,
+        "max": 3.6254903556802415e-10
+      },
+      "astropy_inverse_error_pixel": {
+        "min": 6.493598709082484e-13,
+        "median": 9.047137835261146e-11,
+        "max": 5.248294930932558e-10
+      }
+    },
+    {
+      "center_deg": [
+        0.0002,
+        89.95
+      ],
+      "order": 2,
+      "analytic_vs_astropy_arcsec": {
+        "min": 0.0,
+        "median": 4.5844959437792454e-11,
+        "max": 1.4297803299966494e-10
+      },
+      "astropy_inverse_error_pixel": {
+        "min": 1.5121878609257576e-12,
+        "median": 3.431094646208353e-11,
+        "max": 1.6769657355002303e-10
+      }
+    },
+    {
+      "center_deg": [
+        0.0002,
+        89.95
+      ],
+      "order": 3,
+      "analytic_vs_astropy_arcsec": {
+        "min": 0.0,
+        "median": 4.580301783727862e-11,
+        "max": 1.4179606743389682e-10
+      },
+      "astropy_inverse_error_pixel": {
+        "min": 1.9131948672901813e-13,
+        "median": 3.2317765308892997e-11,
+        "max": 1.786990273720235e-10
+      }
+    },
+    {
+      "center_deg": [
+        0.0002,
+        89.95
+      ],
+      "order": 4,
+      "analytic_vs_astropy_arcsec": {
+        "min": 0.0,
+        "median": 4.5807534348896064e-11,
+        "max": 1.4582571763346257e-10
+      },
+      "astropy_inverse_error_pixel": {
+        "min": 1.2792384168378925e-12,
+        "median": 3.247304200767291e-11,
+        "max": 1.640994300291427e-10
+      }
+    },
+    {
+      "center_deg": [
+        123.4,
+        -89.94
+      ],
+      "order": 2,
+      "analytic_vs_astropy_arcsec": {
+        "min": 0.0,
+        "median": 4.579581594984705e-11,
+        "max": 1.4332543301412794e-10
+      },
+      "astropy_inverse_error_pixel": {
+        "min": 1.1008597997979629e-12,
+        "median": 3.490642435772974e-11,
+        "max": 1.6070527064060918e-10
+      }
+    },
+    {
+      "center_deg": [
+        123.4,
+        -89.94
+      ],
+      "order": 3,
+      "analytic_vs_astropy_arcsec": {
+        "min": 0.0,
+        "median": 4.5807526767197353e-11,
+        "max": 1.8759005127582343e-10
+      },
+      "astropy_inverse_error_pixel": {
+        "min": 1.0531384369669982e-12,
+        "median": 3.44235017893477e-11,
+        "max": 1.7037567782060576e-10
+      }
+    },
+    {
+      "center_deg": [
+        123.4,
+        -89.94
+      ],
+      "order": 4,
+      "analytic_vs_astropy_arcsec": {
+        "min": 0.0,
+        "median": 4.5797662863564404e-11,
+        "max": 1.488240702706882e-10
+      },
+      "astropy_inverse_error_pixel": {
+        "min": 1.6633378991627446e-13,
+        "median": 3.191596652666464e-11,
+        "max": 1.555032405303096e-10
+      }
+    }
+  ],
+  "affine": {
+    "crop": {
+      "old_from_new_matrix": [
+        [
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "offset": [
+        13,
+        7
+      ],
+      "new_crpix": [
+        34.381,
+        32.127
+      ],
+      "error_arcsec": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      }
+    },
+    "bin_2x3": {
+      "old_from_new_matrix": [
+        [
+          2,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "offset": [
+        0.5,
+        1
+      ],
+      "new_crpix": [
+        23.9405,
+        13.375666666666667
+      ],
+      "error_arcsec": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      }
+    },
+    "flip_y": {
+      "old_from_new_matrix": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          -1
+        ]
+      ],
+      "offset": [
+        0,
+        79
+      ],
+      "new_crpix": [
+        47.381,
+        41.873
+      ],
+      "error_arcsec": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      }
+    },
+    "flip_x": {
+      "old_from_new_matrix": [
+        [
+          -1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "offset": [
+        95,
+        0
+      ],
+      "new_crpix": [
+        49.619,
+        39.127
+      ],
+      "error_arcsec": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      }
+    },
+    "transpose": {
+      "old_from_new_matrix": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "offset": [
+        0,
+        0
+      ],
+      "new_crpix": [
+        39.127,
+        47.381
+      ],
+      "error_arcsec": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      }
+    },
+    "transpose_flip_bin": {
+      "old_from_new_matrix": [
+        [
+          0,
+          -3
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "offset": [
+        95,
+        0.5
+      ],
+      "new_crpix": [
+        19.8135,
+        17.206333333333333
+      ],
+      "error_arcsec": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      }
+    }
+  },
+  "counterexamples": {
+    "omit_fits_plus1": {
+      "error_arcsec": {
+        "min": 1.0604650688301747,
+        "median": 1.0732373559458674,
+        "max": 1.100712647714017
+      },
+      "pixel_offset_each_axis": -1
+    },
+    "double_fits_plus1": {
+      "error_arcsec": {
+        "min": 1.0609627243894348,
+        "median": 1.0734453626723401,
+        "max": 1.1017984793415903
+      },
+      "pixel_offset_each_axis": 1
+    },
+    "detector_half_pixel_unadapted": {
+      "error_arcsec": {
+        "min": 0.530420078723454,
+        "median": 0.5366954519346003,
+        "max": 0.5507617813305754
+      },
+      "pixel_offset_each_axis": 0.5
+    },
+    "wrong_origin_roundtrip": {
+      "roundtrip_error_pixel": {
+        "min": 4.558938761636693e-12,
+        "median": 9.018914886517178e-11,
+        "max": 4.740615593725962e-10
+      },
+      "absolute_error_arcsec": {
+        "min": 1.0604650688301747,
+        "median": 1.0732373559458674,
+        "max": 1.100712647714017
+      }
+    }
+  },
+  "synthetic_header": {
+    "WCSAXES": 2,
+    "CRPIX1": 47.381,
+    "CRPIX2": 39.127,
+    "PC1_1": -0.00019,
+    "PC1_2": 6.7e-05,
+    "PC2_1": 4.1e-05,
+    "PC2_2": 0.00023,
+    "CDELT1": 1.0,
+    "CDELT2": 1.0,
+    "CUNIT1": "deg",
+    "CUNIT2": "deg",
+    "CTYPE1": "RA---TAN-SIP",
+    "CTYPE2": "DEC--TAN-SIP",
+    "CRVAL1": 359.9993,
+    "CRVAL2": -12.3,
+    "LONPOLE": 180.0,
+    "LATPOLE": -12.3,
+    "MJDREF": 0.0,
+    "RADESYS": "ICRS",
+    "A_ORDER": 4,
+    "A_0_2": 0.0001,
+    "A_0_3": 2.0000000000000003e-06,
+    "A_0_4": 3.6734693877551024e-08,
+    "A_1_1": -8e-05,
+    "A_1_2": -1.7142857142857145e-06,
+    "A_1_3": -3.26530612244898e-08,
+    "A_2_0": 6.000000000000001e-05,
+    "A_2_1": 1.4285714285714286e-06,
+    "A_2_2": 2.8571428571428575e-08,
+    "A_3_0": -1.142857142857143e-06,
+    "A_3_1": -2.448979591836735e-08,
+    "A_4_0": 2.0408163265306123e-08,
+    "B_ORDER": 4,
+    "B_0_3": 1.857142857142857e-07,
+    "B_0_4": -5.3061224489795915e-09,
+    "B_1_1": -5.2e-05,
+    "B_1_2": 5.571428571428571e-07,
+    "B_1_3": -5.3061224489795915e-09,
+    "B_2_0": 0.000104,
+    "B_2_1": -1.2999999999999998e-06,
+    "B_2_2": 1.5918367346938774e-08,
+    "B_3_0": 2.0428571428571424e-06,
+    "B_3_1": -2.6530612244897957e-08,
+    "B_4_0": 3.714285714285714e-08
+  },
+  "sip_injectivity_certificate": {
+    "classification": "DERIVED_BOUND_FOR_SYNTHETIC_DOMAIN",
+    "domain_pixel": [
+      [
+        -0.5,
+        -0.5
+      ],
+      [
+        95.5,
+        79.5
+      ]
+    ],
+    "uv_absolute_bounds": [
+      49.119,
+      41.373
+    ],
+    "derivative_absolute_matrix_bounds": [
+      [
+        0.050341589896252995,
+        0.060137239382074825
+      ],
+      [
+        0.061996122099687384,
+        0.018072311775448664
+      ]
+    ],
+    "D_lipschitz_infinity_upper_bound": 0.11047882927832782,
+    "inverse_lipschitz_upper_bound": 1.1242003371192346,
+    "statement": "L<1 and domain convex imply ||(I+D)(u)-(I+D)(v)||inf >= (1-L)||u-v||inf. Coefficient bound is ordinary float64 with >0.8 margin; not a machine outward-rounded interval proof."
+  },
+  "solver_origin_identity": {
+    "max_abs_u_difference_pixel": 0.0,
+    "classification": "DERIVED_AND_INDEPENDENTLY_TESTED"
+  },
+  "production_probe": {
+    "status": "EXECUTED",
+    "compiler": "g++.exe (Rev4, Built by MSYS2 project) 16.1.0",
+    "n": 1003,
+    "ipv_converged": 1003,
+    "ipv_minus_astropy_origin0_pixel": {
+      "x": {
+        "min": 0.999999999771326,
+        "median": 1.000000000077378,
+        "max": 1.0000000010996004
+      },
+      "y": {
+        "min": 0.9999999999026841,
+        "median": 1.00000000001463,
+        "max": 1.0000000008406857
+      }
+    },
+    "drizzle_forward_error_arcsec": {
+      "min": 0.0,
+      "median": 7.450290388961016e-11,
+      "max": 3.625544089320239e-10
+    },
+    "photometry_inverse_error_pixel": {
+      "min": 6.058055290159887e-12,
+      "median": 1.0519111143137929e-10,
+      "max": 3.731199768544262e-10
+    },
+    "antipodal_negative_case": {
+      "world_deg": [
+        179.99929999999995,
+        12.3
+      ],
+      "expected": "TAN q<0: outside chosen tangent hemisphere; reject",
+      "ipv_converged": true,
+      "ipv_xy": [
+        47.38100000033537,
+        39.12699999994022
+      ],
+      "photometry_xy": [
+        null,
+        null
+      ]
+    },
+    "source_sha256": {
+      "lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp": "b791577803abd7b687f210b0fd1889166cd7b3510d812a2d507c65e452c9fbc4",
+      "lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp": "661ae21fa4f3ba82e9f4498196b9bdfd635c51404cb214b0473cc6c211ddeeba",
+      "lib/algorithms/photometry/cpp/src/wcs_transform.cpp": "89196b54f0cc0f3e3071efb3211c9105b978e934250c962ae763ec41b46f47ad"
+    }
+  },
+  "centroid_probe": {
+    "status": "EXECUTED",
+    "truth_integer_center_pixel": [
+      31.237,
+      30.671
+    ],
+    "input": "64x64, background=100, amplitude=1000, axes=(3.2,2.6), theta=0.23 rad, point sampled; Gaussian and beta=4 Moffat separately generated",
+    "logging": "sdet_log and dpsf_log are no-op; all scientific translation units unmodified",
+    "rows": [
+      {
+        "model": "gaussian",
+        "prior_offset_pixel": 0.0,
+        "rc": 0,
+        "n_output": 1,
+        "reported_center_pixel": [
+          31.73700000000002,
+          31.171000000000017
+        ],
+        "offset_from_integer_center_truth_pixel": [
+          0.5000000000000213,
+          0.5000000000000178
+        ]
+      },
+      {
+        "model": "gaussian",
+        "prior_offset_pixel": 0.5,
+        "rc": 0,
+        "n_output": 1,
+        "reported_center_pixel": [
+          31.737000000044667,
+          31.1710000000249
+        ],
+        "offset_from_integer_center_truth_pixel": [
+          0.5000000000446683,
+          0.500000000024901
+        ]
+      },
+      {
+        "model": "moffat",
+        "prior_offset_pixel": 0.5,
+        "rc": 0,
+        "n_output": 1,
+        "reported_center_pixel": [
+          31.23699999999951,
+          30.67100000000147
+        ],
+        "offset_from_integer_center_truth_pixel": [
+          -4.867217739956686e-13,
+          1.4708234630234074e-12
+        ]
+      }
+    ],
+    "source_sha256": {
+      "lib/algorithms/star_detection/src/sdet_api.cpp": "937d85e300729f4e4cb481380c653d047e62c3586b6fa4df548d9c82408cc08a",
+      "lib/algorithms/star_detection/src/sdet_image.cpp": "e136306d6ddab60f6ec4b93688c7b0b7d0d9816431c280af03e1a367aa7d3d7e",
+      "lib/algorithms/star_detection/src/nls_lm.cpp": "68246ca4d5a962136d6e2e03367dfe8947c667f0d7eff13c0a179ef1ef6d519d",
+      "lib/algorithms/psf/src/dpsf_psf.cpp": "cc1644a233d7d3a6ecf6af464f59d6b3b1c553469fdbe0675342e58cac2f04ed",
+      "lib/algorithms/psf/src/dpsf_image.cpp": "4b31ae63abfae5777e4dff307b7dc3150f8fcef478ce9ae0118420db23b73e53"
+    }
+  }
+}

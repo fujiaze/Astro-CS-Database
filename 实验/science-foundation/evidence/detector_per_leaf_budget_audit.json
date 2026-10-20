@@ -1,0 +1,194 @@
+{
+  "input_sha256": "5bc440085d098576fa766ef0ca21ac3d67d756c3a3583ab6356ca26e2a286295",
+  "solver_source_matches_evidence": true,
+  "cases": [
+    {
+      "name": "base_face_00",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.7087446604963806e-05,
+      "requested_absolute_width_sr": 5.447082262097961e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_01",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.7087446604963806e-05,
+      "requested_absolute_width_sr": 5.447082262097961e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_02",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.7087446604963806e-05,
+      "requested_absolute_width_sr": 5.447082262097961e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_03",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.7087446604963806e-05,
+      "requested_absolute_width_sr": 5.447082262097961e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_04",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.6723338151820545e-05,
+      "requested_absolute_width_sr": 5.447082262097961e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_05",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.6723338151820545e-05,
+      "requested_absolute_width_sr": 5.447082262097961e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_06",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.6723338151820545e-05,
+      "requested_absolute_width_sr": 5.447082262097961e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_07",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.6723338151820545e-05,
+      "requested_absolute_width_sr": 5.447082262097961e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_08",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.7087446604963806e-05,
+      "requested_absolute_width_sr": 5.447082262097961e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_09",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.7087446604963806e-05,
+      "requested_absolute_width_sr": 5.447082262097961e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_10",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.7087446604963806e-05,
+      "requested_absolute_width_sr": 5.447082262097961e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "base_face_11",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.7087446604963806e-05,
+      "requested_absolute_width_sr": 5.447082262097961e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "ra_wrap_sip",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 2.1204033945208117e-05,
+      "requested_absolute_width_sr": 2.4772837773994247e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": null
+    },
+    {
+      "name": "north_pole_sip",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 1.5124715972567081e-05,
+      "requested_absolute_width_sr": 2.4772837773994247e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": null
+    },
+    {
+      "name": "south_pole_sip",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 1.3772076228038641e-05,
+      "requested_absolute_width_sr": 2.4772837773994247e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": null
+    },
+    {
+      "name": "equatorial_transition_sip",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 1.3993589255127236e-05,
+      "requested_absolute_width_sr": 2.4772837773994247e-05,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": null
+    },
+    {
+      "name": "pixfrac_0p37",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 3.6190110131325247e-06,
+      "requested_absolute_width_sr": 3.622232824999603e-06,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": null
+    },
+    {
+      "name": "four_leaf_vertex",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 6.87106131388024e-10,
+      "requested_absolute_width_sr": 1.3707782481127082e-09,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "tiny_boundary_sliver",
+      "solver_status": "tolerance_met",
+      "maximum_leaf_interval_width_sr": 1.3386897199993859e-09,
+      "requested_absolute_width_sr": 1.3707782481127082e-09,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": true
+    },
+    {
+      "name": "high_order_small_drop",
+      "solver_status": "budget_exhausted",
+      "maximum_leaf_interval_width_sr": 5.020454691039088e-14,
+      "requested_absolute_width_sr": 5.811927976936484e-14,
+      "each_individual_leaf_meets_budget": true,
+      "all_iid_intervals_intersect": true,
+      "tan_analytic_total_inside_enclosure": null
+    }
+  ],
+  "individual_leaf_budget_passes": 20,
+  "global_budget_statuses_met": 19,
+  "iid_confidence_intersection_passes": 20,
+  "tan_analytic_checks": 14,
+  "tan_analytic_passes": 14,
+  "maximum_forward_density_finite_difference_relative_error": 1.0967118990734548e-08,
+  "all_negative_cases_rejected": true,
+  "qualification": "Per-leaf widths may meet tolerance even when conservative global uncertainty sum does not. No original status is changed. Interval qualification remains conditional on external WCSLIB/HEALPix."
+}

@@ -1,0 +1,1486 @@
+{
+  "environment": {
+    "python": "3.12.2",
+    "astropy": "7.1.0",
+    "astropy_healpix": "1.0.3",
+    "mpmath": "1.3.0"
+  },
+  "face_coordinates": [
+    {
+      "nside": 1,
+      "samples": 60,
+      "max_vector_angle_rad": 7.33293693190468e-16
+    },
+    {
+      "nside": 4,
+      "samples": 60,
+      "max_vector_angle_rad": 1.007837016917829e-15
+    },
+    {
+      "nside": 256,
+      "samples": 60,
+      "max_vector_angle_rad": 1.0589261361732736e-15
+    },
+    {
+      "nside": 262144,
+      "samples": 60,
+      "max_vector_angle_rad": 1.4446237183910587e-15
+    }
+  ],
+  "polar_counterexample": [
+    {
+      "nside": 4,
+      "exact_sr": 0.06544984694978737,
+      "geodesic_relative_error": -0.08933631576550968,
+      "central_wedge_fraction": 0.6666666666666665,
+      "central_wedge_exact": 0.6666666666666666
+    },
+    {
+      "nside": 16,
+      "exact_sr": 0.00409061543436171,
+      "geodesic_relative_error": -0.09904663137742217,
+      "central_wedge_fraction": 0.6666666666666665,
+      "central_wedge_exact": 0.6666666666666666
+    },
+    {
+      "nside": 256,
+      "exact_sr": 1.597896654047543e-05,
+      "geodesic_relative_error": -0.09968119779198449,
+      "central_wedge_fraction": 0.6666666666666665,
+      "central_wedge_exact": 0.6666666666666666
+    },
+    {
+      "nside": 8192,
+      "exact_sr": 1.5604459512183038e-08,
+      "geodesic_relative_error": -0.09968368141511914,
+      "central_wedge_fraction": 0.6666666666666665,
+      "central_wedge_exact": 0.6666666666666666
+    },
+    {
+      "nside": 262144,
+      "exact_sr": 1.5238729992366248e-11,
+      "geodesic_relative_error": -0.09968368384052306,
+      "central_wedge_fraction": 0.6666666666666665,
+      "central_wedge_exact": 0.6666666666666666
+    }
+  ],
+  "sip_halfplane_counterexample": {
+    "kappa": 0.12,
+    "true_area": 0.49,
+    "four_corner_area": 0.47
+  },
+  "cases": [
+    {
+      "name": "face_0",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 45.0,
+        "CRVAL2": 41.810314895778596,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -6.0,
+        "CD1_2": 0.72,
+        "CD2_1": 0.42000000000000004,
+        "CD2_2": 6.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 4,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 0.0003838179489312528,
+      "chart": {
+        "areas": {
+          "3": {
+            "lower_sr": 0.0018470686635380814,
+            "upper_sr": 0.001895941830730239,
+            "mid_sr": 0.0018715052471341602
+          },
+          "6": {
+            "lower_sr": 0.003398151939049075,
+            "upper_sr": 0.0034900309966568095,
+            "mid_sr": 0.003444091467852942
+          },
+          "9": {
+            "lower_sr": 0.0037741569954546374,
+            "upper_sr": 0.003914097788359896,
+            "mid_sr": 0.0038441273919072663
+          },
+          "12": {
+            "lower_sr": 0.0018240988991361478,
+            "upper_sr": 0.0019272131675926538,
+            "mid_sr": 0.001875656033364401
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.01084347649717794,
+          "upper_sr": 0.011227283783339597
+        },
+        "unresolved_mass_upper_sr": 0.000383807286161654,
+        "status": "bounded",
+        "processed_nodes": 16094,
+        "seconds": 9.418833999996423,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "3": 0.0018751085906270207,
+          "6": 0.0034491924897004714,
+          "9": 0.0038432075154047948,
+          "12": 0.0018660090422174401
+        },
+        "simultaneous_hoeffding_error_sr": 7.026483559132529e-05,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.011033517637949759
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "face_1",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 135.0,
+        "CRVAL2": 41.810314895778596,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -6.0,
+        "CD1_2": 0.72,
+        "CD2_1": 0.42000000000000004,
+        "CD2_2": 6.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 4,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 0.0003838179489312528,
+      "chart": {
+        "areas": {
+          "19": {
+            "lower_sr": 0.0018470686635380814,
+            "upper_sr": 0.001895941830730239,
+            "mid_sr": 0.0018715052471341602
+          },
+          "22": {
+            "lower_sr": 0.003398151939049075,
+            "upper_sr": 0.0034900309966568095,
+            "mid_sr": 0.003444091467852942
+          },
+          "25": {
+            "lower_sr": 0.0037741569954546374,
+            "upper_sr": 0.003914097788359896,
+            "mid_sr": 0.0038441273919072663
+          },
+          "28": {
+            "lower_sr": 0.0018240988991361478,
+            "upper_sr": 0.0019272131675926538,
+            "mid_sr": 0.001875656033364401
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.01084347649717794,
+          "upper_sr": 0.011227283783339597
+        },
+        "unresolved_mass_upper_sr": 0.000383807286161654,
+        "status": "bounded",
+        "processed_nodes": 16094,
+        "seconds": 9.625430899999628,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "19": 0.0018751085906270207,
+          "22": 0.0034491924897004714,
+          "25": 0.0038432075154047948,
+          "28": 0.0018660090422174401
+        },
+        "simultaneous_hoeffding_error_sr": 7.026483559132529e-05,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.011033517637949759
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "face_2",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 224.99999999999997,
+        "CRVAL2": 41.810314895778596,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -6.0,
+        "CD1_2": 0.72,
+        "CD2_1": 0.42000000000000004,
+        "CD2_2": 6.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 4,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 0.0003838179489312528,
+      "chart": {
+        "areas": {
+          "35": {
+            "lower_sr": 0.0018470686635380814,
+            "upper_sr": 0.001895941830730239,
+            "mid_sr": 0.0018715052471341602
+          },
+          "38": {
+            "lower_sr": 0.003398151939049075,
+            "upper_sr": 0.0034900309966568095,
+            "mid_sr": 0.003444091467852942
+          },
+          "41": {
+            "lower_sr": 0.0037741569954546374,
+            "upper_sr": 0.003914097788359896,
+            "mid_sr": 0.0038441273919072663
+          },
+          "44": {
+            "lower_sr": 0.0018240988991361478,
+            "upper_sr": 0.0019272131675926538,
+            "mid_sr": 0.001875656033364401
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.01084347649717794,
+          "upper_sr": 0.011227283783339597
+        },
+        "unresolved_mass_upper_sr": 0.000383807286161654,
+        "status": "bounded",
+        "processed_nodes": 16094,
+        "seconds": 9.589238000000478,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "35": 0.0018751085906270207,
+          "38": 0.0034491924897004714,
+          "41": 0.0038432075154047948,
+          "44": 0.0018660090422174401
+        },
+        "simultaneous_hoeffding_error_sr": 7.026483559132529e-05,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.011033517637949759
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "face_3",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 315.0,
+        "CRVAL2": 41.810314895778596,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -6.0,
+        "CD1_2": 0.72,
+        "CD2_1": 0.42000000000000004,
+        "CD2_2": 6.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 4,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 0.0003838179489312528,
+      "chart": {
+        "areas": {
+          "51": {
+            "lower_sr": 0.0018470686635380814,
+            "upper_sr": 0.001895941830730239,
+            "mid_sr": 0.0018715052471341602
+          },
+          "54": {
+            "lower_sr": 0.003398151939049075,
+            "upper_sr": 0.0034900309966568095,
+            "mid_sr": 0.003444091467852942
+          },
+          "57": {
+            "lower_sr": 0.0037741569954546374,
+            "upper_sr": 0.003914097788359896,
+            "mid_sr": 0.0038441273919072663
+          },
+          "60": {
+            "lower_sr": 0.0018240988991361478,
+            "upper_sr": 0.0019272131675926538,
+            "mid_sr": 0.001875656033364401
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.01084347649717794,
+          "upper_sr": 0.011227283783339597
+        },
+        "unresolved_mass_upper_sr": 0.000383807286161654,
+        "status": "bounded",
+        "processed_nodes": 16094,
+        "seconds": 9.369350200002373,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "51": 0.0018751085906270207,
+          "54": 0.0034491924897004714,
+          "57": 0.0038432075154047948,
+          "60": 0.0018660090422174401
+        },
+        "simultaneous_hoeffding_error_sr": 7.026483559132529e-05,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.011033517637949759
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "face_4",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 0.0,
+        "CRVAL2": 0.0,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -6.0,
+        "CD1_2": 0.72,
+        "CD2_1": 0.42000000000000004,
+        "CD2_2": 6.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 4,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 0.0003838179489312528,
+      "chart": {
+        "areas": {
+          "67": {
+            "lower_sr": 0.0029606028943274625,
+            "upper_sr": 0.003042245426495205,
+            "mid_sr": 0.0030014241604113335
+          },
+          "70": {
+            "lower_sr": 0.0021566611402597923,
+            "upper_sr": 0.0022293155037485177,
+            "mid_sr": 0.002192988322004155
+          },
+          "73": {
+            "lower_sr": 0.00253241652531316,
+            "upper_sr": 0.002612061686663343,
+            "mid_sr": 0.0025722391059882516
+          },
+          "76": {
+            "lower_sr": 0.003193546265925331,
+            "upper_sr": 0.0033433490772422888,
+            "mid_sr": 0.00326844767158381
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.010843226825825746,
+          "upper_sr": 0.011226971694149355
+        },
+        "unresolved_mass_upper_sr": 0.0003837448683236053,
+        "status": "bounded",
+        "processed_nodes": 4837,
+        "seconds": 3.2193398000017623,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "67": 0.002996202073585261,
+          "70": 0.0021976883584632688,
+          "73": 0.0025763451228127364,
+          "76": 0.0032632820830885215
+        },
+        "simultaneous_hoeffding_error_sr": 7.026483559132529e-05,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.011033517637949759
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "face_5",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 90.0,
+        "CRVAL2": 0.0,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -6.0,
+        "CD1_2": 0.72,
+        "CD2_1": 0.42000000000000004,
+        "CD2_2": 6.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 4,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 0.0003838179489312528,
+      "chart": {
+        "areas": {
+          "83": {
+            "lower_sr": 0.0029606028943274625,
+            "upper_sr": 0.003042245426495205,
+            "mid_sr": 0.0030014241604113335
+          },
+          "86": {
+            "lower_sr": 0.0021566611402597923,
+            "upper_sr": 0.0022293155037485177,
+            "mid_sr": 0.002192988322004155
+          },
+          "89": {
+            "lower_sr": 0.00253241652531316,
+            "upper_sr": 0.002612061686663343,
+            "mid_sr": 0.0025722391059882516
+          },
+          "92": {
+            "lower_sr": 0.003193546265925331,
+            "upper_sr": 0.0033433490772422888,
+            "mid_sr": 0.00326844767158381
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.010843226825825746,
+          "upper_sr": 0.011226971694149355
+        },
+        "unresolved_mass_upper_sr": 0.0003837448683236053,
+        "status": "bounded",
+        "processed_nodes": 4837,
+        "seconds": 3.4674926000006963,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "83": 0.002996202073585261,
+          "86": 0.0021976883584632688,
+          "89": 0.0025763451228127364,
+          "92": 0.0032632820830885215
+        },
+        "simultaneous_hoeffding_error_sr": 7.026483559132529e-05,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.011033517637949759
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "face_6",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 180.0,
+        "CRVAL2": 0.0,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -6.0,
+        "CD1_2": 0.72,
+        "CD2_1": 0.42000000000000004,
+        "CD2_2": 6.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 4,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 0.0003838179489312528,
+      "chart": {
+        "areas": {
+          "99": {
+            "lower_sr": 0.0029606028943274625,
+            "upper_sr": 0.003042245426495205,
+            "mid_sr": 0.0030014241604113335
+          },
+          "102": {
+            "lower_sr": 0.0021566611402597923,
+            "upper_sr": 0.0022293155037485177,
+            "mid_sr": 0.002192988322004155
+          },
+          "105": {
+            "lower_sr": 0.00253241652531316,
+            "upper_sr": 0.002612061686663343,
+            "mid_sr": 0.0025722391059882516
+          },
+          "108": {
+            "lower_sr": 0.003193546265925331,
+            "upper_sr": 0.0033433490772422888,
+            "mid_sr": 0.00326844767158381
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.010843226825825746,
+          "upper_sr": 0.011226971694149355
+        },
+        "unresolved_mass_upper_sr": 0.0003837448683236053,
+        "status": "bounded",
+        "processed_nodes": 4837,
+        "seconds": 4.1092625000019325,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "99": 0.002996202073585261,
+          "102": 0.0021976883584632688,
+          "105": 0.0025763451228127364,
+          "108": 0.0032632820830885215
+        },
+        "simultaneous_hoeffding_error_sr": 7.026483559132529e-05,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.011033517637949759
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "face_7",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 270.0,
+        "CRVAL2": 0.0,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -6.0,
+        "CD1_2": 0.72,
+        "CD2_1": 0.42000000000000004,
+        "CD2_2": 6.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 4,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 0.0003838179489312528,
+      "chart": {
+        "areas": {
+          "115": {
+            "lower_sr": 0.0029606028943274625,
+            "upper_sr": 0.003042245426495205,
+            "mid_sr": 0.0030014241604113335
+          },
+          "118": {
+            "lower_sr": 0.0021566611402597923,
+            "upper_sr": 0.0022293155037485177,
+            "mid_sr": 0.002192988322004155
+          },
+          "121": {
+            "lower_sr": 0.00253241652531316,
+            "upper_sr": 0.002612061686663343,
+            "mid_sr": 0.0025722391059882516
+          },
+          "124": {
+            "lower_sr": 0.003193546265925331,
+            "upper_sr": 0.0033433490772422888,
+            "mid_sr": 0.00326844767158381
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.010843226825825746,
+          "upper_sr": 0.011226971694149355
+        },
+        "unresolved_mass_upper_sr": 0.0003837448683236053,
+        "status": "bounded",
+        "processed_nodes": 4837,
+        "seconds": 3.5214204999938374,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "115": 0.002996202073585261,
+          "118": 0.0021976883584632688,
+          "121": 0.0025763451228127364,
+          "124": 0.0032632820830885215
+        },
+        "simultaneous_hoeffding_error_sr": 7.026483559132529e-05,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.011033517637949759
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "face_8",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 45.0,
+        "CRVAL2": -41.810314895778596,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -6.0,
+        "CD1_2": 0.72,
+        "CD2_1": 0.42000000000000004,
+        "CD2_2": 6.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 4,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 0.0003838179489312528,
+      "chart": {
+        "areas": {
+          "131": {
+            "lower_sr": 0.0017641777746093652,
+            "upper_sr": 0.0018111784066600608,
+            "mid_sr": 0.0017876780906347129
+          },
+          "134": {
+            "lower_sr": 0.003401085577437365,
+            "upper_sr": 0.0034940881561299772,
+            "mid_sr": 0.003447586866783671
+          },
+          "137": {
+            "lower_sr": 0.0037545577943073356,
+            "upper_sr": 0.003890004502873085,
+            "mid_sr": 0.0038222811485902103
+          },
+          "140": {
+            "lower_sr": 0.0019262144821838737,
+            "upper_sr": 0.0020345718490364733,
+            "mid_sr": 0.0019803931656101736
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.010846035628537939,
+          "upper_sr": 0.011229842914699596
+        },
+        "unresolved_mass_upper_sr": 0.000383807286161654,
+        "status": "bounded",
+        "processed_nodes": 16067,
+        "seconds": 9.891424800000095,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "131": 0.0017942920637457047,
+          "134": 0.0034483198184667107,
+          "137": 0.0038191351831605275,
+          "140": 0.001971770572576782
+        },
+        "simultaneous_hoeffding_error_sr": 7.026483559132529e-05,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.011033517637949759
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "face_9",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 135.0,
+        "CRVAL2": -41.810314895778596,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -6.0,
+        "CD1_2": 0.72,
+        "CD2_1": 0.42000000000000004,
+        "CD2_2": 6.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 4,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 0.0003838179489312528,
+      "chart": {
+        "areas": {
+          "147": {
+            "lower_sr": 0.0017641777746093652,
+            "upper_sr": 0.0018111784066600608,
+            "mid_sr": 0.0017876780906347129
+          },
+          "150": {
+            "lower_sr": 0.003401085577437365,
+            "upper_sr": 0.0034940881561299772,
+            "mid_sr": 0.003447586866783671
+          },
+          "153": {
+            "lower_sr": 0.0037545577943073356,
+            "upper_sr": 0.003890004502873085,
+            "mid_sr": 0.0038222811485902103
+          },
+          "156": {
+            "lower_sr": 0.0019262144821838737,
+            "upper_sr": 0.0020345718490364733,
+            "mid_sr": 0.0019803931656101736
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.010846035628537939,
+          "upper_sr": 0.011229842914699596
+        },
+        "unresolved_mass_upper_sr": 0.000383807286161654,
+        "status": "bounded",
+        "processed_nodes": 16067,
+        "seconds": 9.970518100002664,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "147": 0.0017942920637457047,
+          "150": 0.0034483198184667107,
+          "153": 0.0038191351831605275,
+          "156": 0.001971770572576782
+        },
+        "simultaneous_hoeffding_error_sr": 7.026483559132529e-05,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.011033517637949759
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "face_10",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 224.99999999999997,
+        "CRVAL2": -41.810314895778596,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -6.0,
+        "CD1_2": 0.72,
+        "CD2_1": 0.42000000000000004,
+        "CD2_2": 6.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 4,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 0.0003838179489312528,
+      "chart": {
+        "areas": {
+          "163": {
+            "lower_sr": 0.0017641777746093652,
+            "upper_sr": 0.0018111784066600608,
+            "mid_sr": 0.0017876780906347129
+          },
+          "166": {
+            "lower_sr": 0.003401085577437365,
+            "upper_sr": 0.0034940881561299772,
+            "mid_sr": 0.003447586866783671
+          },
+          "169": {
+            "lower_sr": 0.0037545577943073356,
+            "upper_sr": 0.003890004502873085,
+            "mid_sr": 0.0038222811485902103
+          },
+          "172": {
+            "lower_sr": 0.0019262144821838737,
+            "upper_sr": 0.0020345718490364733,
+            "mid_sr": 0.0019803931656101736
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.010846035628537939,
+          "upper_sr": 0.011229842914699596
+        },
+        "unresolved_mass_upper_sr": 0.000383807286161654,
+        "status": "bounded",
+        "processed_nodes": 16067,
+        "seconds": 9.765566199996101,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "163": 0.0017942920637457047,
+          "166": 0.0034483198184667107,
+          "169": 0.0038191351831605275,
+          "172": 0.001971770572576782
+        },
+        "simultaneous_hoeffding_error_sr": 7.026483559132529e-05,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.011033517637949759
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "face_11",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 315.0,
+        "CRVAL2": -41.810314895778596,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -6.0,
+        "CD1_2": 0.72,
+        "CD2_1": 0.42000000000000004,
+        "CD2_2": 6.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 4,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 0.0003838179489312528,
+      "chart": {
+        "areas": {
+          "179": {
+            "lower_sr": 0.0017641777746093652,
+            "upper_sr": 0.0018111784066600608,
+            "mid_sr": 0.0017876780906347129
+          },
+          "182": {
+            "lower_sr": 0.003401085577437365,
+            "upper_sr": 0.0034940881561299772,
+            "mid_sr": 0.003447586866783671
+          },
+          "185": {
+            "lower_sr": 0.0037545577943073356,
+            "upper_sr": 0.003890004502873085,
+            "mid_sr": 0.0038222811485902103
+          },
+          "188": {
+            "lower_sr": 0.0019262144821838737,
+            "upper_sr": 0.0020345718490364733,
+            "mid_sr": 0.0019803931656101736
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.010846035628537939,
+          "upper_sr": 0.011229842914699596
+        },
+        "unresolved_mass_upper_sr": 0.000383807286161654,
+        "status": "bounded",
+        "processed_nodes": 16067,
+        "seconds": 9.814066499995533,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "179": 0.0017942920637457047,
+          "182": 0.0034483198184667107,
+          "185": 0.0038191351831605275,
+          "188": 0.001971770572576782
+        },
+        "simultaneous_hoeffding_error_sr": 7.026483559132529e-05,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.011033517637949759
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "north_apex",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 45.0,
+        "CRVAL2": 89.8,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -2.0,
+        "CD1_2": 0.24,
+        "CD2_1": 0.14,
+        "CD2_2": 2.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 32,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 4.2646438770139204e-05,
+      "chart": {
+        "areas": {
+          "1022": {
+            "lower_sr": 4.603315556093995e-07,
+            "upper_sr": 7.061017929262825e-07,
+            "mid_sr": 5.83216674267841e-07
+          },
+          "1023": {
+            "lower_sr": 0.0004047562730567596,
+            "upper_sr": 0.00041274575632699746,
+            "mid_sr": 0.0004087510146918785
+          },
+          "2047": {
+            "lower_sr": 0.00028406748207465796,
+            "upper_sr": 0.0002914444903090426,
+            "mid_sr": 0.0002877559861918503
+          },
+          "3071": {
+            "lower_sr": 0.00020273703909716,
+            "upper_sr": 0.00021402296443934646,
+            "mid_sr": 0.00020838000176825322
+          },
+          "4093": {
+            "lower_sr": 1.4668191941452052e-06,
+            "upper_sr": 2.5435269004858353e-06,
+            "mid_sr": 2.0051730473155202e-06
+          },
+          "4095": {
+            "lower_sr": 0.00031421139673731754,
+            "upper_sr": 0.0003288795886787697,
+            "mid_sr": 0.00032154549270804365
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.0012076993417156497,
+          "upper_sr": 0.0012503424284475684
+        },
+        "unresolved_mass_upper_sr": 4.2643086731918195e-05,
+        "status": "bounded",
+        "processed_nodes": 23925,
+        "seconds": 14.009247200003301,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "1022": 5.354096144409199e-07,
+          "1023": 0.0004084339143834022,
+          "2047": 0.00028855071644734193,
+          "3071": 0.00020869955847392652,
+          "4093": 1.957905815959397e-06,
+          "4095": 0.00032079313483231175
+        },
+        "simultaneous_hoeffding_error_sr": 8.981464957930479e-06,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.0012289706395673817
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "south_apex",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 315.0,
+        "CRVAL2": -89.8,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -2.0,
+        "CD1_2": 0.24,
+        "CD2_1": 0.14,
+        "CD2_2": 2.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 32,
+      "pixfrac": 0.7,
+      "absolute_tolerance_sr": 2.0896754997368207e-05,
+      "chart": {
+        "areas": {
+          "8192": {
+            "lower_sr": 0.00013236482781209258,
+            "upper_sr": 0.00013741677157916188,
+            "mid_sr": 0.00013489079969562724
+          },
+          "9216": {
+            "lower_sr": 7.454250308969835e-05,
+            "upper_sr": 7.80652098245737e-05,
+            "mid_sr": 7.630385645713602e-05
+          },
+          "10240": {
+            "lower_sr": 0.0001492722596935429,
+            "upper_sr": 0.00015475332609719725,
+            "mid_sr": 0.00015201279289537006
+          },
+          "11264": {
+            "lower_sr": 0.0002356195364042077,
+            "upper_sr": 0.000242458190785422,
+            "mid_sr": 0.00023903886359481487
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.0005917991269995415,
+          "upper_sr": 0.0006126934982863548
+        },
+        "unresolved_mass_upper_sr": 2.0894371286813086e-05,
+        "status": "bounded",
+        "processed_nodes": 21194,
+        "seconds": 12.497635599997011,
+        "contraction_upper": 0.09576000000000001,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "8192": 0.0001344604489081308,
+          "9216": 7.692645516612438e-05,
+          "10240": 0.0001511693674085252,
+          "11264": 0.00023956549852738494
+        },
+        "simultaneous_hoeffding_error_sr": 4.4009178293859335e-06,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.0006021217700101677
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "transition",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 45.0,
+        "CRVAL2": 41.810314895778596,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -2.0,
+        "CD1_2": 0.24,
+        "CD2_1": 0.14,
+        "CD2_2": 2.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 16,
+      "pixfrac": 0.5,
+      "absolute_tolerance_sr": 1.0661609692534801e-05,
+      "chart": {
+        "areas": {
+          "63": {
+            "lower_sr": 5.020539792300989e-05,
+            "upper_sr": 5.116994857660671e-05,
+            "mid_sr": 5.0687673249808304e-05
+          },
+          "106": {
+            "lower_sr": 9.79404148494973e-05,
+            "upper_sr": 0.00010166012788571395,
+            "mid_sr": 9.980027136760562e-05
+          },
+          "149": {
+            "lower_sr": 0.00010336784092357845,
+            "upper_sr": 0.00010734697809918517,
+            "mid_sr": 0.00010535740951138181
+          },
+          "192": {
+            "lower_sr": 5.036339307557074e-05,
+            "upper_sr": 5.236076389313018e-05,
+            "mid_sr": 5.136207848435046e-05
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.00030187704677165636,
+          "upper_sr": 0.00031253781845463603
+        },
+        "unresolved_mass_upper_sr": 1.0660771682979549e-05,
+        "status": "bounded",
+        "processed_nodes": 14306,
+        "seconds": 8.169267199999013,
+        "contraction_upper": 0.06562500000000002,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "63": 5.0919803315605826e-05,
+          "106": 9.981784926975578e-05,
+          "149": 0.0001053219092094648,
+          "192": 5.1128598910258426e-05
+        },
+        "simultaneous_hoeffding_error_sr": 2.1519654735538587e-06,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.0003071881607050834
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "ra_wrap_crossface",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 359.999,
+        "CRVAL2": 0.0,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -2.0,
+        "CD1_2": 0.24,
+        "CD2_1": 0.14,
+        "CD2_2": 2.0,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 16,
+      "pixfrac": 1.0,
+      "absolute_tolerance_sr": 4.2646438770139204e-05,
+      "chart": {
+        "areas": {
+          "1087": {
+            "lower_sr": 0.0003310017951724265,
+            "upper_sr": 0.0003378833618172993,
+            "mid_sr": 0.0003344425784948629
+          },
+          "1130": {
+            "lower_sr": 0.00024005900513542378,
+            "upper_sr": 0.0002470341985373697,
+            "mid_sr": 0.00024354660183639672
+          },
+          "1173": {
+            "lower_sr": 0.0002801936750007585,
+            "upper_sr": 0.0002934886745051386,
+            "mid_sr": 0.0002868411747529486
+          },
+          "1216": {
+            "lower_sr": 0.000356281019582163,
+            "upper_sr": 0.0003717606434182487,
+            "mid_sr": 0.0003640208315002059
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.0012075354948907718,
+          "upper_sr": 0.0012501668782780562
+        },
+        "unresolved_mass_upper_sr": 4.2631383387284057e-05,
+        "status": "bounded",
+        "processed_nodes": 5127,
+        "seconds": 3.323877300004824,
+        "contraction_upper": 0.14625000000000005,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "1087": 0.0003338332305712183,
+          "1130": 0.0002440502865557918,
+          "1173": 0.0002873621522429513,
+          "1216": 0.00036372497019742186
+        },
+        "simultaneous_hoeffding_error_sr": 8.607861894215435e-06,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 0.0012289706395673817
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "fine_order",
+      "header": {
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "RADESYS": "ICRS",
+        "CRVAL1": 83.5,
+        "CRVAL2": 22.0,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -0.0002777777777777778,
+        "CD1_2": 3.3333333333333335e-05,
+        "CD2_1": 1.9444444444444445e-05,
+        "CD2_2": 0.0002777777777777778,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.08,
+        "A_1_1": -0.03,
+        "A_0_3": 0.02,
+        "B_2_0": 0.12,
+        "B_1_2": -0.025,
+        "B_0_4": 0.015
+      },
+      "nside": 262144,
+      "pixfrac": 0.7,
+      "absolute_tolerance_sr": 4.031009837455287e-13,
+      "chart": {
+        "areas": {
+          "405766655353": {
+            "lower_sr": 7.710514626264414e-13,
+            "upper_sr": 8.166262776670878e-13,
+            "mid_sr": 7.938388701467646e-13
+          },
+          "405766655355": {
+            "lower_sr": 4.491444527168981e-12,
+            "upper_sr": 4.613984973732353e-12,
+            "mid_sr": 4.552714750450667e-12
+          },
+          "405766655356": {
+            "lower_sr": 7.729116591587127e-13,
+            "upper_sr": 8.194165724654947e-13,
+            "mid_sr": 7.961641158121037e-13
+          },
+          "405766655358": {
+            "lower_sr": 5.384106338092657e-12,
+            "upper_sr": 5.5724512369851246e-12,
+            "mid_sr": 5.478278787538891e-12
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 1.1419513987046793e-11,
+          "upper_sr": 1.182247906085006e-11
+        },
+        "unresolved_mass_upper_sr": 4.0296507380326396e-13,
+        "status": "bounded",
+        "processed_nodes": 5795,
+        "seconds": 3.928767700002936,
+        "contraction_upper": 0.09576000000000001,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "independent_mc": {
+        "areas": {
+          "405766655353": 7.926373687212709e-13,
+          "405766655355": 4.552106727326815e-12,
+          "405766655356": 7.989567986449989e-13,
+          "405766655358": 5.473055630109291e-12
+        },
+        "simultaneous_hoeffding_error_sr": 1.2181750529824225e-13,
+        "confidence": 0.999,
+        "samples": 200000,
+        "seed": 20261020,
+        "mean_total_sr": 1.1616756524802328e-11
+      },
+      "mc_members_missing_from_candidates": [],
+      "mc_simultaneous_bound_disjoint_leaves": []
+    },
+    {
+      "name": "analytic_tan_rectangle",
+      "header": {
+        "CTYPE1": "RA---TAN",
+        "CTYPE2": "DEC--TAN",
+        "RADESYS": "ICRS",
+        "CRVAL1": 0.0,
+        "CRVAL2": 0.0,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CD1_1": -2.0,
+        "CD1_2": 0.0,
+        "CD2_1": 0.0,
+        "CD2_2": 2.0
+      },
+      "nside": 16,
+      "pixfrac": 1.0,
+      "chart": {
+        "areas": {
+          "1087": {
+            "lower_sr": 0.0003484865920558276,
+            "upper_sr": 0.0003518298475063129,
+            "mid_sr": 0.00035015821978107023
+          },
+          "1130": {
+            "lower_sr": 0.0002573760540790689,
+            "upper_sr": 0.000261639972640773,
+            "mid_sr": 0.00025950801335992095
+          },
+          "1173": {
+            "lower_sr": 0.0002570210526251667,
+            "upper_sr": 0.00026271668034711363,
+            "mid_sr": 0.0002598688664861402
+          },
+          "1216": {
+            "lower_sr": 0.0003476517534719258,
+            "upper_sr": 0.00035434606660265244,
+            "mid_sr": 0.0003509989100372891
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.001210535452231989,
+          "upper_sr": 0.001230532567096852
+        },
+        "unresolved_mass_upper_sr": 1.9997114864862564e-05,
+        "status": "bounded",
+        "processed_nodes": 8864,
+        "seconds": 3.918203299996094,
+        "contraction_upper": 1e-323,
+        "interval_decimal_precision": 25,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "analytic_total_sr": 0.0012180986439133989,
+      "truth_in_bounds": true
+    }
+  ]
+}

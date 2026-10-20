@@ -1,0 +1,67 @@
+{
+  "seed": 1117002,
+  "samples": 2000000,
+  "membership": "Astropy all_pix2world(origin=0) + astropy_healpix lonlat_to_healpix",
+  "jacobian": "manually differentiated explicit six fixture SIP coefficients + exact TAN area formula",
+  "areas": {
+    "68719213311": {
+      "area_sr": 3.74847352849698e-12,
+      "standard_error_sr": 3.7282066866695986e-15,
+      "samples_inside": 672571
+    },
+    "68719213482": {
+      "area_sr": 1.6601406963614514e-12,
+      "standard_error_sr": 2.6749734337017743e-15,
+      "samples_inside": 323397
+    },
+    "274877380095": {
+      "area_sr": 4.104728803374756e-12,
+      "standard_error_sr": 4.136183723678548e-15,
+      "samples_inside": 661339
+    },
+    "274877380437": {
+      "area_sr": 2.0160638917319093e-12,
+      "standard_error_sr": 3.138465933469567e-15,
+      "samples_inside": 342693
+    }
+  },
+  "total_area_sr": 1.1529406919965104e-11,
+  "face_mapping": [
+    {
+      "leaf": 68719213311,
+      "face": 0,
+      "ix": 261583,
+      "iy": 262143,
+      "max_angle_rad": 1.6805133793938642e-16
+    },
+    {
+      "leaf": 68719213482,
+      "face": 0,
+      "ix": 261584,
+      "iy": 262143,
+      "max_angle_rad": 1.7195447252720867e-16
+    },
+    {
+      "leaf": 274877380095,
+      "face": 3,
+      "ix": 262143,
+      "iy": 261583,
+      "max_angle_rad": 1.693564396668563e-16
+    },
+    {
+      "leaf": 274877380437,
+      "face": 3,
+      "ix": 262143,
+      "iy": 261584,
+      "max_angle_rad": 1.710923239092546e-16
+    }
+  ],
+  "classified_inside_audit": {
+    "proved_inside_nodes_observed": 5118,
+    "independent_points_checked": 40944,
+    "outside_violations_beyond_1e-7_pixel": 0,
+    "minimum_inside_margin_pixel": 0.0005307238599862041,
+    "solve_status": "bounded",
+    "audit": "A classify records observed only; point offsets and inverse membership independently from Astropy-HEALPix/Astropy."
+  }
+}

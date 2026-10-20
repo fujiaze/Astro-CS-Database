@@ -1,0 +1,186 @@
+{
+  "identity": {
+    "seed": 11120261021,
+    "python": "3.12.2",
+    "numpy": "1.26.4",
+    "scipy": "1.15.3",
+    "script_sha256": "bbbcb2d813abda2ec37c679c262a245cb04cc2302d00306b8430b16f5947d53c",
+    "estimator": "actual-scene leaf surface variance, never reference SNR",
+    "bound_type": "deterministic conditional on external delta and chart Hessian M",
+    "numerical_bound_status": "FP64 with measured residuals; no rigorous interval-rounding certificate"
+  },
+  "log_affine": {
+    "truth": "affine",
+    "queries_requested": 5000,
+    "queries_supported": 5000,
+    "hessian_matrix": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ]
+    ],
+    "chart_hessian_spectral_bound": 0.0,
+    "interval_violations": 0,
+    "max_absolute_log_error": 0.0027343458367340423,
+    "max_log_error_bound": 0.002972932866346839,
+    "max_error_to_bound_ratio": 0.9486221437864184,
+    "max_noiseless_interpolation_error": 1.609823385706477e-15,
+    "maximum_affine_reproduction_residual": 4.9065389333867974e-18,
+    "maximum_weight_sum_error": 1.1102230246251565e-16,
+    "example": {
+      "status": "conditional_interpolation",
+      "variance": 1.6007104649156165,
+      "log_variance_over_unit_scale": 0.47044757126115544,
+      "vertices": [
+        15,
+        16,
+        11
+      ],
+      "barycentric_weights": [
+        0.19944187537100735,
+        0.1636960800191559,
+        0.6368620446098368
+      ],
+      "affine_reproduction_residual": 1.734723475976807e-18,
+      "estimator_id": "surface_leaf_B",
+      "condition_id": "fixed_actual_scene_C",
+      "variance_unit": "L^2/sr^2",
+      "interval_status": "conditional_deterministic",
+      "log_error_bound": 0.002335441140873474,
+      "control_error_term": 0.002335441140873474,
+      "curvature_error_term": 0.0,
+      "variance_interval": [
+        1.5969764618106548,
+        1.6044531987561412
+      ],
+      "numerical_status": "FP64_reference_not_interval_arithmetic"
+    }
+  },
+  "log_quadratic": {
+    "truth": "quadratic",
+    "queries_requested": 5000,
+    "queries_supported": 5000,
+    "hessian_matrix": [
+      [
+        240.0,
+        70.0
+      ],
+      [
+        70.0,
+        -140.0
+      ]
+    ],
+    "chart_hessian_spectral_bound": 252.4845673131659,
+    "interval_violations": 0,
+    "max_absolute_log_error": 0.006275397553020479,
+    "max_log_error_bound": 0.009826398464596703,
+    "max_error_to_bound_ratio": 0.9596157627602997,
+    "max_noiseless_interpolation_error": 0.004288012943601094,
+    "maximum_affine_reproduction_residual": 4.9065389333867974e-18,
+    "maximum_weight_sum_error": 1.1102230246251565e-16,
+    "example": {
+      "status": "conditional_interpolation",
+      "variance": 1.582431848460616,
+      "log_variance_over_unit_scale": 0.45896280836515174,
+      "vertices": [
+        15,
+        16,
+        11
+      ],
+      "barycentric_weights": [
+        0.19944187537100735,
+        0.1636960800191559,
+        0.6368620446098368
+      ],
+      "affine_reproduction_residual": 1.734723475976807e-18,
+      "estimator_id": "surface_leaf_B",
+      "condition_id": "fixed_actual_scene_C",
+      "variance_unit": "L^2/sr^2",
+      "interval_status": "conditional_deterministic",
+      "log_error_bound": 0.006933937846443272,
+      "control_error_term": 0.0025492435995911273,
+      "curvature_error_term": 0.004384694246852144,
+      "variance_interval": [
+        1.571497317865444,
+        1.5934424618832779
+      ],
+      "numerical_status": "FP64_reference_not_interval_arithmetic"
+    }
+  },
+  "nonidentifiable_without_curvature": {
+    "construction": "u_A(x)=A exp(1-1/(1-r^2)) for r<1; zero otherwise; r=||x||/.005",
+    "control_variances": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "control_log_values_are_zero_not_variances_zero": true,
+    "query_without_curvature_bound": {
+      "status": "conditional_interpolation",
+      "variance": 1.0,
+      "log_variance_over_unit_scale": 0.0,
+      "vertices": [
+        3,
+        1,
+        0
+      ],
+      "barycentric_weights": [
+        0.5000000000000011,
+        4.043987367197134e-15,
+        0.4999999999999949
+      ],
+      "affine_reproduction_residual": 1.939479807224432e-18,
+      "estimator_id": "surface_leaf_B",
+      "condition_id": "fixed_actual_scene_C",
+      "variance_unit": "L^2/sr^2",
+      "interval_status": "unavailable",
+      "variance_interval": null,
+      "interval_reason": "chart_curvature_bound_unavailable"
+    },
+    "outside_support": {
+      "status": "unavailable",
+      "reason": "outside_convex_control_support"
+    },
+    "examples": [
+      {
+        "amplitude": 1.0,
+        "control_log_values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "target_log_value": 1.0,
+        "target_variance": 2.718281828459045
+      },
+      {
+        "amplitude": 10.0,
+        "control_log_values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "target_log_value": 10.0,
+        "target_variance": 22026.465794806718
+      },
+      {
+        "amplitude": 100.0,
+        "control_log_values": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "target_log_value": 100.0,
+        "target_variance": 2.6881171418161356e+43
+      }
+    ],
+    "proof": "For every finite proposed upper variance bound choose A>log(bound/unit_scale). All control values remain exactly unchanged, and the true target variance is exp(A). Smoothness alone places no uniform bound on this class."
+  }
+}

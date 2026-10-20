@@ -1,0 +1,653 @@
+{
+  "source_sha256": "fef07f3fd89619ab533185bff715ed69827e4c3461e331d91db7041ed288a5f6",
+  "seed": 111,
+  "all_12_faces_resolutions": [
+    1,
+    8,
+    262144
+  ],
+  "interior_point_count": 288,
+  "interior_point_candidate_omissions": [],
+  "forward_vectors": [
+    {
+      "crval_lat_deg": -90.0,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 6.123233995736777e-17
+    },
+    {
+      "crval_lat_deg": -90.0,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 4.1262290353004513e-16
+    },
+    {
+      "crval_lat_deg": -90.0,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 1.2873836909851093e-16
+    },
+    {
+      "crval_lat_deg": -90.0,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 6.123233995736776e-17
+    },
+    {
+      "crval_lat_deg": -90.0,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 4.2671696911678025e-16
+    },
+    {
+      "crval_lat_deg": -90.0,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.7514546977676363e-16
+    },
+    {
+      "crval_lat_deg": -90.0,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 6.123233995736777e-17
+    },
+    {
+      "crval_lat_deg": -90.0,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 7.019877550018291e-16
+    },
+    {
+      "crval_lat_deg": -90.0,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 1.2873632504468716e-16
+    },
+    {
+      "crval_lat_deg": -90.0,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 6.123233995736776e-17
+    },
+    {
+      "crval_lat_deg": -90.0,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 4.2672276268960795e-16
+    },
+    {
+      "crval_lat_deg": -90.0,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 3.942226189476048e-16
+    },
+    {
+      "crval_lat_deg": -89.9,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 4.960758989040923e-16
+    },
+    {
+      "crval_lat_deg": -89.9,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 1.334996838081613e-16
+    },
+    {
+      "crval_lat_deg": -89.9,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 4.910587059764951e-17
+    },
+    {
+      "crval_lat_deg": -89.9,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 8.028492005377717e-17
+    },
+    {
+      "crval_lat_deg": -89.9,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.6294802499370984e-16
+    },
+    {
+      "crval_lat_deg": -89.9,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 1.0923689384384805e-16
+    },
+    {
+      "crval_lat_deg": -89.9,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 5.188040000276127e-17
+    },
+    {
+      "crval_lat_deg": -89.9,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 3.8939088629309916e-16
+    },
+    {
+      "crval_lat_deg": -89.9,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 1.3279689370957142e-16
+    },
+    {
+      "crval_lat_deg": -89.9,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 8.034060620540577e-17
+    },
+    {
+      "crval_lat_deg": -89.9,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.551533277784469e-16
+    },
+    {
+      "crval_lat_deg": -89.9,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.348076986959268e-16
+    },
+    {
+      "crval_lat_deg": 0.0,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 3.3919568484536684e-17
+    },
+    {
+      "crval_lat_deg": 0.0,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 1.929625783060431e-16
+    },
+    {
+      "crval_lat_deg": 0.0,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 1.2509877160044239e-16
+    },
+    {
+      "crval_lat_deg": 0.0,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 8.312403992426438e-17
+    },
+    {
+      "crval_lat_deg": 0.0,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.29063266471317e-16
+    },
+    {
+      "crval_lat_deg": 0.0,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 1.1064783938280027e-16
+    },
+    {
+      "crval_lat_deg": 0.0,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 3.3919568484536684e-17
+    },
+    {
+      "crval_lat_deg": 0.0,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 3.275512320691413e-16
+    },
+    {
+      "crval_lat_deg": 0.0,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 1.033639097857958e-16
+    },
+    {
+      "crval_lat_deg": 0.0,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 1.0563938764723633e-16
+    },
+    {
+      "crval_lat_deg": 0.0,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.945827007997868e-16
+    },
+    {
+      "crval_lat_deg": 0.0,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 4.46102115115423e-17
+    },
+    {
+      "crval_lat_deg": 89.9,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 5.188040000276127e-17
+    },
+    {
+      "crval_lat_deg": 89.9,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 3.894888447525436e-16
+    },
+    {
+      "crval_lat_deg": 89.9,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 1.3308233144210872e-16
+    },
+    {
+      "crval_lat_deg": 89.9,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 8.028492005377717e-17
+    },
+    {
+      "crval_lat_deg": 89.9,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.5534463700148105e-16
+    },
+    {
+      "crval_lat_deg": 89.9,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.346449159134557e-16
+    },
+    {
+      "crval_lat_deg": 89.9,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 5.188040000276127e-17
+    },
+    {
+      "crval_lat_deg": 89.9,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 3.5278606125537493e-16
+    },
+    {
+      "crval_lat_deg": 89.9,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 4.950474973090043e-17
+    },
+    {
+      "crval_lat_deg": 89.9,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 8.034060620540577e-17
+    },
+    {
+      "crval_lat_deg": 89.9,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.630736027416999e-16
+    },
+    {
+      "crval_lat_deg": 89.9,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 1.0929654942391124e-16
+    },
+    {
+      "crval_lat_deg": 90.0,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 6.123233995736755e-17
+    },
+    {
+      "crval_lat_deg": 90.0,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.562771109416954e-16
+    },
+    {
+      "crval_lat_deg": 90.0,
+      "lonpole_deg": 0.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 5.1194022380016515e-17
+    },
+    {
+      "crval_lat_deg": 90.0,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 6.123233995736766e-17
+    },
+    {
+      "crval_lat_deg": 90.0,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.562771109416953e-16
+    },
+    {
+      "crval_lat_deg": 90.0,
+      "lonpole_deg": 90.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 5.1194511918685004e-17
+    },
+    {
+      "crval_lat_deg": 90.0,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 6.123233995736777e-17
+    },
+    {
+      "crval_lat_deg": 90.0,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.5627721022129575e-16
+    },
+    {
+      "crval_lat_deg": 90.0,
+      "lonpole_deg": 180.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 5.1194511918685084e-17
+    },
+    {
+      "crval_lat_deg": 90.0,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        0.0,
+        0.0
+      ],
+      "astropy_vector_separation_rad": 6.123233995736766e-17
+    },
+    {
+      "crval_lat_deg": 90.0,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        0.1,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 2.5627730950103294e-16
+    },
+    {
+      "crval_lat_deg": 90.0,
+      "lonpole_deg": 270.0,
+      "detector_point": [
+        -0.3,
+        0.2
+      ],
+      "astropy_vector_separation_rad": 5.1194022380016595e-17
+    }
+  ],
+  "maximum_Astropy_unit_vector_separation_rad": 7.019877550018291e-16,
+  "legacy_cone_completeness_counterexample": {
+    "header": {
+      "NAXIS": 2,
+      "NAXIS1": 32,
+      "NAXIS2": 32,
+      "CTYPE1": "RA---TAN-SIP",
+      "CTYPE2": "DEC--TAN-SIP",
+      "CUNIT1": "deg",
+      "CUNIT2": "deg",
+      "CRPIX1": 1.0,
+      "CRPIX2": 1.0,
+      "CRVAL1": 359.99999,
+      "CRVAL2": 89.9,
+      "CD1_1": -0.000262644048777588,
+      "CD1_2": 9.043559846032131e-05,
+      "CD2_1": 9.043559846032131e-05,
+      "CD2_2": 0.000262644048777588,
+      "A_ORDER": 3,
+      "B_ORDER": 3,
+      "A_2_0": 0.12,
+      "A_1_1": -0.07,
+      "A_0_3": 0.035,
+      "B_0_2": -0.1,
+      "B_1_1": 0.04,
+      "B_3_0": -0.025,
+      "RADESYS": "ICRS"
+    },
+    "detector_rect": [
+      0.175,
+      0.35,
+      -0.175,
+      0.0
+    ],
+    "detector_center": [
+      0.26249999999999996,
+      -0.0875
+    ],
+    "witness": [
+      0.35,
+      0.0
+    ],
+    "cap_lon_deg": 359.9543601271058,
+    "cap_lat_deg": 89.90000105619315,
+    "cap_radius_rad": 8.187563679155838e-07,
+    "high_precision_model_separation_rad": "0.000000620327634678938764431989811294425718984961853328696053607683",
+    "separation_over_cap_radius": 0.7576461802162086,
+    "legacy_cone_candidates": [
+      274877380095
+    ],
+    "external_witness_member": 274877380437,
+    "fixed_interval_candidates": [
+      274877380095,
+      274877380437
+    ],
+    "witness_inside_cap": true,
+    "legacy_misses_witness_member": true,
+    "fixed_includes_witness_member": true
+  },
+  "allsky_spill_case": {
+    "status": "budget_exhausted",
+    "areas": {},
+    "total_area": {
+      "lower_sr": 9.398540216735917e-12,
+      "upper_sr": 1.3849171691010021e-11
+    },
+    "unresolved_mass_upper_sr": 1.3849171691010021e-11,
+    "classified_integration_width_sr": 5e-324,
+    "unresolved_coarse_candidates": [
+      {
+        "scope": "all_sky",
+        "upper_sr": 1.3849171691010021e-11,
+        "meaning": "Absent leaf keys have [0,upper_sr], not zero"
+      }
+    ],
+    "per_leaf_width_budget_sr": 5.811927976936484e-14,
+    "uncertainty_bound_sr": 1.3849171691010021e-11,
+    "evaluated_nodes": 1,
+    "terminal_rectangles": 1,
+    "max_depth_reached": 0,
+    "angular_roundoff_margin_rad": 3e-14,
+    "integration_order": 2,
+    "candidate_mode": "interval_floor",
+    "max_candidate_combinations": 1,
+    "final_sums": "mpmath.iv endpoint accumulation, not floating fsum",
+    "injectivity": {
+      "method": "interval_preconditioned_Jacobian_contraction",
+      "frobenius_upper": 0.1440897864614283
+    },
+    "detector_bounds_xy0": [
+      -0.35,
+      0.35,
+      -0.35,
+      0.35
+    ],
+    "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+    "bound_class": "interval_enclosure_for_ICRS_TAN_SIP_assuming_mpmath_iv_arithmetic_and_transcendentals",
+    "elapsed_seconds": 0.003762300002563279
+  },
+  "qualification": "New interval classification is the bound primitive. External point membership and Astropy vectors are numerical validation. Legacy cone interval claims are falsified, not weakened into looser bounds."
+}
