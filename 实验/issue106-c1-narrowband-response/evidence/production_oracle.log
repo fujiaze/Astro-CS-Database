@@ -1,0 +1,14 @@
+==============================================================================
+Issue #106 生产路径独立 Oracle（SciPy） × 生产 C++ 对拍
+XP 网格: 336..1020 nm / 2 nm (343 点)
+QE: KAF-16803  响应: parametric 656.28/3.0 nm  measured 等价矩形: ACSD-TEST-Ha-3nm-rectangle
+==============================================================================
+[参数化窄带] 生产 vs SciPy 相对误差: max=5.045e-16 median=1.190e-16  (n=172)
+[PASS] 参数化路径的生产 F_syn 与独立 SciPy 复算一致 (max rel < 1e-9)
+[measured 矩形] 生产 vs SciPy 相对误差: max=5.464e-01 median=5.400e-01
+[#43 量化] measured(2nm 粗格) / 参数化(精确) 的 F_syn 比: median=0.4451 min=0.4486
+           ⇒ 历史 2nm 路径把 3nm 窄带的合成通量低估约 124.7%（相对精确值）
+[标度] 参数化 k_photo=2.040202e-14  measured k_photo=9.082279e-15  比=2.2464（1/median(F_syn_meas/F_syn_param)=2.2468）
+------------------------------------------------------------------------------
+FAILURES: 0
+PRODUCTION ORACLE PASSED（真实 Gaia XP 光谱 + 真实 QE 曲线; **不是**真实 FITS/HST 验收）

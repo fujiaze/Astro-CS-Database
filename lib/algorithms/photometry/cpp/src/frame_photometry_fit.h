@@ -28,6 +28,56 @@
 namespace acsd {
 namespace photometry {
 
+// ── 响应来源（Issue #106 / SCI-PHOT §2.1）─────────────────────────────────
+// 新 `photometry.fit.response` 是 **tagged one-of**:
+//   parametric_narrowband: center_nm + fwhm_nm + profile + profile_version
+//                           （**不需要**滤镜库条目; 绕开“必须命中滤镜库”的拒绝入口）
+//   measured_curve:        curve_name（既有曲线库键; 走原路径, 行为逐位不变）
+// 旧 `photometry.fit.filter` / 块级 `filter_passband` / 逐帧 `filter` 继续
+// 映射到 measured_curve（kUnspecified ⇒ 历史 measured 路径）。
+enum class ResponseMode : uint8_t {
+    kUnspecified = 0,           // 未声明新对象 ⇒ 历史 measured 路径
+    kMeasuredCurve = 1,         // measured_curve（曲线库键）
+    kParametricNarrowband = 2,  // parametric_narrowband（center/FWHM）
+};
+
+// 唯一受支持的参数化剖面（PHOTOMETRY.md §2.1: 默认 top_hat_approx / v1）。
+inline constexpr const char* kNarrowbandProfile = "top_hat_approx";
+inline constexpr int kNarrowbandProfileVersion = 1;
+
+struct ResponseSpec {
+    ResponseMode mode = ResponseMode::kUnspecified;
+    // parametric_narrowband
+    double center_nm = 0.0;
+    double fwhm_nm = 0.0;
+    std::string profile = kNarrowbandProfile;
+    int profile_version = kNarrowbandProfileVersion;
+    // measured_curve
+    std::string curve_name;
+    // 来源（provenance）: explicit_frame_override | block_inherit
+    std::string source;
+};
+
+// 响应身份（provenance; 冻结“实际用于合成 F_syn 的响应”）。
+struct ResponseIdentity {
+    std::string mode;                // parametric_narrowband | measured_curve
+    std::string profile;             // parametric: top_hat_approx
+    int profile_version = 0;
+    double center_nm = 0.0;          // parametric
+    double fwhm_nm = 0.0;            // parametric
+    double band_lo_nm = 0.0;         // 解析端点 [c−Δ/2, c+Δ/2]
+    double band_hi_nm = 0.0;
+    std::string integration;          // segmented_gauss_legendre4_v1 | simpson_xp_grid_v1
+    std::string coverage;             // full | xp_truncated | qe_truncated | no_overlap
+    std::string knowledge;            // parametric_approx | measured
+    std::string qe_key;               // QE 曲线库键
+    std::string qe_content_sha256;    // QE **有序样本内容** sha256（非 n/sum/sumsq）
+    std::string filter_key;           // measured: 曲线库键
+    std::string filter_content_sha256;// measured: 滤镜有序样本内容 sha256
+    std::string response_id;          // 稳定 id（规范串的 sha256）
+    std::string source;               // explicit_frame_override | block_inherit
+};
+
 struct FramePhotFitRequest {
   // 已校准帧像素（FP64, row-major [height*width]）。F_instr 来自 psf_flux。
   const double* pixels = nullptr;
@@ -69,7 +119,14 @@ struct FramePhotFitRequest {
   // 块级 `filter_passband`（配置声明）。非空时与 `filter_name` **字节精确**核对：
   // 不等 ⇒ 拟合**拒绝产出标度**（配置内部两条声明不是同一条曲线）。
   // 空 = 该处未声明，跳过该核对。
+  // **仅对 measured/legacy 路径有效**: 新 `response` 对象路径不使用本字段
+  // （新旧并存由配置层判 RESPONSE_SOURCE_CONFLICT, 见 module_adapters）。
   std::string declared_filter_passband;
+  // ── Issue #106: 响应来源 one-of（`photometry.fit.response` / 逐帧 override）──
+  // mode=kUnspecified ⇒ 走历史 measured 路径（用 filter_name）。
+  // mode=kMeasuredCurve ⇒ 用 response.curve_name（曲线库键）。
+  // mode=kParametricNarrowband ⇒ 用 center_nm/fwhm_nm（**不查滤镜库**）。
+  ResponseSpec response;
   // QE 曲线键（生产运行必需；扫描集内 `channel == "Q"` 的库键，字节精确）。
   // 曲线文件路径**不再由配置给出**：目录是代码内单一路径（`filters_json`/`qe_json`
   // 两个文件路径键已退役）。
@@ -190,6 +247,12 @@ struct FramePhotFitResult {
   double qe_wl_max_nm = 0.0;
   double qe_val_min = 0.0;
   double qe_val_max = 0.0;
+  // ── Issue #106: 响应身份（模式/剖面/端点/求积约定/覆盖/内容 hash/稳定 id）──
+  // measured 路径下 mode="measured_curve", integration="simpson_xp_grid_v1";
+  // parametric 路径下 mode="parametric_narrowband",
+  // integration="segmented_gauss_legendre4_v1", knowledge="parametric_approx"
+  // （**工程形状假设, 不是实测透过率**）。
+  ResponseIdentity response;
   // ── PHOT-MXY-01: m(x,y) 空间增益场 ───────────────────────────────────────
   // order==0 ⇒ m ≡ 1（未启用 / 分布不足降级）；此时调用方必须走**未改动**的
   // 全局路径（calibration::apply_photometry），以保证与改动前逐位一致。

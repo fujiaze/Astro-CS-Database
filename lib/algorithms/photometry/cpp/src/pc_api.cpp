@@ -914,7 +914,10 @@ int run_with_gaia_impl(
     T* out_pixels, int* out_n_matched, double* out_scale_factor,
     double* out_sigma_residual,
     PhotometricDiag* out_diag,
-    const uint32_t* quality_flags) {
+    const uint32_t* quality_flags,
+    // Issue #106: 非空 ⇒ F_syn 走参数化响应的**边界精确分段求积**;
+    // nullptr ⇒ 冻结的历史 measured 路径（Akima 重采样 + XP 网格 Simpson）。
+    const photo_calib::ParametricBand* parametric_response) {
 
     std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 开始 ======\n");
 #ifdef _OPENMP
@@ -938,8 +941,14 @@ int run_with_gaia_impl(
         std::fprintf(stderr, "[pc_api] 错误: gaia_client_handle 为空\n");
         return -2;
     }
-    if (filter_wl == nullptr || filter_trans == nullptr || filter_count <= 0) {
+    if (parametric_response == nullptr &&
+        (filter_wl == nullptr || filter_trans == nullptr || filter_count <= 0)) {
         std::fprintf(stderr, "[pc_api] 错误: 滤光片参数无效\n");
+        return -1;
+    }
+    if (parametric_response != nullptr && !parametric_response->valid) {
+        std::fprintf(stderr, "[pc_api] 错误: 参数化响应非法 (%s)\n",
+                     parametric_response->error.c_str());
         return -1;
     }
     if (spectrum_wl == nullptr || spectrum_count <= 0) {
@@ -1048,7 +1057,39 @@ int run_with_gaia_impl(
                 n_gaia, spec_stride, wl_start, wl_step);
 
     // ---- 2. 预处理滤光片曲线 + QE 曲线 ----
-    photo_calib::SpectrumIntegratorCache filter_cache = photo_calib::prepare_filter_cache(
+    // Issue #106: 两条互斥的 F_syn 路径（同一 F_syn 定义, 不同求积约定）:
+    //   parametric_response != nullptr ⇒ **参数化窄带**: 边界精确的分段求积
+    //     (断点 = 解析端点 ∪ XP 采样点 ∪ QE 节点; 每段 4 点 Gauss–Legendre);
+    //   否则 ⇒ **measured 曲线**: 冻结的历史路径 (Akima 重采样到 XP 网格 +
+    //     XP 网格 Simpson), 行为逐位不变。
+    photo_calib::SpectrumIntegratorCache filter_cache;
+    photo_calib::SegmentedResponseCache segmented_cache;
+    if (parametric_response != nullptr) {
+        segmented_cache = photo_calib::prepare_segmented_response_cache(
+            *parametric_response,
+            qe_wl, qe_trans, qe_count,
+            spectrum_wl, spectrum_count);
+        if (!segmented_cache.valid) {
+            LOG_ERROR("参数化响应/QE 预处理失败 (%s), 退化: scale=1.0",
+                      segmented_cache.error.c_str());
+            *out_scale_factor = 1.0;
+            *out_n_matched = 0;
+            if (out_sigma_residual) *out_sigma_residual = 0.0;
+            #pragma omp parallel for schedule(static)
+            for (int i = 0; i < width * height; ++i) {
+                out_pixels[i] = pixels[i];
+            }
+            free(spec_stars);
+            free(spectra_buf);
+            return 0;
+        }
+        LOG_INFO("参数化响应预处理完成: band=[%.3f,%.3f] nm, %d 段, 覆盖=%s, qe=%d 点",
+                 segmented_cache.band_lo_nm, segmented_cache.band_hi_nm,
+                 segmented_cache.n_segments,
+                 photo_calib::response_coverage_name(segmented_cache.coverage),
+                 qe_count);
+    } else {
+    filter_cache = photo_calib::prepare_filter_cache(
         filter_wl, filter_trans, filter_count,
         qe_wl, qe_trans, qe_count,
         spectrum_wl, spectrum_count);
@@ -1067,6 +1108,7 @@ int run_with_gaia_impl(
     }
     LOG_INFO("滤光片/QE 预处理完成: filter=%d 点, qe=%d 点 -> 光谱 %d 点",
              filter_count, qe_count, spectrum_count);
+    }
 
     // ---- 3. OpenMP 并行计算 F_syn (复用缓存), 线程数由运行时默认决定 ----
     std::vector<double> f_syn_values(n_gaia, 0.0);
@@ -1075,9 +1117,13 @@ int run_with_gaia_impl(
     #pragma omp parallel for schedule(dynamic, 64) reduction(+:n_valid_fsyn)
     for (int i = 0; i < n_gaia; ++i) {
         const uint8_t* spec_i = spectra_buf + (size_t)i * spec_stride;
-        f_syn_values[i] = photo_calib::compute_f_syn_cached_xpsd(
-            filter_cache, spec_i, spec_stride,
-            spec_stars[i].flux_min, spec_stars[i].flux_mul);
+        f_syn_values[i] = (parametric_response != nullptr)
+            ? photo_calib::compute_f_syn_segmented_xpsd(
+                  segmented_cache, spec_i, spec_stride,
+                  spec_stars[i].flux_min, spec_stars[i].flux_mul)
+            : photo_calib::compute_f_syn_cached_xpsd(
+                  filter_cache, spec_i, spec_stride,
+                  spec_stars[i].flux_min, spec_stars[i].flux_mul);
         if (f_syn_values[i] > 0.0 && std::isfinite(f_syn_values[i])) {
             ++n_valid_fsyn;
         }
@@ -1242,7 +1288,8 @@ PC_API int pc_calibrate_simple_with_gaia_v2(
         cd11, cd12, cd21, cd22,
         sip_order, sip_a, sip_b, sip_ap, sip_bp,
         out_pixels, out_n_matched, out_scale_factor,
-        out_sigma_residual, out_diag, /*quality_flags=*/nullptr);
+        out_sigma_residual, out_diag, /*quality_flags=*/nullptr,
+        /*parametric_response=*/nullptr);   // 冻结 C 导出: 历史 measured 路径不变
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_v2: C 边界捕获异常: %s\n", e.what());
         return -4;
@@ -1288,7 +1335,8 @@ PC_API int pc_calibrate_simple_with_gaia_f64_v2(
         cd11, cd12, cd21, cd22,
         sip_order, sip_a, sip_b, sip_ap, sip_bp,
         out_pixels, out_n_matched, out_scale_factor,
-        out_sigma_residual, out_diag, /*quality_flags=*/nullptr);
+        out_sigma_residual, out_diag, /*quality_flags=*/nullptr,
+        /*parametric_response=*/nullptr);   // 冻结 C 导出: 历史 measured 路径不变
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_f64_v2: C 边界捕获异常: %s\n", e.what());
         return -4;
@@ -1326,7 +1374,8 @@ int pc_calibrate_simple_with_gaia_f64_v2_qf(
     double* out_pixels, int* out_n_matched, double* out_scale_factor,
     double* out_sigma_residual,
     PhotometricDiag* out_diag,
-    const uint32_t* quality_flags) {
+    const uint32_t* quality_flags,
+    const photo_calib::ParametricBand* parametric_response) {
     try {
     return run_with_gaia_impl<double>(
         gaia_client_handle, ra_center, dec_center, radius_deg,
@@ -1341,7 +1390,8 @@ int pc_calibrate_simple_with_gaia_f64_v2_qf(
         cd11, cd12, cd21, cd22,
         sip_order, sip_a, sip_b, sip_ap, sip_bp,
         out_pixels, out_n_matched, out_scale_factor,
-        out_sigma_residual, out_diag, quality_flags);
+        out_sigma_residual, out_diag, quality_flags,
+        parametric_response);
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_f64_v2_qf: C 边界捕获异常: %s\n", e.what());
         return -4;

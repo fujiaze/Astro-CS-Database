@@ -21,6 +21,7 @@
 #include "pc_api_qf.h"          // pc_calibrate_simple_with_gaia_f64_v2_qf
 #include "spectrum_integrator.h" // prepare_filter_cache / compute_f_syn_cached_xpsd
 #include "../include/photometric_calib.h"
+#include "crypto/sha256.h"     // acsd::crypto::sha256_hex（响应身份摘要, 单一实现）
 
 extern "C" {
 #include "gaia_client.h"
@@ -49,6 +50,37 @@ namespace {
 // implementation（单一实现 + oracle）」。本 TU 只做委托：曲线库 = 运行期扫描
 // `<可执行文件目录>/config/response_curves/`（`curve_json::scan_curve_library`），
 // 通带名与 QE 名都按库键**字节精确**命中扫描集（无归一、无别名）。
+
+// 规范浮点序列化（响应身份串的**唯一**浮点写法）: 12 位有效数字的 %.12g。
+// 波长以 nm 为单位 ⇒ 该精度远低于任何物理可分辨的差异, 同时保证不同
+// 编译器/平台给出同一字符串（IEEE-754 规定 %.12g 的舍入）。
+inline std::string canon_num(double v) {
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "%.12g", v);
+    return std::string(buf);
+}
+
+// 响应身份串 → 稳定 id（sha256 前 32 hex）。规范串冻结: 模式/剖面/版本/
+// 中心/带宽/解析端点/求积约定/QE 身份与有序内容 hash/滤镜身份与有序内容 hash。
+inline std::string response_id_of(const ResponseIdentity& id) {
+    std::string canon;
+    canon += "mode=" + id.mode;
+    canon += "|profile=" + id.profile;
+    canon += "|profile_version=" + std::to_string(id.profile_version);
+    canon += "|center_nm=" + canon_num(id.center_nm);
+    canon += "|fwhm_nm=" + canon_num(id.fwhm_nm);
+    canon += "|band_lo_nm=" + canon_num(id.band_lo_nm);
+    canon += "|band_hi_nm=" + canon_num(id.band_hi_nm);
+    canon += "|integration=" + id.integration;
+    canon += "|coverage=" + id.coverage;
+    canon += "|knowledge=" + id.knowledge;
+    canon += "|qe_key=" + id.qe_key;
+    canon += "|qe_sha256=" + id.qe_content_sha256;
+    canon += "|filter_key=" + id.filter_key;
+    canon += "|filter_sha256=" + id.filter_content_sha256;
+    const std::string hex = acsd::crypto::sha256_hex(canon.data(), canon.size());
+    return "response:v1:" + hex.substr(0, 32);
+}
 
 }  // namespace
 
@@ -81,7 +113,44 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         out.failure_scope = FitFailureScope::kEnvironment;
         return out;
     }
-    if (req.filter_name.empty()) {
+    if (req.filter_name.empty() && req.response.mode == ResponseMode::kUnspecified) {
+        out.error = "filter_name required (photometry.fit.filter / filter_passband)";
+        out.failure_scope = FitFailureScope::kEnvironment;
+        return out;
+    }
+    // ── Issue #106: 响应来源 one-of 的分发 ─────────────────────────────────
+    //   kUnspecified          ⇒ 历史 measured 路径（req.filter_name）
+    //   kMeasuredCurve        ⇒ 新对象的 measured 形式（req.response.curve_name）
+    //   kParametricNarrowband ⇒ 参数化窄带（center/fwhm; **不查滤镜库**）
+    const ResponseMode mode = (req.response.mode == ResponseMode::kUnspecified)
+                                  ? ResponseMode::kMeasuredCurve
+                                  : req.response.mode;
+    const bool parametric = (mode == ResponseMode::kParametricNarrowband);
+    photo_calib::ParametricBand band;
+    if (parametric) {
+        if (req.response.profile != kNarrowbandProfile ||
+            req.response.profile_version != kNarrowbandProfileVersion) {
+            out.error = "INVALID_PARAMETRIC_RESPONSE (unsupported profile '" +
+                        req.response.profile + "'/version " +
+                        std::to_string(req.response.profile_version) +
+                        "; only " + kNarrowbandProfile + "/v" +
+                        std::to_string(kNarrowbandProfileVersion) + " is defined)";
+            out.failure_scope = FitFailureScope::kEnvironment;   // 配置缺项/未知剖面
+            return out;
+        }
+        band = photo_calib::make_parametric_band(req.response.center_nm,
+                                                  req.response.fwhm_nm);
+        if (!band.valid) {
+            out.error = band.error;
+            out.failure_scope = FitFailureScope::kEnvironment;   // 配置数值非法
+            return out;
+        }
+    }
+    const std::string filter_key =
+        parametric ? std::string()
+                   : (mode == ResponseMode::kMeasuredCurve ? req.response.curve_name
+                                                           : req.filter_name);
+    if (!parametric && filter_key.empty()) {
         out.error = "filter_name required (photometry.fit.filter / filter_passband)";
         out.failure_scope = FitFailureScope::kEnvironment;
         return out;
@@ -100,9 +169,12 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     }
 
     // 曲线名**只**来自配置声明（req.filter_name = photometry.fit.filter / 块级
-    // filter_passband），在扫描集里按库键字节精确解析：不折叠大小写/空白、不做
-    // Unicode 归一、不解析别名（docs/engineering/contracts/CONFIG.md「响应曲线库」一节）。
-    const std::string filter_key = req.filter_name;
+    // filter_passband，或新对象的 measured_curve.curve_name），在扫描集里按库键
+    // 字节精确解析：不折叠大小写/空白、不做 Unicode 归一、不解析别名
+    // （docs/engineering/contracts/CONFIG.md「响应曲线库」一节）。
+    // 参数化窄带模式**不查滤镜库**（用户无需提供滤镜型号条目）。
+    std::vector<double> filter_wl, filter_trans;
+    if (!parametric) {
     // ── 通带身份门（装配期 fail-closed；PASSBAND-IDENTITY-GATE-01）──────────
     // (a) 声明名核对：块级 `filter_passband` 与 `photometry.fit.filter` 必须
     //     **字节相等**（同一配置内的两条声明必须指向同一条曲线）。不一致 ⇒
@@ -112,7 +184,10 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     //     + 合同「响应曲线库」的匹配语义（字节精确、无归一、无别名）。
     //     **这不是新的科学判据**：它只核对"用的是不是声明的那条曲线"，不改任何
     //     公式、阈值、容差与权重。
-    if (!req.declared_filter_passband.empty() &&
+    //     仅历史 measured 路径适用: 新 `response` 对象与旧滤镜字段并存由配置层
+    //     判 RESPONSE_SOURCE_CONFLICT（module_adapters），此处不再重复核对。
+    if (mode == ResponseMode::kMeasuredCurve && req.response.mode == ResponseMode::kUnspecified &&
+        !req.declared_filter_passband.empty() &&
         req.declared_filter_passband != filter_key) {
         out.error = "passband identity mismatch: declared filter_passband '" +
                     req.declared_filter_passband + "' but photometry.fit.filter '" +
@@ -143,8 +218,8 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         out.failure_scope = FitFailureScope::kEnvironment;
         return out;
     }
-    const std::vector<double>& filter_wl = fe->wl;
-    const std::vector<double>& filter_trans = fe->value;
+    filter_wl = fe->wl;
+    filter_trans = fe->value;
     // 身份自述（由曲线对象自身与实际数组算出；扫描期身份核对已保证 name == 库键）。
     out.filter_key = filter_key;
     out.filter_curve_name = filter_key;
@@ -154,6 +229,7 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     out.filter_wl_max_nm = *std::max_element(filter_wl.begin(), filter_wl.end());
     out.filter_val_min = *std::min_element(filter_trans.begin(), filter_trans.end());
     out.filter_val_max = *std::max_element(filter_trans.begin(), filter_trans.end());
+    }
     std::vector<double> qe_wl, qe_trans;
     if (!req.qe_name.empty()) {
         // QE 与滤镜**同一套规则、同一份解析实现**：同一个扫描集里按库键字节精确解析
@@ -195,6 +271,38 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         return out;
     }
 
+    // ── Issue #106: 响应身份（provenance）──────────────────────────────────
+    // 冻结: 模式/剖面/版本/中心/带宽/解析端点/求积约定/QE 身份与**有序内容**
+    // hash/（measured）滤镜身份与有序内容 hash/覆盖状态/已知程度/来源。
+    // PARAMETRIC_APPROX ≠ MEASURED_CURVE: 即使中心与 FWHM 相同, 两者也**不是**
+    // 同一物理响应（top-hat 是具名形状假设, 不是实测透过率）。
+    {
+        ResponseIdentity& rid = out.response;
+        rid.mode = parametric ? "parametric_narrowband" : "measured_curve";
+        rid.source = req.response.source.empty() ? std::string("block_inherit")
+                                                 : req.response.source;
+        rid.qe_key = out.qe_key;
+        rid.qe_content_sha256 =
+            curve_json::curve_content_sha256(qe_wl, qe_trans);
+        if (parametric) {
+            rid.profile = req.response.profile;
+            rid.profile_version = req.response.profile_version;
+            rid.center_nm = req.response.center_nm;
+            rid.fwhm_nm = req.response.fwhm_nm;
+            rid.band_lo_nm = band.lo_nm;
+            rid.band_hi_nm = band.hi_nm;
+            rid.integration = "segmented_gauss_legendre4_v1";
+            rid.knowledge = "parametric_approx";
+            // 覆盖状态（#44）在拿到 XP 网格后填充（见下方 spectrum_wl 之后）。
+        } else {
+            rid.integration = "simpson_xp_grid_v1";
+            rid.knowledge = "measured";
+            rid.filter_key = out.filter_key;
+            rid.filter_content_sha256 =
+                curve_json::curve_content_sha256(filter_wl, filter_trans);
+        }
+    }
+
     // FOV 半径（与 Orchestrator::run_stage_photometric 的 "计算 FOV 半径" 段同式同钳位）
     const double cd_det = std::fabs(req.cd11 * req.cd22 - req.cd12 * req.cd21);
     const double pixel_scale_deg = (cd_det > 0.0) ? std::sqrt(cd_det) : 0.0;
@@ -226,6 +334,24 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     for (int i = 0; i < wl_count; ++i) {
         spectrum_wl[static_cast<size_t>(i)] = static_cast<double>(wl_start + i * wl_step);
     }
+
+    // ── Issue #106: 覆盖状态 + 响应身份 id（需要 XP 网格）──────────────────
+    // 覆盖状态 = 响应带与 (XP 可重建域 ∩ QE 覆盖域) 的关系（#44）:
+    //   full / xp_truncated / qe_truncated / no_overlap。
+    // no_overlap ⇒ 该响应在有效谱域内**无支持** ⇒ F_syn ≡ 0 ⇒ 拟合无法产出
+    // 标度（由下游 F_syn>0 判据拒绝）, 此处如实登记, 不静默当"零光子"。
+    if (parametric) {
+        const photo_calib::SegmentedResponseCache probe =
+            photo_calib::prepare_segmented_response_cache(
+                band, qe_wl.empty() ? nullptr : qe_wl.data(),
+                qe_trans.empty() ? nullptr : qe_trans.data(),
+                static_cast<int>(qe_wl.size()),
+                spectrum_wl.data(), static_cast<int>(spectrum_wl.size()));
+        out.response.coverage = probe.valid
+            ? photo_calib::response_coverage_name(probe.coverage)
+            : "invalid";
+    }
+    out.response.response_id = response_id_of(out.response);
 
     const size_t npix = static_cast<size_t>(req.width) * static_cast<size_t>(req.height);
     std::vector<double> out_pixels(npix, 0.0);
@@ -267,7 +393,9 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         reinterpret_cast<void*>(client),
         req.crval1, req.crval2, fov_radius_deg,
         req.mag_min, req.mag_max,
-        filter_wl.data(), filter_trans.data(), static_cast<int>(filter_wl.size()),
+        parametric ? nullptr : filter_wl.data(),
+        parametric ? nullptr : filter_trans.data(),
+        parametric ? 0 : static_cast<int>(filter_wl.size()),
         qe_wl.empty() ? nullptr : qe_wl.data(),
         qe_trans.empty() ? nullptr : qe_trans.data(),
         static_cast<int>(qe_wl.size()),
@@ -279,7 +407,8 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         req.cd11, req.cd12, req.cd21, req.cd22,
         req.sip_order, req.sip_a, req.sip_b, req.sip_ap, req.sip_bp,
         out_pixels.data(), &n_matched, &scale, &sigma_residual, &diag,
-        req.psf_quality);
+        req.psf_quality,
+        parametric ? &band : nullptr);
 
     // ── FREF-BASELINE-001: 绝对合成星等零点 ZP_syn ──────────────────────
     // 目的: 给帧级 SNR 提供一个**跨帧公共**的绝对参考锚（基准口径:
@@ -300,15 +429,28 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
             client, req.crval1, req.crval2, fov_radius_deg,
             req.mag_min, req.mag_max, &zp_stars, &zp_spectra, &zp_n);
         if (zrc == 0 && zp_stars != nullptr && zp_spectra != nullptr && zp_n > 0) {
-            const photo_calib::SpectrumIntegratorCache zcache =
-                photo_calib::prepare_filter_cache(
+            // 颜色项的 F_syn 必须与**拟合通道同口径**（同一响应、同一求积约定）。
+            photo_calib::SpectrumIntegratorCache zcache;
+            photo_calib::SegmentedResponseCache zseg;
+            bool zcache_ok = false;
+            if (parametric) {
+                zseg = photo_calib::prepare_segmented_response_cache(
+                    band, qe_wl.empty() ? nullptr : qe_wl.data(),
+                    qe_trans.empty() ? nullptr : qe_trans.data(),
+                    static_cast<int>(qe_wl.size()),
+                    spectrum_wl.data(), static_cast<int>(spectrum_wl.size()));
+                zcache_ok = zseg.valid;
+            } else {
+                zcache = photo_calib::prepare_filter_cache(
                     filter_wl.data(), filter_trans.data(),
                     static_cast<int>(filter_wl.size()),
                     qe_wl.empty() ? nullptr : qe_wl.data(),
                     qe_trans.empty() ? nullptr : qe_trans.data(),
                     static_cast<int>(qe_wl.size()),
                     spectrum_wl.data(), static_cast<int>(spectrum_wl.size()));
-            if (!zcache.spectrum_wl.empty()) {
+                zcache_ok = !zcache.spectrum_wl.empty();
+            }
+            if (zcache_ok) {
                 std::vector<double> zp_vals;
                 zp_vals.reserve(static_cast<size_t>(zp_n));
                 zp_rows.clear();
@@ -316,9 +458,13 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
                 for (int i = 0; i < zp_n; ++i) {
                     const uint8_t* sp_i =
                         zp_spectra + static_cast<size_t>(i) * static_cast<size_t>(wl_count);
-                    const double fsyn = photo_calib::compute_f_syn_cached_xpsd(
-                        zcache, sp_i, wl_count,
-                        zp_stars[i].flux_min, zp_stars[i].flux_mul);
+                    const double fsyn = parametric
+                        ? photo_calib::compute_f_syn_segmented_xpsd(
+                              zseg, sp_i, wl_count,
+                              zp_stars[i].flux_min, zp_stars[i].flux_mul)
+                        : photo_calib::compute_f_syn_cached_xpsd(
+                              zcache, sp_i, wl_count,
+                              zp_stars[i].flux_min, zp_stars[i].flux_mul);
                     // 逐星登记（与 records 不同索引域，见上方声明处）：值一律如实登记，
                     // 非有限写 NaN；in_stats 先置 false，仅当该星真正进入 zp_vals 才置 true。
                     ZpStarRow row;

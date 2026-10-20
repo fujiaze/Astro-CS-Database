@@ -23,6 +23,7 @@
 // ============================================================================
 
 #include "../include/photometric_calib.h"
+#include "spectrum_integrator.h"   // photo_calib::ParametricBand（参数化响应带）
 
 #include <cstdint>
 
@@ -45,6 +46,12 @@ int pc_calibrate_simple_with_gaia_f64_v2_qf(
     double* out_pixels, int* out_n_matched, double* out_scale_factor,
     double* out_sigma_residual,
     PhotometricDiag* out_diag,
-    const uint32_t* quality_flags);
+    const uint32_t* quality_flags,
+    // ── Issue #106: 可选的参数化窄带响应（nullptr = 冻结的历史 measured 路径）──
+    // 非空 ⇒ F_syn 走**边界精确的分段求积**（spectrum_integrator 的
+    // prepare_segmented_response_cache / compute_f_syn_segmented_xpsd）;
+    // 此时 filter_wl/filter_trans/filter_count 不再被消费（调用方可传 nullptr）。
+    // 既有 6 个冻结 C 导出不经本入口, 行为不变。
+    const photo_calib::ParametricBand* parametric_response);
 
 #endif  // ACSD_PHOTOMETRY_PC_API_QF_H

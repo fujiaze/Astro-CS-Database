@@ -1166,8 +1166,10 @@ target_include_directories(acsd_phase1_photcal PUBLIC
 #   · acsd_calibration —— 只为 photometry_apply.h 的**唯一**空间场求值实现
 #     (基函数 + m(x,y) 内联求值) 与 apply_photometry_spatial; 无反向依赖。
 #   · acsd_identifiability —— 空间基函数的可辨识性判据 (唯一实现)。
+#   · acsd_common —— Issue #106: 响应身份的**有序样本内容** sha256
+#     (acsd_common = SHA-256 单一实现 + healpix; 纯算法库, 无反向依赖)。
 target_link_libraries(acsd_phase1_photcal PUBLIC acsd_contracts acsd_p1_ipv
-  acsd_calibration acsd_identifiability)
+  acsd_calibration acsd_identifiability acsd_common)
 if(UNIX AND OpenMP_CXX_FOUND)
   target_link_libraries(acsd_phase1_photcal PUBLIC OpenMP::OpenMP_CXX)
 endif()

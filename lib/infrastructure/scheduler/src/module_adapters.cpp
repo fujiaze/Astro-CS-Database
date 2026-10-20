@@ -81,6 +81,7 @@
                              // (compute_fov_density / estimate_mag_lim_iterative,
                              //  唯一权威常量 206.265 与 m_lim_* 默认值)
 #include "gaia_client.h"     // lib/infrastructure/gaia_xpsd_client: Gaia XPSD cone-search 客户端
+#include "photometry_response_config.h"  // Issue #106: 响应来源 one-of 的站点解析（唯一实现）
 #include "star_detector.h"   // lib/algorithms/star_detection: sdet_create/sdet_detect_ex_f64 句柄
 // 注: C++ StarDetector 类头与 sdet C 头同名——裸名 include 命中 lib/algorithms/star_detection
 // (lib/algorithms/star_detection/include 先于 lib/algorithms/star_detection/wrapper_phase1), C++ 类头以相对路径显式引入。
@@ -5887,6 +5888,23 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     int filter_n_points = 0;
     double filter_wl_min_nm = 0.0;
     double filter_wl_max_nm = 0.0;
+    // ── Issue #106: 响应身份（模式/剖面/端点/求积约定/覆盖/内容 hash/稳定 id）──
+    // PARAMETRIC_APPROX ≠ MEASURED_CURVE: 两者即使中心/FWHM 相同也不是同一
+    // 物理响应（top-hat 是具名形状假设, 不是实测透过率）。
+    std::string response_mode;
+    std::string response_profile;
+    int response_profile_version = 0;
+    double response_center_nm = 0.0;
+    double response_fwhm_nm = 0.0;
+    double response_band_lo_nm = 0.0;
+    double response_band_hi_nm = 0.0;
+    std::string response_integration;
+    std::string response_coverage;
+    std::string response_knowledge;
+    std::string response_id;
+    std::string response_source;
+    std::string response_qe_sha256;
+    std::string response_filter_sha256;
     // ── PHOT-MXY-01: 低阶乘性空间增益 m(x,y)（SCI-PHOT-001 §16.1 ④⑤）──────
     // m_order == 0 ⇒ m ≡ 1（未启用 / 按声明降级）；此时施加走**未改动**的
     // calibration::apply_photometry，与改动前逐位一致。
@@ -5993,6 +6011,13 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   double qe_val_min = 0.0;
   double qe_val_max = 0.0;
   std::string qe_curve_source;                 // 实际装载的 QE 曲线文件（扫描集内路径）
+  // ── Issue #106: 组级响应身份（首帧落定; 逐帧不一致只作具名诊断, 不判失败）──
+  std::string group_response_mode, group_response_profile, group_response_id;
+  std::string group_response_integration, group_response_coverage;
+  std::string group_response_knowledge, group_response_source;
+  std::string group_response_qe_sha256;
+  int group_response_profile_version = 0;
+  double group_response_center_nm = 0.0, group_response_fwhm_nm = 0.0;
   std::string photscale_source = "none";
   const Json phot_cfg = (p1_has(doc, "photometry") && doc["photometry"].is_object())
                             ? doc["photometry"] : Json::object();
@@ -6054,6 +6079,24 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   // 旧实现只用 block 级 filter/qe_name ⇒ 同 block 内不同 R_k 的帧被套上 block 第一帧
   // 的响应曲线（独立审查 F07）。此处按 input occurrence 解析, 未提供 override 的帧
   // 继承 block 并如实登记来源（不伪造 override）。
+  // ── Issue #106: 响应来源 one-of 的声明与解析 ─────────────────────────────
+  // 正本: docs/science/photometry/PHOTOMETRY.md §2.1（#104 已审核通过）+
+  //       Issue #106「单帧每次只生效一种响应来源; 同时竞争明确
+  //       RESPONSE_SOURCE_CONFLICT」。
+  //
+  // 声明点（site）: ① `photometry.fit`（含块级 `filter_passband`）= fit 站点;
+  //                 ② 每个 `photometry.frame_overrides[]` 条目 = 帧站点。
+  // 规则:
+  //   R1 同一站点内 `response`（新 tagged one-of）与旧 `filter` 字段**并存**
+  //      ⇒ RESPONSE_SOURCE_CONFLICT（配置错误 ⇒ 中止运行, 不静默择一）。
+  //      站点内的解析与校验由**唯一实现**
+  //      `scheduler/src/photometry_response_config.h::parse_response_declaration`
+  //      给出（可单测）; 本节点只负责跨站点的替换（R2）与 fit 站点的双声明（R3）。
+  //   R2 跨站点: 帧站点的显式声明**整体替换** fit 站点的声明（新旧两种形式
+  //      皆可）; 来源逐项登记（explicit_frame_override / block_inherit）。
+  //   R3 fit 站点内 `photometry.fit.response` 与块级 `filter_passband` 并存
+  //      ⇒ 冲突（两者是同一块通带的两个声明）。
+  using P1ResponseDecl = acsd::scheduler::ResponseDeclaration;
   struct P1FrameBinding {
     std::string filter;      // 解析出的曲线库键（响应身份的第一分量）
     std::string qe;          // QE 曲线库键
@@ -6061,13 +6104,20 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     std::string qe_source;
     std::string matched_by;     // input_path | basename | frame_key
     bool have_override = false;
+    // ── Issue #106: 逐帧响应来源（显式声明; 未声明 ⇒ declared=false）──────
+    P1ResponseDecl response;
+    // 非空 ⇒ 该帧的声明站点内 `response` 与旧 `filter` 并存
+    // （RESPONSE_SOURCE_CONFLICT）⇒ 配置错误, 中止运行。
+    std::string response_conflict;
   };
+  // 块级（fit 站点）声明; 在 fit_enabled 分支内解析后填入, 供逐帧 binding 继承。
+  P1ResponseDecl block_response_decl;
   auto p1_resolve_frame_binding = [&](const std::string& lp,
                                        const std::string& key)
       -> P1FrameBinding {
     P1FrameBinding b;
-    b.filter = fit_cfg.value("filter", std::string());
-    if (b.filter.empty()) b.filter = doc.value("filter_passband", std::string());
+    b.filter = block_response_decl.legacy ? block_response_decl.curve_name
+                                           : std::string();
     b.qe = fit_cfg.value("qe_name", std::string());
     b.filter_source = "block_inherit";
     b.qe_source = "block_inherit";
@@ -6091,10 +6141,26 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       if (matched.empty()) continue;
       b.have_override = true;
       b.matched_by = matched;
-      if (ov.contains("filter") && ov["filter"].is_string() &&
-          !ov["filter"].get<std::string>().empty()) {
-        b.filter = ov["filter"].get<std::string>();
-        b.filter_source = "explicit_frame_override";
+      // ── Issue #106: 该 occurrence 的响应声明 ────────────────────────────
+      // 同一站点内 `response` 与旧 `filter` 并存 ⇒ RESPONSE_SOURCE_CONFLICT
+      // （不静默择一）。旧 `filter` 仍按原路径解析（兼容既有配置）。
+      P1ResponseDecl ov_decl;
+      std::string ov_err;
+      if (!acsd::scheduler::parse_response_declaration(ov, &ov_decl, &ov_err)) {
+        b.response_conflict = ov_err;
+        break;
+      }
+      if (ov_decl.declared) {
+        b.response = ov_decl;
+        if (ov_decl.legacy) {
+          b.filter = ov_decl.curve_name;
+          b.filter_source = "explicit_frame_override";
+        } else {
+          // 新对象声明**整体替换**块级声明（跨站点优先 = 显式逐帧优先;
+          // 来源逐项登记, 不静默）。
+          b.filter.clear();
+          b.filter_source = "explicit_frame_override";
+        }
       }
       if (ov.contains("qe_name") && ov["qe_name"].is_string() &&
           !ov["qe_name"].get<std::string>().empty()) {
@@ -6118,8 +6184,39 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     std::string gaia_dir = fit_cfg.value("gaia_data_dir", std::string());
     if (gaia_dir.empty() && p1_has(doc, "wcs") && doc["wcs"].is_object())
       gaia_dir = doc["wcs"].value("gaia_data_dir", std::string());
+    // ── Issue #106: fit 站点的响应声明（photometry.fit + 块级 filter_passband）──
+    // R1/R3: 新 `response` 对象与旧滤镜字段在同一站点并存 ⇒ RESPONSE_SOURCE_CONFLICT。
+    {
+      P1ResponseDecl fit_decl;
+      std::string fit_resp_err;
+      if (!acsd::scheduler::parse_response_declaration(fit_cfg, &fit_decl, &fit_resp_err)) {
+        return fail_global(ErrorDomain::CONFIG, "PHOT_RESPONSE_SOURCE_CONFLICT",
+            fit_resp_err + "（全局性失败: 配置声明矛盾, 中止运行）");
+      }
+      const std::string root_passband = doc.value("filter_passband", std::string());
+      if (fit_decl.declared && !fit_decl.legacy && !root_passband.empty()) {
+        return fail_global(ErrorDomain::CONFIG, "PHOT_RESPONSE_SOURCE_CONFLICT",
+            "RESPONSE_SOURCE_CONFLICT: photometry.fit.response and the block-level"
+            " filter_passband both declare the passband of this block ('" +
+            root_passband +
+            "'); exactly one response source must take effect（全局性失败: "
+            "配置声明矛盾, 中止运行）");
+      }
+      if (fit_decl.declared) {
+        block_response_decl = fit_decl;
+      } else if (!root_passband.empty()) {
+        block_response_decl.declared = true;
+        block_response_decl.legacy = true;
+        block_response_decl.mode = "measured_curve";
+        block_response_decl.curve_name = root_passband;
+      }
+    }
+    // 旧路径的滤镜名（历史 measured 通道）: fit.filter 优先, 否则块级 filter_passband。
+    // 新 `response` 对象路径下 filter_name 为空（响应由 response 提供）。
     std::string filter_name = fit_cfg.value("filter", std::string());
-    if (filter_name.empty()) filter_name = doc.value("filter_passband", std::string());
+    if (filter_name.empty() && block_response_decl.legacy)
+      filter_name = block_response_decl.curve_name;
+    if (!block_response_decl.declared) filter_name.clear();
     const std::string qe_name = fit_cfg.value("qe_name", std::string());
     const int max_stars = p1_int(fit_cfg, "max_stars", 5000);
     // FAILSEM-01: 配置缺项是**全局性失败**（不是数据问题）⇒ 立即中止, 不把整批
@@ -6129,9 +6226,10 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           "photometry.fit.gaia_data_dir (或 wcs.gaia_data_dir) required"
           "（全局性失败: 配置缺项, 中止运行而不是把整批帧判 fail）");
     }
-    if (filter_name.empty()) {
+    if (!block_response_decl.declared) {
       return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_FILTER_MISSING",
-          "photometry.fit.filter (或 filter_passband) required"
+          "photometry.fit.response (parametric_narrowband / measured_curve) 或 "
+          "photometry.fit.filter / filter_passband required"
           "（全局性失败: 配置缺项, 中止运行）");
     }
     // 曲线文件路径键 `photometry.fit.filters_json` / `qe_json` 已退役：曲线库 =
@@ -6155,11 +6253,22 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         const std::string key = p1_frame_key(lp);
         // F07: 逐 occurrence 解析本帧的 filter/QE 绑定（不套 block 第一帧曲线）
         const P1FrameBinding fb = p1_resolve_frame_binding(lp, key);
-        if (fb.filter.empty()) {
+        if (!fb.response_conflict.empty()) {
+          return fail_global(ErrorDomain::CONFIG, "PHOT_RESPONSE_SOURCE_CONFLICT",
+              fb.response_conflict + " (frame " + key +
+              ")（全局性失败: 配置声明矛盾, 中止运行）");
+        }
+        // ── Issue #106: 该帧的**有效响应来源**（唯一生效的一个）────────────
+        // 帧站点声明优先（explicit_frame_override）; 否则继承 fit 站点
+        // （block_inherit）。二者互斥 ⇒ 不会出现"同帧两种来源并存"。
+        const bool frame_declared = fb.response.declared;
+        const P1ResponseDecl& eff_resp =
+            frame_declared ? fb.response : block_response_decl;
+        if (!eff_resp.declared) {
           return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_FILTER_MISSING",
-              "photometry.fit.filter / filter_passband / "
-              "photometry.frame_overrides[].filter required for frame " + key +
-              "（全局性失败: 配置缺项, 中止运行）");
+              "photometry.fit.response / photometry.fit.filter / filter_passband / "
+              "photometry.frame_overrides[].response|filter required for frame " +
+              key + "（全局性失败: 配置缺项, 中止运行）");
         }
         if (fb.qe.empty()) {
           return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_QE_MISSING",
@@ -6325,16 +6434,39 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
             !frame_filter_header.empty() && !fb.filter.empty() &&
             frame_filter_header != fb.filter;
         // F07: 本帧 occurrence 解析出的曲线身份（来源逐项保留, 不静默继承）
-        freq.filter_name = fb.filter;
-        // PASSBAND-IDENTITY-GATE-01: 把配置**声明**的通带名送进拟合入口，由
-        // 生产唯一实现核对「FILTER 关键字解析出的库键 == 声明名」；不等 ⇒
-        // 拟合拒绝产出标度（具名环境作用域失败，见 frame_photometry_fit.cpp）。
-        // 依据 docs/science/PHOTOMETRY.md §2a.4/§2a.5（通带形状不被零点吸收、
-        // 比较 sigma_residual 必须声明所用模型通带）。
-        freq.declared_filter_passband =
-            fb.filter_source == "explicit_frame_override" ? fb.filter
-                                                          : doc.value("filter_passband",
-                                                                      std::string());
+        // ── Issue #106: 逐帧有效响应（唯一生效的一个来源）──────────────────
+        //   legacy（fit.filter / filter_passband / override.filter）
+        //       ⇒ 历史 measured 路径（req.filter_name + 通带身份门核对）
+        //   新 `response` 对象（parametric_narrowband / measured_curve）
+        //       ⇒ req.response；参数化模式**不查滤镜库**（无需滤镜型号条目）;
+        //         且不做旧字段交叉核对（旧字段并存已在配置层判冲突）。
+        freq.response.source = frame_declared ? "explicit_frame_override"
+                                              : "block_inherit";
+        if (eff_resp.legacy) {
+          freq.response.mode = acsd::photometry::ResponseMode::kUnspecified;
+          freq.filter_name = fb.filter;
+          // PASSBAND-IDENTITY-GATE-01: 把配置**声明**的通带名送进拟合入口，由
+          // 生产唯一实现核对「FILTER 关键字解析出的库键 == 声明名」；不等 ⇒
+          // 拟合拒绝产出标度（具名环境作用域失败，见 frame_photometry_fit.cpp）。
+          // 依据 docs/science/PHOTOMETRY.md §2a.4/§2a.5（通带形状不被零点吸收、
+          // 比较 sigma_residual 必须声明所用模型通带）。
+          freq.declared_filter_passband =
+              fb.filter_source == "explicit_frame_override" ? fb.filter
+                                                            : doc.value("filter_passband",
+                                                                        std::string());
+        } else {
+          freq.response.mode =
+              (eff_resp.mode == "parametric_narrowband")
+                  ? acsd::photometry::ResponseMode::kParametricNarrowband
+                  : acsd::photometry::ResponseMode::kMeasuredCurve;
+          freq.response.center_nm = eff_resp.center_nm;
+          freq.response.fwhm_nm = eff_resp.fwhm_nm;
+          freq.response.profile = eff_resp.profile;
+          freq.response.profile_version = eff_resp.profile_version;
+          freq.response.curve_name = eff_resp.curve_name;
+          freq.filter_name.clear();
+          freq.declared_filter_passband.clear();
+        }
         freq.qe_name = fb.qe;
         // PHOT-MXY-01: m(x,y) 请求阶与降级门（0 = 关闭 ⇒ 空间路径完全不被触碰）
         freq.spatial_gain_order = spatial_gain_order;
@@ -6452,6 +6584,21 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         sc.filter_n_points = fr.filter_n_points;
         sc.filter_wl_min_nm = fr.filter_wl_min_nm;
         sc.filter_wl_max_nm = fr.filter_wl_max_nm;
+        // ── Issue #106: 响应身份（逐帧自述; 模式/求积约定/覆盖/内容 hash）────
+        sc.response_mode = fr.response.mode;
+        sc.response_profile = fr.response.profile;
+        sc.response_profile_version = fr.response.profile_version;
+        sc.response_center_nm = fr.response.center_nm;
+        sc.response_fwhm_nm = fr.response.fwhm_nm;
+        sc.response_band_lo_nm = fr.response.band_lo_nm;
+        sc.response_band_hi_nm = fr.response.band_hi_nm;
+        sc.response_integration = fr.response.integration;
+        sc.response_coverage = fr.response.coverage;
+        sc.response_knowledge = fr.response.knowledge;
+        sc.response_id = fr.response.response_id;
+        sc.response_source = fr.response.source;
+        sc.response_qe_sha256 = fr.response.qe_content_sha256;
+        sc.response_filter_sha256 = fr.response.filter_content_sha256;
         // FREF-BASELINE-001: 帧自身测光零点（正向合成, 与帧噪声无关）
         sc.synthetic_colour_valid = fr.synthetic_colour_valid;
         sc.synthetic_colour_median_mag = fr.synthetic_colour_median_mag;
@@ -6545,6 +6692,18 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           qe_val_min = fr.qe_val_min;
           qe_val_max = fr.qe_val_max;
           qe_curve_source = fr.qe_curve_source;
+          // Issue #106: 组级响应身份（首帧落定）
+          group_response_mode = fr.response.mode;
+          group_response_profile = fr.response.profile;
+          group_response_profile_version = fr.response.profile_version;
+          group_response_center_nm = fr.response.center_nm;
+          group_response_fwhm_nm = fr.response.fwhm_nm;
+          group_response_integration = fr.response.integration;
+          group_response_coverage = fr.response.coverage;
+          group_response_knowledge = fr.response.knowledge;
+          group_response_id = fr.response.response_id;
+          group_response_source = fr.response.source;
+          group_response_qe_sha256 = fr.response.qe_content_sha256;
         } else if (fr.filter_key != passband_identity_key ||
                    fr.filter_n_points != passband_identity_n_points ||
                    fr.filter_wl_min_nm != passband_identity_wl_min_nm ||
@@ -6922,6 +7081,23 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
              {"response_qe_source", sc->response_qe_source},
              {"response_matched_by", sc->response_matched_by},
              {"filter_key", sc->filter_key},
+             // ── Issue #106: 响应身份（逐帧; 模式/剖面/端点/求积/覆盖/内容 hash）──
+             // 使「这一帧的 F_syn 是用哪条响应、哪套求积算出来的」在产品里可
+             // 独立核对（PARAMETRIC_APPROX ≠ MEASURED_CURVE）。
+             {"response", Json{{"mode", sc->response_mode},
+                               {"profile", sc->response_profile},
+                               {"profile_version", sc->response_profile_version},
+                               {"center_nm", sc->response_center_nm},
+                               {"fwhm_nm", sc->response_fwhm_nm},
+                               {"band_lo_nm", sc->response_band_lo_nm},
+                               {"band_hi_nm", sc->response_band_hi_nm},
+                               {"integration", sc->response_integration},
+                               {"coverage", sc->response_coverage},
+                               {"knowledge", sc->response_knowledge},
+                               {"response_id", sc->response_id},
+                               {"source", sc->response_source},
+                               {"qe_content_sha256", sc->response_qe_sha256},
+                               {"filter_content_sha256", sc->response_filter_sha256}}},
              {"f_instr_domain", "psf_analytic_flux_2pi_A_sx_sy_over_3"},
              {"synthetic_colour_valid", sc->synthetic_colour_valid},
              {"synthetic_colour_median_mag", sc->synthetic_colour_median_mag},
@@ -7010,6 +7186,20 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                 {"val_min", passband_identity_val_min},
                 {"val_max", passband_identity_val_max},
                 {"curve_source", passband_identity_curve_source},
+                // ── Issue #106: 响应身份（组级; 首帧落定）──────────────────
+                // PARAMETRIC_APPROX ≠ MEASURED_CURVE: 模式/剖面/端点/求积
+                // 约定/覆盖/内容 hash 全部登记, 使产品可独立核对。
+                {"response", Json{{"mode", group_response_mode},
+                                  {"profile", group_response_profile},
+                                  {"profile_version", group_response_profile_version},
+                                  {"center_nm", group_response_center_nm},
+                                  {"fwhm_nm", group_response_fwhm_nm},
+                                  {"integration", group_response_integration},
+                                  {"coverage", group_response_coverage},
+                                  {"knowledge", group_response_knowledge},
+                                  {"response_id", group_response_id},
+                                  {"source", group_response_source},
+                                  {"qe_content_sha256", group_response_qe_sha256}}},
                 {"qe", qe_identity_block}};
   };
 
@@ -8470,6 +8660,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   std::string phot_response_qe_key, phot_response_qe_src;
   // 曲线文件内容 sha256（身份绑定字节内容, 不是文件名; 见 identity 调用点）
   std::string phot_response_filter_sha, phot_response_qe_sha;
+  // ── Issue #106: 响应身份 id（response:v1:…）──────────────────────────────
+  // 参数化窄带**没有**滤镜曲线文件 ⇒ 帧侧/阶段二的身份必须带上这个 id,
+  // 否则「中心 656.28/3nm」与「中心 500/5nm」会共享同一响应身份。
+  std::string phot_response_id;
   // FAILSEM-01: 上游**逐帧判决**（p1_phot.json.frames[] → frame_key → 记录）。
   // 逐帧真相是本节点选择输入面的唯一依据; 组级 photometry_applied 只作摘要。
   Json frame_status = Json::object();
@@ -8530,6 +8724,11 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             phot_response_qe_key =
                 pbi["qe"].value("resolved_library_key", std::string());
             phot_response_qe_src = pbi["qe"].value("curve_source", std::string());
+          }
+          // Issue #106: 响应身份 id（参数化窄带没有滤镜曲线文件 ⇒ 靠它区分）
+          if (pbi.contains("response") && pbi["response"].is_object()) {
+            phot_response_id =
+                pbi["response"].value("response_id", std::string());
           }
           // 曲线**内容**摘要（Issue #5 A.3: 文件名/库键不是曲线字节身份; 同名文件
           // 内容更新必须改变响应身份）。一次/运行, 不逐帧重复 I/O; 读失败留空 ⇒
@@ -9665,13 +9864,15 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           ident.filter_content_sha256 = phot_response_filter_sha;
           ident.qe_key = phot_response_qe_key;
           ident.qe_content_sha256 = phot_response_qe_sha;
+          // Issue #106: 响应身份 id（参数化窄带没有滤镜曲线文件 ⇒ 必须参与身份）
+          ident.response_id = phot_response_id;
           fdoc.photometry.application_id =
               acsd::phase1::precision::photo_application_identity(ident);
           // 响应身份 = 实际装载的曲线库键 + **曲线内容摘要**（同名文件内容更新 ⇒
-          // 身份随之改变; 摘要缺失时写 @none, 不写假摘要）。
+          // 身份随之改变; 摘要缺失时写 @none, 不写假摘要）+ Issue #106 的响应 id。
           fdoc.photometry.response_id = acsd::phase1::precision::photo_response_identity(
               phot_response_filter_key, phot_response_filter_sha,
-              phot_response_qe_key, phot_response_qe_sha);
+              phot_response_qe_key, phot_response_qe_sha, phot_response_id);
           // 参考量的响应身份在 stage_frame_precision 之后回填（该函数由 ref_def
           // 重建 reference 段 ⇒ 在此设置会被覆盖；见调用点后的补写）。
         }

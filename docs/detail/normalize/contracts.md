@@ -144,6 +144,8 @@ photometry 优先消费 `CleanedPlane`，保证检测、PSF、flux 和输入像�
 
 frame_overrides 在 ingest 时按 input occurrence 一次解析，形成该帧的 masters、gain、response/QE 绑定；优先级为显式逐帧配置、block 继承、允许的真实元数据推导，来源逐项保留。滤镜头名称只是观测记录，不能替代曲线。响应 identity 包含曲线字节 hash、波长/响应单位、光子/能量积分约定与实际 QE 组合。相同 identity 可共享计算缓存，不能拿第一帧的 filter/QE 给不同 identity 的帧用。
 
+响应来源是 **tagged one-of**（Issue #106）：`photometry.fit.response` 与 `photometry.frame_overrides[].response` 各取 `parametric_narrowband`（center_nm+fwhm_nm+profile+profile_version，**无滤镜曲线文件**）或 `measured_curve`（curve_name=曲线库键）。同一声明站点内 `response` 与旧 `filter` 字段并存 ⇒ 具名 `RESPONSE_SOURCE_CONFLICT`（配置错误，中止）；跨站点时帧级显式声明整体替换块级声明，来源登记为 `explicit_frame_override` / `block_inherit`。参数化响应没有滤镜曲线文件，其 identity 由 `response_id`（含模式/剖面/中心/带宽/求积约定/QE 有序内容 hash）承载并进入 `frame_science` 的 `photometry.response_id` 与 `application_id`。QE 始终是独立必需项，不因参数模式而缺省为 1。
+
 sed_response 的基础可执行输入是带 sed_id/hash/波长单位/f_lambda 单位的已归一参考谱，以及本帧响应与拟合系数。复用 photometry 的同一响应积分公开 API 得到 Q_k,ref；若Q_k,ref是物理光子率，先按光度约定显式换为F_syn；在`f_obs=a_k m_k Q_k`前向模型下推得F_native，再用实际α_*得到位置F_ref。代码保存的k_photo是到F_syn尺度的逆系数，不能直接当a_k再乘一次；源位置因子、仪器空间响应与校正m的正逆关系须在一个adapter中明确，不能仅同名相乘。参考谱已具有绝对归一时不再额外要求任意星等零点；若输入选择星等归一，则须有具名通带、星等系统及其零点/参考谱的可执行定义。缺这些输入的 unavailable 是数据能力状态；有完整输入仍返回 not_wired 则是实现未完成。
 
 逐位置参考采用NORMALIZE_DATA的α_*位置参数：F_ref(u)=α_*F_native、h_ref,j=(α_j/α_*)P_j；中心α_*定义幅度标尺，逐像元α_j才描述实际模板，不能把h_ref直接换成P。实际applied总通量另求完整域Σ_all αP；窗口sum仅诊断。显式通量路径仍合法，不能绕开已配置的sed_response。

@@ -73,6 +73,12 @@ struct AppliedScaleIdentity {
   std::vector<double> spatial_norm;    // [x_ref, x_scale, y_ref, y_scale]
   std::string filter_key, filter_content_sha256;   // 曲线库键 + 文件内容
   std::string qe_key, qe_content_sha256;
+  // ── Issue #106: 响应身份 id（response:v1:<sha32>）────────────────────────
+  // 参数化窄带响应**没有**滤镜曲线文件（filter_key 为空）⇒ 只用 filter/qe
+  // 键无法区分「中心 656.28/3nm」与「中心 500/5nm」两个响应。本字段携带
+  // 拟合入口算出的**稳定响应 id**（含模式/剖面/中心/带宽/求积约定/内容 hash）。
+  // **空 = 旧 measured 路径**（规范串不变 ⇒ 既有产品的 application_id 不变）。
+  std::string response_id;
 };
 
 // 归一化身份串：photoapplied:v2:<sha256(规范串)[0:32]>（v2 = 本规范）。
@@ -81,10 +87,13 @@ std::string photo_application_identity(const AppliedScaleIdentity& in);
 
 // 响应身份：<filter_key>@<sha12>+<qe_key>@<sha12>（内容摘要为空时退化为
 // <key>@none, 且不写假摘要）。空 filter_key 与空 qe_key ⇒ 返回空串（未施加）。
+// Issue #106: response_id 非空时追加 "+resp:<response_id>"（参数化窄带没有
+// 滤镜曲线文件, 只有它能区分不同响应）; response_id 为空 ⇒ 规范串不变。
 std::string photo_response_identity(const std::string& filter_key,
                                     const std::string& filter_content_sha256,
                                     const std::string& qe_key,
-                                    const std::string& qe_content_sha256);
+                                    const std::string& qe_content_sha256,
+                                    const std::string& response_id = std::string());
 
 // ── 帧 PSF（Moffat4 σ 口径, PSF.md §2）──────────────────────────────────────
 // 来源 = p1_sources.json frames[frame_key].psf_params[] 的 sx/sy（PSF 块 Moffat4

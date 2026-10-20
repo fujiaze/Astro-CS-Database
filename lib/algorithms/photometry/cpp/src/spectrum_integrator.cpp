@@ -44,6 +44,99 @@ static void prepare_curve(const std::vector<double>& wl_in,
 // ----------------------------------------------------------------------------
 // Akima 子样条插值
 // ----------------------------------------------------------------------------
+// 唯一实现 = AkimaSpline（下方）。它把「斜率 → 扩展斜率 → 切线」一次性算好,
+// 之后可在**任意点**求值（范围外返回 fill）。
+// 历史 akima_interpolate 的**逐位**行为由本类承担：A/B 判据见
+// eng/tests/unit/narrowband_response_test.cpp（与重构前的实现逐位比对）。
+namespace {
+
+class AkimaSpline {
+public:
+    // 成功返回 true；点数 <2 或 x 非严格递增 ⇒ false（调用方具名上报）。
+    bool init(const std::vector<double>& x, const std::vector<double>& y) {
+        x_ = x;
+        y_ = y;
+        const int n = static_cast<int>(x.size());
+        if (n < 2) return false;
+
+        // 原始斜率 m[i] = (y[i+1]-y[i])/(x[i+1]-x[i]), i=0..n-2
+        std::vector<double> slope(n - 1, 0.0);
+        for (int i = 0; i < n - 1; ++i) {
+            const double dx = x_[i + 1] - x_[i];
+            if (dx <= 0.0) {
+                bad_index_ = i;
+                bad_dx_ = dx;
+                return false;
+            }
+            slope[i] = (y_[i + 1] - y_[i]) / dx;
+        }
+
+        // 扩展斜率数组 ext_m[0..n+2], ext_m[j] = m[j-2]（m[-2]..m[n]）。
+        // 切线 t[i] 需要 m[i-2..i+1]，i=n-1 时需要 m[n] —— 必须预留 n+3 项，
+        // 否则最后一切线越界（ sanitizer 实测 heap-buffer-overflow）。
+        // n==2 时仅 slope[0] 存在：边界斜率退化为复制（线性段）。
+        std::vector<double> ext_m(n + 3, 0.0);
+        ext_m[0] = (n >= 3) ? 3.0 * slope[0] - 2.0 * slope[1] : slope[0];
+        ext_m[1] = (n >= 3) ? 2.0 * slope[0] - slope[1] : slope[0];
+        for (int i = 0; i < n - 1; ++i) ext_m[2 + i] = slope[i]; // m[0..n-2]
+        ext_m[n + 1] = (n >= 3)
+            ? 2.0 * slope[n - 2] - slope[n - 3] : slope[n - 2];  // m[n-1]
+        ext_m[n + 2] = (n >= 3)
+            ? 3.0 * slope[n - 2] - 2.0 * slope[n - 3] : slope[n - 2];  // m[n]
+
+        // 每个数据点 i 的切线 t[i]
+        t_.assign(n, 0.0);
+        for (int i = 0; i < n; ++i) {
+            const double m_left2 = ext_m[i];      // m[i-2]
+            const double m_left1 = ext_m[i + 1];  // m[i-1]
+            const double m_cur   = ext_m[i + 2];  // m[i]
+            const double m_right = ext_m[i + 3];  // m[i+1]
+            const double w1 = std::fabs(m_right - m_cur);
+            const double w2 = std::fabs(m_left1 - m_left2);
+            if (w1 + w2 == 0.0) {
+                t_[i] = 0.5 * (m_left1 + m_cur);
+            } else {
+                t_[i] = (w1 * m_left1 + w2 * m_cur) / (w1 + w2);
+            }
+        }
+        return true;
+    }
+
+    bool ok() const { return !t_.empty(); }
+    int bad_index() const { return bad_index_; }
+    double bad_dx() const { return bad_dx_; }
+
+    // 求值：范围外返回 fill（与历史 akima_interpolate 同语义）。
+    double eval(double x, double fill) const {
+        const int n = static_cast<int>(x_.size());
+        if (x < x_[0] || x > x_[n - 1]) return fill;   // 范围外钳位
+        // 二分查找区间 j: x_[j] <= x <= x_[j+1]
+        int lo = 0, hi = n - 2, j = 0;
+        while (lo <= hi) {
+            const int mid = (lo + hi) / 2;
+            if (x >= x_[mid] && x <= x_[mid + 1]) { j = mid; break; }
+            if (x < x_[mid]) hi = mid - 1; else lo = mid + 1;
+        }
+        const double x0 = x_[j], x1 = x_[j + 1];
+        const double y0 = y_[j], y1 = y_[j + 1];
+        const double dx = x1 - x0;
+        const double s = (x - x0) / dx;
+        // Hermite 基函数
+        const double h00 = (2.0 * s - 3.0) * s * s + 1.0;
+        const double h10 = ((s - 2.0) * s + 1.0) * s;
+        const double h01 = (-2.0 * s + 3.0) * s * s;
+        const double h11 = (s - 1.0) * s * s;
+        return h00 * y0 + h10 * dx * t_[j] + h01 * y1 + h11 * dx * t_[j + 1];
+    }
+
+private:
+    std::vector<double> x_, y_, t_;
+    int bad_index_ = -1;
+    double bad_dx_ = 0.0;
+};
+
+} // namespace
+
 std::vector<double> akima_interpolate(
     const std::vector<double>& x_src, const std::vector<double>& y_src,
     const std::vector<double>& x_dst, double fill) {
@@ -56,72 +149,14 @@ std::vector<double> akima_interpolate(
         return y_dst;
     }
 
-    // 计算原始斜率 m[i] = (y[i+1]-y[i])/(x[i+1]-x[i]), i=0..n-2
-    std::vector<double> slope(n - 1, 0.0);
-    for (int i = 0; i < n - 1; ++i) {
-        double dx = x_src[i + 1] - x_src[i];
-        if (dx <= 0.0) {
-            std::fprintf(stderr, "[spec_int] akima: x_src 非严格递增 @%d (dx=%.6g)\n", i, dx);
-            return y_dst;
-        }
-        slope[i] = (y_src[i + 1] - y_src[i]) / dx;
+    AkimaSpline spline;
+    if (!spline.init(x_src, y_src)) {
+        std::fprintf(stderr, "[spec_int] akima: x_src 非严格递增 @%d (dx=%.6g)\n",
+                     spline.bad_index(), spline.bad_dx());
+        return y_dst;
     }
 
-    // 扩展斜率数组 ext_m[0..n+2], ext_m[j] = m[j-2]（m[-2]..m[n]）。
-    // 切线 t[i] 需要 m[i-2..i+1]，i=n-1 时需要 m[n] —— 必须预留 n+3 项，
-    // 否则最后一切线越界（ sanitizer 实测 heap-buffer-overflow）。
-    // n==2 时仅 slope[0] 存在：边界斜率退化为复制（线性段）。
-    std::vector<double> ext_m(n + 3, 0.0);
-    ext_m[0] = (n >= 3) ? 3.0 * slope[0] - 2.0 * slope[1] : slope[0];
-    ext_m[1] = (n >= 3) ? 2.0 * slope[0] - slope[1] : slope[0];
-    for (int i = 0; i < n - 1; ++i) ext_m[2 + i] = slope[i]; // m[0..n-2]
-    ext_m[n + 1] = (n >= 3)
-        ? 2.0 * slope[n - 2] - slope[n - 3] : slope[n - 2];  // m[n-1]
-    ext_m[n + 2] = (n >= 3)
-        ? 3.0 * slope[n - 2] - 2.0 * slope[n - 3] : slope[n - 2];  // m[n]
-
-    // 每个数据点 i 的切线 t[i]
-    std::vector<double> t(n, 0.0);
-    for (int i = 0; i < n; ++i) {
-        double m_left2 = ext_m[i];      // m[i-2]
-        double m_left1 = ext_m[i + 1];  // m[i-1]
-        double m_cur   = ext_m[i + 2];  // m[i]
-        double m_right = ext_m[i + 3];  // m[i+1]
-        double w1 = std::fabs(m_right - m_cur);
-        double w2 = std::fabs(m_left1 - m_left2);
-        if (w1 + w2 == 0.0) {
-            t[i] = 0.5 * (m_left1 + m_cur);
-        } else {
-            t[i] = (w1 * m_left1 + w2 * m_cur) / (w1 + w2);
-        }
-    }
-
-    // 对每个 x_dst 做分段三次 Hermite 插值
-    // 用二分找区间 [x_src[j], x_src[j+1]]
-    for (int k = 0; k < m; ++k) {
-        double x = x_dst[k];
-        if (x < x_src[0] || x > x_src[n - 1]) {
-            y_dst[k] = fill; // 范围外钳位
-            continue;
-        }
-        // 二分查找区间 j: x_src[j] <= x <= x_src[j+1]
-        int lo = 0, hi = n - 2, j = 0;
-        while (lo <= hi) {
-            int mid = (lo + hi) / 2;
-            if (x >= x_src[mid] && x <= x_src[mid + 1]) { j = mid; break; }
-            if (x < x_src[mid]) hi = mid - 1; else lo = mid + 1;
-        }
-        double x0 = x_src[j], x1 = x_src[j + 1];
-        double y0 = y_src[j], y1 = y_src[j + 1];
-        double dx = x1 - x0;
-        double s = (x - x0) / dx;
-        // Hermite 基函数
-        double h00 = (2.0 * s - 3.0) * s * s + 1.0;
-        double h10 = ((s - 2.0) * s + 1.0) * s;
-        double h01 = (-2.0 * s + 3.0) * s * s;
-        double h11 = (s - 1.0) * s * s;
-        y_dst[k] = h00 * y0 + h10 * dx * t[j] + h01 * y1 + h11 * dx * t[j + 1];
-    }
+    for (int k = 0; k < m; ++k) y_dst[k] = spline.eval(x_dst[k], fill);
     return y_dst;
 }
 
@@ -534,6 +569,237 @@ double compute_f_syn_cached_xpsd(
     LOG_DEBUG("[spec_int] compute_f_syn_cached_xpsd: flux_min=%.4e flux_mul=%.4e, %d点, F_syn=%.6e",
               flux_min, flux_mul, n_pts, integral);
     return integral;
+}
+
+// ============================================================================
+// 参数化窄带响应: 分段求积（Issue #106 / #43 / #104）
+// ----------------------------------------------------------------------------
+// 数学: 见 spectrum_integrator.h 的口径块。核心事实 = **Akima 在节点区间内是
+// 三次多项式** ⇒ 段内被积函数 F(λ)·Q(λ)·λ 是 ≤7 次多项式 ⇒ 4 点
+// Gauss–Legendre 对其**精确**（n 点 GL 对 ≤2n−1 次多项式精确）。
+// 因此本路径的**求积误差为 0**（仅浮点舍入），误差来源被压缩为
+// (a) XP 采样对 F(λ) 的重构误差, (b) XP 自身分辨率/外定标, (c) 响应形状假设。
+// ============================================================================
+
+namespace {
+
+// 4 点 Gauss–Legendre（区间 [-1,1] 的节点与权重；高精度十进制展开）。
+constexpr double kGlX[4] = {-0.86113631159405257520, -0.33998104358485626480,
+                              0.33998104358485626480,  0.86113631159405257520};
+constexpr double kGlW[4] = {0.34785484513745385737, 0.65214515486254614263,
+                             0.65214515486254614263, 0.34785484513745385737};
+
+} // namespace
+
+const char* response_coverage_name(ResponseCoverage c) {
+    switch (c) {
+        case ResponseCoverage::kFull: return "full";
+        case ResponseCoverage::kXpTruncated: return "xp_truncated";
+        case ResponseCoverage::kQeTruncated: return "qe_truncated";
+        case ResponseCoverage::kNoOverlap: return "no_overlap";
+    }
+    return "unknown";
+}
+
+ParametricBand make_parametric_band(double center_nm, double fwhm_nm) {
+    ParametricBand b;
+    b.center_nm = center_nm;
+    b.fwhm_nm = fwhm_nm;
+    if (!std::isfinite(center_nm) || !std::isfinite(fwhm_nm)) {
+        b.error = "INVALID_PARAMETRIC_RESPONSE (center_nm/fwhm_nm must be finite)";
+        return b;
+    }
+    if (!(fwhm_nm > 0.0)) {
+        b.error = "INVALID_PARAMETRIC_RESPONSE (fwhm_nm must be > 0 nm)";
+        return b;
+    }
+    const double half = fwhm_nm * 0.5;
+    b.lo_nm = center_nm - half;
+    b.hi_nm = center_nm + half;
+    if (!(b.lo_nm > 0.0)) {
+        b.error = "INVALID_PARAMETRIC_RESPONSE (center_nm - fwhm_nm/2 must be > 0 nm)";
+        return b;
+    }
+    b.valid = true;
+    return b;
+}
+
+SegmentedResponseCache prepare_segmented_response_cache(
+    const ParametricBand& band,
+    const double* qe_wl, const double* qe_trans, int qe_count,
+    const double* spectrum_wl, int spectrum_count) {
+    SegmentedResponseCache c;
+    if (!band.valid) {
+        c.error = band.error.empty() ? "INVALID_PARAMETRIC_RESPONSE" : band.error;
+        return c;
+    }
+    if (spectrum_wl == nullptr || spectrum_count < 2) {
+        c.error = "INVALID_SPECTRAL_GRID (null axis or <2 points)";
+        return c;
+    }
+    c.xp_wl.assign(spectrum_wl, spectrum_wl + spectrum_count);
+    for (int i = 1; i < spectrum_count; ++i) {
+        if (!(c.xp_wl[static_cast<size_t>(i)] > c.xp_wl[static_cast<size_t>(i - 1)])) {
+            c.error = "INVALID_SPECTRAL_GRID (axis not strictly increasing)";
+            return c;
+        }
+    }
+    c.xp_lo_nm = c.xp_wl.front();
+    c.xp_hi_nm = c.xp_wl.back();
+    c.band_lo_nm = band.lo_nm;
+    c.band_hi_nm = band.hi_nm;
+
+    // QE 曲线: 排序去重（与 legacy prepare_curve 同口径）。
+    std::vector<double> qw, qv;
+    if (qe_wl != nullptr && qe_trans != nullptr && qe_count > 0) {
+        prepare_curve(std::vector<double>(qe_wl, qe_wl + qe_count),
+                      std::vector<double>(qe_trans, qe_trans + qe_count),
+                      qw, qv);
+        if (qw.size() < 2) {
+            c.error = "INVALID_QE_CURVE (<2 distinct points after dedup)";
+            return c;
+        }
+        c.has_qe = true;
+        c.qe_lo_nm = qw.front();
+        c.qe_hi_nm = qw.back();
+    } else if (qe_wl != nullptr || qe_trans != nullptr || qe_count != 0) {
+        c.error = "INVALID_QE_CURVE (inconsistent qe_wl/qe_trans/qe_count)";
+        return c;
+    }
+
+    // ── 断点集合: 响应带端点 + XP 采样点 + QE 插值节点 ────────────────────
+    std::vector<double> bp;
+    bp.push_back(c.band_lo_nm);
+    bp.push_back(c.band_hi_nm);
+    bp.push_back(c.xp_lo_nm);
+    bp.push_back(c.xp_hi_nm);
+    if (c.has_qe) {
+        bp.push_back(c.qe_lo_nm);
+        bp.push_back(c.qe_hi_nm);
+    }
+    for (const double x : c.xp_wl) {
+        if (x > c.band_lo_nm && x < c.band_hi_nm) bp.push_back(x);
+    }
+    if (c.has_qe) {
+        for (const double x : qw) {
+            if (x > c.band_lo_nm && x < c.band_hi_nm) bp.push_back(x);
+        }
+    }
+    std::sort(bp.begin(), bp.end());
+    bp.erase(std::unique(bp.begin(), bp.end()), bp.end());
+
+    // ── 有效积分域 = 响应带 ∩ XP 域 ∩ QE 域 ────────────────────────────────
+    double lo = std::max(c.band_lo_nm, c.xp_lo_nm);
+    double hi = std::min(c.band_hi_nm, c.xp_hi_nm);
+    if (c.has_qe) {
+        lo = std::max(lo, c.qe_lo_nm);
+        hi = std::min(hi, c.qe_hi_nm);
+    }
+    c.overlap_lo_nm = lo;
+    c.overlap_hi_nm = hi;
+    if (!(hi > lo)) {
+        // 无支持: 合法零（F_syn ≡ 0），不是失败。
+        c.coverage = ResponseCoverage::kNoOverlap;
+        c.n_segments = 0;
+        c.valid = true;
+        return c;
+    }
+    const bool band_in_xp = (c.band_lo_nm >= c.xp_lo_nm) && (c.band_hi_nm <= c.xp_hi_nm);
+    const bool qe_covers = !c.has_qe ||
+        ((c.band_lo_nm >= c.qe_lo_nm) && (c.band_hi_nm <= c.qe_hi_nm));
+    c.coverage = !band_in_xp ? ResponseCoverage::kXpTruncated
+                             : (qe_covers ? ResponseCoverage::kFull
+                                          : ResponseCoverage::kQeTruncated);
+
+    // ── QE 的 Akima 样条（与星无关, 预计算）───────────────────────────────
+    AkimaSpline qe_spline;
+    if (c.has_qe && !qe_spline.init(qw, qv)) {
+        c.error = "INVALID_QE_CURVE (axis not strictly increasing after dedup)";
+        return c;
+    }
+
+    // ── 分段 + 4 点 Gauss–Legendre 节点 ──────────────────────────────────
+    std::vector<double> pts;
+    for (const double b : bp) {
+        if (b >= lo && b <= hi) pts.push_back(b);
+    }
+    for (size_t i = 0; i + 1 < pts.size(); ++i) {
+        const double a = pts[i];
+        const double b = pts[i + 1];
+        if (!(b > a)) continue;
+        const double half = 0.5 * (b - a);
+        const double mid = 0.5 * (a + b);
+        for (int k = 0; k < 4; ++k) {
+            const double lam = mid + half * kGlX[k];
+            c.node_lambda.push_back(lam);
+            c.node_weight.push_back(half * kGlW[k]);
+            c.node_qe.push_back(c.has_qe ? qe_spline.eval(lam, 0.0) : 1.0);
+        }
+        ++c.n_segments;
+    }
+    c.breaks = pts;
+    c.valid = true;
+    return c;
+}
+
+double compute_f_syn_segmented_xpsd(
+    const SegmentedResponseCache& cache,
+    const uint8_t* spectrum_uint8, int spectrum_count,
+    double flux_min, double flux_mul) {
+    // 非法输入一律 quiet NaN 具名上报, 绝不返回 0（0 是"合法零积分"的取值）。
+    if (!cache.valid) {
+        std::fprintf(stderr, "[spec_int] compute_f_syn_segmented_xpsd: INVALID_SPECTRAL_GRID "
+                    "(cache invalid: %s)\n", cache.error.c_str());
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    if (spectrum_uint8 == nullptr) {
+        std::fprintf(stderr, "[spec_int] compute_f_syn_segmented_xpsd: INVALID_INTEGRAND "
+                    "(null spectrum)\n");
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    const int n_xp = static_cast<int>(cache.xp_wl.size());
+    if (spectrum_count != n_xp) {
+        std::fprintf(stderr, "[spec_int] compute_f_syn_segmented_xpsd: INVALID_SPECTRAL_GRID "
+                    "(spectrum_count(%d) != cache(%d))\n", spectrum_count, n_xp);
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    if (!(flux_mul > 0.0) || !std::isfinite(flux_min) || !std::isfinite(flux_mul)) {
+        std::fprintf(stderr, "[spec_int] compute_f_syn_segmented_xpsd: INVALID_INTEGRAND "
+                    "(flux_min=%g flux_mul=%g)\n", flux_min, flux_mul);
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    if (cache.n_segments == 0) {
+        // 无支持（响应带与有效谱域无重叠）⇒ 合法零积分。
+        return 0.0;
+    }
+
+    // XPSD 官方解码: F(λ) = byte·flux_mul + flux_min (W·m⁻²·nm⁻¹)。
+    std::vector<double> f(static_cast<size_t>(n_xp), 0.0);
+    for (int i = 0; i < n_xp; ++i) {
+        f[static_cast<size_t>(i)] =
+            static_cast<double>(spectrum_uint8[i]) * flux_mul + flux_min;
+    }
+    AkimaSpline f_spline;
+    if (!f_spline.init(cache.xp_wl, f)) {
+        std::fprintf(stderr, "[spec_int] compute_f_syn_segmented_xpsd: INVALID_SPECTRAL_GRID "
+                    "(XP axis not strictly increasing)\n");
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+
+    // 分段 Gauss–Legendre: Σ w_k · F(λ_k)·Q(λ_k)·λ_k
+    double total = 0.0;
+    const size_t n_nodes = cache.node_lambda.size();
+    for (size_t k = 0; k < n_nodes; ++k) {
+        const double lam = cache.node_lambda[k];
+        const double fv = f_spline.eval(lam, 0.0);
+        total += cache.node_weight[k] * fv * cache.node_qe[k] * lam;
+    }
+    if (!std::isfinite(total)) {
+        std::fprintf(stderr, "[spec_int] compute_f_syn_segmented_xpsd: INVALID_INTEGRAND "
+                    "(non-finite quadrature)\n");
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    return total;
 }
 
 } // namespace photo_calib
