@@ -1,0 +1,102 @@
+inliers median=13.725629 p90=14.006420 max=14.088674 dex
+[pc_api] 匹配+清洗完成: 165 颗, scale=2.040202e-14, sigma_residual=0.317122
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=165, scale=2.040202e-14, sigma_residual=0.317122 ======
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 开始 ======
+[pc_api] OpenMP线程数: 16
+[INFO] 锥形搜索: ra=100.0000 dec=0.0000 r=0.204 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+[INFO] 自适应星等查询: mag_max=12.0
+[INFO] 自适应星等查询: mag_max=12.0, n_gaia=17
+[INFO] 自适应星等查询: mag_max=13.0
+[INFO] 自适应星等查询: mag_max=13.0, n_gaia=43
+[INFO] 自适应星等查询: mag_max=14.0
+[INFO] 自适应星等查询: mag_max=14.0, n_gaia=88
+[INFO] 自适应星等查询: mag_max=15.0
+[INFO] 自适应星等查询: mag_max=15.0, n_gaia=180
+[INFO] 自适应星等查询: mag_max=16.0
+[INFO] 自适应星等查询: mag_max=16.0, n_gaia=380
+[INFO] 自适应星等查询完成: mag_max=16.0, n_gaia=380
+[pc_api] 搜索到 380 颗光谱星, 光谱点数=343 (wl_start=336, wl_step=2)
+[INFO] 参数化响应预处理完成: band=[654.780,657.780] nm, 2 段, 覆盖=full, qe=343 点
+[pc_api] F_syn 并行计算完成: 380/380 颗有效
+[INFO] [pc_api] P12-001 阶段1: spectrum_rows_total=380, valid_fsyn=380
+[wcs_transform] 初始化: CRVAL=(100.000000,0.000000), CRPIX=(600.500,600.500), CD=[-2.000e-04,0.000e+00;0.000e+00,2.000e-04], det=-4.000e-08, sip_order=0
+[INFO] [star_matcher] 初始化: KD-tree + IRLS/Tukey 清洗 (GAP-013)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=172 / 380
+[INFO] [star_matcher] P12-001 阶段3: psf_total=172, psf_valid=172
+[INFO] [star_matcher] PSF有效星: 172 / 172, Gaia星: 380, 匹配半径: 2.00 px
+[INFO] [star_matcher] P12-002 正向匹配 (PSF→Gaia): 172 / 172 命中
+[INFO] [star_matcher] P12-002 反向匹配 (Gaia→PSF): 172 / 380 命中
+[INFO] [star_matcher] P12-002 阶段4/5/6: spatial_candidates=172 (正向命中), unique_matches=172 (双向唯一), rejected_ambiguous=0 (非互为最近邻), rejected_distance=0 (距离超阈值)
+[INFO] [star_matcher] P12-001 阶段8: match_distance median=0.0000 p90=0.0000 max=0.0000 px
+[INFO] [star_matcher] P12-002 KD-tree 双向匹配完成: 172 对 (正向 172, 歧义 0)
+[INFO] [star_matcher] cleanAndScale: 输入 172 颗, 星等容忍 3.00 mag
+[INFO] [star_matcher] 星等一致性: 通过 172, 拒绝 0 (median_delta=26.6231, tol=3.00 mag)
+[INFO] [star_matcher] IRLS 初始: location=-3.000000, MAD=0.000000, S=0.000000
+[INFO] [star_matcher] IRLS: MAD=0，采用中位数一致簇，剔除其它残差
+[INFO] [star_matcher] 亮度比例一致性:
+[INFO]   - 输入匹配: 172
+[INFO]   - 星等一致性通过: 172 (拒绝 0)
+[INFO]   - IRLS inliers: 172 (outliers: 0)
+[INFO]   - location(r) = -3.000000 (dex), scale = 10^(-location) = 1.000000e+03
+[INFO]   - MAD(r) = 0.000000, S = 0.000000, sigma_residual = 0.000000
+[INFO]   - r_inliers 范围: [-3.000000, -3.000000] (spread 0.000000 dex = 0.000 mag)
+[INFO] [star_matcher] 清洗完成: 保留 172, 排除 0 (无效/星等不一致/IRLS离群)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=0 (quality=0 + invalid=0 + mag=0 + irls=0), fit_used=172, robust_iterations=0, scale=1.000000e+03, sigma=0.000000
+[INFO] [star_matcher] P12-001 阶段8: r_inliers median=-3.000000 p90=-3.000000 max=-3.000000 dex
+[pc_api] 匹配+清洗完成: 172 颗, scale=1.000000e+03, sigma_residual=0.000000
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=172, scale=1.000000e+03, sigma_residual=0.000000 ======
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 开始 ======
+[pc_api] OpenMP线程数: 16
+[INFO] 锥形搜索: ra=100.0000 dec=0.0000 r=0.204 mag_min=6.0 (自适应迭代 mag_max, 不缩小半径)
+[INFO] 自适应星等查询: mag_max=12.0
+[INFO] 自适应星等查询: mag_max=12.0, n_gaia=17
+[INFO] 自适应星等查询: mag_max=13.0
+[INFO] 自适应星等查询: mag_max=13.0, n_gaia=43
+[INFO] 自适应星等查询: mag_max=14.0
+[INFO] 自适应星等查询: mag_max=14.0, n_gaia=88
+[INFO] 自适应星等查询: mag_max=15.0
+[INFO] 自适应星等查询: mag_max=15.0, n_gaia=180
+[INFO] 自适应星等查询: mag_max=16.0
+[INFO] 自适应星等查询: mag_max=16.0, n_gaia=380
+[INFO] 自适应星等查询完成: mag_max=16.0, n_gaia=380
+[pc_api] 搜索到 380 颗光谱星, 光谱点数=343 (wl_start=336, wl_step=2)
+[INFO] [spec_int] prepare_filter_cache: 滤光片 129 点 + QE 343 点 -> 光谱 343 点, 范围 F[640.0,672.0] Q[360.0,1044.0] nm
+[INFO] 滤光片/QE 预处理完成: filter=129 点, qe=343 点 -> 光谱 343 点
+[pc_api] F_syn 并行计算完成: 380/380 颗有效
+[INFO] [pc_api] P12-001 阶段1: spectrum_rows_total=380, valid_fsyn=380
+[wcs_transform] 初始化: CRVAL=(100.000000,0.000000), CRPIX=(600.500,600.500), CD=[-2.000e-04,0.000e+00;0.000e+00,2.000e-04], det=-4.000e-08, sip_order=0
+[INFO] [star_matcher] 初始化: KD-tree + IRLS/Tukey 清洗 (GAP-013)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=172 / 380
+[INFO] [star_matcher] P12-001 阶段3: psf_total=172, psf_valid=172
+[INFO] [star_matcher] PSF有效星: 172 / 172, Gaia星: 380, 匹配半径: 2.00 px
+[INFO] [star_matcher] P12-002 正向匹配 (PSF→Gaia): 172 / 172 命中
+[INFO] [star_matcher] P12-002 反向匹配 (Gaia→PSF): 172 / 380 命中
+[INFO] [star_matcher] P12-002 阶段4/5/6: spatial_candidates=172 (正向命中), unique_matches=172 (双向唯一), rejected_ambiguous=0 (非互为最近邻), rejected_distance=0 (距离超阈值)
+[INFO] [star_matcher] P12-001 阶段8: match_distance median=0.0000 p90=0.0000 max=0.0000 px
+[INFO] [star_matcher] P12-002 KD-tree 双向匹配完成: 172 对 (正向 172, 歧义 0)
+[INFO] [star_matcher] cleanAndScale: 输入 172 颗, 星等容忍 3.00 mag
+[INFO] [star_matcher] 星等一致性: 通过 165, 拒绝 7 (median_delta=-15.1445, tol=3.00 mag)
+[INFO] [star_matcher] IRLS 初始: location=14.078273, MAD=0.198474, S=0.294258
+[INFO] [star_matcher] IRLS 收敛于迭代 7: location=14.041805
+[INFO] [star_matcher] 亮度比例一致性:
+[INFO]   - 输入匹配: 172
+[INFO]   - 星等一致性通过: 165 (拒绝 7)
+[INFO]   - IRLS inliers: 165 (outliers: 0)
+[INFO]   - location(r) = 14.041805 (dex), scale = 10^(-location) = 9.082279e-15
+[INFO]   - MAD(r) = 0.198474, S = 0.294258, sigma_residual = 0.317800
+[INFO]   - r_inliers 范围: [12.856932, 14.443877] (spread 1.586946 dex = 3.967 mag)
+[INFO] [star_matcher] 清洗完成: 保留 165, 排除 7 (无效/星等不一致/IRLS离群)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=7 (quality=0 + invalid=0 + mag=7 + irls=0), fit_used=165, robust_iterations=8, scale=9.082279e-15, sigma=0.317800
+[INFO] [star_matcher] P12-001 阶段8: r_inliers median=14.078273 p90=14.358572 max=14.443877 dex
+[pc_api] 匹配+清洗完成: 165 颗, scale=9.082279e-15, sigma_residual=0.317800
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=165, scale=9.082279e-15, sigma_residual=0.317800 ======
+[INFO] [spec_int] prepare_filter_cache: 滤光片 129 点 + QE 343 点 -> 光谱 343 点, 范围 F[640.0,672.0] Q[360.0,1044.0] nm
+== cone search: 380 real XP spectrum stars, 343 XP points, fov_radius=0.20365 deg
+== synthetic frame: 172 PSF stars placed
+== parametric fit: k_photo=2.040202e-14 n_matched=165 sigma=3.171e-01 response_id=response:v1:ffe72c9bc0838c2b7bba76ace2adc19c coverage=full integration=segmented_gauss_legendre4_v1
+== self-consistency: injected c=1.000e-03 ⇒ k_photo=1.000000e+03 (expect 1.000000e+03, rel=0.000e+00) sigma=0.000e+00
+== measured(equivalent rectangle) fit: k_photo=9.082279e-15 n_matched=165 response_id=response:v1:ffea662dc300227a02ddfda27e2bf33d integration=simpson_xp_grid_v1
+== wrote 172 per-star rows to /tmp/narrowband_production_path.json
+== checks 16, failures 0
+NARROWBAND PRODUCTION PATH TEST PASSED
+exit code: 0

@@ -22,7 +22,7 @@
 \]
 其中 f_{\lambda,s} 是 Gaia XP 外定标谱[1,2]。若响应定义已包含 λ/(hc) 或使用能量积分，禁止再乘一次；数值实现应明确物理单位、光谱采样、插值与积分误差。Gaia XP 的有限波段覆盖、外定标误差、颜色极端源和强窄发射线都可能不满足高精度条件。
 
-### 2.1 普通窄带解析响应输入（目标设计，尚未接线 CLI）
+### 2.1 普通窄带解析响应输入（设计已定；**生产接线状态见 §2.1.1**）
 
 普通窄带仅要求中心波长 \(c\)[nm]、半高全宽 \(\Delta\)[nm]，均须有限、正且 \(c-\Delta/2>0\)。默认模型具名为 **parametric_narrowband/top_hat_approx/v1**：
 \[
@@ -39,11 +39,33 @@ OD5+ 是在明确声明的阻带范围及测试条件下带外透过率约 \(10^
 
 **窄带求积契约**：根据确切解析端点 \(l=c-\Delta/2,r=c+\Delta/2\)，按滤镜跳变端点、XP 可重建函数结点、QE 连续插值分段与有效谱域切分。分别对连续区间内的 \(f_\lambda(\lambda)QE(\lambda)\lambda\) 使用解析多项式积分（适用时）或自适应高阶带误差求积；不允许把阶跃响应先投到 1/2nm 等距格再用 Akima/Simpson 跨边界积分。3/5/7nm、中心与 XP 格错相、谱域外截断、端点与极窄线响应为必要负例。需分开记录数值求积误差、Gaia XP 的低谱分辨率/外定标及波长覆盖误差、滤镜实际形状误差；数值积分收敛不证明窄发射线物理准确。
 
-**最小生产配置与兼容策略（尚未被当前 parser/schema 消费）**：目标在 photometry.fit 下增加唯一 response 对象，二选一：(A) mode=parametric_narrowband、center_nm、fwhm_nm、profile=top_hat_approx、profile_version=1；(B) mode=measured_curve、curve_name（使用已有曲线库键）。未提供新 response 时，旧 photometry.fit.filter 与块级 filter_passband 继续按原路径映射 measured_curve，并保留二者非空时必须字节相等的校验；新对象和旧滤镜字段同时出现视为 RESPONSE_SOURCE_CONFLICT，不静默择一。未知 profile/version、非正或越界数值为 INVALID_PARAMETRIC_RESPONSE；缺 QE 维持具名异常/无完整拟合时合法原生信号的当前降级语义。frame overrides 必须按每帧绑定而非把第一帧身份传播至其它帧。
+**最小生产配置与兼容策略（设计；**当前生产解析口径见 §2.1.1**）**：目标在 photometry.fit 下增加唯一 response 对象，二选一：(A) mode=parametric_narrowband、center_nm、fwhm_nm、profile=top_hat_approx、profile_version=1；(B) mode=measured_curve、curve_name（使用已有曲线库键）。未提供新 response 时，旧 photometry.fit.filter 与块级 filter_passband 继续按原路径映射 measured_curve，并保留二者非空时必须字节相等的校验；新对象和旧滤镜字段同时出现视为 RESPONSE_SOURCE_CONFLICT，不静默择一。未知 profile/version、非正或越界数值为 INVALID_PARAMETRIC_RESPONSE；缺 QE 维持具名异常/无完整拟合时合法原生信号的当前降级语义。frame overrides 必须按每帧绑定而非把第一帧身份传播至其它帧。
 
 响应身份必须冻结 response_mode、profile/version、c/Δ及单位、峰值与形状假设、入射角/温度适用条件、QE 身份与有序曲线内容 hash、实测滤镜有序曲线 hash（若有）、积分约定、XP 覆盖状态、有效响应已知程度和 provenance。规范浮点序列化后构造具名 stable response_id；曲线名或 n/sum/sumsq 不足以唯一识别响应。
 
 **C++ 小切口**：module_adapters.cpp 的 p1_op_photometry 配置/逐帧 binding → frame_photometry_fit.h 的 FramePhotFitRequest/Result 增加 source 枚举及元数据 → frame_photometry_fit.cpp::fit_frame_photometry 在扫描滤镜之前按 mode 分发，参数模式绕开滤镜条目命中（QE 仍须独立读取），measured 沿用原查找 → filter_curve_json.h::scan_curve_library 保留实际曲线/QE资源与有序 hash → spectrum_integrator.h/.cpp::prepare_filter_cache/compute_f_syn_cached_xpsd 增加带不连续边界的分段积分专用路径 → CONFIG schema、帮助与 frame_science/HiPS 响应元数据同时修改。当前无一项新键被证实已接线；不修改原 C++ 的本轮仅设计。
+
+### 2.1.1 生产接线状态（Issue #106 / C1，2026-10-20）
+
+上段的配置与求积设计已在生产路径落地（`main`，实施基线 `ba81a1631`）。**科学定义未变**；此处只登记接线位置、实际求积约定与已验证边界。
+
+**配置面**（schema：`eng/contracts/schemas/phase_config_normalize.schema.json`）：
+
+- `photometry.fit.response` 是 **tagged one-of**：`{mode:"parametric_narrowband", center_nm, fwhm_nm, profile:"top_hat_approx", profile_version:1}` 或 `{mode:"measured_curve", curve_name}`；`photometry.frame_overrides[].response` 同构。
+- **同层并存 ⇒ `RESPONSE_SOURCE_CONFLICT`**（配置错误，中止运行）：同一站点内 `response` 与旧 `filter` 字段并存；`photometry.fit.response` 与块级 `filter_passband` 并存。
+- **跨层替换**：帧站点的显式声明整体替换块级声明（新旧两种形式皆可），来源逐项登记（`explicit_frame_override` / `block_inherit`），不静默。
+- 旧 `photometry.fit.filter` / `filter_passband` / `frame_overrides[].filter` 的既有行为**逐位不变**；`fit.filter` 与 `filter_passband` 的字节相等校验保留。
+- **QE 仍是独立必需项**：`photometry.fit.qe_name`（或逐帧 override）必须命中扫描集；参数化模式**不查滤镜库**（用户无需提供滤镜型号条目），但仍须提供 QE 曲线（含显式 `Ideal QE curve`）。
+
+**求积面**（`lib/algorithms/photometry/cpp/src/spectrum_integrator.{h,cpp}`）：
+
+- 参数化模式的 F_syn 走**边界精确的分段求积**：断点 = 响应带解析端点 ∪ XP 采样点 ∪ QE 插值节点，每段用 4 点 Gauss–Legendre。因 Akima 在节点区间内是三次多项式，段内被积函数 \(F(\lambda)Q(\lambda)\lambda\) 是 ≤7 次多项式，4 点 GL 对其**精确** ⇒ **求积误差为 0**（仅浮点舍入）。
+- measured 模式保持历史口径（Akima 重采样到 XP 网格 + XP 网格 Simpson）**逐位不变**；两条路径的 F_syn **不逐位可比**，模式与求积约定写入响应身份。
+- 实测证据：3/5/7 nm Hα（中心 656.28，与 XP 2 nm 网格错相）在真实 KAF-16803 QE 曲线上，与独立 SciPy（`Akima1DInterpolator` + `quad`）相对误差 ≤ 5.0e-16；同一 top-hat 走历史 2 nm 粗格路径的相对误差为 55.6% / 33.3% / 4.8%，且 5 nm 与 7 nm 在粗格路径上给出**完全相同**的 F_syn（#43 的可复现反例）。真实 Gaia DR3 XP 光谱（172 颗匹配星）上生产 F_syn 与独立复算最大相对误差 5.0e-16。
+
+**身份面**：`response_id = response:v1:<sha256(规范串)[0:32]>`，规范串冻结模式/剖面/版本/中心/带宽/解析端点/求积约定/覆盖状态/已知程度/QE 库键与**有序样本内容** SHA-256/滤镜库键与有序内容 SHA-256。参数化模式没有滤镜曲线文件，故 `response_id` 进入 `frame_science` 的 `photometry.response_id` 与 `application_id`（旧 measured 路径的规范串**逐字不变**）。
+
+**仍未闭合**：响应**形状**误差（top-hat 是具名工程假设，不是实测透过率；OD5+ 不证明带内为矩形）、快光锥蓝移、XP 自身谱分辨率与外定标误差、窄线谱（Hα/[N II]）对未知星云 SED 的不可消除偏差；实测曲线的 2 nm 粗格求积误差（#43）**仍然 OPEN**（本轮只对参数化模式提供精确路径）。真实 HST/M42 数据验证属 #103。
 
 第 k 帧实测恒星通量 \(f_{ks}^{\rm obs}\) 可以表示为
 \[

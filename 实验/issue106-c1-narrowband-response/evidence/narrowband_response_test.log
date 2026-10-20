@@ -1,0 +1,20 @@
+[spec_int] akima: x_src 非严格递增 @1 (dx=-1)
+[spec_int] akima: 源点数 1 < 2, 返回 fill
+[INFO] [spec_int] prepare_filter_cache: 滤光片 343 点 + QE 2 点 -> 光谱 343 点, 范围 F[336.0,1020.0] Q[336.0,1020.0] nm
+[INFO] [spec_int] prepare_filter_cache: 滤光片 343 点 + QE 2 点 -> 光谱 343 点, 范围 F[336.0,1020.0] Q[336.0,1020.0] nm
+[INFO] [spec_int] prepare_filter_cache: 滤光片 343 点 + QE 2 点 -> 光谱 343 点, 范围 F[336.0,1020.0] Q[336.0,1020.0] nm
+[spec_int] compute_f_syn_segmented_xpsd: INVALID_INTEGRAND (null spectrum)
+[spec_int] compute_f_syn_segmented_xpsd: INVALID_SPECTRAL_GRID (spectrum_count(4) != cache(5))
+[spec_int] compute_f_syn_segmented_xpsd: INVALID_INTEGRAND (flux_min=0 flux_mul=0)
+[spec_int] compute_f_syn_segmented_xpsd: INVALID_INTEGRAND (flux_min=0 flux_mul=-1)
+[spec_int] compute_f_syn_segmented_xpsd: INVALID_INTEGRAND (flux_min=nan flux_mul=1)
+[spec_int] compute_f_syn_segmented_xpsd: INVALID_SPECTRAL_GRID (cache invalid: )
+
+== T1 akima A/B bit-exact: 200/200 trials identical
+== T2b segmented F_syn=15705.571875000001 analytic=15705.571875 rel=1.158e-16
+== T4 fwhm=3.0nm  truth=1.5750720000e-03  legacy(2nm)=6.9973333333e-04 (rel=5.557e-01)  segmented=1.5750720000e-03 (rel=4.130e-16)
+== T4 fwhm=5.0nm  truth=2.6251089710e-03  legacy(2nm)=3.4986666667e-03 (rel=3.328e-01)  segmented=2.6251089710e-03 (rel=3.304e-16)
+== T4 fwhm=7.0nm  truth=3.6737339948e-03  legacy(2nm)=3.4986666667e-03 (rel=4.765e-02)  segmented=3.6737339948e-03 (rel=2.361e-16)
+== T4b legacy 5nm=3.4986666667e-03 7nm=3.4986666667e-03 (identical=1) | segmented 5nm=2.6251089710e-03 7nm=3.6737339948e-03 (rel diff=0.285)
+== checks 252, failures 0
+NARROWBAND RESPONSE TEST PASSED

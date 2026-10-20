@@ -34,6 +34,7 @@
 //   且 XPSD 的量化参数 flux_min/flux_mul **逐星不同**, uint8 数组本身不是可比的相对谱形。
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace photo_calib {
@@ -133,6 +134,98 @@ double compute_f_syn_cached(
 // ============================================================================
 double compute_f_syn_cached_xpsd(
     const SpectrumIntegratorCache& cache,
+    const uint8_t* spectrum_uint8, int spectrum_count,
+    double flux_min, double flux_mul);
+
+// ============================================================================
+// 参数化窄带响应（parametric_narrowband / top_hat_approx / v1）—— 分段求积路径
+// ----------------------------------------------------------------------------
+// 口径正本: docs/science/photometry/PHOTOMETRY.md §2.1（#104 已审核通过）
+//   T(λ) = 1 当 c−Δ/2 ≤ λ ≤ c+Δ/2, 否则 0（端点含；峰值按定义归一为 1）。
+//   F_syn = ∫ F(λ)·T(λ)·Q(λ)·λ dλ   —— XPMODEL 原生积分单位（**不除 hc**）。
+//
+// **求积契约**（#43 / #104）: 不允许把阶跃响应先投到 XP 的 2nm 等距格, 再用
+// Akima/Simpson 跨边界积分（3/5/7nm 窄带的相对误差 >5%, 见 #104 独立 Oracle）。
+// 本路径按 **滤镜解析端点 + XP 采样点 + QE 插值节点** 切段, 每段用 4 点
+// Gauss–Legendre。因 Akima 在每个节点区间内是**三次多项式**, 被积函数
+//     g(λ) = F(λ)·Q(λ)·λ
+// 在段内是 ≤7 次多项式, 而 n 点 Gauss–Legendre 对 ≤2n−1 次多项式**精确**
+// ⇒ **求积误差 = 0（仅浮点舍入）**。剩余误差与本路径分开记账:
+//   (a) XP 采样对 f_λ 的**重构误差**（Akima 子样条, 与 QE 曲线同一算子）;
+//   (b) Gaia XP 自身的谱分辨率与外定标误差;
+//   (c) **响应模型误差**（top-hat 只是具名形状假设, 不是实测透过率）。
+//
+// 与既有 measured 路径的差异（**有意保留**, 两者不逐位可比）:
+//   measured 路径 = XP 2nm 网格上的 Simpson 复合（f_λ 用样本点的 Simpson 隐含
+//   重构, T/Q 用 Akima 重采样到该网格）—— 历史冻结口径, 逐位不变;
+//   本路径 = f_λ 与 Q 都在**任意点**用 Akima 重构, 段内 Gauss–Legendre 精确。
+//   模式（response_mode）写入响应身份, 两条路径的 F_syn 不可混用。
+//
+// 有效支持域: 积分域 = 响应带 ∩ XP 可重建波长域 ∩ QE 覆盖域; 覆盖状态
+// （full / xp_truncated / qe_truncated / no_overlap）随结果发布（#44）。
+// ============================================================================
+
+// 参数化响应带（解析描述）。
+struct ParametricBand {
+    double center_nm = 0.0;
+    double fwhm_nm = 0.0;
+    double lo_nm = 0.0;   // c − Δ/2
+    double hi_nm = 0.0;   // c + Δ/2
+    bool valid = false;
+    std::string error;    // 具名失败原因（valid=false 时非空）
+};
+
+// 构造并校验参数化响应带：中心/带宽必须有限且正，且 c−Δ/2 > 0 nm。
+// 失败返回 valid=false 且 error 具名（INVALID_PARAMETRIC_RESPONSE）。
+ParametricBand make_parametric_band(double center_nm, double fwhm_nm);
+
+// 响应带与有效谱域（XP / QE）的覆盖状态。
+enum class ResponseCoverage : uint8_t {
+    kFull = 0,        // 响应带完全落在 XP 域内, 且 QE 覆盖整个响应带
+    kXpTruncated = 1, // 响应带超出 XP 可重建波长域（截断）
+    kQeTruncated = 2, // QE 曲线未覆盖整个响应带
+    kNoOverlap = 3,   // 与 (XP ∩ QE) 无重叠 ⇒ 无支持 ⇒ F_syn ≡ 0（合法零）
+};
+
+const char* response_coverage_name(ResponseCoverage c);
+
+// 分段求积缓存（与星无关的部分: 断点、Gauss–Legendre 节点、QE 节点值）。
+struct SegmentedResponseCache {
+    bool valid = false;
+    std::string error;                 // 具名失败原因（valid=false 时非空）
+    std::vector<double> xp_wl;         // XP 采样波长（f_λ 的重构源, 严格递增）
+    std::vector<double> breaks;        // 分段断点（升序）
+    std::vector<double> node_lambda;   // Gauss–Legendre 节点波长（4×段数）
+    std::vector<double> node_weight;   // 节点权重（含段长映射）
+    std::vector<double> node_qe;       // Q(λ) 在节点上的值（预计算, 与星无关）
+    bool has_qe = false;
+    double band_lo_nm = 0.0, band_hi_nm = 0.0;
+    double xp_lo_nm = 0.0, xp_hi_nm = 0.0;
+    double qe_lo_nm = 0.0, qe_hi_nm = 0.0;
+    double overlap_lo_nm = 0.0, overlap_hi_nm = 0.0;
+    ResponseCoverage coverage = ResponseCoverage::kNoOverlap;
+    int n_segments = 0;
+};
+
+// 构造分段求积缓存。
+// 参数:
+//   band: 参数化响应带（须 valid）
+//   qe_wl/qe_trans/qe_count: QE 曲线（可为 nullptr ⇒ Q≡1；生产入口强制来自曲线库）
+//   spectrum_wl/spectrum_count: XP 采样波长轴（须严格递增, ≥2 点）
+// 失败 ⇒ valid=false 且 error 具名（INVALID_PARAMETRIC_RESPONSE /
+// INVALID_SPECTRAL_GRID / INVALID_QE_CURVE）。响应带与有效域无重叠 ⇒ valid=true
+// 且 coverage=kNoOverlap（合法零, 不是失败）。
+SegmentedResponseCache prepare_segmented_response_cache(
+    const ParametricBand& band,
+    const double* qe_wl, const double* qe_trans, int qe_count,
+    const double* spectrum_wl, int spectrum_count);
+
+// 分段求积的 F_syn（XPSD 官方解码: F(λ) = byte·flux_mul + flux_min）。
+// 返回 F_syn [W·m⁻²·nm]（XPMODEL 原生积分单位, 不除 hc）。
+// 非法输入（cache 无效 / 空谱 / 量化参数非法 / 数值非有限）⇒ quiet NaN;
+// 无支持（coverage=kNoOverlap）⇒ 0.0（**合法零**, 由调用方的 F_syn>0 判据拒绝）。
+double compute_f_syn_segmented_xpsd(
+    const SegmentedResponseCache& cache,
     const uint8_t* spectrum_uint8, int spectrum_count,
     double flux_min, double flux_mul);
 

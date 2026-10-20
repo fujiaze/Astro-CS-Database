@@ -130,6 +130,10 @@ std::string photo_application_identity(const AppliedScaleIdentity& in) {
   canon += canon_array("sg_norm", in.spatial_norm);
   canon += "|filter=" + in.filter_key + "|filter_sha=" + in.filter_content_sha256;
   canon += "|qe=" + in.qe_key + "|qe_sha=" + in.qe_content_sha256;
+  // Issue #106: 响应身份 id 非空时进入规范串（参数化窄带**没有**滤镜曲线文件;
+  // 缺它则两个不同响应会共享同一 application_id）。空 ⇒ 规范串**逐字不变**
+  // （旧 measured 路径的既有产品身份不变）。
+  if (!in.response_id.empty()) canon += "|resp_id=" + in.response_id;
   const std::string hex = acsd::crypto::sha256_hex(canon.data(), canon.size());
   return "photoapplied:v2:" + hex.substr(0, 32);
 }
@@ -137,8 +141,10 @@ std::string photo_application_identity(const AppliedScaleIdentity& in) {
 std::string photo_response_identity(const std::string& filter_key,
                                     const std::string& filter_content_sha256,
                                     const std::string& qe_key,
-                                    const std::string& qe_content_sha256) {
-  if (filter_key.empty() && qe_key.empty()) return std::string();
+                                    const std::string& qe_content_sha256,
+                                    const std::string& response_id) {
+  if (filter_key.empty() && qe_key.empty() && response_id.empty())
+    return std::string();
   auto part = [](const std::string& key, const std::string& sha) {
     if (key.empty()) return std::string();
     // 内容摘要缺失时写 none（不写假摘要; 身份退化可见）
@@ -146,9 +152,19 @@ std::string photo_response_identity(const std::string& filter_key,
   };
   const std::string a = part(filter_key, filter_content_sha256);
   const std::string b = part(qe_key, qe_content_sha256);
-  if (a.empty()) return b;
-  if (b.empty()) return a;
-  return a + "+" + b;
+  // Issue #106: 参数化窄带响应的身份（response:v1:…）独立于滤镜键。
+  const std::string c = response_id.empty() ? std::string()
+                                            : ("resp:" + response_id);
+  std::string out;
+  auto append = [&out](const std::string& s) {
+    if (s.empty()) return;
+    if (!out.empty()) out += "+";
+    out += s;
+  };
+  append(a);
+  append(b);
+  append(c);
+  return out;
 }
 
 ReferenceDefinition parse_reference_config(const Json& snr_cfg, std::string* why) {

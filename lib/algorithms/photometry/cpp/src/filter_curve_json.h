@@ -39,6 +39,7 @@
 // ============================================================================
 
 #include "aio_file_io.h"   // aio_file::read_all（aio 唯一 I/O 实现, header-only）
+#include "crypto/sha256.h" // acsd::crypto::sha256_hex（曲线内容身份, 单一实现）
 
 #include <algorithm>
 #include <cctype>
@@ -391,6 +392,31 @@ inline CurveIdentity check_curve_identity(const std::string& file_content,
     if (!check_curve_stats(stats, wl, trans, &id)) return id;
     id.ok = true;
     return id;
+}
+
+// ── 曲线**有序样本内容**的身份摘要（#42 / #104）──────────────────────────
+// 口径: 库键、n_points、min/max、wl_sum/val_sum/val_sumsq **都不足以**唯一
+// 识别一条曲线（两条不同曲线可共用同一包络与同一和；把波长位置对调后这三项
+// 完全不变）⇒ 响应身份必须绑定**有序样本内容**。
+// 规范化字节串 = "acsd-curve-v1\n" + n + "\n" + 逐点 "<wl_bits>:<val_bits>;"
+// 其中 <bits> 是 IEEE-754 double 的**位模式**（16 位小写 hex ⇒ 与平台字节序
+// 无关, 且不做任何十进制往返）。
+inline std::string curve_content_sha256(const std::vector<double>& wl,
+                                        const std::vector<double>& val) {
+    std::string blob = "acsd-curve-v1\n";
+    blob += std::to_string(wl.size());
+    blob += "\n";
+    char buf[64];
+    for (std::size_t i = 0; i < wl.size(); ++i) {
+        unsigned long long wb = 0ull, vb = 0ull;
+        const double w = wl[i];
+        const double v = (i < val.size()) ? val[i] : 0.0;
+        std::memcpy(&wb, &w, sizeof(double));
+        std::memcpy(&vb, &v, sizeof(double));
+        std::snprintf(buf, sizeof(buf), "%016llx:%016llx;", wb, vb);
+        blob += buf;
+    }
+    return acsd::crypto::sha256_hex(blob.data(), blob.size());
 }
 
 // ── 可执行文件目录（唯一机制；无覆盖链）────────────────────────────────────

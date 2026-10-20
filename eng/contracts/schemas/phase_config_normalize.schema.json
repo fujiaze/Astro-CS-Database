@@ -339,6 +339,9 @@
                 "type": "string",
                 "minLength": 1
               },
+              "response": {
+                "$ref": "#/$defs/photometry_response"
+              },
               "qe_name": {
                 "type": "string",
                 "minLength": 1
@@ -594,7 +597,7 @@
     },
     "photometry_fit": {
       "type": "object",
-      "description": "生产 star_matcher 拟合通道（唯一实现 frame_photometry_fit）。",
+      "description": "生产 star_matcher 拟合通道（唯一实现 frame_photometry_fit）。响应来源是 **tagged one-of**：`response`（新）**或** `filter`（旧），二者不得在同一站点并存（并存 ⇒ RESPONSE_SOURCE_CONFLICT，中止运行）。`response` = parametric_narrowband（center_nm+fwhm_nm，**不需要滤镜库条目**）或 measured_curve（curve_name = 曲线库键）。正本 = docs/science/photometry/PHOTOMETRY.md §2.1。",
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -606,6 +609,9 @@
           "type": "string",
           "minLength": 1
         },
+        "response": {
+          "$ref": "#/$defs/photometry_response"
+        },
         "qe_name": {
           "type": "string",
           "minLength": 1
@@ -616,6 +622,69 @@
         }
       },
       "additionalProperties": false
+    },
+    "photometry_response": {
+      "type": "object",
+      "description": "响应来源（Issue #106 / PHOTOMETRY.md §2.1）。parametric_narrowband：center_nm + fwhm_nm + profile=top_hat_approx + profile_version=1（工程形状假设，**不是实测透过率**；PARAMETRIC_APPROX ≠ MEASURED_CURVE）。measured_curve：curve_name = 响应曲线库键（字节精确，无别名）。QE 仍须独立声明（photometry.fit.qe_name），本对象**不含** QE。",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "parametric_narrowband",
+            "measured_curve"
+          ]
+        },
+        "center_nm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "fwhm_nm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "profile": {
+          "type": "string",
+          "enum": [
+            "top_hat_approx"
+          ]
+        },
+        "profile_version": {
+          "type": "integer",
+          "enum": [
+            1
+          ]
+        },
+        "curve_name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "mode",
+            "center_nm",
+            "fwhm_nm"
+          ],
+          "properties": {
+            "mode": {
+              "const": "parametric_narrowband"
+            }
+          }
+        },
+        {
+          "required": [
+            "mode",
+            "curve_name"
+          ],
+          "properties": {
+            "mode": {
+              "const": "measured_curve"
+            }
+          }
+        }
+      ]
     }
   },
   "properties": {
