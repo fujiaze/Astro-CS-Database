@@ -1,0 +1,2 @@
+BENCH n=2000 segmented=4.415 us/star legacy=3.392 us/star ratio=1.30 (acc_seg=3.150144e+00 acc_legacy=1.399467e+00)
+BENCH n=2000 segmented=4.407 us/star legacy=3.441 us/star ratio=1.28 (acc_seg=3.150144e+00 acc_legacy=1.399467e+00)
