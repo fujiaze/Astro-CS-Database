@@ -42,6 +42,12 @@ python3 -m eng.tests.unit.run_unit --exit-code      # 开发期自查：退出�
 | `test_healpix_kernel.py` | HEALPix 核与候选枚举（S10/S11，**重建已失的 oracle**） | `docs/science/algorithms/HEALPIX_MAPPING.md` |
 | `test_quantization.py` / `test_wcs_plausibility.py` | 量化往返（S12/S13）与 WCS 拒绝组（S5/S5b 同批） | `GAIA_QUERY.md`、`ipv_wcs.cpp` |
 | `sky_plane_deflation_test.cpp`（由 `run_sky_plane_deflation_test.py` 直编运行） | P5 罚法方程求解器：锚定 + 精确 Woodbury deflation、旧 Q-only 反例、(A≻0)⟺(M≻0) 判据、秩亏时具名拒绝；四类 D 算子（7×6 / 缺整行 / 双孤岛 / 单缺点）+ 生产真实矩阵 dump 与独立全主元 Gauss / scipy oracle 对拍 | `docs/science/algorithms/mosaic/PHASE2_UPM_IMPL.md` §3.1/§6、Issue #80 P0-A1 |
+| `narrowband_response_test.cpp`（由 `run_narrowband_response_test.py` 直编运行） | Issue #106 参数化窄带的**分段求积**判据：Akima 重构的**逐位** A/B（200/200）、闭式解对照（1.16e-16）、XP/QE 截断与 no_overlap 三态、#43 反例（2 nm 粗格路径无法区分 5/7 nm）、非法输入 ⇒ NaN/具名；`--bench` 模式给两条路径的单星耗时 | `docs/science/photometry/PHOTOMETRY.md` §2.1/§2.1.1、Issue #43/#104 |
+| `narrowband_response_oracle.py` | 同一 F_syn 的**独立 SciPy** 复算（`Akima1DInterpolator` + `quad`）+ 真实 QE 曲线上的 3/5/7 nm 对拍 + #43 误差量化 | Issue #106、#104 独立 Oracle |
+| `narrowband_production_path_test.cpp`（由 `run_narrowband_production_path_test.py` 直编运行） | **生产路径**判据：真实 Gaia DR3 XP 光谱 + 真实 QE 曲线上 `fit_frame_photometry` 的参数化模式、响应身份、注入 `F_instr=F_syn·c` 的标度自洽、measured 等价矩形的同输入对照 | Issue #106、#103 |
+| `narrowband_production_oracle.py` | 生产逐星 F_syn 的独立 SciPy 复算（真实 XP 谱字节）+ #43 生产级量化 + 标度比一致性 | Issue #106、#103 |
+| `photometry_response_config_test.cpp`（由 `run_photometry_response_config_test.py` 直编运行） | 响应来源 one-of 的**站点解析**判据：正例（参数化/measured/旧字段/无声明）+ 反例（`RESPONSE_SOURCE_CONFLICT`、未知 mode/profile/version、缺参、非法数值、非整数 version） | `docs/engineering/contracts/CONFIG.md`「校准、响应与测光」、Issue #106 |
+| `narrowband_response_config_test.py` | 同一配置面的 **JSON Schema** 判据（正例被接受 / 反例被拒绝） | `eng/contracts/schemas/phase_config_normalize.schema.json` |
 | `*_ref.py` | 各用例的**被测参考实现**（按产品源码/正本逐行转写）。它们**不是**期望值来源 | — |
 
 ## 三条硬纪律
