@@ -48,6 +48,7 @@ python3 -m eng.tests.unit.run_unit --exit-code      # 开发期自查：退出�
 | `narrowband_production_oracle.py` | 生产逐星 F_syn 的独立 SciPy 复算（真实 XP 谱字节）+ #43 生产级量化 + 标度比一致性 | Issue #106、#103 |
 | `photometry_response_config_test.cpp`（由 `run_photometry_response_config_test.py` 直编运行） | 响应来源 one-of 的**站点解析**判据：正例（参数化/measured/旧字段/无声明）+ 反例（`RESPONSE_SOURCE_CONFLICT`、未知 mode/profile/version、缺参、非法数值、非整数 version） | `docs/engineering/contracts/CONFIG.md`「校准、响应与测光」、Issue #106 |
 | `narrowband_response_config_test.py` | 同一配置面的 **JSON Schema** 判据（正例被接受 / 反例被拒绝） | `eng/contracts/schemas/phase_config_normalize.schema.json` |
+| `frame_response_identity_test.cpp`（由 `run_frame_response_identity_test.py` 直编运行） | Issue #106 独立审核 P1 的**逐帧响应身份**判据：真实 Gaia DR3 XP 光谱 + 真实曲线库下 5 次生产拟合（不同滤镜 / 同滤镜不同 QE / 参数化+measured 混合 / 不同中心带宽 / 重复），断言**逐帧** `response_id` 互不相同且可复现；经**生产同一份**落盘/解析实现（`photometry_frame_identity.h`）与生产身份函数得到 `frame_science` 的 `response_id`/`application_id`/`scale_model_id`；帧无逐帧记录 ⇒ 具名不可用（不借用他帧）；旧产物 ⇒ 组级回退且标记 `group_legacy`；`application_id` 对响应变化的独立性；身份是**内容**身份（文件字节摘要不入串）；无损浮点规范串单射 | `docs/science/photometry/PHOTOMETRY.md` §2.1.1、`docs/engineering/contracts/NORMALIZE_DATA.md` §9.1、Issue #106 独立审核 P1/P2 |
 | `*_ref.py` | 各用例的**被测参考实现**（按产品源码/正本逐行转写）。它们**不是**期望值来源 | — |
 
 ## 三条硬纪律

@@ -63,7 +63,14 @@ OD5+ 是在明确声明的阻带范围及测试条件下带外透过率约 \(10^
 - measured 模式保持历史口径（Akima 重采样到 XP 网格 + XP 网格 Simpson）**逐位不变**；两条路径的 F_syn **不逐位可比**，模式与求积约定写入响应身份。
 - 实测证据：3/5/7 nm Hα（中心 656.28，与 XP 2 nm 网格错相）在真实 KAF-16803 QE 曲线上，与独立 SciPy（`Akima1DInterpolator` + `quad`）相对误差 ≤ 5.0e-16；同一 top-hat 走历史 2 nm 粗格路径的相对误差为 55.6% / 33.3% / 4.8%，且 5 nm 与 7 nm 在粗格路径上给出**完全相同**的 F_syn（#43 的可复现反例）。真实 Gaia DR3 XP 光谱（172 颗匹配星）上生产 F_syn 与独立复算最大相对误差 5.0e-16。
 
-**身份面**：`response_id = response:v1:<sha256(规范串)[0:32]>`，规范串冻结模式/剖面/版本/中心/带宽/解析端点/求积约定/覆盖状态/已知程度/QE 库键与**有序样本内容** SHA-256/滤镜库键与有序内容 SHA-256。参数化模式没有滤镜曲线文件，故 `response_id` 进入 `frame_science` 的 `photometry.response_id` 与 `application_id`（旧 measured 路径的规范串**逐字不变**）。
+**身份面**：响应身份**分列**为两个具名 id（Issue #106 独立源码审核 P2-2 的订正）：
+
+- `response_id = response:v1:<sha256(规范串)[0:32]>` = **物理响应身份**：规范串冻结模式/剖面/版本/中心/带宽/解析端点/QE 库键与**有序样本内容** SHA-256/滤镜库键与有序内容 SHA-256。**不含** XP 覆盖状态、积分约定与 XP 网格 ⇒ 换 XP 网格**不**换「滤镜身份」。
+- `synthesis_id = synthesis:v1:<sha256(规范串)[0:32]>` = **合成模型身份**（标定 provenance）：物理响应身份 + XP 覆盖状态 + 积分约定 + XP 可重建谱网格。它登记「这一帧的 F_syn 是怎么合成的」，与仪器响应身份**分列**发布。
+
+两个 id 的浮点规范序列化是**无损**的（IEEE-754 hexfloat；`lib/algorithms/shared/canonical_double.h` 为唯一实现）——十进制定宽写法（`%.12g`）会把 `656.28` 与其相邻 binary64 折叠成同一串，使两个不同响应共享同一身份。
+
+参数化模式没有滤镜曲线文件，故 `response_id` 进入 `frame_science` 的 `photometry.response_id` 与 `application_id`；施加身份串版本为 `photoapplied:v3`（v3 = 逐帧**有序内容**摘要 + 逐帧物理响应 id；v2 用的是曲线**文件字节**摘要与混入 XP 覆盖的响应 id ⇒ v2/v3 身份不可混用）。**逐帧传播**：响应身份按**每帧**绑定并逐帧落盘（`p1_phot.json#photscale_fit[frame].response`），下游 `frame_science` 按该帧的记录构造身份；组级 `passband_identity` 只作摘要与旧产物兼容回退，不得当作混响应 block 的逐帧值；逐帧记录缺失时具名不可用，不以别的帧的值代入。
 
 **仍未闭合**：响应**形状**误差（top-hat 是具名工程假设，不是实测透过率；OD5+ 不证明带内为矩形）、快光锥蓝移、XP 自身谱分辨率与外定标误差、窄线谱（Hα/[N II]）对未知星云 SED 的不可消除偏差；实测曲线的 2 nm 粗格求积误差（#43）**仍然 OPEN**（本轮只对参数化模式提供精确路径）。真实 HST/M42 数据验证属 #103。
 

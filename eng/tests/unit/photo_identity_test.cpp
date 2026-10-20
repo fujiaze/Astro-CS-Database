@@ -13,7 +13,8 @@
 //   4. photo_application_identity: 同输入同 ID; 极小 k 末位变化 → 不同 ID
 //      （**对照** std::to_string 给出同一 "0.000000" 的前置缺陷）;
 //      空间系数/中心/归一/order/status/identifiable、输入 occurrence 内容、
-//      滤镜/QE 内容摘要任一变化 → 不同 ID; 格式 = photoapplied:v2:<32 hex>。
+//      滤镜/QE 内容摘要任一变化 → 不同 ID; 格式 = photoapplied:v3:<32 hex>
+//      （v3 = 逐帧**有序内容**摘要 + 物理响应 id; 见 normalize_precision.h）。
 //   5. photo_response_identity: 同键同内容同 ID; 同键不同内容 → 不同 ID;
 //      内容摘要缺失 → @none（不写假摘要）; 双空键 → 空串（不虚构身份）。
 //   6. writer/reader 往返: FrameScienceDocument.photometry 的 application_id /
@@ -133,8 +134,8 @@ int main() {
     std::printf("    application_id(%s) = %s\n", base.frame_key.substr(0, 20).c_str(),
                 id.c_str());
     chk(id == photo_application_identity(base), "identical inputs -> identical ID");
-    chk(id.rfind("photoapplied:v2:", 0) == 0 && id.size() == std::strlen("photoapplied:v2:") + 32,
-        "ID format = photoapplied:v2:<sha256[0:32]>");
+    chk(id.rfind("photoapplied:v3:", 0) == 0 && id.size() == std::strlen("photoapplied:v3:") + 32,
+        "ID format = photoapplied:v3:<sha256[0:32]>");
     // 索引: 每个参与量单独变化都必须换 ID
     struct Mut { const char* name; void (*f)(AppliedScaleIdentity&); };
     const Mut muts[] = {
@@ -150,6 +151,9 @@ int main() {
         {"filter content sha 变化", [](AppliedScaleIdentity& x) { x.filter_content_sha256 = std::string(64, 'e'); }},
         {"qe content sha 变化", [](AppliedScaleIdentity& x) { x.qe_content_sha256 = std::string(64, 'f'); }},
         {"filter_key 变化", [](AppliedScaleIdentity& x) { x.filter_key = "Astrodon E-series R"; }},
+        // Issue #106: 逐帧**物理响应** id 参与施加身份（参数化窄带没有滤镜曲线
+        // 文件 ⇒ 缺它则两个不同响应共享同一 application_id）。
+        {"response_id 变化", [](AppliedScaleIdentity& x) { x.response_id = "response:v1:0123456789abcdef0123456789abcdef"; }},
     };
     int bad = 0;
     for (const Mut& m : muts) {

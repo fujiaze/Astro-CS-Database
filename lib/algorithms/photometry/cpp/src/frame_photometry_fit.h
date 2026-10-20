@@ -59,6 +59,16 @@ struct ResponseSpec {
 };
 
 // 响应身份（provenance; 冻结“实际用于合成 F_syn 的响应”）。
+//
+// ── Issue #106 独立审核 P2-2: **物理响应身份**与**合成模型身份**分列 ──────────
+// response_id  = **物理**响应身份（响应形状 + 滤镜/QE 内容）: 换 XP 网格、
+//                换求积算法或换 XP 覆盖状态都**不**改变它 ⇒ 「换滤镜身份」
+//                只在物理响应真的变了时发生。
+// synthesis_id = **合成模型身份**（物理响应 + XP 覆盖 + 求积约定 + XP 网格）:
+//                它是**标定 provenance**（合成这一步的模型状态），不是仪器
+//                响应身份; 单独发布, 供审计「这一帧的 F_syn 是怎么合成的」。
+// 二者都由同一规范串规则派生（浮点**无损** hexfloat 序列化, 见
+// lib/algorithms/shared/canonical_double.h）。
 struct ResponseIdentity {
     std::string mode;                // parametric_narrowband | measured_curve
     std::string profile;             // parametric: top_hat_approx
@@ -74,8 +84,13 @@ struct ResponseIdentity {
     std::string qe_content_sha256;    // QE **有序样本内容** sha256（非 n/sum/sumsq）
     std::string filter_key;           // measured: 曲线库键
     std::string filter_content_sha256;// measured: 滤镜有序样本内容 sha256
-    std::string response_id;          // 稳定 id（规范串的 sha256）
+    std::string response_id;          // **物理**响应 id（response:v1:<sha32>）
+    std::string synthesis_id;         // 合成模型 id（synthesis:v1:<sha32>）
     std::string source;               // explicit_frame_override | block_inherit
+    // XP 可重建谱网格（合成模型身份的一部分; 换网格 ⇒ 合成模型变、物理响应不变）
+    int xp_wl_start = 0;
+    int xp_wl_step = 0;
+    int xp_wl_count = 0;
 };
 
 struct FramePhotFitRequest {
