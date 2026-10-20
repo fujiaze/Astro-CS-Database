@@ -1,0 +1,1988 @@
+{
+  "identity": {
+    "seed": 11120261020,
+    "trials_per_mc": 100000,
+    "python": "3.12.2",
+    "numpy": "1.26.4",
+    "scipy": "1.15.3",
+    "script_sha256": "4f802064efc8c3a309ab5f375f4ef8ac049c8ea51992ece89b26bdacb344153b",
+    "uses_production_algorithms": false,
+    "real_data": false,
+    "scope": "independent synthetic evidence; not formal scientific acceptance"
+  },
+  "covariance": {
+    "R": [
+      [
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.25,
+        0.37499999999999994,
+        0.0
+      ],
+      [
+        0.0,
+        0.2857142857142857,
+        0.14285714285714285
+      ],
+      [
+        0.0,
+        0.0,
+        0.3333333333333333
+      ]
+    ],
+    "normalizer_sr": [
+      0.6,
+      1.6,
+      1.4000000000000001,
+      2.4000000000000004
+    ],
+    "C_surface": [
+      [
+        4.1613,
+        1.1301375,
+        0.12618571428571426,
+        0.13476666666666665
+      ],
+      [
+        1.1301375,
+        1.6207874999999996,
+        1.0661928571428567,
+        0.10866666666666665
+      ],
+      [
+        0.1261857142857143,
+        1.066192857142857,
+        1.16,
+        0.8672952380952381
+      ],
+      [
+        0.13476666666666667,
+        0.10866666666666665,
+        0.867295238095238,
+        1.8903999999999999
+      ]
+    ],
+    "empirical_C_surface": [
+      [
+        4.13639048101474,
+        1.1193985982039851,
+        0.13302269003212838,
+        0.1587400937188762
+      ],
+      [
+        1.1193985982039851,
+        1.612904668119102,
+        1.06711793813966,
+        0.12006626709369028
+      ],
+      [
+        0.13302269003212838,
+        1.06711793813966,
+        1.1621177901750759,
+        0.8736308159522802
+      ],
+      [
+        0.1587400937188762,
+        0.12006626709369028,
+        0.8736308159522802,
+        1.895571915152703
+      ]
+    ],
+    "relative_covariance_frobenius_error": 0.008991315145638867,
+    "factor_action_max_error": 0.0,
+    "woodbury_max_error": 5.551115123125783e-17,
+    "shared_floor": {
+      "1": {
+        "true_variance": 1.04,
+        "incorrect_independent_variance": 1.04
+      },
+      "2": {
+        "true_variance": 0.54,
+        "incorrect_independent_variance": 0.52
+      },
+      "10": {
+        "true_variance": 0.14,
+        "incorrect_independent_variance": 0.10400000000000001
+      },
+      "100": {
+        "true_variance": 0.05,
+        "incorrect_independent_variance": 0.0104
+      }
+    },
+    "Fisher_vs_surface": {
+      "V_F_A": 1.0,
+      "V_F_B": 0.9999999999999999,
+      "surface_weight_A": 2.0,
+      "surface_weight_B": 1.2195121951219512
+    },
+    "PSD_exact_constraint": {
+      "K": [
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "V_F": 0.0,
+      "noise_rank": 1,
+      "noise_eigenvalues": [
+        0.0,
+        1.0
+      ],
+      "truncation_relative_tolerance": 1e-12,
+      "unidentifiable_parameter_dimension": 0
+    },
+    "information_invariance": {
+      "native": 0.09409214252014025,
+      "resampled": 0.0940921425201403,
+      "relative_error": 4.440892098500626e-16
+    },
+    "unknown_variance": {
+      "full_variance": null,
+      "reason": "nonzero source coefficient has unknown noise"
+    }
+  },
+  "sky": {
+    "profile_diagnostics": {
+      "common_sky_rank": 17,
+      "relative_rank": 4,
+      "singular_values": [
+        3.4223819220797718,
+        2.299413398982786,
+        2.095772353505244,
+        1.4080973838066344
+      ],
+      "protected_residual": 5.778868774173788e-17
+    },
+    "true_coefficients": [
+      2.0,
+      0.6,
+      -1.0,
+      -0.2,
+      -1.0,
+      -0.4
+    ],
+    "coefficient_max_abs_error": 9.992007221626409e-16,
+    "common_gradient_max_error": 3.552713678800501e-15,
+    "same_data_covariance": {
+      "coordinate": 8,
+      "correct_variance": 0.9869281045751631,
+      "incorrect_add_only_variance": 1.065359477124183,
+      "empirical_variance": 0.9880927551971679,
+      "cross_term_max_abs": 1.1503267973856213,
+      "coverage_correct": {
+        "0.68": {
+          "count": 67980,
+          "denominator": 100000,
+          "fraction": 0.6798,
+          "binomial_95_interval": [
+            0.6768981425059151,
+            0.6826914258562463
+          ]
+        },
+        "0.95": {
+          "count": 94980,
+          "denominator": 100000,
+          "fraction": 0.9498,
+          "binomial_95_interval": [
+            0.9484285287459813,
+            0.9511453070406065
+          ]
+        }
+      },
+      "coverage_add_only": {
+        "0.68": {
+          "count": 69810,
+          "denominator": 100000,
+          "fraction": 0.6981,
+          "binomial_95_interval": [
+            0.6952439160933036,
+            0.7009445901118613
+          ]
+        },
+        "0.95": {
+          "count": 95791,
+          "denominator": 100000,
+          "fraction": 0.95791,
+          "binomial_95_interval": [
+            0.9566471352154056,
+            0.9591462175049394
+          ]
+        }
+      }
+    },
+    "disconnected_without_component_gauges": "RELATIVE_SKY_NOT_IDENTIFIABLE",
+    "response_mismatch_absorbed_as_fake_sky": [
+      -0.5999999999999981,
+      -0.15000000000000036,
+      0.5999999999999981,
+      0.15000000000000036
+    ],
+    "PSF_mismatch_absorbed_as_fake_sky": [
+      1.6126432204264325e-15,
+      -0.018929606269660653,
+      -1.6126432204264325e-15,
+      0.018929606269660653
+    ],
+    "scope": "Common gradient protection proved only for the declared H; mismatch is a counterexample."
+  },
+  "Gaia_integral": {
+    "3": {
+      "q_photons_s_m2": 693.9731125517898,
+      "variance": 192.4193288170031,
+      "weights": [
+        6.937970370750829e+18,
+        1536226114101052.0,
+        5.203484574120527e+16
+      ],
+      "quadrature_error_estimate": 7.77924890602546e-12,
+      "spectral_covariance_status": "provided",
+      "covariance_mc_ratio": 0.9909015153250865,
+      "coverage": {
+        "0.68": {
+          "count": 68273,
+          "denominator": 100000,
+          "fraction": 0.68273,
+          "binomial_95_interval": [
+            0.6798351214344864,
+            0.6856142768755793
+          ]
+        },
+        "0.95": {
+          "count": 95082,
+          "denominator": 100000,
+          "fraction": 0.95082,
+          "binomial_95_interval": [
+            0.9494615986003379,
+            0.9521521766087325
+          ]
+        }
+      },
+      "independent_analytic_q": 693.9731125517899,
+      "relative_quadrature_error": 1.1102230246251565e-16,
+      "coarse_2nm_relative_bias": -0.3364627912412206,
+      "unresolved_line": {
+        "line_center_nm": 657.0,
+        "true_sigma_nm": 0.05,
+        "lowresolution_sigma_nm": 4.0,
+        "true_inband_fraction": 1.0,
+        "lowresolution_inband_fraction": 0.2878561959669505,
+        "relative_line_flux_bias": -0.7121438040330494
+      }
+    },
+    "7": {
+      "q_photons_s_m2": 1621.1083360332875,
+      "variance": 1044.7601780941827,
+      "weights": [
+        1.6188714994471846e+19,
+        1.951576137543181e+16,
+        6.610438960741172e+17
+      ],
+      "quadrature_error_estimate": 1.8402466431885442e-11,
+      "spectral_covariance_status": "provided",
+      "covariance_mc_ratio": 0.9924474006416517,
+      "coverage": {
+        "0.68": {
+          "count": 68162,
+          "denominator": 100000,
+          "fraction": 0.68162,
+          "binomial_95_interval": [
+            0.6787224620680328,
+            0.6845070006648863
+          ]
+        },
+        "0.95": {
+          "count": 95090,
+          "denominator": 100000,
+          "fraction": 0.9509,
+          "binomial_95_interval": [
+            0.9495426303672863,
+            0.9522311400886965
+          ]
+        }
+      },
+      "independent_analytic_q": 1621.1083360332873,
+      "relative_quadrature_error": 2.220446049250313e-16,
+      "coarse_2nm_relative_bias": -0.1470722659509719,
+      "unresolved_line": {
+        "line_center_nm": 657.0,
+        "true_sigma_nm": 0.05,
+        "lowresolution_sigma_nm": 4.0,
+        "true_inband_fraction": 1.0,
+        "lowresolution_inband_fraction": 0.6107596868473943,
+        "relative_line_flux_bias": -0.38924031315260565
+      }
+    },
+    "continuum_scalar_3_to_7": 2.335981476389415,
+    "central_line_3_to_7_scalar_bias": 1.335981476389415,
+    "unknown_covariance_output": null
+  },
+  "rejection": {
+    "gaussian_N1": {
+      "model": "gaussian",
+      "n": 1,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": false,
+      "threshold": null,
+      "clean_stack_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "clean_bias": -0.003179846082216308,
+      "clean_mean_error_mc_se": 0.004480427317540915,
+      "clean_coverage": {
+        "0.68": {
+          "count": 67851,
+          "denominator": 100000,
+          "fraction": 0.67851,
+          "binomial_95_interval": [
+            0.6756051114564363,
+            0.6814045317740451
+          ]
+        },
+        "0.95": {
+          "count": 94859,
+          "denominator": 100000,
+          "fraction": 0.94859,
+          "binomial_95_interval": [
+            0.9472032247219488,
+            0.9499506828698339
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 67851,
+          "denominator": 100000,
+          "fraction": 0.67851,
+          "binomial_95_interval": [
+            0.6756051114564363,
+            0.6814045317740451
+          ]
+        },
+        "0.95": {
+          "count": 94859,
+          "denominator": 100000,
+          "fraction": 0.94859,
+          "binomial_95_interval": [
+            0.9472032247219488,
+            0.9499506828698339
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": 16.967382902394927,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 0,
+          "denominator": 100000,
+          "fraction": 0.0,
+          "binomial_95_interval": [
+            0.0,
+            3.6888114157924206e-05
+          ]
+        },
+        "0.95": {
+          "count": 0,
+          "denominator": 100000,
+          "fraction": 0.0,
+          "binomial_95_interval": [
+            0.0,
+            3.6888114157924206e-05
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "gaussian_N2": {
+      "model": "gaussian",
+      "n": 2,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": false,
+      "threshold": null,
+      "clean_stack_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "clean_bias": -0.005922954110878638,
+      "clean_mean_error_mc_se": 0.003772562325060321,
+      "clean_coverage": {
+        "0.68": {
+          "count": 68057,
+          "denominator": 100000,
+          "fraction": 0.68057,
+          "binomial_95_interval": [
+            0.6776699638320953,
+            0.683459559840925
+          ]
+        },
+        "0.95": {
+          "count": 94983,
+          "denominator": 100000,
+          "fraction": 0.94983,
+          "binomial_95_interval": [
+            0.9484589109217552,
+            0.9511749230837742
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 68057,
+          "denominator": 100000,
+          "fraction": 0.68057,
+          "binomial_95_interval": [
+            0.6776699638320953,
+            0.683459559840925
+          ]
+        },
+        "0.95": {
+          "count": 94983,
+          "denominator": 100000,
+          "fraction": 0.94983,
+          "binomial_95_interval": [
+            0.9484589109217552,
+            0.9511749230837742
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": 12.115907580515652,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 0,
+          "denominator": 100000,
+          "fraction": 0.0,
+          "binomial_95_interval": [
+            0.0,
+            3.6888114157924206e-05
+          ]
+        },
+        "0.95": {
+          "count": 0,
+          "denominator": 100000,
+          "fraction": 0.0,
+          "binomial_95_interval": [
+            0.0,
+            3.6888114157924206e-05
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "gaussian_N3": {
+      "model": "gaussian",
+      "n": 3,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": false,
+      "threshold": null,
+      "clean_stack_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "clean_bias": 0.00061106691553407,
+      "clean_mean_error_mc_se": 0.0031822998805884056,
+      "clean_coverage": {
+        "0.68": {
+          "count": 67833,
+          "denominator": 100000,
+          "fraction": 0.67833,
+          "binomial_95_interval": [
+            0.6754246905332117,
+            0.6812249631439604
+          ]
+        },
+        "0.95": {
+          "count": 95038,
+          "denominator": 100000,
+          "fraction": 0.95038,
+          "binomial_95_interval": [
+            0.9490159413472892,
+            0.951717859998749
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 67833,
+          "denominator": 100000,
+          "fraction": 0.67833,
+          "binomial_95_interval": [
+            0.6754246905332117,
+            0.6812249631439604
+          ]
+        },
+        "0.95": {
+          "count": 95038,
+          "denominator": 100000,
+          "fraction": 0.95038,
+          "binomial_95_interval": [
+            0.9490159413472892,
+            0.951717859998749
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": 8.608867533534372,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 0,
+          "denominator": 100000,
+          "fraction": 0.0,
+          "binomial_95_interval": [
+            0.0,
+            3.6888114157924206e-05
+          ]
+        },
+        "0.95": {
+          "count": 0,
+          "denominator": 100000,
+          "fraction": 0.0,
+          "binomial_95_interval": [
+            0.0,
+            3.6888114157924206e-05
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "gaussian_N4": {
+      "model": "gaussian",
+      "n": 4,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": true,
+      "threshold": 3.6622599308877013,
+      "clean_stack_false_reject": {
+        "count": 97,
+        "denominator": 100000,
+        "fraction": 0.00097,
+        "binomial_95_interval": [
+          0.0007866728734833818,
+          0.0011831915073055332
+        ]
+      },
+      "clean_bias": -0.001943628535931442,
+      "clean_mean_error_mc_se": 0.0027968631749082694,
+      "clean_coverage": {
+        "0.68": {
+          "count": 67972,
+          "denominator": 100000,
+          "fraction": 0.67972,
+          "binomial_95_interval": [
+            0.6768179537962525,
+            0.6826116192089237
+          ]
+        },
+        "0.95": {
+          "count": 94921,
+          "denominator": 100000,
+          "fraction": 0.94921,
+          "binomial_95_interval": [
+            0.9478310396935827,
+            0.9505628311128967
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 68024,
+          "denominator": 100000,
+          "fraction": 0.68024,
+          "binomial_95_interval": [
+            0.6773391821549728,
+            0.6831303606705685
+          ]
+        },
+        "0.95": {
+          "count": 94961,
+          "denominator": 100000,
+          "fraction": 0.94961,
+          "binomial_95_interval": [
+            0.9482361114044616,
+            0.9509577356612905
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 100000,
+        "denominator": 100000,
+        "fraction": 1.0,
+        "binomial_95_interval": [
+          0.9999631118858421,
+          1.0
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": -0.0017053092374315255,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 68110,
+          "denominator": 100000,
+          "fraction": 0.6811,
+          "binomial_95_interval": [
+            0.6782012227372234,
+            0.6839882701756081
+          ]
+        },
+        "0.95": {
+          "count": 95076,
+          "denominator": 100000,
+          "fraction": 0.95076,
+          "binomial_95_interval": [
+            0.9494008254186747,
+            0.9520929533550264
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "gaussian_N5": {
+      "model": "gaussian",
+      "n": 5,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": true,
+      "threshold": 3.7190164854556804,
+      "clean_stack_false_reject": {
+        "count": 102,
+        "denominator": 100000,
+        "fraction": 0.00102,
+        "binomial_95_interval": [
+          0.0008317622757224005,
+          0.0012380752873143157
+        ]
+      },
+      "clean_bias": 0.0029490439588792925,
+      "clean_mean_error_mc_se": 0.0025193142707245677,
+      "clean_coverage": {
+        "0.68": {
+          "count": 67703,
+          "denominator": 100000,
+          "fraction": 0.67703,
+          "binomial_95_interval": [
+            0.6741216651428757,
+            0.6799280639822796
+          ]
+        },
+        "0.95": {
+          "count": 95003,
+          "denominator": 100000,
+          "fraction": 0.95003,
+          "binomial_95_interval": [
+            0.9486614621908545,
+            0.9513723599399829
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 67759,
+          "denominator": 100000,
+          "fraction": 0.67759,
+          "binomial_95_interval": [
+            0.6746829652433745,
+            0.6804867313811888
+          ]
+        },
+        "0.95": {
+          "count": 95050,
+          "denominator": 100000,
+          "fraction": 0.9505,
+          "binomial_95_interval": [
+            0.9491374813145119,
+            0.9518363129040979
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 100000,
+        "denominator": 100000,
+        "fraction": 1.0,
+        "binomial_95_interval": [
+          0.9999631118858421,
+          1.0
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": 0.001987426393741158,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 67990,
+          "denominator": 100000,
+          "fraction": 0.6799,
+          "binomial_95_interval": [
+            0.6769983785303055,
+            0.6827911840280816
+          ]
+        },
+        "0.95": {
+          "count": 95096,
+          "denominator": 100000,
+          "fraction": 0.95096,
+          "binomial_95_interval": [
+            0.9496034048372886,
+            0.9522903620536933
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "gaussian_N6": {
+      "model": "gaussian",
+      "n": 6,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": true,
+      "threshold": 3.764823649533899,
+      "clean_stack_false_reject": {
+        "count": 105,
+        "denominator": 100000,
+        "fraction": 0.00105,
+        "binomial_95_interval": [
+          0.0008588738075350435,
+          0.0012709484813453228
+        ]
+      },
+      "clean_bias": 0.0006572548683315343,
+      "clean_mean_error_mc_se": 0.0022954298619414643,
+      "clean_coverage": {
+        "0.68": {
+          "count": 68270,
+          "denominator": 100000,
+          "fraction": 0.6827,
+          "binomial_95_interval": [
+            0.6798050493109715,
+            0.6855843507402564
+          ]
+        },
+        "0.95": {
+          "count": 95126,
+          "denominator": 100000,
+          "fraction": 0.95126,
+          "binomial_95_interval": [
+            0.9499072855128499,
+            0.9525864635507175
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 68321,
+          "denominator": 100000,
+          "fraction": 0.68321,
+          "binomial_95_interval": [
+            0.6803162772925986,
+            0.6860930931587859
+          ]
+        },
+        "0.95": {
+          "count": 95154,
+          "denominator": 100000,
+          "fraction": 0.95154,
+          "binomial_95_interval": [
+            0.9501909200739617,
+            0.9528628123470272
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 100000,
+        "denominator": 100000,
+        "fraction": 1.0,
+        "binomial_95_interval": [
+          0.9999631118858421,
+          1.0
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": 0.00025189934935405776,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 67983,
+          "denominator": 100000,
+          "fraction": 0.67983,
+          "binomial_95_interval": [
+            0.6769282132972114,
+            0.6827213533238211
+          ]
+        },
+        "0.95": {
+          "count": 95072,
+          "denominator": 100000,
+          "fraction": 0.95072,
+          "binomial_95_interval": [
+            0.9493603102701529,
+            0.9520534708798799
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "gaussian_N7": {
+      "model": "gaussian",
+      "n": 7,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": true,
+      "threshold": 3.8031684540839077,
+      "clean_stack_false_reject": {
+        "count": 99,
+        "denominator": 100000,
+        "fraction": 0.00099,
+        "binomial_95_interval": [
+          0.0008046937267582704,
+          0.0012051597126428184
+        ]
+      },
+      "clean_bias": 0.0014407498251209146,
+      "clean_mean_error_mc_se": 0.0021292448960153563,
+      "clean_coverage": {
+        "0.68": {
+          "count": 68190,
+          "denominator": 100000,
+          "fraction": 0.6819,
+          "binomial_95_interval": [
+            0.6790031311162126,
+            0.6847863153659415
+          ]
+        },
+        "0.95": {
+          "count": 95074,
+          "denominator": 100000,
+          "fraction": 0.95074,
+          "binomial_95_interval": [
+            0.9493805678138453,
+            0.9520732121480304
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 68240,
+          "denominator": 100000,
+          "fraction": 0.6824,
+          "binomial_95_interval": [
+            0.6795043288363971,
+            0.6852850886264608
+          ]
+        },
+        "0.95": {
+          "count": 95105,
+          "denominator": 100000,
+          "fraction": 0.95105,
+          "binomial_95_interval": [
+            0.9496945675808691,
+            0.9523791939623112
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 100000,
+        "denominator": 100000,
+        "fraction": 1.0,
+        "binomial_95_interval": [
+          0.9999631118858421,
+          1.0
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": 0.000503111642516324,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 67895,
+          "denominator": 100000,
+          "fraction": 0.67895,
+          "binomial_95_interval": [
+            0.6760461424547495,
+            0.6818434752393208
+          ]
+        },
+        "0.95": {
+          "count": 95046,
+          "denominator": 100000,
+          "fraction": 0.95046,
+          "binomial_95_interval": [
+            0.9490969677496119,
+            0.9517968288448766
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "poisson_read_N1": {
+      "model": "poisson_read",
+      "n": 1,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": false,
+      "threshold": null,
+      "clean_stack_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "clean_bias": -0.038002391339723045,
+      "clean_mean_error_mc_se": 0.029846787138192818,
+      "clean_coverage": {
+        "0.68": {
+          "count": 67976,
+          "denominator": 100000,
+          "fraction": 0.67976,
+          "binomial_95_interval": [
+            0.6768580481388772,
+            0.682651522544792
+          ]
+        },
+        "0.95": {
+          "count": 94996,
+          "denominator": 100000,
+          "fraction": 0.94996,
+          "binomial_95_interval": [
+            0.9485905685669788,
+            0.9513032577201929
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 67976,
+          "denominator": 100000,
+          "fraction": 0.67976,
+          "binomial_95_interval": [
+            0.6768580481388772,
+            0.682651522544792
+          ]
+        },
+        "0.95": {
+          "count": 94996,
+          "denominator": 100000,
+          "fraction": 0.94996,
+          "binomial_95_interval": [
+            0.9485905685669788,
+            0.9513032577201929
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": 113.16977119333953,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 0,
+          "denominator": 100000,
+          "fraction": 0.0,
+          "binomial_95_interval": [
+            0.0,
+            3.6888114157924206e-05
+          ]
+        },
+        "0.95": {
+          "count": 0,
+          "denominator": 100000,
+          "fraction": 0.0,
+          "binomial_95_interval": [
+            0.0,
+            3.6888114157924206e-05
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "poisson_read_N2": {
+      "model": "poisson_read",
+      "n": 2,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": false,
+      "threshold": null,
+      "clean_stack_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "clean_bias": -0.012106651257065637,
+      "clean_mean_error_mc_se": 0.023719909826078463,
+      "clean_coverage": {
+        "0.68": {
+          "count": 67770,
+          "denominator": 100000,
+          "fraction": 0.6777,
+          "binomial_95_interval": [
+            0.6747932211792277,
+            0.6805964690612795
+          ]
+        },
+        "0.95": {
+          "count": 94931,
+          "denominator": 100000,
+          "fraction": 0.94931,
+          "binomial_95_interval": [
+            0.947932305415886,
+            0.9506615594560266
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 67770,
+          "denominator": 100000,
+          "fraction": 0.6777,
+          "binomial_95_interval": [
+            0.6747932211792277,
+            0.6805964690612795
+          ]
+        },
+        "0.95": {
+          "count": 94931,
+          "denominator": 100000,
+          "fraction": 0.94931,
+          "binomial_95_interval": [
+            0.947932305415886,
+            0.9506615594560266
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": 70.86166756772279,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 0,
+          "denominator": 100000,
+          "fraction": 0.0,
+          "binomial_95_interval": [
+            0.0,
+            3.6888114157924206e-05
+          ]
+        },
+        "0.95": {
+          "count": 0,
+          "denominator": 100000,
+          "fraction": 0.0,
+          "binomial_95_interval": [
+            0.0,
+            3.6888114157924206e-05
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "poisson_read_N3": {
+      "model": "poisson_read",
+      "n": 3,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": false,
+      "threshold": null,
+      "clean_stack_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "clean_bias": -0.02275878437003455,
+      "clean_mean_error_mc_se": 0.019480609596852685,
+      "clean_coverage": {
+        "0.68": {
+          "count": 68136,
+          "denominator": 100000,
+          "fraction": 0.68136,
+          "binomial_95_interval": [
+            0.6784618418849355,
+            0.6842476359379503
+          ]
+        },
+        "0.95": {
+          "count": 94926,
+          "denominator": 100000,
+          "fraction": 0.94926,
+          "binomial_95_interval": [
+            0.9478816723715503,
+            0.9506121954676969
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 68136,
+          "denominator": 100000,
+          "fraction": 0.68136,
+          "binomial_95_interval": [
+            0.6784618418849355,
+            0.6842476359379503
+          ]
+        },
+        "0.95": {
+          "count": 94926,
+          "denominator": 100000,
+          "fraction": 0.94926,
+          "binomial_95_interval": [
+            0.9478816723715503,
+            0.9506121954676969
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": 48.24905982972583,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 0,
+          "denominator": 100000,
+          "fraction": 0.0,
+          "binomial_95_interval": [
+            0.0,
+            3.6888114157924206e-05
+          ]
+        },
+        "0.95": {
+          "count": 0,
+          "denominator": 100000,
+          "fraction": 0.0,
+          "binomial_95_interval": [
+            0.0,
+            3.6888114157924206e-05
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "poisson_read_N4": {
+      "model": "poisson_read",
+      "n": 4,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": true,
+      "threshold": 3.6622599308877013,
+      "clean_stack_false_reject": {
+        "count": 115,
+        "denominator": 100000,
+        "fraction": 0.00115,
+        "binomial_95_interval": [
+          0.0009495334365856123,
+          0.0013802417812332445
+        ]
+      },
+      "clean_bias": 0.0520777338824167,
+      "clean_mean_error_mc_se": 0.017040371570728494,
+      "clean_coverage": {
+        "0.68": {
+          "count": 67762,
+          "denominator": 100000,
+          "fraction": 0.67762,
+          "binomial_95_interval": [
+            0.6747130350258477,
+            0.6805166598576069
+          ]
+        },
+        "0.95": {
+          "count": 94933,
+          "denominator": 100000,
+          "fraction": 0.94933,
+          "binomial_95_interval": [
+            0.947952558736319,
+            0.9506813049486323
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 67823,
+          "denominator": 100000,
+          "fraction": 0.67823,
+          "binomial_95_interval": [
+            0.6753244568998141,
+            0.6811252025810735
+          ]
+        },
+        "0.95": {
+          "count": 94978,
+          "denominator": 100000,
+          "fraction": 0.94978,
+          "binomial_95_interval": [
+            0.948408274036534,
+            0.9511255629374047
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 100000,
+        "denominator": 100000,
+        "fraction": 1.0,
+        "binomial_95_interval": [
+          0.9999631118858421,
+          1.0
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": 0.05016533686597436,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 67901,
+          "denominator": 100000,
+          "fraction": 0.67901,
+          "binomial_95_interval": [
+            0.676106283273731,
+            0.6819033309380957
+          ]
+        },
+        "0.95": {
+          "count": 94921,
+          "denominator": 100000,
+          "fraction": 0.94921,
+          "binomial_95_interval": [
+            0.9478310396935827,
+            0.9505628311128967
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "poisson_read_N5": {
+      "model": "poisson_read",
+      "n": 5,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": true,
+      "threshold": 3.7190164854556804,
+      "clean_stack_false_reject": {
+        "count": 108,
+        "denominator": 100000,
+        "fraction": 0.00108,
+        "binomial_95_interval": [
+          0.0008860264920316413,
+          0.001303781083230885
+        ]
+      },
+      "clean_bias": 0.0061863201649436156,
+      "clean_mean_error_mc_se": 0.015244123615144156,
+      "clean_coverage": {
+        "0.68": {
+          "count": 67905,
+          "denominator": 100000,
+          "fraction": 0.67905,
+          "binomial_95_interval": [
+            0.676146377183506,
+            0.6819432347068245
+          ]
+        },
+        "0.95": {
+          "count": 94912,
+          "denominator": 100000,
+          "fraction": 0.94912,
+          "binomial_95_interval": [
+            0.9477399017948566,
+            0.9504739743523849
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 67957,
+          "denominator": 100000,
+          "fraction": 0.67957,
+          "binomial_95_interval": [
+            0.6766676002287519,
+            0.6824619814820728
+          ]
+        },
+        "0.95": {
+          "count": 94954,
+          "denominator": 100000,
+          "fraction": 0.94954,
+          "binomial_95_interval": [
+            0.9481652221532286,
+            0.9508886290676263
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 100000,
+        "denominator": 100000,
+        "fraction": 1.0,
+        "binomial_95_interval": [
+          0.9999631118858421,
+          1.0
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": 0.016244412587849005,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 67955,
+          "denominator": 100000,
+          "fraction": 0.67955,
+          "binomial_95_interval": [
+            0.676647553112343,
+            0.682442029759234
+          ]
+        },
+        "0.95": {
+          "count": 94869,
+          "denominator": 100000,
+          "fraction": 0.94869,
+          "binomial_95_interval": [
+            0.9473044814363296,
+            0.9500494202233787
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "poisson_read_N6": {
+      "model": "poisson_read",
+      "n": 6,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": true,
+      "threshold": 3.764823649533899,
+      "clean_stack_false_reject": {
+        "count": 122,
+        "denominator": 100000,
+        "fraction": 0.00122,
+        "binomial_95_interval": [
+          0.0010132360262658207,
+          0.0014565092760469927
+        ]
+      },
+      "clean_bias": 0.0034619325837955354,
+      "clean_mean_error_mc_se": 0.013893992423862033,
+      "clean_coverage": {
+        "0.68": {
+          "count": 68026,
+          "denominator": 100000,
+          "fraction": 0.68026,
+          "binomial_95_interval": [
+            0.6773592294819821,
+            0.6831503121827995
+          ]
+        },
+        "0.95": {
+          "count": 94907,
+          "denominator": 100000,
+          "fraction": 0.94907,
+          "binomial_95_interval": [
+            0.9476892701400007,
+            0.9504246089741881
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 68080,
+          "denominator": 100000,
+          "fraction": 0.6808,
+          "binomial_95_interval": [
+            0.6779005096217099,
+            0.6836890007025647
+          ]
+        },
+        "0.95": {
+          "count": 94946,
+          "denominator": 100000,
+          "fraction": 0.94946,
+          "binomial_95_interval": [
+            0.9480842067522418,
+            0.9508096492170539
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 100000,
+        "denominator": 100000,
+        "fraction": 1.0,
+        "binomial_95_interval": [
+          0.9999631118858421,
+          1.0
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": 0.015103900654869199,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 68138,
+          "denominator": 100000,
+          "fraction": 0.68138,
+          "binomial_95_interval": [
+            0.6784818895545599,
+            0.6842675871075601
+          ]
+        },
+        "0.95": {
+          "count": 94942,
+          "denominator": 100000,
+          "fraction": 0.94942,
+          "binomial_95_interval": [
+            0.9480436994055726,
+            0.9507701589378449
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "poisson_read_N7": {
+      "model": "poisson_read",
+      "n": 7,
+      "trials": 100000,
+      "family_alpha": 0.001,
+      "automatic_enabled": true,
+      "threshold": 3.8031684540839077,
+      "clean_stack_false_reject": {
+        "count": 102,
+        "denominator": 100000,
+        "fraction": 0.00102,
+        "binomial_95_interval": [
+          0.0008317622757224005,
+          0.0012380752873143157
+        ]
+      },
+      "clean_bias": 0.00614467350637656,
+      "clean_mean_error_mc_se": 0.012896600355314767,
+      "clean_coverage": {
+        "0.68": {
+          "count": 67860,
+          "denominator": 100000,
+          "fraction": 0.6786,
+          "binomial_95_interval": [
+            0.6756953221028201,
+            0.6814943159043105
+          ]
+        },
+        "0.95": {
+          "count": 94899,
+          "denominator": 100000,
+          "fraction": 0.94899,
+          "binomial_95_interval": [
+            0.9476082602500353,
+            0.9503456236110601
+          ]
+        }
+      },
+      "no_selection_coverage": {
+        "0.68": {
+          "count": 67909,
+          "denominator": 100000,
+          "fraction": 0.67909,
+          "binomial_95_interval": [
+            0.6761864711176468,
+            0.681983138451189
+          ]
+        },
+        "0.95": {
+          "count": 94930,
+          "denominator": 100000,
+          "fraction": 0.9493,
+          "binomial_95_interval": [
+            0.9479221787776853,
+            0.9506516866877031
+          ]
+        }
+      },
+      "injected_12sigma_sample0_rejected": {
+        "count": 100000,
+        "denominator": 100000,
+        "fraction": 1.0,
+        "binomial_95_interval": [
+          0.9999631118858421,
+          1.0
+        ]
+      },
+      "injected_clean_sample_false_reject": {
+        "count": 0,
+        "denominator": 100000,
+        "fraction": 0.0,
+        "binomial_95_interval": [
+          0.0,
+          3.6888114157924206e-05
+        ]
+      },
+      "contaminated_bias": -0.0017813768023061474,
+      "contaminated_coverage": {
+        "0.68": {
+          "count": 67794,
+          "denominator": 100000,
+          "fraction": 0.67794,
+          "binomial_95_interval": [
+            0.6750337802222754,
+            0.6808358960893566
+          ]
+        },
+        "0.95": {
+          "count": 94898,
+          "denominator": 100000,
+          "fraction": 0.94898,
+          "binomial_95_interval": [
+            0.9475981340792838,
+            0.950335750375157
+          ]
+        }
+      },
+      "pedestal_invariant": true,
+      "all_rejected_before_fallback": 0
+    },
+    "percentile_counterexample": [
+      {
+        "pedestal": 0.0,
+        "accepted": [
+          0.0
+        ],
+        "mean": 0.0
+      },
+      {
+        "pedestal": 10.0,
+        "accepted": [
+          8.0,
+          9.0,
+          10.0,
+          11.0
+        ],
+        "mean": 9.5
+      }
+    ],
+    "correlated_gaussian_N5": {
+      "clean_stack_false_reject": {
+        "count": 103,
+        "denominator": 100000,
+        "fraction": 0.00103,
+        "binomial_95_interval": [
+          0.0008407947702413688,
+          0.00124903763664215
+        ]
+      },
+      "clean_coverage": {
+        "0.68": {
+          "count": 67773,
+          "denominator": 100000,
+          "fraction": 0.67773,
+          "binomial_95_interval": [
+            0.6748232910117844,
+            0.6806263974876128
+          ]
+        },
+        "0.95": {
+          "count": 94999,
+          "denominator": 100000,
+          "fraction": 0.94999,
+          "binomial_95_interval": [
+            0.9486209514588745,
+            0.9513328730470366
+          ]
+        }
+      },
+      "shared_variance": 0.7
+    }
+  },
+  "Gaia_joint_calibration": {
+    "trials": 1000,
+    "stars": 12,
+    "frames": 2,
+    "parameters_true": [
+      0.2,
+      0.03,
+      -0.1,
+      -0.02
+    ],
+    "noise_free_parameter_max_abs_error": 6.245004513516506e-17,
+    "linearized_covariance": [
+      [
+        3.3740023607219924e-05,
+        -2.920263470947462e-07,
+        3.333769304939344e-05,
+        -2.3257401049382414e-08
+      ],
+      [
+        -2.920263470947466e-07,
+        2.226541937390193e-05,
+        -2.228327732015298e-08,
+        2.127282208120481e-05
+      ],
+      [
+        3.333769304939343e-05,
+        -2.2283277320153914e-08,
+        3.4609226643012063e-05,
+        -7.683987973612596e-07
+      ],
+      [
+        -2.325740104938214e-08,
+        2.1272822081204806e-05,
+        -7.683987973612588e-07,
+        2.4407461183226047e-05
+      ]
+    ],
+    "empirical_covariance": [
+      [
+        3.558984715531639e-05,
+        -2.226143788840463e-06,
+        3.485015070326433e-05,
+        -1.5440512301062826e-06
+      ],
+      [
+        -2.226143788840463e-06,
+        2.2360507365353574e-05,
+        -1.9712298065083263e-06,
+        2.1610500072142087e-05
+      ],
+      [
+        3.485015070326433e-05,
+        -1.9712298065083263e-06,
+        3.584756796554133e-05,
+        -2.2592210925304296e-06
+      ],
+      [
+        -1.5440512301062826e-06,
+        2.1610500072142087e-05,
+        -2.2592210925304296e-06,
+        2.4815335613583154e-05
+      ]
+    ],
+    "parameter_bias": [
+      5.4799078719771744e-05,
+      -1.0196056265894013e-05,
+      7.362762974171394e-05,
+      -1.4230275667522811e-05
+    ],
+    "parameter_bias_mc_se": [
+      0.0001886527157379834,
+      0.00014953430163462024,
+      0.0001893345398112592,
+      0.00015752884057715648
+    ],
+    "parameter_coverage": {
+      "0": {
+        "0.68": {
+          "count": 651,
+          "denominator": 1000,
+          "fraction": 0.651,
+          "binomial_95_interval": [
+            0.6205463608539477,
+            0.6805614022670321
+          ]
+        },
+        "0.95": {
+          "count": 954,
+          "denominator": 1000,
+          "fraction": 0.954,
+          "binomial_95_interval": [
+            0.9391164472862574,
+            0.9661285014523221
+          ]
+        }
+      },
+      "1": {
+        "0.68": {
+          "count": 686,
+          "denominator": 1000,
+          "fraction": 0.686,
+          "binomial_95_interval": [
+            0.6562176994036949,
+            0.7146826153350496
+          ]
+        },
+        "0.95": {
+          "count": 954,
+          "denominator": 1000,
+          "fraction": 0.954,
+          "binomial_95_interval": [
+            0.9391164472862574,
+            0.9661285014523221
+          ]
+        }
+      },
+      "2": {
+        "0.68": {
+          "count": 669,
+          "denominator": 1000,
+          "fraction": 0.669,
+          "binomial_95_interval": [
+            0.6388689622688157,
+            0.6981321639231706
+          ]
+        },
+        "0.95": {
+          "count": 948,
+          "denominator": 1000,
+          "fraction": 0.948,
+          "binomial_95_interval": [
+            0.9323649859494927,
+            0.9609234650560196
+          ]
+        }
+      },
+      "3": {
+        "0.68": {
+          "count": 683,
+          "denominator": 1000,
+          "fraction": 0.683,
+          "binomial_95_interval": [
+            0.6531529694410996,
+            0.7117651432741482
+          ]
+        },
+        "0.95": {
+          "count": 951,
+          "denominator": 1000,
+          "fraction": 0.951,
+          "binomial_95_interval": [
+            0.9357339468598304,
+            0.9635329408279522
+          ]
+        }
+      }
+    },
+    "shared_Gaia_logzero_covariance": 3.333769304939344e-05,
+    "solver": {
+      "singular_values": [
+        1900.9151872101684,
+        1089.0022821527125,
+        1027.3070240829172,
+        590.8036643753417,
+        573.4064098959046,
+        571.755838359881,
+        570.3168636755123,
+        569.0744239457955,
+        568.5447768993663,
+        568.0449837597911,
+        567.2860097245176,
+        567.2554154038046,
+        566.8196641914154,
+        566.765805863034,
+        87.09297981040277,
+        44.54017948117399
+      ],
+      "nfev": 6,
+      "joint_chi_square": 2.646897202230614e-26
+    },
+    "rank_negative_colour_equals_position": {
+      "construction": "X=[1,x,colour], colour=x exactly",
+      "parameter_columns": 3,
+      "joint_parameter_dimension": 15,
+      "joint_jacobian_rank": 14,
+      "relative_rank_tolerance": 1e-12,
+      "singular_values": [
+        2053.2917956279052,
+        1342.8361475601562,
+        507.7633713184057,
+        505.3309950857253,
+        503.1383842123449,
+        501.1644759906034,
+        499.4338074269915,
+        498.00638201206596,
+        497.0978692683808,
+        496.6766697267797,
+        496.1565275192919,
+        495.93280873519404,
+        100.33135120929745,
+        46.089002603669044,
+        9.277232509868942e-14
+      ],
+      "fit_status": "GAIA_JOINT_FIT_NOT_IDENTIFIABLE",
+      "unidentifiable_direction": [
+        0.0,
+        1.0,
+        -1.0
+      ],
+      "null_direction_count_jacobian_norm": 0.0
+    },
+    "scope": "Known Gaussian count and Gaia covariances, high SNR, no saturation/variability/SED mismatch."
+  }
+}

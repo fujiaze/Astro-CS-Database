@@ -1,0 +1,37 @@
+{
+  "areas": {
+    "1087": {
+      "lower_sr": 0.00033278070355681537,
+      "upper_sr": 0.00033619808018998357,
+      "mid_sr": 0.0003344893918733995
+    },
+    "1130": {
+      "lower_sr": 0.0002425050041639585,
+      "upper_sr": 0.00024554007153907814,
+      "mid_sr": 0.0002440225378515183
+    },
+    "1173": {
+      "lower_sr": 0.00028341209477514626,
+      "upper_sr": 0.00028917014033514194,
+      "mid_sr": 0.0002862911175551441
+    },
+    "1216": {
+      "lower_sr": 0.0003602445522982575,
+      "upper_sr": 0.00036803117759483695,
+      "mid_sr": 0.0003641378649465472
+    }
+  },
+  "coarse_unresolved_candidates": [],
+  "total_area": {
+    "lower_sr": 0.0012189423547941775,
+    "upper_sr": 0.0012389394696590405
+  },
+  "unresolved_mass_upper_sr": 1.9997114864862564e-05,
+  "status": "bounded",
+  "processed_nodes": 10852,
+  "seconds": 6.863996699998097,
+  "contraction_upper": 0.14625000000000005,
+  "interval_decimal_precision": 25,
+  "exact_dyadic_mass_accumulation": true,
+  "max_depth": 48
+}

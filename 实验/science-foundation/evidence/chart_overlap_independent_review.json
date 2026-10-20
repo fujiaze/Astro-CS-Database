@@ -1,0 +1,60 @@
+{
+  "reviewed_sha256": "77595336489341c5de7cf72e311b3b371b7eab661f81e91b07485f4918676186",
+  "historical_findings": {
+    "reviewed_sha256": "ce2a27d1c4d52017a883e7ba689ab6a8e5517f3211fe2263aa06211d7e5f6506",
+    "initialization_budget": {
+      "max_nodes": 1,
+      "actual_processed_nodes": 64
+    },
+    "status": "Original run observed before root agent correction; retained for provenance, not recomputed against corrected code."
+  },
+  "face_box_astropy_healpix_check": {
+    "seed": 1117001,
+    "points": 18240,
+    "max_coordinate_outside_interval": 0.0,
+    "status": "INDEPENDENTLY_TESTED finite sample only"
+  },
+  "float_mass_counterexample": {
+    "dyadic_start": 0.25,
+    "dyadic_added": 1.3877787807814457e-17,
+    "n_additions": 100,
+    "float_accumulator": 0.25,
+    "exact_fraction": "4503599627370521/18014398509481984",
+    "reported_upper_sr": 0.26179938779914946,
+    "high_precision_exact_sr": "0.2617993877991508898170944522032500233668076970198046462444702554590693",
+    "exact_exceeds_claimed_upper_sr": 1.4264764966756527e-15,
+    "is_counterexample": true,
+    "scope": "对参考代码的普通float质量累计和末端单ulp扩展给算术见证；不是声称已构造某个实际WCS产生此相同队列。"
+  },
+  "live_mass_ledger_check": {
+    "exact_sr": "0.2617993877991508898170944522032500233668076970198046462444702554590693",
+    "reported_upper_sr": 0.2617993877991509,
+    "exact_exceeds_upper_sr": -1.6813435337050818e-17,
+    "is_counterexample": false,
+    "processed_nodes": 504,
+    "scope": "实际solve_overlap质量账本，几何classifier被精确已知dyadic集合替换；只验证累加，不表示真实WCS。"
+  },
+  "initialization_budget_recheck": {
+    "max_nodes": 1,
+    "actual_processed_nodes": 1,
+    "status": "budget_exhausted",
+    "coarse_candidates_retained": 15
+  },
+  "precision_budget_recheck": {
+    "max_depth": 2,
+    "status": "precision_exhausted",
+    "truth_within_bounds": true
+  },
+  "header_domain_rejections": {
+    "radian_units": true,
+    "unknown_reference_frame": true,
+    "additional_pv": true
+  },
+  "static_review": {
+    "face_chart": "12 faces; r north/equatorial/south branches; nr=0 conservative wedge; sampled checks passed",
+    "homotopy": "If each Bernstein interval-control hull bbox misses the connected target projected bbox, straight-line homotopy stays disjoint; parity membership valid for certified Jordan source.",
+    "candidate_completeness": "Every face root traversed; same-direction dyadic subdivision conserves exact area in real arithmetic; shared chart edges are zero measure.",
+    "corrections_verified": "Exact Fraction mass accumulation passes controlled-dyadic truth; all work uses unified bounded queue; precision exhaustion preserves truth; CUNIT/frame/PV unsupported header rejection exercised.",
+    "remaining_scope": "max_depth<=48 ensures exact binary dyadic endpoints; interval library directed rounding assumed. Finite external point containment is not a global machine proof; real HST/M42 physical WCS adequacy is untested."
+  }
+}

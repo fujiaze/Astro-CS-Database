@@ -5,6 +5,26 @@ doc_index:
   schema_rev: '3'
   coverage: Git 跟踪的 docs 全部文件，含目录 README 和索引自身；根章程、代码、工程机器合同与实验单元由正文链接，不进入本集合。
   active:
+  - path: docs/science/foundation/OBSERVATION_COORDINATES.md
+    status: ACTIVE_INFORMATIVE
+    duty: '#111 候选科学规范：观测模型、坐标、WCS/SIP与Export闭环；待外部独立审核'
+    upstream: docs/ACSD_DESIGN.md；GitHub issue 111
+  - path: docs/science/foundation/GAIA_RESPONSE.md
+    status: ACTIVE_INFORMATIVE
+    duty: '#111 候选科学规范：Gaia、响应、经验标度与不可辨识量；待外部独立审核'
+    upstream: docs/science/foundation/OBSERVATION_COORDINATES.md
+  - path: docs/science/foundation/SPHERICAL_DRIZZLE.md
+    status: ACTIVE_INFORMATIVE
+    duty: '#111 候选科学规范：连续曲边与真实HEALPix交叠、面积上下界和同一R；待外部独立审核'
+    upstream: docs/science/foundation/OBSERVATION_COORDINATES.md
+  - path: docs/science/foundation/STATISTICS_SKY_COADD.md
+    status: ACTIVE_INFORMATIVE
+    duty: '#111 候选科学规范：统一协方差、相对天光、传统合成与误差身份；待外部独立审核'
+    upstream: docs/science/foundation/OBSERVATION_COORDINATES.md
+  - path: docs/science/foundation/INDEPENDENT_ORACLES.md
+    status: ACTIVE_INFORMATIVE
+    duty: '#111 独立Oracle、源码缺陷、计算证据及真实HST/M42未验证假设；非正式验收'
+    upstream: docs/science/foundation/OBSERVATION_COORDINATES.md
   - path: docs/ACSD_DESIGN.md
     status: ACTIVE_NORMATIVE
     duty: 最高设计：用户目标、三命令、产品边界、软件架构和发行责任

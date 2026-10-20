@@ -1,5 +1,7 @@
 # 科学模型与方法
 
+**#111 科学地基重建候选**：重新开发请从 [观测与坐标](foundation/OBSERVATION_COORDINATES.md) 开始，依次阅读 [Gaia/响应](foundation/GAIA_RESPONSE.md)、[真实球面 Drizzle](foundation/SPHERICAL_DRIZZLE.md)、[统计/sky/coadd](foundation/STATISTICS_SKY_COADD.md) 和 [独立 Oracle 与证据](foundation/INDEPENDENT_ORACLES.md)。这五篇候选规范等待外部独立审核，不表示旧生产实现已通过；下方旧分册保留参考身份，不以其历史接口约束新核心。
+
 科学阅读从[统一观测模型](unified/UNIFIED_SCIENCE_MODEL.md)、[量与单位](unified/DATA_SEMANTICS.md)及[适用域](unified/SCIENCE_SCOPE.md)开始。专题分册拥有各自估计量和推导，算法补充资料解释数值方法，真实实现与证据由[实施差异](../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)对照。
 
 | 科学链 | 阅读顺序 |

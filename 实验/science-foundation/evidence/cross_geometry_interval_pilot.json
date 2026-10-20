@@ -1,0 +1,1233 @@
+{
+  "source_sha256": {
+    "chart_overlap.py": "77595336489341c5de7cf72e311b3b371b7eab661f81e91b07485f4918676186",
+    "detector_independent.py": "93c3469293b9320e7a8f0a5af73a1468a850f6579036285260120f84a942c20b",
+    "cross_geometry.py": "9a24b65af59b6f9954b9f7f7acba725af2bfe59fa27dc66e67161feedb166538"
+  },
+  "cases": [
+    {
+      "name": "base_face_00",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 32,
+        "NAXIS2": 32,
+        "CTYPE1": "RA---TAN",
+        "CTYPE2": "DEC--TAN",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CRVAL1": 45.0,
+        "CRVAL2": 41.810314895778596,
+        "CD1_1": -5.673111453595901,
+        "CD1_2": 1.9534089267429402,
+        "CD2_1": 1.9534089267429402,
+        "CD2_2": 5.673111453595901,
+        "RADESYS": "ICRS"
+      },
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "chart": {
+        "areas": {
+          "15": {
+            "lower_sr": 0.0020874241534042364,
+            "upper_sr": 0.002120380771893968,
+            "mid_sr": 0.002103902462649102
+          },
+          "26": {
+            "lower_sr": 0.0033661471925895874,
+            "upper_sr": 0.0034187810345241818,
+            "mid_sr": 0.003392464113556885
+          },
+          "37": {
+            "lower_sr": 0.0033659131256969046,
+            "upper_sr": 0.003460179665610003,
+            "mid_sr": 0.003413046395653454
+          },
+          "48": {
+            "lower_sr": 0.0019943747613330887,
+            "upper_sr": 0.0020596014020940146,
+            "mid_sr": 0.0020269880817135517
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.010813859233023818,
+          "upper_sr": 0.011058942874122167
+        },
+        "unresolved_mass_upper_sr": 0.0002450836410983468,
+        "status": "bounded",
+        "processed_nodes": 34457,
+        "seconds": 17.302957300002163,
+        "contraction_upper": 1e-323,
+        "interval_decimal_precision": 30,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "detector": {
+        "status": "budget_exhausted",
+        "areas": {
+          "15": {
+            "lower_sr": 0.0020805024824674116,
+            "upper_sr": 0.0021271548568918912,
+            "mid_sr": 0.0021038286696796514
+          },
+          "26": {
+            "lower_sr": 0.0033655062030193664,
+            "upper_sr": 0.0034192829455467052,
+            "mid_sr": 0.003392394574283036
+          },
+          "37": {
+            "lower_sr": 0.0033848313667488856,
+            "upper_sr": 0.0034415725226971026,
+            "mid_sr": 0.003413201944722994
+          },
+          "48": {
+            "lower_sr": 0.0019954370224047253,
+            "upper_sr": 0.0020584924345199655,
+            "mid_sr": 0.002026964728462345
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.010933967479789931,
+          "upper_sr": 0.010938599359199472
+        },
+        "unresolved_mass_upper_sr": 0.00010769423627478888,
+        "classified_integration_width_sr": 4.628048284291187e-06,
+        "unresolved_coarse_candidates": [],
+        "per_leaf_width_budget_sr": 0.00010894164524195921,
+        "uncertainty_bound_sr": 0.00011232228455908006,
+        "evaluated_nodes": 20001,
+        "terminal_rectangles": 15001,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "candidate_mode": "interval_floor",
+        "max_candidate_combinations": 8192,
+        "final_sums": "mpmath.iv endpoint accumulation, not floating fsum",
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 1.5e-323
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "interval_enclosure_for_ICRS_TAN_SIP_assuming_mpmath_iv_arithmetic_and_transcendentals",
+        "elapsed_seconds": 10.997256199996627
+      },
+      "per_leaf_comparison": [
+        {
+          "ipix": 15,
+          "intersection_lower_sr": 0.0020874241534042364,
+          "intersection_upper_sr": 0.002120380771893968,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 26,
+          "intersection_lower_sr": 0.0033661471925895874,
+          "intersection_upper_sr": 0.0034187810345241818,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 37,
+          "intersection_lower_sr": 0.0033848313667488856,
+          "intersection_upper_sr": 0.0034415725226971026,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 48,
+          "intersection_lower_sr": 0.0019954370224047253,
+          "intersection_upper_sr": 0.0020584924345199655,
+          "intervals_intersect": true
+        }
+      ],
+      "all_leaf_intervals_intersect": true,
+      "total_intervals_intersect": true,
+      "interpretation": "Shared header data only; A deterministic interval primitives assumption; B external-library conditional enclosure. Midpoints are not forced to partition."
+    },
+    {
+      "name": "base_face_04",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 32,
+        "NAXIS2": 32,
+        "CTYPE1": "RA---TAN",
+        "CTYPE2": "DEC--TAN",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CRVAL1": 0.0,
+        "CRVAL2": 0.0,
+        "CD1_1": -5.673111453595901,
+        "CD1_2": 1.9534089267429402,
+        "CD2_1": 1.9534089267429402,
+        "CD2_2": 5.673111453595901,
+        "RADESYS": "ICRS"
+      },
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "chart": {
+        "areas": {
+          "271": {
+            "lower_sr": 0.002984758597652322,
+            "upper_sr": 0.003036440567556673,
+            "mid_sr": 0.0030105995826044977
+          },
+          "282": {
+            "lower_sr": 0.002435731294175674,
+            "upper_sr": 0.002479735870000031,
+            "mid_sr": 0.0024577335820878525
+          },
+          "293": {
+            "lower_sr": 0.002435231951471284,
+            "upper_sr": 0.002480484884056616,
+            "mid_sr": 0.00245785841776395
+          },
+          "304": {
+            "lower_sr": 0.002958855194862098,
+            "upper_sr": 0.0030629681487273843,
+            "mid_sr": 0.003010911671794741
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.010814577038161377,
+          "upper_sr": 0.011059629470340704
+        },
+        "unresolved_mass_upper_sr": 0.00024505243217932244,
+        "status": "bounded",
+        "processed_nodes": 10612,
+        "seconds": 5.221151999998256,
+        "contraction_upper": 1e-323,
+        "interval_decimal_precision": 30,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "detector": {
+        "status": "tolerance_met",
+        "areas": {
+          "271": {
+            "lower_sr": 0.00298400160565998,
+            "upper_sr": 0.003036838257815627,
+            "mid_sr": 0.0030104199317378035
+          },
+          "282": {
+            "lower_sr": 0.002431296174380097,
+            "upper_sr": 0.0024843817927133645,
+            "mid_sr": 0.0024578389835467306
+          },
+          "293": {
+            "lower_sr": 0.002431296174380097,
+            "upper_sr": 0.002484256695626176,
+            "mid_sr": 0.0024577764350031364
+          },
+          "304": {
+            "lower_sr": 0.002983876519230611,
+            "upper_sr": 0.003036838262065992,
+            "mid_sr": 0.003010357390648302
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.010933114277241508,
+          "upper_sr": 0.010939330772159825
+        },
+        "unresolved_mass_upper_sr": 0.00010264957336869833,
+        "classified_integration_width_sr": 6.210725140337445e-06,
+        "unresolved_coarse_candidates": [],
+        "per_leaf_width_budget_sr": 0.00010894164524195921,
+        "uncertainty_bound_sr": 0.00010886029850903578,
+        "evaluated_nodes": 7289,
+        "terminal_rectangles": 5467,
+        "max_depth_reached": 9,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "candidate_mode": "interval_floor",
+        "max_candidate_combinations": 8192,
+        "final_sums": "mpmath.iv endpoint accumulation, not floating fsum",
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 1.5e-323
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "interval_enclosure_for_ICRS_TAN_SIP_assuming_mpmath_iv_arithmetic_and_transcendentals",
+        "elapsed_seconds": 4.250912199997401
+      },
+      "per_leaf_comparison": [
+        {
+          "ipix": 271,
+          "intersection_lower_sr": 0.002984758597652322,
+          "intersection_upper_sr": 0.003036440567556673,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 282,
+          "intersection_lower_sr": 0.002435731294175674,
+          "intersection_upper_sr": 0.002479735870000031,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 293,
+          "intersection_lower_sr": 0.002435231951471284,
+          "intersection_upper_sr": 0.002480484884056616,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 304,
+          "intersection_lower_sr": 0.002983876519230611,
+          "intersection_upper_sr": 0.003036838262065992,
+          "intervals_intersect": true
+        }
+      ],
+      "all_leaf_intervals_intersect": true,
+      "total_intervals_intersect": true,
+      "interpretation": "Shared header data only; A deterministic interval primitives assumption; B external-library conditional enclosure. Midpoints are not forced to partition."
+    },
+    {
+      "name": "ra_wrap_sip",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 32,
+        "NAXIS2": 32,
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CRVAL1": 359.99,
+        "CRVAL2": 2.0,
+        "CD1_1": -3.7820743023972674,
+        "CD1_2": 1.3022726178286268,
+        "CD2_1": 1.3022726178286268,
+        "CD2_2": 3.7820743023972674,
+        "A_ORDER": 3,
+        "B_ORDER": 3,
+        "A_2_0": 0.12,
+        "A_1_1": -0.07,
+        "A_0_3": 0.035,
+        "B_0_2": -0.1,
+        "B_1_1": 0.04,
+        "B_3_0": -0.025,
+        "RADESYS": "ICRS"
+      },
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "chart": {
+        "areas": {
+          "271": {
+            "lower_sr": 1.6915234111206407e-05,
+            "upper_sr": 1.916227628096077e-05,
+            "mid_sr": 1.8038755196083588e-05
+          },
+          "282": {
+            "lower_sr": 0.00045332515328842934,
+            "upper_sr": 0.0004655746540054931,
+            "mid_sr": 0.0004594499036469612
+          },
+          "293": {
+            "lower_sr": 0.0006516578336882757,
+            "upper_sr": 0.0006789812422941083,
+            "mid_sr": 0.000665319537991192
+          },
+          "304": {
+            "lower_sr": 0.003701315378451767,
+            "upper_sr": 0.003768414554354155,
+            "mid_sr": 0.003734864966402961
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.004823213599539678,
+          "upper_sr": 0.004932132726934717
+        },
+        "unresolved_mass_upper_sr": 0.0001089191273950376,
+        "status": "bounded",
+        "processed_nodes": 10774,
+        "seconds": 6.4576094999938505,
+        "contraction_upper": 0.21625000000000008,
+        "interval_decimal_precision": 30,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "detector": {
+        "status": "tolerance_met",
+        "areas": {
+          "271": {
+            "lower_sr": 1.4644381713054718e-05,
+            "upper_sr": 2.1667395518004718e-05,
+            "mid_sr": 1.815588861552972e-05
+          },
+          "282": {
+            "lower_sr": 0.0004458315908586195,
+            "upper_sr": 0.00047309860851831124,
+            "mid_sr": 0.0004594650996884654
+          },
+          "293": {
+            "lower_sr": 0.0006545176070589909,
+            "upper_sr": 0.0006764761719272203,
+            "mid_sr": 0.0006654968894931056
+          },
+          "304": {
+            "lower_sr": 0.0037134697610894233,
+            "upper_sr": 0.0037560269392347754,
+            "mid_sr": 0.0037347483501620994
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.004877263229415477,
+          "upper_sr": 0.0048779712169114186
+        },
+        "unresolved_mass_upper_sr": 4.8897337213088666e-05,
+        "classified_integration_width_sr": 6.105389782395057e-07,
+        "unresolved_coarse_candidates": [],
+        "per_leaf_width_budget_sr": 4.9545675547988494e-05,
+        "uncertainty_bound_sr": 4.950787619132818e-05,
+        "evaluated_nodes": 3637,
+        "terminal_rectangles": 2728,
+        "max_depth_reached": 9,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "candidate_mode": "interval_floor",
+        "max_candidate_combinations": 8192,
+        "final_sums": "mpmath.iv endpoint accumulation, not floating fsum",
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.20899312189639166
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "interval_enclosure_for_ICRS_TAN_SIP_assuming_mpmath_iv_arithmetic_and_transcendentals",
+        "elapsed_seconds": 5.636501599998155
+      },
+      "per_leaf_comparison": [
+        {
+          "ipix": 271,
+          "intersection_lower_sr": 1.6915234111206407e-05,
+          "intersection_upper_sr": 1.916227628096077e-05,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 282,
+          "intersection_lower_sr": 0.00045332515328842934,
+          "intersection_upper_sr": 0.0004655746540054931,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 293,
+          "intersection_lower_sr": 0.0006545176070589909,
+          "intersection_upper_sr": 0.0006764761719272203,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 304,
+          "intersection_lower_sr": 0.0037134697610894233,
+          "intersection_upper_sr": 0.0037560269392347754,
+          "intervals_intersect": true
+        }
+      ],
+      "all_leaf_intervals_intersect": true,
+      "total_intervals_intersect": true,
+      "interpretation": "Shared header data only; A deterministic interval primitives assumption; B external-library conditional enclosure. Midpoints are not forced to partition."
+    },
+    {
+      "name": "north_pole_sip",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 32,
+        "NAXIS2": 32,
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CRVAL1": 17.0,
+        "CRVAL2": 89.99,
+        "CD1_1": -3.7820743023972674,
+        "CD1_2": 1.3022726178286268,
+        "CD2_1": 1.3022726178286268,
+        "CD2_2": 3.7820743023972674,
+        "A_ORDER": 3,
+        "B_ORDER": 3,
+        "A_2_0": 0.12,
+        "A_1_1": -0.07,
+        "A_0_3": 0.035,
+        "B_0_2": -0.1,
+        "B_1_1": 0.04,
+        "B_3_0": -0.025,
+        "RADESYS": "ICRS"
+      },
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "chart": {
+        "areas": {
+          "63": {
+            "lower_sr": 0.001208066046514186,
+            "upper_sr": 0.00122558595343149,
+            "mid_sr": 0.001216825999972838
+          },
+          "127": {
+            "lower_sr": 0.001037993042290903,
+            "upper_sr": 0.0010656909579250284,
+            "mid_sr": 0.0010518420001079656
+          },
+          "191": {
+            "lower_sr": 0.0012004354658127286,
+            "upper_sr": 0.0012311450421327052,
+            "mid_sr": 0.001215790253972717
+          },
+          "255": {
+            "lower_sr": 0.0013768126716789334,
+            "upper_sr": 0.001409816103547201,
+            "mid_sr": 0.0013933143876130672
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.004823307226296751,
+          "upper_sr": 0.0049322380570364244
+        },
+        "unresolved_mass_upper_sr": 0.00010893083073967174,
+        "status": "bounded",
+        "processed_nodes": 37423,
+        "seconds": 23.580082800006494,
+        "contraction_upper": 0.21625000000000008,
+        "interval_decimal_precision": 30,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "detector": {
+        "status": "tolerance_met",
+        "areas": {
+          "63": {
+            "lower_sr": 0.001204844669498617,
+            "upper_sr": 0.0012295925049370159,
+            "mid_sr": 0.0012172185872178164
+          },
+          "127": {
+            "lower_sr": 0.0010365389747540611,
+            "upper_sr": 0.0010665105434821385,
+            "mid_sr": 0.0010515247591180998
+          },
+          "191": {
+            "lower_sr": 0.0012035940954761256,
+            "upper_sr": 0.0012283496624425532,
+            "mid_sr": 0.0012159718789593395
+          },
+          "255": {
+            "lower_sr": 0.001383403165651292,
+            "upper_sr": 0.0014028851646364707,
+            "mid_sr": 0.0013931441651438814
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.004877439230260995,
+          "upper_sr": 0.0048778878576014465
+        },
+        "unresolved_mass_upper_sr": 4.915237723627884e-05,
+        "classified_integration_width_sr": 3.545749850698384e-07,
+        "unresolved_coarse_candidates": [],
+        "per_leaf_width_budget_sr": 4.9545675547988494e-05,
+        "uncertainty_bound_sr": 4.9506952221348684e-05,
+        "evaluated_nodes": 4697,
+        "terminal_rectangles": 3523,
+        "max_depth_reached": 9,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "candidate_mode": "interval_floor",
+        "max_candidate_combinations": 8192,
+        "final_sums": "mpmath.iv endpoint accumulation, not floating fsum",
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.20899312189639166
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "interval_enclosure_for_ICRS_TAN_SIP_assuming_mpmath_iv_arithmetic_and_transcendentals",
+        "elapsed_seconds": 10.591463500000827
+      },
+      "per_leaf_comparison": [
+        {
+          "ipix": 63,
+          "intersection_lower_sr": 0.001208066046514186,
+          "intersection_upper_sr": 0.00122558595343149,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 127,
+          "intersection_lower_sr": 0.001037993042290903,
+          "intersection_upper_sr": 0.0010656909579250284,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 191,
+          "intersection_lower_sr": 0.0012035940954761256,
+          "intersection_upper_sr": 0.0012283496624425532,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 255,
+          "intersection_lower_sr": 0.001383403165651292,
+          "intersection_upper_sr": 0.0014028851646364707,
+          "intervals_intersect": true
+        }
+      ],
+      "all_leaf_intervals_intersect": true,
+      "total_intervals_intersect": true,
+      "interpretation": "Shared header data only; A deterministic interval primitives assumption; B external-library conditional enclosure. Midpoints are not forced to partition."
+    },
+    {
+      "name": "south_pole_sip",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 32,
+        "NAXIS2": 32,
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CRVAL1": 281.0,
+        "CRVAL2": -89.99,
+        "CD1_1": -3.7820743023972674,
+        "CD1_2": 1.3022726178286268,
+        "CD2_1": 1.3022726178286268,
+        "CD2_2": 3.7820743023972674,
+        "A_ORDER": 3,
+        "B_ORDER": 3,
+        "A_2_0": 0.12,
+        "A_1_1": -0.07,
+        "A_0_3": 0.035,
+        "B_0_2": -0.1,
+        "B_1_1": 0.04,
+        "B_3_0": -0.025,
+        "RADESYS": "ICRS"
+      },
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "chart": {
+        "areas": {
+          "512": {
+            "lower_sr": 0.00111974480567523,
+            "upper_sr": 0.0011412594542276528,
+            "mid_sr": 0.0011305021299514413
+          },
+          "576": {
+            "lower_sr": 0.001346009468601884,
+            "upper_sr": 0.0013767658583003972,
+            "mid_sr": 0.0013613876634511407
+          },
+          "640": {
+            "lower_sr": 0.0012914562781472922,
+            "upper_sr": 0.001321494862708245,
+            "mid_sr": 0.0013064755704277685
+          },
+          "704": {
+            "lower_sr": 0.00106620590508893,
+            "upper_sr": 0.0010928271130167147,
+            "mid_sr": 0.0010795165090528224
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.004823416457513336,
+          "upper_sr": 0.00493234728825301
+        },
+        "unresolved_mass_upper_sr": 0.00010893083073967174,
+        "status": "bounded",
+        "processed_nodes": 32030,
+        "seconds": 26.455827400001,
+        "contraction_upper": 0.21625000000000008,
+        "interval_decimal_precision": 30,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "detector": {
+        "status": "tolerance_met",
+        "areas": {
+          "512": {
+            "lower_sr": 0.001118108088375437,
+            "upper_sr": 0.0011425679722964182,
+            "mid_sr": 0.0011303380303359276
+          },
+          "576": {
+            "lower_sr": 0.0013520791932170526,
+            "upper_sr": 0.0013706603155923913,
+            "mid_sr": 0.001361369754404722
+          },
+          "640": {
+            "lower_sr": 0.0012940455744455742,
+            "upper_sr": 0.0013188483488295322,
+            "mid_sr": 0.0013064469616375532
+          },
+          "704": {
+            "lower_sr": 0.0010641800704974276,
+            "upper_sr": 0.0010949530307037638,
+            "mid_sr": 0.0010795665506005956
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.004877377882757738,
+          "upper_sr": 0.004877903586739566
+        },
+        "unresolved_mass_upper_sr": 4.9051652357654395e-05,
+        "classified_integration_width_sr": 4.390078464183543e-07,
+        "unresolved_coarse_candidates": [],
+        "per_leaf_width_budget_sr": 4.9545675547988494e-05,
+        "uncertainty_bound_sr": 4.949066020407275e-05,
+        "evaluated_nodes": 5705,
+        "terminal_rectangles": 4279,
+        "max_depth_reached": 9,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "candidate_mode": "interval_floor",
+        "max_candidate_combinations": 8192,
+        "final_sums": "mpmath.iv endpoint accumulation, not floating fsum",
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.20899312189639166
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "interval_enclosure_for_ICRS_TAN_SIP_assuming_mpmath_iv_arithmetic_and_transcendentals",
+        "elapsed_seconds": 11.77186239999719
+      },
+      "per_leaf_comparison": [
+        {
+          "ipix": 512,
+          "intersection_lower_sr": 0.00111974480567523,
+          "intersection_upper_sr": 0.0011412594542276528,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 576,
+          "intersection_lower_sr": 0.0013520791932170526,
+          "intersection_upper_sr": 0.0013706603155923913,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 640,
+          "intersection_lower_sr": 0.0012940455744455742,
+          "intersection_upper_sr": 0.0013188483488295322,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 704,
+          "intersection_lower_sr": 0.00106620590508893,
+          "intersection_upper_sr": 0.0010928271130167147,
+          "intervals_intersect": true
+        }
+      ],
+      "all_leaf_intervals_intersect": true,
+      "total_intervals_intersect": true,
+      "interpretation": "Shared header data only; A deterministic interval primitives assumption; B external-library conditional enclosure. Midpoints are not forced to partition."
+    },
+    {
+      "name": "equatorial_transition_sip",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 32,
+        "NAXIS2": 32,
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CRVAL1": 45.0,
+        "CRVAL2": 41.810314895778596,
+        "CD1_1": -3.7820743023972674,
+        "CD1_2": 1.3022726178286268,
+        "CD2_1": 1.3022726178286268,
+        "CD2_2": 3.7820743023972674,
+        "A_ORDER": 3,
+        "B_ORDER": 3,
+        "A_2_0": 0.12,
+        "A_1_1": -0.07,
+        "A_0_3": 0.035,
+        "B_0_2": -0.1,
+        "B_1_1": 0.04,
+        "B_3_0": -0.025,
+        "RADESYS": "ICRS"
+      },
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "chart": {
+        "areas": {
+          "15": {
+            "lower_sr": 0.0009717716172360764,
+            "upper_sr": 0.0009896192178031362,
+            "mid_sr": 0.0009806954175196063
+          },
+          "26": {
+            "lower_sr": 0.0013153467056604444,
+            "upper_sr": 0.0013472110119843227,
+            "mid_sr": 0.0013312788588223834
+          },
+          "37": {
+            "lower_sr": 0.0017043658812991675,
+            "upper_sr": 0.001742393949130358,
+            "mid_sr": 0.0017233799152147626
+          },
+          "48": {
+            "lower_sr": 0.0008317020875398435,
+            "upper_sr": 0.0008528929435573883,
+            "mid_sr": 0.0008422975155486158
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 0.004823186291735532,
+          "upper_sr": 0.004932117122475205
+        },
+        "unresolved_mass_upper_sr": 0.00010893083073967174,
+        "status": "bounded",
+        "processed_nodes": 31093,
+        "seconds": 16.813896899999236,
+        "contraction_upper": 0.21625000000000008,
+        "interval_decimal_precision": 30,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "detector": {
+        "status": "budget_exhausted",
+        "areas": {
+          "15": {
+            "lower_sr": 0.0009695800507721518,
+            "upper_sr": 0.0009919988363012472,
+            "mid_sr": 0.0009807894435366995
+          },
+          "26": {
+            "lower_sr": 0.0013155698217211117,
+            "upper_sr": 0.0013470494522571147,
+            "mid_sr": 0.001331309636989113
+          },
+          "37": {
+            "lower_sr": 0.0017127393520314387,
+            "upper_sr": 0.0017346802508007215,
+            "mid_sr": 0.0017237098014160801
+          },
+          "48": {
+            "lower_sr": 0.0008266145556639214,
+            "upper_sr": 0.0008575485132280828,
+            "mid_sr": 0.0008420815344460022
+          }
+        },
+        "total_area": {
+          "lower_sr": 0.004877415067270435,
+          "upper_sr": 0.004877942756458677
+        },
+        "unresolved_mass_upper_sr": 5.296226780525952e-05,
+        "classified_integration_width_sr": 4.767084647917823e-07,
+        "unresolved_coarse_candidates": [],
+        "per_leaf_width_budget_sr": 4.9545675547988494e-05,
+        "uncertainty_bound_sr": 5.3438976270051304e-05,
+        "evaluated_nodes": 20001,
+        "terminal_rectangles": 15001,
+        "max_depth_reached": 10,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "candidate_mode": "interval_floor",
+        "max_candidate_combinations": 8192,
+        "final_sums": "mpmath.iv endpoint accumulation, not floating fsum",
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.20899312189639166
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "interval_enclosure_for_ICRS_TAN_SIP_assuming_mpmath_iv_arithmetic_and_transcendentals",
+        "elapsed_seconds": 25.64059399999678
+      },
+      "per_leaf_comparison": [
+        {
+          "ipix": 15,
+          "intersection_lower_sr": 0.0009717716172360764,
+          "intersection_upper_sr": 0.0009896192178031362,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 26,
+          "intersection_lower_sr": 0.0013155698217211117,
+          "intersection_upper_sr": 0.0013470494522571147,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 37,
+          "intersection_lower_sr": 0.0017127393520314387,
+          "intersection_upper_sr": 0.0017346802508007215,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 48,
+          "intersection_lower_sr": 0.0008317020875398435,
+          "intersection_upper_sr": 0.0008528929435573883,
+          "intervals_intersect": true
+        }
+      ],
+      "all_leaf_intervals_intersect": true,
+      "total_intervals_intersect": true,
+      "interpretation": "Shared header data only; A deterministic interval primitives assumption; B external-library conditional enclosure. Midpoints are not forced to partition."
+    },
+    {
+      "name": "tiny_boundary_sliver",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 32,
+        "NAXIS2": 32,
+        "CTYPE1": "RA---TAN",
+        "CTYPE2": "DEC--TAN",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CRVAL1": 0.0,
+        "CRVAL2": 0.02772239523293825,
+        "CD1_1": -0.03,
+        "CD1_2": 0.0,
+        "CD2_1": 0.0,
+        "CD2_2": 0.03,
+        "RADESYS": "ICRS"
+      },
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 1.0,
+        "nside": 8
+      },
+      "chart": {
+        "areas": {
+          "282": {
+            "lower_sr": 0,
+            "upper_sr": 3.809682498091562e-12,
+            "mid_sr": 1.904841249045781e-12
+          },
+          "293": {
+            "lower_sr": 0,
+            "upper_sr": 3.809682498091562e-12,
+            "mid_sr": 1.904841249045781e-12
+          },
+          "304": {
+            "lower_sr": 2.7074651577437104e-07,
+            "upper_sr": 2.775925152234417e-07,
+            "mid_sr": 2.7416951549890634e-07
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 2.7074651577437104e-07,
+          "upper_sr": 2.7760013458843787e-07
+        },
+        "unresolved_mass_upper_sr": 6.85361881406672e-09,
+        "status": "bounded",
+        "processed_nodes": 5689,
+        "seconds": 2.4688499000039883,
+        "contraction_upper": 1e-323,
+        "interval_decimal_precision": 30,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "detector": {
+        "status": "tolerance_met",
+        "areas": {
+          "282": {
+            "lower_sr": 0.0,
+            "upper_sr": 1.0709204478476376e-09,
+            "mid_sr": 5.354602239238188e-10
+          },
+          "293": {
+            "lower_sr": 0.0,
+            "upper_sr": 1.0709204478476376e-09,
+            "mid_sr": 5.354602239238188e-10
+          },
+          "304": {
+            "lower_sr": 2.7201379296195965e-07,
+            "upper_sr": 2.741556730049424e-07,
+            "mid_sr": 2.7308473298345106e-07
+          }
+        },
+        "total_area": {
+          "lower_sr": 2.741556337544365e-07,
+          "upper_sr": 2.741556730049424e-07
+        },
+        "unresolved_mass_upper_sr": 2.141840895695275e-09,
+        "classified_integration_width_sr": 3.914728743951075e-14,
+        "unresolved_coarse_candidates": [],
+        "per_leaf_width_budget_sr": 2.7415564962254164e-09,
+        "uncertainty_bound_sr": 2.1418800429827147e-09,
+        "evaluated_nodes": 29,
+        "terminal_rectangles": 22,
+        "max_depth_reached": 4,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "candidate_mode": "interval_floor",
+        "max_candidate_combinations": 8192,
+        "final_sums": "mpmath.iv endpoint accumulation, not floating fsum",
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 1.5e-323
+        },
+        "detector_bounds_xy0": [
+          -0.5,
+          0.5,
+          -0.5,
+          0.5
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "interval_enclosure_for_ICRS_TAN_SIP_assuming_mpmath_iv_arithmetic_and_transcendentals",
+        "elapsed_seconds": 0.020250299996405374
+      },
+      "per_leaf_comparison": [
+        {
+          "ipix": 282,
+          "intersection_lower_sr": 0,
+          "intersection_upper_sr": 3.809682498091562e-12,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 293,
+          "intersection_lower_sr": 0,
+          "intersection_upper_sr": 3.809682498091562e-12,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 304,
+          "intersection_lower_sr": 2.7201379296195965e-07,
+          "intersection_upper_sr": 2.741556730049424e-07,
+          "intervals_intersect": true
+        }
+      ],
+      "all_leaf_intervals_intersect": true,
+      "total_intervals_intersect": true,
+      "interpretation": "Shared header data only; A deterministic interval primitives assumption; B external-library conditional enclosure. Midpoints are not forced to partition."
+    },
+    {
+      "name": "high_order_small_drop",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 32,
+        "NAXIS2": 32,
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.0,
+        "CRVAL1": 359.99999,
+        "CRVAL2": 89.9,
+        "CD1_1": -0.000262644048777588,
+        "CD1_2": 9.043559846032131e-05,
+        "CD2_1": 9.043559846032131e-05,
+        "CD2_2": 0.000262644048777588,
+        "A_ORDER": 3,
+        "B_ORDER": 3,
+        "A_2_0": 0.12,
+        "A_1_1": -0.07,
+        "A_0_3": 0.035,
+        "B_0_2": -0.1,
+        "B_1_1": 0.04,
+        "B_3_0": -0.025,
+        "RADESYS": "ICRS"
+      },
+      "parameters": {
+        "center_xy0": [
+          0.0,
+          0.0
+        ],
+        "pixfrac": 0.7,
+        "nside": 262144
+      },
+      "chart": {
+        "areas": {
+          "68719213311": {
+            "lower_sr": 3.728109973594383e-12,
+            "upper_sr": 3.7796722962232794e-12,
+            "mid_sr": 3.753891134908832e-12
+          },
+          "68719213482": {
+            "lower_sr": 1.6315086210851706e-12,
+            "upper_sr": 1.6944065163325934e-12,
+            "mid_sr": 1.6629575687088821e-12
+          },
+          "274877380095": {
+            "lower_sr": 4.064471291871091e-12,
+            "upper_sr": 4.131380235891225e-12,
+            "mid_sr": 4.097925763881158e-12
+          },
+          "274877380437": {
+            "lower_sr": 1.975993766405156e-12,
+            "upper_sr": 2.0520292996617454e-12,
+            "mid_sr": 2.0140115330334508e-12
+          }
+        },
+        "coarse_unresolved_candidates": [],
+        "total_area": {
+          "lower_sr": 1.1400083652955803e-11,
+          "upper_sr": 1.1657488348108843e-11
+        },
+        "unresolved_mass_upper_sr": 2.5740469515303703e-13,
+        "status": "bounded",
+        "processed_nodes": 21708,
+        "seconds": 12.17138320000231,
+        "contraction_upper": 0.14586250000000003,
+        "interval_decimal_precision": 30,
+        "exact_dyadic_mass_accumulation": true,
+        "max_depth": 48
+      },
+      "detector": {
+        "status": "tolerance_met",
+        "areas": {
+          "68719213311": {
+            "lower_sr": 3.716313314792656e-12,
+            "upper_sr": 3.792333022678202e-12,
+            "mid_sr": 3.754323168735429e-12
+          },
+          "68719213482": {
+            "lower_sr": 1.6319807941107973e-12,
+            "upper_sr": 1.6937596779709945e-12,
+            "mid_sr": 1.662870236040896e-12
+          },
+          "274877380095": {
+            "lower_sr": 4.0703629471587385e-12,
+            "upper_sr": 4.1248729170296936e-12,
+            "mid_sr": 4.097617932094216e-12
+          },
+          "274877380437": {
+            "lower_sr": 1.9937980745921244e-12,
+            "upper_sr": 2.0339753217388383e-12,
+            "mid_sr": 2.0138866981654816e-12
+          }
+        },
+        "total_area": {
+          "lower_sr": 1.152775619202579e-11,
+          "upper_sr": 1.1528656492079378e-11
+        },
+        "unresolved_mass_upper_sr": 1.154386683107102e-13,
+        "classified_integration_width_sr": 7.626931143471243e-16,
+        "unresolved_coarse_candidates": [],
+        "per_leaf_width_budget_sr": 1.1623855953872968e-13,
+        "uncertainty_bound_sr": 1.1620136142505732e-13,
+        "evaluated_nodes": 6093,
+        "terminal_rectangles": 4570,
+        "max_depth_reached": 9,
+        "angular_roundoff_margin_rad": 3e-14,
+        "integration_order": 2,
+        "candidate_mode": "interval_floor",
+        "max_candidate_combinations": 8192,
+        "final_sums": "mpmath.iv endpoint accumulation, not floating fsum",
+        "injectivity": {
+          "method": "interval_preconditioned_Jacobian_contraction",
+          "frobenius_upper": 0.1440897864614283
+        },
+        "detector_bounds_xy0": [
+          -0.35,
+          0.35,
+          -0.35,
+          0.35
+        ],
+        "convention": "Astropy origin=0 pixel centers; detector Q center +/- pixfrac/2",
+        "bound_class": "interval_enclosure_for_ICRS_TAN_SIP_assuming_mpmath_iv_arithmetic_and_transcendentals",
+        "elapsed_seconds": 8.962847499999043
+      },
+      "per_leaf_comparison": [
+        {
+          "ipix": 68719213311,
+          "intersection_lower_sr": 3.728109973594383e-12,
+          "intersection_upper_sr": 3.7796722962232794e-12,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 68719213482,
+          "intersection_lower_sr": 1.6319807941107973e-12,
+          "intersection_upper_sr": 1.6937596779709945e-12,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 274877380095,
+          "intersection_lower_sr": 4.0703629471587385e-12,
+          "intersection_upper_sr": 4.1248729170296936e-12,
+          "intervals_intersect": true
+        },
+        {
+          "ipix": 274877380437,
+          "intersection_lower_sr": 1.9937980745921244e-12,
+          "intersection_upper_sr": 2.0339753217388383e-12,
+          "intervals_intersect": true
+        }
+      ],
+      "all_leaf_intervals_intersect": true,
+      "total_intervals_intersect": true,
+      "interpretation": "Shared header data only; A deterministic interval primitives assumption; B external-library conditional enclosure. Midpoints are not forced to partition."
+    }
+  ]
+}
