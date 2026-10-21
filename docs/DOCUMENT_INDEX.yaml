@@ -5,6 +5,30 @@ doc_index:
   schema_rev: '3'
   coverage: Git 跟踪的 docs 全部文件，含目录 README 和索引自身；根章程、代码、工程机器合同与实验单元由正文链接，不进入本集合。
   active:
+  - path: docs/engineering/rebuild/README.md
+    status: ACTIVE_NORMATIVE
+    duty: 新核心架构设计入口、科学依据及旧工程适用边界；目标设计非实现
+    upstream: docs/ACSD_DESIGN.md；五份科学地基
+  - path: docs/engineering/rebuild/SYSTEM.md
+    status: ACTIVE_NORMATIVE
+    duty: 新核心模块划分、依赖、三命令算法调用及复用边界
+    upstream: docs/engineering/rebuild/README.md
+  - path: docs/engineering/rebuild/OBJECTS.md
+    status: ACTIVE_NORMATIVE
+    duty: 新核心统一对象、状态、共享误差身份、产品与可重开模型闭包
+    upstream: docs/engineering/rebuild/README.md
+  - path: docs/engineering/rebuild/API.md
+    status: ACTIVE_NORMATIVE
+    duty: 新核心标准科学API、provider、C ABI及独立进程合同驱动协议
+    upstream: docs/engineering/rebuild/OBJECTS.md
+  - path: docs/engineering/rebuild/EXECUTION.md
+    status: ACTIVE_NORMATIVE
+    duty: 新核心算子计算、科学预算、精度、内存、并行与寿命
+    upstream: docs/engineering/rebuild/API.md
+  - path: docs/engineering/rebuild/VERIFICATION.md
+    status: ACTIVE_NORMATIVE
+    duty: 独立Agent合成真值、标准接口验证矩阵及架构审核边界
+    upstream: docs/engineering/rebuild/README.md
   - path: docs/science/foundation/OBSERVATION_COORDINATES.md
     status: ACTIVE_INFORMATIVE
     duty: '#111 候选科学规范：观测模型、坐标、WCS/SIP与Export闭环；待外部独立审核'
