@@ -2,6 +2,8 @@
 
 ACSD 将天文 CCD/CMOS 观测转换为具有明确坐标、光度尺度、能力状态与来源链的球面科学产品，再合成马赛克并导出普通平面 WCS FITS。本文规定目标、阶段产品、系统边界与交付责任；数学定义由[统一科学模型](science/unified/UNIFIED_SCIENCE_MODEL.md)及专题分册展开，实际代码与目标的差异见[实施差异](engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
 
+全新核心设计以[五份科学地基](science/foundation/OBSERVATION_COORDINATES.md)及[新架构规范](engineering/rebuild/README.md)为准。下文保留产品目标和旧系统说明；其中固定节点、旧对象/ABI、资源结构及FP32默认等工程细节不约束新核心。新架构只交付设计，经过独立审核和负责人接受后再建立独立重构分支实施；不表示现有生产实现已经替换。
+
 ## 1. 项目目标与科学边界
 
 系统服务于原始观测标准化、多帧成像和后期处理。科学链由五个相互支持的研究问题组成；每项方法的贡献需要与已有理论、参考实现和独立实验比较。

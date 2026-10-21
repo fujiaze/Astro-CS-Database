@@ -4,6 +4,7 @@
 
 | 阅读目标 | 入口 |
 |---|---|
+| 全新核心设计 | [五份科学地基](science/foundation/OBSERVATION_COORDINATES.md) → [架构规范、对象与标准 API](engineering/rebuild/README.md) |
 | 观测模型、单位与适用域 | [统一模型](science/unified/UNIFIED_SCIENCE_MODEL.md)、[数据语义](science/unified/DATA_SEMANTICS.md) |
 | 从原始帧到单帧球面产品 | [Normalize 科学链](science/normalize/NORMALIZE_SCIENCE.md) → [生产架构](engineering/architecture/NORMALIZE_PIPELINE.md) → [数据合同](engineering/contracts/NORMALIZE_DATA.md) → [接口规格](detail/normalize/contracts.md) |
 | 多帧背景、精度与合成 | [噪声与参考精度](science/noise_snr/NOISE_SNR.md)、[背景](science/sky/UPM.md)、[Mosaic 管线](detail/mosaic/pipeline.md) |
