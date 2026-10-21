@@ -1,2 +1,5 @@
 # 研究证据含实际运行文件的字节哈希；保留原始换行字节。
 evidence/** -text whitespace=cr-at-eol
+# 第二轮源码按实际执行字节核对SHA，避免暂存时换行转换改变身份。
+oracles/*round2* -text whitespace=cr-at-eol
+ROUND2* -text whitespace=cr-at-eol

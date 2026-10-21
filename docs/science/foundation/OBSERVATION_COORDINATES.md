@@ -51,7 +51,7 @@ struct PixelCenter0 { double x, y; }; // detector pixel
 struct PixelEdge0   { double x, y; }; // 同一连续平面、不同对象角色
 struct FitsPixel1   { double x, y; }; // 唯一边界转换 p1=p0+(1,1)
 struct SkyICRS     { double nx, ny, nz; }; // 单位向量；历元另附
-struct NestedLeaf  { uint32_t order; uint64_t ipix; };
+struct HealpixLeaf { uint32_t order; uint64_t ipix; }; // ICRS NESTED，order≤29
 struct FacetPoint  { uint8_t face; double s, t; }; // s,t∈[0,1]
 ```
 
@@ -67,7 +67,7 @@ q=C_{\rm rad}\{u+(A,B)^T\},\quad
 n={c+q_x e+q_y n_N\over\sqrt{1+q_x^2+q_y^2}}.
 \tag{3}
 \]
-c 为 CRVAL 方向，e 为当地东向，n_N 为北向。CD 作用在 SIP **之后**；PC 形式是 `CD=diag(CDELT) PC`。CD 的负行列式合法，表达手性，不是负面积。上述切基对应标准 `LONPOLE=180°` 的 TAN；其他 celestial rotation 交由完整 WCSLIB 解码，不以式(3)覆盖未声明的头信息。
+c 为 CRVAL 方向，e 为当地东向，n_N 为北向。CD 作用在 SIP **之后**；PC 形式是 `CD=diag(CDELT) PC`。CD 的负行列式合法，表达手性，不是负面积。上述切基对应 `LONPOLE=180°` 的 TAN；下面明确规定其他 LONPOLE 的入口规范化，几何内核只接收规范化模型。
 
 逆过程先 \(q=(n\cdot e,n\cdot n_N)/(n\cdot c)\)，`n·c<=0` 不属于该 TAN 图；再解 \(u+(A,B)=C^{-1}q\)，最后 \(p_0=u+r-1\)。AP/BP 只是可选逆多项式初值，不能用其误差替代真实残差。用有阻尼 Newton 和解析 Jacobian，按 detector pixel 残差停止；遇到非单射、奇异 Jacobian 或不收敛返回具名状态。对单个 Q，\(\sup_Q\|\nabla(A,B)\|_\infty<1\) 充分保证 SIP 全局单射；这是可编码的充分域，并非所有有效 SIP 的必要条件。未满足时不作“已证明 fold”的判断，必须增加单射证据或返回 `injectivity_unresolved`。
 
@@ -78,6 +78,55 @@ pixel_measure(WcsModel, DetectorRectangle, area_budget) -> AreaInterval[sr]
 ```
 
 多项式次数 d、一个点的直接计算 O(d²)，Newton m 次 O(md²)；批量广播/缓存不改变坐标定义。精度预算分为头模型误差、坐标运算误差、逆求解残差；小 round-trip 只能说明内部自洽，不能发现同向的原点错误。
+
+### 3.1 首期冻结的模型域与输入处理
+
+首期科学重建支持以下**有限模型类**。这是可计算能力选择，不是对所有合法 FITS 的宣称；reader 能打印世界坐标不意味着其曲边可以按本规范认证。Normalize 输入与科学 Export 输出使用同一模型类；HiPS 的 HPX 序列化头是单独的标准几何映射，不借此扩大输入 WCS 能力。
+
+| 属性 | 首期接受及拒绝行为 |
+|---|---|
+| 维度、轴 | 仅二维 `RA---TAN,DEC--TAN` 或两轴均带 `-SIP`；内部固定 x,y 顺序。额外 spectral/time 轴、交换天空轴或其他投影返回 `unsupported_model`，不猜测切片 |
+| 参考系 | 输入明确 `RADESYS=ICRS`，附本曝光历元及天测模型身份。FK4、FK5/J2000、Galactic、缺失参考系均不自动当 ICRS；可由独立标准 frame converter 生成有误差身份的 ICRS 模型，再重新准入 |
+| 单位与线性部分 | 首期头入口接受显式 degree；内部统一 rad。接受 CD，或 `diag(CDELT) PC`（缺 PC 元按单位阵）；两者同时出现或 CROTA 与其混用返回 `ambiguous/unsupported`。CD 有限、可逆；首期 `cond₂(CD)≤10⁸`，否则先按目标位置精度论证再扩域，不截断奇异值 |
+| CRPIX、CRVAL、手性 | CRPIX 可非整数、图内或图外；RA 按周期理解、Dec∈[−90°,90°]，包括精确两极。det CD 可正可负；不要求居中、不要求方形像元或对角 CD |
+| SIP | 无 SIP 为 d=0；标准 forward A/B 各自阶数2…9，允许不同阶数、稀疏系数。仅2≤i+j≤order，缺项为0。非有限、非法阶数、低阶 forward 项、无 `-SIP` 却带 SIP 系数返回 `invalid/unsupported`。AP/BP 可作初值，完全不作为误差证书 |
+| 天球旋转 | 任意有限 LONPOLE 模360°；缺省按 FITS 的 φp 规则：TAN θ₀=90°，CRVAL2=+90°时为0°，其余合法Dec为180°。入口按下式折进 CD。CRVAL 极点仍保留指定 RA 定义的切基，不从无定义的极点 RA 差判断精度。其他改变投影原生 fiducial 的参数首期不解释；须通过 WCSLIB 解码并证明与规范模型完全等价才接受 |
+| 有效域 | 调用者给出闭凸 detector 矩形 U，包含所请求完整像元足迹；不能以少数星点 convex hull 代替。连续包围证明 `sup_U ||q||₂≤tan60°`（即离切点不超过60°）；这是首期保守数值范围，非 TAN 的数学极限。过宽或无法证实返回 `domain_unresolved/unsupported`，不把域外外推静默纳入 |
+| 畸变及单射 | PV/TPV、lookup/CPDIS、D2IM/DET2IM、SIP 外的畸变不丢弃，返回 `unsupported_distortion`。整个 U 必须有下述单射证书；失败是 `injectivity_unresolved`。有折叠反例才称 `non_injective`，二者分开 |
+
+令 ρ=(LONPOLE−180°)，\(e_\rho=e\cos\rho-n_N\sin\rho,\)
+\(n_\rho=e\sin\rho+n_N\cos\rho\)。则不改变 SIP 变量、CRPIX 或 CRVAL，取
+\[
+C_{canonical}=\begin{bmatrix}\cos\rho&\sin\rho\\-\sin\rho&\cos\rho\end{bmatrix}C,
+\qquad {\tt LONPOLE}_{canonical}=180^\circ .\tag{5}
+\]
+这是二维基变换的代数恒等式，并非修改天区。保存原头、规范化矩阵及数值误差身份；角度转换/旋转的舍入不得算作零。独立新 fixture 已将非180°、精确双极点与 WCSLIB 对照（§6）。未经证明与式(5)等价的 native rotation 不走此入口。
+
+单射首选用有向舍入的多项式/ Bernstein 导数界计算 \(L=\sup_U\|\nabla D\|_\infty<1\)。更广的充分条件是选择固定可逆 H，证明
+\(\eta=\sup_U\|I-HJ_F(u)\|_\infty<1, F=u+D\)：将 HF 写成恒等加压缩扰动即得全局单射，且
+\(\|u-v\|_\infty\le\|H\|_\infty\|F(u)-F(v)\|_\infty/(1-\eta)\)。H=J_F(u_c)⁻¹ 可改善强畸变的充分证书。不得把相邻小块各自单射当成全域单射；若选择分片，还需所有片的像无重复及边界一致证明。det J 在采样点均非零也不够：`exp(u)(cos v,sin v)` 在完整2π条带处处 det>0，首尾仍映同一点。
+
+### 3.2 完整微分、面积与连续足迹接口
+
+令 \(F=u+D(u), J_F=I+\nabla D,\ q=CF,\ s=\sqrt{1+q^Tq}, E=[e,n_N]\)。由单位向量归一化的微分直接得到
+\[
+J_W={\partial n\over\partial(x,y)}={(I-nn^T)ECJ_F\over s}\quad[\mathrm{rad/pixel}],
+\quad g=\sqrt{\det(J_W^TJ_W)}=
+{|\det C|\,|\det J_F|\over(1+q^Tq)^{3/2}}\quad[\mathrm{sr/pixel^2}].\tag{6}
+\]
+向量导数实际是 dimensionless/pixel；rad 是角误差的标注。面积是 \(\int_Pg\,du\,dv\)，不取中心 g 乘面积冒充真值。导数及 Hessian 从同一个多项式解析生成；点导数、区间导数、g 包围必须对应同一模型。数值有限差分用于外部验证，不是正式导数或误差界。
+
+矩形边 p(t)=a+tb，t∈[0,1] 代入 CF，给 d 阶一维多项式曲边；输出幂/Bernstein系数、方向、参数域及系数区间，而非只交四个 sky corners。单射保证四边形成 Jordan 曲线；共同边使用相反方向的同一个几何对象。FootprintProvider 对一般复合/缺孔足迹保留各有向环与原生收集区域，几何模块按[真实球面算法](SPHERICAL_DRIZZLE.md)求面积/交叠。点 API 成功不够资格返回 certified footprint。
+
+### 3.3 逆函数的数值停止和存在性
+
+逆投影要求 dc=n·c>0。天空在背半球、horizon 或与其舍入区间相交时分别返回 `outside_tangent_hemisphere` 或 `projection_unresolved`，不使用 abs(dc) 放行。Newton 初值可为线性解或 AP/BP，采用解析 J、残差下降阻尼和有限迭代；不收敛保留状态，可切换有界 interval Newton/区间根隔离。
+
+在全域 L<1 的情况下，计算候选 û 的多项式残差**包围** ε=||F(û)−z||∞。取局部闭球 V⊂U、r>ε/(1−L)，则 T(v)=z−D(v) 满足 `T(V)⊂V` 且为压缩映射，故存在唯一根，距离≤ε/(1−L)。实现同时检查 V⊂U；贴域边界而根盒跨界时报告 `inverse_domain_boundary_unresolved`，不 clamp。预条件证书以 H、η 给对应界。返回根盒、像素误差及 forward sky 残差，不能只以一次步长小停止。
+
+该界条件于目标切平面 z。对天空/旋转/CD 运算引入的 q 区间 δq，另加
+\(\|C^{-1}\|_\infty\|\delta q\|_\infty/(1-L)\)；其中
+\(\partial q/\partial n=(E^T-qc^T)/(n\cdot c)\)。参考代码把 rounded z 的多项式根界与外部天空总误差分列，没有把前者伪装成总误差。正式 C++ 使用有保证的区间线性求解/三角函数，或将未认证运算明确标为 approximate。真实 WCS 参数估计误差通过共享参数 Jacobian/非线性模拟另传；本节数值逆证明不覆盖模型偏差。
 
 ## 4. crop、bin、Bayer 与手性
 
@@ -98,6 +147,12 @@ pixel_measure(WcsModel, DetectorRectangle, area_budget) -> AreaInterval[sr]
 \(D_{new}(u)=M^{-1}D_{old}(M u)\)。这给出非对称 SIP 的完整基变量变换；只改 CD 不改 SIP 系数一般错误。Bayer/demosaic 是具有不同 response 与相关性的观测算子，不是无损的“换头”。
 
 sum-bin 的真实收集核是各输入 P_i 之和；用大矩形 WCS 只描述覆盖，并不消除不同 PRF、缺像元或读噪次数。硬件 bin 与软件 bin 的读噪模型不同。
+
+特别是 Bayer 子格的 `M=2I` 只表达采样格；它的单个 photosite 仍收集原 detector 的1×1区域，在 channel 坐标对应 `center±.25`，不是 `center±.5`。`DetectorFootprint` 必须显式携带这一面积域；普通原生矩形像元才由整数中心默认 `±.5`。掩掉的 bin 成员产生有缺孔的 footprint/PRF；demosaic 输出的核是原观测核的线性组合，通常不能再解释为互不重叠的新物理像元。
+
+令原观测的重组为 x′=Gx，则真实收集核 P′=GP、C′=GCGᵀ；PRF 相对像内响应必须随面积变量换元，不能只复制一份“新PRF”。sum-bin 的 G 元为1，mean-bin 再除成员数；信号与单位说明是否是积分或平均。软件12像元各读一次且每次读噪方差4时，总方差48；理想硬件先合电荷后单读为4，实际硬件需真实读出电路模型。模型含共享读噪/IPC 时按 C 完整传播。线性去马赛克若输出共用同一原像元，C′非对角；非线性/数据依赖去马赛克须保存实际线性化/模拟条件，不能发出虚假独立噪声。
+
+这里 GP 在一般重采样中是**有效观测核**；G 带负系数时不能再称非负收光概率。mean-bin 若要交给要求积分 x 的 Drizzle 入口，先乘有效成员数还原sum及其平方方差尺度，或使用明确的平均强度入口与对应面积；不能将mean数值和大矩形Ω直接混用。demosaic/G 的复合核不能靠取footprint并集恢复，首期严格路径保留原始观测及G，使用组合算子 R G 传播，或直接在原生通道footprint上投影。
 
 ## 5. Export 的坐标与科学量闭环
 
@@ -124,12 +179,140 @@ FITS `BUNIT` 明确对应 L/sr 或 L；非标准模型单位不伪装成标准 S
 
 IPV 迭代逆接口的 +1 已由 1003 点生产函数探针对照确认；详细位置、调用可达性与 detector 半像元疑点见[独立证据 §3](INDEPENDENT_ORACLES.md)。不把该接口错误扩大成“当前所有 CLI 星位都偏1像元”。crop/bin/flip/transpose 用复合 WCS 对拍，真实 FITS 读写与 HiPS 第三方生产者方向仍需单独验证。
 
+第二轮独立实现 [round2_wcs_contract.py](../../../实验/science-foundation/oracles/round2_wcs_contract.py) 不 import 第一轮坐标或几何实现；[实际结果](../../../实验/science-foundation/evidence/round2_wcs_contract.json) 含完整新头、环境、源码hash及运行数。7个新构型各303个前向点共2121点，CRPIX=(17.293,41.617)、SIP2/3/4/5/7/9、精确双极点、RAwrap、PC+CDELT、非180° LONPOLE、缺省LONPOLE的双极点及0.3°/pixel宽场。10种连续变换（含3×4 bin与四个Bayer相）各200点；不同于第一轮 fixture。
+
+| 本轮独立验证 | 实际结果与证据边界 |
+|---|---|
+| 自写 forward 对 Astropy7.1.0/WCSLIB8.4 | 最大1.403×10⁻¹⁵rad；2121点，含足迹边缘与参考点；有限测试不是全域机器证明 |
+| LONPOLE规范化后外库坐标 | 最大8.429×10⁻¹⁶rad；覆盖107/191/0/270/11°及精确两极 |
+| 自写逆对外库世界真值 | 最大2.201×10⁻⁹pixel；rounded z的多项式根界最大8.306×10⁻¹¹pixel，二者不混同；每个内部点的存在/单射充分判据满足 |
+| 解析 J_W/g 对外库四阶中心差分 | 最大相对差6.727×10⁻⁸ /1.051×10⁻⁷；差分本身有截断及浮点误差，不能称这些为解析导数的严格误差界 |
+| 连续四条边多项式对外库 | 每构型84个点，不以四角替代曲边；完整系数由脚本构造，面积返回自然区间 |
+| 无SIP非中心像元面积 | 独立70位球面三角 excess 对照积分及自然区间；SIP的12/20阶Gauss差只作数值诊断，不当认证余项 |
+| 10种变换链 | 最大世界差6.343×10⁻¹⁶rad，g换元相对差≤2.590×10⁻¹⁵；Bayer此项仅验证坐标格，收光面积另外定义 |
+| 新crop负例 | 不更新CRPIX产生至少8.097×10⁻⁵rad绝对错位；只改bin的CD而不变换SIP最大1.095×10⁻⁶rad |
+| 精确北极省略LONPOLE的负例 | 一概默认180°替代标准0°，本构型最大错位6.735×10⁻⁴rad；极点CRVAL本身仍相同，单检查参考点不能发现 |
+| 输入负例 | FK5/PV/lookup/非TAN/10阶/过宽域/NaN具名拒绝；已折叠SIP构型正确返回充分证据不足，不冒称已检测全部fold |
+| 原生产证据身份 | 三个WCS生产TU字节hash仍与第一轮最小探针一致；本轮只复核身份及源码，不冒称重新执行CLI |
+
+脚本初次运行出现区间端点至NumPy类型转换错误、以及Astropy禁止在FITS头写NaN（负例应在解析前的普通输入映射构造）；两次失败文件保留为 `round2_wcs_failed_*.json`。它们是研究脚本输入/类型失败，未生成科学成功结果；最终数值证据来自修正后完整实跑。
+
 HST coadd 只能作为已知有效 PSF 与分辨率的**条件场景**。若模拟目标仪器 PSF，须从 `P_HST * K=P_target` 求可实现的额外退化核；未证明该卷积关系时不能直接再卷一个“目标 PSF”并称无 PSF 宇宙真值。未知高频不可恢复，真实 M42、DCR、PSF 尾、滤镜角入射和亚像元 PRF 均须实测。
 
-## 7. 一手依据
+## 7. 重新开发的公共科学接口
+
+以下是最小数学接口，类型名与字段语义冻结；容器、allocator、调度和磁盘协议不在本阶段定义。所有实数默认 binary64，角以rad、面积以sr、像素长度以声明的 detector 单位；累计与包含原语另按几何规范决定更高精度/有向舍入。接口不通过隐式double重载转换原点。`Result<T>` 同时返回值、状态与所含数值/物理误差身份，失败时不得给可被误认成功的任意坐标。
+
+```cpp
+struct PixelCenter0 { double x, y; };       // 实数，首像元中心0
+struct PixelEdge0   { double x, y; };       // 同一连续平面中的边界点
+struct FitsPixel1   { double x, y; };       // 仅在FITS/WCS边界 p1=p0+1
+struct SkyICRS     { double nx, ny, nz; }; // 有限单位向量；不以RA决定极点
+
+struct WcsModel {
+  Vec2 crpix_fits1; Mat2 cd_rad_per_pixel; Vec3 c,e,north;
+  Polynomial2D sip_a, sip_b; DetectorDomain domain;
+  InjectivityCertificate injectivity; NumericError normalization_error;
+  AstrometricContext epoch_frame_observer; ModelIdentity identity;
+};
+struct DetectorFootprint {
+  ModelRef wcs; OwnedDirectedRings detector_rings; // 原生收光域，有洞可多个环
+  ResponseRef pixel_response; SourceIdentity source; // PRF/response，非几何面积权
+};
+struct SphericalAreaInterval {
+  double lower_sr, upper_sr; BoundIdentity simultaneous_bound;
+};
+struct HealpixLeaf { uint32_t order; uint64_t ipix; }; // ICRS/NESTED，不是tile行列
+struct OverlapContribution {
+  SourceIdentity source; HealpixLeaf leaf;
+  SphericalAreaInterval native_area, drop_area, overlap_area;
+  ConstraintRef shared_geometry_constraints; // a≤A≤Ω及同source分割约束等
+};
+struct GeometryBudget {
+  OwnedQuantityRequests requested_functionals; // 量/单位/容差/有效支持条件
+  OwnedLeafAreaLimits per_leaf_absolute_area; // [sr]，由εB/εflux/εcov反推
+  uint64_t max_work, max_bytes; uint32_t max_depth;
+  NumericPrimitivePolicy arithmetic; // 保证/近似及其误差，非fast-math默认
+};
+struct GeometryStatus {
+  Termination termination; // tolerance_met / work / depth / precision / unsupported
+  BoundValidity bound_validity;
+  SupportState support;   // absent / positive / bounded_undecided
+  OwnedUnresolvedDomains unresolved; // 明确位置及面积上界，不能只存总数
+};
+struct DrizzleOperator {
+  OwnedSparseRows rows; OwnedSourceIndex source_index; // R_pj [sr^-1]
+  OwnedGeometryBounds bounds; ConstraintRef geometry_constraints;
+  SupportMap support; GeometryStatus status;
+};
+struct SignalEstimate {
+  OwnedValues signal; SignalUnit unit; EstimatorDefinition estimator;
+  OwnedIntervals numerical_bounds; SupportMap support;
+  ResponseRef effective_response; ErrorIdentity error_identity;
+  NoiseModelRef noise; // absent/unknown不改变合法负signal与有限零
+};
+struct NoiseModel {
+  SignalUnitSquared unit; Condition condition;
+  OwnedIndependentBlocks innovations; OwnedSharedFactors shared_factors;
+  OwnedInfluenceOperators influence; OwnedUnknownTerms unknown_terms;
+  NoiseState state; // known / conditional / approximate / unknown
+};
+struct CovarianceAction {
+  NoiseModelRef model; OwnedOperatorChain influence;
+  DomainAndUnits input_output; ApproximationBound omitted_action;
+  OptionalAbsoluteFactorAction absolute_factor_bound;
+  OptionalSpectralNormBound operator_norm_upper;
+};
+```
+
+`FootprintProvider` 是 WcsModel 的数值几何能力入口，TAN/SIP是首期具体实现。未来非TAN或lookup模型只有同时实现以下包含接口、给出有效域及全局单射/可分片证据，并由独立Oracle验证后，才可作为新实现注册；仅能 point_forward 的对象只能用于点查询，不能流入严格Drizzle。
+
+```text
+make_wcs(header, detector_domain, astrometric_context) -> Result<WcsModel>
+to_fits(PixelCenter0|PixelEdge0) -> FitsPixel1                // 唯一+1边界
+from_fits(FitsPixel1) -> 指定角色的0基坐标                   // 唯一-1边界
+forward(model, center|edge, sky_budget) -> Result<SkyICRS>
+inverse(model, SkyICRS, pixel_budget) -> Result<PixelCenter0,root_box,residual>
+derivative(model, point) -> Result<Mat3x2,J_error>             // 同一连续W
+solid_angle_jacobian(model, detector_box) -> Result<Interval> // sr/pixel²
+footprint(provider, DetectorFootprint, pixfrac) -> Result<OwnedCurvedBoundary>
+    boundary_interval(curve, t_interval) -> EnclosedSkyRegion
+    forward_interval(detector_box) -> EnclosedSkyRegion
+    derivative_interval(detector_box) -> EnclosedMat3x2
+    measure(detector_region, GeometryBudget) -> SphericalAreaInterval,status
+compute_overlap(provider, footprint, HealpixLeaf/order, GeometryBudget)
+    -> OwnedOverlapContributions,GeometryStatus
+build_drizzle(overlaps, SourceSignals) -> DrizzleOperator,SignalEstimate
+apply(R,x), transpose_apply(R,v) -> OwnedValues
+covariance_apply(CovarianceAction,v) -> OwnedValues             // Cv
+quadratic_form(CovarianceAction,t) -> variance_or_unknown       // tᵀCt
+geometry_covariance_bound(CovarianceAction, operator_error)
+    -> BoundOrUnavailable // 需要绝对因子action或可信谱界，普通Cv不够
+```
+
+每个字段的数学责任与下游约束如下，面积/算子误差的细算由[几何规范](SPHERICAL_DRIZZLE.md)拥有，随机误差action由[统计规范](STATISTICS_SKY_COADD.md)拥有，以下不另定义一套估计量。
+
+| 类型 | 输入/输出与数学责任 | 所有权、寿命、精度与失败 |
+|---|---|---|
+| PixelCenter0 / PixelEdge0 / FitsPixel1 | 前两者共享连续数轴但角色不同；FitsPixel1只过外部边界。检测/PSF/Gaia预测、孔径及Drizzle均使用同一Center0 | 小值对象按值；非有限拒绝。角色改变显式，不因“边缘”自动+.5；旧sdet的首中心.5属于另一原点，需显式−.5入口适配 |
+| SkyICRS | 坐标向量+外附观测历元/传播条件；匹配、WCS、HEALPix唯一公共天空对象 | 按值；检查归一误差并纳预算，零向量拒绝。不能静默把apparent/topocentric与ICRS混同 |
+| WcsModel | 拥有规范化系数、原始身份、域和连续单射证书；点/导数/面积共享同一F | 不可变拥有数据，可共享只读。调用不保留临时header指针；域外及不支持模型具名失败，不能丢畸变后降级 |
+| DetectorFootprint / FootprintProvider | 前者定义真实收集域与PRF；后者给连续W及包含运算。drop先在声明detector域收缩，源Ω与drop A分别计算 | 拥有rings，model/response引用为有寿命的只读共享句柄。像元改变/缺孔不只改shape；provider无认证能力就拒绝严格交叠 |
+| SphericalAreaInterval | 0≤L≤真面积≤U，单位sr；source Ω/drop A/overlap a不可混称area。共同bound/分割约束保留相关性 | 小值+有寿命约束身份；0下界不等于无支持。NaN/负上界/反序拒绝；耗尽仍可保有效bounds |
+| HealpixLeaf | order∈[0,29]，0≤ipix<12·4^order，真实标准叶；共同边零测集另有一致tie规则 | 按值uint64，先检查溢出；混order不能悄悄当同一网格；tile数组方向另定义 |
+| OverlapContribution | 同source的Ω/A复用，同leaf的a和约束生成w=a/A；保留0≤a≤A≤Ω、Σ_leaf a=A的同源约束；source身份关联signal/noise/PSF | 拥有或共享只读面积证据，禁止把重复source引用当独立观测；资源不足位置随status保留 |
+| GeometryBudget / Status | 从εB[L/sr]、εflux[L]、εcov[对应量平方]及孔径functional反推per-leaf绝对面积限额[sr]；停止原因、bounds有效性及支持分类正交 | 请求拥有值/单位/科学functional；不跨调用悬挂span。达到work上限不伪装tolerance_met；科学上足够的未决贡献仍标bounded_undecided；positive但N过小另记weak_support |
+| DrizzleOperator | 具体名义R及其允许集合，单位sr⁻¹；同一R作用signal/PSF/noise/basis，附N与原始几何约束 | 拥有CSR/因子及source index，输入span仅借用本次调用。输出行不能只归一中点就丢bounds；无支持行无可用R |
+| SignalEstimate | 具名signal、响应、支持、单位及数值包围；面亮度[L/sr]与支持积分[L]分开 | 拥有数组/区间，缺noise仍可出signal；unsupported/未收敛不填0，真实0/负值保留；field bounds不声称联合独立 |
+| NoiseModel | 独立创新、共享母版/Gaia/sky参数及同数据影响组成同一个随机变量模型 | 所有因子/算子链有拥有寿命；shared_id相同即同误差，不按frame重置。未知项保留，非零影响触及未知项即full variance未知 |
+| CovarianceAction | `v→L C₀ Lᵀv`、局部/低秩action及孔径quadratic form，避免N²存储 | 拥有模型/算子依赖，按请求流式取块；只读可并发、scratch由调用者拥有，无隐藏可变全局缓存。截断/近似有显式action界，无界则approximate；同数据sky须含交叉项 |
+
+这些接口以独立合成观测即可复现：提供上述输入头/连续域/footprint、具名线性signal与已知创新噪声，验证forward绝对坐标、真面积包围、同一R和CovarianceAction，而无需理解旧调度器。真实HST/M42需要验证的物理模型仍如§1、§6及另外两分册所列。
+
+## 8. 一手依据
 
 1. [FITS 4.0，§3.3.2、§8.1–8.2、式(9)–(10)](https://fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.pdf)：整数数组索引与像元中心、WCS 级联；采用其一基外部定义。
-2. [Greisen & Calabretta 2002，§2，DOI 10.1051/0004-6361:20021326](https://arxiv.org/abs/astro-ph/0207407)；[Calabretta & Greisen 2002，TAN 与天球旋转](https://arxiv.org/abs/astro-ph/0207413)：采用成熟 WCS，不自行发明天球坐标。
+2. [Greisen & Calabretta 2002，§2，DOI 10.1051/0004-6361:20021326](https://arxiv.org/abs/astro-ph/0207407)；[Calabretta & Greisen 2002，§2.2–2.3、§5.1.3](https://arxiv.org/abs/astro-ph/0207413)：TAN、天球旋转及精确北极LONPOLE缺省例外；采用成熟 WCS，不自行发明天球坐标。
 3. [SIP registered convention，§2–3、式(1)–(6)及§6](https://fits.gsfc.nasa.gov/registry/sip/SIP_distortion_v1_0.pdf)：CRPIX 相对基变量、先 SIP 后 CD和近似逆误差限制。
 4. [Astropy WCS conventions](https://docs.astropy.org/en/stable/wcs/index.html)：完整 WCS 外部数值对照，不能用自写正逆互相证明。
 5. [IVOA HiPS 1.0，§3–4](https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf)：层级及 tile 序列化；不等价于科学面积算法已验证。

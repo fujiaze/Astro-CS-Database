@@ -1,0 +1,128 @@
+{
+  "command": "python \u5b9e\u9a8c/science-foundation/oracles/round2_mp_fallback_independent_review.py",
+  "source_sha256": {
+    "round2_mp_fallback_independent_review.py": "7c43ea9b13069d61cdabda5301099148d94bf099c9303f2ccfdf2ee24220491d",
+    "round2_mp_affine_fallback.py": "b5ceb56a00d810f7ad54a7f22c262b1ecf576ae81d3b3278f8ff2af7e328b924",
+    "round2_science_budget.py": "b0e708a89f5b8a76a63d10343b4f1d55d40b5264040bb56179b1661afddfa30d",
+    "round2_sliver.py": "572c87cc96e080b0c4bd2013fc3118793c8638e12aa7509783004b19d2b00668"
+  },
+  "reviewed_evidence": {
+    "path": "round2_mp_affine_fallback.json",
+    "sha256": "f335113322c159b0cd3ef4ed8c68d952ceab47e9460e004d0160bae6aefc71a6",
+    "all_recorded_source_hashes_match_current": true
+  },
+  "dyadic_ledger_independent_signed_rational_cases": 100,
+  "seed": 11120261021,
+  "qualification": "Source/analytic review; TAN solve independently rerun. SIP expensive solve only hash-verified and independently checked, not rerun. MP quadrature convergence is a numerical check, not an interval certificate.",
+  "cases": [
+    {
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 1,
+        "NAXIS2": 1,
+        "CTYPE1": "RA---TAN",
+        "CTYPE2": "DEC--TAN",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "RADESYS": "ICRS",
+        "CRVAL1": 45.0,
+        "CRVAL2": 0.0,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.4971352110243459,
+        "CD1_1": 0.002,
+        "CD1_2": 0.0,
+        "CD2_1": 0.0,
+        "CD2_2": 0.002
+      },
+      "native_area_independent_mp_quad_sr": "0.000000001218469678225278339914654956931831713426757491459621985370848614547477938911027978739057366090428906",
+      "quad_70_to_110_abs_difference_sr": "9.61248530880854421539166032333e-81",
+      "independent_normalization_within_reported_interval": true,
+      "reported_overlap_contains_independent_analytic_interval": true,
+      "reported_geometry_nodes": 33,
+      "reported_geometry_status": "area_width_met",
+      "science": [
+        {
+          "sign": 1,
+          "true_flux_L": "9668662.8001451543886891318726767786269253742857365",
+          "actual_midpoint_error_L": "0.0002982805665606751656462344458133746225596",
+          "predicted_error_bound_L": 0.0022216193953550557,
+          "science_target_L": 0.01,
+          "science_tolerance_met_exact_rational": true
+        },
+        {
+          "sign": -1,
+          "true_flux_L": "-9668662.8001451543886891318726767786269253742857365",
+          "actual_midpoint_error_L": "0.0002982805665606751656462344458133746225596",
+          "predicted_error_bound_L": 0.0022216193953550557,
+          "science_target_L": 0.01,
+          "science_tolerance_met_exact_rational": true
+        }
+      ],
+      "independently_rerun_TAN": {
+        "status": "area_width_met",
+        "evaluated_nodes": 33,
+        "maximum_active_queue": 2,
+        "deepest_level": 5,
+        "outward_dyadic_ledger_bits": 256,
+        "seconds": 0.055891399999381974,
+        "area": {
+          "lower": 1.1780972447989291e-14,
+          "upper": 1.1780972453235024e-14,
+          "width": 5.2457325376588546e-24,
+          "exact": [
+            "682071706499969733599857647140003186617540119988361905436692345/57896044618658097711785492504343953926634992332820282019728792003956564819968",
+            "1364143413607353726025977290808092823482555150145900774684449537/115792089237316195423570985008687907853269984665640564039457584007913129639936"
+          ]
+        },
+        "contains_analytic_truth": true
+      }
+    },
+    {
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 1,
+        "NAXIS2": 1,
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "RADESYS": "ICRS",
+        "CRVAL1": 45.0,
+        "CRVAL2": 0.0,
+        "CRPIX1": 1.0,
+        "CRPIX2": 1.4971352110243459,
+        "CD1_1": 0.002,
+        "CD1_2": 0.0,
+        "CD2_1": 0.0,
+        "CD2_2": 0.002,
+        "A_ORDER": 2,
+        "B_ORDER": 2,
+        "A_0_2": 0.07
+      },
+      "native_area_independent_mp_quad_sr": "0.000000001218469678223126960302948245520780707537269581263086878468168591430996251882732959146114682483567471",
+      "quad_70_to_110_abs_difference_sr": "2.07253224069093499156630605385e-81",
+      "independent_normalization_within_reported_interval": true,
+      "reported_overlap_contains_independent_analytic_interval": true,
+      "reported_geometry_nodes": 14089,
+      "reported_geometry_status": "area_width_met",
+      "science": [
+        {
+          "sign": 1,
+          "true_flux_L": "9668662.8001622257728954529439317169380208076971881",
+          "actual_midpoint_error_L": "0.000009932975886717153728470674572978678337486",
+          "predicted_error_bound_L": 0.0025752144769010965,
+          "science_target_L": 0.01,
+          "science_tolerance_met_exact_rational": true
+        },
+        {
+          "sign": -1,
+          "true_flux_L": "-9668662.8001622257728954529439317169380208076971881",
+          "actual_midpoint_error_L": "0.000009932975886717153728470674572978678337486",
+          "predicted_error_bound_L": 0.0025752144769010965,
+          "science_target_L": 0.01,
+          "science_tolerance_met_exact_rational": true
+        }
+      ]
+    }
+  ]
+}

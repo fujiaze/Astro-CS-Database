@@ -1,0 +1,671 @@
+{
+  "identity": {
+    "seed": 11120261021,
+    "python": "3.12.2",
+    "astropy": "7.1.0",
+    "wcslib": "8.4",
+    "numpy": "1.26.4",
+    "source_sha256": "46575458c6ceeadb215c68842a4c3a702c6849345708cfcc0692437da3fbd886"
+  },
+  "new_fixture_policy": "no first-round coordinate fixture or implementation imported",
+  "forward_derivative_inverse": [
+    {
+      "name": "south_mid_d5",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 81,
+        "NAXIS2": 53,
+        "RADESYS": "ICRS",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "CRPIX1": 17.293,
+        "CRPIX2": 41.617,
+        "CRVAL1": 271.113,
+        "CRVAL2": -44.217,
+        "LONPOLE": 107.0,
+        "CD1_1": -0.00041,
+        "CD1_2": 0.0001271,
+        "CD2_1": 7.79e-05,
+        "CD2_2": 0.0003403,
+        "A_ORDER": 5,
+        "B_ORDER": 5,
+        "A_2_0": 0.0001375,
+        "A_1_1": -8.750000000000001e-05,
+        "A_0_2": 5e-05,
+        "A_5_0": 7.324218750000001e-11,
+        "B_2_0": -7.500000000000001e-05,
+        "B_1_1": 0.0001,
+        "B_0_2": -0.0001125,
+        "B_0_5": -4.8828125000000004e-11
+      },
+      "points": 303,
+      "max_forward_angle_rad": 1.0093780381852434e-15,
+      "max_inverse_absolute_error_pixel": 1.2225598311488284e-10,
+      "all_inverse_status_root": true,
+      "max_inverse_polynomial_root_bound_pixel": 3.642410337771711e-11,
+      "max_inverse_forward_angle_residual_rad": 2.827652477718069e-16,
+      "max_derivative_external_relative_difference": 4.6666109294294035e-09,
+      "max_solid_angle_jacobian_external_relative_difference": 4.604569544979482e-09,
+      "max_lonpole_canonicalization_angle_rad": 6.933904780302689e-16,
+      "fits0_1_world_difference_deg": 0.0,
+      "omit_plus1_min_max_angle_rad": [
+        8.796058982652731e-06,
+        8.902576510204064e-06
+      ],
+      "sip_L_infinity_upper": 0.0372083494732108,
+      "qnorm_upper": 0.0007244205455764165,
+      "footprint_area_sr_GL12": 4.574488776777327e-11,
+      "footprint_area_GL12_GL20_difference_sr": 6.462348535570529e-26,
+      "footprint_area_natural_interval_sr": [
+        4.57286813500421e-11,
+        4.576108175155653e-11
+      ],
+      "GL_comparison_is_not_certified_error_bound": true,
+      "continuous_four_edge_polynomials_points": 84,
+      "max_edge_polynomial_external_angle_rad": 1.0697267644506147e-15
+    },
+    {
+      "name": "north_exact_d7",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 81,
+        "NAXIS2": 53,
+        "RADESYS": "ICRS",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "CRPIX1": 17.293,
+        "CRPIX2": 41.617,
+        "CRVAL1": 14.713,
+        "CRVAL2": 90.0,
+        "LONPOLE": 191.0,
+        "CD1_1": -0.00017,
+        "CD1_2": 5.27e-05,
+        "CD2_1": 3.2300000000000006e-05,
+        "CD2_2": 0.00014110000000000001,
+        "A_ORDER": 7,
+        "B_ORDER": 7,
+        "A_2_0": 0.0001375,
+        "A_1_1": -8.750000000000001e-05,
+        "A_0_2": 5e-05,
+        "A_7_0": 1.1444091796875e-14,
+        "B_2_0": -7.500000000000001e-05,
+        "B_1_1": 0.0001,
+        "B_0_2": -0.0001125,
+        "B_0_7": -7.62939453125e-15
+      },
+      "points": 303,
+      "max_forward_angle_rad": 3.8936571337851686e-16,
+      "max_inverse_absolute_error_pixel": 1.482760580984177e-10,
+      "all_inverse_status_root": true,
+      "max_inverse_polynomial_root_bound_pixel": 2.9645199484776407e-11,
+      "max_inverse_forward_angle_residual_rad": 9.316081322566641e-17,
+      "max_derivative_external_relative_difference": 5.41910283093134e-09,
+      "max_solid_angle_jacobian_external_relative_difference": 6.165732960265841e-09,
+      "max_lonpole_canonicalization_angle_rad": 1.1737719403576166e-17,
+      "fits0_1_world_difference_deg": 0.0,
+      "omit_plus1_min_max_angle_rad": [
+        3.648095411244417e-06,
+        3.6885380773059054e-06
+      ],
+      "sip_L_infinity_upper": 0.03659719844218052,
+      "qnorm_upper": 0.000292459065899126,
+      "footprint_area_sr_GL12": 7.86543393431474e-12,
+      "footprint_area_GL12_GL20_difference_sr": 4.8467614016778965e-27,
+      "footprint_area_natural_interval_sr": [
+        7.862712999573722e-12,
+        7.868153930766547e-12
+      ],
+      "GL_comparison_is_not_certified_error_bound": true,
+      "continuous_four_edge_polynomials_points": 84,
+      "max_edge_polynomial_external_angle_rad": 3.771447547799115e-16
+    },
+    {
+      "name": "south_exact_d9",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 81,
+        "NAXIS2": 53,
+        "RADESYS": "ICRS",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "CRPIX1": 17.293,
+        "CRPIX2": 41.617,
+        "CRVAL1": 223.759,
+        "CRVAL2": -90.0,
+        "LONPOLE": 0.0,
+        "CD1_1": -3.7e-05,
+        "CD1_2": 1.1469999999999999e-05,
+        "CD2_1": 7.03e-06,
+        "CD2_2": 3.0709999999999996e-05,
+        "A_ORDER": 9,
+        "B_ORDER": 9,
+        "A_2_0": 0.0001375,
+        "A_1_1": -8.750000000000001e-05,
+        "A_0_2": 5e-05,
+        "A_9_0": 1.7881393432617187e-18,
+        "B_2_0": -7.500000000000001e-05,
+        "B_1_1": 0.0001,
+        "B_0_2": -0.0001125,
+        "B_0_9": -1.1920928955078126e-18
+      },
+      "points": 303,
+      "max_forward_angle_rad": 1.4028070284062844e-15,
+      "max_inverse_absolute_error_pixel": 2.2002453192726534e-09,
+      "all_inverse_status_root": true,
+      "max_inverse_polynomial_root_bound_pixel": 5.1781253391469765e-11,
+      "max_inverse_forward_angle_residual_rad": 3.562730564011412e-17,
+      "max_derivative_external_relative_difference": 6.726393393100878e-08,
+      "max_solid_angle_jacobian_external_relative_difference": 1.0503393768228149e-07,
+      "max_lonpole_canonicalization_angle_rad": 7.136281487345679e-19,
+      "fits0_1_world_difference_deg": 0.0,
+      "omit_plus1_min_max_angle_rad": [
+        7.938394362800891e-07,
+        8.026193725957944e-07
+      ],
+      "sip_L_infinity_upper": 0.03563286861499419,
+      "qnorm_upper": 5.8910984580745665e-05,
+      "footprint_area_sr_GL12": 3.725949410780133e-13,
+      "footprint_area_GL12_GL20_difference_sr": 5.048709793414476e-29,
+      "footprint_area_natural_interval_sr": [
+        3.7246683422617284e-13,
+        3.727230432212169e-13
+      ],
+      "GL_comparison_is_not_certified_error_bound": true,
+      "continuous_four_edge_polynomials_points": 84,
+      "max_edge_polynomial_external_angle_rad": 4.910953660604492e-16
+    },
+    {
+      "name": "wrap_d2_pc",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 81,
+        "NAXIS2": 53,
+        "RADESYS": "ICRS",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "CRPIX1": 17.293,
+        "CRPIX2": 41.617,
+        "CRVAL1": 359.99987,
+        "CRVAL2": 32.441,
+        "LONPOLE": 270.0,
+        "A_ORDER": 2,
+        "B_ORDER": 2,
+        "A_2_0": 3.7500000000000003e-05,
+        "A_1_1": -8.750000000000001e-05,
+        "A_0_2": 5e-05,
+        "B_2_0": -7.500000000000001e-05,
+        "B_1_1": 0.0001,
+        "B_0_2": -2.5e-05,
+        "CDELT1": -8.1e-05,
+        "CDELT2": 8.1e-05,
+        "PC1_1": 0.9999999999999999,
+        "PC1_2": -0.31,
+        "PC2_1": 0.18999999999999997,
+        "PC2_2": 0.83
+      },
+      "points": 303,
+      "max_forward_angle_rad": 8.483980861398882e-16,
+      "max_inverse_absolute_error_pixel": 6.876739178096614e-10,
+      "all_inverse_status_root": true,
+      "max_inverse_polynomial_root_bound_pixel": 8.305221262326115e-11,
+      "max_inverse_forward_angle_residual_rad": 2.2204460497188333e-16,
+      "max_derivative_external_relative_difference": 2.0544434091599067e-08,
+      "max_solid_angle_jacobian_external_relative_difference": 3.386367842094542e-08,
+      "max_lonpole_canonicalization_angle_rad": 0.0,
+      "fits0_1_world_difference_deg": 0.0,
+      "omit_plus1_min_max_angle_rad": [
+        1.7360079653412954e-06,
+        1.742208001066468e-06
+      ],
+      "sip_L_infinity_upper": 0.022219300000000008,
+      "qnorm_upper": 0.00012822080762614875,
+      "footprint_area_sr_GL12": 1.7804046417649111e-12,
+      "footprint_area_GL12_GL20_difference_sr": 6.058451752097371e-28,
+      "footprint_area_natural_interval_sr": [
+        1.7801260923959915e-12,
+        1.780683174472881e-12
+      ],
+      "GL_comparison_is_not_certified_error_bound": true,
+      "continuous_four_edge_polynomials_points": 84,
+      "max_edge_polynomial_external_angle_rad": 9.649543567812608e-16
+    },
+    {
+      "name": "wide_no_sip",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 81,
+        "NAXIS2": 53,
+        "RADESYS": "ICRS",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CTYPE1": "RA---TAN",
+        "CTYPE2": "DEC--TAN",
+        "CRPIX1": 17.293,
+        "CRPIX2": 41.617,
+        "CRVAL1": 98.713,
+        "CRVAL2": -5.11,
+        "LONPOLE": 11.0,
+        "CD1_1": -0.3,
+        "CD1_2": 0.093,
+        "CD2_1": 0.056999999999999995,
+        "CD2_2": 0.24899999999999997
+      },
+      "points": 303,
+      "max_forward_angle_rad": 7.551608150142993e-16,
+      "max_inverse_absolute_error_pixel": 1.4210854715202004e-13,
+      "all_inverse_status_root": true,
+      "max_inverse_polynomial_root_bound_pixel": 5e-324,
+      "max_inverse_forward_angle_residual_rad": 1.2719202621569005e-16,
+      "max_derivative_external_relative_difference": 3.33347767957313e-12,
+      "max_solid_angle_jacobian_external_relative_difference": 4.1337546804010884e-12,
+      "max_lonpole_canonicalization_angle_rad": 8.428114330848997e-16,
+      "fits0_1_world_difference_deg": 0.0,
+      "omit_plus1_min_max_angle_rad": [
+        0.005910678625078624,
+        0.0064478334513713665
+      ],
+      "sip_L_infinity_upper": 1.5e-323,
+      "qnorm_upper": 0.5080069738153055,
+      "footprint_area_sr_GL12": 2.377075067101681e-05,
+      "footprint_area_GL12_GL20_difference_sr": 6.776263578034403e-21,
+      "footprint_area_natural_interval_sr": [
+        2.3738190227044805e-05,
+        2.3802094939696164e-05
+      ],
+      "GL_comparison_is_not_certified_error_bound": true,
+      "continuous_four_edge_polynomials_points": 84,
+      "max_edge_polynomial_external_angle_rad": 3.6861241147430727e-16,
+      "footprint_independent_70digit_area_sr": "0.00002377075067101680746719662582858768603068626760652949513924157629956005",
+      "footprint_GL12_absolute_true_error_sr": 3.3881317890172014e-21
+    },
+    {
+      "name": "north_default_lonpole_d3",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 81,
+        "NAXIS2": 53,
+        "RADESYS": "ICRS",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "CRPIX1": 17.293,
+        "CRPIX2": 41.617,
+        "CRVAL1": 332.187,
+        "CRVAL2": 90.0,
+        "CD1_1": -0.00025,
+        "CD1_2": 7.75e-05,
+        "CD2_1": 4.75e-05,
+        "CD2_2": 0.0002075,
+        "A_ORDER": 3,
+        "B_ORDER": 3,
+        "A_2_0": 0.0001375,
+        "A_1_1": -8.750000000000001e-05,
+        "A_0_2": 5e-05,
+        "A_3_0": 4.6875e-07,
+        "B_2_0": -7.500000000000001e-05,
+        "B_1_1": 0.0001,
+        "B_0_2": -0.0001125,
+        "B_0_3": -3.125e-07
+      },
+      "points": 303,
+      "max_forward_angle_rad": 3.713535831557246e-16,
+      "max_inverse_absolute_error_pixel": 9.745804163685534e-11,
+      "all_inverse_status_root": true,
+      "max_inverse_polynomial_root_bound_pixel": 1.8671923463072503e-11,
+      "max_inverse_forward_angle_residual_rad": 9.437790363358028e-17,
+      "max_derivative_external_relative_difference": 3.2393483769935573e-09,
+      "max_solid_angle_jacobian_external_relative_difference": 4.367051519961662e-09,
+      "max_lonpole_canonicalization_angle_rad": 1.2246467991473532e-16,
+      "fits0_1_world_difference_deg": 0.0,
+      "omit_plus1_min_max_angle_rad": [
+        5.364467587070847e-06,
+        5.424994588017864e-06
+      ],
+      "sip_L_infinity_upper": 0.03678179525640626,
+      "qnorm_upper": 0.0003984903721536427,
+      "footprint_area_sr_GL12": 1.7000388259440375e-11,
+      "footprint_area_GL12_GL20_difference_sr": 9.693522803355793e-27,
+      "footprint_area_natural_interval_sr": [
+        1.699389197927647e-11,
+        1.700688801439794e-11
+      ],
+      "GL_comparison_is_not_certified_error_bound": true,
+      "continuous_four_edge_polynomials_points": 84,
+      "max_edge_polynomial_external_angle_rad": 3.6546789731517446e-16
+    },
+    {
+      "name": "south_default_lonpole_d4",
+      "header": {
+        "NAXIS": 2,
+        "NAXIS1": 81,
+        "NAXIS2": 53,
+        "RADESYS": "ICRS",
+        "CUNIT1": "deg",
+        "CUNIT2": "deg",
+        "CTYPE1": "RA---TAN-SIP",
+        "CTYPE2": "DEC--TAN-SIP",
+        "CRPIX1": 17.293,
+        "CRPIX2": 41.617,
+        "CRVAL1": 42.691,
+        "CRVAL2": -90.0,
+        "CD1_1": -0.00025,
+        "CD1_2": 7.75e-05,
+        "CD2_1": 4.75e-05,
+        "CD2_2": 0.0002075,
+        "A_ORDER": 4,
+        "B_ORDER": 4,
+        "A_2_0": 0.0001375,
+        "A_1_1": -8.750000000000001e-05,
+        "A_0_2": 5e-05,
+        "A_4_0": 5.859375e-09,
+        "B_2_0": -7.500000000000001e-05,
+        "B_1_1": 0.0001,
+        "B_0_2": -0.0001125,
+        "B_0_4": -3.90625e-09
+      },
+      "points": 303,
+      "max_forward_angle_rad": 1.0830559263541782e-15,
+      "max_inverse_absolute_error_pixel": 2.785753849821049e-10,
+      "all_inverse_status_root": true,
+      "max_inverse_polynomial_root_bound_pixel": 2.668455900519823e-11,
+      "max_inverse_forward_angle_residual_rad": 1.325485489568206e-16,
+      "max_derivative_external_relative_difference": 7.878678274331903e-09,
+      "max_solid_angle_jacobian_external_relative_difference": 1.3999643634403924e-08,
+      "max_lonpole_canonicalization_angle_rad": 0.0,
+      "fits0_1_world_difference_deg": 0.0,
+      "omit_plus1_min_max_angle_rad": [
+        5.3644987788088755e-06,
+        5.430638776925491e-06
+      ],
+      "sip_L_infinity_upper": 0.037188284028384616,
+      "qnorm_upper": 0.00039835638928804016,
+      "footprint_area_sr_GL12": 1.701567181615137e-11,
+      "footprint_area_GL12_GL20_difference_sr": 1.2924697071141057e-26,
+      "footprint_area_natural_interval_sr": [
+        1.7009479205886144e-11,
+        1.7021868670834167e-11
+      ],
+      "GL_comparison_is_not_certified_error_bound": true,
+      "continuous_four_edge_polynomials_points": 84,
+      "max_edge_polynomial_external_angle_rad": 6.773904438109918e-16
+    }
+  ],
+  "affine": {
+    "crop": {
+      "old_from_new_matrix": [
+        [
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "offset_pixel": [
+        11.0,
+        5.0
+      ],
+      "max_angle_rad": 0.0,
+      "max_derivative_chain_abs": 0.0,
+      "max_density_chain_relative": 0.0
+    },
+    "sum_bin3x4": {
+      "old_from_new_matrix": [
+        [
+          3.0,
+          0.0
+        ],
+        [
+          0.0,
+          4.0
+        ]
+      ],
+      "offset_pixel": [
+        1.0,
+        1.5
+      ],
+      "max_angle_rad": 0.0,
+      "max_derivative_chain_abs": 5.6185809422228206e-21,
+      "max_density_chain_relative": 2.258849684967821e-15
+    },
+    "flip_x": {
+      "old_from_new_matrix": [
+        [
+          -1.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "offset_pixel": [
+        80.0,
+        0.0
+      ],
+      "max_angle_rad": 0.0,
+      "max_derivative_chain_abs": 0.0,
+      "max_density_chain_relative": 0.0
+    },
+    "flip_y": {
+      "old_from_new_matrix": [
+        [
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.0
+        ]
+      ],
+      "offset_pixel": [
+        0.0,
+        52.0
+      ],
+      "max_angle_rad": 0.0,
+      "max_derivative_chain_abs": 4.235164736271502e-22,
+      "max_density_chain_relative": 0.0
+    },
+    "transpose": {
+      "old_from_new_matrix": [
+        [
+          0.0,
+          1.0
+        ],
+        [
+          1.0,
+          0.0
+        ]
+      ],
+      "offset_pixel": [
+        0.0,
+        0.0
+      ],
+      "max_angle_rad": 0.0,
+      "max_derivative_chain_abs": 1.8940232492426095e-21,
+      "max_density_chain_relative": 2.8231531352856726e-16
+    },
+    "transpose_flip_bin": {
+      "old_from_new_matrix": [
+        [
+          0.0,
+          -4.0
+        ],
+        [
+          3.0,
+          0.0
+        ]
+      ],
+      "offset_pixel": [
+        79.0,
+        1.0
+      ],
+      "max_angle_rad": 0.0,
+      "max_derivative_chain_abs": 4.791541927135544e-21,
+      "max_density_chain_relative": 2.585987832496315e-15
+    },
+    "bayer_00": {
+      "old_from_new_matrix": [
+        [
+          2.0,
+          0.0
+        ],
+        [
+          0.0,
+          2.0
+        ]
+      ],
+      "offset_pixel": [
+        0.0,
+        0.0
+      ],
+      "max_angle_rad": 0.0,
+      "max_derivative_chain_abs": 0.0,
+      "max_density_chain_relative": 2.8270209317939433e-16
+    },
+    "bayer_01": {
+      "old_from_new_matrix": [
+        [
+          2.0,
+          0.0
+        ],
+        [
+          0.0,
+          2.0
+        ]
+      ],
+      "offset_pixel": [
+        0.0,
+        1.0
+      ],
+      "max_angle_rad": 0.0,
+      "max_derivative_chain_abs": 0.0,
+      "max_density_chain_relative": 2.827842251132426e-16
+    },
+    "bayer_10": {
+      "old_from_new_matrix": [
+        [
+          2.0,
+          0.0
+        ],
+        [
+          0.0,
+          2.0
+        ]
+      ],
+      "offset_pixel": [
+        1.0,
+        0.0
+      ],
+      "max_angle_rad": 0.0,
+      "max_derivative_chain_abs": 0.0,
+      "max_density_chain_relative": 2.825968366129154e-16
+    },
+    "bayer_11": {
+      "old_from_new_matrix": [
+        [
+          2.0,
+          0.0
+        ],
+        [
+          0.0,
+          2.0
+        ]
+      ],
+      "offset_pixel": [
+        1.0,
+        1.0
+      ],
+      "max_angle_rad": 0.0,
+      "max_derivative_chain_abs": 0.0,
+      "max_density_chain_relative": 2.826789188593634e-16
+    }
+  },
+  "negative": {
+    "north_pole_missing_lonpole_incorrect_180_default_max_angle_rad": 0.0006734958744855193,
+    "bin_cd_only_sip_not_transformed_max_angle_rad": 1.027902492893633e-06,
+    "crop_header_unchanged_min_angle_rad": 8.09761631435817e-05,
+    "fk5": "unsupported_frame",
+    "pv": "unsupported_distortion",
+    "lookup": "unsupported_distortion",
+    "zpn": "unsupported_projection_or_axis_order",
+    "order10": "unsupported_sip_order_or_suffix",
+    "overwide": "unsupported_field_domain",
+    "fold": "injectivity_unresolved",
+    "nan": "invalid_sip_coefficient",
+    "back_hemisphere": "outside_tangent_hemisphere",
+    "local_det_nonzero_not_global_injective": {
+      "map": "exp(u)*(cos(v),sin(v)), [u,v] in [-1,1]x[0,2pi]",
+      "jacobian_determinant": "exp(2u)>0 everywhere",
+      "distinct_preimage": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          6.283185307179586
+        ]
+      ],
+      "image_distance": 2.4492935982947064e-16
+    }
+  },
+  "rounding_scope": "polynomial interval root bounds condition on rounded TAN target z; external WCSLIB errors and forward sky residual reported separately",
+  "prf_and_noise": {
+    "sum_bin_integrated_signal": 30.0,
+    "sum_bin_variance": 78.0,
+    "mean_bin_signal": 2.5,
+    "mean_bin_variance": 0.5416666666666666,
+    "expected_mean_variance_sum_div_144": 0.5416666666666666,
+    "software_12_pixel_read_variance_sigma2_4": 48.0,
+    "ideal_hardware_single_read_variance_sigma2_4": 4.0,
+    "bayer_native_photosite_area_pixel2": 1.0,
+    "wrong_bayer_lattice_cell_area_pixel2": 4.0,
+    "linear_demosaic_operator": [
+      [
+        0.5,
+        0.5,
+        0.0
+      ],
+      [
+        0.0,
+        0.5,
+        0.5
+      ]
+    ],
+    "linear_demosaic_covariance": [
+      [
+        1.25,
+        0.75
+      ],
+      [
+        0.75,
+        2.0
+      ]
+    ],
+    "interpretation": "channel extraction selects disjoint original 1x1 sites; 2x2 spacing is not collecting footprint; PRF sum and physical read sequence required"
+  },
+  "prior_production_probe_integrity": {
+    "lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp": true,
+    "lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp": true,
+    "lib/algorithms/photometry/cpp/src/wcs_transform.cpp": true
+  },
+  "prior_centroid_probe_integrity": {
+    "lib/algorithms/star_detection/src/sdet_api.cpp": true,
+    "lib/algorithms/star_detection/src/sdet_image.cpp": true,
+    "lib/algorithms/star_detection/src/nls_lm.cpp": true,
+    "lib/algorithms/psf/src/dpsf_psf.cpp": true,
+    "lib/algorithms/psf/src/dpsf_image.cpp": true
+  },
+  "seconds": 2.0429278000010527
+}

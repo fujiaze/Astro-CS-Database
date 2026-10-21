@@ -40,6 +40,52 @@ I_{F|β}=\|(I-\Pi_{Z_w})h_w\|^2,\quad V_F=1/I_{F|β}.\tag{3}
 
 若 R 满列秩并且 h、Z、C 同时传播，条件信息保持；降秩投影的信息不增加。独立反例：两帧 `h=(.5,.5),v=.5` 与 `h=(.9,.1),v=.82` 有相同 V_F=1，但单叶面亮度权分别2和1.219512。选择权必须匹配目标量。
 
+### 2.1 几何数值界不是另一个随机噪声
+
+面积求解器输出 `[aL,aU]、[AL,AU]、[ΩL,ΩU]`；先按[几何分册](SPHERICAL_DRIZZLE.md)形成同身份的 `w=a/A`、`N=ΣwΩ`、`B=Σwx/N` 与 R 的包含界。`F=Σwx` 为分配积分量，N 是归一有效面积；它们与真实覆盖并集不同。负 x 合法，区间乘法取全部端点积的最小/最大值。`NL=0<NU` 是 `support_unresolved`，不能发布一个有保证的归一 B；`NU=0` 是 `no_support`。`0<NL<Nmin` 可具名 `weak_support`，Nmin 是声明的条件阈值；它和科学误差是否达标是两个状态。正支持上的精确 B=0 是真实零信号，不是无支持。
+
+不把各叶的几何误差设为独立正态分布。R0 为中心算子、`|R−R0|<=E`，固定已知原生 C，记 `ep=E[p,:]、rp=R0[p,:]`，直接展开得
+\[
+ |\Delta C_{pq}|\le
+ e_p^T|Cr_q|+e_q^T|Cr_p|+e_p^T|C|e_q.\tag{3a}
+\]
+该界保留负的 C 元素和共享输入；不是把 `R interval` 的各元素当作可独立随机变化。对任意含负背景环的孔径 t，令 `u0=R0ᵀt、δ=Eᵀ|t|`，则
+\[
+ |V(t^TB)-u_0^TCu_0|\le
+ 2\delta^T|Cu_0|+\delta^T|C|\delta.\tag{3b}
+\]
+面积区间的原始 primitive identity、共享 A/Ω 与每源列和 `Σp wjp=1` 一并保留。完整分配量求和时列守恒使数值误差可消去；逐叶误差独立相加会丢失该信息。面积上界含零仅表示该叶贡献未决，不能宣称存在真实非零支持。在已有可靠正支持上，一个未决 sliver 对科学量的上界低于容差即可保留；sliver 单独存在时无论面积上界多小都不能据此创造归一信号。
+
+式(3b)不需要物化输出大矩阵。原生 `C=Σ LkLkᵀ` 时，可计算 `ηk=|| |Lk|ᵀδ ||2`，用 `Σk[2||Lkᵀu0||2 ηk+ηk²]` 作界。对角/局部/共享稀疏因子的绝对系数 action 可分块计算；不能用会发生正负抵消的普通 C action 代替 `|C|` action。仅有 C action 而没有绝对系数或可信谱范数上界时，正式 covariance 仍可求值，但没有由它自动得到的严格几何扰动界。未知物理噪声项仍为 unknown，面积精确不补出它们。
+
+科学停止条件从实际估计量反推。取 `ew=max|w−w0|、eΩ=max|Ω−Ω0|`，中心 N0、B0 对应同一 w0、Ω0；要求 `NL>0`，且
+\[
+ \sum_j e_{wj}(|x_j-B_0\Omega_{0j}|+\epsilon_B\Omega_{0j})+
+ \sum_j w_{Uj}e_{\Omega j}(|B_0|+\epsilon_B)
+ \le\epsilon_B N_0,\tag{3c}
+\]
+足以保证 `|B−B0|<=εB`，其中分母损失已经计入。实际可用分式盒极值进一步收紧，详见几何分册。常场且 Ω 精确时第一项残差为零；Ω 不精确而输入 x 是独立积分量时，不暗中强加 `x=bΩ` 消掉该项。亮星1e9和 B 绝对容差 .01 的独立例要求交叠相对半径约1e−11，说明统一1%面积误差不是通用科学精度。
+
+### 2.2 几何误差经过 sky 与合成权重求解
+
+选择、T、K、E 及权重固定时，组合 `L=P R` 后重复式(3a–b)，不另加独立 sky 方差。若后续 Export/固定权 coadd 的 action 为 Q，`|Q−Q0|<=EQ`，则 `L=QR` 的包含误差可取 `EL=|Q0|ER+EQ|R0|+EQ ER`，同一 L 同时作用于信号、PSF/response 和 noise；共享 primitive 身份仍保留，盒界只作包含放宽。若 K、GLS 权或控制响应也随几何变化，中心值冻结只定义一个条件估计量，不能声称覆盖了理想几何重算流程；必须传播其线性求解扰动。
+
+通用可实施界：`M0 u0=b0、|M−M0|<=EM、|b−b0|<=eb`，G 为有可审计误差的逆或预条件器。若
+\[
+ \rho=\||I-GM_0|+|G|E_M\|_\infty<1,
+\]
+则
+\[
+ \|u-u_0\|_\infty\le
+ {\|G(b_0-M_0u_0)\|_\infty+
+ \||G|(e_b+E_M|u_0|)\|_\infty\over1-\rho}.\tag{3d}
+\]
+固定 gauge/可估秩后的 sky 增广系统、BLUE 的 `Γq=1,t=q/(1ᵀq)` 都可使用；归一分母还需严格正下界。大型系统使用同一 QR/迭代 action 及可验证预条件器，不要求显式形成稠密逆；无法给出有限 ρ 界时保留条件估计与 `geometry_solve_unresolved`，不靠 ridge 更改目标。秩、接触支持、排异或权重分支在区间内可能改变时，证明分支稳定、包围全部允许分支或报 `selection_unresolved`。固定最终 mask 的 covariance 仍有原有统计选择问题，几何界不消除它。
+
+独立 `round2_science_budget.py` 以标准库有理数实现分式盒极值，和三个各64顶点的独立枚举逐分数相等；八类科学场景及58个真实等面积 chart 矩形目标叶都包含已知真值。它检验已给面积区间的传播，不认证 WCS 相交器。signed 孔径方差真值 `.8369525738`，错误独立输出算法 `4.9512278532`；几何 perturbation 给有限误差界。进一步 BLUE 初始 `ρ=1.27217465` 显式未决，面积半径缩小100倍后 `.01270681` 得有保证区间，再缩小100倍为 `.0001270666`。全部失败、精确端点、精度请求与资源见 `evidence/round2_science_budget.json` 和研究记录 `ROUND2_SCIENCE_BUDGET.md`。确定数学界和这些有限真值检查分开，也不等价于新 C++ 机器浮点的形式化证明。
+
+`round2_cpp_science_bridge.py` 把实际 C++ 原型的六个无SIP构型、九个目标叶接入同一传播，独立60位区间 TAN 球三角计算 Ω/A；构造近1e9/−2 L/sr的亮/暗两贡献，并计算 R 与 covariance 界。B目标 .001 时，fine_subleaf 误差界1.65e−5达标；normal_tan 误差界126–5137、coarse_many_leaf 2408–16877仍为 `science_unconverged`。两个有独立解析交叠真值的例子，真实 B 误差约4961和29980，均落在其更宽预测界内。其他叶没有解析真值，明确仅给条件区间，不把中心值当真值。面积proxy达到要求、几何有界与最终高动态科学精度达标必须分别报告，详见 `evidence/round2_cpp_science_bridge.json`。
+
 ## 3. 亿级叶网格可执行的 covariance 表示
 
 原生模型存
@@ -147,7 +193,7 @@ struct NoiseModel { EstimatorIdentity estimator; Unit variance_unit;
   TermSet included, omitted; Domain observed_support; };
 struct SkyFit { Basis basis; Gauge gauge; Vector beta; LinearAction K,T,E;
   CovarianceAction parameter_cov; RankReport rank; Domain support; };
-struct FrameBlock { FrameId id; TargetGrid grid; Array signal; Mask valid;
+struct ScientificFrameView { FrameId id; TargetGrid grid; Array signal; Mask valid;
   SupportGeometry support; Response response; EffectivePSF psf;
   NoiseModel noise; LinearAction native_to_leaf; SkyFit sky; };
 struct CoaddRequest { FramesProvider frames_and_neighborhood;
