@@ -1,6 +1,6 @@
 # 独立 Oracle、计算证据与科学适用域
 
-**候选科学规范，待另一个外部独立审核者重新推导与验收。** 本轮研究 Agent 和三个独立验证 Agent 的数值检查不构成正式科学验收。基线生产源码 `e7d273ed78b7d118cf8344110b97224af7378b2a`，2026-10-20；最终提交 SHA 记录在 #111 交付评论。本轮不修改生产 C++，不创建重构分支或 PR。
+**候选科学规范，待另一个外部独立审核者重新推导与验收。** 研究及独立验证 Agent 的检查不构成正式科学验收。第一轮生产基线 `e7d273ed78b7d118cf8344110b97224af7378b2a`；第二轮研究基线 `9f0c8bcebd41ccfd74bcda32831ac8eb7ce0d9d0`，2026-10-21，针对[外部审核6294372640](https://github.com/fujiaze/Astro-CS-Database/issues/111#issuecomment-6294372640)继续补证。以下§2–7保留第一轮证据，§8列本轮最终结论和复算入口。生产 C++ 未修改，不创建重构分支或 PR；交付SHA记录在 #111 评论。
 
 ## 1. 阅读入口及证据身份
 
@@ -166,4 +166,80 @@ Export最初每像元60000节点、绝对面积预算2e−5sr仍有未收敛，�
 5. **天光**：纯真实共同梯度阴性、已知正负差模阳性、断连/稀疏支持、异PSF/混Hα+Red负对照；测低频结构保真与留出接缝，禁止只为平缝扣天体色差。
 6. **合成/Export**：N1..7、单/多宇宙线、跨tile拖线、真实时变源；比较无排异和正式基线，记录误拒/漏拒及选择后coverage。独立FITS reader核对CRPIX/BUNIT/响应、部分覆盖的支持积分及二次重采样相关性。
 
-只有上述物理假设被适当真实数据支持、且本候选规范经另一个审核者独立重推与复算认可后，才讨论新核心重构分支。此次提交是完整研究候选与计算证据，不是生产修复、架构发布或正式科学验收。
+算法、数据语义和接口经另一个审核者独立重推与复算认可后，才讨论新核心重构分支；上述物理假设仍需真实数据支持，不能以科学接口定型代替科学产品验收。此次提交是研究候选与计算证据，不是生产修复或架构发布。
+
+## 8. 第二轮：科学预算、严格快速路径与唯一 WCS 合同
+
+### 8.1 数学闭合与有真值的实际计算
+
+`round2_science_budget.py/json` 用精确有理数实现面积→w/F/N/B/R、分式盒极值、科学预算反推、输出互Cov和病态BLUE求解包围。八类场景包括signed、1e9亮星/暗背景、弱扩展、强梯度、partial及极低支持，保留逐次未达标记录；58个已知等面积chart矩形/并集目标叶覆盖RA0、face0/1公共边和北极apex。后者**不是TAN detector fixture**，其面积真值由独立矩形裁剪给出，不能用它们冒称TAN/SIP解算已测。传播总成本约.4秒，非几何耗时。
+
+| 场景 | 目标绝对B误差 | 实际B误差 | 确定预测界 |
+|---|---:|---:|---:|
+| 常场、Ω精确 | 1e−12 | 0 | 0 |
+| 常场、Ω区间 | 1e−5 | 8.41e−7 | 3.37e−6 |
+| 正负场 | 1e−5 | 7.19e−8 | 3.94e−6 |
+| 1e9亮星/暗背景 | .01 | .00046992 | .00926527 |
+| 弱扩展结构 | 1e−10 | 1.22e−12 | 3.38e−11 |
+| 强梯度细结构 | .001 | 8.16e−6 | .00034818 |
+| partial支持 | 1e−4 | 3.45e−6 | 8.14e−5 |
+| 极低正支持 | 1e−4 | 2.76e−6 | 6.51e−5 |
+
+分式盒解与三组各64顶点穷举逐分数相等。signed孔径方差真值 `.8369525738`，错误独立输出方差 `4.9512278532`；九个Cov元素和孔径的实际几何误差均被展开式界包含。BLUE初始几何扰动证书ρ=1.272，正确未决；面积半径缩小100倍后ρ=.01271，再100倍为.0001271。由此确定：几何界不当成额外iid噪声；同一R和组合算子贯穿SNR、sky、coadd、Export，求解/选择随几何变化时不能只冻结中心权。
+
+### 8.2 原 tiny_boundary_sliver 已判明及独立新反例
+
+`round2_original_sliver_refine.py/json` 从独立球面边界积分证明原282/293各为 `[1.7943443981693295e−14,1.7943443981693300e−14] sr`。原A的15001节点、约8秒仍含零并耗尽；B在31941节点、最终计时约39.5秒达到1e−16sr全drop预算，各叶给 `[1.7920708298562244e−14,1.7966119907953488e−14] sr`。另一次先行运行约51.7秒单列保留；不把计时波动解释为算法改进。旧包含零的界没有被删掉，也没有被倒写为已证明正支持。
+
+`round2_sliver.py/json` 独立构造N=1、RA45°顶点附近的新TAN源：严格不交、纯切触、普通正片、tiny正片，以及±1e12信号。用 `dφ dz` 解析根区间和原函数得到真值，另给正内部矩形下界。初始A/B预算失败保留在 `round2_sliver_budget_pilot.json` 及加载源码快照；新的普通正片约4.712388704684e−8sr，两算法均证明正；tiny约1.17809724505e−14sr，初始界仍含0。
+
+正式判据是：有可靠下界才称正支持；已有背景正支持时，小片的最终科学影响在容差内可保留 `bounded_undecided`；超预算必须细化或明确 `science_unconverged`。单独的未决片不发布归一B。±高亮度反例和同一几何界下不同科学停止状态实际执行，而不是列为TODO。完整推导见研究记录 `ROUND2_SLIVER_RESEARCH.md`。
+
+### 8.3 已测 C++ 微原型与独立审核
+
+`round2_affine.cpp` 是标量MPFR有向超越运算、binary64逐运算外包、GMP精确有理裁剪的独立cut-cell原型。主公式和证明在[球面规范 §6](SPHERICAL_DRIZZLE.md)。新算法以区间一阶导数的均值余项夹住真实HPX连续坐标，再解析积分内/外多边形；不是无界四角法。`round2_performance_final_kernel.json` 为最终22组输入的完整实测，包含失败；`--leaf`可只按指定叶请求停止，其他叶的原区间仍返回并单列全叶宽度，不能扩大成功范围。
+
+实测覆盖0.19″至413″原生尺度、N=1…2¹⁸、f=.57…1、TAN/弱强SIP、最多56接触叶、双跨极点、RA/face/转折及256相邻像元。subleaf约.2ms/像元；常规TAN/弱SIP约5–6ms；多叶约75ms；强SIP约.35–.43s且15/16达到所请面积预算；跨极点1001节点耗尽并返回all-sky spill。1e−2→1e−4宽度扫描约7→110ms；1e−6/1e−9在3201节点耗尽。256像元tile导数缓存单线程收益约9–11%，双线程约1.8–1.9倍；进程峰值工作集约5.5–8.1MB（含运行时和整批结果，非纯几何heap）。这是单机微测与特定误差请求，不是千万像元真实吞吐承诺，也不是跨算法同精度speedup。
+
+独立审核实际运行：
+
+- `round2_affine_independent_review_final.json`：新CD=.002°的严格不交、touch、tiny，三个解析真值；touch C++ `[0,4.21e−29] sr` 包含0，tiny正区间约 `[1.17809711e−14,1.17809738e−14] sr`。独立A/B在同一新输入也有正界，原始全源资源失败未抹去。
+- `round2_affine_sip_review_final.json`：额外二阶shear `X=c(u+.07v²),Y=cv`，det=1、有显式逆及侧界余量，证明局部sliver解析真值不变；三路均包围真值。C++极严全源宽度请求未达到，不能只看tiny叶的正下界就宣称全源成功。
+- `round2_cpp_external_membership_final.json`：审核代码不读C++实现，仅消费标准header/request/result；22构型共约147万外部Astropy/WCSLIB/HEALPix点，未发现候选遗漏。iid面积对所有case/全12N²叶联合失败概率1e−4，均相容；独立70位无SIP总面积全部落报告界。采样是置信对照，不是区间包含性证明。
+- `round2_high_order_focus_review.json`：N=2²⁹单叶极小像元用外部成员和独立B、90位解析面积对照；宽像元候选超限明确返回含真总面积的spill；聚焦SIP叶0约385节点/.10秒达到1e−20sr，而其他叶全宽约5.18e−12sr，成功作用域准确保留。
+
+边界修正及失败身份全部保留：初版半宽/面积累计有潜在一ulp漏包围，`round2_performance_initial.json` **撤销bounds资格**，原源码在快照；之后binary64位移半径和spill改逐运算外包。Windows long改int64_t、候选数用除法先限额；大FOV独立外包可产生不可能的赤道格对，按真实 `|a−b|≤N` 排除，消除uint64−1假叶标签。近奇异CD还有确定负例：精确正det却区间符号跨0，旧absdet分支在budget_exhausted下报告上界仍小于真实正面积，证据 `round2_cd_domain_underbound.json` 撤销bounds资格。最终代码显式拒绝；finite输入、SIP单射/60°域与cache工作上限都已有负例。各旧实跑绑定原源码快照；最终两组独立复核重跑C++并明确复用未变的A/B输入与运行，不冒称全部A/B又执行了一遍。
+
+特别记录FITS卡序列化反例：一个已规范化binary64 CD经Header卡再解析后改变约6e−15相对值，极精确区间对比因此不相交。`round2_high_order_focus_header_serialization_failure.json`保留失败；正式同模型复核用标准公开WCS字段保留精确CD值。比较必须锁**解析后的同一数值模型**，不能将FITS卡写入前/后默认当作完全相同输入。
+
+### 8.4 科学精度与模型合同的交接
+
+`round2_cpp_science_bridge_final.json` 将当前C++实际面积界接到完整B/R/Cov，Ω/A由另一实现的60位区间TAN球三角式求出；具名积分信号约对应1e9与−2面亮度。subleaf例达到.001目标，但常规/粗分辨率的高对比输出仍明确未达标。π/12 quarter-face及π/3 full-face给已知逐叶真面积，从而同时核对真实信号和Cov误差。不能把性能扫描的1e−4面积proxy当成最终高动态科学精度。
+
+`round2_focused_budget.json` 把±1e12原生积分、.01分配通量容差反推逐叶面积请求；binary64端点原型6401节点仍未达标的记录保留。由此必须区分空间细化与数值精度升级，不能靠再加同精度节点掩盖精度地板。`round2_mp_affine_fallback.py/json` 已实际完成高精度精细路径：60位区间端点保持到精确Fraction裁剪/矩，再向外量化为2^-256共同dyadic ledger。相同±1e12信号，TAN33节点约.06秒，预测通量半宽.002222，实际误差约.000356；二阶SIP q=.07在14089节点约29–33秒，预测界.002576、实际误差约.000077，均小于.01并包含独立真值。源A另行有界积分并传播，9节点失败与有理分母膨胀的未完成尝试保留。局部reference的准入与inactive约束已证明，不冒称它已实现一般投影/任意SIP的完整高精度内核。
+
+WCS唯一合同已在[观测规范 §3、§7](OBSERVATION_COORDINATES.md)冻结：显式ICRS二维TAN[-SIP]、forward阶数0或2…9、degree头、规范化LONPOLE、可证单射域与60°数值范围、非法/unsupported行为及 `WcsModel/FootprintProvider` 扩展。Bayer真实收光域、PRF及G C Gᵀ、完整逆/导数/g/曲边、所有公共类型的单位/寿命/错误均定义。`round2_wcs_contract.json` 的7个全新构型2121前向点对外库最大1.403e−15rad，逆最大2.201e−9pixel，另2000个crop/bin/flip/transpose/Bayer点及独立面积/反例。新发现精确北极省略LONPOLE应默认0°；一律180°会错约6.735e−4rad，已入规范和反例。
+
+### 8.5 复算、证据身份和裁决边界
+
+主要新增入口（从仓库根运行，输出文件中的源码/输入身份必须一起核对）：
+
+```text
+python 实验/science-foundation/oracles/round2_wcs_contract.py
+python 实验/science-foundation/oracles/round2_science_budget.py
+python 实验/science-foundation/oracles/round2_sliver.py
+python 实验/science-foundation/oracles/round2_original_sliver_refine.py
+python 实验/science-foundation/oracles/round2_performance.py --output 实验/science-foundation/evidence/round2_performance_final_kernel.json
+python 实验/science-foundation/oracles/round2_affine_final_recheck.py
+python 实验/science-foundation/oracles/round2_high_order_focus_review.py
+python 实验/science-foundation/oracles/round2_cpp_external_membership.py
+python 实验/science-foundation/oracles/round2_cpp_science_bridge.py
+python 实验/science-foundation/oracles/round2_focused_budget.py
+python 实验/science-foundation/oracles/round2_mp_affine_fallback.py
+```
+
+C++构建命令和编译器/可执行文件hash在性能JSON的build中；需GCC/OpenMP、MPFR、GMP开发库，本机为MSYS2/Windows amd64。源码不含生产头或生产对象，临时exe不入库。`evidence/round2_manifest.json`记录新文档/研究文件字节及历史源码快照对应关系；第一轮 `manifest.json` 继续作为第一轮交付身份，不重写历史文档hash。
+
+**DERIVED**：面积到signed分式估计、支持/覆盖区别、Cov和求解扰动、affine-strip包含及WCS规范化/导数。**INDEPENDENTLY_TESTED**：上述有限解析真值、A/B重算、C++独立实现/成员及实际微测。**ASSUMPTION**：所用IEEE/MPFR/GMP/mpmath区间原语的正确性、固定WCS/PRF/PSF/response与噪声物理模型。**REQUIRES_REAL_DATA**：§7的真实物理模型及吞吐/星云/孔径/coverage问题。
+
+当前已具备科学接口和有界数值算法的架构设计依据；这不表示全域生产吞吐已验证，亦不自行宣布科学地基正式验收。下一位审核者应从上述标准接口自行产生新真值，重点检验预算反推、高精度fallback、边界支持和真实模型输入身份，再决定能否进入重构设计。#111保持待外部复审，本轮不创建重构分支。

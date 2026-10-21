@@ -15,7 +15,7 @@ doc_index:
     upstream: docs/science/foundation/OBSERVATION_COORDINATES.md
   - path: docs/science/foundation/SPHERICAL_DRIZZLE.md
     status: ACTIVE_INFORMATIVE
-    duty: '#111 候选科学规范：连续曲边与真实HEALPix交叠、面积上下界和同一R；待外部独立审核'
+    duty: '#111 候选科学规范：连续曲边与真实HEALPix交叠、科学误差预算、有界cut-cell及同一R；待外部独立审核'
     upstream: docs/science/foundation/OBSERVATION_COORDINATES.md
   - path: docs/science/foundation/STATISTICS_SKY_COADD.md
     status: ACTIVE_INFORMATIVE

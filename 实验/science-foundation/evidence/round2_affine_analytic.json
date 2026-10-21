@@ -1,0 +1,196 @@
+{
+  "build": {
+    "command": [
+      "C:/msys64/mingw64/bin/g++.exe",
+      "-std=c++17",
+      "-O2",
+      "-fno-fast-math",
+      "-ffp-contract=off",
+      "-fopenmp",
+      "C:\\Users\\fujia\\.codex\\.chatgpt-projects\\g-p-6aceecf685708191affe35f4525d7672\\ACSD-research\\\u5b9e\u9a8c\\science-foundation\\oracles\\round2_affine.cpp",
+      "-lmpfr",
+      "-lgmpxx",
+      "-lgmp",
+      "-lpsapi",
+      "-o",
+      "C:\\Users\\fujia\\AppData\\Local\\Temp\\tmpts23aa3v\\round2_affine.exe"
+    ],
+    "compiler": "g++.exe (Rev4, Built by MSYS2 project) 16.1.0",
+    "source_sha256": "dc8f5d4871ba91248071e3582d4241d486e85532b795b453cd0c61fa097309c9",
+    "executable_sha256": "ae377c7738e28fa5bfa01736ae71cee9f0d475663bb90a25f061e43569d6d1ba"
+  },
+  "cases": [
+    {
+      "request": {
+        "name": "analytic_face_quarter",
+        "header": {
+          "CTYPE1": "RA---TAN",
+          "CTYPE2": "DEC--TAN",
+          "CUNIT1": "deg",
+          "CUNIT2": "deg",
+          "RADESYS": "ICRS",
+          "LONPOLE": 180.0,
+          "CRVAL1": 0.0,
+          "CRVAL2": 0.0,
+          "CRPIX1": 0.5,
+          "CRPIX2": 0.5,
+          "CD1_1": 63.02535746439056,
+          "CD1_2": 0.0,
+          "CD2_1": 0.0,
+          "CD2_2": 63.02535746439056
+        },
+        "nside": 1,
+        "pixfrac": 1.0,
+        "tolerance_sr": 0.00024200000000000005,
+        "relative_width_proxy": 0.0002,
+        "max_nodes": 8001,
+        "side": 1,
+        "cache": 0,
+        "threads": 1
+      },
+      "measurement": {
+        "name": "analytic_face_quarter",
+        "pixels": 1,
+        "seconds": 1.2960638,
+        "us_per_pixel": 1296063.8,
+        "nodes": 8001,
+        "candidate_visits": 9436,
+        "max_leaves": 6,
+        "max_queue": 6001,
+        "peak_process_workingset_bytes": 7991296,
+        "cache_accepted_pixels": 0,
+        "cache_local_retries": 0,
+        "bounded_pixels": 0,
+        "worst_width_sr": 0.0010935582990188866,
+        "first": {
+          "spill_sr": 0,
+          "status": "budget_exhausted",
+          "areas": {
+            "0": [
+              0.31626746248803156,
+              0.3169840334445212
+            ],
+            "3": [
+              0,
+              1.6604665688385009e-06
+            ],
+            "4": [
+              0.26162098078013085,
+              0.2619940294939211
+            ],
+            "5": [
+              0.0009598273510786003,
+              0.0009621051496570888
+            ],
+            "8": [
+              0,
+              1.483593150121979e-10
+            ],
+            "18446744073709551615": [
+              0,
+              2.1523237022176244e-10
+            ]
+          }
+        }
+      },
+      "analytic": {
+        "truth_sr": 0.2617993877991494,
+        "bounds_sr": [
+          0.26162098078013085,
+          0.2619940294939211
+        ],
+        "contains_truth": true
+      }
+    },
+    {
+      "request": {
+        "name": "analytic_complete_face",
+        "header": {
+          "CTYPE1": "RA---TAN",
+          "CTYPE2": "DEC--TAN",
+          "CUNIT1": "deg",
+          "CUNIT2": "deg",
+          "RADESYS": "ICRS",
+          "LONPOLE": 180.0,
+          "CRVAL1": 0.0,
+          "CRVAL2": 0.0,
+          "CRPIX1": 1.0,
+          "CRPIX2": 1.0,
+          "CD1_1": 126.05071492878112,
+          "CD1_2": 0.0,
+          "CD2_1": 0.0,
+          "CD2_2": 126.05071492878112
+        },
+        "nside": 1,
+        "pixfrac": 1.0,
+        "tolerance_sr": 0.0009680000000000002,
+        "relative_width_proxy": 0.0002,
+        "max_nodes": 8001,
+        "side": 1,
+        "cache": 0,
+        "threads": 1
+      },
+      "measurement": {
+        "name": "analytic_complete_face",
+        "pixels": 1,
+        "seconds": 1.4298571,
+        "us_per_pixel": 1429857.1,
+        "nodes": 8001,
+        "candidate_visits": 10513,
+        "max_leaves": 8,
+        "max_queue": 6001,
+        "peak_process_workingset_bytes": 8085504,
+        "cache_accepted_pixels": 0,
+        "cache_local_retries": 0,
+        "bounded_pixels": 0,
+        "worst_width_sr": 0.01949208481929793,
+        "first": {
+          "spill_sr": 0,
+          "status": "budget_exhausted",
+          "areas": {
+            "0": [
+              0.31507763058987326,
+              0.3181815753656113
+            ],
+            "3": [
+              0.3150776305898745,
+              0.3181815753656106
+            ],
+            "4": [
+              1.0438248410812037,
+              1.0508214332643575
+            ],
+            "5": [
+              0.001903215877923981,
+              0.0019413913918479896
+            ],
+            "7": [
+              0.0019032158779240741,
+              0.0019413983694794661
+            ],
+            "8": [
+              0.3150776305898743,
+              0.3181815753656109
+            ],
+            "11": [
+              0.31507601747241887,
+              0.3181833107982412
+            ],
+            "18446744073709551615": [
+              0,
+              6.977631560791241e-09
+            ]
+          }
+        }
+      },
+      "analytic": {
+        "truth_sr": 1.0471975511965976,
+        "bounds_sr": [
+          1.0438248410812037,
+          1.0508214332643575
+        ],
+        "contains_truth": true
+      }
+    }
+  ]
+}

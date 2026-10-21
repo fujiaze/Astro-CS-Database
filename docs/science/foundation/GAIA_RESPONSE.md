@@ -70,6 +70,8 @@ struct PhotoSolution { Vector theta; CovarianceAction covariance;
 apply_scale(PhotoSolution, NativePatch) -> CalibratedPatch;
 ```
 
+星位、PSF积分域及光度应用共享[观测合同](OBSERVATION_COORDINATES.md)的 `PixelCenter0/WcsModel/DetectorFootprint`，不在Gaia或PSF接口再补原点偏移。输出积分 x 的单位与 `SignalEstimate` 一致，数值求积/拟合舍入界、XP随机误差和响应模型偏差分别保留；有限确定偏差不自动作为独立方差。后续面积区间按[几何规范 §5](SPHERICAL_DRIZZLE.md)传播到同一R、B与Cov，若x也有数值区间，signed numerator按完整端点积取界，或用 `ΣR_U δx` 增加确定信号误差界。该数值项不覆盖未知谱线和真实response失配。
+
 n 星、p 参数，固定小 p 的一次稠密局部拟合 O(np²+p³)，共享星的谱 covariance 用按 source 分块算子；大型多帧求解用稀疏 QR/LSQR。不能生成全图 N² covariance。`α=exp(−h^Tθ)` 时 `∂x'/∂θ=−x' h^T`；与同图拟合共用数据的交叉项交给[统一统计](STATISTICS_SKY_COADD.md)，一次归属。
 
 ## 4. 参考 SED、跨通带及不可辨识证明

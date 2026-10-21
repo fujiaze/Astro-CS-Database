@@ -1,0 +1,103 @@
+{
+  "command": "python \u5b9e\u9a8c/science-foundation/oracles/round2_cd_domain_review.py --source C:\\Users\\fujia\\.codex\\.chatgpt-projects\\g-p-6aceecf685708191affe35f4525d7672\\ACSD-research\\\u5b9e\u9a8c\\science-foundation\\evidence\\source_snapshots\\round2_affine_independent_before_cd_rejection.cpp --output \u5b9e\u9a8c\\science-foundation\\evidence\\round2_cd_domain_underbound.json",
+  "request": {
+    "name": "positive_cd_uncertain_binary64_sign",
+    "header": {
+      "CTYPE1": "RA---TAN",
+      "CTYPE2": "DEC--TAN",
+      "CUNIT1": "deg",
+      "CUNIT2": "deg",
+      "RADESYS": "ICRS",
+      "LONPOLE": 180.0,
+      "CRVAL1": 45.0,
+      "CRVAL2": 0.0,
+      "CRPIX1": 1.0,
+      "CRPIX2": 1.0,
+      "CD1_1": 1.740755848013471,
+      "CD1_2": 0.819144672764259,
+      "CD2_1": 1.9137791654017695,
+      "CD2_2": 0.9005639762607065
+    },
+    "nside": 1,
+    "pixfrac": 1.0,
+    "tolerance_sr": 1e-25,
+    "max_nodes": 1,
+    "side": 1,
+    "cache": 0,
+    "threads": 1
+  },
+  "exact_binary64_determinant_deg2": "4700589495792991/10141204801825835211973625643008",
+  "exact_determinant_decimal_deg2": "0.0000000000000004635139105904547929851838520431173377805866733618322950150059114093892276287078857421875",
+  "raw_binary64_interval_determinant_deg2": [
+    -5e-324,
+    8.881784197001254e-16
+  ],
+  "positive_spherical_area_sr": "0.000000000000000000141150486018620638959437476774205218835695532401599769544265719985766629758453453366612342",
+  "source_sha256": "5e1146778e8e7d00c7dc6e9e78710b8c6c63a402d4bf9a1296be8ccab4add912",
+  "driver_sha256": "8654cd4b56c5472de379a08fa29e7412dcc5d8ced6ba2b186c03d008bc8899fd",
+  "review_sha256": "61aa1afd57378ff686adf183cfc764c3abee63949f9be68b623e182b58bbf96b",
+  "build": {
+    "command": [
+      "C:/msys64/mingw64/bin/g++.exe",
+      "-std=c++17",
+      "-O2",
+      "-fno-fast-math",
+      "-ffp-contract=off",
+      "-fopenmp",
+      "C:\\Users\\fujia\\.codex\\.chatgpt-projects\\g-p-6aceecf685708191affe35f4525d7672\\ACSD-research\\\u5b9e\u9a8c\\science-foundation\\evidence\\source_snapshots\\round2_affine_independent_before_cd_rejection.cpp",
+      "-lmpfr",
+      "-lgmpxx",
+      "-lgmp",
+      "-lpsapi",
+      "-o",
+      "C:\\Users\\fujia\\AppData\\Local\\Temp\\acsd-cd-domain-behx_kgb\\round2_affine.exe"
+    ],
+    "compiler": "g++.exe (Rev4, Built by MSYS2 project) 16.1.0",
+    "source_sha256": "5e1146778e8e7d00c7dc6e9e78710b8c6c63a402d4bf9a1296be8ccab4add912",
+    "executable_sha256": "666317e7ba0c88cfc31dbdaeee3b5471c1370b54ce4041991df073b46e6b3ab3"
+  },
+  "returncode": 0,
+  "stderr": "",
+  "stdout": "{\"name\":\"positive_cd_uncertain_binary64_sign\",\"pixels\":1,\"seconds\":0.00058770000000000003,\"us_per_pixel\":587.70000000000005,\"nodes\":1,\"candidate_visits\":4,\"max_leaves\":4,\"max_queue\":1,\"peak_process_workingset_bytes\":5537792,\"cache_accepted_pixels\":0,\"cache_local_retries\":0,\"bounded_pixels\":0,\"worst_width_sr\":1.3043214480009042e-21,\"first\":{\"spill_sr\":0,\"status\":\"budget_exhausted\",\"areas\":{\"0\":[0,4.6855531790626755e-22],\"4\":[0,1.8360540609414206e-22],\"5\":[0,1.8360540609423836e-22],\"8\":[0,4.6855531790625552e-22]},\"all_leaf_width_sr\":1.3043214480009042e-21},\"focused_leaf\":-1}\n",
+  "measurement": {
+    "name": "positive_cd_uncertain_binary64_sign",
+    "pixels": 1,
+    "seconds": 0.0005877,
+    "us_per_pixel": 587.7,
+    "nodes": 1,
+    "candidate_visits": 4,
+    "max_leaves": 4,
+    "max_queue": 1,
+    "peak_process_workingset_bytes": 5537792,
+    "cache_accepted_pixels": 0,
+    "cache_local_retries": 0,
+    "bounded_pixels": 0,
+    "worst_width_sr": 1.3043214480009042e-21,
+    "first": {
+      "spill_sr": 0,
+      "status": "budget_exhausted",
+      "areas": {
+        "0": [
+          0,
+          4.685553179062676e-22
+        ],
+        "4": [
+          0,
+          1.8360540609414206e-22
+        ],
+        "5": [
+          0,
+          1.8360540609423836e-22
+        ],
+        "8": [
+          0,
+          4.685553179062555e-22
+        ]
+      },
+      "all_leaf_width_sr": 1.3043214480009042e-21
+    },
+    "focused_leaf": -1
+  },
+  "contains_true_positive_total_area": false,
+  "judgment": "UNSAFE_ABSOLUTE_DETERMINANT_UNDERBOUND"
+}
