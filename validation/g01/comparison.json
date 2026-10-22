@@ -95,6 +95,18 @@
       "scope": "compute_overlap"
     },
     {
+      "actual": [
+        "4075"
+      ],
+      "expected": [
+        "16343",
+        "4075"
+      ],
+      "functional": "polar_extreme:leaf_coverage",
+      "reason": "the overlap call did not report every enclosed leaf",
+      "scope": "compute_overlap"
+    },
+    {
       "actual": "tolerance_met",
       "expected": "termination work/precision and no certified bound",
       "functional": "polar_extreme:negative_maxprecision_16",
@@ -1610,16 +1622,29 @@
   ],
   "functionals": [
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "tan_centered_square:drop_area",
       "observed": [
         7.798205490449583e-08,
         7.798206402629894e-08
       ],
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": 7.798205794509727e-08,
       "unit": "sr"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "tan_centered_square:leaf_count",
+      "observed": 4,
+      "observed_success_count": 4,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": "> 0",
+      "unit": "count"
     },
     {
       "kind": "value",
@@ -1682,80 +1707,126 @@
       "unit": "sr"
     },
     {
+      "expected_success_count": 1,
       "kind": "text",
       "name": "tan_centered_square:overlap_status",
+      "observed_success_count": 1,
       "observed_text": "tolerance_met",
       "status": "pass",
       "text_key": "termination"
     },
     {
+      "expected_success_count": 4,
+      "kind": "value",
+      "name": "tan_centered_square:leaf_coverage",
+      "observed": {
+        "enclosed": 4,
+        "missing": [],
+        "reported": 4
+      },
+      "observed_success_count": 4,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": "every enclosed leaf is reported",
+      "unit": "count"
+    },
+    {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "tan_centered_square:negative_work_1",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "tan_centered_square:negative_maxprecision_64",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "tan_centered_square:negative_maxprecision_16",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "fail",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "tan_centered_square:drizzle",
       "observed": "ok",
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "ok",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "tan_centered_square:refine",
       "observed": "ok",
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "ok",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "tan_offset_square:drop_area",
       "observed": [
         1.6376232213623514e-09,
         1.6376232613768016e-09
       ],
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": 1.6376232406911377e-09,
       "unit": "sr"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "tan_offset_square:leaf_count",
+      "observed": 1,
+      "observed_success_count": 1,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": "> 0",
+      "unit": "count"
     },
     {
       "kind": "value",
@@ -1773,134 +1844,196 @@
       "unit": "sr"
     },
     {
+      "expected_success_count": 1,
       "kind": "text",
       "name": "tan_offset_square:overlap_status",
+      "observed_success_count": 1,
       "observed_text": "tolerance_met",
       "status": "pass",
       "text_key": "termination"
     },
     {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "tan_offset_square:leaf_coverage",
+      "observed": {
+        "enclosed": 1,
+        "missing": [],
+        "reported": 1
+      },
+      "observed_success_count": 1,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": "every enclosed leaf is reported",
+      "unit": "count"
+    },
+    {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "tan_offset_square:negative_work_1",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "tan_offset_square:negative_maxprecision_64",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "tan_offset_square:negative_maxprecision_16",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "fail",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "tan_offset_square:drizzle",
       "observed": "ok",
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "ok",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "tan_offset_square:refine",
       "observed": "ok",
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "ok",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "north_polar:drop_area",
       "observed": null,
+      "observed_success_count": 0,
       "reason": "footprint_area_not_representable",
       "status": "fail",
       "truth": 3.1192823760693906e-09
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "north_polar:overlaps",
       "observed": "unsupported",
+      "observed_success_count": 0,
       "reason": "compute_overlap failed",
       "status": "fail"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "north_polar:negative_work_1",
       "observed": {
         "bound_validity": null,
+        "budget_max_work": 1,
         "code": "unsupported",
-        "termination": null
+        "termination": null,
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "north_polar:negative_maxprecision_64",
       "observed": {
         "bound_validity": null,
+        "budget_max_work": 1000000,
         "code": "unsupported",
-        "termination": null
+        "termination": null,
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "north_polar:negative_maxprecision_16",
       "observed": {
         "bound_validity": null,
+        "budget_max_work": 1000000,
         "code": "unsupported",
-        "termination": null
+        "termination": null,
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "polar_extreme:drop_area",
       "observed": [
         3.119282367555707e-09,
         3.1192823894480394e-09
       ],
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": 3.1192823760693906e-09,
       "unit": "sr"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "polar_extreme:leaf_count",
+      "observed": 1,
+      "observed_success_count": 1,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": "> 0",
+      "unit": "count"
     },
     {
       "kind": "value",
@@ -1918,80 +2051,128 @@
       "unit": "sr"
     },
     {
+      "expected_success_count": 1,
       "kind": "text",
       "name": "polar_extreme:overlap_status",
+      "observed_success_count": 1,
       "observed_text": "tolerance_met",
       "status": "pass",
       "text_key": "termination"
     },
     {
+      "expected_success_count": 2,
+      "kind": "value",
+      "name": "polar_extreme:leaf_coverage",
+      "observed": {
+        "enclosed": 2,
+        "missing": [
+          "16343"
+        ],
+        "reported": 1
+      },
+      "observed_success_count": 1,
+      "status": "fail",
+      "tolerance": 0.0,
+      "truth": "every enclosed leaf is reported",
+      "unit": "count"
+    },
+    {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "polar_extreme:negative_work_1",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "polar_extreme:negative_maxprecision_64",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "polar_extreme:negative_maxprecision_16",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "fail",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "polar_extreme:drizzle",
       "observed": "ok",
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "ok",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "polar_extreme:refine",
       "observed": "ok",
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "ok",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "order29_subleaf:drop_area",
       "observed": [
         3.046174197867072e-16,
         3.0461741978670944e-16
       ],
+      "observed_success_count": 1,
       "status": "fail",
       "tolerance": 0.0,
       "truth": 3.046174197867061e-16,
       "unit": "sr"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "order29_subleaf:leaf_count",
+      "observed": 196,
+      "observed_success_count": 196,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": "> 0",
+      "unit": "count"
     },
     {
       "kind": "value",
@@ -3659,80 +3840,126 @@
       "unit": "sr"
     },
     {
+      "expected_success_count": 1,
       "kind": "text",
       "name": "order29_subleaf:overlap_status",
+      "observed_success_count": 1,
       "observed_text": "tolerance_met",
       "status": "pass",
       "text_key": "termination"
     },
     {
+      "expected_success_count": 111,
+      "kind": "value",
+      "name": "order29_subleaf:leaf_coverage",
+      "observed": {
+        "enclosed": 111,
+        "missing": [],
+        "reported": 111
+      },
+      "observed_success_count": 111,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": "every enclosed leaf is reported",
+      "unit": "count"
+    },
+    {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "order29_subleaf:negative_work_1",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "order29_subleaf:negative_maxprecision_64",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "order29_subleaf:negative_maxprecision_16",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "fail",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "order29_subleaf:drizzle",
       "observed": "ok",
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "ok",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "order29_subleaf:refine",
       "observed": "ok",
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "ok",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "touching_edge:drop_area",
       "observed": [
         1.9495513138195412e-08,
         1.949551598875861e-08
       ],
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": 1.9495514468458293e-08,
       "unit": "sr"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "touching_edge:leaf_count",
+      "observed": 4,
+      "observed_success_count": 4,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": "> 0",
+      "unit": "count"
     },
     {
       "kind": "value",
@@ -3780,64 +4007,97 @@
       "unit": "sr"
     },
     {
+      "expected_success_count": 1,
       "kind": "text",
       "name": "touching_edge:overlap_status",
+      "observed_success_count": 1,
       "observed_text": "tolerance_met",
       "status": "pass",
       "text_key": "termination"
     },
     {
+      "expected_success_count": 3,
+      "kind": "value",
+      "name": "touching_edge:leaf_coverage",
+      "observed": {
+        "enclosed": 3,
+        "missing": [],
+        "reported": 3
+      },
+      "observed_success_count": 3,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": "every enclosed leaf is reported",
+      "unit": "count"
+    },
+    {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "touching_edge:negative_work_1",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "touching_edge:negative_maxprecision_64",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "touching_edge:negative_maxprecision_16",
       "observed": {
         "bound_validity": "certified",
+        "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met"
+        "termination": "tolerance_met",
+        "work_units": 0
       },
+      "observed_success_count": 1,
       "status": "fail",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "touching_edge:drizzle",
       "observed": "ok",
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "ok",
       "unit": "verdict"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "touching_edge:refine",
       "observed": "ok",
+      "observed_success_count": 1,
       "status": "pass",
       "tolerance": 0.0,
       "truth": "ok",

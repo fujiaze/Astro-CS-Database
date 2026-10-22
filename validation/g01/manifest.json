@@ -5,7 +5,7 @@
   },
   "case": "G01",
   "code_identity": {
-    "validation/g01/truth_g01.py": "41e43c6f3baf75a3de6ef7721f1997e1161d651b561d9402df8b1f66e6ecd05a"
+    "validation/g01/truth_g01.py": "4394513976991f83e56ebb5ee62306ea80a2f7b2c91a9c51f665b097213926e6"
   },
   "commands": {
     "native": "bash validation/lib/build_native.sh g01_driver",
