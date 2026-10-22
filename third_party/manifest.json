@@ -1,0 +1,114 @@
+{
+  "format": "acsd.third_party",
+  "major": 1,
+  "minor": 0,
+  "note": "Exact dependency identity of the ACSD v2 rebuild implementation.  The build uses system/toolchain packages; nothing is downloaded at build time and no floating master is referenced.  Licences are recorded as shipped by the distribution; the project does not invent a licence for the whole repository.",
+  "targets": [
+    {
+      "name": "acsd",
+      "role": "scientific CLI",
+      "language": "C++20",
+      "dependencies": [
+        {
+          "name": "CFITSIO",
+          "version": "4.6.2",
+          "source": "Debian 13 system package (libcfitsio-dev)",
+          "licence": "CFITSIO permissive licence (see /usr/share/doc/libcfitsio-dev/copyright)",
+          "usage": "FITS image reading and writing for Normalize input and Export/HiPS output"
+        },
+        {
+          "name": "zstd",
+          "version": "1.5.7",
+          "source": "Debian 13 system package (libzstd-dev)",
+          "licence": "BSD 3-clause (dual GPL-2.0; the BSD terms are used here)",
+          "usage": "product block compression (raw or zstd codec)"
+        },
+        {
+          "name": "nlohmann_json",
+          "version": "3.11.3",
+          "source": "Debian 13 system package (nlohmann-json3-dev)",
+          "licence": "MIT",
+          "usage": "CLI configuration, contract driver envelopes and JSONL events"
+        },
+        {
+          "name": "Threads",
+          "version": "system",
+          "source": "libstdc++ / POSIX threads",
+          "licence": "GPL-3.0-with-GCC-exception (runtime library, not linked into the shipped binary)",
+          "usage": "single process CPU pool"
+        }
+      ],
+      "self_implemented": [
+        {
+          "name": "dense linear algebra",
+          "reason": "the numerical certificates required by EXECUTION (SVD orthogonality defect, reconstruction residual, rank classification) must be produced for every decomposition, so QR/SVD/Cholesky/symmetric eigen are implemented in src/numerics",
+          "licence": "project code"
+        },
+        {
+          "name": "directed rounding interval arithmetic",
+          "reason": "the geometry enclosure contract requires outward rounding; the implementation verifies the hardware rounding mode at runtime and reports the weaker guarantee when it is unavailable",
+          "licence": "project code"
+        },
+        {
+          "name": "exact integer and rational arithmetic",
+          "reason": "the primary geometry kernel clips half spaces exactly on the actual binary64 coefficients (src/model/exact.hpp)",
+          "licence": "project code"
+        },
+        {
+          "name": "HEALPix NESTED index and face charts",
+          "reason": "SYSTEM requires the production HEALPix index to be implemented from the scientific formulas; no third-party HEALPix library is used",
+          "licence": "project code"
+        },
+        {
+          "name": "epoch propagation",
+          "reason": "ERFA is not available in the build environment; the proper motion, parallax and perspective acceleration formulas are implemented directly and are checked against an external astropy oracle in validation/",
+          "licence": "project code"
+        }
+      ]
+    },
+    {
+      "name": "acsd-contract",
+      "role": "public operation driver",
+      "language": "C++20",
+      "dependencies": [
+        {
+          "name": "nlohmann_json",
+          "version": "3.11.3",
+          "source": "Debian 13 system package (nlohmann-json3-dev)",
+          "licence": "MIT",
+          "usage": "contract envelope, object graph and result encoding"
+        }
+      ]
+    },
+    {
+      "name": "acsd-gui",
+      "role": "independent GUI",
+      "language": "C++20 / Qt 6.7.3",
+      "dependencies": [
+        {
+          "name": "Qt 6",
+          "version": "6.7.3 (linux_gcc_64)",
+          "source": "Qt online installer archive (aqtinstall), installed outside the repository",
+          "licence": "LGPL-3.0-only (used dynamically) or commercial",
+          "usage": "Core, Widgets and Network only; the GUI links no scientific code"
+        }
+      ],
+      "note": "The GUI is a separate CMake project and communicates with the scientific CLI over the documented JSON configuration, JSONL event stream and cancellation protocol."
+    }
+  ],
+  "build_environment": {
+    "linux": {
+      "os": "Debian GNU/Linux 13",
+      "compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+      "libc": "glibc 2.41",
+      "build_system": "CMake 3.31.6 + Ninja 1.12.1",
+      "flags": "-O2 -fno-fast-math -ffp-contract=off -frounding-math -mfpmath=sse -std=c++20",
+      "verification_python": "Python 3.13.5 with numpy 2.2.4, scipy 1.15.3, astropy 7.0.1, astropy-healpix 2.0.1, healpy 1.20.1"
+    },
+    "windows": {
+      "status": "not built in this environment",
+      "recipe": "MSYS2 UCRT64 GCC 14+ with the same CRT/ABI for CFITSIO, zstd and nlohmann_json; the GUI uses MSVC with Qt 6 and never crosses the CRT boundary",
+      "note": "The Windows build has not been executed here; the remaining limitation is recorded in the implementation report rather than claimed as passed."
+    }
+  }
+}
