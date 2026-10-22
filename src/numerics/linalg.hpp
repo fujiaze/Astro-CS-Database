@@ -22,6 +22,9 @@ struct Matrix {
   Matrix(std::size_t r, std::size_t c) : rows(r), cols(c), data(r * c, 0.0) {}
   Matrix(std::size_t r, std::size_t c, std::vector<double> values)
       : rows(r), cols(c), data(std::move(values)) {}
+  // Uniform fill constructor.
+  explicit Matrix(std::size_t r, std::size_t c, double fill)
+      : rows(r), cols(c), data(r * c, fill) {}
 
   double& operator()(std::size_t i, std::size_t j) { return data[i * cols + j]; }
   double operator()(std::size_t i, std::size_t j) const { return data[i * cols + j]; }
