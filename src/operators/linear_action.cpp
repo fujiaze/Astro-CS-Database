@@ -51,14 +51,21 @@ Result<ArrayRef> write_f64(Context& context, const std::vector<double>& values,
 }
 
 ActionImpl::ActionImpl(ActionRecipe recipe, DomainUnits spaces)
-    : recipe_(std::move(recipe)), spaces_(std::move(spaces)) {}
+    : recipe_(std::move(recipe)), spaces_(std::move(spaces)) {
+  // The public member of the base class carries the same information: a
+  // consumer that only sees a LinearAction must still be able to read the
+  // domain and the codomain of the action.
+  this->LinearAction::spaces = spaces_;
+}
 
 ActionImpl::ActionImpl(ActionRecipe recipe, DomainUnits spaces,
                        std::vector<Ref<LinearAction>> children, std::vector<ArrayRef> arrays)
     : recipe_(std::move(recipe)),
       spaces_(std::move(spaces)),
       children_(std::move(children)),
-      arrays_(std::move(arrays)) {}
+      arrays_(std::move(arrays)) {
+  this->LinearAction::spaces = spaces_;
+}
 
 void ActionImpl::set_selection(std::vector<U64> indices, std::vector<double> scale) {
   selection_indices_ = std::move(indices);

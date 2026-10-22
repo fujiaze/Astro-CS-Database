@@ -47,7 +47,10 @@ class ActionImpl final : public LinearAction {
   const std::vector<Ref<LinearAction>>& children() const { return children_; }
   const std::vector<ArrayRef>& arrays() const { return arrays_; }
   void set_recipe(ActionRecipe recipe) { recipe_ = std::move(recipe); }
-  void set_spaces(DomainUnits spaces) { spaces_ = std::move(spaces); }
+  void set_spaces(DomainUnits spaces) {
+    spaces_ = std::move(spaces);
+    this->LinearAction::spaces = spaces_;
+  }
   // The CSR payload when the action is a csr kind (empty otherwise).
   const CsrMatrix& csr() const { return csr_; }
   void set_csr(CsrMatrix matrix) { csr_ = std::move(matrix); }

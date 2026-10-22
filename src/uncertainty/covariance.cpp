@@ -86,7 +86,20 @@ Result<std::vector<double>> apply_covariance(Context& context, Ref<CovarianceAct
                                             "the influence count does not match the root count",
                                             "covariance_apply", "the covariance cannot be applied");
   }
-  std::vector<double> accumulator(values.size(), 0.0);
+  // The action's own influence maps the covariance space onto the space of
+  // the action: the published covariance is I C I^T.  A functional on the
+  // codomain is therefore pushed back with I^T before the model covariance is
+  // applied, and the result is pushed forward with I afterwards.
+  std::vector<double> input = values;
+  if (covariance->influence) {
+    Result<std::vector<double>> pushed = apply_linear_transposed(context, covariance->influence, values);
+    if (!ok(pushed)) {
+      return model::fail<std::vector<double>>(pushed.code, "the influence cannot be applied",
+                                              "covariance_apply", "the covariance cannot be applied");
+    }
+    input = val(pushed);
+  }
+  std::vector<double> accumulator(input.size(), 0.0);
   for (std::size_t k = 0; k < roots.size(); ++k) {
     const Ref<NoiseRoot>& root = roots[k];
     const Ref<LinearAction>& influence = model_ref.influence[k];
@@ -96,7 +109,7 @@ Result<std::vector<double>> apply_covariance(Context& context, Ref<CovarianceAct
     }
     // L_k^T v  ->  F_k^T (L_k^T v)  ->  F_k (...)  ->  L_k (...)
     Result<std::vector<double>> projected =
-        apply_linear_transposed(context, influence, values);
+        apply_linear_transposed(context, influence, input);
     if (!ok(projected)) return projected;
     Result<std::vector<double>> latent = apply_linear_transposed(context, root->factor, val(projected));
     if (!ok(latent)) return latent;
@@ -110,6 +123,14 @@ Result<std::vector<double>> apply_covariance(Context& context, Ref<CovarianceAct
                                               "covariance_apply", "the covariance cannot be applied");
     }
     for (std::size_t i = 0; i < accumulator.size(); ++i) accumulator[i] += (val(contribution))[i];
+  }
+  if (covariance->influence) {
+    Result<std::vector<double>> forwarded = apply_linear(context, covariance->influence, accumulator);
+    if (!ok(forwarded)) {
+      return model::fail<std::vector<double>>(forwarded.code, "the influence cannot be applied",
+                                              "covariance_apply", "the covariance cannot be applied");
+    }
+    return model::ok_result(val(forwarded));
   }
   return model::ok_result(std::move(accumulator));
 }

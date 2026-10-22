@@ -160,6 +160,13 @@ if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/ope
   add_test(NAME operators_selftest COMMAND acsd_operators_selftest)
 endif()
 
+if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/covariance_selftest.cpp)
+  add_executable(acsd_covariance_selftest validation/lead/covariance_selftest.cpp)
+  target_link_libraries(acsd_covariance_selftest PRIVATE uncertainty operators resources storage model)
+  add_test(NAME covariance_selftest COMMAND acsd_covariance_selftest)
+endif()
+
+
 
 if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/healpix_dump.cpp)
   add_executable(acsd_healpix_dump validation/lead/healpix_dump.cpp)
