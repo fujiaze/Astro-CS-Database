@@ -256,6 +256,8 @@ Matrix complete_orthogonal_factorisation(const Matrix& v) {
   return h;
 }
 
+
+
 Result<RangeSplit> split_covariance_range(const Matrix& factor, double rank_relative) {
   if (factor.rows == 0 || factor.cols == 0) {
     return model::fail<RangeSplit>(Code::invalid_model, "the covariance factor is empty",

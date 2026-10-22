@@ -71,6 +71,7 @@ Result<std::vector<double>> apply_action_full(Context& context, Ref<LinearAction
 U64 action_domain_size(Ref<LinearAction> action);
 U64 action_codomain_size(Ref<LinearAction> action);
 
+
 // Materialises an action as a dense row-major matrix.
 Result<numerics::Matrix> dense_action(Context& context, Ref<LinearAction> action, U64 rows,
                                        U64 cols);

@@ -67,6 +67,7 @@ struct RangeSplit {
   std::size_t rank = 0;
 };
 
+
 // Splits the space into the range of the covariance factor and its exact null
 // space.  The rank is classified with a scale aware threshold; when the
 // singular values around the threshold are not separated the split is

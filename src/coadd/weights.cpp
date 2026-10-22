@@ -15,6 +15,7 @@
 //     when the common mean is comparable and an external fixed Gamma is given.
 #include <algorithm>
 #include <cmath>
+#include <numeric>
 #include <limits>
 #include <string>
 #include <vector>
@@ -36,6 +37,8 @@ Matrix identity(std::size_t n) {
 }
 
 }  // namespace
+
+
 
 double normal_quantile(double probability) {
   if (!(probability > 0.0) || !(probability < 1.0)) return kNaN;

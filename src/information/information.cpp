@@ -248,7 +248,8 @@ Result<Information> estimate_flux_information(Context& context, const Informatio
   const std::size_t rank = val(split).rank;
   const std::vector<double>& sigma = val(split).singular_values;
 
-  // A_c = Q^T A (rows in the white noise subspace), D = U0^T A (exact rows).
+  // A_c = Q^T A (the rows in the white noise subspace), D = U0^T A (the exact
+  // rows of the constraint).
   Matrix ac(rank, columns);
   for (std::size_t i = 0; i < rank; ++i) {
     for (std::size_t j = 0; j < columns; ++j) {
@@ -257,121 +258,164 @@ Result<Information> estimate_flux_information(Context& context, const Informatio
       ac(i, j) = sum;
     }
   }
-  Matrix d(null_basis.rows, columns);
-  for (std::size_t i = 0; i < null_basis.rows; ++i) {
-    for (std::size_t j = 0; j < columns; ++j) {
-      double sum = 0.0;
-      for (std::size_t k = 0; k < n; ++k) sum += null_basis(k, i) * design(k, j);
-      d(i, j) = sum;
+  Matrix d(null_basis.cols, columns);
+  if (null_basis.cols > 0) {
+    for (std::size_t i = 0; i < null_basis.cols; ++i) {
+      for (std::size_t j = 0; j < columns; ++j) {
+        double sum = 0.0;
+        for (std::size_t k = 0; k < n; ++k) sum += null_basis(k, i) * design(k, j);
+        d(i, j) = sum;
+      }
     }
   }
 
-  // The exact constraint rows span a subspace of the parameter space; project
-  // the parameter space onto the orthogonal complement of that subspace.
-  Matrix projector(columns, columns, 0.0);
+  // The whitened design of the white noise subspace.
+  Matrix whitened(rank, columns);
+  for (std::size_t i = 0; i < rank; ++i) {
+    const double inverse = sigma[i] > 0.0 ? 1.0 / sigma[i] : 0.0;
+    for (std::size_t j = 0; j < columns; ++j) whitened(i, j) = ac(i, j) * inverse;
+  }
+
+  // The exact constraint fixes the component of the parameters in the row
+  // space of D; the free directions are the null space of D.
+  Matrix free(columns, 0);
   if (d.rows > 0) {
     numerics::SvdResult svd = numerics::jacobi_svd(d, rank_relative);
-    const std::size_t d_rank = svd.rank;
-    for (std::size_t j = 0; j < d_rank; ++j) {
+    free = Matrix(columns, columns - svd.rank, 0.0);
+    for (std::size_t j = svd.rank; j < svd.v.cols; ++j) {
+      for (std::size_t i = 0; i < columns; ++i) free(i, j - svd.rank) = svd.v(i, j);
+    }
+  } else {
+    free = Matrix(columns, columns, 0.0);
+    for (std::size_t i = 0; i < columns; ++i) free(i, i) = 1.0;
+  }
+
+  // The flux is estimable only when the unit vector of the flux lies in the
+  // row space of the design; otherwise the flux is absorbed by the background
+  // and has no finite variance.
+  Matrix projector(columns, columns, 0.0);
+  {
+    numerics::SvdResult svd = numerics::jacobi_svd(design, rank_relative);
+    const std::size_t design_rank = svd.rank;
+    for (std::size_t j = 0; j < design_rank; ++j) {
       for (std::size_t i = 0; i < columns; ++i) {
         for (std::size_t k = 0; k < columns; ++k) {
           projector(i, k) += svd.v(i, j) * svd.v(k, j);
         }
       }
     }
-  }
-  // f = (I - P) e_1 ; B = (I - P) A_c^T
-  std::vector<double> f(columns, 0.0);
-  for (std::size_t i = 0; i < columns; ++i) {
-    f[i] = (i == 0 ? 1.0 : 0.0) - projector(i, 0);
-  }
-  Matrix b(rank, columns);
-  for (std::size_t i = 0; i < rank; ++i) {
-    for (std::size_t j = 0; j < columns; ++j) {
-      double sum = 0.0;
-      for (std::size_t k = 0; k < columns; ++k) sum += ac(i, k) * projector(k, j);
-      b(i, j) = ac(i, j) - sum;
-    }
-  }
-
-  // Whiten the white noise subspace: C_red = diag(sigma^2).
-  Matrix whitened(rank, columns);
-  for (std::size_t i = 0; i < rank; ++i) {
-    const double inverse = sigma[i] > 0.0 ? 1.0 / sigma[i] : 0.0;
-    for (std::size_t j = 0; j < columns; ++j) whitened(i, j) = b(i, j) * inverse;
-  }
-
-  // The flux is estimable only when (I-P) e_1 lies in the row space of the
-  // effective design; otherwise the flux is not identifiable.
-  numerics::SvdResult effective = numerics::jacobi_svd(whitened, rank_relative);
-  double f_norm = 0.0;
-  for (double value : f) f_norm += value * value;
-  f_norm = std::sqrt(f_norm);
-  double residual = 0.0;
-  if (effective.u.cols > 0) {
-    std::vector<double> projected(columns, 0.0);
-    for (std::size_t j = 0; j < effective.u.cols; ++j) {
-      double sum = 0.0;
-      for (std::size_t i = 0; i < columns; ++i) sum += effective.u(i, j) * f[i];
-      for (std::size_t i = 0; i < columns; ++i) projected[i] += sum * effective.u(i, j);
-    }
+    double residual = 0.0;
     for (std::size_t i = 0; i < columns; ++i) {
-      const double diff = f[i] - projected[i];
+      const double target = (i == 0 ? 1.0 : 0.0);
+      const double diff = target - projector(i, 0);
       residual += diff * diff;
     }
     residual = std::sqrt(residual);
-  } else {
-    residual = f_norm;
+    const double tolerance = 1e-8 * std::max(1.0, static_cast<double>(columns));
+    if (residual > tolerance) {
+      information.flux_variance.value = std::nullopt;
+      information.flux_variance.state = NoiseState::unknown;
+      Result<RankReport> report =
+          make_rank_report(context, numerics::classify_rank(
+                                         numerics::jacobi_svd(whitened, rank_relative), columns,
+                                         rank_relative),
+                           request.reference.id);
+      if (ok(report)) information.rank = val(report);
+      Result<Information> out = model::ok_result(std::move(information));
+      model::add_issue(out.assessment, Code::not_identifiable,
+                       "the flux template is absorbed by the background and the exact constraints",
+                       "estimate_flux_information", "there is no finite flux variance");
+      out.assessment.science = ScienceState::conditional;
+      out.assessment.condition = request.reference.condition;
+      return out;
+    }
   }
-  const double tolerance = 1e-8 * std::max(f_norm, 1.0);
-  if (residual > tolerance) {
-    // The flux is absorbed by the background: no finite variance exists.
-    information.flux_variance.value = std::nullopt;
-    information.flux_variance.state = NoiseState::unknown;
+
+  // The component of the flux in the free directions and the covariance of
+  // the free parameters.
+  std::vector<double> component(columns, 0.0);
+  for (std::size_t i = 0; i < columns; ++i) {
+    double sum = 0.0;
+    for (std::size_t j = 0; j < free.cols; ++j) sum += free(i, j) * ((i == 0) ? 1.0 : 0.0);
+    component[i] = sum;
+  }
+  Matrix reduced(rank, free.cols, 0.0);
+  for (std::size_t i = 0; i < rank; ++i) {
+    for (std::size_t j = 0; j < free.cols; ++j) {
+      double sum = 0.0;
+      for (std::size_t k = 0; k < columns; ++k) sum += whitened(i, k) * free(k, j);
+      reduced(i, j) = sum;
+    }
+  }
+  Matrix gram(free.cols, free.cols, 0.0);
+  for (std::size_t i = 0; i < free.cols; ++i) {
+    for (std::size_t j = 0; j < free.cols; ++j) {
+      double sum = 0.0;
+      for (std::size_t k = 0; k < rank; ++k) sum += reduced(k, i) * reduced(k, j);
+      gram(i, j) = sum;
+    }
+  }
+  numerics::SvdResult gram_svd = numerics::jacobi_svd(gram, rank_relative);
+  double variance = 0.0;
+  if (gram_svd.u.cols > 0) {
+    // The flux component has to lie in the range of the free design.
+    std::vector<double> projected(free.cols, 0.0);
+    for (std::size_t j = 0; j < gram_svd.u.cols; ++j) {
+      double sum = 0.0;
+      for (std::size_t i = 0; i < free.cols; ++i) sum += gram_svd.u(i, j) * component[i];
+      for (std::size_t i = 0; i < free.cols; ++i) projected[i] += sum * gram_svd.u(i, j);
+    }
+    double residual = 0.0;
+    for (std::size_t i = 0; i < free.cols; ++i) {
+      const double diff = component[i] - projected[i];
+      residual += diff * diff;
+    }
+    residual = std::sqrt(residual);
+    const double tolerance = 1e-8 * std::max(1.0, static_cast<double>(free.cols));
+    if (residual > tolerance) {
+      information.flux_variance.value = std::nullopt;
+      information.flux_variance.state = NoiseState::unknown;
+      Result<RankReport> report =
+          make_rank_report(context, numerics::classify_rank(
+                                         numerics::jacobi_svd(whitened, rank_relative), columns,
+                                         rank_relative),
+                           request.reference.id);
+      if (ok(report)) information.rank = val(report);
+      Result<Information> out = model::ok_result(std::move(information));
+      model::add_issue(out.assessment, Code::not_identifiable,
+                       "the free directions of the difference model do not carry the flux",
+                       "estimate_flux_information", "there is no finite flux variance");
+      out.assessment.science = ScienceState::conditional;
+      out.assessment.condition = request.reference.condition;
+      return out;
+    }
+    // The variance of the flux is c^T G^+ c.
+    double norm = 0.0;
+    for (std::size_t j = 0; j < gram_svd.v.cols; ++j) {
+      const double singular = gram_svd.singular_values[j];
+      if (!(singular > 0.0)) continue;
+      double sum = 0.0;
+      for (std::size_t i = 0; i < free.cols; ++i) sum += gram_svd.u(i, j) * component[i];
+      const double scale = sum / singular;
+      norm += scale * scale;
+    }
+    variance = norm;
+  }
+
+  information.flux_variance.value = variance;
+  information.flux_variance.state = NoiseState::known;
+  {
     Result<RankReport> report =
-        make_rank_report(context, numerics::classify_rank(effective, columns, rank_relative),
+        make_rank_report(context,
+                         numerics::classify_rank(numerics::jacobi_svd(whitened, rank_relative),
+                                                  columns, rank_relative),
                          request.reference.id);
     if (!ok(report)) {
       return model::fail<Information>(report.code, "the rank report cannot be stored",
                                       "estimate_flux_information", "the information is unknown");
     }
     information.rank = val(report);
-    Result<Information> out = model::ok_result(std::move(information));
-    model::add_issue(out.assessment, Code::not_identifiable,
-                     "the flux template is absorbed by the background and the exact constraints",
-                     "estimate_flux_information", "there is no finite flux variance");
-    out.assessment.science = ScienceState::conditional;
-    out.assessment.condition = request.reference.condition;
-    return out;
   }
-
-  // Minimum variance estimator: min c^T C_red c subject to B c = f.
-  // With u = sigma c the problem becomes min ||u||^2 subject to Btilde u = f.
-  std::vector<double> u(columns, 0.0);
-  if (rank > 0 && effective.u.cols > 0) {
-    // u = V Sigma^+ U^T f
-    for (std::size_t j = 0; j < effective.v.cols; ++j) {
-      const double singular = effective.singular_values[j];
-      if (!(singular > 0.0)) continue;
-      double sum = 0.0;
-      for (std::size_t i = 0; i < columns; ++i) sum += effective.u(i, j) * f[i];
-      const double scale = sum / singular;
-      for (std::size_t i = 0; i < columns; ++i) u[i] += scale * effective.v(i, j);
-    }
-  }
-  double variance = 0.0;
-  for (double value : u) variance += value * value;
-
-  information.flux_variance.value = variance;
-  information.flux_variance.state = NoiseState::known;
-  Result<RankReport> report =
-      make_rank_report(context, numerics::classify_rank(effective, columns, rank_relative),
-                       request.reference.id);
-  if (!ok(report)) {
-    return model::fail<Information>(report.code, "the rank report cannot be stored",
-                                    "estimate_flux_information", "the information is unknown");
-  }
-  information.rank = val(report);
   if (!val(split).rank_certified) {
     information.rank.certified = false;
   }
@@ -692,6 +736,14 @@ Result<VariancePrediction> reconstruct_scene_variance(Context& context,
     }
   }
 
+  // The inverse map: the control that owns a vertex of the mesh.
+  std::vector<int> vertex_control(vertex_count, -1);
+  for (std::size_t i = 0; i < control_count; ++i) {
+    if (control_vertex[i] >= 0) {
+      vertex_control[static_cast<std::size_t>(control_vertex[i])] = static_cast<int>(i);
+    }
+  }
+
   const bool has_curvature = controls->hessian_norm_upper.has_value();
   const double curvature = controls->hessian_norm_upper.value_or(0.0);
   if (has_curvature && !(curvature >= 0.0)) {
@@ -758,7 +810,7 @@ Result<VariancePrediction> reconstruct_scene_variance(Context& context,
     bool usable = true;
     const U64 corners[3] = {found[0], found[1], found[2]};
     for (std::size_t k = 0; k < 3; ++k) {
-      const int control = control_vertex[static_cast<std::size_t>(corners[k])];
+      const int control = vertex_control[static_cast<std::size_t>(corners[k])];
       if (control < 0) {
         usable = false;
         break;

@@ -141,7 +141,13 @@ struct Point {
   std::size_t control = 0;
 };
 
-Rational exact(double value) { return Rational::from_double_exact(value); }
+// The exact conversion of a binary64 value.  The base conversion returns a
+// default constructed rational for zero, whose denominator is zero, so the
+// zero case is built here with an explicit unit denominator.
+Rational exact(double value) {
+  if (value == 0.0) return Rational(0, 1);
+  return Rational::from_double_exact(value);
+}
 
 // Sign of the orientation determinant, evaluated exactly when the binary64
 // filter is not conclusive.
@@ -308,13 +314,16 @@ class BowyerWatson {
       const int s1 = orientation_sign(points_[triangle.b], points_[triangle.c], point);
       const int s2 = orientation_sign(points_[triangle.c], points_[triangle.a], point);
       if (s0 >= 0 && s1 >= 0 && s2 >= 0) return current;
+      // The neighbour that is opposite a vertex lies across the edge that
+      // does not contain that vertex: s0 tests the edge (a,b), s1 the edge
+      // (b,c) and s2 the edge (c,a).
       int next = -1;
       if (s0 < 0) {
-        next = triangle.n0;
-      } else if (s1 < 0) {
-        next = triangle.n1;
-      } else {
         next = triangle.n2;
+      } else if (s1 < 0) {
+        next = triangle.n0;
+      } else {
+        next = triangle.n1;
       }
       if (next < 0) return -1;
       current = next;
@@ -420,12 +429,16 @@ class BowyerWatson {
           break;
         }
       }
+      // Both edges that contain the inserted point are shared with the
+      // neighbouring triangle of the fan.
       for (int j = 0; j < 3; ++j) {
         if (vertices[j] != static_cast<U64>(index)) continue;
-        const U64 other = vertices[(j + 1) % 3];
-        const std::pair<U64, U64> key(std::min(other, static_cast<U64>(index)),
-                                      std::max(other, static_cast<U64>(index)));
-        edge_map[key].push_back(new_index);
+        for (int k = 1; k <= 2; ++k) {
+          const U64 other = vertices[(j + k) % 3];
+          const std::pair<U64, U64> key(std::min(other, static_cast<U64>(index)),
+                                        std::max(other, static_cast<U64>(index)));
+          edge_map[key].push_back(new_index);
+        }
       }
     }
     for (std::size_t k = 0; k < created.size(); ++k) {
@@ -452,8 +465,9 @@ class BowyerWatson {
       const int neighbour1 = neighbour_across(key1);
       const int neighbour2 = neighbour_across(key2);
       if (slot == 0) {
-        triangle.n1 = neighbour1;
-        triangle.n2 = neighbour2;
+        // The edge (p, opposite) is opposite the third vertex.
+        triangle.n1 = neighbour2;
+        triangle.n2 = neighbour1;
       } else if (slot == 1) {
         triangle.n0 = neighbour1;
         triangle.n2 = neighbour2;
@@ -769,6 +783,24 @@ Result<Ref<SupportedTriangulation>> build_supported_triangulation(
     const double ax1 = x1 + margin;
     const double ay1 = y1 + margin;
     if (support_model.has_states) {
+      // The leaves that carry the vertices of the triangle must be supported
+      // as well; a leaf that the support does not list at all is not supported.
+      for (std::size_t k = 0; k < 3; ++k) {
+        Vec2 chart_point{builder.points()[triangle[k]].x, builder.points()[triangle[k]].y};
+        SkyICRS direction;
+        if (!information::unproject_from_chart(projection, chart_point, direction)) continue;
+        U64 ipix = 0;
+        if (!information::local_leaf_lookup(support_model.order, direction, ipix)) continue;
+        bool found = false;
+        for (std::size_t row = 0; row < support_model.leaves.size(); ++row) {
+          if (support_model.leaves[row].first != support_model.order) continue;
+          if (support_model.leaves[row].second != ipix) continue;
+          found = true;
+          if (support_model.states[row] != 1) return false;
+          break;
+        }
+        if (!found) return false;
+      }
       for (std::size_t row = 0; row < support_model.leaves.size(); ++row) {
         const U64 order = support_model.leaves[row].first;
         const U64 ipix = support_model.leaves[row].second;

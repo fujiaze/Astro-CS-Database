@@ -351,6 +351,8 @@ U64 action_codomain_size(Ref<LinearAction> action) {
   return 0;
 }
 
+
+
 Result<Matrix> dense_action(Context& context, Ref<LinearAction> action, U64 rows, U64 cols) {
   if (!action) {
     return model::fail<Matrix>(Code::invalid_request, "no action supplied", "sky.dense",

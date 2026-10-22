@@ -16,6 +16,7 @@
 
 namespace acsd::coadd_internal {
 
+
 // The inverse of the standard normal cumulative distribution function.
 double normal_quantile(double probability);
 
