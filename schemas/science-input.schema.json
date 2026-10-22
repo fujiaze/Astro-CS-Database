@@ -769,6 +769,33 @@
             "type": "string"
           }
         },
+        "omitted_position_bound_rad": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "f64"
+                  ],
+                  "properties": {
+                    "f64": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{16}$"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "issues": {
           "type": "array",
           "items": {
@@ -800,6 +827,7 @@
         "noise",
         "included",
         "omitted",
+        "omitted_position_bound_rad",
         "issues",
         "condition",
         "execution",

@@ -55,6 +55,10 @@ struct Issue { Code code; Scope scope; std::string origin,reason,impact,retry_co
 struct Condition { Id estimator; std::string kind; std::vector<Id> fixed_objects,assumptions; };
 struct Assessment { bool complete; Validity validity; ScienceState science;
   NoiseState noise; std::vector<std::string> included,omitted;
+  // The bound of a position error that is omitted on purpose (for example the
+  // topocentric correction of a catalogue position).  It is absent when the
+  // omission is unbounded; an omitted error is never zero.
+  std::optional<double> omitted_position_bound_rad;
   std::vector<Issue> issues; Condition condition; ExecutionState execution; Capability capability; };
 struct Usage { U64 work,peak_payload_bytes,read_bytes,written_bytes,spill_bytes;
   double elapsed_seconds; };

@@ -106,4 +106,12 @@ struct RankReport {
 
 RankReport classify_rank(const SvdResult& svd, std::size_t columns, double rank_relative);
 
+// The pseudo inverse of a matrix from its singular value decomposition:
+// A^+ = V S^+ U^T with the reciprocal of every singular value above the rank
+// threshold and zero below it.  The threshold is relative to the largest
+// singular value, exactly as in classify_rank.  This is the single
+// implementation of the pseudo inverse: modules must call it instead of
+// assembling the factors themselves.
+Matrix pseudo_inverse(const SvdResult& svd, std::size_t columns, double rank_relative);
+
 }  // namespace acsd::numerics

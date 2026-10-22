@@ -172,6 +172,33 @@ int main() {
     }
   }
 
+  // The pseudo inverse must reproduce the least squares solution: for a
+  // consistent system A x = b the pseudo inverse gives the minimum norm
+  // solution, and A A^+ is the orthogonal projection onto the row space.
+  {
+    acsd::numerics::Matrix a(3, 2);
+    a(0, 0) = 1.0; a(0, 1) = 2.0;
+    a(1, 0) = 0.0; a(1, 1) = 0.0;
+    a(2, 0) = 1.0; a(2, 1) = 0.0;
+    const auto svd = acsd::numerics::jacobi_svd(a, 1e-12);
+    const auto inverse = acsd::numerics::pseudo_inverse(svd, 2, 1e-12);
+    // A A^+ A must reproduce A.
+    const auto product = acsd::numerics::matmul(a, acsd::numerics::matmul(inverse, a));
+    double worst = 0.0;
+    for (std::size_t i = 0; i < 3; ++i)
+      for (std::size_t j = 0; j < 2; ++j) {
+        const double want = a(i, j);
+        const double difference = std::fabs(product(i, j) - want);
+        if (difference > worst) worst = difference;
+      }
+    if (worst < 1e-10) {
+      std::printf("ok     pseudo inverse projects onto the row space\n");
+    } else {
+      std::printf("FAIL   pseudo inverse projects onto the row space (worst %g)\n", worst);
+      ++failures;
+    }
+  }
+
   std::printf("%s: %d failure(s)\n", failures == 0 ? "numerics self test PASS" : "numerics self test FAIL",
               failures);
   return failures == 0 ? 0 : 1;

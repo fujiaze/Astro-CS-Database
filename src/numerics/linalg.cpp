@@ -512,4 +512,27 @@ EigenResult symmetric_eigen(const Matrix& a) {
   return out;
 }
 
+
+
+Matrix pseudo_inverse(const SvdResult& svd, std::size_t columns, double rank_relative) {
+  const std::size_t k = svd.singular_values.size();
+  Matrix out(columns, svd.u.rows);
+  if (k == 0 || svd.u.rows == 0) return out;
+  const double largest = svd.singular_values.front();
+  const double threshold = largest > 0.0 ? rank_relative * largest : 0.0;
+  for (std::size_t i = 0; i < k; ++i) {
+    const double sigma = svd.singular_values[i];
+    if (!(sigma > threshold) || sigma <= 0.0) continue;
+    const double reciprocal = 1.0 / sigma;
+    for (std::size_t r = 0; r < svd.v.rows; ++r) {
+      const double vr = svd.v(r, i);
+      if (vr == 0.0) continue;
+      for (std::size_t c = 0; c < svd.u.rows; ++c) {
+        out(r, c) += vr * svd.u(c, i) * reciprocal;
+      }
+    }
+  }
+  return out;
+}
+
 }  // namespace acsd::numerics
