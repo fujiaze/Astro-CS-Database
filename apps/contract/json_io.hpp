@@ -76,6 +76,11 @@ json encode_assessment(const Assessment& assessment);
 // response carries it, so that the result of make_wcs can be used as the
 // input of the next request.
 json encode_wcs_model(const WcsModel& wcs);
+// The typed payload of a footprint provider: the world coordinate model it
+// is built from.
+json encode_footprint_provider(const WcsModel& wcs);
+// The typed payload of an overlap result: the contributions of the leaves.
+json encode_overlaps(const Overlaps& overlaps);
 json encode_usage(const Usage& usage);
 json encode_condition(const Condition& condition);
 json encode_index(const Index& index);

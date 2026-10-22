@@ -509,8 +509,42 @@ json encode_assessment(const Assessment& assessment) {
   return node;
 }
 
+json encode_footprint_provider(const WcsModel& wcs) {
+  json node;
+  node["wcs"] = json{{"$ref", wcs.identity.object_id}};
+  node["kind"] = "canonical_tan_sip";
+  return node;
+}
+
+json encode_overlaps(const Overlaps& overlaps) {
+  json contributions = json::array();
+  for (const OverlapContribution& contribution : overlaps.contributions) {
+    json entry;
+    entry["source"] = json{{"dataset", contribution.source.dataset},
+                            {"exposure", contribution.source.exposure},
+                            {"detector", contribution.source.detector},
+                            {"channel", contribution.source.channel},
+                            {"sample", contribution.source.sample}};
+    entry["leaf"] = json{{"order", contribution.leaf.order}, {"ipix", contribution.leaf.ipix}};
+    entry["native_area_sr"] = json{{"lower", encode_f64(contribution.native_area.lower_sr)},
+                                  {"upper", encode_f64(contribution.native_area.upper_sr)}};
+    entry["drop_area_sr"] = json{{"lower", encode_f64(contribution.drop_area.lower_sr)},
+                                 {"upper", encode_f64(contribution.drop_area.upper_sr)}};
+    entry["overlap_area_sr"] = json{{"lower", encode_f64(contribution.overlap_area.lower_sr)},
+                                   {"upper", encode_f64(contribution.overlap_area.upper_sr)}};
+    contributions.push_back(entry);
+  }
+  json node;
+  node["contributions"] = contributions;
+  node["status"] = "resolved";
+  return node;
+}
+
 json encode_wcs_model(const WcsModel& wcs) {
   json node;
+  // The identity travels with the payload: the next request decodes the same
+  // object with the same identity.
+  node["identity"] = encode_identity(wcs.identity);
   node["crpix_fits1"] = json::array({encode_f64(wcs.crpix_fits1[0]), encode_f64(wcs.crpix_fits1[1])});
   node["cd_rad_per_pixel"] =
       json::array({encode_f64(wcs.cd_rad_per_pixel[0]), encode_f64(wcs.cd_rad_per_pixel[1]),
@@ -704,6 +738,17 @@ std::string dtype_name(DType dtype) {
 }
 
 Identity identity_for(const std::string& schema_id, const json& payload) {
+  // A payload that carries its identity keeps it: the object of a response
+  // and the object of the next request are the same object.
+  const json& identity = field(payload, "identity");
+  if (identity.is_object() && identity.contains("object_id")) {
+    Identity result;
+    result.object_id = string_field(identity, "object_id");
+    result.content_hash = string_field(identity, "content_hash");
+    result.run_id = string_field(identity, "run_id");
+    result.revision = u64_field(identity, "revision", 0);
+    if (!result.object_id.empty()) return result;
+  }
   return model::make_identity(schema_id, 2, 0, model::sha256_hex(canonical_json(payload)),
                               "acsd-contract");
 }
@@ -1255,6 +1300,68 @@ Result<TypedObject> DecodeContext::decode_node(const json& node) {
     return model::ok_result(TypedObject{"WcsModel",
                                         std::make_shared<const WcsModel>(wcs),
                                         wcs.identity.object_id});
+  }
+
+  if (type == "FootprintProvider") {
+    const json& wcs_node = field(payload, "wcs");
+    Result<TypedObject> wcs_object = resolve_reference(
+        wcs_node.is_object() && wcs_node.contains("$ref") ? wcs_node.at("$ref").get<std::string>()
+                                                          : std::string());
+    if (!ok(wcs_object)) {
+      return model::fail<TypedObject>(wcs_object.code,
+                                       "the provider has no world coordinate model",
+                                       "contract.decode", "the provider cannot be decoded");
+    }
+    const Id hash = identity_for("acsd.FootprintProvider", payload).object_id;
+    publish("FootprintProvider", hash, payload);
+    return model::ok_result(TypedObject{"FootprintProvider", val(wcs_object).value, hash});
+  }
+
+  if (type == "DetectorFootprint") {
+    DetectorFootprint footprint;
+    const json& wcs_node = field(payload, "wcs");
+    Result<TypedObject> wcs_object = resolve_reference(
+        wcs_node.is_object() && wcs_node.contains("$ref") ? wcs_node.at("$ref").get<std::string>()
+                                                          : std::string());
+    if (!ok(wcs_object)) {
+      return model::fail<TypedObject>(wcs_object.code, "the footprint has no world coordinate model",
+                                       "contract.decode", "the footprint cannot be decoded");
+    }
+    footprint.wcs = std::static_pointer_cast<const WcsModel>(val(wcs_object).value);
+    const json& rings = field(payload, "detector_rings");
+    if (rings.is_array()) {
+      for (const json& item : rings) {
+        Ring ring;
+        ring.hole = item.contains("hole") && item.at("hole").is_boolean() &&
+                    item.at("hole").get<bool>();
+        const json& vertices = field(item, "vertices");
+        if (vertices.is_array()) {
+          for (const json& vertex : vertices) {
+            PixelEdge0 edge;
+            edge.x = decode_f64(field(vertex, "x"));
+            edge.y = decode_f64(field(vertex, "y"));
+            ring.vertices.push_back(edge);
+          }
+        }
+        footprint.detector_rings.push_back(ring);
+      }
+    }
+    const json& source = field(payload, "source");
+    footprint.source.dataset = string_field(source, "dataset");
+    footprint.source.exposure = string_field(source, "exposure");
+    footprint.source.detector = string_field(source, "detector");
+    footprint.source.channel = string_field(source, "channel");
+    footprint.source.sample = u64_field(source, "sample", 0);
+    const json& centre = field(payload, "contraction_center");
+    footprint.contraction_center.x = decode_f64(field(centre, "x"));
+    footprint.contraction_center.y = decode_f64(field(centre, "y"));
+    footprint.identity = identity_for("acsd.DetectorFootprint", payload);
+    footprint.assessment = model::make_assessment(Code::ok);
+    footprint.assessment.complete = true;
+    publish("DetectorFootprint", footprint.identity.object_id, payload);
+    return model::ok_result(TypedObject{"DetectorFootprint",
+                                        std::make_shared<const DetectorFootprint>(footprint),
+                                        footprint.identity.object_id});
   }
 
   // Plain value types that may be used directly as an argument.

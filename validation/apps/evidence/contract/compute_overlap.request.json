@@ -1,0 +1,224 @@
+{
+ "protocol": "acsd.contract",
+ "major": 1,
+ "request_id": "chain-3-overlap",
+ "operation": "compute_overlap",
+ "arguments": {
+  "provider": {
+   "$ref": "5599e2f776cc950429fe767ce8e12d8d70efccad89157eb955f2a1c3221b91f6"
+  },
+  "source": {
+   "$ref": "source"
+  }
+ },
+ "request": {
+  "order": 4,
+  "pixfrac": 1.0,
+  "area_absolute_sr": 1e-12,
+  "normalizer_min_sr": 1e-15,
+  "max_work": 2000000,
+  "max_bytes": 268435456,
+  "max_depth": 64
+ },
+ "input_objects": {
+  "5599e2f776cc950429fe767ce8e12d8d70efccad89157eb955f2a1c3221b91f6": {
+   "type": "FootprintProvider",
+   "data": {
+    "kind": "canonical_tan_sip",
+    "wcs": {
+     "$ref": "acsd.WcsModel:d5a3ba0c45645210b41e2ba76c407dc5c75bff99f4b786f1bc8ac0cdc1f39226"
+    }
+   }
+  },
+  "source": {
+   "type": "DetectorFootprint",
+   "data": {
+    "wcs": {
+     "$ref": "acsd.WcsModel:d5a3ba0c45645210b41e2ba76c407dc5c75bff99f4b786f1bc8ac0cdc1f39226"
+    },
+    "detector_rings": [
+     {
+      "hole": false,
+      "vertices": [
+       {
+        "x": -0.5,
+        "y": -0.5
+       },
+       {
+        "x": 7.5,
+        "y": -0.5
+       },
+       {
+        "x": 7.5,
+        "y": 7.5
+       },
+       {
+        "x": -0.5,
+        "y": 7.5
+       }
+      ]
+     }
+    ],
+    "source": {
+     "dataset": "acsd.chain",
+     "exposure": "e0",
+     "detector": "d0",
+     "channel": "adu",
+     "sample": 0
+    },
+    "contraction_center": {
+     "x": 3.5,
+     "y": 3.5
+    }
+   }
+  },
+  "acsd.WcsModel:d5a3ba0c45645210b41e2ba76c407dc5c75bff99f4b786f1bc8ac0cdc1f39226": {
+   "type": "WcsModel",
+   "data": {
+    "c": [
+     {
+      "f64": "a84c58e87ab6dbbf"
+     },
+     {
+      "f64": "010000000000e83f"
+     },
+     {
+      "f64": "ffffffffffffdf3f"
+     }
+    ],
+    "cd_rad_per_pixel": [
+     {
+      "f64": "74341921154df2be"
+     },
+     {
+      "f64": "0000000000000000"
+     },
+     {
+      "f64": "0000000000000000"
+     },
+     {
+      "f64": "74341921154df23e"
+     }
+    ],
+    "crpix_fits1": [
+     {
+      "f64": "0000000000001240"
+     },
+     {
+      "f64": "0000000000001240"
+     }
+    ],
+    "detector_frame": "detector",
+    "domain": {
+     "lower": [
+      {
+       "f64": "000000000000e0bf"
+      },
+      {
+       "f64": "000000000000e0bf"
+      }
+     ],
+     "upper": [
+      {
+       "f64": "0000000000001e40"
+      },
+      {
+       "f64": "0000000000001e40"
+      }
+     ]
+    },
+    "e": [
+     {
+      "f64": "ab4c58e87ab6ebbf"
+     },
+     {
+      "f64": "fcffffffffffdfbf"
+     },
+     {
+      "f64": "0000000000000000"
+     }
+    ],
+    "identity": {
+     "content_hash": "sha256:d5a3ba0c45645210b41e2ba76c407dc5c75bff99f4b786f1bc8ac0cdc1f39226",
+     "object_id": "acsd.WcsModel:d5a3ba0c45645210b41e2ba76c407dc5c75bff99f4b786f1bc8ac0cdc1f39226",
+     "revision": 1,
+     "run_id": "acsd",
+     "schema_id": "acsd.WcsModel",
+     "schema_major": 2,
+     "schema_minor": 0
+    },
+    "north": [
+     {
+      "f64": "fbffffffffffcf3f"
+     },
+     {
+      "f64": "aa4c58e87ab6dbbf"
+     },
+     {
+      "f64": "ab4c58e87ab6eb3f"
+     }
+    ],
+    "original_header": [
+     {
+      "key": "CTYPE1",
+      "value": "RA---TAN"
+     },
+     {
+      "key": "CTYPE2",
+      "value": "DEC--TAN"
+     },
+     {
+      "key": "CRPIX1",
+      "value": {
+       "f64": "0000000000001240"
+      }
+     },
+     {
+      "key": "CRPIX2",
+      "value": {
+       "f64": "0000000000001240"
+      }
+     },
+     {
+      "key": "CRVAL1",
+      "value": {
+       "f64": "0000000000005e40"
+      }
+     },
+     {
+      "key": "CRVAL2",
+      "value": {
+       "f64": "0000000000003e40"
+      }
+     },
+     {
+      "key": "CD1_1",
+      "value": {
+       "f64": "fca9f1d24d6250bf"
+      }
+     },
+     {
+      "key": "CD2_2",
+      "value": {
+       "f64": "fca9f1d24d62503f"
+      }
+     },
+     {
+      "key": "RADESYS",
+      "value": "ICRS"
+     }
+    ]
+   }
+  }
+ },
+ "output_root": "/tmp/tmpx4cvoybn",
+ "resources": {
+  "bytes": 8388608,
+  "work": 100000,
+  "spill_bytes": 0,
+  "threads": 1,
+  "max_depth": 32,
+  "max_precision_bits": 128,
+  "scratch_directory": ".work"
+ }
+}

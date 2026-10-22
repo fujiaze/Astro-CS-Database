@@ -1,0 +1,69 @@
+{
+ "protocol": "acsd.contract",
+ "major": 1,
+ "request_id": "chain-1-make-wcs",
+ "operation": "make_wcs",
+ "arguments": {
+  "header": [
+   {
+    "key": "CTYPE1",
+    "value": "RA---TAN"
+   },
+   {
+    "key": "CTYPE2",
+    "value": "DEC--TAN"
+   },
+   {
+    "key": "CRPIX1",
+    "value": 4.5
+   },
+   {
+    "key": "CRPIX2",
+    "value": 4.5
+   },
+   {
+    "key": "CRVAL1",
+    "value": 120.0
+   },
+   {
+    "key": "CRVAL2",
+    "value": 30.0
+   },
+   {
+    "key": "CD1_1",
+    "value": -0.001
+   },
+   {
+    "key": "CD2_2",
+    "value": 0.001
+   },
+   {
+    "key": "RADESYS",
+    "value": "ICRS"
+   }
+  ],
+  "domain": {
+   "lower": [
+    -0.5,
+    -0.5
+   ],
+   "upper": [
+    7.5,
+    7.5
+   ]
+  },
+  "detector_frame": "detector"
+ },
+ "request": {},
+ "input_objects": {},
+ "output_root": "/tmp/tmpx4cvoybn",
+ "resources": {
+  "bytes": 8388608,
+  "work": 100000,
+  "spill_bytes": 0,
+  "threads": 1,
+  "max_depth": 32,
+  "max_precision_bits": 128,
+  "scratch_directory": ".work"
+ }
+}

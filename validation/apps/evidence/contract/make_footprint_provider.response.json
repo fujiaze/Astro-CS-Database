@@ -1,0 +1,229 @@
+{
+ "algorithm_set": [
+  {
+   "name": "acsd-contract",
+   "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+   "version": "1"
+  },
+  {
+   "name": "make_footprint_provider",
+   "source_hash": "sha256:f4fcb74172cf4a224792f33b0ea7de82eaf84793c7a28f5b062668624d2730c7",
+   "version": "1"
+  }
+ ],
+ "arithmetic": {
+  "allow_target_fallback": true,
+  "initial_bits": 64,
+  "max_bits": 256,
+  "mode": "outward"
+ },
+ "blocks": [],
+ "build": {
+  "compiler": "14.2.0",
+  "name": "acsd-contract",
+  "standard": "acsd.contract/1",
+  "version": "2.0.0"
+ },
+ "input_hashes": {
+  "acsd.WcsModel:d5a3ba0c45645210b41e2ba76c407dc5c75bff99f4b786f1bc8ac0cdc1f39226": "acsd.WcsModel:d5a3ba0c45645210b41e2ba76c407dc5c75bff99f4b786f1bc8ac0cdc1f39226"
+ },
+ "major": 1,
+ "objects": {
+  "5599e2f776cc950429fe767ce8e12d8d70efccad89157eb955f2a1c3221b91f6": {
+   "data": {
+    "kind": "canonical_tan_sip",
+    "wcs": {
+     "$ref": "acsd.WcsModel:d5a3ba0c45645210b41e2ba76c407dc5c75bff99f4b786f1bc8ac0cdc1f39226"
+    }
+   },
+   "type": "FootprintProvider"
+  },
+  "acsd.WcsModel:d5a3ba0c45645210b41e2ba76c407dc5c75bff99f4b786f1bc8ac0cdc1f39226": {
+   "data": {
+    "c": [
+     {
+      "f64": "a84c58e87ab6dbbf"
+     },
+     {
+      "f64": "010000000000e83f"
+     },
+     {
+      "f64": "ffffffffffffdf3f"
+     }
+    ],
+    "cd_rad_per_pixel": [
+     {
+      "f64": "74341921154df2be"
+     },
+     {
+      "f64": "0000000000000000"
+     },
+     {
+      "f64": "0000000000000000"
+     },
+     {
+      "f64": "74341921154df23e"
+     }
+    ],
+    "crpix_fits1": [
+     {
+      "f64": "0000000000001240"
+     },
+     {
+      "f64": "0000000000001240"
+     }
+    ],
+    "detector_frame": "detector",
+    "domain": {
+     "lower": [
+      {
+       "f64": "000000000000e0bf"
+      },
+      {
+       "f64": "000000000000e0bf"
+      }
+     ],
+     "upper": [
+      {
+       "f64": "0000000000001e40"
+      },
+      {
+       "f64": "0000000000001e40"
+      }
+     ]
+    },
+    "e": [
+     {
+      "f64": "ab4c58e87ab6ebbf"
+     },
+     {
+      "f64": "fcffffffffffdfbf"
+     },
+     {
+      "f64": "0000000000000000"
+     }
+    ],
+    "identity": {
+     "content_hash": "sha256:d5a3ba0c45645210b41e2ba76c407dc5c75bff99f4b786f1bc8ac0cdc1f39226",
+     "object_id": "acsd.WcsModel:d5a3ba0c45645210b41e2ba76c407dc5c75bff99f4b786f1bc8ac0cdc1f39226",
+     "revision": 1,
+     "run_id": "acsd",
+     "schema_id": "acsd.WcsModel",
+     "schema_major": 2,
+     "schema_minor": 0
+    },
+    "north": [
+     {
+      "f64": "fbffffffffffcf3f"
+     },
+     {
+      "f64": "aa4c58e87ab6dbbf"
+     },
+     {
+      "f64": "ab4c58e87ab6eb3f"
+     }
+    ],
+    "original_header": [
+     {
+      "key": "CTYPE1",
+      "value": "RA---TAN"
+     },
+     {
+      "key": "CTYPE2",
+      "value": "DEC--TAN"
+     },
+     {
+      "key": "CRPIX1",
+      "value": {
+       "f64": "0000000000001240"
+      }
+     },
+     {
+      "key": "CRPIX2",
+      "value": {
+       "f64": "0000000000001240"
+      }
+     },
+     {
+      "key": "CRVAL1",
+      "value": {
+       "f64": "0000000000005e40"
+      }
+     },
+     {
+      "key": "CRVAL2",
+      "value": {
+       "f64": "0000000000003e40"
+      }
+     },
+     {
+      "key": "CD1_1",
+      "value": {
+       "f64": "fca9f1d24d6250bf"
+      }
+     },
+     {
+      "key": "CD2_2",
+      "value": {
+       "f64": "fca9f1d24d62503f"
+      }
+     },
+     {
+      "key": "RADESYS",
+      "value": "ICRS"
+     }
+    ]
+   },
+   "type": "WcsModel"
+  }
+ },
+ "operation": "make_footprint_provider",
+ "output_root": "/tmp/tmpx4cvoybn",
+ "protocol": "acsd.contract.response",
+ "request_id": "chain-2-provider",
+ "resolved_request_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+ "resources": {
+  "byte_budget": 8388608,
+  "bytes": 8388608,
+  "elapsed_seconds": 0.000302519,
+  "peak_payload_bytes": 0,
+  "read_bytes": 0,
+  "spill_bytes": 0,
+  "threads": 1,
+  "work": 2,
+  "work_budget": 100000,
+  "written_bytes": 0
+ },
+ "result": {
+  "assessment": {
+   "capability": "supported",
+   "complete": true,
+   "condition": {
+    "assumptions": [],
+    "estimator": "",
+    "fixed_objects": [],
+    "kind": ""
+   },
+   "execution": "complete",
+   "included": [],
+   "issues": [],
+   "noise": "unknown",
+   "omitted": [],
+   "science": "bounded",
+   "validity": "certified"
+  },
+  "code": "ok",
+  "dependencies": [],
+  "usage": {
+   "elapsed_seconds": 1.294e-06,
+   "peak_payload_bytes": 0,
+   "read_bytes": 0,
+   "spill_bytes": 0,
+   "work": 2,
+   "written_bytes": 0
+  },
+  "value": {
+   "$ref": "5599e2f776cc950429fe767ce8e12d8d70efccad89157eb955f2a1c3221b91f6"
+  }
+ }
+}

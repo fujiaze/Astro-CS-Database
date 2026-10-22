@@ -97,6 +97,9 @@ class Driver {
   json run_covariance_apply();
   json run_make_covariance();
   json run_make_wcs();
+  json run_make_footprint_provider();
+  json run_measure();
+  json run_compute_overlap();
   json run_forward();
   json run_inverse();
   json run_derivative();
@@ -414,6 +417,198 @@ json Driver::run_make_covariance() {
   result["assessment"] = encode_assessment(val(covariance)->assessment);
   result["usage"] = encode_usage(resources_->usage());
   result["dependencies"] = json::array();
+  body["result"] = result;
+  return body;
+}
+
+
+// The footprint provider of a world coordinate model.
+
+// The world coordinate model of a provider argument.
+Ref<WcsModel> provider_wcs(const TypedObject& provider) {
+  if (provider.type != "FootprintProvider" || !provider.value) return nullptr;
+  return std::static_pointer_cast<const WcsModel>(provider.value);
+}
+
+// The geometry budget of a request.
+GeometryBudget decode_geometry_budget(const json& node) {
+  GeometryBudget budget;
+  const json& functionals = node.contains("requested_functionals") ? node.at("requested_functionals")
+                                                                   : json::array();
+  if (functionals.is_array()) {
+    for (const json& item : functionals) {
+      if (!item.is_string()) continue;
+      QuantityRequest functional;
+      functional.id = item.get<std::string>();
+      functional.kind = QuantityRequest::Kind::area;
+      budget.requested_functionals.push_back(functional);
+    }
+  }
+  const json& per_leaf = node.contains("per_leaf_absolute_area") ? node.at("per_leaf_absolute_area")
+                                                                 : json::array();
+  if (per_leaf.is_array()) {
+    for (const json& item : per_leaf) {
+      LeafAreaLimit limit;
+      limit.absolute_sr = decode_f64(item);
+      budget.per_leaf_absolute_area.push_back(limit);
+    }
+  }
+  budget.area_absolute_sr = node.contains("area_absolute_sr") ? decode_f64(node.at("area_absolute_sr"))
+                                                              : 0.0;
+  budget.normalizer_min_sr = node.contains("normalizer_min_sr")
+                                 ? decode_f64(node.at("normalizer_min_sr"))
+                                 : 0.0;
+  budget.max_work = node.contains("max_work") ? static_cast<U64>(node.at("max_work").get<U64>())
+                                               : 1000000ull;
+  budget.max_bytes = node.contains("max_bytes") ? static_cast<U64>(node.at("max_bytes").get<U64>())
+                                                 : 268435456ull;
+  budget.max_depth = node.contains("max_depth")
+                         ? static_cast<U32>(node.at("max_depth").get<U32>())
+                         : 64u;
+  budget.arithmetic = decode_arithmetic(node.contains("arithmetic") ? node.at("arithmetic")
+                                                                     : json::object());
+  return budget;
+}
+
+json Driver::run_make_footprint_provider() {
+  Result<TypedObject> wcs_node = argument("wcs");
+  if (!ok(wcs_node)) {
+    return failure_body(wcs_node.code, "the wcs argument cannot be decoded", "contract.decode");
+  }
+  if (val(wcs_node).type != "WcsModel") {
+    return failure_body(Code::invalid_request, "the argument wcs is not a WcsModel",
+                        "contract.decode");
+  }
+  Ref<WcsModel> wcs = std::static_pointer_cast<const WcsModel>(val(wcs_node).value);
+  Result<Ref<FootprintProvider>> provider = make_footprint_provider(*context_, wcs);
+  json body = envelope_header();
+  json result;
+  if (!ok(provider)) {
+    result["code"] = encode_code(provider.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(provider.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  const Id hash = model::sha256_hex("acsd.FootprintProvider:" + wcs->identity.object_id);
+  result["code"] = encode_code(Code::ok);
+  result["value"] = encode_ref_value(hash);
+  result["assessment"] = encode_assessment(val(provider)->model()->assessment);
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
+  decoder_->publish("FootprintProvider", hash, encode_footprint_provider(*wcs));
+  body["result"] = result;
+  return body;
+}
+
+// The area of a detector footprint against the provider.
+json Driver::run_measure() {
+  Result<TypedObject> provider_node = argument("provider");
+  if (!ok(provider_node)) {
+    return failure_body(provider_node.code, "the provider argument cannot be decoded",
+                        "contract.decode");
+  }
+  Result<TypedObject> source_node = argument("source");
+  if (!ok(source_node)) {
+    return failure_body(source_node.code, "the source argument cannot be decoded",
+                        "contract.decode");
+  }
+  Ref<DetectorFootprint> source =
+      std::static_pointer_cast<const DetectorFootprint>(val(source_node).value);
+  const GeometryBudget budget = decode_geometry_budget(request_);
+  json body = envelope_header();
+  json result;
+  // The provider is rebuilt from the world coordinate model it carries.
+  Ref<WcsModel> wcs = provider_wcs(val(provider_node));
+  if (!wcs) {
+    return failure_body(Code::invalid_request, "the provider argument has no world coordinate model",
+                        "contract.decode");
+  }
+  Result<Ref<FootprintProvider>> provider = make_footprint_provider(*context_, wcs);
+  if (!ok(provider)) {
+    result["code"] = encode_code(provider.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(provider.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  Result<SphericalAreaInterval> area = measure(*context_, *val(provider), source, budget);
+  if (!ok(area)) {
+    result["code"] = encode_code(area.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(area.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  result["code"] = encode_code(Code::ok);
+  result["value"] = json{{"lower_sr", encode_f64(val(area).lower_sr)},
+                          {"upper_sr", encode_f64(val(area).upper_sr)}};
+  result["assessment"] = encode_assessment(area.assessment);
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
+  body["result"] = result;
+  return body;
+}
+
+// The overlap of a detector footprint against the leaves of an order.
+json Driver::run_compute_overlap() {
+  Result<TypedObject> provider_node = argument("provider");
+  if (!ok(provider_node)) {
+    return failure_body(provider_node.code, "the provider argument cannot be decoded",
+                        "contract.decode");
+  }
+  Result<TypedObject> source_node = argument("source");
+  if (!ok(source_node)) {
+    return failure_body(source_node.code, "the source argument cannot be decoded",
+                        "contract.decode");
+  }
+  Ref<DetectorFootprint> source =
+      std::static_pointer_cast<const DetectorFootprint>(val(source_node).value);
+  const U32 order = request_.contains("order") ? static_cast<U32>(request_.at("order").get<U32>())
+                                                 : 6u;
+  const double pixfrac = request_.contains("pixfrac") ? decode_f64(request_.at("pixfrac")) : 1.0;
+  const GeometryBudget budget = decode_geometry_budget(request_);
+  json body = envelope_header();
+  json result;
+  Ref<WcsModel> wcs = provider_wcs(val(provider_node));
+  if (!wcs) {
+    return failure_body(Code::invalid_request, "the provider argument has no world coordinate model",
+                        "contract.decode");
+  }
+  Result<Ref<FootprintProvider>> provider = make_footprint_provider(*context_, wcs);
+  if (!ok(provider)) {
+    result["code"] = encode_code(provider.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(provider.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  Result<Ref<Overlaps>> overlaps =
+      compute_overlap(*context_, *val(provider), source, order, pixfrac, budget);
+  if (!ok(overlaps)) {
+    result["code"] = encode_code(overlaps.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(overlaps.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  const Id hash = model::sha256_hex("acsd.Overlaps:" + std::to_string(order));
+  result["code"] = encode_code(Code::ok);
+  result["value"] = encode_ref_value(hash);
+  result["assessment"] = encode_assessment(val(overlaps)->assessment);
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
+  decoder_->publish("Overlaps", hash, encode_overlaps(*val(overlaps)));
   body["result"] = result;
   return body;
 }
@@ -778,6 +973,9 @@ json Driver::dispatch() {
   if (operation_ == "covariance_apply") return run_covariance_apply();
   if (operation_ == "make_covariance") return run_make_covariance();
   if (operation_ == "make_wcs") return run_make_wcs();
+  if (operation_ == "make_footprint_provider") return run_make_footprint_provider();
+  if (operation_ == "measure") return run_measure();
+  if (operation_ == "compute_overlap") return run_compute_overlap();
   if (operation_ == "forward") return run_forward();
   if (operation_ == "inverse") return run_inverse();
   if (operation_ == "derivative") return run_derivative();
@@ -941,6 +1139,9 @@ bool operation_supported(const std::string& operation) {
                                      "covariance_apply",
                                      "make_covariance",
                                      "make_wcs",
+                                     "make_footprint_provider",
+                                     "measure",
+                                     "compute_overlap",
                                      "forward",
                                      "inverse",
                                      "derivative",
