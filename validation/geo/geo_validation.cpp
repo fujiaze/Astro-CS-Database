@@ -1743,6 +1743,66 @@ int main(int argc, char** argv) {
     }
   }
 
+  // 2c. The polar boundary: a detector square around a tangent point that is
+  // 0.0005 deg from the north pole.  The block covers the pole itself, where
+  // the gnomonic projection is singular, so the failure must be named and must
+  // not be a silent zero.
+  {
+    const double cd_deg = 0.0002;
+    acsd::HeaderFields header =
+        make_header(false, cd_deg, 32.0, 32.0, 45.0, 89.9995, "ICRS", false, 0.0, false);
+    const Box domain{{0.0, 0.0}, {64.0, 64.0}};
+    acsd::AstrometricContext astrometric;
+    Result<Ref<acsd::WcsModel>> model =
+        acsd::make_wcs(context, header, domain, astrometric, "detector-P", budget);
+    geometry.boolean("polar_wcs_admitted", good(model));
+    if (good(model)) {
+      const Ref<acsd::WcsModel>& wcs = value_of(model);
+      auto index = std::make_shared<acsd::Index>();
+      index->size = 64 * 64;
+      index->kind = acsd::Index::Kind::native;
+      index->namespace_id = "acsd.validation";
+      auto footprints = std::make_shared<acsd::FootprintSet>();
+      footprints->index = index;
+      footprints->width = 64;
+      footprints->height = 64;
+      footprints->detector_from_sample = acsd::Mat2{1.0, 0.0, 0.0, 1.0};
+      footprints->offset = acsd::Vec2{0.0, 0.0};
+      // A 16 by 16 pixel block centred on the tangent point: the pole lies
+      // 0.0005 deg north of the tangent point, which is 2.4 pixels, so the
+      // block covers the pole itself.
+      footprints->local_cell = Box{{-8.0, -8.0}, {8.0, 8.0}};
+      footprints->wcs = wcs;
+      footprints->detector_frame = "detector-P";
+      const acsd::U64 tangent_row = 31 + 31 * 64;
+      Result<Ref<acsd::DetectorFootprint>> footprint_result =
+          acsd::detector_footprint(context, footprints, tangent_row);
+      geometry.boolean("polar_footprint_admitted", good(footprint_result));
+      if (good(footprint_result)) {
+        const Ref<acsd::DetectorFootprint>& footprint = value_of(footprint_result);
+        OracleProvider provider(wcs, Oracle{});
+        acsd::GeometryBudget geometry_budget;
+        geometry_budget.max_work = 200000;
+        geometry_budget.max_depth = 24;
+        geometry_budget.area_absolute_sr = 1e-12;
+        geometry_budget.arithmetic.initial_bits = 64;
+        geometry_budget.arithmetic.max_bits = 256;
+        Result<Ref<acsd::Overlaps>> overlaps =
+            acsd::compute_overlap(context, provider, footprint, 6, 1.0, geometry_budget);
+        geometry.boolean("polar_overlap_computed", good(overlaps));
+        if (!good(overlaps)) {
+          geometry.text("polar_overlap_code", code_name(overlaps.code));
+          for (const acsd::Issue& issue : overlaps.assessment.issues) {
+            geometry.text("polar_overlap_issue", issue.reason + " @ " + issue.origin);
+          }
+        } else {
+          geometry.text("polar_overlap_termination",
+                        std::to_string(static_cast<int>(value_of(overlaps)->status.termination)));
+        }
+      }
+    }
+  }
+
 {
     geometry.raw("checks", checks.str());
     geometry.integer("check_failures", checks.failures());
