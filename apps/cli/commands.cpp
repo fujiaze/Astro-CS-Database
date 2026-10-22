@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -46,6 +47,18 @@ U64 u64_field(const json& node, const char* key, U64 fallback = 0) {
   return fallback;
 }
 
+bool bool_field(const json& node, const char* key, bool fallback) {
+  if (!has(node, key)) return fallback;
+  const json& value = node.at(key);
+  return value.is_boolean() ? value.get<bool>() : fallback;
+}
+
+const json& field(const json& node, const char* key) {
+  static const json empty = json(nullptr);
+  if (!node.is_object() || !node.contains(key)) return empty;
+  return node.at(key);
+}
+
 double double_field(const json& node, const char* key, double fallback = 0.0) {
   if (!has(node, key)) return fallback;
   const json& value = node.at(key);
@@ -74,6 +87,18 @@ Arithmetic decode_arithmetic(const json& node) {
                                      node.at("allow_target_fallback").is_boolean() &&
                                      node.at("allow_target_fallback").get<bool>();
   return arithmetic;
+}
+
+NumericBudget decode_numeric_budget(const json& node) {
+  NumericBudget budget;
+  budget.tolerance.absolute = double_field(field(node, "tolerance"), "absolute", 1e-12);
+  budget.tolerance.relative = double_field(field(node, "tolerance"), "relative", 0.0);
+  budget.tolerance.absolute_floor = double_field(field(node, "tolerance"), "absolute_floor", 1e-12);
+  budget.tolerance.unit = decode_unit(field(node, "tolerance"));
+  budget.max_iterations = static_cast<U32>(u64_field(node, "max_iterations", 200));
+  budget.arithmetic = decode_arithmetic(has(node, "arithmetic") ? node.at("arithmetic")
+                                                                 : json::object());
+  return budget;
 }
 
 GeometryBudget decode_budget(const json& node) {
@@ -263,6 +288,584 @@ std::string hex_digest(const std::string& text) {
 
 }  // namespace
 
+
+
+// The astrometry request of the normalize command.
+SolverRequest decode_solver_request(const json& node) {
+  SolverRequest request;
+  const json& regions = node.contains("regions") ? node.at("regions") : json::array();
+  if (regions.is_array()) {
+    for (const json& item : regions) {
+      SkySearchRegion region;
+      const json& center = item.contains("center") ? item.at("center") : json::object();
+      region.center.nx = double_field(center, "nx", 0.0);
+      region.center.ny = double_field(center, "ny", 0.0);
+      region.center.nz = double_field(center, "nz", 1.0);
+      region.radius_rad = double_field(item, "radius_rad", 0.0);
+      request.regions.push_back(region);
+    }
+  }
+  request.scale_rad_pixel.lower = double_field(field(node, "scale_rad_pixel"), "lower", 0.0);
+  request.scale_rad_pixel.upper = double_field(field(node, "scale_rad_pixel"), "upper", 0.0);
+  request.max_candidates = static_cast<U32>(u64_field(node, "max_candidates", 32));
+  request.max_hypotheses = static_cast<U32>(u64_field(node, "max_hypotheses", 8));
+  request.sip_order = static_cast<U32>(u64_field(node, "sip_order", 2));
+  request.detect_snr = double_field(node, "detect_snr", 5.0);
+  request.match_radius_pixel = double_field(node, "match_radius_pixel", 2.0);
+  request.min_matches = static_cast<U32>(u64_field(node, "min_matches", 6));
+  request.quad_descriptor_tolerance = double_field(node, "quad_descriptor_tolerance", 0.1);
+  if (has(node, "budget")) request.budget = decode_numeric_budget(node.at("budget"));
+  return request;
+}
+
+// The point spread function request.
+PsfRequest decode_psf_request(const json& node) {
+  PsfRequest request;
+  const std::string family = string_field(node, "family", "gaussian");
+  request.family = family == "moffat" ? PsfRequest::Family::moffat
+                                      : (family == "airy" ? PsfRequest::Family::airy
+                                                          : PsfRequest::Family::gaussian);
+  request.spatial_degree = static_cast<U32>(u64_field(node, "spatial_degree", 0));
+  request.initial_width_pixel = double_field(node, "initial_width_pixel", 2.0);
+  request.tail_absolute_flux = double_field(node, "tail_absolute_flux", 1e-6);
+  request.window_radius_pixel = double_field(node, "window_radius_pixel", 10.0);
+  if (has(node, "budget")) request.budget = decode_numeric_budget(node.at("budget"));
+  return request;
+}
+
+// The drizzle request.
+DrizzleRequest decode_drizzle_request(const json& node) {
+  DrizzleRequest request;
+  request.order = static_cast<U32>(u64_field(node, "order", 6));
+  request.pixfrac = double_field(node, "pixfrac", 1.0);
+  if (has(node, "budget")) request.budget = decode_budget(node.at("budget"));
+  return request;
+}
+
+// The joint photometry request.  The responses of the frames are the ones of
+// the configuration.
+PhotometryRequest decode_photometry_request(const json& node,
+                                            const std::vector<NormalizeFrame>& frames) {
+  PhotometryRequest request;
+  for (const NormalizeFrame& frame : frames) {
+    if (frame.response) request.responses.push_back(frame.response);
+    request.frames.push_back(frame.frame);
+  }
+  request.application_id = string_field(node, "application_id", "acsd.cli");
+  request.gradient_tolerance = double_field(node, "gradient_tolerance", 1e-8);
+  request.step_tolerance = double_field(node, "step_tolerance", 1e-8);
+  request.max_outer_iterations = static_cast<U32>(u64_field(node, "max_outer_iterations", 50));
+  if (has(node, "solve")) {
+    const json& solve = node.at("solve");
+    request.solve.relative_residual = double_field(solve, "relative_residual", 1e-10);
+    request.solve.absolute_residual = double_field(solve, "absolute_residual", 1e-12);
+    request.solve.rank_relative = double_field(solve, "rank_relative", 1e-12);
+    request.solve.max_iterations = static_cast<U32>(u64_field(solve, "max_iterations", 200));
+    request.solve.dense_max_bytes = u64_field(solve, "dense_max_bytes", 64ull * 1024 * 1024);
+    request.solve.huber = bool_field(solve, "huber", false);
+    request.solve.huber_delta = double_field(solve, "huber_delta", 1.345);
+  }
+  if (has(node, "basis")) {
+    const json& basis = node.at("basis");
+    const std::string kind = string_field(basis, "kind", "constant");
+    request.basis.kind = kind == "plane" ? Basis::Kind::plane
+                                         : (kind == "polynomial" ? Basis::Kind::polynomial
+                                                                 : Basis::Kind::constant);
+    request.basis.degree = static_cast<U32>(u64_field(basis, "degree", 0));
+    const json& center = field(basis, "center");
+    if (center.is_array() && center.size() == 2) {
+      request.basis.center = {center[0].get<double>(), center[1].get<double>()};
+    }
+    const json& scale = field(basis, "scale");
+    if (scale.is_array() && scale.size() == 2) {
+      request.basis.scale = {scale[0].get<double>(), scale[1].get<double>()};
+    }
+    request.basis.normalization_domain = decode_box(field(basis, "normalization_domain"));
+  }
+  if (has(node, "likelihood")) {
+    const json& likelihood = node.at("likelihood");
+    request.likelihood.estimator = string_field(likelihood, "estimator", "joint_flux_gaussian");
+    request.likelihood.kind = string_field(likelihood, "kind", "fixed_geometry");
+  }
+  return request;
+}
+
+// ---------------------------------------------------------------------------
+// The inputs of the normalize command
+// ---------------------------------------------------------------------------
+
+// One FITS image read from the disk.
+struct FitsImage {
+  U64 width = 0;
+  U64 height = 0;
+  std::vector<double> values;
+  std::vector<std::uint16_t> dq;
+  HeaderFields header;
+};
+
+std::string fits_message(int status) {
+  char text[128] = {0};
+  fits_get_errstatus(status, text);
+  return std::string(text);
+}
+
+// Reads the primary image of a FITS file and its header cards.
+//
+// The reader parses the standard FITS layout directly: the header blocks of
+// 2880 bytes with the 80 character cards and the big endian float64 data
+// unit.  The library reader of the installed CFITSIO 4.6.2 rejects the
+// elements of the frames of the validation set with "bad first element
+// number"; the probe is recorded in validation/apps/fits_cfitsio_probe.txt.
+std::string trim(const std::string& text) {
+  const std::size_t first = text.find_first_not_of(" \t\r\n");
+  if (first == std::string::npos) return {};
+  const std::size_t last = text.find_last_not_of(" \t\r\n");
+  return text.substr(first, last - first + 1);
+}
+
+Result<FitsImage> read_fits_image(const std::filesystem::path& path) {
+  std::ifstream stream(path, std::ios::binary);
+  if (!stream) {
+    return fail<FitsImage>(Code::invalid_request, "the FITS file cannot be read: " + path.string(),
+                           "cli.fits", "the frame cannot be processed");
+  }
+  FitsImage image;
+  bool header_done = false;
+  long naxis1 = 0;
+  long naxis2 = 0;
+  long bitpix = 0;
+  std::string header_text;
+  while (!header_done) {
+    char block[2880];
+    stream.read(block, sizeof(block));
+    if (stream.gcount() != static_cast<std::streamsize>(sizeof(block))) {
+      return fail<FitsImage>(Code::invalid_request, "the FITS header is truncated", "cli.fits",
+                             "the frame cannot be processed");
+    }
+    for (std::size_t start = 0; start < sizeof(block); start += 80) {
+      const std::string card(block + start, 80);
+      const std::string key = trim(card.substr(0, 8));
+      if (key == "END") {
+        header_done = true;
+        break;
+      }
+      if (key.empty() || key == "COMMENT" || key == "HISTORY") continue;
+      const std::string value = card.substr(10, card.size() > 10 ? card.size() - 10 : 0);
+      const std::size_t comment = value.find("/");
+      std::string raw = trim(comment == std::string::npos ? value : value.substr(0, comment));
+      if (raw.size() >= 2 && raw.front() == '\'' && raw.back() == '\'') {
+        raw = trim(raw.substr(1, raw.size() - 2));
+      }
+      if (key == "BITPIX") {
+        bitpix = std::atol(raw.c_str());
+      } else if (key == "NAXIS1") {
+        naxis1 = std::atol(raw.c_str());
+      } else if (key == "NAXIS2") {
+        naxis2 = std::atol(raw.c_str());
+      }
+      HeaderField field;
+      field.key = key;
+      field.value = raw;
+      image.header.push_back(field);
+    }
+  }
+  if (bitpix != -64 || naxis1 <= 0 || naxis2 <= 0) {
+    return fail<FitsImage>(Code::invalid_request,
+                           "the FITS file is not a float64 two dimensional image", "cli.fits",
+                           "the frame cannot be processed");
+  }
+  image.width = static_cast<U64>(naxis1);
+  image.height = static_cast<U64>(naxis2);
+  const U64 count = image.width * image.height;
+  std::vector<unsigned char> raw(count * 8);
+  stream.read(reinterpret_cast<char*>(raw.data()), static_cast<std::streamsize>(raw.size()));
+  if (stream.gcount() != static_cast<std::streamsize>(raw.size())) {
+    return fail<FitsImage>(Code::invalid_request, "the FITS data unit is truncated", "cli.fits",
+                           "the frame cannot be processed");
+  }
+  image.values.assign(count, 0.0);
+  for (U64 i = 0; i < count; ++i) {
+    std::uint64_t bits = 0;
+    for (int byte = 0; byte < 8; ++byte) {
+      bits |= static_cast<std::uint64_t>(raw[i * 8 + byte]) << (8 * (7 - byte));
+    }
+    std::memcpy(&image.values[i], &bits, sizeof(double));
+  }
+  image.dq.assign(count, 0);
+  return ok_result(image);
+}
+
+// The numeric value of a header card.
+bool header_double(const HeaderFields& header, const std::string& key, double& value) {
+  for (const HeaderField& field : header) {
+    if (field.key != key) continue;
+    if (std::holds_alternative<double>(field.value)) {
+      value = std::get<double>(field.value);
+      return true;
+    }
+    if (std::holds_alternative<std::string>(field.value)) {
+      try {
+        value = std::stod(std::get<std::string>(field.value));
+        return true;
+      } catch (const std::exception&) {
+        return false;
+      }
+    }
+  }
+  return false;
+}
+
+// The raw observation of one frame.
+Result<Ref<RawObservation>> build_raw_observation(Context& context, const FitsImage& image,
+                                                   const std::string& frame_id) {
+  const U64 count = image.width * image.height;
+  const std::vector<std::byte> adu_bytes = model::encode_f64(image.values);
+  const std::vector<std::byte> dq_bytes = model::encode_u16(image.dq);
+  const std::vector<U64> shape{count};
+  Result<ArrayRef> adu = context.storage.copy(context, DType::f64, adu_bytes, shape,
+                                               model::unit_adu("detector:" + frame_id),
+                                               "acsd.raw.adu");
+  if (!ok(adu)) {
+    return fail<Ref<RawObservation>>(adu.code, "the image cannot be stored", "cli.fits",
+                                     "the frame cannot be processed");
+  }
+  Result<ArrayRef> dq = context.storage.copy(context, DType::u16, dq_bytes, shape,
+                                              model::unit_dimensionless(), "acsd.raw.dq");
+  if (!ok(dq)) {
+    return fail<Ref<RawObservation>>(dq.code, "the data quality cannot be stored", "cli.fits",
+                                     "the frame cannot be processed");
+  }
+  // The native index of the frame: one partition over the whole detector.
+  Index index;
+  index.size = count;
+  index.kind = Index::Kind::native;
+  index.order = 0;
+  index.namespace_id = "acsd.native:" + frame_id;
+  SourcePartition partition;
+  partition.dataset = "acsd.cli";
+  partition.exposure = frame_id;
+  partition.detector = "detector";
+  partition.channel = "adu";
+  partition.index_begin = 0;
+  partition.count = count;
+  partition.first_sample = 0;
+  partition.sample_stride = 1;
+  index.partitions.push_back(partition);
+  index.identity = model::make_identity("acsd.Index", 2, 0,
+                                        model::sha256_hex("acsd.cli.index:" + frame_id), "acsd");
+  index.assessment = model::make_assessment(Code::ok);
+  index.assessment.complete = true;
+  auto native_index = std::make_shared<Index>(index);
+
+  // The footprint set: a native rectangle without a world coordinate
+  // solution, the solver binds it later.
+  auto footprints = std::make_shared<FootprintSet>();
+  footprints->index = std::shared_ptr<const Index>(native_index);
+  footprints->width = image.width;
+  footprints->height = image.height;
+  footprints->detector_from_sample = {1.0, 0.0, 0.0, 1.0};
+  footprints->offset = {0.0, 0.0};
+  footprints->local_cell = {{-0.5, -0.5}, {0.5, 0.5}};
+  footprints->detector_frame = frame_id;
+  footprints->identity = model::make_identity("acsd.FootprintSet", 2, 0,
+                                              model::sha256_hex("acsd.cli.footprints:" + frame_id),
+                                              "acsd");
+  footprints->assessment = model::make_assessment(Code::ok);
+  footprints->assessment.complete = true;
+
+  // The astrometric context of the exposure.
+  AstrometricContext astrometric;
+  double mjd = 0.0;
+  if (header_double(image.header, "MJD-OBS", mjd)) {
+    astrometric.observation_jd_tdb = mjd + 2400000.5;
+    astrometric.epoch_julian_year = 2000.0 + (mjd - 51544.5) / 365.25;
+  }
+
+  auto raw = std::make_shared<RawObservation>();
+  raw->adu = val(adu);
+  raw->dq = val(dq);
+  raw->width = image.width;
+  raw->height = image.height;
+  raw->context = astrometric;
+  raw->source_index = std::shared_ptr<const Index>(native_index);
+  raw->footprints = std::shared_ptr<const FootprintSet>(footprints);
+  raw->frame = frame_id;
+  raw->identity = model::make_identity("acsd.RawObservation", 2, 0,
+                                       model::sha256_hex("acsd.cli.raw:" + frame_id), "acsd");
+  raw->assessment = model::make_assessment(Code::ok);
+  raw->assessment.complete = true;
+  return ok_result(std::shared_ptr<const RawObservation>(raw));
+}
+
+
+// The response of a frame: the wavelength grid and the throughput.
+Result<Ref<Response>> load_response(Context& context, const std::filesystem::path& path,
+                                     const std::string& frame_id) {
+  std::ifstream stream(path);
+  if (!stream) {
+    return fail<Ref<Response>>(Code::invalid_request, "the response cannot be read: " + path.string(),
+                               "cli.response", "the frame cannot be processed");
+  }
+  json document;
+  try {
+    stream >> document;
+  } catch (const std::exception& failure) {
+    return fail<Ref<Response>>(Code::invalid_request,
+                               std::string("the response is not valid JSON: ") + failure.what(),
+                               "cli.response", "the frame cannot be processed");
+  }
+  const json& wavelengths = document.contains("wavelength_nm") ? document.at("wavelength_nm")
+                                                               : json::array();
+  const json& throughput = document.contains("throughput") ? document.at("throughput")
+                                                           : json::array();
+  if (!wavelengths.is_array() || !throughput.is_array() || wavelengths.size() != throughput.size() ||
+      wavelengths.empty()) {
+    return fail<Ref<Response>>(Code::invalid_request,
+                               "the response needs a wavelength grid and a throughput of the same size",
+                               "cli.response", "the frame cannot be processed");
+  }
+  std::vector<double> wavelength_values;
+  std::vector<double> throughput_values;
+  for (const json& item : wavelengths) wavelength_values.push_back(item.get<double>());
+  for (const json& item : throughput) throughput_values.push_back(item.get<double>());
+  const std::vector<U64> shape{static_cast<U64>(wavelength_values.size())};
+  Result<ArrayRef> grid = context.storage.copy(context, DType::f64,
+                                                model::encode_f64(wavelength_values), shape,
+                                                model::unit_nm(), "acsd.response.wavelength");
+  Result<ArrayRef> values = context.storage.copy(context, DType::f64,
+                                                  model::encode_f64(throughput_values), shape,
+                                                  model::unit_dimensionless(),
+                                                  "acsd.response.throughput");
+  if (!ok(grid) || !ok(values)) {
+    return fail<Ref<Response>>(Code::io_error, "the response cannot be stored", "cli.response",
+                               "the frame cannot be processed");
+  }
+  auto response = std::make_shared<Response>();
+  response->convention = string_field(document, "convention", "photon_throughput") == "energy"
+                              ? Response::Convention::includes_photon_conversion
+                              : Response::Convention::photon_throughput;
+  response->wavelength_nm = val(grid);
+  response->throughput = val(values);
+  response->provenance = string_field(document, "provenance", "cli:" + frame_id);
+  response->normalization = string_field(document, "normalization", "unity");
+  if (has(document, "support_nm")) {
+    const json& support = document.at("support_nm");
+    response->support_nm.lower = double_field(support, "lower", 0.0);
+    response->support_nm.upper = double_field(support, "upper", 0.0);
+  } else {
+    response->support_nm.lower = wavelength_values.front();
+    response->support_nm.upper = wavelength_values.back();
+  }
+  response->identity = model::make_identity("acsd.Response", 2, 0,
+                                            model::sha256_hex("acsd.cli.response:" + frame_id),
+                                            "acsd");
+  response->assessment = model::make_assessment(Code::ok);
+  response->assessment.complete = true;
+  return ok_result(std::shared_ptr<const Response>(response));
+}
+
+// The calibration of a frame: the optional master bias, dark and flat.
+Result<Calibration> load_calibration(Context& context, const std::filesystem::path& path,
+                                     const std::vector<U64>& shape) {
+  Calibration calibration;
+  calibration.dark_contains_bias = true;
+  if (path.empty()) return ok_result(calibration);
+  std::ifstream stream(path);
+  if (!stream) {
+    return fail<Calibration>(Code::invalid_request,
+                             "the calibration cannot be read: " + path.string(), "cli.calibration",
+                             "the frame cannot be processed");
+  }
+  json document;
+  try {
+    stream >> document;
+  } catch (const std::exception& failure) {
+    return fail<Calibration>(Code::invalid_request,
+                             std::string("the calibration is not valid JSON: ") + failure.what(),
+                             "cli.calibration", "the frame cannot be processed");
+  }
+  auto load_plane = [&](const char* key) -> Result<ArrayRef> {
+    if (!has(document, key)) {
+      Result<ArrayRef> out;
+      out.code = Code::ok;
+      return out;
+    }
+    const json& values = document.at(key);
+    if (!values.is_array()) {
+      return fail<ArrayRef>(Code::invalid_request, "the calibration plane is not a list",
+                            "cli.calibration", "the frame cannot be processed");
+    }
+    std::vector<double> plane;
+    for (const json& item : values) plane.push_back(item.get<double>());
+    return context.storage.copy(context, DType::f64, model::encode_f64(plane), shape,
+                                 model::unit_adu("detector"), key);
+  };
+  Result<ArrayRef> bias = load_plane("bias");
+  Result<ArrayRef> dark = load_plane("dark");
+  Result<ArrayRef> flat = load_plane("flat");
+  if (!ok(bias) || !ok(dark) || !ok(flat)) {
+    return fail<Calibration>(bias.code == Code::ok ? dark.code : bias.code,
+                             "the calibration cannot be stored", "cli.calibration",
+                             "the frame cannot be processed");
+  }
+  calibration.bias = val(bias);
+  calibration.dark = val(dark);
+  calibration.flat = val(flat);
+  calibration.dark_contains_bias = bool_field(document, "dark_contains_bias", true);
+  calibration.exposure_seconds = double_field(document, "exposure_seconds", 1.0);
+  calibration.dark_exposure_seconds = double_field(document, "dark_exposure_seconds", 1.0);
+  calibration.flat_normalization = double_field(document, "flat_normalization", 1.0);
+  return ok_result(calibration);
+}
+
+// The catalogue of the run: the columns and the index.
+Result<Ref<CatalogueProvider>> load_catalogue(Context& context, const std::filesystem::path& path) {
+  std::ifstream stream(path);
+  if (!stream) {
+    return fail<Ref<CatalogueProvider>>(Code::invalid_request,
+                                        "the catalogue cannot be read: " + path.string(),
+                                        "cli.catalogue", "the command cannot run");
+  }
+  json document;
+  try {
+    stream >> document;
+  } catch (const std::exception& failure) {
+    return fail<Ref<CatalogueProvider>>(Code::invalid_request,
+                                        std::string("the catalogue is not valid JSON: ") +
+                                            failure.what(),
+                                        "cli.catalogue", "the command cannot run");
+  }
+  const json& source_ids = document.contains("source_ids") ? document.at("source_ids")
+                                                            : json::array();
+  const json& astrometry = document.contains("astrometry") ? document.at("astrometry")
+                                                           : json::array();
+  const json& brightness = document.contains("brightness_mag") ? document.at("brightness_mag")
+                                                              : json::array();
+  const json& coefficients = document.contains("xp_coefficients") ? document.at("xp_coefficients")
+                                                                  : json::array();
+  if (!source_ids.is_array() || !astrometry.is_array() || !brightness.is_array() ||
+      !coefficients.is_array() || source_ids.empty()) {
+    return fail<Ref<CatalogueProvider>>(Code::invalid_request, "the catalogue columns are missing",
+                                        "cli.catalogue", "the command cannot run");
+  }
+  std::vector<U64> ids;
+  std::vector<double> positions;
+  std::vector<double> magnitudes;
+  std::vector<double> xp;
+  for (const json& item : source_ids) ids.push_back(item.get<U64>());
+  for (const json& row : astrometry) {
+    if (!row.is_array() || row.size() != 8) {
+      return fail<Ref<CatalogueProvider>>(Code::invalid_request,
+                                          "the astrometry rows need eight columns", "cli.catalogue",
+                                          "the command cannot run");
+    }
+    for (const json& item : row) positions.push_back(item.get<double>());
+  }
+  for (const json& item : brightness) magnitudes.push_back(item.get<double>());
+  U64 coefficient_count = 0;
+  for (const json& row : coefficients) {
+    if (!row.is_array()) {
+      return fail<Ref<CatalogueProvider>>(Code::invalid_request, "the xp coefficients are not rows",
+                                          "cli.catalogue", "the command cannot run");
+    }
+    coefficient_count = row.size();
+    for (const json& item : row) xp.push_back(item.get<double>());
+  }
+  const U64 count = ids.size();
+  Result<ArrayRef> id_array = context.storage.copy(context, DType::u64, model::encode_u64(ids),
+                                                    std::vector<U64>{count},
+                                                    model::unit_dimensionless(),
+                                                    "acsd.catalogue.source_ids");
+  Result<ArrayRef> astrometry_array =
+      context.storage.copy(context, DType::f64, model::encode_f64(positions),
+                           std::vector<U64>{count, 8}, model::unit_dimensionless(),
+                           "acsd.catalogue.astrometry");
+  Result<ArrayRef> magnitude_array =
+      context.storage.copy(context, DType::f64, model::encode_f64(magnitudes),
+                           std::vector<U64>{count}, model::unit_dimensionless(),
+                           "acsd.catalogue.brightness");
+  Result<ArrayRef> coefficient_array =
+      context.storage.copy(context, DType::f64, model::encode_f64(xp),
+                           std::vector<U64>{count, coefficient_count},
+                           model::unit_dimensionless(), "acsd.catalogue.xp");
+  if (!ok(id_array) || !ok(astrometry_array) || !ok(magnitude_array) || !ok(coefficient_array)) {
+    return fail<Ref<CatalogueProvider>>(Code::io_error, "the catalogue columns cannot be stored",
+                                        "cli.catalogue", "the command cannot run");
+  }
+  // The spectral basis of the catalogue.
+  const json& basis = document.contains("xp_basis") ? document.at("xp_basis") : json::object();
+  const json& knots = basis.contains("knots_nm") ? basis.at("knots_nm") : json::array();
+  const json& basis_coefficients = basis.contains("basis_coefficients")
+                                       ? basis.at("basis_coefficients")
+                                       : json::array();
+  std::vector<double> knot_values;
+  std::vector<double> coefficient_values;
+  U64 basis_width = 0;
+  for (const json& item : knots) knot_values.push_back(item.get<double>());
+  for (const json& row : basis_coefficients) {
+    basis_width = row.is_array() ? row.size() : 0;
+    for (const json& item : row) coefficient_values.push_back(item.get<double>());
+  }
+  Result<ArrayRef> knot_array =
+      context.storage.copy(context, DType::f64, model::encode_f64(knot_values),
+                           std::vector<U64>{static_cast<U64>(knot_values.size())}, model::unit_nm(),
+                           "acsd.catalogue.knots");
+  Result<ArrayRef> coefficient_basis =
+      context.storage.copy(context, DType::f64, model::encode_f64(coefficient_values),
+                           std::vector<U64>{static_cast<U64>(coefficient_values.size() /
+                                                             std::max<U64>(1, basis_width)),
+                                             basis_width},
+                           model::unit_dimensionless(), "acsd.catalogue.basis");
+  if (!ok(knot_array) || !ok(coefficient_basis)) {
+    return fail<Ref<CatalogueProvider>>(Code::io_error, "the spectral basis cannot be stored",
+                                        "cli.catalogue", "the command cannot run");
+  }
+  auto spectral = std::make_shared<SpectralBasis>();
+  spectral->knots_nm = val(knot_array);
+  spectral->basis_coefficients = val(coefficient_basis);
+  spectral->degree = static_cast<U32>(u64_field(basis, "degree", 0));
+  spectral->coefficient_count = static_cast<U32>(u64_field(basis, "coefficient_count", basis_width));
+  spectral->support_nm.lower = double_field(field(basis, "support_nm"), "lower", 0.0);
+  spectral->support_nm.upper = double_field(field(basis, "support_nm"), "upper", 0.0);
+  spectral->identity = model::make_identity("acsd.SpectralBasis", 2, 0,
+                                            model::sha256_hex("acsd.cli.catalogue.basis"), "acsd");
+  spectral->assessment = model::make_assessment(Code::ok);
+
+  CatalogueColumns columns;
+  columns.source_ids = val(id_array);
+  columns.astrometry = val(astrometry_array);
+  columns.brightness_mag = val(magnitude_array);
+  columns.xp_coefficients = val(coefficient_array);
+  columns.xp_basis = std::shared_ptr<const SpectralBasis>(spectral);
+  columns.identity = model::make_identity("acsd.CatalogueColumns", 2, 0,
+                                          model::sha256_hex("acsd.cli.catalogue.columns"), "acsd");
+  columns.assessment = model::make_assessment(Code::ok);
+
+  const json& build = document.contains("build") ? document.at("build") : json::object();
+  CatalogueBuildRequest request;
+  auto column_object = std::make_shared<CatalogueColumns>(columns);
+  request.columns = std::shared_ptr<const CatalogueColumns>(column_object);
+  request.sky_order = static_cast<U32>(u64_field(build, "sky_order", 3));
+  request.max_stars_per_cell = static_cast<U32>(u64_field(build, "max_stars_per_cell", 64));
+  request.neighbors_per_anchor = static_cast<U32>(u64_field(build, "neighbors_per_anchor", 12));
+  request.quads_per_anchor = static_cast<U32>(u64_field(build, "quads_per_anchor", 8));
+  request.quad_baseline_rad.lower = double_field(field(build, "quad_baseline_rad"), "lower", 0.0);
+  request.quad_baseline_rad.upper = double_field(field(build, "quad_baseline_rad"), "upper", 0.0);
+  request.release = string_field(build, "release", "cli");
+  request.calibration = string_field(build, "calibration", "none");
+  Result<Ref<CatalogueIndex>> index = build_catalogue_index(context, request);
+  if (!ok(index)) {
+    return fail<Ref<CatalogueProvider>>(index.code, "the catalogue index cannot be built",
+                                        "cli.catalogue", "the command cannot run");
+  }
+  Result<Ref<CatalogueProvider>> provider = make_catalogue_provider(context, val(index));
+  if (!ok(provider)) {
+    return fail<Ref<CatalogueProvider>>(provider.code, "the catalogue provider cannot be built",
+                                        "cli.catalogue", "the command cannot run");
+  }
+  return ok_result(val(provider));
+}
+
 // ---------------------------------------------------------------------------
 // export
 // ---------------------------------------------------------------------------
@@ -358,19 +961,169 @@ int run_normalize(Config& config, EventWriter& events) {
 
   // The catalogue of the run.
   const std::filesystem::path catalogue_path = config.base / config.catalogue;
-  std::ifstream catalogue_stream(catalogue_path, std::ios::binary);
-  if (!catalogue_stream) {
-    events.issue("invalid_request", "the catalogue cannot be read: " + catalogue_path.string());
+  Result<Ref<CatalogueProvider>> catalogue = load_catalogue(context, catalogue_path);
+  if (!ok(catalogue)) {
+    const std::string reason = catalogue.assessment.issues.empty()
+                                   ? "the catalogue cannot be read"
+                                   : catalogue.assessment.issues.front().reason;
+    events.issue("invalid_request", reason);
     events.run_finished(kInvalidInput, make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
                                                     json::array()));
     return kInvalidInput;
   }
-  events.issue("unsupported",
-               "the normalize command needs the catalogue provider and the observation pipeline of "
-               "the science modules");
-  events.run_finished(kUnsupported,
-                       make_summary(config.inputs.size(), 0, config.inputs.size(), 0, 0, json::array()));
-  return kUnsupported;
+
+  // The frames: the image, the calibration, the response and the optional
+  // supplied world coordinate solution.
+  NormalizeRequest request;
+  json frames = json::array();
+  U64 cancelled = 0;
+  U64 failed = 0;
+  for (const InputEntry& input : config.inputs) {
+    events.frame_started(input.frame_id, config.inputs.size());
+    const std::filesystem::path image_path = config.base / input.path;
+    Result<FitsImage> image = read_fits_image(image_path);
+    if (!ok(image)) {
+      events.frame_finished(input.frame_id, "failed", 0, config.inputs.size(),
+                            image.assessment.issues.front().reason);
+      frames.push_back(json{{"frame", input.frame_id}, {"status", "failed"},
+                            {"code", "invalid_request"}});
+      ++failed;
+      continue;
+    }
+    Result<Ref<RawObservation>> raw = build_raw_observation(context, val(image), input.frame_id);
+    if (!ok(raw)) {
+      events.frame_finished(input.frame_id, "failed", 0, config.inputs.size(),
+                            raw.assessment.issues.front().reason);
+      frames.push_back(json{{"frame", input.frame_id}, {"status", "failed"},
+                            {"code", "invalid_request"}});
+      ++failed;
+      continue;
+    }
+    Result<Calibration> calibration =
+        load_calibration(context, input.calibration.empty()
+                                        ? std::filesystem::path()
+                                        : config.base / input.calibration,
+                          std::vector<U64>{val(image).width * val(image).height});
+    if (!ok(calibration)) {
+      events.frame_finished(input.frame_id, "failed", 0, config.inputs.size(),
+                            calibration.assessment.issues.front().reason);
+      frames.push_back(json{{"frame", input.frame_id}, {"status", "failed"},
+                            {"code", "invalid_request"}});
+      ++failed;
+      continue;
+    }
+    Result<Ref<Response>> response =
+        load_response(context, config.base / input.response, input.frame_id);
+    if (!ok(response)) {
+      events.frame_finished(input.frame_id, "failed", 0, config.inputs.size(),
+                            response.assessment.issues.front().reason);
+      frames.push_back(json{{"frame", input.frame_id}, {"status", "failed"},
+                            {"code", "invalid_request"}});
+      ++failed;
+      continue;
+    }
+    NormalizeFrame frame;
+    frame.frame = input.frame_id;
+    frame.raw = val(raw);
+    frame.calibration = val(calibration);
+    frame.response = val(response);
+    // The optional supplied world coordinate solution of the frame.
+    for (const json& item : val(scientific).frame_options) {
+      if (string_field(item, "frame") != input.frame_id) continue;
+      if (has(item, "supplied_wcs")) {
+        frame.supplied_wcs = decode_wcs(item.at("supplied_wcs"));
+      }
+    }
+    request.frames.push_back(frame);
+  }
+
+  // The scientific request of the normalize command.
+  const json& scientific_request = val(scientific).request;
+  if (has(scientific_request, "astrometry")) {
+    request.astrometry = decode_solver_request(scientific_request.at("astrometry"));
+  }
+  if (has(scientific_request, "psf")) {
+    request.psf = decode_psf_request(scientific_request.at("psf"));
+  }
+  if (has(scientific_request, "drizzle")) {
+    request.drizzle = decode_drizzle_request(scientific_request.at("drizzle"));
+  }
+  if (has(scientific_request, "photometry")) {
+    request.photometry = decode_photometry_request(scientific_request.at("photometry"), request.frames);
+  }
+  request.allow_relative_uncalibrated =
+      has(scientific_request, "allow_relative_uncalibrated") &&
+      scientific_request.at("allow_relative_uncalibrated").is_boolean() &&
+      scientific_request.at("allow_relative_uncalibrated").get<bool>();
+  // The output of every frame.
+  for (const NormalizeFrame& frame : request.frames) {
+    PublishRequest publish;
+    publish.destination = (config.base / config.output / frame.frame).string();
+    publish.signal_dtype = config.signal_dtype == "f32" ? DType::f32 : DType::f64;
+    publish.profile = config.product_profile;
+    publish.tile_log2_width = config.tile_log2_width;
+    publish.durable = config.durable;
+    request.outputs.push_back(publish);
+  }
+  if (request.frames.size() != request.outputs.size()) {
+    events.issue("invalid_request", "the frames and the outputs do not match");
+    events.run_finished(kInvalidInput, make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                                    frames));
+    return kInvalidInput;
+  }
+
+  Result<NormalizeResult> result = normalize(context, *val(catalogue), request);
+  if (!ok(result)) {
+    const std::string reason = result.assessment.issues.empty()
+                                   ? "the normalize command failed"
+                                   : result.assessment.issues.front().reason;
+    events.issue("failed", reason);
+    events.run_finished(exit_code_of(result.code),
+                        make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0, frames));
+    return exit_code_of(result.code);
+  }
+
+  // The per frame status of the result.
+  U64 published = 0;
+  U64 unsolved = 0;
+  for (const auto& entry : val(result).frames) {
+    const std::string code = entry.second.issues.empty()
+                                 ? "ok"
+                                 : (entry.second.issues.back().code == Code::ok ? "ok" : "failed");
+    const bool solved = entry.second.complete && code == "ok";
+    if (solved) {
+      ++published;
+      events.frame_finished(entry.first, "ok", published, config.inputs.size(),
+                            "the frame was published");
+      frames.push_back(json{{"frame", entry.first}, {"status", "published"}, {"code", "ok"}});
+    } else {
+      ++unsolved;
+      const Code status = entry.second.issues.empty() ? Code::unsolved : entry.second.issues.back().code;
+      events.frame_finished(entry.first, "failed", published, config.inputs.size(),
+                            entry.second.issues.empty()
+                                ? "the frame was not solved"
+                                : entry.second.issues.back().reason);
+      frames.push_back(json{{"frame", entry.first}, {"status", status == Code::unsolved ? "unsolved"
+                                                                                          : "failed"},
+                            {"code", status == Code::unsolved ? "unsolved" : "failed"}});
+    }
+  }
+  for (const ProductLocation& location : val(result).published) {
+    events.product_published("normalize", location.directory);
+  }
+  // The exit code: the priority is cancellation, then the integrity and the
+  // input errors, then the capability, then the partial outcome.
+  int code = kSuccess;
+  if (cancelled > 0) {
+    code = kCancelled;
+  } else if (published == 0 && (failed > 0 || unsolved > 0)) {
+    code = kFailure;
+  } else if (published < config.inputs.size()) {
+    code = kPartial;
+  }
+  events.run_finished(code, make_summary(config.inputs.size(), published, unsolved, failed, cancelled,
+                                         frames));
+  return code;
 }
 
 // ---------------------------------------------------------------------------

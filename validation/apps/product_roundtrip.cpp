@@ -21,6 +21,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <fitsio.h>
+
 #include "acsd/contracts.hpp"
 
 using json = nlohmann::json;
@@ -473,6 +475,33 @@ int main(int argc, char** argv) {
     report["sidecar_present"] =
         std::filesystem::exists(std::filesystem::path(published.value->directory) / "frame_science.json");
     report["manifest_hash_present"] = !published.value->manifest_hash.empty();
+
+    // The published signal is read back with CFITSIO: the writer of the
+    // product has to produce a file that the library accepts.
+    const std::filesystem::path tile =
+        std::filesystem::path(published.value->directory) / "signal/Norder6/Dir0/Npix0.fits";
+    int status = 0;
+    fitsfile* file = nullptr;
+    status = fits_open_file(&file, tile.string().c_str(), READONLY, &status);
+    report["fits_open_status"] = status;
+    if (!status && file) {
+      int naxis = 0;
+      status = fits_get_img_dim(file, &naxis, &status);
+      long naxes[4] = {0, 0, 0, 0};
+      status = fits_get_img_size(file, 4, naxes, &status);
+      report["fits_naxis"] = naxis;
+      report["fits_shape"] = json::array({naxes[0], naxes[1], naxes[2]});
+      double first_value = 0.0;
+      long first = 1;
+      status = fits_read_pix(file, TDOUBLE, &first, 1, &first_value, nullptr, nullptr, &status);
+      report["fits_read_status"] = status;
+      report["fits_first_value"] = first_value;
+      char ctype[80] = {0};
+      int read_status = 0;
+      status = fits_read_keyword(file, "CTYPE1", ctype, nullptr, &read_status);
+      report["fits_ctype1"] = read_status ? std::string("unknown") : std::string(ctype);
+      fits_close_file(file, &status);
+    }
   }
 
   std::cout << report.dump(2) << "\n";

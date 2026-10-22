@@ -1,0 +1,80 @@
+{
+ "source_ids": [
+  1
+ ],
+ "astrometry": [
+  [
+   1.4629712818700884,
+   -0.0940926198371915,
+   2016.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ]
+ ],
+ "brightness_mag": [
+  6.0
+ ],
+ "xp_coefficients": [
+  [
+   1.0,
+   0.0,
+   0.0,
+   0.0
+  ]
+ ],
+ "xp_basis": {
+  "knots_nm": [
+   400.0,
+   500.0,
+   600.0,
+   700.0
+  ],
+  "basis_coefficients": [
+   [
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    1.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    1.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ]
+  ],
+  "degree": 3,
+  "coefficient_count": 4,
+  "support_nm": {
+   "lower": 400.0,
+   "upper": 700.0
+  }
+ },
+ "build": {
+  "sky_order": 3,
+  "max_stars_per_cell": 64,
+  "neighbors_per_anchor": 12,
+  "quads_per_anchor": 8,
+  "quad_baseline_rad": {
+   "lower": 0.0,
+   "upper": 0.0
+  },
+  "release": "x01",
+  "calibration": "none"
+ }
+}

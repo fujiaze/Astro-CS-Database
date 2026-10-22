@@ -1,0 +1,25 @@
+{
+  "fits_ctype1": "'RA---HPX'",
+  "fits_first_value": 0.0,
+  "fits_naxis": 3,
+  "fits_open_status": 0,
+  "fits_read_status": 308,
+  "fits_shape": [
+    64,
+    64,
+    12
+  ],
+  "manifest_blocks": 1,
+  "manifest_complete": true,
+  "manifest_format": "acsd.product",
+  "manifest_hash_present": true,
+  "manifest_major": 2,
+  "manifest_objects": 5,
+  "manifest_root_object": "sha256:3a2a8025f3ede43ebff9fe376372a1368cbb5e9788037c1c66a33f75b8c8c869",
+  "open_code": "ok",
+  "product_root": "/workspace/Astro CS Database/.work/product-roundtrip",
+  "publish_code": "ok",
+  "published": "/workspace/Astro CS Database/.work/product-roundtrip/frame",
+  "reopened_frames": 1,
+  "sidecar_present": true
+}

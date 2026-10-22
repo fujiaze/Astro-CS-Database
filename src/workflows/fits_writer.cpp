@@ -40,7 +40,8 @@ std::string card(const std::string& keyword, const std::string& value,
   text += value;
   if (text.size() < 30) text.resize(30, ' ');
   if (!comment.empty()) text += " / " + comment;
-  if (text.size() > 80) text.resize(80);
+  // Every card is exactly 80 characters long.
+  text.resize(80, ' ');
   return text;
 }
 

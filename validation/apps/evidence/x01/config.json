@@ -1,0 +1,64 @@
+{
+ "schema": "acsd.config/2",
+ "command": "normalize",
+ "inputs": [
+  {
+   "path": "../../../x01/input/frames/frame_00_A.fits",
+   "frame_id": "frame-00",
+   "response": "response.json"
+  },
+  {
+   "path": "../../../x01/input/frames/frame_01_A.fits",
+   "frame_id": "frame-01",
+   "response": "response.json"
+  },
+  {
+   "path": "../../../x01/input/frames/frame_02_A.fits",
+   "frame_id": "frame-02",
+   "response": "response.json"
+  },
+  {
+   "path": "../../../x01/input/frames/frame_03_A.fits",
+   "frame_id": "frame-03",
+   "response": "response.json"
+  },
+  {
+   "path": "../../../x01/input/frames/frame_04_B.fits",
+   "frame_id": "frame-04",
+   "response": "response.json"
+  },
+  {
+   "path": "../../../x01/input/frames/frame_05_B.fits",
+   "frame_id": "frame-05",
+   "response": "response.json"
+  },
+  {
+   "path": "../../../x01/input/frames/frame_06_B.fits",
+   "frame_id": "frame-06",
+   "response": "response.json"
+  },
+  {
+   "path": "../../../x01/input/frames/frame_07_B.fits",
+   "frame_id": "frame-07",
+   "response": "response.json"
+  }
+ ],
+ "catalogue": "catalogue.json",
+ "scientific": "normalize.scientific.json",
+ "output": "products",
+ "resources": {
+  "bytes": 1073741824,
+  "work": 10000000,
+  "spill_bytes": 0,
+  "threads": 4,
+  "max_depth": 64,
+  "max_precision_bits": 256,
+  "scratch_directory": ".work"
+ },
+ "product_profile": "full",
+ "publication": {
+  "signal_dtype": "f64",
+  "tile_log2_width": 6,
+  "durable": true
+ }
+}

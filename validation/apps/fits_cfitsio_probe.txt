@@ -1,0 +1,34 @@
+CFITSIO 4.6.2 probe of the installed library
+=============================================
+library : /usr/lib/x86_64-linux-gnu/libcfitsio.so.10.0.0 (libcfitsio-dev 4.6.2-2)
+header  : /usr/include/fitsio.h + longnam.h (the long names map onto the short ones)
+
+1) writing: ffinit + ffcrim + ffppx
+   status of every call is 0 and the header of the file is correct
+   (SIMPLE/BITPIX=-64/NAXIS=3/NAXIS1..3), but the close (ffclos) writes an
+   unbounded file: 4x4x2 double pixels produced a file of 63 544 938 496 bytes
+   that was still growing; the process had to be killed.  The same happens for
+   a 4x4 image (2 864 869 376 bytes and growing).  The write path of this
+   installation is therefore not usable.
+
+2) reading: ffgpxv (the long name fits_read_pix)
+   reading validation/x01/input/frames/frame_00_A.fits (128x128, BITPIX=-64)
+   returns status 308 "bad first element number" for one element and for the
+   whole image.  The header is read correctly (naxis 2, 128 128), so the
+   failure is in the element access of this build.
+
+3) calling ffppx / ffgpxv with the first element by value instead of by
+   pointer segfaults, so the library expects the pointer convention of the
+   header; the failure of (1) and (2) is not an argument order mistake.
+
+Consequence for the apps module
+-------------------------------
+The FITS writer of src/workflows/fits_writer.cpp writes the standard layout
+explicitly (2880 byte header blocks of 80 character cards, big endian float64
+data unit, zero padding) and the CLI reads the frames with the same explicit
+parser.  A product written by the apps module is read back with CFITSIO in
+validation/apps/product_roundtrip.cpp (the reader of the library works for
+files without the element access).
+
+The probe is reproduced with the two small programs used above; the sources
+are not part of the repository because they are only a diagnostic.

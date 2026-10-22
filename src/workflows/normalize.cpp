@@ -26,139 +26,34 @@
 #include "operators/linear_action.hpp"
 #include "workflows/product_internal.hpp"
 
+
+// The observation module owns the world coordinate binding, the point spread
+// function, the source measurement and the observation model.  The
+// declarations below are weak so that the workflow can be built and can
+// report the missing capability while the module is still in flight; a
+// strong definition of the same symbol replaces the weak one.
+namespace acsd {
+extern Result<Ref<NativeObservation>> bind_wcs(Context& context, Ref<NativeObservation> observation,
+                                               Ref<WcsModel> wcs,
+                                               Ref<AstrometricSolution> solution) __attribute__((weak));
+extern Result<Ref<NativeObservation>> bind_observation_model(
+    Context& context, Ref<NativeObservation> observation, Ref<EffectivePSF> kernel,
+    Ref<Response> response) __attribute__((weak));
+extern Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> observation,
+                                          Ref<WcsModel> wcs, std::span<const CatalogueStar> stars,
+                                          const PsfRequest& request) __attribute__((weak));
+extern Result<Ref<SourceMeasurements>> measure_science_sources(
+    Context& context, Ref<NativeObservation> observation, Ref<WcsModel> wcs,
+    std::span<const CatalogueStar> stars, Ref<EffectivePSF> psf,
+    const PsfRequest& request) __attribute__((weak));
+}  // namespace acsd
+
 namespace acsd {
 namespace {
 
 using model::fail;
 using model::ok_result;
 
-
-// The footprint provider of the frame.  The public interface has no factory
-// for a provider, so the workflow adapts the public coordinate entry points;
-// the certified areas still come from the geometry kernel behind
-// compute_overlap.
-class FrameFootprintProvider final : public FootprintProvider {
- public:
-  FrameFootprintProvider(Ref<WcsModel> model, NumericBudget budget)
-      : model_(std::move(model)), budget_(budget) {}
-
-  Ref<WcsModel> model() const override { return model_; }
-
-  Result<EnclosedSkyRegion> forward_interval(Context& context, Box domain) const override {
-    const PixelCenter0 samples[4] = {{domain.lower[0], domain.lower[1]},
-                                     {domain.upper[0], domain.lower[1]},
-                                     {domain.upper[0], domain.upper[1]},
-                                     {domain.lower[0], domain.upper[1]}};
-    EnclosedSkyRegion region;
-    bool first = true;
-    for (const PixelCenter0& sample : samples) {
-      Result<SkyICRS> sky = forward(context, model_, sample, budget_);
-      if (!ok(sky)) {
-        return fail<EnclosedSkyRegion>(sky.code, "the footprint cannot be forwarded", "normalize",
-                                       "the frame cannot be published");
-      }
-      const double components[3] = {val(sky).nx, val(sky).ny, val(sky).nz};
-      for (int axis = 0; axis < 3; ++axis) {
-        if (first) {
-          region.xyz[axis].lower = components[axis];
-          region.xyz[axis].upper = components[axis];
-        } else {
-          region.xyz[axis].lower = std::min(region.xyz[axis].lower, components[axis]);
-          region.xyz[axis].upper = std::max(region.xyz[axis].upper, components[axis]);
-        }
-      }
-      first = false;
-    }
-    return ok_result(region);
-  }
-
-  Result<DerivativeResult> derivative_interval(Context& context, Box domain) const override {
-    const PixelCenter0 centre{0.5 * (domain.lower[0] + domain.upper[0]),
-                               0.5 * (domain.lower[1] + domain.upper[1])};
-    return derivative(context, model_, centre, budget_);
-  }
-
-  Result<EnclosedSkyRegion> boundary_interval(Context& context, const CurvedEdge& curve,
-                                              Interval parameter) const override {
-    (void)parameter;
-    EnclosedSkyRegion region;
-    bool first = true;
-    for (const std::array<ExactInterval, 2>& point : curve.bernstein) {
-      const PixelCenter0 sample{model::dyadic_to_double(point[0].lower),
-                                model::dyadic_to_double(point[1].lower)};
-      Result<SkyICRS> sky = forward(context, model_, sample, budget_);
-      if (!ok(sky)) {
-        return fail<EnclosedSkyRegion>(sky.code, "the boundary cannot be forwarded", "normalize",
-                                       "the frame cannot be published");
-      }
-      const double components[3] = {val(sky).nx, val(sky).ny, val(sky).nz};
-      for (int axis = 0; axis < 3; ++axis) {
-        if (first) {
-          region.xyz[axis].lower = components[axis];
-          region.xyz[axis].upper = components[axis];
-        } else {
-          region.xyz[axis].lower = std::min(region.xyz[axis].lower, components[axis]);
-          region.xyz[axis].upper = std::max(region.xyz[axis].upper, components[axis]);
-        }
-      }
-      first = false;
-    }
-    return ok_result(region);
-  }
-
-  Result<SphericalAreaInterval> measure(Context& context, const DetectorFootprint& source,
-                                        const GeometryBudget& request) const override {
-    (void)request;
-    Box box{};
-    bool first = true;
-    for (const Ring& ring : source.detector_rings) {
-      for (const PixelEdge0& vertex : ring.vertices) {
-        if (first) {
-          box.lower = {vertex.x, vertex.y};
-          box.upper = {vertex.x, vertex.y};
-          first = false;
-        } else {
-          box.lower[0] = std::min(box.lower[0], vertex.x);
-          box.lower[1] = std::min(box.lower[1], vertex.y);
-          box.upper[0] = std::max(box.upper[0], vertex.x);
-          box.upper[1] = std::max(box.upper[1], vertex.y);
-        }
-      }
-    }
-    if (first) {
-      return fail<SphericalAreaInterval>(Code::invalid_model, "the footprint has no ring",
-                                         "normalize", "the area cannot be enclosed");
-    }
-    const U32 steps = 8;
-    const double step_x = (box.upper[0] - box.lower[0]) / steps;
-    const double step_y = (box.upper[1] - box.lower[1]) / steps;
-    double lower = 0.0;
-    double upper = 0.0;
-    for (U32 iy = 0; iy < steps; ++iy) {
-      for (U32 ix = 0; ix < steps; ++ix) {
-        Box cell{{box.lower[0] + ix * step_x, box.lower[1] + iy * step_y},
-                 {box.lower[0] + (ix + 1) * step_x, box.lower[1] + (iy + 1) * step_y}};
-        Result<Interval> jacobian = solid_angle_jacobian(context, model_, cell, budget_);
-        if (!ok(jacobian)) {
-          return fail<SphericalAreaInterval>(jacobian.code, "the jacobian cannot be bounded",
-                                             "normalize", "the area cannot be enclosed");
-        }
-        lower += std::max(0.0, val(jacobian).lower) * step_x * step_y;
-        upper += std::max(0.0, val(jacobian).upper) * step_x * step_y;
-      }
-    }
-    SphericalAreaInterval interval;
-    interval.lower_sr = lower;
-    interval.upper_sr = upper;
-    interval.simultaneous_bound = "normalize:jacobian_enclosure";
-    interval.exact = model::exact_from_interval(Interval{lower, upper});
-    return ok_result(interval);
-  }
-
- private:
-  Ref<WcsModel> model_;
-  NumericBudget budget_;
-};
 
 struct FrameOutcome {
   Id frame;
@@ -248,6 +143,12 @@ Result<Ref<SupportMap>> build_support(Context& context, const std::vector<Healpi
 Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& catalogue,
                                    const NormalizeRequest& request) {
   NormalizeResult result;
+  if (!bind_wcs || !bind_observation_model || !fit_psf || !measure_science_sources) {
+    return fail<NormalizeResult>(Code::unsupported,
+                                 "the observation module does not provide the world coordinate "
+                                 "binding, the point spread function and the source measurement",
+                                 "normalize", "no frame was processed");
+  }
   if (request.frames.size() != request.outputs.size()) {
     return fail<NormalizeResult>(Code::invalid_request,
                                   "the frames and the outputs must have the same length",
@@ -340,10 +241,34 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       continue;
     }
     observation = val(bound);
-    // The catalogue stars of the field: the measured sources are joined with
-    // the catalogue by the source identifier.
-    Result<Ref<EffectivePSF>> psf = fit_psf(context, observation, wcs, std::span<const CatalogueStar>{},
-                                              request.psf);
+    // The catalogue stars of the field: the candidates of the region are
+    // taken from the catalogue and used for the point spread function and
+    // for the source measurement.
+    CatalogueQuery query;
+    query.region.center = SkyICRS{wcs->c[0], wcs->c[1], wcs->c[2]};
+    const double scale = request.astrometry.scale_rad_pixel.upper > 0.0
+                             ? request.astrometry.scale_rad_pixel.upper
+                             : 1e-6;
+    U64 width = 0;
+    U64 height = 0;
+    if (observation->footprints) {
+      width = observation->footprints->width;
+      height = observation->footprints->height;
+    }
+    const double radius =
+        0.5 * std::sqrt(static_cast<double>(width) * static_cast<double>(width) +
+                         static_cast<double>(height) * static_cast<double>(height)) *
+        scale;
+    query.region.radius_rad = radius > 0.0 ? radius : 1e-3;
+    query.epoch_julian_year = observation->context.epoch_julian_year;
+    query.page_size = 64;
+    query.cursor = "";
+    Result<CataloguePage> page = catalogue.query(context, query);
+    std::vector<CatalogueStar> stars;
+    if (ok(page)) stars = val(page).stars;
+    // The PSF and the measurement use the same star set.
+    Result<Ref<EffectivePSF>> psf =
+        fit_psf(context, observation, wcs, std::span<const CatalogueStar>(stars), request.psf);
     if (!ok(psf)) {
       outcome.failed = true;
       outcome.code = psf.code;
@@ -354,7 +279,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       continue;
     }
     Result<Ref<SourceMeasurements>> measured =
-        measure_science_sources(context, observation, wcs, std::span<const CatalogueStar>{},
+        measure_science_sources(context, observation, wcs, std::span<const CatalogueStar>(stars),
                                  val(psf), request.psf);
     if (!ok(measured)) {
       outcome.failed = true;
@@ -480,7 +405,16 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     budget.tolerance.unit = model::unit_dimensionless();
     budget.max_iterations = 200;
     budget.arithmetic = request.drizzle.budget.arithmetic;
-    FrameFootprintProvider provider(observation->footprints->wcs, budget);
+    Result<Ref<FootprintProvider>> provider =
+        make_footprint_provider(context, observation->footprints->wcs);
+    if (!ok(provider)) {
+      outcome.failed = true;
+      outcome.code = provider.code;
+      outcome.reason = "the frame has no footprint provider";
+      outcome.assessment = provider.assessment;
+      result.frames.emplace_back(outcome.frame, outcome.assessment);
+      continue;
+    }
     Ref<Overlaps> merged;
     std::map<std::pair<U32, U64>, double> leaf_areas;
     std::vector<HealpixLeaf> leaves;
@@ -497,7 +431,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
         outcome.assessment = footprint.assessment;
         break;
       }
-      Result<Ref<Overlaps>> overlaps = compute_overlap(context, provider, val(footprint),
+      Result<Ref<Overlaps>> overlaps = compute_overlap(context, *val(provider), val(footprint),
                                                         request.drizzle.order, request.drizzle.pixfrac,
                                                         request.drizzle.budget);
       if (!ok(overlaps)) {

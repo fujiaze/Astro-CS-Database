@@ -35,161 +35,6 @@ using model::fail;
 using model::ok_result;
 
 // ---------------------------------------------------------------------------
-// The footprint provider for the export target.
-//
-// The export needs a provider for the target WCS.  The provider only adapts
-// the public coordinate entry points; the certified areas come from the
-// geometry kernel behind compute_overlap.
-// ---------------------------------------------------------------------------
-
-NumericBudget numeric_budget_of(const GeometryBudget& budget) {
-  NumericBudget numeric;
-  numeric.tolerance.absolute = 1e-12;
-  numeric.tolerance.relative = 0.0;
-  numeric.tolerance.absolute_floor = 1e-12;
-  numeric.tolerance.unit = model::unit_dimensionless();
-  numeric.max_iterations = 200;
-  numeric.arithmetic = budget.arithmetic;
-  return numeric;
-}
-
-class ExportFootprintProvider final : public FootprintProvider {
- public:
-  ExportFootprintProvider(Ref<WcsModel> model, NumericBudget budget)
-      : model_(std::move(model)), budget_(budget) {}
-
-  Ref<WcsModel> model() const override { return model_; }
-
-  Result<EnclosedSkyRegion> forward_interval(Context& context, Box domain) const override {
-    const PixelCenter0 samples[5] = {{domain.lower[0], domain.lower[1]},
-                                     {domain.upper[0], domain.lower[1]},
-                                     {domain.upper[0], domain.upper[1]},
-                                     {domain.lower[0], domain.upper[1]},
-                                     {0.5 * (domain.lower[0] + domain.upper[0]),
-                                      0.5 * (domain.lower[1] + domain.upper[1])}};
-    EnclosedSkyRegion region;
-    for (int axis = 0; axis < 3; ++axis) {
-      region.xyz[axis].lower = 1.0;
-      region.xyz[axis].upper = -1.0;
-    }
-    bool first = true;
-    for (const PixelCenter0& sample : samples) {
-      Result<SkyICRS> sky = forward(context, model_, sample, budget_);
-      if (!ok(sky)) {
-        return fail<EnclosedSkyRegion>(sky.code, "the target footprint cannot be forwarded",
-                                       "build_export", "the overlap cannot be computed");
-      }
-      const double components[3] = {val(sky).nx, val(sky).ny, val(sky).nz};
-      for (int axis = 0; axis < 3; ++axis) {
-        if (first) {
-          region.xyz[axis].lower = components[axis];
-          region.xyz[axis].upper = components[axis];
-        } else {
-          region.xyz[axis].lower = std::min(region.xyz[axis].lower, components[axis]);
-          region.xyz[axis].upper = std::max(region.xyz[axis].upper, components[axis]);
-        }
-      }
-      first = false;
-    }
-    return ok_result(region);
-  }
-
-  Result<DerivativeResult> derivative_interval(Context& context, Box domain) const override {
-    const PixelCenter0 centre{0.5 * (domain.lower[0] + domain.upper[0]),
-                               0.5 * (domain.lower[1] + domain.upper[1])};
-    return derivative(context, model_, centre, budget_);
-  }
-
-  Result<EnclosedSkyRegion> boundary_interval(Context& context, const CurvedEdge& curve,
-                                              Interval parameter) const override {
-    EnclosedSkyRegion region;
-    for (int axis = 0; axis < 3; ++axis) {
-      region.xyz[axis].lower = 1.0;
-      region.xyz[axis].upper = -1.0;
-    }
-    bool first = true;
-    for (const std::array<ExactInterval, 2>& point : curve.bernstein) {
-      const double x = model::dyadic_to_double(point[0].lower);
-      const double y = model::dyadic_to_double(point[1].lower);
-      Result<SkyICRS> sky = forward(context, model_, PixelCenter0{x, y}, budget_);
-      if (!ok(sky)) {
-        return fail<EnclosedSkyRegion>(sky.code, "the boundary curve cannot be forwarded",
-                                       "build_export", "the overlap cannot be computed");
-      }
-      const double components[3] = {val(sky).nx, val(sky).ny, val(sky).nz};
-      for (int axis = 0; axis < 3; ++axis) {
-        if (first) {
-          region.xyz[axis].lower = components[axis];
-          region.xyz[axis].upper = components[axis];
-        } else {
-          region.xyz[axis].lower = std::min(region.xyz[axis].lower, components[axis]);
-          region.xyz[axis].upper = std::max(region.xyz[axis].upper, components[axis]);
-        }
-      }
-      first = false;
-    }
-    return ok_result(region);
-  }
-
-  Result<SphericalAreaInterval> measure(Context& context, const DetectorFootprint& source,
-                                        const GeometryBudget& request) const override {
-    // The provider only has to enclose the solid angle of the collection
-    // region.  The Jacobian interval of the geometry entry point is summed
-    // over a fixed subdivision of the footprint bounding box, which encloses
-    // the true area without claiming more precision than the model allows.
-    Box box{};
-    bool first = true;
-    for (const Ring& ring : source.detector_rings) {
-      for (const PixelEdge0& vertex : ring.vertices) {
-        if (first) {
-          box.lower = {vertex.x, vertex.y};
-          box.upper = {vertex.x, vertex.y};
-          first = false;
-        } else {
-          box.lower[0] = std::min(box.lower[0], vertex.x);
-          box.lower[1] = std::min(box.lower[1], vertex.y);
-          box.upper[0] = std::max(box.upper[0], vertex.x);
-          box.upper[1] = std::max(box.upper[1], vertex.y);
-        }
-      }
-    }
-    if (first) {
-      return fail<SphericalAreaInterval>(Code::invalid_model, "the footprint has no ring",
-                                         "build_export", "the area cannot be enclosed");
-    }
-    const U32 steps = 8;
-    const double step_x = (box.upper[0] - box.lower[0]) / steps;
-    const double step_y = (box.upper[1] - box.lower[1]) / steps;
-    double lower = 0.0;
-    double upper = 0.0;
-    for (U32 iy = 0; iy < steps; ++iy) {
-      for (U32 ix = 0; ix < steps; ++ix) {
-        Box cell{{box.lower[0] + ix * step_x, box.lower[1] + iy * step_y},
-                 {box.lower[0] + (ix + 1) * step_x, box.lower[1] + (iy + 1) * step_y}};
-        Result<Interval> jacobian = solid_angle_jacobian(context, model_, cell, budget_);
-        if (!ok(jacobian)) {
-          return fail<SphericalAreaInterval>(jacobian.code, "the jacobian cannot be bounded",
-                                             "build_export", "the area cannot be enclosed");
-        }
-        const double area = step_x * step_y;
-        lower += std::max(0.0, val(jacobian).lower) * area;
-        upper += std::max(0.0, val(jacobian).upper) * area;
-      }
-    }
-    SphericalAreaInterval interval;
-    interval.lower_sr = lower;
-    interval.upper_sr = upper;
-    interval.simultaneous_bound = "export:jacobian_enclosure";
-    interval.exact = model::exact_from_interval(Interval{lower, upper});
-    return ok_result(interval);
-  }
-
- private:
-  Ref<WcsModel> model_;
-  NumericBudget budget_;
-};
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -351,7 +196,12 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
 
   // The geometry: the target pixel against the leaves of the product order.
   const U32 order = leaf_index->order;
-  ExportFootprintProvider provider(request.target.model, numeric_budget_of(request.budget));
+  Result<Ref<FootprintProvider>> provider =
+      make_footprint_provider(context, request.target.model);
+  if (!ok(provider)) {
+    return fail<ExportResult>(provider.code, "the target provider cannot be built", "build_export",
+                              "the export cannot be built");
+  }
   const U64 pixel_count = request.target.width * request.target.height;
 
   std::vector<std::vector<std::pair<U64, double>>> rows_of_pixel(pixel_count);
@@ -367,7 +217,7 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
       }
       Ref<DetectorFootprint> footprint = make_target_footprint(request.target.model, x, y);
       // pixfrac = 1: the target pixel is never contracted a second time.
-      Result<Ref<Overlaps>> overlaps = compute_overlap(context, provider, footprint, order, 1.0,
+      Result<Ref<Overlaps>> overlaps = compute_overlap(context, *val(provider), footprint, order, 1.0,
                                                         request.budget);
       if (!ok(overlaps)) {
         return fail<ExportResult>(overlaps.code,
