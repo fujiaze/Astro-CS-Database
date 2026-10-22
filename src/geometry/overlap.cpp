@@ -448,6 +448,12 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   // interval is the intersection of the two algorithms.
   const geometry::ContainmentOutcome containment =
       geometry::target_containment(context, *model, model, drop_rectangle, order, request);
+  if (containment.cancelled) {
+    return fail<Ref<Overlaps>>(Code::cancelled, "cancelled", "compute_overlap:target_containment",
+                               "the run was cancelled at a safety boundary of the containment "
+                               "fallback; no overlap is published",
+                               "run again with a larger budget");
+  }
   std::map<std::pair<U32, U64>, geometry::ContainmentLeaf> containment_leaves;
   for (const geometry::ContainmentLeaf& leaf : containment.leaves) {
     containment_leaves[{leaf.leaf.order, leaf.leaf.ipix}] = leaf;
@@ -776,6 +782,26 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
     model::add_issue(overlaps->assessment, Code::nonconverged, kernel.reason, "compute_overlap",
                      "the overlap bounds keep the unresolved mass instead of dropping it",
                      "refine with a larger budget");
+  }
+  // The termination of this geometry path, machine readable for the caller:
+  // the workflow assembles the drizzle and publishes from this assessment, so
+  // a budget exhaustion must be visible here and not only in the issue text.
+  {
+    const char* termination_name = "tolerance_met";
+    switch (overlaps->status.termination) {
+      case Termination::work: termination_name = "work"; break;
+      case Termination::depth: termination_name = "depth"; break;
+      case Termination::precision: termination_name = "precision"; break;
+      case Termination::unsupported: termination_name = "unsupported"; break;
+      case Termination::tolerance_met: break;
+    }
+    model::set_included(overlaps->assessment,
+                        std::string("termination=") + termination_name +
+                            ":bound_validity=" +
+                            (overlaps->status.bound_validity == Validity::certified ? "certified"
+                                                                                    : "invalid") +
+                            ":unresolved_mass_kept=" +
+                            (kernel.unresolved.empty() ? "0" : "1"));
   }
   model::set_included(overlaps->assessment, "affine_strip_cut_cell");
   {

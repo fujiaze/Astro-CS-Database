@@ -1803,6 +1803,64 @@ int main(int argc, char** argv) {
     }
   }
 
+  // 2f. The cancellation of a long geometry run: the cancellation must be
+  // observed at a safety boundary and the result must be a named
+  // cancellation, never a silent partial payload.
+  {
+    class CancellingCancellation final : public acsd::Cancellation {
+     public:
+      bool requested() const noexcept override { return true; }
+    };
+    CancellingCancellation cancelling;
+    acsd::Context cancelling_context{resources, cancelling, storage};
+    const double cd_deg = 0.5;
+    acsd::HeaderFields header =
+        make_header(false, cd_deg, 1.0, 1.0, 0.0, 0.0, "ICRS", false, 0.0, false);
+    const Box domain{{-2.0, -2.0}, {2.0, 2.0}};
+    acsd::AstrometricContext astrometric;
+    // The model is built with the live context: the cancellation is armed
+    // for the overlap itself, which is the long running step.
+    Result<Ref<acsd::WcsModel>> model =
+        acsd::make_wcs(context, header, domain, astrometric, "detector-C", budget);
+    if (good(model)) {
+      const Ref<acsd::WcsModel>& wcs = value_of(model);
+      auto index = std::make_shared<acsd::Index>();
+      index->size = 1;
+      index->kind = acsd::Index::Kind::native;
+      index->namespace_id = "acsd.validation";
+      index->sources.push_back(
+          acsd::SourceIdentity{"validation", "exposure", "detector", "channel", 0});
+      auto footprints = std::make_shared<acsd::FootprintSet>();
+      footprints->index = index;
+      footprints->width = 1;
+      footprints->height = 1;
+      footprints->detector_from_sample = acsd::Mat2{1.0, 0.0, 0.0, 1.0};
+      footprints->offset = acsd::Vec2{0.0, 0.0};
+      footprints->local_cell = Box{{-0.5, -0.5}, {0.5, 0.5}};
+      footprints->wcs = wcs;
+      footprints->detector_frame = "detector-C";
+      Result<Ref<acsd::DetectorFootprint>> footprint_result =
+          acsd::detector_footprint(context, footprints, 0);
+      if (good(footprint_result)) {
+        OracleProvider provider(wcs, Oracle{});
+        acsd::GeometryBudget geometry_budget;
+        geometry_budget.max_work = 200000;
+        geometry_budget.max_depth = 24;
+        geometry_budget.area_absolute_sr = 1e-12;
+        geometry_budget.arithmetic.initial_bits = 64;
+        geometry_budget.arithmetic.max_bits = 256;
+        Result<Ref<acsd::Overlaps>> overlaps = acsd::compute_overlap(
+            cancelling_context, provider, value_of(footprint_result), 8, 1.0, geometry_budget);
+        geometry.boolean("cancelled_overlap_not_published", !good(overlaps));
+        if (!good(overlaps)) {
+          geometry.text("cancelled_overlap_code", code_name(overlaps.code));
+          checks.add("cancellation_is_a_named_code", overlaps.code == acsd::Code::cancelled,
+                     "code=" + code_name(overlaps.code));
+        }
+      }
+    }
+  }
+
 {
     geometry.raw("checks", checks.str());
     geometry.integer("check_failures", checks.failures());

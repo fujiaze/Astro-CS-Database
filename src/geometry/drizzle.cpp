@@ -143,6 +143,11 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
 
   row_offsets.push_back(0);
   for (const auto& entry : by_leaf) {
+    // The cancellation checkpoint of the leaf loop: the leaf that is being
+    // assembled is the safety boundary.
+    if (context.cancellation.requested()) {
+      return fail<DrizzleResult>(Code::cancelled, "cancelled", "build_drizzle:leaves");
+    }
     const HealpixLeaf leaf = HealpixLeaf{entry.first.first, entry.first.second};
     leaves.push_back(leaf);
     IntervalValue omega{0.0, 0.0};
@@ -154,6 +159,10 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
     std::vector<std::pair<U64, double>> row;
     std::vector<double> nominal_weights;
     for (std::size_t index : entry.second) {
+      // The cancellation checkpoint of the contribution loop.
+      if (context.cancellation.requested()) {
+        return fail<DrizzleResult>(Code::cancelled, "cancelled", "build_drizzle:contributions");
+      }
       const OverlapContribution& contribution = overlaps->contributions[index];
       const IntervalValue a{contribution.overlap_area.lower_sr, contribution.overlap_area.upper_sr};
       const IntervalValue a_prim{contribution.native_area.lower_sr, contribution.native_area.upper_sr};
@@ -381,6 +390,26 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
   op->normalizer_sr = val(normalizer_array);
   op->support = support;
   op->status = overlaps->status;
+  // The bounds of the Drizzle operator are the bounds of the overlaps: when
+  // the geometry path did not reach its tolerance (a budget exhaustion, an
+  // unresolved domain), the operator carries that termination and no bound of
+  // the estimate is certified.
+  if (overlaps->status.termination != Termination::tolerance_met) {
+    op->status.bound_validity = Validity::invalid;
+    model::add_issue(op->assessment, Code::nonconverged, "drizzle_bounds_not_certified",
+                     "build_drizzle:overlaps",
+                     "the overlap bounds of this operator are not certified, so the estimate "
+                     "keeps the unresolved mass instead of claiming a certified value",
+                     "raise the geometry budget or reduce the source block size");
+    model::set_included(op->assessment,
+                        std::string("drizzle_termination=") +
+                            (overlaps->status.termination == Termination::work ? "work"
+                             : overlaps->status.termination == Termination::precision ? "precision"
+                             : overlaps->status.termination == Termination::depth ? "depth"
+                             : overlaps->status.termination == Termination::unsupported
+                                 ? "unsupported"
+                                 : "tolerance_met"));
+  }
   op->identity = model::make_identity("acsd.DrizzleOperator", 2, 0, model::sha256_hex("acsd.drizzle"),
                                        "acsd");
   op->assessment = model::make_assessment(Code::ok);

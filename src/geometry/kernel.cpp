@@ -1,5 +1,7 @@
 #include "geometry/kernel.hpp"
 
+#include "geometry/profile.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <deque>
@@ -109,6 +111,7 @@ SkyICRS forward_point(const WcsModel& wcs, double u, double v) {
 
 bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& model,
                        bool& outcome_reason_apex) {
+  ++geometry::kernel_counts().chart_models;
   model.cu = 0.5 * (block.u0 + block.u1);
   model.cv = 0.5 * (block.v0 + block.v1);
   const double hu = 0.5 * (block.u1 - block.u0);
@@ -471,6 +474,16 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
       outcome.reason = "work_budget_exhausted";
       break;
     }
+    // The cancellation checkpoint of the block loop: the queue is drained at
+    // a safety boundary, so a cancellation stops the kernel with a named
+    // result and the undecided mass of the remaining blocks is kept.
+    if (context.cancellation.requested()) {
+      for (const Block& pending : queue) keep_unresolved(pending);
+      queue.clear();
+      outcome.termination = Termination::unsupported;
+      outcome.reason = "cancelled";
+      break;
+    }
     const Block block = queue.front();
     queue.pop_front();
     ++outcome.work;
@@ -480,7 +493,13 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
     // the shared ledger are the same limit, so a caller never sees one
     // exhausted while the other still reports budget.
     {
-      const Result<U64> charged = context.resources.consume_work(1 + cells_pending);
+      Result<U64> charged;
+      {
+        geometry::StageTimer work_timer(geometry::kernel_timings().work_metering_ns);
+        charged = context.resources.consume_work(1 + cells_pending);
+      }
+      ++geometry::kernel_counts().work_charges;
+      geometry::kernel_counts().work_units += 1 + cells_pending;
       cells_pending = 0;
       if (charged.code != Code::ok || outcome.work > max_work) {
         // The remaining blocks stay undecided and keep their mass.
@@ -493,7 +512,11 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
     }
     BlockModel model;
     bool apex = false;
-    const bool modelled = build_block_model(wcs, block, model, apex);
+    bool modelled = false;
+    {
+      geometry::StageTimer timer(geometry::kernel_timings().chart_model_ns);
+      modelled = build_block_model(wcs, block, model, apex);
+    }
     if (!modelled) {
       if (apex && block.depth + 1 >= max_depth) {
         outcome.termination = Termination::unsupported;
@@ -512,11 +535,19 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
       continue;
     }
 
+    ++geometry::kernel_counts().blocks;
     // The candidate cells of the block.
-    const long long ix_lo = static_cast<long long>(std::floor(model.s_lo * static_cast<double>(nside)));
-    const long long ix_hi = static_cast<long long>(std::floor(model.s_hi * static_cast<double>(nside)));
-    const long long iy_lo = static_cast<long long>(std::floor(model.t_lo * static_cast<double>(nside)));
-    const long long iy_hi = static_cast<long long>(std::floor(model.t_hi * static_cast<double>(nside)));
+    long long ix_lo = 0;
+    long long ix_hi = 0;
+    long long iy_lo = 0;
+    long long iy_hi = 0;
+    {
+      geometry::StageTimer enumeration_timer(geometry::kernel_timings().candidate_enumeration_ns);
+      ix_lo = static_cast<long long>(std::floor(model.s_lo * static_cast<double>(nside)));
+      ix_hi = static_cast<long long>(std::floor(model.s_hi * static_cast<double>(nside)));
+      iy_lo = static_cast<long long>(std::floor(model.t_lo * static_cast<double>(nside)));
+      iy_hi = static_cast<long long>(std::floor(model.t_hi * static_cast<double>(nside)));
+    }
     const double cells = static_cast<double>(ix_hi - ix_lo + 1) * static_cast<double>(iy_hi - iy_lo + 1);
     if (cells > static_cast<double>(kMaxCandidatesPerBlock)) {
       if (block.depth + 1 < max_depth) {
@@ -533,8 +564,18 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
     }
 
     const RationalPolygon rectangle = rectangle_polygon(block);
-    for (long long iy = iy_lo; iy <= iy_hi; ++iy) {
+    geometry::StageTimer clip_timer(geometry::kernel_timings().rational_clip_ns);
+    bool cancelled_in_cells = false;
+    for (long long iy = iy_lo; iy <= iy_hi && !cancelled_in_cells; ++iy) {
       for (long long ix = ix_lo; ix <= ix_hi; ++ix) {
+        // The cancellation checkpoint of the candidate cell loop: the cell
+        // that is being processed is the safety boundary.
+        if (context.cancellation.requested()) {
+          outcome.termination = Termination::unsupported;
+          outcome.reason = "cancelled";
+          cancelled_in_cells = true;
+          break;
+        }
         const HealpixLeaf leaf = coordinates::chart_leaf(order, model.face, static_cast<U64>(ix),
                                                           static_cast<U64>(iy));
         const double s_lo = static_cast<double>(ix) * inv_nside;
@@ -542,6 +583,8 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
         const double t_lo = static_cast<double>(iy) * inv_nside;
         const double t_hi = static_cast<double>(iy + 1) * inv_nside;
 
+        ++geometry::kernel_counts().candidate_cells;
+        StageCounts& counts = geometry::kernel_counts();
         RationalPolygon inner = rectangle;
         HalfSpace space = chart_half_space_le(model, true, s_hi - model.e_s);
         inner = clip_half_space(inner, space.a, space.b, space.c);
@@ -562,6 +605,7 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
         space = chart_half_space_ge(model, false, t_lo - model.e_t);
         outer = clip_half_space(outer, space.a, space.b, space.c);
 
+        counts.rational_clips += 8;
         Rational inner_lower(0, 1);
         Rational inner_upper(0, 1);
         Rational outer_lower(0, 1);
@@ -574,11 +618,14 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
         ++cells_visited;
         ++cells_pending;
         ++outcome.work;
-        LeafLedger& ledger = ledgers[{leaf.order, leaf.ipix}];
-        ledger.lower.add(inner_lower, false);
-        ledger.upper.add(outer_upper, true);
-        total_lower.add(inner_lower, false);
-        total_upper.add(outer_upper, true);
+        {
+          geometry::StageTimer dyadic_timer(geometry::kernel_timings().dyadic_merge_ns);
+          LeafLedger& ledger = ledgers[{leaf.order, leaf.ipix}];
+          ledger.lower.add(inner_lower, false);
+          ledger.upper.add(outer_upper, true);
+          total_lower.add(inner_lower, false);
+          total_upper.add(outer_upper, true);
+        }
       }
     }
 
@@ -586,7 +633,13 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
     // they are processed; an exhausted ledger stops the kernel with a named
     // work termination and the undecided mass of the remaining blocks is kept.
     {
-      const Result<U64> charged = context.resources.consume_work(cells_pending);
+      Result<U64> charged;
+      {
+        geometry::StageTimer work_timer(geometry::kernel_timings().work_metering_ns);
+        charged = context.resources.consume_work(cells_pending);
+      }
+      ++geometry::kernel_counts().work_charges;
+      geometry::kernel_counts().work_units += cells_pending;
       cells_pending = 0;
       if (charged.code != Code::ok || outcome.work > max_work) {
         // The work budget is exhausted: the remaining blocks stay undecided

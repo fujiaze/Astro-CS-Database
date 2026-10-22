@@ -1,5 +1,7 @@
 #include "geometry/containment.hpp"
 
+#include "geometry/profile.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <map>
@@ -137,6 +139,7 @@ struct SegmentEnclosure {
 
 SegmentEnclosure segment_enclosure(const WcsModel& wcs, const Segment& segment) {
   SegmentEnclosure out;
+  ++geometry::containment_counts().chart_models;
   ChartBox box;
   if (!chart_enclosure(wcs, segment.u0, segment.u1, segment.v0, segment.v1, box)) return out;
   out.valid = true;
@@ -206,6 +209,7 @@ ContainmentOutcome target_containment(Context& context, const WcsModel& wcs, Ref
   const double v1 = detector_rect.upper[1] + 1.0 - crpix_v;
 
   ChartBox box;
+  ++geometry::containment_counts().chart_models;
   if (!chart_enclosure(wcs, u0, u1, v0, v1, box)) return outcome;
 
   // The chart enclosure of the boundary of the source region.  The boundary is
@@ -215,11 +219,21 @@ ContainmentOutcome target_containment(Context& context, const WcsModel& wcs, Ref
   const U64 max_segments = std::max<U64>(min_segments, budget.max_work / 4096ull);
   U64 segment_count = 0;
   std::vector<SegmentEnclosure> boundary;
-  for (const Segment& segment :
-       boundary_segments(wcs, detector_rect, order, min_segments, max_segments, segment_count)) {
-    boundary.push_back(segment_enclosure(wcs, segment));
+  {
+    geometry::StageTimer timer(geometry::containment_timings().boundary_segmentation_ns);
+    for (const Segment& segment :
+         boundary_segments(wcs, detector_rect, order, min_segments, max_segments, segment_count)) {
+      // The cancellation checkpoint of the boundary segmentation.
+      if (context.cancellation.requested()) {
+        outcome.complete = false;
+        outcome.cancelled = true;
+        return outcome;
+      }
+      boundary.push_back(segment_enclosure(wcs, segment));
+    }
   }
   outcome.boundary_segments = segment_count;
+  geometry::containment_counts().boundary_segments += segment_count;
   const bool boundary_provable = std::all_of(boundary.begin(), boundary.end(),
                                               [](const SegmentEnclosure& s) { return s.valid; });
   if (!boundary_provable) {
@@ -262,7 +276,13 @@ ContainmentOutcome target_containment(Context& context, const WcsModel& wcs, Ref
       // boundary segment that the separation test has to exclude.
       {
         const U64 units = 1 + boundary.size();
-        const Result<U64> charged = context.resources.consume_work(units);
+        Result<U64> charged;
+        {
+          geometry::StageTimer timer(geometry::containment_timings().work_metering_ns);
+          charged = context.resources.consume_work(units);
+        }
+        ++geometry::containment_counts().work_charges;
+        geometry::containment_counts().work_units += units;
         if (charged.code != Code::ok) return outcome;
       }
       const double s_lo = static_cast<double>(ix) * inv_nside;
@@ -273,12 +293,15 @@ ContainmentOutcome target_containment(Context& context, const WcsModel& wcs, Ref
       // The separation test: the boundary of the source region must not meet
       // the cell.
       bool separated = true;
+      {
+        geometry::StageTimer timer(geometry::containment_timings().separation_test_ns);
       for (const SegmentEnclosure& segment : boundary) {
         if (overlaps(s_lo, s_hi, segment.s_lo, segment.s_hi) &&
             overlaps(t_lo, t_hi, segment.t_lo, segment.t_hi)) {
           separated = false;
           break;
         }
+      }
       }
 
       CellDecision decision = CellDecision::undecided;
@@ -287,7 +310,12 @@ ContainmentOutcome target_containment(Context& context, const WcsModel& wcs, Ref
         const double s_mid = 0.5 * (s_lo + s_hi);
         const double t_mid = 0.5 * (t_lo + t_hi);
         const SkyICRS direction = coordinates::healpix_face_point(box.face, s_mid, t_mid);
-        Result<InverseResult> inverted = acsd::inverse(context, model_ref, direction, inverse_budget);
+        ++geometry::containment_counts().inverse_calls;
+        Result<InverseResult> inverted;
+        {
+          geometry::StageTimer timer(geometry::containment_timings().membership_test_ns);
+          inverted = acsd::inverse(context, model_ref, direction, inverse_budget);
+        }
         if (inverted.code == Code::ok) {
           const Membership membership = membership_of(inverted.value->root_box, detector_rect);
           if (membership == Membership::inside) {
@@ -300,8 +328,10 @@ ContainmentOutcome target_containment(Context& context, const WcsModel& wcs, Ref
 
       if (decision == CellDecision::undecided) {
         ++outcome.cells_undecided;
+        ++geometry::containment_counts().cells_undecided;
       } else {
         ++outcome.cells_decided;
+        ++geometry::containment_counts().cells_decided;
       }
       const HealpixLeaf leaf = coordinates::chart_leaf(order, box.face, static_cast<U64>(ix),
                                                         static_cast<U64>(iy));

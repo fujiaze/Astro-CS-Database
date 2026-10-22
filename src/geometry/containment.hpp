@@ -38,6 +38,9 @@ struct ContainmentOutcome {
   // the boundary was split into and the number of cells that were decided.
   U64 boundary_segments = 0;
   U64 cells_decided = 0;
+  // The run was cancelled at a safety boundary: the undecided mass of the
+  // cells that were not reached is kept.
+  bool cancelled = false;
   U64 cells_undecided = 0;
 };
 
