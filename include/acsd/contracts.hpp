@@ -21,7 +21,9 @@ using Mat2 = std::array<double,4>; // row major
 struct Interval { double lower, upper; };
 struct Dyadic { std::string signed_integer; std::int32_t exponent2; };
 struct ExactInterval { Dyadic lower, upper; U32 precision_bits; };
-struct Box { Vec2 lower, upper; }; // closed detector or chart rectangle
+struct Box { Vec2 lower{0.0,0.0}; Vec2 upper{0.0,0.0}; }; // closed detector or chart rectangle
+// The bounds are default initialised: a default constructed rectangle must be
+// deterministic, not indeterminate.
 struct PixelCenter0 { double x,y; };
 struct PixelEdge0 { double x,y; };
 struct FitsPixel1 { double x,y; };
@@ -289,7 +291,10 @@ struct AstrometricSolution : Model { Ref<WcsModel> wcs; ArrayRef parameters;
   Ref<CovarianceAction> parameter_noise; FitInfluence influence;
   ArrayRef solver_detections; Box support; std::optional<double> model_bias_rad; };
 struct Basis { enum class Kind { constant,plane,polynomial } kind;
-  U32 degree; Box normalization_domain; Vec2 center,scale; ArrayRef weighted_mean; };
+  U32 degree; Box normalization_domain;
+  // The centre and the scale of the basis have usable defaults: a request
+  // that does not need a spatial basis must not carry indeterminate values.
+  Vec2 center{0.0,0.0},scale{1.0,1.0}; ArrayRef weighted_mean; };
 struct PsfRequest { enum class Family { gaussian,moffat,airy } family;
   U32 spatial_degree; double initial_width_pixel,tail_absolute_flux,window_radius_pixel;
   NumericBudget budget; };

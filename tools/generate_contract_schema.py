@@ -121,6 +121,10 @@ for name, (base, body) in structs.items():
         if cpp in nonwire:
             continue
         for field in split(fields):
+            # A declarator may carry a default initialiser, for example
+            # `Vec2 center{0.0,0.0}`.  The default is a C++ detail of the
+            # declaration and does not change the wire shape.
+            field = field.split('{', 1)[0].strip()
             if not re.fullmatch(r'\w+', field):
                 raise ValueError(f'Unparsed declarator {name}: {field}')
             properties[field] = type_schema(cpp, name)
