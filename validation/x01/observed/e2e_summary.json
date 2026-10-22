@@ -1,0 +1,81 @@
+{
+ "status": "fail",
+ "route": "the three commands of the acsd command line on the frozen frames",
+ "binary": "build/science/acsd",
+ "inputs": {
+  "directory": "/workspace/Astro CS Database/validation/x01/input/cli",
+  "files": [
+   "calibration.json",
+   "catalogue.json",
+   "export.config.json",
+   "export.scientific.json",
+   "mosaic.config.json",
+   "mosaic.scientific.json",
+   "normalize.config.json",
+   "normalize.scientific.json",
+   "response_A.json",
+   "response_B.json"
+  ]
+ },
+ "stages": [
+  {
+   "command": "normalize",
+   "exit_code": 4,
+   "published": 0,
+   "unsolved": 8,
+   "failed_frames": 0,
+   "first_failure": {
+    "frame_id": "x01-00",
+    "code": "failed",
+    "message": "no catalogue star supplied"
+   }
+  },
+  {
+   "command": "mosaic",
+   "exit_code": 4,
+   "published": 0,
+   "unsolved": 0,
+   "failed_frames": 1,
+   "first_failure": {
+    "frame_id": "mosaic",
+    "code": "failed",
+    "message": "the product directory is missing"
+   }
+  },
+  {
+   "command": "export",
+   "exit_code": 4,
+   "published": 0,
+   "unsolved": 0,
+   "failed_frames": 1,
+   "first_failure": {
+    "frame_id": "export",
+    "code": "failed",
+    "message": "the product directory is missing"
+   }
+  }
+ ],
+ "commands": [
+  {
+   "command": "normalize",
+   "exit_code": 4,
+   "published": 0,
+   "unsolved": 8,
+   "stderr": ""
+  },
+  {
+   "command": "mosaic",
+   "exit_code": 4,
+   "published": 0,
+   "unsolved": 0,
+   "stderr": ""
+  },
+  {
+   "command": "export",
+   "exit_code": 4,
+   "published": 0,
+   "unsolved": 0,
+   "stderr": ""
+  }
+ ]
+}

@@ -13,7 +13,65 @@
         63.5,
         64.5
       ],
-      "total_electrons": 85222290.21243897
+      "source_field": [
+        {
+          "centre_pixel": [
+            63.5,
+            64.5
+          ],
+          "kind": "bright",
+          "weight": 1.0
+        },
+        {
+          "centre_pixel": [
+            24.5,
+            30.5
+          ],
+          "kind": "star",
+          "weight": 0.35
+        },
+        {
+          "centre_pixel": [
+            96.5,
+            22.5
+          ],
+          "kind": "star",
+          "weight": 0.42
+        },
+        {
+          "centre_pixel": [
+            30.5,
+            100.5
+          ],
+          "kind": "star",
+          "weight": 0.28
+        },
+        {
+          "centre_pixel": [
+            92.5,
+            98.5
+          ],
+          "kind": "star",
+          "weight": 0.5
+        },
+        {
+          "centre_pixel": [
+            14.5,
+            72.5
+          ],
+          "kind": "star",
+          "weight": 0.31
+        },
+        {
+          "centre_pixel": [
+            110.5,
+            66.5
+          ],
+          "kind": "star",
+          "weight": 0.46
+        }
+      ],
+      "total_electrons": 85280548.79217304
     },
     {
       "dark_level_electrons": 12.0,
@@ -27,7 +85,65 @@
         63.5,
         64.5
       ],
-      "total_electrons": 93414290.21243897
+      "source_field": [
+        {
+          "centre_pixel": [
+            63.5,
+            64.5
+          ],
+          "kind": "bright",
+          "weight": 1.0
+        },
+        {
+          "centre_pixel": [
+            24.5,
+            30.5
+          ],
+          "kind": "star",
+          "weight": 0.35
+        },
+        {
+          "centre_pixel": [
+            96.5,
+            22.5
+          ],
+          "kind": "star",
+          "weight": 0.42
+        },
+        {
+          "centre_pixel": [
+            30.5,
+            100.5
+          ],
+          "kind": "star",
+          "weight": 0.28
+        },
+        {
+          "centre_pixel": [
+            92.5,
+            98.5
+          ],
+          "kind": "star",
+          "weight": 0.5
+        },
+        {
+          "centre_pixel": [
+            14.5,
+            72.5
+          ],
+          "kind": "star",
+          "weight": 0.31
+        },
+        {
+          "centre_pixel": [
+            110.5,
+            66.5
+          ],
+          "kind": "star",
+          "weight": 0.46
+        }
+      ],
+      "total_electrons": 93472548.79217304
     },
     {
       "dark_level_electrons": 12.0,
@@ -41,7 +157,65 @@
         63.5,
         64.5
       ],
-      "total_electrons": 101606290.21243897
+      "source_field": [
+        {
+          "centre_pixel": [
+            63.5,
+            64.5
+          ],
+          "kind": "bright",
+          "weight": 1.0
+        },
+        {
+          "centre_pixel": [
+            24.5,
+            30.5
+          ],
+          "kind": "star",
+          "weight": 0.35
+        },
+        {
+          "centre_pixel": [
+            96.5,
+            22.5
+          ],
+          "kind": "star",
+          "weight": 0.42
+        },
+        {
+          "centre_pixel": [
+            30.5,
+            100.5
+          ],
+          "kind": "star",
+          "weight": 0.28
+        },
+        {
+          "centre_pixel": [
+            92.5,
+            98.5
+          ],
+          "kind": "star",
+          "weight": 0.5
+        },
+        {
+          "centre_pixel": [
+            14.5,
+            72.5
+          ],
+          "kind": "star",
+          "weight": 0.31
+        },
+        {
+          "centre_pixel": [
+            110.5,
+            66.5
+          ],
+          "kind": "star",
+          "weight": 0.46
+        }
+      ],
+      "total_electrons": 101664548.79217304
     },
     {
       "dark_level_electrons": 12.0,
@@ -55,7 +229,65 @@
         63.5,
         64.5
       ],
-      "total_electrons": 109798290.21243896
+      "source_field": [
+        {
+          "centre_pixel": [
+            63.5,
+            64.5
+          ],
+          "kind": "bright",
+          "weight": 1.0
+        },
+        {
+          "centre_pixel": [
+            24.5,
+            30.5
+          ],
+          "kind": "star",
+          "weight": 0.35
+        },
+        {
+          "centre_pixel": [
+            96.5,
+            22.5
+          ],
+          "kind": "star",
+          "weight": 0.42
+        },
+        {
+          "centre_pixel": [
+            30.5,
+            100.5
+          ],
+          "kind": "star",
+          "weight": 0.28
+        },
+        {
+          "centre_pixel": [
+            92.5,
+            98.5
+          ],
+          "kind": "star",
+          "weight": 0.5
+        },
+        {
+          "centre_pixel": [
+            14.5,
+            72.5
+          ],
+          "kind": "star",
+          "weight": 0.31
+        },
+        {
+          "centre_pixel": [
+            110.5,
+            66.5
+          ],
+          "kind": "star",
+          "weight": 0.46
+        }
+      ],
+      "total_electrons": 109856548.79217304
     },
     {
       "dark_level_electrons": 12.0,
@@ -66,7 +298,65 @@
       "read_rms_e": 3.0,
       "sky_level_electrons": 60.0,
       "source_centre_pixel": null,
-      "total_electrons": 117980098.35350421
+      "source_field": [
+        {
+          "centre_pixel": [
+            63.5,
+            64.5
+          ],
+          "kind": "bright",
+          "weight": 1.0
+        },
+        {
+          "centre_pixel": [
+            24.5,
+            30.5
+          ],
+          "kind": "star",
+          "weight": 0.35
+        },
+        {
+          "centre_pixel": [
+            96.5,
+            22.5
+          ],
+          "kind": "star",
+          "weight": 0.42
+        },
+        {
+          "centre_pixel": [
+            30.5,
+            100.5
+          ],
+          "kind": "star",
+          "weight": 0.28
+        },
+        {
+          "centre_pixel": [
+            92.5,
+            98.5
+          ],
+          "kind": "star",
+          "weight": 0.5
+        },
+        {
+          "centre_pixel": [
+            14.5,
+            72.5
+          ],
+          "kind": "star",
+          "weight": 0.31
+        },
+        {
+          "centre_pixel": [
+            110.5,
+            66.5
+          ],
+          "kind": "star",
+          "weight": 0.46
+        }
+      ],
+      "total_electrons": 118010472.68540576
     },
     {
       "dark_level_electrons": 12.0,
@@ -77,7 +367,65 @@
       "read_rms_e": 3.0,
       "sky_level_electrons": 65.0,
       "source_centre_pixel": null,
-      "total_electrons": 126172098.35350421
+      "source_field": [
+        {
+          "centre_pixel": [
+            63.5,
+            64.5
+          ],
+          "kind": "bright",
+          "weight": 1.0
+        },
+        {
+          "centre_pixel": [
+            24.5,
+            30.5
+          ],
+          "kind": "star",
+          "weight": 0.35
+        },
+        {
+          "centre_pixel": [
+            96.5,
+            22.5
+          ],
+          "kind": "star",
+          "weight": 0.42
+        },
+        {
+          "centre_pixel": [
+            30.5,
+            100.5
+          ],
+          "kind": "star",
+          "weight": 0.28
+        },
+        {
+          "centre_pixel": [
+            92.5,
+            98.5
+          ],
+          "kind": "star",
+          "weight": 0.5
+        },
+        {
+          "centre_pixel": [
+            14.5,
+            72.5
+          ],
+          "kind": "star",
+          "weight": 0.31
+        },
+        {
+          "centre_pixel": [
+            110.5,
+            66.5
+          ],
+          "kind": "star",
+          "weight": 0.46
+        }
+      ],
+      "total_electrons": 126202472.68540576
     },
     {
       "dark_level_electrons": 12.0,
@@ -88,7 +436,65 @@
       "read_rms_e": 3.0,
       "sky_level_electrons": 70.0,
       "source_centre_pixel": null,
-      "total_electrons": 134364098.3535042
+      "source_field": [
+        {
+          "centre_pixel": [
+            63.5,
+            64.5
+          ],
+          "kind": "bright",
+          "weight": 1.0
+        },
+        {
+          "centre_pixel": [
+            24.5,
+            30.5
+          ],
+          "kind": "star",
+          "weight": 0.35
+        },
+        {
+          "centre_pixel": [
+            96.5,
+            22.5
+          ],
+          "kind": "star",
+          "weight": 0.42
+        },
+        {
+          "centre_pixel": [
+            30.5,
+            100.5
+          ],
+          "kind": "star",
+          "weight": 0.28
+        },
+        {
+          "centre_pixel": [
+            92.5,
+            98.5
+          ],
+          "kind": "star",
+          "weight": 0.5
+        },
+        {
+          "centre_pixel": [
+            14.5,
+            72.5
+          ],
+          "kind": "star",
+          "weight": 0.31
+        },
+        {
+          "centre_pixel": [
+            110.5,
+            66.5
+          ],
+          "kind": "star",
+          "weight": 0.46
+        }
+      ],
+      "total_electrons": 134394472.68540576
     },
     {
       "dark_level_electrons": 12.0,
@@ -99,7 +505,65 @@
       "read_rms_e": 3.0,
       "sky_level_electrons": 75.0,
       "source_centre_pixel": null,
-      "total_electrons": 142556098.3535042
+      "source_field": [
+        {
+          "centre_pixel": [
+            63.5,
+            64.5
+          ],
+          "kind": "bright",
+          "weight": 1.0
+        },
+        {
+          "centre_pixel": [
+            24.5,
+            30.5
+          ],
+          "kind": "star",
+          "weight": 0.35
+        },
+        {
+          "centre_pixel": [
+            96.5,
+            22.5
+          ],
+          "kind": "star",
+          "weight": 0.42
+        },
+        {
+          "centre_pixel": [
+            30.5,
+            100.5
+          ],
+          "kind": "star",
+          "weight": 0.28
+        },
+        {
+          "centre_pixel": [
+            92.5,
+            98.5
+          ],
+          "kind": "star",
+          "weight": 0.5
+        },
+        {
+          "centre_pixel": [
+            14.5,
+            72.5
+          ],
+          "kind": "star",
+          "weight": 0.31
+        },
+        {
+          "centre_pixel": [
+            110.5,
+            66.5
+          ],
+          "kind": "star",
+          "weight": 0.46
+        }
+      ],
+      "total_electrons": 142586472.68540576
     }
   ],
   "groups": {

@@ -18,6 +18,7 @@
       "src/coordinates/healpix.cpp",
       "src/coordinates/tan_sip.cpp",
       "src/coordinates/wcs.cpp",
+      "src/geometry/containment.cpp",
       "src/geometry/drizzle.cpp",
       "src/geometry/exact_polygon.cpp",
       "src/geometry/kernel.cpp",
@@ -33,6 +34,7 @@
       "src/numerics/interval.cpp",
       "src/numerics/linalg.cpp",
       "src/numerics/quadrature.cpp",
+      "src/observation/bind.cpp",
       "src/observation/calibrate.cpp",
       "src/observation/observation.cpp",
       "src/observation/regroup.cpp",
@@ -54,6 +56,8 @@
       "src/sources/astrometry_wcs.cpp",
       "src/sources/measure.cpp",
       "src/sources/psf.cpp",
+      "src/sources/psf_fit.cpp",
+      "src/sources/psf_model.cpp",
       "src/storage/local_storage.cpp",
       "src/uncertainty/api.cpp",
       "src/uncertainty/covariance.cpp",
@@ -89,7 +93,7 @@
     "note": "truth is produced before and independently of any observed run",
     "truth_code_imports_production": false
   },
-  "input_model_sha256": "a633bdf1fcdc3b0f08fc6e48647ee9528d9ba2d1de58aebb5ff00137d30168ec",
+  "input_model_sha256": "1f9f4198cd61821d18f60d6ab6002b35177d95dc2d690f8aa99a55afa2a85d61",
   "negative_expectations": [
     {
       "expectation": "the GUI is only a protocol smoke test and never a substitute for the science path",
@@ -120,7 +124,7 @@
     "blind_solve": "the group without a WCS must produce a solution",
     "signal_relative": 0.05
   },
-  "truth_sha256": "26d8f1aa33a181e53b7801c42cbf325b036832d3c12d0f1d8ca95a0599553182",
+  "truth_sha256": "57825e37df3091589bbc28b412b69f92fa7ecb17b3177e2fa4e645b4eeffdf3e",
   "truth_type": "empirical + analytic_exact",
   "unit": "ADU in the raw frames; L/sr in the products"
 }

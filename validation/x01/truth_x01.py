@@ -79,22 +79,31 @@ def pixel_integrated_gaussian(sigma, centre, pixel):
 
 
 def build_frame(seed, psf_sigma, throughput, gain, read_rms, sky_level, dark_level,
-                exposure_seconds, with_source=True):
-    """One raw ADU frame with a known construction."""
+                exposure_seconds, sources=None):
+    """One raw ADU frame with a known construction.
+
+    ``sources`` is a list of (centre_x, centre_y, rate) triples; the photon
+    rate of a source is the integral of its SED against the response, so the
+    same construction serves the bright source and the faint field stars.
+    """
     rng = np.random.default_rng(seed)
     electrons = np.zeros((SIZE, SIZE), dtype=float)
 
-    if with_source:
+    if sources:
         wavelength = np.linspace(400.0, 700.0, 3001)
         sed = continuum_sed(wavelength, 1.0e-18)
         sed = sed + line_sed(wavelength, 656.3, 1.5, 6.7e-18)
-        rate = photon_integral(wavelength, sed, throughput)
-        centre = (63.5, 64.5)
-        for row in range(SIZE):
-            for column in range(SIZE):
-                kernel_x = pixel_integrated_gaussian(psf_sigma, centre[0], column)
-                kernel_y = pixel_integrated_gaussian(psf_sigma, centre[1], row)
-                electrons[row, column] = rate * kernel_x * kernel_y
+        base_rate = photon_integral(wavelength, sed, throughput)
+        # the field stars share the continuum shape and are dimmer
+        star_sed = continuum_sed(wavelength, 1.0e-18)
+        star_rate = photon_integral(wavelength, star_sed, throughput)
+        for centre_x, centre_y, kind, weight in sources:
+            rate = base_rate if kind == "bright" else star_rate * weight
+            for row in range(SIZE):
+                kernel_y = pixel_integrated_gaussian(psf_sigma, centre_y, row)
+                for column in range(SIZE):
+                    kernel_x = pixel_integrated_gaussian(psf_sigma, centre_x, column)
+                    electrons[row, column] += rate * kernel_x * kernel_y
 
     # the sky and the dark are additive electron rates
     electrons += sky_level
@@ -151,6 +160,17 @@ def main() -> int:
     throughput_a = 0.6 * np.exp(-0.5 * ((wavelength - 520.0) / 60.0) ** 2)
     throughput_b = 0.45 * np.exp(-0.5 * ((wavelength - 610.0) / 45.0) ** 2)
 
+    # The source field: one bright source and six faint field stars.  The
+    # field stars are needed because a blind astrometric solution needs more
+    # than one source; the positions are frozen here and reused by the
+    # catalogue of the end-to-end run.
+    field = [("bright", 63.5, 64.5, 1.0)]
+    for centre_x, centre_y, weight in ((24.5, 30.5, 0.35), (96.5, 22.5, 0.42),
+                                       (30.5, 100.5, 0.28), (92.5, 98.5, 0.5),
+                                       (14.5, 72.5, 0.31), (110.5, 66.5, 0.46)):
+        field.append(("star", centre_x, centre_y, weight))
+    sources = [(entry[1], entry[2], entry[0], entry[3]) for entry in field]
+
     frame_files = []
     frame_truth = []
     for index in range(FRAMES):
@@ -160,7 +180,7 @@ def main() -> int:
         adu, electrons = build_frame(
             seed=SEED + index, psf_sigma=1.35, throughput=throughput, gain=2.5,
             read_rms=3.0, sky_level=sky_level, dark_level=12.0,
-            exposure_seconds=100.0, with_source=True)
+            exposure_seconds=100.0, sources=sources)
         path = frames_dir / f"frame_{index:02d}_{group}.fits"
         header = fits.Header()
         header["FRAMEID"] = f"x01-{index:02d}"
@@ -195,6 +215,8 @@ def main() -> int:
             "gain_e_per_adu": 2.5, "read_rms_e": 3.0,
             "psf_sigma_pixel": 1.35,
             "source_centre_pixel": [63.5, 64.5] if group == "A" else None,
+            "source_field": [{"kind": kind, "centre_pixel": [centre_x, centre_y],
+                              "weight": weight} for kind, centre_x, centre_y, weight in field],
         })
 
     sky_files = []

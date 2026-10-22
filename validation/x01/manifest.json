@@ -1,11 +1,11 @@
 {
   "artefacts": {
-    "input_model": "a633bdf1fcdc3b0f08fc6e48647ee9528d9ba2d1de58aebb5ff00137d30168ec",
-    "truth": "26d8f1aa33a181e53b7801c42cbf325b036832d3c12d0f1d8ca95a0599553182"
+    "input_model": "1f9f4198cd61821d18f60d6ab6002b35177d95dc2d690f8aa99a55afa2a85d61",
+    "truth": "57825e37df3091589bbc28b412b69f92fa7ecb17b3177e2fa4e645b4eeffdf3e"
   },
   "case": "X01",
   "code_identity": {
-    "validation/x01/truth_x01.py": "138cba6aeb3abe3f123da07654a5c976000431f80ba38b8b21551039f397ef78"
+    "validation/x01/truth_x01.py": "f0f3f55373879e859227a684335ed80409de3ecb55a90c5104324d1f4e54c9a4"
   },
   "commands": {
     "truth": "python3 validation/x01/truth_x01.py"

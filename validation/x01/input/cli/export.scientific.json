@@ -1,0 +1,31 @@
+{
+ "command": "export",
+ "request": {
+  "projection": {
+   "target": {
+    "model": null,
+    "width": 128,
+    "height": 128
+   },
+   "quantity": "supported_flux",
+   "support_policy": "primitives",
+   "assume_uniform_uncovered": false,
+   "output_dtype": "f64",
+   "budget": {
+    "requested_functionals": [],
+    "per_leaf_absolute_area": [],
+    "area_absolute_sr": 1e-12,
+    "normalizer_min_sr": 0.0,
+    "max_work": 1000000,
+    "max_bytes": 16777216,
+    "max_depth": 32,
+    "arithmetic": {
+     "mode": "outward",
+     "initial_bits": 64,
+     "max_bits": 256,
+     "allow_target_fallback": false
+    }
+   }
+  }
+ }
+}

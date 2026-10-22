@@ -1,0 +1,72 @@
+{
+ "schema": "acsd.config/2",
+ "command": "normalize",
+ "inputs": [
+  {
+   "path": "frames/frame_00_A.fits",
+   "frame_id": "x01-00",
+   "response": "response_A.json",
+   "calibration": "calibration.json"
+  },
+  {
+   "path": "frames/frame_01_A.fits",
+   "frame_id": "x01-01",
+   "response": "response_A.json",
+   "calibration": "calibration.json"
+  },
+  {
+   "path": "frames/frame_02_A.fits",
+   "frame_id": "x01-02",
+   "response": "response_A.json",
+   "calibration": "calibration.json"
+  },
+  {
+   "path": "frames/frame_03_A.fits",
+   "frame_id": "x01-03",
+   "response": "response_A.json",
+   "calibration": "calibration.json"
+  },
+  {
+   "path": "frames/frame_04_B.fits",
+   "frame_id": "x01-04",
+   "response": "response_B.json",
+   "calibration": "calibration.json"
+  },
+  {
+   "path": "frames/frame_05_B.fits",
+   "frame_id": "x01-05",
+   "response": "response_B.json",
+   "calibration": "calibration.json"
+  },
+  {
+   "path": "frames/frame_06_B.fits",
+   "frame_id": "x01-06",
+   "response": "response_B.json",
+   "calibration": "calibration.json"
+  },
+  {
+   "path": "frames/frame_07_B.fits",
+   "frame_id": "x01-07",
+   "response": "response_B.json",
+   "calibration": "calibration.json"
+  }
+ ],
+ "catalogue": "catalogue.json",
+ "scientific": "normalize.scientific.json",
+ "output": "products",
+ "resources": {
+  "bytes": 268435456,
+  "work": 10000000,
+  "spill_bytes": 0,
+  "threads": 1,
+  "max_depth": 32,
+  "max_precision_bits": 256,
+  "scratch_directory": ".work"
+ },
+ "product_profile": "full",
+ "publication": {
+  "signal_dtype": "f64",
+  "tile_log2_width": 6,
+  "durable": false
+ }
+}

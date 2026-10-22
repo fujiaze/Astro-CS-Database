@@ -1,0 +1,22 @@
+{
+ "schema": "acsd.config/2",
+ "command": "mosaic",
+ "inputs": [
+  {
+   "path": "products",
+   "expected_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  }
+ ],
+ "scientific": "mosaic.scientific.json",
+ "output": "products/mosaic",
+ "resources": {
+  "bytes": 268435456,
+  "work": 10000000,
+  "spill_bytes": 0,
+  "threads": 1,
+  "max_depth": 32,
+  "max_precision_bits": 256,
+  "scratch_directory": ".work"
+ },
+ "product_profile": "full"
+}
