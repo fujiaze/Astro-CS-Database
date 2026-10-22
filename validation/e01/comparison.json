@@ -1,46 +1,145 @@
 {
   "case": "E01",
-  "failures": [],
-  "functionals": [
+  "failures": [
     {
-      "kind": "value",
-      "name": "pixel_0:supported_mean",
-      "reason": "the public export entry points are not available yet",
-      "status": "pending_implementation",
-      "tolerance": 1e-09,
-      "truth": -2.0,
-      "unit": "L/sr"
+      "actual": false,
+      "expected": true,
+      "functional": "closure:fits_round_trip",
+      "reason": "{\"present\": true, \"shape\": [16, 16], \"header_keys\": [\"BITPIX\", \"BUNIT\", \"CD1_1\", \"CD1_2\", \"CD2_1\", \"CD2_2\", \"CRPIX1\", \"CRPIX2\", \"CRVAL1\", \"CRVAL2\", \"CTYPE1\", \"CTYPE2\", \"CUNIT1\", \"CUNIT2\", \"NAXIS\", \"NAXIS1\", \"NAXIS2\", \"RADESYS\", \"SIMPLE\"], \"min\": -2.0, \"max\": -2.0, \"error\": \"VerifyError: \\nVerification reported errors:\\nHDU 0:\\n    Card 10:\\n        Card 'CRVAL1' is not FITS standard (invalid value",
+      "scope": "product_closure"
     },
     {
-      "kind": "value",
-      "name": "pixel_1:supported_mean",
-      "reason": "the public export entry points are not available yet",
-      "status": "pending_implementation",
-      "tolerance": 1e-09,
-      "truth": -2.0,
-      "unit": "L/sr"
-    },
-    {
-      "kind": "value",
-      "name": "pixel_2:supported_mean",
-      "reason": "the public export entry points are not available yet",
-      "status": "pending_implementation",
-      "tolerance": 1e-09,
-      "truth": 3.0,
-      "unit": "L/sr"
-    },
-    {
-      "kind": "value",
-      "name": "pixel_3:supported_mean",
-      "reason": "the public export entry points are not available yet",
-      "status": "pending_implementation",
-      "tolerance": 1e-09,
-      "truth": 0.5096270285888668,
-      "unit": "L/sr"
+      "actual": "VerifyError: \nVerification reported errors:\nHDU 0:\n    Card 10:\n        Card 'CRVAL1' is not FITS standard (invalid value string: '4.921875000000e+01').\n    Card 11:\n        Card 'CRVAL2' is not FITS standard (invalid value string: '8.989299345163e+00').\n    Card 12:\n        Card 'CRPIX1' is not FITS standard (invalid value string: '8.500000000000e+00').\n    Card 13:\n        Card 'CRPIX2' is not FITS standard (invalid value string: '8.500000000000e+00').\n    Card 14:\n        Card 'CD1_1' is not FITS standard (invalid value string: '-1.000000000000e-02').\n    Card 17:\n        Card 'CD2_2' is not FITS standard (invalid value string: '1.000000000000e-02').\nNote: astropy.io.fits uses zero-based indexing.\n",
+      "expected": "the header survives an external read and write",
+      "functional": "fits_header_round_trip",
+      "reason": "the exported FITS header is not FITS standard conforming, so the external writer refuses it",
+      "scope": "export"
     }
   ],
-  "notes": "The independent truth is complete; the observed side is pending_implementation.",
-  "status": "pending_implementation",
+  "functionals": [
+    {
+      "detail": "/workspace/Astro CS Database/validation/apps/evidence/export/products/export/manifest.json",
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "closure:manifest_present",
+      "observed": true,
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": true
+    },
+    {
+      "detail": [],
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "closure:objects_present",
+      "observed": true,
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": true
+    },
+    {
+      "detail": [],
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "closure:blocks_present",
+      "observed": true,
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": true
+    },
+    {
+      "detail": [],
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "closure:block_hashes",
+      "observed": true,
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": true
+    },
+    {
+      "detail": "sha256:2b11c3e24e15f3594a60d1b2f3a1eb0b44b7ee40e77c423b311a6de18536e906",
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "closure:root_object_declared",
+      "observed": true,
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": true
+    },
+    {
+      "detail": [],
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "closure:references_resolve",
+      "observed": true,
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": true
+    },
+    {
+      "detail": {
+        "error": "VerifyError: \nVerification reported errors:\nHDU 0:\n    Card 10:\n        Card 'CRVAL1' is not FITS standard (invalid value string: '4.921875000000e+01').\n    Card 11:\n        Card 'CRVAL2' is not FITS standard (invalid value string: '8.989299345163e+00').\n    Card 12:\n        Card 'CRPIX1' is not FITS standard (invalid value string: '8.500000000000e+00').\n    Card 13:\n        Card 'CRPIX2' is not FITS standard (invalid value string: '8.500000000000e+00').\n    Card 14:\n        Card 'CD1_1' is not FITS standard (invalid value string: '-1.000000000000e-02').\n    Card 17:\n        Card 'CD2_2' is not FITS standard (invalid value string: '1.000000000000e-02').\nNote: astropy.io.fits uses zero-based indexing.\n",
+        "header_keys": [
+          "BITPIX",
+          "BUNIT",
+          "CD1_1",
+          "CD1_2",
+          "CD2_1",
+          "CD2_2",
+          "CRPIX1",
+          "CRPIX2",
+          "CRVAL1",
+          "CRVAL2",
+          "CTYPE1",
+          "CTYPE2",
+          "CUNIT1",
+          "CUNIT2",
+          "NAXIS",
+          "NAXIS1",
+          "NAXIS2",
+          "RADESYS",
+          "SIMPLE"
+        ],
+        "max": -2.0,
+        "min": -2.0,
+        "present": true,
+        "shape": [
+          16,
+          16
+        ]
+      },
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "closure:fits_round_trip",
+      "observed": false,
+      "observed_success_count": 1,
+      "status": "fail",
+      "truth": true
+    },
+    {
+      "detail": true,
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "closure:manifest_complete",
+      "observed": true,
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": true
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "fits_header_round_trip",
+      "observed": null,
+      "observed_success_count": 1,
+      "reason": "VerifyError: \nVerification reported errors:\nHDU 0:\n    Card 10:\n        Card 'CRVAL1' is not FITS standard (invalid value string: '4.921875000000e+01').\n    Card 11:\n        Card 'CRVAL2' is not FITS standard (invalid value string: '8.989299345163e+00').\n    Card 12:\n        Card 'CRPIX1' is not FITS standard (invalid value string: '8.500000000000e+00').\n    Card 13:\n        Card 'CRPIX2' is not FITS standard (invalid value string: '8.500000000000e+00').\n    Card 14:\n        Card 'CD1_1' is not FITS standard (invalid value string: '-1.000000000000e-02').\n    Card 17:\n        Card 'CD2_2' is not FITS standard (invalid value string: '1.000000000000e-02').\nNote: astropy.io.fits uses zero-based indexing.\n",
+      "status": "fail",
+      "truth": true
+    }
+  ],
+  "notes": "E01: the independent closure checker over the published export product and the external FITS round trip",
+  "status": "fail",
   "status_vocabulary": {
     "fail": "at least one functional is outside the frozen tolerance",
     "not_applicable": "the case does not exercise the requested functional",

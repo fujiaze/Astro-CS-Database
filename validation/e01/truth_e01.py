@@ -28,6 +28,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from lib import observe  # noqa: E402
 from lib.availability import availability  # noqa: E402
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 from lib.vcommon import (  # noqa: E402
     Case,
     canonical_json,
@@ -290,15 +292,55 @@ def main() -> int:
         "request_hash": content_hash(request),
     })
 
+    # ---- the observed side: the independent product closure ---------------
+    import closure_check
+
+    product_root = (REPO_ROOT / "validation" / "apps" / "evidence" / "export" / "products"
+                    / "export")
+    rows = []
+    failures = []
+    status = "pass"
+    if not product_root.is_dir():
+        rows.append({"name": "product_present", "kind": "value",
+                     "status": "pending_implementation", "observed": None,
+                     "expected_success_count": 1, "observed_success_count": 0,
+                     "reason": "no published product is available in this checkout"})
+        status = "pending_implementation"
+    else:
+        report = closure_check.check_product(product_root)
+        (case.root / "observed" / "closure_report.json").parent.mkdir(parents=True, exist_ok=True)
+        (case.root / "observed" / "closure_report.json").write_text(
+            json.dumps(report, indent=1) + "\n", encoding="utf-8")
+        for check in report["checks"]:
+            rows.append({"name": f"closure:{check['name']}", "kind": "value",
+                         "status": "pass" if check["pass"] else "fail",
+                         "truth": True, "observed": check["pass"],
+                         "detail": check["detail"],
+                         "expected_success_count": 1, "observed_success_count": 1})
+            if not check["pass"]:
+                failures.append({"functional": f"closure:{check['name']}",
+                                 "scope": "product_closure",
+                                 "expected": True, "actual": False,
+                                 "reason": json.dumps(check["detail"])[:400]})
+                status = "fail"
+        fits_report = report.get("fits", {})
+        rows.append({"name": "fits_header_round_trip", "kind": "value",
+                     "status": "pass" if fits_report.get("header_round_trip") else "fail",
+                     "truth": True, "observed": fits_report.get("header_round_trip"),
+                     "expected_success_count": 1, "observed_success_count": 1,
+                     "reason": fits_report.get("error")})
+        if not fits_report.get("header_round_trip"):
+            failures.append({"functional": "fits_header_round_trip", "scope": "export",
+                             "expected": "the header survives an external read and write",
+                             "actual": fits_report.get("error", "the round trip failed"),
+                             "reason": "the exported FITS header is not FITS standard "
+                                       "conforming, so the external writer refuses it"})
+            status = "fail"
+
     comparison = comparison_payload(
-        case.name.upper(), "pending_implementation",
-        [{"name": f"pixel_{index}:supported_mean", "kind": "value",
-          "truth": entry["supported_mean"], "tolerance": 1e-9, "unit": "L/sr",
-          "status": "pending_implementation",
-          "reason": "the public export entry points are not available yet"}
-         for index, entry in enumerate(pixel_areas)],
-        [],
-        "The independent truth is complete; the observed side is pending_implementation.")
+        case.name.upper(), status, rows, failures,
+        "E01: the independent closure checker over the published export product and the "
+        "external FITS round trip")
 
     case.write_comparison(comparison)
     print(json.dumps({
