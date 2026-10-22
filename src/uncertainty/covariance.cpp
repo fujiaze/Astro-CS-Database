@@ -10,6 +10,16 @@
 namespace acsd::uncertainty {
 namespace {
 
+U64 element_count(const std::vector<U64>& shape) {
+  U64 total = 1;
+  for (U64 extent : shape) {
+    if (extent == 0) return 0;
+    if (total > (~0ull) / extent) return 0;
+    total *= extent;
+  }
+  return total;
+}
+
 Result<std::vector<double>> apply_linear(Context& context, Ref<LinearAction> action,
                                          const std::vector<double>& values) {
   const std::vector<U64> shape{static_cast<U64>(values.size())};
@@ -24,7 +34,9 @@ Result<std::vector<double>> apply_linear(Context& context, Ref<LinearAction> act
     return model::fail<std::vector<double>>(mapped.code, "the action cannot be applied",
                                             "uncertainty.apply", "the action cannot be applied");
   }
-  return operators::read_f64(context, val(mapped), 0, static_cast<U64>(values.size()));
+  // The action may change the dimension: read back the number of elements the
+  // action actually produced, not the length of the input vector.
+  return operators::read_f64(context, val(mapped), 0, element_count(val(mapped)->shape));
 }
 
 Result<std::vector<double>> apply_linear_transposed(Context& context, Ref<LinearAction> action,
@@ -41,7 +53,9 @@ Result<std::vector<double>> apply_linear_transposed(Context& context, Ref<Linear
     return model::fail<std::vector<double>>(mapped.code, "the action cannot be applied",
                                             "uncertainty.apply", "the action cannot be applied");
   }
-  return operators::read_f64(context, val(mapped), 0, static_cast<U64>(values.size()));
+  // The action may change the dimension: read back the number of elements the
+  // action actually produced, not the length of the input vector.
+  return operators::read_f64(context, val(mapped), 0, element_count(val(mapped)->shape));
 }
 
 }  // namespace
@@ -132,7 +146,9 @@ Result<std::vector<double>> apply_absolute_bound(Context& context, Ref<Covarianc
     return model::fail<std::vector<double>>(mapped.code, "the absolute bound cannot be applied",
                                             "covariance.absolute", "the bound cannot be computed");
   }
-  return operators::read_f64(context, val(mapped), 0, static_cast<U64>(values.size()));
+  // The action may change the dimension: read back the number of elements the
+  // action actually produced, not the length of the input vector.
+  return operators::read_f64(context, val(mapped), 0, element_count(val(mapped)->shape));
 }
 
 }  // namespace acsd::uncertainty
