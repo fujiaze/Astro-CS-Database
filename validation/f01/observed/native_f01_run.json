@@ -2,8 +2,8 @@
   "artifacts": {},
   "binary_identity": {
     "path": "/workspace/Astro CS Database/validation/build/f01_driver",
-    "sha256": "edb74929ca4dcc64057955ac4f21fd5e4833adab1e94973e36ebd67dadd6db08",
-    "size_bytes": "1618408"
+    "sha256": "611a4b35509ead1b4b5f20c67d00b5f83cfe40b62bbd1c38c6096c5aa8b1d4cd",
+    "size_bytes": "1618808"
   },
   "command": [
     "/workspace/Astro CS Database/validation/build/f01_driver",
@@ -12,23 +12,81 @@
   ],
   "exit_code": 0,
   "missing_entry_points": [],
-  "peak_rss_bytes": 124190720,
+  "peak_rss_bytes": 123953152,
   "reason": "",
   "response": {
     "driver": "f01_native",
     "frames": [
       {
         "code": "not_identifiable",
-        "reason": "the design matrix is rank deficient; the singular values are 3.464102 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000"
+        "reason": "the design matrix is rank deficient; the singular values are 1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000"
+      }
+    ],
+    "position_round_trip": [
+      {
+        "code": "ok",
+        "expected_x": 4.5,
+        "expected_y": 4.5,
+        "x": 4.499999999998726,
+        "y": 4.500000000014629
+      },
+      {
+        "code": "ok",
+        "expected_x": 10.5,
+        "expected_y": 5.5,
+        "x": 10.49999999999433,
+        "y": 5.50000000000378
+      },
+      {
+        "code": "ok",
+        "expected_x": 3.5,
+        "expected_y": 11.5,
+        "x": 3.5000000000031246,
+        "y": 11.500000000012777
+      },
+      {
+        "code": "ok",
+        "expected_x": 12.5,
+        "expected_y": 10.5,
+        "x": 12.50000000000735,
+        "y": 10.499999999994868
+      },
+      {
+        "code": "ok",
+        "expected_x": 8.5,
+        "expected_y": 2.5,
+        "x": 8.500000000002007,
+        "y": 2.4999999999740607
+      },
+      {
+        "code": "ok",
+        "expected_x": 13.5,
+        "expected_y": 3.5,
+        "x": 13.500000000011102,
+        "y": 3.5000000000244027
+      },
+      {
+        "code": "ok",
+        "expected_x": 2.5,
+        "expected_y": 8.5,
+        "x": 2.5000000000058655,
+        "y": 8.50000000001791
+      },
+      {
+        "code": "ok",
+        "expected_x": 7.5,
+        "expected_y": 12.5,
+        "x": 7.500000000015903,
+        "y": 12.500000000050129
       }
     ],
     "route": "in_memory_public_api"
   },
   "response_file": "f01/observed/native_f01.json",
-  "response_sha256": "1f3de2d804b138584efec24e28cd57118a624a41cefd97bdc5a1af4f5cdaadad",
+  "response_sha256": "61073b613387069c38b74e63df4d091aafc8db7e9cc0f3f731d8d3de5028ab61",
   "route": "native",
   "status": "ok",
   "stderr": "",
-  "stdout": "{\n \"driver\": \"f01_native\",\n \"frames\": [\n  {\n   \"code\": \"not_identifiable\",\n   \"reason\": \"the design matrix is rank deficient; the singular values are 3.464102 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000\"\n  }\n ],\n \"route\": \"in_memory_public_api\"\n}",
-  "wall_seconds": 48.96207480703015
+  "stdout": "{\n \"driver\": \"f01_native\",\n \"frames\": [\n  {\n   \"code\": \"not_identifiable\",\n   \"reason\": \"the design matrix is rank deficient; the singular values are 1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000\"\n  }\n ],\n \"position_round_trip\": [\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 4.5,\n   \"expected_y\": 4.5,\n   \"x\": 4.499999999998726,\n   \"y\": 4.500000000014629\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 10.5,\n   \"expected_y\": 5.5,\n   \"x\": 10.49999999999433,\n   \"y\": 5.50000000000378\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 3.5,\n   \"expected_y\": 11.5,\n   \"x\": 3.5000000000031246,\n   \"y\": 11.500000000012777\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 12.5,\n   \"expected_y\": 10.5,\n   \"x\": 12.50000000000735,\n   \"y\": 10.499999999994868\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 8.5,\n   \"expected_y\": 2.5,\n   \"x\": 8.500000000002007,\n   \"y\": 2.4999999999740607\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 13.5,\n   \"expected_y\": 3.5,\n   \"x\": 13.500000000011102,\n   \"y\": 3.5000000000244027\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 2.5,\n   \"expected_y\": 8.5,\n   \"x\": 2.5000000000058655,\n   \"y\": 8.50000000001791\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 7.5,\n   \"expected_y\": 12.5,\n   \"x\": 7.500000000015903,\n   \"y\": 12.500000000050129\n  }\n ],\n \"route\": \"in_memory_public_api\"\n}",
+  "wall_seconds": 27.804403840913437
 }

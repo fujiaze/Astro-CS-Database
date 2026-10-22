@@ -1,0 +1,322 @@
+{
+  "algorithm_set": [
+    {
+      "name": "acsd-contract",
+      "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+      "version": "1"
+    },
+    {
+      "name": "make_wcs",
+      "source_hash": "sha256:10574e53e1dc34ce78eda22164eab0f1d5b74b17b6f089f384d485f92d23900d",
+      "version": "1"
+    }
+  ],
+  "arithmetic": {
+    "allow_target_fallback": true,
+    "initial_bits": 64,
+    "max_bits": 256,
+    "mode": "outward"
+  },
+  "blocks": [],
+  "build": {
+    "compiler": "14.2.0",
+    "name": "acsd-contract",
+    "standard": "acsd.contract/1",
+    "version": "2.0.0"
+  },
+  "input_hashes": {},
+  "major": 1,
+  "objects": {
+    "acsd.WcsModel:2bf9a539ca71bd9c8f227d26e7adedf0dc38aee9e66885737e67c413077ed7e8": {
+      "data": {
+        "c": [
+          {
+            "f64": "61b46c3a039ded3f"
+          },
+          {
+            "f64": "3b46fac0f2e2c43f"
+          },
+          {
+            "f64": "f50b8a74a8e3d53f"
+          }
+        ],
+        "cd_rad_per_pixel": [
+          {
+            "f64": "ffa255e2ad91c1be"
+          },
+          {
+            "f64": "ffa255e2ad91b13e"
+          },
+          {
+            "f64": "d3e863dd4a7fb43e"
+          },
+          {
+            "f64": "d3e863dd4a7fc43e"
+          }
+        ],
+        "crpix_fits1": [
+          {
+            "f64": "5eba490c024b3140"
+          },
+          {
+            "f64": "e5d022dbf9ce4440"
+          }
+        ],
+        "detector_frame": "detector",
+        "domain": {
+          "lower": [
+            {
+              "f64": "0000000000000000"
+            },
+            {
+              "f64": "0000000000000000"
+            }
+          ],
+          "upper": [
+            {
+              "f64": "0000000000003040"
+            },
+            {
+              "f64": "0000000000003040"
+            }
+          ]
+        },
+        "e": [
+          {
+            "f64": "89730b7e1a3ac6bf"
+          },
+          {
+            "f64": "171c818c8b83ef3f"
+          },
+          {
+            "f64": "0000000000000000"
+          }
+        ],
+        "identity": {
+          "content_hash": "sha256:2bf9a539ca71bd9c8f227d26e7adedf0dc38aee9e66885737e67c413077ed7e8",
+          "object_id": "acsd.WcsModel:2bf9a539ca71bd9c8f227d26e7adedf0dc38aee9e66885737e67c413077ed7e8",
+          "revision": 1,
+          "run_id": "acsd",
+          "schema_id": "acsd.WcsModel",
+          "schema_major": 2,
+          "schema_minor": 0
+        },
+        "north": [
+          {
+            "f64": "e2dc829f868ed5bf"
+          },
+          {
+            "f64": "667b46218568aebf"
+          },
+          {
+            "f64": "1c2d5242f611ee3f"
+          }
+        ],
+        "original_header": [
+          {
+            "key": "CTYPE1",
+            "value": "RA---TAN-SIP"
+          },
+          {
+            "key": "CTYPE2",
+            "value": "DEC--TAN-SIP"
+          },
+          {
+            "key": "CRPIX1",
+            "value": {
+              "f64": "5eba490c024b3140"
+            }
+          },
+          {
+            "key": "CRPIX2",
+            "value": {
+              "f64": "e5d022dbf9ce4440"
+            }
+          },
+          {
+            "key": "CRVAL1",
+            "value": {
+              "f64": "0000000000002440"
+            }
+          },
+          {
+            "key": "CRVAL2",
+            "value": {
+              "f64": "0000000000003440"
+            }
+          },
+          {
+            "key": "CD1_1",
+            "value": {
+              "f64": "691d554d10751fbf"
+            }
+          },
+          {
+            "key": "CD1_2",
+            "value": {
+              "f64": "691d554d10750f3f"
+            }
+          },
+          {
+            "key": "CD2_1",
+            "value": {
+              "f64": "d2fbc6d79e59123f"
+            }
+          },
+          {
+            "key": "CD2_2",
+            "value": {
+              "f64": "d2fbc6d79e59223f"
+            }
+          },
+          {
+            "key": "RADESYS",
+            "value": "ICRS"
+          },
+          {
+            "key": "A_ORDER",
+            "value": {
+              "f64": "0000000000000840"
+            }
+          },
+          {
+            "key": "B_ORDER",
+            "value": {
+              "f64": "0000000000000840"
+            }
+          },
+          {
+            "key": "A_0_2",
+            "value": {
+              "f64": "613255302aa933bf"
+            }
+          },
+          {
+            "key": "A_1_1",
+            "value": {
+              "f64": "f168e388b5f8243f"
+            }
+          },
+          {
+            "key": "A_1_2",
+            "value": {
+              "f64": "f168e388b5f814bf"
+            }
+          },
+          {
+            "key": "A_2_0",
+            "value": {
+              "f64": "2d431cebe2363a3f"
+            }
+          },
+          {
+            "key": "A_2_1",
+            "value": {
+              "f64": "691d554d10751f3f"
+            }
+          },
+          {
+            "key": "A_3_0",
+            "value": {
+              "f64": "76830df4f521d43e"
+            }
+          },
+          {
+            "key": "B_0_2",
+            "value": {
+              "f64": "691d554d10752f3f"
+            }
+          },
+          {
+            "key": "B_1_1",
+            "value": {
+              "f64": "2d431cebe2362a3f"
+            }
+          },
+          {
+            "key": "B_1_2",
+            "value": {
+              "f64": "2d431cebe2361a3f"
+            }
+          },
+          {
+            "key": "B_2_0",
+            "value": {
+              "f64": "0fd6ff39cc9737bf"
+            }
+          },
+          {
+            "key": "B_2_1",
+            "value": {
+              "f64": "691d554d10750fbf"
+            }
+          },
+          {
+            "key": "B_3_0",
+            "value": {
+              "f64": "314514eef032cebe"
+            }
+          }
+        ]
+      },
+      "type": "WcsModel"
+    }
+  },
+  "operation": "make_wcs",
+  "output_root": "/workspace/Astro CS Database/validation/c01/.work/c01",
+  "protocol": "acsd.contract.response",
+  "request_id": "val-c01-make-wcs",
+  "resolved_request_hash": "sha256:d029cb16cb6330e4f4de40b2362d1f53f09d80d0895f02b71ab8f289cf7cba66",
+  "resources": {
+    "byte_budget": 8388608,
+    "bytes": 8388608,
+    "elapsed_seconds": 0.00085826,
+    "peak_payload_bytes": 0,
+    "read_bytes": 0,
+    "spill_bytes": 0,
+    "threads": 1,
+    "work": 512,
+    "work_budget": 100000,
+    "written_bytes": 0
+  },
+  "result": {
+    "assessment": {
+      "capability": "supported",
+      "complete": true,
+      "condition": {
+        "assumptions": [],
+        "estimator": "wcs_tan_sip",
+        "fixed_objects": [],
+        "kind": "fixed_numeric_model"
+      },
+      "execution": "complete",
+      "included": [
+        "tan_sip_forward_inverse",
+        "global_injectivity_certificate",
+        "tangent_domain_60_degrees",
+        "lonpole_default_phi_p_rule"
+      ],
+      "issues": [],
+      "noise": "unknown",
+      "omitted": [
+        "astrometric_parameter_error",
+        "distortion_outside_sip"
+      ],
+      "science": "bounded",
+      "validity": "approximate"
+    },
+    "code": "ok",
+    "dependencies": [],
+    "usage": {
+      "elapsed_seconds": 6.53e-07,
+      "peak_payload_bytes": 0,
+      "read_bytes": 0,
+      "spill_bytes": 0,
+      "work": 512,
+      "written_bytes": 0
+    },
+    "value": {
+      "$ref": "acsd.WcsModel:2bf9a539ca71bd9c8f227d26e7adedf0dc38aee9e66885737e67c413077ed7e8"
+    }
+  }
+}
