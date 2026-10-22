@@ -1,0 +1,296 @@
+{
+ "case": "apps-x01",
+ "command": "acsd normalize --json config.json",
+ "exit_code": 3,
+ "exit_code_reason": "the observation module does not provide the binding of the world coordinate solution and of the observation model (bind_wcs, bind_observation_model); the workflow answers the declared code unsupported instead of failing the link",
+ "inputs": 8,
+ "frames": "validation/x01/input/frames/frame_0{0..3}_A.fits (with a WCS) and frame_0{4..7}_B.fits (blind solve)",
+ "sky_frames": "validation/x01/input/frames/sky_0{0..2}.fits (the mosaic input, not used by normalize)",
+ "configuration": "config.json (the frames, the catalogue, the response and the scientific request)",
+ "events": [
+  {
+   "assessment": null,
+   "block": null,
+   "code": "ok",
+   "completed": 0,
+   "event": "run_started",
+   "frame_id": null,
+   "message": "the normalize command started",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 0,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "ok",
+   "completed": 0,
+   "event": "frame_started",
+   "frame_id": "frame-00",
+   "message": "the frame frame-00 started",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 1,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "ok",
+   "completed": 0,
+   "event": "frame_started",
+   "frame_id": "frame-01",
+   "message": "the frame frame-01 started",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 2,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "ok",
+   "completed": 0,
+   "event": "frame_started",
+   "frame_id": "frame-02",
+   "message": "the frame frame-02 started",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 3,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "ok",
+   "completed": 0,
+   "event": "frame_started",
+   "frame_id": "frame-03",
+   "message": "the frame frame-03 started",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 4,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "ok",
+   "completed": 0,
+   "event": "frame_started",
+   "frame_id": "frame-04",
+   "message": "the frame frame-04 started",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 5,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "ok",
+   "completed": 0,
+   "event": "frame_started",
+   "frame_id": "frame-05",
+   "message": "the frame frame-05 started",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 6,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "ok",
+   "completed": 0,
+   "event": "frame_started",
+   "frame_id": "frame-06",
+   "message": "the frame frame-06 started",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 7,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "ok",
+   "completed": 0,
+   "event": "frame_started",
+   "frame_id": "frame-07",
+   "message": "the frame frame-07 started",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 8,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "failed",
+   "completed": 0,
+   "event": "frame_finished",
+   "frame_id": "frame-00",
+   "message": "no catalogue star supplied",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 9,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "failed",
+   "completed": 0,
+   "event": "frame_finished",
+   "frame_id": "frame-01",
+   "message": "no catalogue star supplied",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 10,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "failed",
+   "completed": 0,
+   "event": "frame_finished",
+   "frame_id": "frame-02",
+   "message": "no catalogue star supplied",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 11,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "failed",
+   "completed": 0,
+   "event": "frame_finished",
+   "frame_id": "frame-03",
+   "message": "no catalogue star supplied",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 12,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "failed",
+   "completed": 0,
+   "event": "frame_finished",
+   "frame_id": "frame-04",
+   "message": "the detection produced fewer sources than the required minimum",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 13,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "failed",
+   "completed": 0,
+   "event": "frame_finished",
+   "frame_id": "frame-05",
+   "message": "the detection produced fewer sources than the required minimum",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 14,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "failed",
+   "completed": 0,
+   "event": "frame_finished",
+   "frame_id": "frame-06",
+   "message": "the detection produced fewer sources than the required minimum",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 15,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "failed",
+   "completed": 0,
+   "event": "frame_finished",
+   "frame_id": "frame-07",
+   "message": "the detection produced fewer sources than the required minimum",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 16,
+   "total": 8
+  },
+  {
+   "assessment": null,
+   "block": null,
+   "code": "failed",
+   "completed": 0,
+   "event": "run_finished",
+   "exit_code": 4,
+   "frame_id": null,
+   "message": "the run finished",
+   "protocol": "acsd.events/2",
+   "run_id": "run-b118ccf5d43e1be3",
+   "seq": 17,
+   "summary": {
+    "cancelled": 0,
+    "failed": 0,
+    "frames": [
+     {
+      "code": "failed",
+      "frame": "frame-00",
+      "status": "failed"
+     },
+     {
+      "code": "failed",
+      "frame": "frame-01",
+      "status": "failed"
+     },
+     {
+      "code": "failed",
+      "frame": "frame-02",
+      "status": "failed"
+     },
+     {
+      "code": "failed",
+      "frame": "frame-03",
+      "status": "failed"
+     },
+     {
+      "code": "unsolved",
+      "frame": "frame-04",
+      "status": "unsolved"
+     },
+     {
+      "code": "unsolved",
+      "frame": "frame-05",
+      "status": "unsolved"
+     },
+     {
+      "code": "unsolved",
+      "frame": "frame-06",
+      "status": "unsolved"
+     },
+     {
+      "code": "unsolved",
+      "frame": "frame-07",
+      "status": "unsolved"
+     }
+    ],
+    "inputs_total": 8,
+    "published": 0,
+    "unsolved": 8
+   },
+   "total": 0
+  }
+ ]
+}

@@ -72,6 +72,10 @@ json encode_code(Code code);
 Code decode_code(const json& node);
 json encode_identity(const Identity& identity);
 json encode_assessment(const Assessment& assessment);
+// The typed payload of a world coordinate model.  The object table of the
+// response carries it, so that the result of make_wcs can be used as the
+// input of the next request.
+json encode_wcs_model(const WcsModel& wcs);
 json encode_usage(const Usage& usage);
 json encode_condition(const Condition& condition);
 json encode_index(const Index& index);

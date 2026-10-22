@@ -270,6 +270,19 @@ int exit_code_of(Code code) {
 }
 
 // The run summary of one command.
+
+// The per frame status of the summary.  The element fields are fixed by the
+// protocol: the frame identifier, the status and the reason.
+json frame_status(const std::string& frame, const std::string& status,
+                  const std::string& reason) {
+  json entry;
+  entry["frame"] = frame;
+  entry["status"] = status;
+  entry["code"] = status == "published" ? "ok" : status;
+  entry["reason"] = reason;
+  return entry;
+}
+
 json make_summary(U64 total, U64 published, U64 unsolved, U64 failed, U64 cancelled,
                   const json& frames) {
   json summary;
@@ -895,12 +908,16 @@ int run_export(Config& config, EventWriter& events) {
                                    ? "the export failed"
                                    : location.assessment.issues.front().reason;
     events.frame_finished("export", "failed", 0, 1, reason);
-    events.run_finished(exit_code_of(location.code), make_summary(1, 0, 0, 1, 0, json::array()));
+    json frames = json::array();
+    frames.push_back(frame_status("export", "failed", reason));
+    events.run_finished(exit_code_of(location.code), make_summary(1, 0, 0, 1, 0, frames));
     return exit_code_of(location.code);
   }
   events.product_published("export", val(location).directory);
   events.frame_finished("export", "ok", 1, 1, "the export was published");
-  events.run_finished(kSuccess, make_summary(1, 1, 0, 0, 0, json::array()));
+  json frames = json::array();
+  frames.push_back(frame_status("export", "published", "the export was published"));
+  events.run_finished(kSuccess, make_summary(1, 1, 0, 0, 0, frames));
   return kSuccess;
 }
 
@@ -1151,14 +1168,18 @@ int run_mosaic(Config& config, EventWriter& events) {
                                    ? "the mosaic failed"
                                    : location.assessment.issues.front().reason;
     events.frame_finished("mosaic", "failed", 0, config.inputs.size(), reason);
+    json frames = json::array();
+    frames.push_back(frame_status("mosaic", "failed", reason));
     events.run_finished(exit_code_of(location.code),
-                        make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0, json::array()));
+                        make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0, frames));
     return exit_code_of(location.code);
   }
   events.product_published("mosaic", val(location).directory);
   events.frame_finished("mosaic", "ok", config.inputs.size(), config.inputs.size(),
                         "the mosaic was published");
-  events.run_finished(kSuccess, make_summary(config.inputs.size(), 1, 0, 0, 0, json::array()));
+  json frames = json::array();
+  frames.push_back(frame_status("mosaic", "published", "the mosaic was published"));
+  events.run_finished(kSuccess, make_summary(config.inputs.size(), 1, 0, 0, 0, frames));
   return kSuccess;
 }
 

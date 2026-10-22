@@ -22,7 +22,7 @@
       "expected_value": 4.328125,
       "pass": true,
       "request_sha256": "sha256:526223e3619e828967686ed56191220a8b09813c8dd37eeae2403a3aaa18e79e",
-      "response_sha256": "sha256:948a76b30e51afc9e07094697d67f89ce97122b6307806e4af50f4e3237432c8",
+      "response_sha256": "sha256:6b8622061738c9f8244f02140e406816432931c419d9302e58873420e845f46d",
       "unit": {
         "linear_power": 2,
         "multiplier": 1.0,
@@ -50,7 +50,7 @@
       ],
       "pass": true,
       "request_sha256": "sha256:abe408b5625ec7bf63382da19a8b72492075688a59f1a205fab44ece14a8cbf6",
-      "response_sha256": "sha256:9a58cf77c170f1e38c28c4a588a17c3622432446b85cfb99296412aad616524e"
+      "response_sha256": "sha256:598d58259bdedb25355e85a71b937f6f16757d1a54241de3ba8f3ae2c9e2c6c0"
     },
     {
       "actual": {
@@ -70,7 +70,7 @@
       "expected_model_sha256": "sha256:39d8a36f8b601ca9e7f46942da14cb840130fbcb66c63ba42ac148bffa33253d",
       "pass": true,
       "request_sha256": "sha256:d1993cc3745df32953264e787e97b0643320e487b46a471df4998d5c5ae9a6c1",
-      "response_sha256": "sha256:207cd1ba46a61d6159c85d24f60a0703d1aa351cccb5071e2a05d9ad7ee1b532"
+      "response_sha256": "sha256:b68f98bdfc1143884aead8908acfeb4d9e990790a0128f00de384854945f494a"
     }
   ]
 }

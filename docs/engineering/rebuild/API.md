@@ -112,6 +112,8 @@ Normalize每项input含frame_id、FITS path、可选calibration与response对象
 
 退出码：0所有必需目标达标并发布；2配置/输入无效；3能力不支持/必需模型 unavailable；4计算/I/O/完整性失败；5取消；6部分帧失败或数值未达标。优先级取消>完整性/I/O>输入>能力>partial>成功。无论退出码，run_summary列全部输入数量、已发布/unsolved/failed/cancelled数量与逐帧状态，不把仅完成部分当exit0。
 
+run_summary 的逐帧数组元素形状固定为四个字段：`frame`（帧标识；normalize 用输入的frame_id，mosaic/export 用命令名）、`status`（`published`/`failed`/`unsolved`/`cancelled`）、`code`（稳定小写错误码，成功为`ok`）与`reason`（人读原因，一句话）。元素顺序与输入顺序一致；失败的帧也必须出现，分母是全部输入数。
+
 JSONL每行UTF8单对象：protocol=acsd.events/2，run_id，seq（从0严格递增），event（run_started/frame_started/block_progress/frame_finished/product_published/issue/run_finished），frame_id/block可null，code，assessment可null，completed,total（同kind单位），message。单写者归并事件序列，stderr仅常规人类日志，输出背压队列有限、合并进度事件但不能丢issue/terminal。每run恰一个run_finished，含exit_code及summary；意外崩溃可能缺terminal，GUI必须标失败，不能推断成功。取消：GUI向stdin写 {"protocol":"acsd.control/2","command":"cancel","run_id":...} 换行，CLI控制线程发token；Ctrl-C/SIGTERM同效果。取消先等安全边界清理，无自动kill超时后冒称完整结束。GUI必要时用户主动终止标aborted。
 
 GUI管理配置、输入分组、运行/取消、事件显示与产品浏览；不解析内部C++对象、不做science运算、不依赖旧ABI。Qt6独立进程启动可与Windows UCRT科学CLI组合；GUI版本探测config/event major，不兼容拒绝启动并给原因。

@@ -509,6 +509,38 @@ json encode_assessment(const Assessment& assessment) {
   return node;
 }
 
+json encode_wcs_model(const WcsModel& wcs) {
+  json node;
+  node["crpix_fits1"] = json::array({encode_f64(wcs.crpix_fits1[0]), encode_f64(wcs.crpix_fits1[1])});
+  node["cd_rad_per_pixel"] =
+      json::array({encode_f64(wcs.cd_rad_per_pixel[0]), encode_f64(wcs.cd_rad_per_pixel[1]),
+                   encode_f64(wcs.cd_rad_per_pixel[2]), encode_f64(wcs.cd_rad_per_pixel[3])});
+  node["c"] = json::array({encode_f64(wcs.c[0]), encode_f64(wcs.c[1]), encode_f64(wcs.c[2])});
+  node["e"] = json::array({encode_f64(wcs.e[0]), encode_f64(wcs.e[1]), encode_f64(wcs.e[2])});
+  node["north"] =
+      json::array({encode_f64(wcs.north[0]), encode_f64(wcs.north[1]), encode_f64(wcs.north[2])});
+  node["domain"] = json{{"lower", json::array({encode_f64(wcs.domain.lower[0]),
+                                               encode_f64(wcs.domain.lower[1])})},
+                        {"upper", json::array({encode_f64(wcs.domain.upper[0]),
+                                               encode_f64(wcs.domain.upper[1])})}};
+  node["detector_frame"] = wcs.detector_frame;
+  json header = json::array();
+  for (const HeaderField& field : wcs.original_header) {
+    json entry;
+    entry["key"] = field.key;
+    if (std::holds_alternative<double>(field.value)) {
+      entry["value"] = encode_f64(std::get<double>(field.value));
+    } else if (std::holds_alternative<std::string>(field.value)) {
+      entry["value"] = std::get<std::string>(field.value);
+    } else {
+      entry["value"] = nullptr;
+    }
+    header.push_back(entry);
+  }
+  node["original_header"] = header;
+  return node;
+}
+
 json encode_usage(const Usage& usage) {
   json node;
   node["work"] = usage.work;

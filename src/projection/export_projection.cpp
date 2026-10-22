@@ -342,10 +342,19 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
   recipe.spaces.input = model::unit_dimensionless();
   recipe.spaces.output = model::unit_dimensionless();
   const std::vector<ArrayRef> arrays{val(offsets_block), val(indices_block), val(values_block)};
+  // The recipe names the arrays of the action: the closure of the row is
+  // the offsets, the indices and the values.
+  recipe.arrays = {val(offsets_block)->identity.object_id, val(indices_block)->identity.object_id,
+                   val(values_block)->identity.object_id};
   Result<Ref<LinearAction>> row_action =
       make_action(context, recipe, std::span<const Ref<LinearAction>>{}, arrays);
   if (!ok(row_action)) {
-    return fail<ExportResult>(row_action.code, "the export row cannot be built", "build_export",
+    return fail<ExportResult>(row_action.code,
+                              std::string("the export row cannot be built: ") +
+                                  (row_action.assessment.issues.empty()
+                                       ? std::string("no reason")
+                                       : row_action.assessment.issues.front().reason),
+                              "build_export",
                               "the export cannot be built");
   }
 

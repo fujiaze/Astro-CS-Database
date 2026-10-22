@@ -447,6 +447,9 @@ json Driver::run_make_wcs() {
   result["assessment"] = encode_assessment(val(wcs)->assessment);
   result["usage"] = encode_usage(resources_->usage());
   result["dependencies"] = json::array();
+  // The model is published in the object table of the response: the next
+  // request takes it as the input object.
+  decoder_->publish("WcsModel", val(wcs)->identity.object_id, encode_wcs_model(*val(wcs)));
   body["result"] = result;
   return body;
 }

@@ -74,9 +74,21 @@ def main() -> int:
                             math.radians(cd21),
                             math.radians(cd22),
                         ],
-                        "c": [1.0, 0.0, 0.0],
-                        "e": [0.0, 1.0, 0.0],
-                        "north": [0.0, 0.0, 1.0],
+                        "c": [
+                            math.cos(math.radians(crval2)) * math.cos(math.radians(crval1)),
+                            math.cos(math.radians(crval2)) * math.sin(math.radians(crval1)),
+                            math.sin(math.radians(crval2)),
+                        ],
+                        "e": [
+                            -math.sin(math.radians(crval1)),
+                            math.cos(math.radians(crval1)),
+                            0.0,
+                        ],
+                        "north": [
+                            -math.sin(math.radians(crval2)) * math.cos(math.radians(crval1)),
+                            -math.sin(math.radians(crval2)) * math.sin(math.radians(crval1)),
+                            math.cos(math.radians(crval2)),
+                        ],
                         "domain": {"lower": [-0.5, -0.5], "upper": [127.5, 127.5]},
                         "detector_frame": frame_id,
                     },
@@ -105,7 +117,7 @@ def main() -> int:
     dec_deg = float(header.get("CRVAL2", 0.0))
     catalogue = {
         "source_ids": [1],
-        "astrometry": [[math.radians(ra_deg), math.radians(dec_deg), 2016.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
+        "astrometry": [[math.radians(ra_deg), math.radians(dec_deg), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
         "brightness_mag": [6.0],
         "xp_coefficients": [[1.0, 0.0, 0.0, 0.0]],
         "xp_basis": {
@@ -140,7 +152,7 @@ def main() -> int:
                         "center": {
                             "nx": math.cos(math.radians(dec_deg)) * math.cos(math.radians(ra_deg)),
                             "ny": math.cos(math.radians(dec_deg)) * math.sin(math.radians(ra_deg)),
-                            "nz": math.sin(math.radians(dec_deg)),
+                            "nz": math.sin(math.radians(crval2)),
                         },
                         "radius_rad": 0.05,
                     }
