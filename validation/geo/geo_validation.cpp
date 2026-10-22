@@ -435,6 +435,75 @@ HealpixLeaf oracle_leaf(U32 order, const SkyICRS& direction) {
 // ---------------------------------------------------------------------------
 // JSON helpers
 // ---------------------------------------------------------------------------
+std::string code_name(Code code);
+
+// Escapes a string for a JSON document.
+std::string json_escape(const std::string& text) {
+  std::string out;
+  for (const char character : text) {
+    if (character == '"' || character == '\\') {
+      out += '\\';
+      out += character;
+    } else if (character == '\n') {
+      out += " ";
+    } else {
+      out += character;
+    }
+  }
+  return out;
+}
+
+// Named checks with their reasons.  A measurement without a sample is a
+// failure, never a pass: the empty set must never be reported as a zero
+// residual.
+class Checks {
+ public:
+  void add(const std::string& name, bool pass, const std::string& detail) {
+    items_.push_back("{\"name\": \"" + json_escape(name) + "\", \"pass\": " +
+                     (pass ? "true" : "false") + ", \"detail\": \"" + json_escape(detail) + "\"}");
+    if (!pass) ++failures_;
+  }
+  bool all_passed() const { return failures_ == 0; }
+  int failures() const { return failures_; }
+  std::string str() const {
+    std::string out = "[";
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+      if (i != 0) out += ", ";
+      out += items_[i];
+    }
+    out += "]";
+    return out;
+  }
+
+ private:
+  std::vector<std::string> items_;
+  int failures_ = 0;
+};
+
+// The histogram of the named failures of one measurement family.
+class FailureTally {
+ public:
+  void record(const acsd::Code code, const std::string& reason) {
+    const std::string key = std::string(code_name(code)) + "/" + reason;
+    counts_[key] += 1;
+  }
+  std::string str() const {
+    std::string out = "{";
+    bool first = true;
+    for (const auto& entry : counts_) {
+      if (!first) out += ", ";
+      first = false;
+      out += "\"" + entry.first + "\": " + std::to_string(entry.second);
+    }
+    out += "}";
+    return out;
+  }
+  bool empty() const { return counts_.empty(); }
+
+ private:
+  std::map<std::string, int> counts_;
+};
+
 class Json {
  public:
   void number(const std::string& key, double value) {
@@ -642,6 +711,7 @@ int main(int argc, char** argv) {
   // 1. The coordinates
   // =====================================================================
   Json coordinates;
+  Checks checks;
   coordinates.text("case", "C01-like tangent plane and SIP validation");
   coordinates.text("truth_type", "analytic_exact");
 
@@ -672,32 +742,65 @@ int main(int argc, char** argv) {
       double max_polynomial_residual = 0.0;
       double max_sky_residual = 0.0;
       std::uint64_t samples = 0;
+      std::uint64_t forward_failures = 0;
+      std::uint64_t inverse_attempts = 0;
+      std::uint64_t inverse_successes = 0;
+      FailureTally forward_tally;
+      FailureTally inverse_tally;
       for (int i = 0; i < 40; ++i) {
         for (int j = 0; j < 40; ++j) {
           const double x = -0.25 + 0.125 * i + 0.01 * j;
           const double y = -0.25 + 0.125 * j;
           Result<SkyICRS> forward_result = acsd::forward(context, wcs, PixelCenter0{x, y}, budget);
-          if (!good(forward_result)) continue;
+          if (!good(forward_result)) {
+            ++forward_failures;
+            for (const acsd::Issue& issue : forward_result.assessment.issues) {
+              forward_tally.record(forward_result.code, issue.reason);
+            }
+            continue;
+          }
           const SkyICRS produced = value_of(forward_result);
           const SkyICRS expected = oracle.forward(x, y);
           max_angle = std::max(max_angle, angle_between(produced, expected));
+          ++inverse_attempts;
           Result<acsd::InverseResult> inverse_result = acsd::inverse(context, wcs, expected, budget);
           if (good(inverse_result)) {
+            ++inverse_successes;
             const acsd::InverseResult& inverse_value = value_of(inverse_result);
             max_roundtrip = std::max(max_roundtrip, std::max(std::fabs(inverse_value.point.x - x),
                                                              std::fabs(inverse_value.point.y - y)));
             max_polynomial_residual =
                 std::max(max_polynomial_residual, inverse_value.polynomial_residual_pixel.upper);
             max_sky_residual = std::max(max_sky_residual, inverse_value.sky_residual_rad.upper);
+          } else {
+            for (const acsd::Issue& issue : inverse_result.assessment.issues) {
+              inverse_tally.record(inverse_result.code, issue.reason);
+            }
           }
           ++samples;
         }
       }
       coordinates.integer("forward_samples", static_cast<long long>(samples));
+      coordinates.integer("forward_failures", static_cast<long long>(forward_failures));
+      coordinates.integer("inverse_attempts", static_cast<long long>(inverse_attempts));
+      coordinates.integer("inverse_successes", static_cast<long long>(inverse_successes));
+      coordinates.raw("inverse_failure_codes", inverse_tally.str());
+      coordinates.raw("forward_failure_codes", forward_tally.str());
       coordinates.number("max_forward_angle_vs_oracle_rad", max_angle);
       coordinates.number("max_inverse_roundtrip_pixel", max_roundtrip);
       coordinates.number("max_polynomial_residual_pixel", max_polynomial_residual);
       coordinates.number("max_forward_sky_residual_rad", max_sky_residual);
+      // The checks never accept an empty sample set as a pass.
+      checks.add("tan_forward_matches_independent_oracle",
+                 samples > 0 && forward_failures == 0 && max_angle <= 1.0e-10,
+                 "samples=" + std::to_string(samples) + " failures=" +
+                     std::to_string(forward_failures) + " max_angle_rad=" + std::to_string(max_angle));
+      checks.add("tan_inverse_roundtrip",
+                 inverse_attempts > 0 && inverse_successes == inverse_attempts &&
+                     max_roundtrip <= 1.0e-7,
+                 "attempts=" + std::to_string(inverse_attempts) + " successes=" +
+                     std::to_string(inverse_successes) + " max_roundtrip_pixel=" +
+                     std::to_string(max_roundtrip) + " failures=" + inverse_tally.str());
       coordinates.number("certificate_eta_upper", wcs->injectivity.eta.upper);
       coordinates.number("certificate_eta_lower", wcs->injectivity.eta.lower);
       coordinates.boolean("certificate_below_one", wcs->injectivity.eta.upper < 1.0);
@@ -706,13 +809,23 @@ int main(int argc, char** argv) {
 
       // The derivative against a central difference (an external diagnostic).
       double max_relative = 0.0;
+      std::uint64_t derivative_attempts = 0;
+      std::uint64_t derivative_successes = 0;
+      FailureTally derivative_tally;
       for (int i = 0; i < 12; ++i) {
         for (int j = 0; j < 12; ++j) {
           const double x = 1.0 + 0.5 * i;
           const double y = 2.0 + 0.5 * j;
+          ++derivative_attempts;
           Result<acsd::DerivativeResult> derivative_result =
               acsd::derivative(context, wcs, PixelCenter0{x, y}, budget);
-          if (!good(derivative_result)) continue;
+          if (!good(derivative_result)) {
+            for (const acsd::Issue& issue : derivative_result.assessment.issues) {
+              derivative_tally.record(derivative_result.code, issue.reason);
+            }
+            continue;
+          }
+          ++derivative_successes;
           const acsd::DerivativeResult& derivative_value = value_of(derivative_result);
           const double step = 1e-4;
           Result<SkyICRS> px = acsd::forward(context, wcs, PixelCenter0{x + step, y}, budget);
@@ -737,7 +850,16 @@ int main(int argc, char** argv) {
           }
         }
       }
+      coordinates.integer("derivative_attempts", static_cast<long long>(derivative_attempts));
+      coordinates.integer("derivative_successes", static_cast<long long>(derivative_successes));
+      coordinates.raw("derivative_failure_codes", derivative_tally.str());
       coordinates.number("max_derivative_relative_difference_vs_central_difference", max_relative);
+      checks.add("tan_derivative_matches_central_difference",
+                 derivative_attempts > 0 && derivative_successes == derivative_attempts &&
+                     max_relative <= 1.0e-5,
+                 "attempts=" + std::to_string(derivative_attempts) + " successes=" +
+                     std::to_string(derivative_successes) + " max_relative=" +
+                     std::to_string(max_relative) + " failures=" + derivative_tally.str());
     }
   }
 
@@ -793,6 +915,13 @@ int main(int argc, char** argv) {
           coordinates.boolean("analytic_area_inside_interval",
                               value.lower_sr <= expected && expected <= value.upper_sr);
           coordinates.number("area_relative_width", (value.upper_sr - value.lower_sr) / expected);
+          checks.add("area_encloses_analytic_tangent_rectangle",
+                     value.lower_sr <= expected && expected <= value.upper_sr && expected > 0.0,
+                     "measured=[" + std::to_string(value.lower_sr) + "," +
+                         std::to_string(value.upper_sr) + "] analytic=" + std::to_string(expected));
+        } else {
+          checks.add("area_encloses_analytic_tangent_rectangle", false,
+                     "measure failed with code " + code_name(area.code));
         }
       }
     }
@@ -831,24 +960,58 @@ int main(int argc, char** argv) {
       oracle.sip_b[std::make_pair(1, 1)] = 1.0e-5;
       double max_angle = 0.0;
       double max_roundtrip = 0.0;
+      std::uint64_t forward_attempts = 0;
+      std::uint64_t forward_failures = 0;
+      std::uint64_t inverse_attempts = 0;
+      std::uint64_t inverse_successes = 0;
+      FailureTally forward_tally;
+      FailureTally inverse_tally;
       for (int i = 0; i < 25; ++i) {
         for (int j = 0; j < 25; ++j) {
           const double x = 0.5 * i;
           const double y = 0.5 * j;
+          ++forward_attempts;
           Result<SkyICRS> forward_result = acsd::forward(context, wcs, PixelCenter0{x, y}, budget);
-          if (!good(forward_result)) continue;
+          if (!good(forward_result)) {
+            ++forward_failures;
+            for (const acsd::Issue& issue : forward_result.assessment.issues) {
+              forward_tally.record(forward_result.code, issue.reason);
+            }
+            continue;
+          }
           const SkyICRS expected = oracle.forward(x, y);
           max_angle = std::max(max_angle, angle_between(value_of(forward_result), expected));
+          ++inverse_attempts;
           Result<acsd::InverseResult> inverse_result = acsd::inverse(context, wcs, expected, budget);
           if (good(inverse_result)) {
+            ++inverse_successes;
             const acsd::InverseResult& inverse_value = value_of(inverse_result);
             max_roundtrip = std::max(max_roundtrip, std::max(std::fabs(inverse_value.point.x - x),
                                                              std::fabs(inverse_value.point.y - y)));
+          } else {
+            for (const acsd::Issue& issue : inverse_result.assessment.issues) {
+              inverse_tally.record(inverse_result.code, issue.reason);
+            }
           }
         }
       }
+      coordinates.integer("sip_forward_attempts", static_cast<long long>(forward_attempts));
+      coordinates.integer("sip_forward_failures", static_cast<long long>(forward_failures));
+      coordinates.integer("sip_inverse_attempts", static_cast<long long>(inverse_attempts));
+      coordinates.integer("sip_inverse_successes", static_cast<long long>(inverse_successes));
+      coordinates.raw("sip_inverse_failure_codes", inverse_tally.str());
       coordinates.number("sip_max_forward_angle_vs_oracle_rad", max_angle);
       coordinates.number("sip_max_inverse_roundtrip_pixel", max_roundtrip);
+      checks.add("sip_forward_matches_independent_oracle",
+                 forward_attempts > 0 && forward_failures == 0 && max_angle <= 1.0e-10,
+                 "attempts=" + std::to_string(forward_attempts) + " failures=" +
+                     std::to_string(forward_failures) + " max_angle_rad=" + std::to_string(max_angle));
+      checks.add("sip_inverse_roundtrip",
+                 inverse_attempts > 0 && inverse_successes == inverse_attempts &&
+                     max_roundtrip <= 1.0e-7,
+                 "attempts=" + std::to_string(inverse_attempts) + " successes=" +
+                     std::to_string(inverse_successes) + " max_roundtrip_pixel=" +
+                     std::to_string(max_roundtrip) + " failures=" + inverse_tally.str());
       coordinates.number("sip_certificate_eta_upper", wcs->injectivity.eta.upper);
       coordinates.boolean("sip_certificate_below_one", wcs->injectivity.eta.upper < 1.0);
     }
@@ -867,6 +1030,11 @@ int main(int argc, char** argv) {
     coordinates.number("from_fits_edge_y", edge.y);
     coordinates.boolean("origin_roundtrip_exact",
                         back.x == 3.25 && back.y == -7.5 && edge.x == -0.5 && edge.y == 1.0);
+    checks.add("fits_pixel_conversions_roundtrip",
+               back.x == 3.25 && back.y == -7.5 && edge.x == -0.5 && edge.y == 1.0,
+               "from_fits_center=(" + std::to_string(back.x) + "," + std::to_string(back.y) +
+                   ") from_fits_edge=(" + std::to_string(edge.x) + "," + std::to_string(edge.y) +
+                   ")");
   }
 
   // 1e. The negative cases.
@@ -922,18 +1090,30 @@ int main(int argc, char** argv) {
       cases.push_back({"folded_sip_rejected", header, Box{{-5.0, -5.0}, {5.0, 5.0}}});
     }
     std::string negative;
+    std::uint64_t negative_failed_as_expected = 0;
     for (std::size_t index = 0; index < cases.size(); ++index) {
       const Case& entry = cases[index];
       Result<Ref<acsd::WcsModel>> model =
           acsd::make_wcs(context, entry.header, entry.domain, astrometric, "detector-N", budget);
+      const bool failed = model.code != acsd::Code::ok;
+      if (failed) ++negative_failed_as_expected;
       if (index > 0) negative += ", ";
       negative += std::string("{\"case\": \"") + entry.name + "\", \"code\": \"" +
                  code_name(model.code) + "\"}";
     }
     coordinates.raw("negative_cases", "[" + negative + "]");
+    coordinates.integer("negative_cases_total", static_cast<long long>(cases.size()));
+    coordinates.integer("negative_cases_failed_as_expected",
+                        static_cast<long long>(negative_failed_as_expected));
+    checks.add("negative_cases_all_rejected",
+               !cases.empty() && negative_failed_as_expected == cases.size(),
+               "rejected=" + std::to_string(negative_failed_as_expected) + " of " +
+                   std::to_string(cases.size()));
   }
 
   {
+    coordinates.raw("checks", checks.str());
+    coordinates.integer("check_failures", checks.failures());
     std::ofstream out(directory + "/geo_coordinates.json");
     out << coordinates.str();
   }
@@ -1059,7 +1239,34 @@ int main(int argc, char** argv) {
           geometry.number("analytic_drop_area_sr", analytic);
           geometry.boolean("analytic_area_inside_leaf_sum",
                            lower_sum <= analytic && analytic <= upper_sum);
+          checks.add("overlap_leaves_enclose_analytic_area",
+                     leaves_checked > 0 && lower_sum <= analytic && analytic <= upper_sum,
+                     "leaves_sampled=" + std::to_string(leaves_checked) + " sum=[" +
+                         std::to_string(lower_sum) + "," + std::to_string(upper_sum) +
+                         "] analytic=" + std::to_string(analytic));
+          checks.add("overlap_leaf_sampling_not_empty", leaves_checked > 0,
+                     "leaves_sampled=" + std::to_string(leaves_checked));
           geometry.number("max_leaf_grid_estimate_difference_over_cell_area", max_leaf_estimate_error);
+          {
+            // The named capability boundaries and the proof strength of the
+            // containment fallback, as recorded in the assessment.
+            std::string included = "[";
+            for (std::size_t k = 0; k < value->assessment.included.size(); ++k) {
+              if (k != 0) included += ", ";
+              included += "\"" + value->assessment.included[k] + "\"";
+            }
+            included += "]";
+            geometry.raw("overlap_assessment_included", included);
+            std::string issues = "[";
+            for (std::size_t k = 0; k < value->assessment.issues.size(); ++k) {
+              if (k != 0) issues += ", ";
+              issues += "{\"code\": \"" + code_name(value->assessment.issues[k].code) +
+                        "\", \"origin\": \"" + value->assessment.issues[k].origin +
+                        "\", \"reason\": \"" + value->assessment.issues[k].reason + "\"}";
+            }
+            issues += "]";
+            geometry.raw("overlap_assessment_issues", issues);
+          }
           geometry.text("termination",
                         value->status.termination == acsd::Termination::tolerance_met
                             ? "tolerance_met"
@@ -1098,6 +1305,9 @@ int main(int argc, char** argv) {
                              static_cast<long long>(starved_value->coarse_candidates.size()));
             geometry.number("starved_unresolved_mass_sr", unresolved);
             geometry.boolean("starved_mass_not_zeroed", unresolved > 0.0);
+            checks.add("starved_budget_keeps_unresolved_mass", unresolved > 0.0,
+                       "unresolved_mass_sr=" + std::to_string(unresolved) + " domains=" +
+                           std::to_string(starved_value->coarse_candidates.size()));
             geometry.boolean("starved_bounds_still_valid",
                              starved_upper + unresolved >= analytic * 0.5);
           }
@@ -1134,6 +1344,11 @@ int main(int argc, char** argv) {
               geometry.boolean("drizzle_status_bounded",
                                drizzle_value.op->status.termination ==
                                    acsd::Termination::tolerance_met);
+              checks.add("drizzle_built_with_bounded_status",
+                         drizzle_value.op != nullptr && drizzle_value.estimate != nullptr &&
+                             drizzle_value.op->status.termination == acsd::Termination::tolerance_met,
+                         "termination=" +
+                             std::to_string(static_cast<int>(drizzle_value.op->status.termination)));
             }
           }
         }
@@ -1227,6 +1442,13 @@ int main(int argc, char** argv) {
       geometry.boolean(std::string(name) + "_reference_inside_bounds",
                        lower_sum <= reference_upper && reference_lower <= upper_sum);
       geometry.boolean(std::string(name) + "_mass_not_lost", upper_sum > 0.0);
+      checks.add(std::string(name) + "_reference_inside_bounds",
+                 lower_sum <= reference_upper && reference_lower <= upper_sum && upper_sum > 0.0,
+                 "sum=[" + std::to_string(lower_sum) + "," + std::to_string(upper_sum) +
+                     "] reference=[" + std::to_string(reference_lower) + "," +
+                     std::to_string(reference_upper) + "]");
+      checks.add(std::string(name) + "_mass_not_lost", upper_sum > 0.0,
+                 "sum_upper_sr=" + std::to_string(upper_sum));
     };
     // The corner of the footprint sits exactly on the tangent point, where a
     // chart cell boundary runs: the touching cells stay undecided.
@@ -1239,6 +1461,8 @@ int main(int argc, char** argv) {
   }
 
   {
+    geometry.raw("checks", checks.str());
+    geometry.integer("check_failures", checks.failures());
     std::ofstream out(directory + "/geo_geometry.json");
     out << geometry.str();
   }
