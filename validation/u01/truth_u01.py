@@ -326,6 +326,41 @@ def main() -> int:
                                          "false-independence control are compared with the "
                                          "independent exact rational truth"))
 
+    # The process route: the same frozen request through acsd-contract.  The
+    # two routes must agree with each other and with the truth.
+    contract_values = {}
+    contract_ok = contract_run.get("status") == "ok"
+    if contract_ok:
+        payload = (contract_response or {}).get("result", {}) or {}
+        value = (payload.get("value") or {}).get("data", {})
+        if "value" in value:
+            contract_values["contract_quadratic_form"] = float(value["value"])
+    if contract_values:
+        comparison["functionals"].append({
+            "name": "contract_quadratic_form", "kind": "value",
+            "truth": 4.328125, "observed": contract_values["contract_quadratic_form"],
+            "tolerance": 1e-12, "unit": "L^2 sr^-2", "status": "pass",
+            "expected_success_count": 1, "observed_success_count": 1,
+            "note": "the acsd-contract process route on the frozen request",
+        })
+        if abs(contract_values["contract_quadratic_form"] - 4.328125) > 1e-12:
+            comparison["functionals"][-1]["status"] = "fail"
+            comparison["failures"].append({
+                "functional": "contract_quadratic_form", "scope": "acsd-contract",
+                "expected": 4.328125, "actual": contract_values["contract_quadratic_form"],
+                "reason": "the process route disagrees with the independent truth"})
+            comparison["status"] = "fail"
+    else:
+        comparison["functionals"].append({
+            "name": "contract_quadratic_form", "kind": "value",
+            "truth": 4.328125, "observed": None, "status": "pending_implementation",
+            "expected_success_count": 1, "observed_success_count": 0,
+            "reason": contract_run.get("reason", "the contract route did not run"),
+        })
+        if comparison["status"] == "pass":
+            comparison["status"] = "pending_implementation"
+    case.write_comparison(comparison)
+
     # the preserved failed attempts (not overwritten by the current run)
     attempts = case.root / "observed" / "attempts"
     attempts.mkdir(parents=True, exist_ok=True)

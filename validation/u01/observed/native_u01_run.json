@@ -2,8 +2,8 @@
   "artifacts": {},
   "binary_identity": {
     "path": "/workspace/Astro CS Database/validation/build/u01_driver",
-    "sha256": "22b745896ab34631c9ca469b438fd314d242409a4b2ba48e14331ec1b78e09a3",
-    "size_bytes": "525512"
+    "sha256": "aa899aae438380a4d7aef342613cccb9053b9b8f0ff050d87b76a2be4c120457",
+    "size_bytes": "525672"
   },
   "command": [
     "/workspace/Astro CS Database/validation/build/u01_driver",
@@ -12,7 +12,7 @@
   ],
   "exit_code": 0,
   "missing_entry_points": [],
-  "peak_rss_bytes": 103915520,
+  "peak_rss_bytes": 104030208,
   "reason": "",
   "response": {
     "driver": "u01_native",
@@ -60,5 +60,5 @@
   "status": "ok",
   "stderr": "",
   "stdout": "{\n  \"driver\": \"u01_native\",\n  \"route\": \"in_memory_public_api\",\n  \"results\": [\n    {\"name\": \"u01_matrix_and_aperture\", \"status\": \"ok\", \"detail\": \"public API: storage.copy / make_action / make_covariance / apply / transpose_apply / covariance_apply / quadratic_form\", \"values\": {\"apply_R_ones\": 1, \"apply_R_ones_second\": 1, \"transpose_R_t_0\": 0.5, \"transpose_R_t_1\": 0.375, \"transpose_R_t_2\": -0.375, \"leaf_quadratic_form\": 4.328125, \"native_quadratic_form\": 4.328125, \"false_independence_quadratic_form\": 4.515625, \"covariance_column_1_0\": 3.75, \"covariance_column_1_1\": 2, \"covariance_column_2_0\": 2, \"covariance_column_2_1\": 10.3125}, \"text\": {\"leaf_quadratic_form_code\": \"0\", \"apply_code\": \"0\", \"transpose_code\": \"0\", \"native_quadratic_form_code\": \"0\", \"leaf_noise_state\": \"0\", \"false_independence_code\": \"0\", \"apply_reason\": \"no issue recorded\", \"transpose_reason\": \"no issue recorded\", \"leaf_quadratic_reason\": \"no issue recorded\", \"covariance_column_1_reason\": \"no issue recorded\", \"encoder_probe_code\": \"0\", \"encoder_probe_decoded\": \"1 1\", \"encoder_probe_payload\": \"none\"}}  ]\n}\n",
-  "wall_seconds": 0.0074435590067878366
+  "wall_seconds": 0.0024383539566770196
 }

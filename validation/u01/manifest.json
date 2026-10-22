@@ -6,7 +6,7 @@
   },
   "case": "U01",
   "code_identity": {
-    "validation/u01/truth_u01.py": "edce7868f993e1594bcace558bdd3b3cd1e23c8c949f3fa3181fe09862fc0d41"
+    "validation/u01/truth_u01.py": "892f0f20d6b00c78c6785ea042b65f38fb417d37b1a809323dc2375a2159f394"
   },
   "commands": {
     "contract_driver": "acsd-contract --request validation/u01/request.json --response validation/u01/observed/contract_u01.json",

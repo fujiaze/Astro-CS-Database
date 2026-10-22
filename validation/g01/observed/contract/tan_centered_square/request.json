@@ -1,0 +1,109 @@
+{
+ "protocol": "acsd.contract",
+ "major": 1,
+ "request_id": "val-g01-overlap",
+ "operation": "compute_overlap",
+ "input_objects": {
+  "source": {
+   "type": "DetectorFootprint",
+   "data": {
+    "wcs": null,
+    "detector_rings": [
+     {
+      "vertices": [
+       {
+        "x": 23.0,
+        "y": 23.0
+       },
+       {
+        "x": 39.0,
+        "y": 23.0
+       },
+       {
+        "x": 39.0,
+        "y": 39.0
+       },
+       {
+        "x": 23.0,
+        "y": 39.0
+       }
+      ],
+      "hole": false
+     }
+    ],
+    "pixel_response": null,
+    "source": {
+     "dataset": "fixture",
+     "exposure": "exposure1",
+     "detector": "det1",
+     "channel": "L",
+     "sample": 0
+    },
+    "contraction_center": {
+     "x": 31.0,
+     "y": 31.0
+    }
+   }
+  }
+ },
+ "arguments": {
+  "provider": null,
+  "source": {
+   "$ref": "source"
+  },
+  "order": 5,
+  "pixfrac": 1.0
+ },
+ "request": {
+  "requested_functionals": [
+   {
+    "id": "drop_area",
+    "kind": "area",
+    "index": null,
+    "left": null,
+    "right": null,
+    "tolerance": {
+     "absolute": 1e-12,
+     "relative": 0.0,
+     "absolute_floor": 0.0,
+     "unit": {
+      "scale": "sr",
+      "sr_power": 1,
+      "pixel_power": 0,
+      "nm_power": 0,
+      "multiplier": 1.0,
+      "linear_power": 0
+     }
+    },
+    "condition": {
+     "kind": "fixed_geometry",
+     "estimator": "fixture-g01",
+     "assumptions": [],
+     "fixed_objects": []
+    }
+   }
+  ],
+  "per_leaf_absolute_area": [],
+  "area_absolute_sr": 1e-12,
+  "normalizer_min_sr": 0.0,
+  "max_work": 1000000,
+  "max_bytes": 16777216,
+  "max_depth": 32,
+  "arithmetic": {
+   "mode": "outward",
+   "initial_bits": 64,
+   "max_bits": 256,
+   "allow_target_fallback": false
+  }
+ },
+ "resources": {
+  "bytes": 67108864,
+  "max_depth": 32,
+  "max_precision_bits": 256,
+  "scratch_directory": ".work",
+  "spill_bytes": 0,
+  "threads": 1,
+  "work": 1000000
+ },
+ "output_root": ".work/g01/contract"
+}

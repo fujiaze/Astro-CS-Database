@@ -1,0 +1,445 @@
+{
+  "algorithm_set": [
+    {
+      "name": "acsd-contract",
+      "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+      "version": "1"
+    },
+    {
+      "name": "quadratic_form",
+      "source_hash": "sha256:d97d4a9d4fd1a7eee0e7e037e5ccf8739d189f3104c9eb73e34844e727b7083a",
+      "version": "1"
+    }
+  ],
+  "arithmetic": {
+    "allow_target_fallback": true,
+    "initial_bits": 64,
+    "max_bits": 256,
+    "mode": "outward"
+  },
+  "blocks": [],
+  "build": {
+    "compiler": "14.2.0",
+    "name": "acsd-contract",
+    "standard": "acsd.contract/1",
+    "version": "2.0.0"
+  },
+  "input_hashes": {
+    "C": "acsd.CovarianceAction:3c32ff87b39b2edb33667be53512e1b67e6c50484643829c424ba1ab3c1588d3",
+    "F_csrnnz": "acsd.Index:f25e49cfb3f5680b87871e43e34a21622f385d106a1a0aa4f7c93f3401dc7174",
+    "F_csrrow": "acsd.Index:7b16aa21d98b8a1877ac4fbcb84b60ee8492f5ada3570eed310c3c0993b1b8e1",
+    "F_indices": "acsd.Array:3f693b47a3eb0e7229714c1d353ee8383fd12520e1b42e3514ec512db8712b80",
+    "F_offsets": "acsd.Array:e3369ca203165dada3654160ac10a2e0b43c7a5a6759ab832f384a8dcf385965",
+    "F_values": "acsd.Array:a2f80dbb95695b96ed3487269b872240a5544f52574e7e2eae8dcc548990b718",
+    "R_csrnnz": "acsd.Index:adf450efeca8bfa4795355fcc661d43e29192f70b81256468313a6102c8c7284",
+    "R_csrrow": "acsd.Index:e1d579ea50ec316820f58e046349f46ce159bc158057bbe8961b15c4841d2d8b",
+    "R_indices": "acsd.Array:0f209703c114ae899213ca560cc06ee285457a0b0a32fac17122091553942ec6",
+    "R_offsets": "acsd.Array:2bf0c5f687406271df0a411ba1b785011ccd950210d710994eb913a49d0899d4",
+    "R_values": "acsd.Array:0eec4337418243c0ba23b885305e1e197ce363af51b3cb1a58ba62d4491bd850",
+    "input": "acsd.Index:db4ba474da450d6b99278a08d35906f62db1cb35fe8ea4c8a86bda768f4fb28d",
+    "latent": "acsd.Index:4b7778aaef5fa00427a8ce5f14e39eb759fabe899517a6175101034c6bf8c1ff",
+    "noise": "acsd.NoiseModel:48ddd4d6b615fb25c1a4af772081a8d4c10de9f953ef4bb6b00b1e1c865cb038",
+    "numeric_error": "acsd.ErrorRecord:318493f88234f3c3adaf53978955b9dd8f74e0ee24f0edee323236894d010082",
+    "output": "acsd.Index:957b3e80329a385df54082ca7b7d80e161754e54fbe80a5cc3eb2fc028cd9ded",
+    "root": "acsd.NoiseRoot:d2855cbce084afd50eded5848feb35802dfa07f18d5b37e30f7bd6ec1c36a7de",
+    "t": "acsd.Array:a917dc4ad6f2c224542fa6ad8103d6c90a950368737f5df5c89d4650fed5e261"
+  },
+  "major": 1,
+  "objects": {
+    "acsd.Array:0eec4337418243c0ba23b885305e1e197ce363af51b3cb1a58ba62d4491bd850": {
+      "data": {
+        "dtype": "f64",
+        "index_id": "acsd.Index:adf450efeca8bfa4795355fcc661d43e29192f70b81256468313a6102c8c7284",
+        "shape": [
+          4
+        ],
+        "unit": {
+          "linear_power": 1,
+          "multiplier": 1.0,
+          "nm_power": 0,
+          "pixel_power": 0,
+          "scale": "fixture:L",
+          "sr_power": -1
+        }
+      },
+      "type": "Array"
+    },
+    "acsd.Array:0f209703c114ae899213ca560cc06ee285457a0b0a32fac17122091553942ec6": {
+      "data": {
+        "dtype": "u64",
+        "index_id": "acsd.Index:adf450efeca8bfa4795355fcc661d43e29192f70b81256468313a6102c8c7284",
+        "shape": [
+          4
+        ],
+        "unit": {
+          "linear_power": 0,
+          "multiplier": 1.0,
+          "nm_power": 0,
+          "pixel_power": 0,
+          "scale": "1",
+          "sr_power": 0
+        }
+      },
+      "type": "Array"
+    },
+    "acsd.Array:2bf0c5f687406271df0a411ba1b785011ccd950210d710994eb913a49d0899d4": {
+      "data": {
+        "dtype": "u64",
+        "index_id": "acsd.Index:e1d579ea50ec316820f58e046349f46ce159bc158057bbe8961b15c4841d2d8b",
+        "shape": [
+          3
+        ],
+        "unit": {
+          "linear_power": 0,
+          "multiplier": 1.0,
+          "nm_power": 0,
+          "pixel_power": 0,
+          "scale": "1",
+          "sr_power": 0
+        }
+      },
+      "type": "Array"
+    },
+    "acsd.Array:3f693b47a3eb0e7229714c1d353ee8383fd12520e1b42e3514ec512db8712b80": {
+      "data": {
+        "dtype": "u64",
+        "index_id": "acsd.Index:f25e49cfb3f5680b87871e43e34a21622f385d106a1a0aa4f7c93f3401dc7174",
+        "shape": [
+          26
+        ],
+        "unit": {
+          "linear_power": 0,
+          "multiplier": 1.0,
+          "nm_power": 0,
+          "pixel_power": 0,
+          "scale": "1",
+          "sr_power": 0
+        }
+      },
+      "type": "Array"
+    },
+    "acsd.Array:a2f80dbb95695b96ed3487269b872240a5544f52574e7e2eae8dcc548990b718": {
+      "data": {
+        "dtype": "f64",
+        "index_id": "acsd.Index:f25e49cfb3f5680b87871e43e34a21622f385d106a1a0aa4f7c93f3401dc7174",
+        "shape": [
+          26
+        ],
+        "unit": {
+          "linear_power": 1,
+          "multiplier": 1.0,
+          "nm_power": 0,
+          "pixel_power": 0,
+          "scale": "fixture:L",
+          "sr_power": 0
+        }
+      },
+      "type": "Array"
+    },
+    "acsd.Array:a917dc4ad6f2c224542fa6ad8103d6c90a950368737f5df5c89d4650fed5e261": {
+      "data": {
+        "dtype": "f64",
+        "index_id": "acsd.Index:957b3e80329a385df54082ca7b7d80e161754e54fbe80a5cc3eb2fc028cd9ded",
+        "shape": [
+          2
+        ],
+        "unit": {
+          "linear_power": 0,
+          "multiplier": 1.0,
+          "nm_power": 0,
+          "pixel_power": 0,
+          "scale": "1",
+          "sr_power": 0
+        }
+      },
+      "type": "Array"
+    },
+    "acsd.Array:e3369ca203165dada3654160ac10a2e0b43c7a5a6759ab832f384a8dcf385965": {
+      "data": {
+        "dtype": "u64",
+        "index_id": "acsd.Index:7b16aa21d98b8a1877ac4fbcb84b60ee8492f5ada3570eed310c3c0993b1b8e1",
+        "shape": [
+          4
+        ],
+        "unit": {
+          "linear_power": 0,
+          "multiplier": 1.0,
+          "nm_power": 0,
+          "pixel_power": 0,
+          "scale": "1",
+          "sr_power": 0
+        }
+      },
+      "type": "Array"
+    },
+    "acsd.CovarianceAction:3c32ff87b39b2edb33667be53512e1b67e6c50484643829c424ba1ab3c1588d3": {
+      "data": {
+        "absolute_factor_bound": null,
+        "influence": {
+          "$ref": "I"
+        },
+        "input_output": {
+          "codomain": {
+            "$ref": "output"
+          },
+          "domain": {
+            "$ref": "output"
+          },
+          "input": {
+            "linear_power": 0,
+            "multiplier": 1,
+            "nm_power": 0,
+            "pixel_power": 0,
+            "scale": "1",
+            "sr_power": 0
+          },
+          "output": {
+            "linear_power": 2,
+            "multiplier": 1,
+            "nm_power": 0,
+            "pixel_power": 0,
+            "scale": "fixture:L",
+            "sr_power": -2
+          }
+        },
+        "model": {
+          "$ref": "noise"
+        },
+        "omitted_action_norm": null,
+        "operator_norm_upper": null
+      },
+      "type": "CovarianceAction"
+    },
+    "acsd.ErrorRecord:318493f88234f3c3adaf53978955b9dd8f74e0ee24f0edee323236894d010082": {
+      "data": {
+        "achieved": [],
+        "finite_model_bias": [],
+        "linearization_selection": {
+          "assumptions": [
+            "independent standard normal latent"
+          ],
+          "estimator": "fixture-U01",
+          "fixed_objects": [],
+          "kind": "fixed_geometry"
+        },
+        "requested": [],
+        "stochastic_noise": null,
+        "unknown_model_terms": []
+      },
+      "type": "ErrorRecord"
+    },
+    "acsd.Index:4b7778aaef5fa00427a8ce5f14e39eb759fabe899517a6175101034c6bf8c1ff": {
+      "data": {
+        "ids": null,
+        "kind": "latent",
+        "namespace_id": "fixture:latent24",
+        "order": 0,
+        "partitions": [],
+        "size": 24,
+        "sources": []
+      },
+      "type": "Index"
+    },
+    "acsd.Index:7b16aa21d98b8a1877ac4fbcb84b60ee8492f5ada3570eed310c3c0993b1b8e1": {
+      "data": {
+        "ids": null,
+        "kind": "parameter",
+        "namespace_id": "fixture:F_csrrow",
+        "order": 0,
+        "partitions": [],
+        "size": 4,
+        "sources": []
+      },
+      "type": "Index"
+    },
+    "acsd.Index:957b3e80329a385df54082ca7b7d80e161754e54fbe80a5cc3eb2fc028cd9ded": {
+      "data": {
+        "ids": null,
+        "kind": "parameter",
+        "namespace_id": "fixture:output2",
+        "order": 0,
+        "partitions": [],
+        "size": 2,
+        "sources": []
+      },
+      "type": "Index"
+    },
+    "acsd.Index:adf450efeca8bfa4795355fcc661d43e29192f70b81256468313a6102c8c7284": {
+      "data": {
+        "ids": null,
+        "kind": "parameter",
+        "namespace_id": "fixture:R_csrnnz",
+        "order": 0,
+        "partitions": [],
+        "size": 4,
+        "sources": []
+      },
+      "type": "Index"
+    },
+    "acsd.Index:db4ba474da450d6b99278a08d35906f62db1cb35fe8ea4c8a86bda768f4fb28d": {
+      "data": {
+        "ids": null,
+        "kind": "native",
+        "namespace_id": "fixture:native",
+        "order": 0,
+        "partitions": [],
+        "size": 3,
+        "sources": []
+      },
+      "type": "Index"
+    },
+    "acsd.Index:e1d579ea50ec316820f58e046349f46ce159bc158057bbe8961b15c4841d2d8b": {
+      "data": {
+        "ids": null,
+        "kind": "parameter",
+        "namespace_id": "fixture:R_csrrow",
+        "order": 0,
+        "partitions": [],
+        "size": 3,
+        "sources": []
+      },
+      "type": "Index"
+    },
+    "acsd.Index:f25e49cfb3f5680b87871e43e34a21622f385d106a1a0aa4f7c93f3401dc7174": {
+      "data": {
+        "ids": null,
+        "kind": "parameter",
+        "namespace_id": "fixture:F_csrnnz",
+        "order": 0,
+        "partitions": [],
+        "size": 26,
+        "sources": []
+      },
+      "type": "Index"
+    },
+    "acsd.NoiseModel:48ddd4d6b615fb25c1a4af772081a8d4c10de9f953ef4bb6b00b1e1c865cb038": {
+      "data": {
+        "condition": {
+          "assumptions": [
+            "independent standard normal latent"
+          ],
+          "estimator": "fixture-U01",
+          "fixed_objects": [],
+          "kind": "fixed_geometry"
+        },
+        "influence": [
+          {
+            "$ref": "R"
+          }
+        ],
+        "innovations": [
+          {
+            "$ref": "root"
+          }
+        ],
+        "shared_factors": [],
+        "state": "known",
+        "unknown_terms": [],
+        "variance_unit": {
+          "linear_power": 2,
+          "multiplier": 1,
+          "nm_power": 0,
+          "pixel_power": 0,
+          "scale": "fixture:L",
+          "sr_power": -2
+        }
+      },
+      "type": "NoiseModel"
+    },
+    "acsd.NoiseRoot:d2855cbce084afd50eded5848feb35802dfa07f18d5b37e30f7bd6ec1c36a7de": {
+      "data": {
+        "coordinates": {
+          "$ref": "input"
+        },
+        "factor": {
+          "$ref": "F"
+        },
+        "shared_id": {
+          "component": "all",
+          "entity": "independent-root",
+          "external_namespace": "fixture",
+          "model_revision": "1"
+        },
+        "unit": {
+          "linear_power": 1,
+          "multiplier": 1,
+          "nm_power": 0,
+          "pixel_power": 0,
+          "scale": "fixture:L",
+          "sr_power": 0
+        }
+      },
+      "type": "NoiseRoot"
+    }
+  },
+  "operation": "quadratic_form",
+  "output_root": "/workspace/Astro CS Database/validation/u01/.work/u01",
+  "protocol": "acsd.contract.response",
+  "request_id": "val-u01-leaf-aperture-variance",
+  "resolved_request_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "resources": {
+    "byte_budget": 8388608,
+    "bytes": 8388608,
+    "elapsed_seconds": 0.000277833,
+    "peak_payload_bytes": 0,
+    "read_bytes": 0,
+    "spill_bytes": 0,
+    "threads": 1,
+    "work": 22,
+    "work_budget": 100000,
+    "written_bytes": 0
+  },
+  "result": {
+    "assessment": {
+      "capability": "supported",
+      "complete": true,
+      "condition": {
+        "assumptions": [],
+        "estimator": "",
+        "fixed_objects": [],
+        "kind": ""
+      },
+      "execution": "complete",
+      "included": [
+        "numeric_enclosure_reported_as_the_returned_point"
+      ],
+      "issues": [],
+      "noise": "unknown",
+      "omitted": [
+        "numeric_enclosure_of_the_internal_computation"
+      ],
+      "science": "bounded",
+      "validity": "certified"
+    },
+    "code": "ok",
+    "dependencies": [],
+    "usage": {
+      "elapsed_seconds": 5.88e-07,
+      "peak_payload_bytes": 0,
+      "read_bytes": 0,
+      "spill_bytes": 0,
+      "work": 22,
+      "written_bytes": 0
+    },
+    "value": {
+      "data": {
+        "numeric_enclosure": {
+          "lower": 4.328125,
+          "upper": 4.328125
+        },
+        "state": "known",
+        "unit": {
+          "linear_power": 2,
+          "multiplier": 1.0,
+          "nm_power": 0,
+          "pixel_power": 0,
+          "scale": "fixture:L",
+          "sr_power": -2
+        },
+        "unknown_terms": [],
+        "value": 4.328125
+      },
+      "type": "Variance"
+    }
+  }
+}

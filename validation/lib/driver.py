@@ -34,8 +34,11 @@ from .vcommon import REPO_ROOT, VALIDATION_ROOT, sha256_file
 # result is recorded in the manifest.
 CONTRACT_BINARY_NAMES = ("acsd-contract", "acsd_contract")
 BUILD_PREFIXES = (
+    "build/science",
+    "build/stats",
     "build/dev",
     "build/linux-sci",
+    "build/linux-sci-s07",
     "build/linux-dev",
     "build/linux-control",
     "build/asan",

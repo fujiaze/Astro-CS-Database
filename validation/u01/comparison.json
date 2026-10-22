@@ -142,6 +142,18 @@
       "status": "pass",
       "tolerance": 1e-06,
       "unit": ""
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "contract_quadratic_form",
+      "note": "the acsd-contract process route on the frozen request",
+      "observed": 4.328125,
+      "observed_success_count": 1,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": 4.328125,
+      "unit": "L^2 sr^-2"
     }
   ],
   "notes": "U01: the leaf route, the native route and the false-independence control are compared with the independent exact rational truth",
