@@ -430,6 +430,20 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
   export_estimate->assessment = model::make_assessment(Code::ok);
   export_estimate->assessment.complete = true;
   export_estimate->assessment.science = ScienceState::bounded;
+  // The coverage of the export is recorded: the size of the target, the
+  // number of the leaves it touches and the number of the supported pixels.
+  // A reader can tell a constant image from a degenerate projection.
+  {
+    U64 supported = 0;
+    for (char supported_pixel : pixel_supported) {
+      if (supported_pixel != 0) ++supported;
+    }
+    export_estimate->assessment.included.push_back(
+        "the target covers " + std::to_string(supported) + " of " +
+        std::to_string(pixel_count) + " pixels and touches " +
+        std::to_string(leaf_count) + " leaves");
+  }
+
   if (approximate) {
     export_estimate->assessment.validity = Validity::approximate;
     model::add_issue(export_estimate->assessment, Code::ok,
