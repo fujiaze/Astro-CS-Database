@@ -367,11 +367,13 @@ LeastSquaresResult least_squares(const Matrix& a, const std::vector<double>& rhs
     y[k] = sum / factor.r(k, k);
   }
 
-  // Undo the column scaling and the permutation: A = A' S^{-1} P^{-1}, so the
-  // solution of A x = b is x = P S y.
+  // Undo the column scaling and the permutation.  The working matrix is
+  // A' = A P S^{-1} (the columns are divided by their pivot scale and then
+  // permuted), so A' y = b gives A (P S^{-1} y) = b and the solution of the
+  // original system is x = P S^{-1} y.
   out.solution.assign(n, 0.0);
   for (std::size_t j = 0; j < n; ++j) {
-    out.solution[factor.permutation[j]] = factor.column_scales[j] * y[j];
+    out.solution[factor.permutation[j]] = y[j] / factor.column_scales[j];
   }
 
   const std::vector<double> fitted = matvec(a, out.solution);

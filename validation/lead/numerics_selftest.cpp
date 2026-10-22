@@ -113,6 +113,55 @@ int main() {
     const auto exact = acsd::numerics::least_squares(identity, std::vector<double>{1.0, 2.0}, 1e-12);
     check("least squares identity", exact.solution[0], 1.0, 1e-12);
 
+    // A design matrix whose columns have very different scales: the column
+    // scaling and the permutation must be undone in the right order, which a
+    // matrix with unit column scales cannot detect.
+    acsd::numerics::Matrix design(4, 3);
+    const double rows[4][3] = {{0.00156462, -0.00351515, 1.0},
+                                {-0.00138654, 0.00403870, 1.0},
+                                {-0.00189771, -0.00155467, 1.0},
+                                {0.00171963, 0.00103113, 1.0}};
+    for (std::size_t i = 0; i < 4; ++i)
+      for (std::size_t j = 0; j < 3; ++j) design(i, j) = rows[i][j];
+    const std::vector<double> rhs{755.0, 927.0, 939.0, 759.0};
+    const auto scaled = acsd::numerics::least_squares(design, rhs, 1e-12);
+    // Independent reference: the normal equations solved by Gaussian
+    // elimination with partial pivoting.
+    double normal[3][4] = {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}};
+    for (std::size_t i = 0; i < 3; ++i) {
+      for (std::size_t j = 0; j < 3; ++j)
+        for (std::size_t k = 0; k < 4; ++k) normal[i][j] += design(k, i) * design(k, j);
+      for (std::size_t k = 0; k < 4; ++k) normal[i][3] += design(k, i) * rhs[k];
+    }
+    for (std::size_t col = 0; col < 3; ++col) {
+      std::size_t pivot = col;
+      for (std::size_t r = col + 1; r < 3; ++r)
+        if (std::fabs(normal[r][col]) > std::fabs(normal[pivot][col])) pivot = r;
+      for (std::size_t j = 0; j < 4; ++j) std::swap(normal[col][j], normal[pivot][j]);
+      for (std::size_t r = col + 1; r < 3; ++r) {
+        const double factor = normal[r][col] / normal[col][col];
+        for (std::size_t j = col; j < 4; ++j) normal[r][j] -= factor * normal[col][j];
+      }
+    }
+    double reference[3] = {0.0, 0.0, 0.0};
+    for (std::size_t i = 3; i-- > 0;) {
+      double sum = normal[i][3];
+      for (std::size_t j = i + 1; j < 3; ++j) sum -= normal[i][j] * reference[j];
+      reference[i] = sum / normal[i][i];
+    }
+    for (std::size_t i = 0; i < 3; ++i) {
+      const double relative = std::fabs(scaled.solution[i] - reference[i]) /
+                              std::max(1.0, std::fabs(reference[i]));
+      if (relative > 1e-8) {
+        std::printf("FAIL   least squares scaled column %zu got=%.12g want=%.12g\n", i,
+                    scaled.solution[i], reference[i]);
+        ++failures;
+      } else {
+        std::printf("ok     least squares scaled column %zu got=%.12g want=%.12g\n", i,
+                    scaled.solution[i], reference[i]);
+      }
+    }
+
     const auto many = acsd::numerics::least_squares(
         identity, std::vector<std::vector<double>>{{1.0, 2.0}, {3.0, 4.0}}, 1e-12);
     if (many.solutions.size() != 2) {
