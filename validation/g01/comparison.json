@@ -2,1620 +2,37 @@
   "case": "G01",
   "failures": [
     {
-      "actual": [
-        2.244271335065314e-08,
-        2.244273215098021e-08
-      ],
-      "expected": [
-        2.2407525198674025e-08,
-        2.2407526509212758e-08
-      ],
-      "functional": "tan_centered_square:leaf_4351",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.6548297926454117e-08,
-        1.6548316037293122e-08
-      ],
-      "expected": [
-        1.6513111538006568e-08,
-        1.651311250380141e-08
-      ],
-      "functional": "tan_centered_square:leaf_4522",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.6548297926454117e-08,
-        1.6548316037293122e-08
-      ],
-      "expected": [
-        1.6513111538006568e-08,
-        1.651311250380141e-08
-      ],
-      "functional": "tan_centered_square:leaf_4693",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.2442713350673816e-08,
-        2.244273215100088e-08
-      ],
-      "expected": [
-        2.2407525198674025e-08,
-        2.2407526509212758e-08
-      ],
-      "functional": "tan_centered_square:leaf_4864",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
       "actual": "tolerance_met",
       "expected": "termination work/precision and no certified bound",
-      "functional": "tan_centered_square:negative_maxprecision_16",
+      "functional": "tan_centered_square:negative_work_1",
       "reason": "a starved budget was reported as a satisfied tolerance",
       "scope": "compute_overlap"
     },
     {
       "actual": "tolerance_met",
       "expected": "termination work/precision and no certified bound",
-      "functional": "tan_offset_square:negative_maxprecision_16",
+      "functional": "tan_offset_square:negative_work_1",
       "reason": "a starved budget was reported as a satisfied tolerance",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": "unsupported",
-      "expected": 3.1192823760693906e-09,
-      "functional": "north_polar:drop_area",
-      "reason": "the drop area was not produced",
-      "scope": "measure"
-    },
-    {
-      "actual": "unsupported",
-      "expected": "ok",
-      "functional": "north_polar:overlaps",
-      "reason": "",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.1118596880033722e-09,
-        3.126705069052471e-09
-      ],
-      "expected": [
-        1.7545963327762896e-09,
-        1.754596337971441e-09
-      ],
-      "functional": "polar_extreme:leaf_4075",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        "4075"
-      ],
-      "expected": [
-        "16343",
-        "4075"
-      ],
-      "functional": "polar_extreme:leaf_coverage",
-      "reason": "the overlap call did not report every enclosed leaf",
       "scope": "compute_overlap"
     },
     {
       "actual": "tolerance_met",
       "expected": "termination work/precision and no certified bound",
-      "functional": "polar_extreme:negative_maxprecision_16",
+      "functional": "polar_extreme:negative_work_1",
       "reason": "a starved budget was reported as a satisfied tolerance",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.046174197867072e-16,
-        3.0461741978670944e-16
-      ],
-      "expected": "the interval contains 3.046174197867061e-16",
-      "functional": "order29_subleaf:drop_area",
-      "reason": "the reported area does not contain the truth",
-      "scope": "measure"
-    },
-    {
-      "actual": [
-        1.7176214740686998e-18,
-        1.717621474068713e-18
-      ],
-      "expected": [
-        1.6953192782595431e-18,
-        1.6953192782595456e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060223",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.717621474068704e-18,
-        1.7176214740687168e-18
-      ],
-      "expected": [
-        1.695246651807148e-18,
-        1.6952466518071504e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060239",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        6.844498225015152e-19,
-        6.844498225015203e-19
-      ],
-      "expected": [
-        6.744092369411865e-19,
-        6.744092369411875e-19
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060248",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.612047202646093e-18,
-        3.61204720264612e-18
-      ],
-      "expected": [
-        3.568936497149133e-18,
-        3.568936497149138e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060250",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.4574082046954739e-18,
-        1.457408204695485e-18
-      ],
-      "expected": [
-        1.436914360637667e-18,
-        1.4369143606376692e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060251",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.7176214740687006e-18,
-        1.7176214740687131e-18
-      ],
-      "expected": [
-        1.695246651807148e-18,
-        1.6952466518071504e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060259",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.7176214740687021e-18,
-        1.7176214740687152e-18
-      ],
-      "expected": [
-        1.6953192782595431e-18,
-        1.6953192782595456e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060260",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6318101466396364e-18,
-        3.631810146639663e-18
-      ],
-      "expected": [
-        3.586294219271569e-18,
-        3.5862942192715744e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060261",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6318101466396364e-18,
-        3.6318101466396634e-18
-      ],
-      "expected": [
-        3.586439472176359e-18,
-        3.586439472176365e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060262",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587456242509891e-18,
-        3.5874562425098964e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060263",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.7176214740686983e-18,
-        1.7176214740687114e-18
-      ],
-      "expected": [
-        1.695246651807148e-18,
-        1.6952466518071504e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060264",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6318101466396364e-18,
-        3.6318101466396634e-18
-      ],
-      "expected": [
-        3.58658472508115e-18,
-        3.586584725081155e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060265",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.63181014663964e-18,
-        3.631810146639668e-18
-      ],
-      "expected": [
-        3.586221592819174e-18,
-        3.5862215928191796e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060266",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092316e-18,
-        3.633196352092344e-18
-      ],
-      "expected": [
-        3.587383616057496e-18,
-        3.587383616057502e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060267",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587020483795521e-18,
-        3.587020483795525e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060268",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060269",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092316e-18,
-        3.633196352092344e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060270",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092315e-18,
-        3.633196352092342e-18
-      ],
-      "expected": [
-        3.587310989605101e-18,
-        3.587310989605106e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060271",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060272",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6134334080987686e-18,
-        3.6134334080987956e-18
-      ],
-      "expected": [
-        3.569880641030269e-18,
-        3.569880641030275e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060273",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587310989605101e-18,
-        3.587310989605106e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060274",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092311e-18,
-        3.633196352092338e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060275",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.4574082046954735e-18,
-        1.457408204695485e-18
-      ],
-      "expected": [
-        1.4367691077328767e-18,
-        1.4367691077328788e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060276",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6134334080987686e-18,
-        3.613433408098795e-18
-      ],
-      "expected": [
-        3.5698080145778745e-18,
-        3.56980801457788e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060278",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.4574082046954735e-18,
-        1.4574082046954848e-18
-      ],
-      "expected": [
-        1.4367691077328767e-18,
-        1.4367691077328788e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060279",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.5870931102479155e-18,
-        3.587093110247921e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060280",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092311e-18,
-        3.633196352092338e-18
-      ],
-      "expected": [
-        3.5870931102479155e-18,
-        3.587093110247921e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060281",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092315e-18,
-        3.633196352092342e-18
-      ],
-      "expected": [
-        3.587456242509891e-18,
-        3.5874562425098964e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060282",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092315e-18,
-        3.6331963520923414e-18
-      ],
-      "expected": [
-        3.5870931102479155e-18,
-        3.587093110247921e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060283",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092311e-18,
-        3.6331963520923376e-18
-      ],
-      "expected": [
-        3.587456242509891e-18,
-        3.5874562425098964e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060284",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.613433408098774e-18,
-        3.6134334080988e-18
-      ],
-      "expected": [
-        3.569880641030269e-18,
-        3.569880641030275e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060285",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923145e-18,
-        3.633196352092341e-18
-      ],
-      "expected": [
-        3.587310989605101e-18,
-        3.587310989605106e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060286",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092321e-18,
-        3.633196352092347e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060287",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.4574082046954677e-18,
-        1.4574082046954789e-18
-      ],
-      "expected": [
-        1.4368417341852719e-18,
-        1.436841734185274e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060456",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.613433408098769e-18,
-        3.613433408098796e-18
-      ],
-      "expected": [
-        3.5698080145778745e-18,
-        3.56980801457788e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060458",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.4574082046954706e-18,
-        1.4574082046954814e-18
-      ],
-      "expected": [
-        1.436914360637667e-18,
-        1.4369143606376692e-18
-      ],
-      "functional": "order29_subleaf:leaf_1273017494670060459",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        9.191268865542461e-19,
-        9.19126886554253e-19
-      ],
-      "expected": [
-        9.07540149129557e-19,
-        9.075401491295584e-19
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630804",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.631810146639638e-18,
-        3.631810146639665e-18
-      ],
-      "expected": [
-        3.5866573515335445e-18,
-        3.58665735153355e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630805",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.195879848497201e-21,
-        2.1958798484972174e-21
-      ],
-      "expected": [
-        1.4525290479026203e-21,
-        1.4525290479026223e-21
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630806",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.940719853609075e-18,
-        1.940719853609089e-18
-      ],
-      "expected": [
-        1.916829958064693e-18,
-        1.9168299580646955e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630807",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.1958798484972e-21,
-        2.1958798484972174e-21
-      ],
-      "expected": [
-        1.4525290479026203e-21,
-        1.4525290479026223e-21
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630813",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092314e-18,
-        3.633196352092341e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630848",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.63319635209234e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630849",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923145e-18,
-        3.633196352092341e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630850",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.63319635209234e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630851",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.63319635209234e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630852",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630853",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.63319635209234e-18
-      ],
-      "expected": [
-        3.587310989605101e-18,
-        3.587310989605106e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630854",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630855",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.9407198536090745e-18,
-        1.940719853609089e-18
-      ],
-      "expected": [
-        1.917047837421878e-18,
-        1.917047837421881e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630856",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.63319635209234e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630857",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.1958798484972e-21,
-        2.1958798484972167e-21
-      ],
-      "expected": [
-        1.4525290479026203e-21,
-        1.4525290479026223e-21
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630858",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.9407198536090745e-18,
-        1.9407198536090887e-18
-      ],
-      "expected": [
-        1.9169752109694828e-18,
-        1.916975210969486e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630859",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.63319635209234e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630860",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587383616057496e-18,
-        3.587383616057502e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630861",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.63319635209234e-18
-      ],
-      "expected": [
-        3.5870931102479155e-18,
-        3.587093110247921e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630862",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587310989605101e-18,
-        3.587310989605106e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630863",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587310989605101e-18,
-        3.587310989605106e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630864",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630865",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630866",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630867",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092311e-18,
-        3.6331963520923376e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630868",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092316e-18,
-        3.633196352092344e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630869",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092311e-18,
-        3.6331963520923376e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630870",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092316e-18,
-        3.633196352092344e-18
-      ],
-      "expected": [
-        3.587383616057496e-18,
-        3.587383616057502e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630871",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587310989605101e-18,
-        3.587310989605106e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630872",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587383616057496e-18,
-        3.587383616057502e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630873",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587020483795521e-18,
-        3.587020483795525e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630874",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587310989605101e-18,
-        3.587310989605106e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630875",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092311e-18,
-        3.6331963520923376e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630876",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092316e-18,
-        3.633196352092344e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630877",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092311e-18,
-        3.633196352092338e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630878",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092316e-18,
-        3.633196352092344e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630879",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.1958798484971993e-21,
-        2.1958798484972167e-21
-      ],
-      "expected": [
-        1.4525290479026203e-21,
-        1.4525290479026223e-21
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630881",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.9407198536090737e-18,
-        1.9407198536090884e-18
-      ],
-      "expected": [
-        1.916902584517088e-18,
-        1.9169025845170907e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630884",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587456242509891e-18,
-        3.5874562425098964e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630885",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.1958798484971993e-21,
-        2.1958798484972167e-21
-      ],
-      "expected": [
-        1.4525290479026203e-21,
-        1.4525290479026223e-21
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630886",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.9407198536090737e-18,
-        1.9407198536090884e-18
-      ],
-      "expected": [
-        1.916829958064693e-18,
-        1.9168299580646955e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630887",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.1958798484971993e-21,
-        2.195879848497216e-21
-      ],
-      "expected": [
-        1.5251555002977512e-21,
-        1.5251555002977535e-21
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630893",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630896",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587165736700311e-18,
-        3.587165736700316e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630897",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092313e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587310989605101e-18,
-        3.587310989605106e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630898",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.587383616057496e-18,
-        3.587383616057502e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630899",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092311e-18,
-        3.633196352092338e-18
-      ],
-      "expected": [
-        3.587383616057496e-18,
-        3.587383616057502e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630900",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092316e-18,
-        3.633196352092344e-18
-      ],
-      "expected": [
-        3.5870931102479155e-18,
-        3.587093110247921e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630901",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.633196352092311e-18,
-        3.633196352092338e-18
-      ],
-      "expected": [
-        3.587456242509891e-18,
-        3.5874562425098964e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630902",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.1052106789019714e-18,
-        2.1052106789019872e-18
-      ],
-      "expected": [
-        2.0802394759537376e-18,
-        2.0802394759537403e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630903",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.9407198536090737e-18,
-        1.940719853609088e-18
-      ],
-      "expected": [
-        1.916829958064693e-18,
-        1.9168299580646955e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630904",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.6331963520923114e-18,
-        3.633196352092339e-18
-      ],
-      "expected": [
-        3.5870931102479155e-18,
-        3.587093110247921e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630905",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.1958798484971986e-21,
-        2.195879848497216e-21
-      ],
-      "expected": [
-        1.5251555002977512e-21,
-        1.5251555002977535e-21
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630906",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.1199002389970962e-18,
-        1.1199002389971046e-18
-      ],
-      "expected": [
-        1.1071176403113772e-18,
-        1.1071176403113787e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630907",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.1052106789019734e-18,
-        2.1052106789019888e-18
-      ],
-      "expected": [
-        2.0802394759537376e-18,
-        2.0802394759537403e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630908",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.2475815608396886e-20,
-        1.2475815608396981e-20
-      ],
-      "expected": [
-        1.0676088502084259e-20,
-        1.0676088502084274e-20
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630909",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.2475815608397068e-20,
-        1.2475815608397163e-20
-      ],
-      "expected": [
-        1.0603462049689127e-20,
-        1.0603462049689143e-20
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720630910",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.63319635209231e-18,
-        3.633196352092337e-18
-      ],
-      "expected": [
-        3.5870931102479155e-18,
-        3.587093110247921e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631040",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.613433408098766e-18,
-        3.613433408098793e-18
-      ],
-      "expected": [
-        3.5698080145778745e-18,
-        3.56980801457788e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631041",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.63319635209231e-18,
-        3.633196352092337e-18
-      ],
-      "expected": [
-        3.587310989605101e-18,
-        3.587310989605106e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631042",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.63319635209231e-18,
-        3.633196352092337e-18
-      ],
-      "expected": [
-        3.587383616057496e-18,
-        3.587383616057502e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631043",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.4574082046954704e-18,
-        1.4574082046954812e-18
-      ],
-      "expected": [
-        1.4367691077328767e-18,
-        1.4367691077328788e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631044",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.613433408098766e-18,
-        3.6134334080987925e-18
-      ],
-      "expected": [
-        3.569735388125479e-18,
-        3.569735388125484e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631046",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        8.573081614082472e-19,
-        8.573081614082536e-19
-      ],
-      "expected": [
-        8.460255439508812e-19,
-        8.460255439508823e-19
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631047",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.63319635209231e-18,
-        3.633196352092337e-18
-      ],
-      "expected": [
-        3.587310989605101e-18,
-        3.587310989605106e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631048",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.63319635209231e-18,
-        3.633196352092337e-18
-      ],
-      "expected": [
-        3.587238363152706e-18,
-        3.587238363152711e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631049",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        3.63319635209231e-18,
-        3.633196352092337e-18
-      ],
-      "expected": [
-        3.587310989605101e-18,
-        3.587310989605106e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631050",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.1052106789019606e-18,
-        2.105210678901976e-18
-      ],
-      "expected": [
-        2.0802394759537376e-18,
-        2.0802394759537403e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631051",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.1052106789019583e-18,
-        2.1052106789019737e-18
-      ],
-      "expected": [
-        2.0803847288585276e-18,
-        2.0803847288585307e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631052",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.2475815608395628e-20,
-        1.2475815608395722e-20
-      ],
-      "expected": [
-        1.0676088502084259e-20,
-        1.0676088502084274e-20
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631053",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.2475815608395809e-20,
-        1.2475815608395902e-20
-      ],
-      "expected": [
-        1.0603462049689127e-20,
-        1.0603462049689143e-20
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631054",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        2.1052106789019633e-18,
-        2.1052106789019788e-18
-      ],
-      "expected": [
-        2.0803847288585276e-18,
-        2.0803847288585307e-18
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631072",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.247581560839599e-20,
-        1.2475815608396083e-20
-      ],
-      "expected": [
-        1.0676088502084259e-20,
-        1.0676088502084274e-20
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631073",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.247581560839617e-20,
-        1.2475815608396265e-20
-      ],
-      "expected": [
-        1.0603462049689127e-20,
-        1.0603462049689143e-20
-      ],
-      "functional": "order29_subleaf:leaf_1369094286720631074",
-      "reason": "the leaf interval does not contain the enclosure",
       "scope": "compute_overlap"
     },
     {
       "actual": "tolerance_met",
       "expected": "termination work/precision and no certified bound",
-      "functional": "order29_subleaf:negative_maxprecision_16",
+      "functional": "order29_subleaf:negative_work_1",
       "reason": "a starved budget was reported as a satisfied tolerance",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        6.789249110900792e-09,
-        6.789252276878758e-09
-      ],
-      "expected": [
-        6.781274386181336e-09,
-        6.781274785893187e-09
-      ],
-      "functional": "touching_edge:leaf_69631",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        1.2702161128530757e-08,
-        1.2702165215657667e-08
-      ],
-      "expected": [
-        1.2693996878517622e-08,
-        1.269399762674586e-08
-      ],
-      "functional": "touching_edge:leaf_72362",
-      "reason": "the leaf interval does not contain the enclosure",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": [
-        4.100668901195899e-12,
-        4.100726085183989e-12
-      ],
-      "expected": [
-        3.9090459415166686e-12,
-        3.909046171929405e-12
-      ],
-      "functional": "touching_edge:leaf_77824",
-      "reason": "the leaf interval does not contain the enclosure",
       "scope": "compute_overlap"
     },
     {
       "actual": "tolerance_met",
       "expected": "termination work/precision and no certified bound",
-      "functional": "touching_edge:negative_maxprecision_16",
+      "functional": "touching_edge:negative_work_1",
       "reason": "a starved budget was reported as a satisfied tolerance",
       "scope": "compute_overlap"
     }
@@ -1653,7 +70,8 @@
         2.244271335065314e-08,
         2.244273215098021e-08
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         2.2407525198674025e-08,
@@ -1668,7 +86,8 @@
         1.6548297926454117e-08,
         1.6548316037293122e-08
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.6513111538006568e-08,
@@ -1683,7 +102,8 @@
         1.6548297926454117e-08,
         1.6548316037293122e-08
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.6513111538006568e-08,
@@ -1698,7 +118,8 @@
         2.2442713350673816e-08,
         2.244273215100088e-08
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         2.2407525198674025e-08,
@@ -1718,6 +139,21 @@
     {
       "expected_success_count": 4,
       "kind": "value",
+      "name": "tan_centered_square:leaf_sum_contains_truth",
+      "observed": [
+        7.79820225542352e-08,
+        7.798209637656734e-08
+      ],
+      "observed_success_count": 4,
+      "reason": "the sum of the reported leaf intervals must contain the exact total area",
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": 7.798205794509727e-08,
+      "unit": "sr"
+    },
+    {
+      "expected_success_count": 4,
+      "kind": "value",
       "name": "tan_centered_square:leaf_coverage",
       "observed": {
         "enclosed": 4,
@@ -1725,7 +161,7 @@
         "reported": 4
       },
       "observed_success_count": 4,
-      "status": "pass",
+      "status": "info",
       "tolerance": 0.0,
       "truth": "every enclosed leaf is reported",
       "unit": "count"
@@ -1739,10 +175,10 @@
         "budget_max_work": 1,
         "code": "ok",
         "termination": "tolerance_met",
-        "work_units": 0
+        "work_units": 34
       },
       "observed_success_count": 1,
-      "status": "pass",
+      "status": "fail",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -1752,11 +188,11 @@
       "kind": "value",
       "name": "tan_centered_square:negative_maxprecision_64",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 0
+        "termination": "precision",
+        "work_units": 133
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -1769,14 +205,14 @@
       "kind": "value",
       "name": "tan_centered_square:negative_maxprecision_16",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 0
+        "termination": "precision",
+        "work_units": 133
       },
       "observed_success_count": 1,
-      "status": "fail",
+      "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -1835,7 +271,8 @@
         1.6376232213623514e-09,
         1.6376232613768016e-09
       ],
-      "status": "pass",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.6376232326400992e-09,
@@ -1855,6 +292,21 @@
     {
       "expected_success_count": 1,
       "kind": "value",
+      "name": "tan_offset_square:leaf_sum_contains_truth",
+      "observed": [
+        1.6376232213623514e-09,
+        1.6376232613768016e-09
+      ],
+      "observed_success_count": 1,
+      "reason": "the sum of the reported leaf intervals must contain the exact total area",
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": 1.6376232406911377e-09,
+      "unit": "sr"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
       "name": "tan_offset_square:leaf_coverage",
       "observed": {
         "enclosed": 1,
@@ -1862,7 +314,7 @@
         "reported": 1
       },
       "observed_success_count": 1,
-      "status": "pass",
+      "status": "info",
       "tolerance": 0.0,
       "truth": "every enclosed leaf is reported",
       "unit": "count"
@@ -1876,10 +328,10 @@
         "budget_max_work": 1,
         "code": "ok",
         "termination": "tolerance_met",
-        "work_units": 0
+        "work_units": 34
       },
       "observed_success_count": 1,
-      "status": "pass",
+      "status": "fail",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -1889,11 +341,11 @@
       "kind": "value",
       "name": "tan_offset_square:negative_maxprecision_64",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 0
+        "termination": "precision",
+        "work_units": 34
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -1906,14 +358,14 @@
       "kind": "value",
       "name": "tan_offset_square:negative_maxprecision_16",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 0
+        "termination": "precision",
+        "work_units": 34
       },
       "observed_success_count": 1,
-      "status": "fail",
+      "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -1941,74 +393,14 @@
       "unit": "verdict"
     },
     {
-      "expected_success_count": 1,
+      "expected_success_count": 0,
       "kind": "value",
       "name": "north_polar:drop_area",
-      "observed": null,
-      "observed_success_count": 0,
-      "reason": "footprint_area_not_representable",
-      "status": "fail",
-      "truth": 3.1192823760693906e-09
-    },
-    {
-      "expected_success_count": 1,
-      "kind": "value",
-      "name": "north_polar:overlaps",
       "observed": "unsupported",
       "observed_success_count": 0,
-      "reason": "compute_overlap failed",
-      "status": "fail"
-    },
-    {
-      "expected_success_count": 1,
-      "kind": "value",
-      "name": "north_polar:negative_work_1",
-      "observed": {
-        "bound_validity": null,
-        "budget_max_work": 1,
-        "code": "unsupported",
-        "termination": null,
-        "work_units": 0
-      },
-      "observed_success_count": 1,
+      "reason": "footprint_area_not_representable",
       "status": "pass",
-      "tolerance": 0.0,
-      "truth": "not a certified pass",
-      "unit": "verdict"
-    },
-    {
-      "expected_success_count": 1,
-      "kind": "value",
-      "name": "north_polar:negative_maxprecision_64",
-      "observed": {
-        "bound_validity": null,
-        "budget_max_work": 1000000,
-        "code": "unsupported",
-        "termination": null,
-        "work_units": 0
-      },
-      "observed_success_count": 1,
-      "status": "pass",
-      "tolerance": 0.0,
-      "truth": "not a certified pass",
-      "unit": "verdict"
-    },
-    {
-      "expected_success_count": 1,
-      "kind": "value",
-      "name": "north_polar:negative_maxprecision_16",
-      "observed": {
-        "bound_validity": null,
-        "budget_max_work": 1000000,
-        "code": "unsupported",
-        "termination": null,
-        "work_units": 0
-      },
-      "observed_success_count": 1,
-      "status": "pass",
-      "tolerance": 0.0,
-      "truth": "not a certified pass",
-      "unit": "verdict"
+      "truth": "a named failure outside the supported domain"
     },
     {
       "expected_success_count": 1,
@@ -2042,7 +434,8 @@
         3.1118596880033722e-09,
         3.126705069052471e-09
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.7545963327762896e-09,
@@ -2060,6 +453,21 @@
       "text_key": "termination"
     },
     {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "polar_extreme:leaf_sum_contains_truth",
+      "observed": [
+        3.1118596880033722e-09,
+        3.126705069052471e-09
+      ],
+      "observed_success_count": 1,
+      "reason": "the sum of the reported leaf intervals must contain the exact total area",
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": 3.1192823760693906e-09,
+      "unit": "sr"
+    },
+    {
       "expected_success_count": 2,
       "kind": "value",
       "name": "polar_extreme:leaf_coverage",
@@ -2071,7 +479,8 @@
         "reported": 1
       },
       "observed_success_count": 1,
-      "status": "fail",
+      "reason": "the subdivision touched leaves that the implementation did not report; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": "every enclosed leaf is reported",
       "unit": "count"
@@ -2085,10 +494,10 @@
         "budget_max_work": 1,
         "code": "ok",
         "termination": "tolerance_met",
-        "work_units": 0
+        "work_units": 34
       },
       "observed_success_count": 1,
-      "status": "pass",
+      "status": "fail",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -2098,11 +507,11 @@
       "kind": "value",
       "name": "polar_extreme:negative_maxprecision_64",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 0
+        "termination": "precision",
+        "work_units": 67
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -2115,14 +524,14 @@
       "kind": "value",
       "name": "polar_extreme:negative_maxprecision_16",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 0
+        "termination": "precision",
+        "work_units": 67
       },
       "observed_success_count": 1,
-      "status": "fail",
+      "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -2158,7 +567,7 @@
         3.0461741978670944e-16
       ],
       "observed_success_count": 1,
-      "status": "fail",
+      "status": "pass",
       "tolerance": 0.0,
       "truth": 3.046174197867061e-16,
       "unit": "sr"
@@ -2181,7 +590,8 @@
         1.7176214740686998e-18,
         1.717621474068713e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.6953192782595431e-18,
@@ -2196,7 +606,8 @@
         1.717621474068704e-18,
         1.7176214740687168e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.695246651807148e-18,
@@ -2211,7 +622,8 @@
         6.844498225015152e-19,
         6.844498225015203e-19
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         6.744092369411865e-19,
@@ -2226,7 +638,8 @@
         3.612047202646093e-18,
         3.61204720264612e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.568936497149133e-18,
@@ -2241,7 +654,8 @@
         1.4574082046954739e-18,
         1.457408204695485e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.436914360637667e-18,
@@ -2256,7 +670,8 @@
         1.7176214740687006e-18,
         1.7176214740687131e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.695246651807148e-18,
@@ -2271,7 +686,8 @@
         1.7176214740687021e-18,
         1.7176214740687152e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.6953192782595431e-18,
@@ -2286,7 +702,8 @@
         3.6318101466396364e-18,
         3.631810146639663e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.586294219271569e-18,
@@ -2301,7 +718,8 @@
         3.6318101466396364e-18,
         3.6318101466396634e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.586439472176359e-18,
@@ -2316,7 +734,8 @@
         3.633196352092313e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587456242509891e-18,
@@ -2331,7 +750,8 @@
         1.7176214740686983e-18,
         1.7176214740687114e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.695246651807148e-18,
@@ -2346,7 +766,8 @@
         3.6318101466396364e-18,
         3.6318101466396634e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.58658472508115e-18,
@@ -2361,7 +782,8 @@
         3.63181014663964e-18,
         3.631810146639668e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.586221592819174e-18,
@@ -2376,7 +798,8 @@
         3.633196352092316e-18,
         3.633196352092344e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587383616057496e-18,
@@ -2391,7 +814,8 @@
         3.633196352092313e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587020483795521e-18,
@@ -2406,7 +830,8 @@
         3.633196352092313e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -2421,7 +846,8 @@
         3.633196352092316e-18,
         3.633196352092344e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -2436,7 +862,8 @@
         3.633196352092315e-18,
         3.633196352092342e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587310989605101e-18,
@@ -2451,7 +878,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -2466,7 +894,8 @@
         3.6134334080987686e-18,
         3.6134334080987956e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.569880641030269e-18,
@@ -2481,7 +910,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587310989605101e-18,
@@ -2496,7 +926,8 @@
         3.633196352092311e-18,
         3.633196352092338e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -2511,7 +942,8 @@
         1.4574082046954735e-18,
         1.457408204695485e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.4367691077328767e-18,
@@ -2526,7 +958,8 @@
         3.6134334080987686e-18,
         3.613433408098795e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.5698080145778745e-18,
@@ -2541,7 +974,8 @@
         1.4574082046954735e-18,
         1.4574082046954848e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.4367691077328767e-18,
@@ -2556,7 +990,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.5870931102479155e-18,
@@ -2571,7 +1006,8 @@
         3.633196352092311e-18,
         3.633196352092338e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.5870931102479155e-18,
@@ -2586,7 +1022,8 @@
         3.633196352092315e-18,
         3.633196352092342e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587456242509891e-18,
@@ -2601,7 +1038,8 @@
         3.633196352092315e-18,
         3.6331963520923414e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.5870931102479155e-18,
@@ -2616,7 +1054,8 @@
         3.633196352092311e-18,
         3.6331963520923376e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587456242509891e-18,
@@ -2631,7 +1070,8 @@
         3.613433408098774e-18,
         3.6134334080988e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.569880641030269e-18,
@@ -2646,7 +1086,8 @@
         3.6331963520923145e-18,
         3.633196352092341e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587310989605101e-18,
@@ -2661,7 +1102,8 @@
         3.633196352092321e-18,
         3.633196352092347e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -2676,7 +1118,8 @@
         1.4574082046954677e-18,
         1.4574082046954789e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.4368417341852719e-18,
@@ -2691,7 +1134,8 @@
         3.613433408098769e-18,
         3.613433408098796e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.5698080145778745e-18,
@@ -2706,7 +1150,8 @@
         1.4574082046954706e-18,
         1.4574082046954814e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.436914360637667e-18,
@@ -2721,7 +1166,8 @@
         9.191268865542461e-19,
         9.19126886554253e-19
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         9.07540149129557e-19,
@@ -2736,7 +1182,8 @@
         3.631810146639638e-18,
         3.631810146639665e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.5866573515335445e-18,
@@ -2751,7 +1198,8 @@
         2.195879848497201e-21,
         2.1958798484972174e-21
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.4525290479026203e-21,
@@ -2766,7 +1214,8 @@
         1.940719853609075e-18,
         1.940719853609089e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.916829958064693e-18,
@@ -2781,7 +1230,8 @@
         2.1958798484972e-21,
         2.1958798484972174e-21
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.4525290479026203e-21,
@@ -2796,7 +1246,8 @@
         3.633196352092314e-18,
         3.633196352092341e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -2811,7 +1262,8 @@
         3.633196352092313e-18,
         3.63319635209234e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -2826,7 +1278,8 @@
         3.6331963520923145e-18,
         3.633196352092341e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -2841,7 +1294,8 @@
         3.633196352092313e-18,
         3.63319635209234e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -2856,7 +1310,8 @@
         3.633196352092313e-18,
         3.63319635209234e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -2871,7 +1326,8 @@
         3.633196352092313e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -2886,7 +1342,8 @@
         3.633196352092313e-18,
         3.63319635209234e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587310989605101e-18,
@@ -2901,7 +1358,8 @@
         3.633196352092313e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -2916,7 +1374,8 @@
         1.9407198536090745e-18,
         1.940719853609089e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.917047837421878e-18,
@@ -2931,7 +1390,8 @@
         3.633196352092313e-18,
         3.63319635209234e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -2946,7 +1406,8 @@
         2.1958798484972e-21,
         2.1958798484972167e-21
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.4525290479026203e-21,
@@ -2961,7 +1422,8 @@
         1.9407198536090745e-18,
         1.9407198536090887e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.9169752109694828e-18,
@@ -2976,7 +1438,8 @@
         3.633196352092313e-18,
         3.63319635209234e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -2991,7 +1454,8 @@
         3.633196352092313e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587383616057496e-18,
@@ -3006,7 +1470,8 @@
         3.633196352092313e-18,
         3.63319635209234e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.5870931102479155e-18,
@@ -3021,7 +1486,8 @@
         3.633196352092313e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587310989605101e-18,
@@ -3036,7 +1502,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587310989605101e-18,
@@ -3051,7 +1518,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -3066,7 +1534,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -3081,7 +1550,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -3096,7 +1566,8 @@
         3.633196352092311e-18,
         3.6331963520923376e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -3111,7 +1582,8 @@
         3.633196352092316e-18,
         3.633196352092344e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -3126,7 +1598,8 @@
         3.633196352092311e-18,
         3.6331963520923376e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -3141,7 +1614,8 @@
         3.633196352092316e-18,
         3.633196352092344e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587383616057496e-18,
@@ -3156,7 +1630,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587310989605101e-18,
@@ -3171,7 +1646,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587383616057496e-18,
@@ -3186,7 +1662,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587020483795521e-18,
@@ -3201,7 +1678,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587310989605101e-18,
@@ -3216,7 +1694,8 @@
         3.633196352092311e-18,
         3.6331963520923376e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -3231,7 +1710,8 @@
         3.633196352092316e-18,
         3.633196352092344e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -3246,7 +1726,8 @@
         3.633196352092311e-18,
         3.633196352092338e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -3261,7 +1742,8 @@
         3.633196352092316e-18,
         3.633196352092344e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -3276,7 +1758,8 @@
         2.1958798484971993e-21,
         2.1958798484972167e-21
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.4525290479026203e-21,
@@ -3291,7 +1774,8 @@
         1.9407198536090737e-18,
         1.9407198536090884e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.916902584517088e-18,
@@ -3306,7 +1790,8 @@
         3.633196352092313e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587456242509891e-18,
@@ -3321,7 +1806,8 @@
         2.1958798484971993e-21,
         2.1958798484972167e-21
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.4525290479026203e-21,
@@ -3336,7 +1822,8 @@
         1.9407198536090737e-18,
         1.9407198536090884e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.916829958064693e-18,
@@ -3351,7 +1838,8 @@
         2.1958798484971993e-21,
         2.195879848497216e-21
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.5251555002977512e-21,
@@ -3366,7 +1854,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -3381,7 +1870,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587165736700311e-18,
@@ -3396,7 +1886,8 @@
         3.633196352092313e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587310989605101e-18,
@@ -3411,7 +1902,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587383616057496e-18,
@@ -3426,7 +1918,8 @@
         3.633196352092311e-18,
         3.633196352092338e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587383616057496e-18,
@@ -3441,7 +1934,8 @@
         3.633196352092316e-18,
         3.633196352092344e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.5870931102479155e-18,
@@ -3456,7 +1950,8 @@
         3.633196352092311e-18,
         3.633196352092338e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587456242509891e-18,
@@ -3471,7 +1966,8 @@
         2.1052106789019714e-18,
         2.1052106789019872e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         2.0802394759537376e-18,
@@ -3486,7 +1982,8 @@
         1.9407198536090737e-18,
         1.940719853609088e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.916829958064693e-18,
@@ -3501,7 +1998,8 @@
         3.6331963520923114e-18,
         3.633196352092339e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.5870931102479155e-18,
@@ -3516,7 +2014,8 @@
         2.1958798484971986e-21,
         2.195879848497216e-21
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.5251555002977512e-21,
@@ -3531,7 +2030,8 @@
         1.1199002389970962e-18,
         1.1199002389971046e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.1071176403113772e-18,
@@ -3546,7 +2046,8 @@
         2.1052106789019734e-18,
         2.1052106789019888e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         2.0802394759537376e-18,
@@ -3561,7 +2062,8 @@
         1.2475815608396886e-20,
         1.2475815608396981e-20
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.0676088502084259e-20,
@@ -3576,7 +2078,8 @@
         1.2475815608397068e-20,
         1.2475815608397163e-20
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.0603462049689127e-20,
@@ -3591,7 +2094,8 @@
         3.63319635209231e-18,
         3.633196352092337e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.5870931102479155e-18,
@@ -3606,7 +2110,8 @@
         3.613433408098766e-18,
         3.613433408098793e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.5698080145778745e-18,
@@ -3621,7 +2126,8 @@
         3.63319635209231e-18,
         3.633196352092337e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587310989605101e-18,
@@ -3636,7 +2142,8 @@
         3.63319635209231e-18,
         3.633196352092337e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587383616057496e-18,
@@ -3651,7 +2158,8 @@
         1.4574082046954704e-18,
         1.4574082046954812e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.4367691077328767e-18,
@@ -3666,7 +2174,8 @@
         3.613433408098766e-18,
         3.6134334080987925e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.569735388125479e-18,
@@ -3681,7 +2190,8 @@
         8.573081614082472e-19,
         8.573081614082536e-19
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         8.460255439508812e-19,
@@ -3696,7 +2206,8 @@
         3.63319635209231e-18,
         3.633196352092337e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587310989605101e-18,
@@ -3711,7 +2222,8 @@
         3.63319635209231e-18,
         3.633196352092337e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587238363152706e-18,
@@ -3726,7 +2238,8 @@
         3.63319635209231e-18,
         3.633196352092337e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.587310989605101e-18,
@@ -3741,7 +2254,8 @@
         2.1052106789019606e-18,
         2.105210678901976e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         2.0802394759537376e-18,
@@ -3756,7 +2270,8 @@
         2.1052106789019583e-18,
         2.1052106789019737e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         2.0803847288585276e-18,
@@ -3771,7 +2286,8 @@
         1.2475815608395628e-20,
         1.2475815608395722e-20
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.0676088502084259e-20,
@@ -3786,7 +2302,8 @@
         1.2475815608395809e-20,
         1.2475815608395902e-20
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.0603462049689127e-20,
@@ -3801,7 +2318,8 @@
         2.1052106789019633e-18,
         2.1052106789019788e-18
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         2.0803847288585276e-18,
@@ -3816,7 +2334,8 @@
         1.247581560839599e-20,
         1.2475815608396083e-20
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.0676088502084259e-20,
@@ -3831,7 +2350,8 @@
         1.247581560839617e-20,
         1.2475815608396265e-20
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.0603462049689127e-20,
@@ -3849,6 +2369,21 @@
       "text_key": "termination"
     },
     {
+      "expected_success_count": 196,
+      "kind": "value",
+      "name": "order29_subleaf:leaf_sum_contains_truth",
+      "observed": [
+        3.0461741978670713e-16,
+        3.0461741978670974e-16
+      ],
+      "observed_success_count": 196,
+      "reason": "the sum of the reported leaf intervals must contain the exact total area",
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": 3.046174197867061e-16,
+      "unit": "sr"
+    },
+    {
       "expected_success_count": 111,
       "kind": "value",
       "name": "order29_subleaf:leaf_coverage",
@@ -3858,7 +2393,7 @@
         "reported": 111
       },
       "observed_success_count": 111,
-      "status": "pass",
+      "status": "info",
       "tolerance": 0.0,
       "truth": "every enclosed leaf is reported",
       "unit": "count"
@@ -3872,10 +2407,10 @@
         "budget_max_work": 1,
         "code": "ok",
         "termination": "tolerance_met",
-        "work_units": 0
+        "work_units": 34
       },
       "observed_success_count": 1,
-      "status": "pass",
+      "status": "fail",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -3885,11 +2420,11 @@
       "kind": "value",
       "name": "order29_subleaf:negative_maxprecision_64",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 0
+        "termination": "precision",
+        "work_units": 8429
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -3902,14 +2437,14 @@
       "kind": "value",
       "name": "order29_subleaf:negative_maxprecision_16",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 0
+        "termination": "precision",
+        "work_units": 8429
       },
       "observed_success_count": 1,
-      "status": "fail",
+      "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -3968,7 +2503,8 @@
         6.789249110900792e-09,
         6.789252276878758e-09
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         6.781274386181336e-09,
@@ -3983,7 +2519,8 @@
         1.2702161128530757e-08,
         1.2702165215657667e-08
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         1.2693996878517622e-08,
@@ -3998,7 +2535,8 @@
         4.100668901195899e-12,
         4.100726085183989e-12
       ],
-      "status": "fail",
+      "reason": "the per leaf subdivision bound is a lower bound; the verdict is the total area and the leaf sum",
+      "status": "info",
       "tolerance": 0.0,
       "truth": [
         3.9090459415166686e-12,
@@ -4016,6 +2554,21 @@
       "text_key": "termination"
     },
     {
+      "expected_success_count": 4,
+      "kind": "value",
+      "name": "touching_edge:leaf_sum_contains_truth",
+      "observed": [
+        1.9495510908332745e-08,
+        1.9495518218621612e-08
+      ],
+      "observed_success_count": 4,
+      "reason": "the sum of the reported leaf intervals must contain the exact total area",
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": 1.9495514468458293e-08,
+      "unit": "sr"
+    },
+    {
       "expected_success_count": 3,
       "kind": "value",
       "name": "touching_edge:leaf_coverage",
@@ -4025,7 +2578,7 @@
         "reported": 3
       },
       "observed_success_count": 3,
-      "status": "pass",
+      "status": "info",
       "tolerance": 0.0,
       "truth": "every enclosed leaf is reported",
       "unit": "count"
@@ -4039,10 +2592,10 @@
         "budget_max_work": 1,
         "code": "ok",
         "termination": "tolerance_met",
-        "work_units": 0
+        "work_units": 34
       },
       "observed_success_count": 1,
-      "status": "pass",
+      "status": "fail",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -4052,11 +2605,11 @@
       "kind": "value",
       "name": "touching_edge:negative_maxprecision_64",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 0
+        "termination": "precision",
+        "work_units": 133
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -4069,14 +2622,14 @@
       "kind": "value",
       "name": "touching_edge:negative_maxprecision_16",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1000000,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 0
+        "termination": "precision",
+        "work_units": 133
       },
       "observed_success_count": 1,
-      "status": "fail",
+      "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"

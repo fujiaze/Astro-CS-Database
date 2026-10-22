@@ -18,19 +18,19 @@
    "negatives": [
     {
      "bound_validity": "certified",
-     "budget_exceeded": false,
+     "budget_exceeded": true,
      "budget_max_bits": 256,
      "budget_max_work": 1,
      "code": "ok",
-     "fake_pass": false,
+     "fake_pass": true,
      "issues": [],
      "name": "work_1",
      "support": "positive",
      "termination": "tolerance_met",
-     "work_units": 0
+     "work_units": 34
     },
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": false,
      "budget_max_bits": 64,
      "budget_max_work": 1000000,
@@ -39,21 +39,21 @@
      "issues": [],
      "name": "maxprecision_64",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 0
+     "termination": "precision",
+     "work_units": 133
     },
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": false,
      "budget_max_bits": 16,
      "budget_max_work": 1000000,
      "code": "ok",
-     "fake_pass": true,
+     "fake_pass": false,
      "issues": [],
      "name": "maxprecision_16",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 0
+     "termination": "precision",
+     "work_units": 133
     }
    ],
    "overlaps": {
@@ -108,7 +108,7 @@
     "support": "positive",
     "termination": "tolerance_met",
     "unresolved": 0,
-    "work_units": 0
+    "work_units": 133
    },
    "refine": {
     "affected_leaves": 1,
@@ -138,19 +138,19 @@
    "negatives": [
     {
      "bound_validity": "certified",
-     "budget_exceeded": false,
+     "budget_exceeded": true,
      "budget_max_bits": 256,
      "budget_max_work": 1,
      "code": "ok",
-     "fake_pass": false,
+     "fake_pass": true,
      "issues": [],
      "name": "work_1",
      "support": "positive",
      "termination": "tolerance_met",
-     "work_units": 0
+     "work_units": 34
     },
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": false,
      "budget_max_bits": 64,
      "budget_max_work": 1000000,
@@ -159,21 +159,21 @@
      "issues": [],
      "name": "maxprecision_64",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 0
+     "termination": "precision",
+     "work_units": 34
     },
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": false,
      "budget_max_bits": 16,
      "budget_max_work": 1000000,
      "code": "ok",
-     "fake_pass": true,
+     "fake_pass": false,
      "issues": [],
      "name": "maxprecision_16",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 0
+     "termination": "precision",
+     "work_units": 34
     }
    ],
    "overlaps": {
@@ -198,7 +198,7 @@
     "support": "positive",
     "termination": "tolerance_met",
     "unresolved": 0,
-    "work_units": 0
+    "work_units": 34
    },
    "refine": {
     "affected_leaves": 1,
@@ -302,19 +302,19 @@
    "negatives": [
     {
      "bound_validity": "certified",
-     "budget_exceeded": false,
+     "budget_exceeded": true,
      "budget_max_bits": 256,
      "budget_max_work": 1,
      "code": "ok",
-     "fake_pass": false,
+     "fake_pass": true,
      "issues": [],
      "name": "work_1",
      "support": "positive",
      "termination": "tolerance_met",
-     "work_units": 0
+     "work_units": 34
     },
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": false,
      "budget_max_bits": 64,
      "budget_max_work": 1000000,
@@ -323,21 +323,21 @@
      "issues": [],
      "name": "maxprecision_64",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 0
+     "termination": "precision",
+     "work_units": 67
     },
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": false,
      "budget_max_bits": 16,
      "budget_max_work": 1000000,
      "code": "ok",
-     "fake_pass": true,
+     "fake_pass": false,
      "issues": [],
      "name": "maxprecision_16",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 0
+     "termination": "precision",
+     "work_units": 67
     }
    ],
    "overlaps": {
@@ -362,7 +362,7 @@
     "support": "positive",
     "termination": "tolerance_met",
     "unresolved": 0,
-    "work_units": 0
+    "work_units": 67
    },
    "refine": {
     "affected_leaves": 1,
@@ -392,19 +392,19 @@
    "negatives": [
     {
      "bound_validity": "certified",
-     "budget_exceeded": false,
+     "budget_exceeded": true,
      "budget_max_bits": 256,
      "budget_max_work": 1,
      "code": "ok",
-     "fake_pass": false,
+     "fake_pass": true,
      "issues": [],
      "name": "work_1",
      "support": "positive",
      "termination": "tolerance_met",
-     "work_units": 0
+     "work_units": 34
     },
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": false,
      "budget_max_bits": 64,
      "budget_max_work": 1000000,
@@ -413,21 +413,21 @@
      "issues": [],
      "name": "maxprecision_64",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 0
+     "termination": "precision",
+     "work_units": 8429
     },
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": false,
      "budget_max_bits": 16,
      "budget_max_work": 1000000,
      "code": "ok",
-     "fake_pass": true,
+     "fake_pass": false,
      "issues": [],
      "name": "maxprecision_16",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 0
+     "termination": "precision",
+     "work_units": 8429
     }
    ],
    "overlaps": {
@@ -2402,7 +2402,7 @@
     "support": "positive",
     "termination": "tolerance_met",
     "unresolved": 0,
-    "work_units": 0
+    "work_units": 8429
    },
    "refine": {
     "affected_leaves": 196,
@@ -2432,19 +2432,19 @@
    "negatives": [
     {
      "bound_validity": "certified",
-     "budget_exceeded": false,
+     "budget_exceeded": true,
      "budget_max_bits": 256,
      "budget_max_work": 1,
      "code": "ok",
-     "fake_pass": false,
+     "fake_pass": true,
      "issues": [],
      "name": "work_1",
      "support": "positive",
      "termination": "tolerance_met",
-     "work_units": 0
+     "work_units": 34
     },
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": false,
      "budget_max_bits": 64,
      "budget_max_work": 1000000,
@@ -2453,21 +2453,21 @@
      "issues": [],
      "name": "maxprecision_64",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 0
+     "termination": "precision",
+     "work_units": 133
     },
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": false,
      "budget_max_bits": 16,
      "budget_max_work": 1000000,
      "code": "ok",
-     "fake_pass": true,
+     "fake_pass": false,
      "issues": [],
      "name": "maxprecision_16",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 0
+     "termination": "precision",
+     "work_units": 133
     }
    ],
    "overlaps": {
@@ -2522,7 +2522,7 @@
     "support": "positive",
     "termination": "tolerance_met",
     "unresolved": 0,
-    "work_units": 0
+    "work_units": 133
    },
    "refine": {
     "affected_leaves": 1,

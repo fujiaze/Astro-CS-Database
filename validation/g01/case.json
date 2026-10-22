@@ -134,7 +134,7 @@
     "total_area_closure": "sum of the leaf areas must match the exact drop area",
     "total_area_relative": 1e-09
   },
-  "truth_sha256": "fa287fb92feb55b6cf20cf09ab2b3478f2ac1158f097821cf38c1aed3e621cd3",
+  "truth_sha256": "980fcfcf00c6f76fa63ff3a97c86ebf2b4757b702eb325d1521d42fbc8a037b4",
   "truth_type": "analytic_exact + deterministic_enclosure + stochastic_confidence",
   "unit": "sr"
 }
