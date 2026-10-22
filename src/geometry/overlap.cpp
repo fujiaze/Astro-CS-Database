@@ -167,6 +167,9 @@ Result<Ref<DetectorFootprint>> detector_footprint(Context& context, Ref<Footprin
   footprint.wcs = set.wcs;
   footprint.pixel_response = set.pixel_response;
   footprint.source = model::source_at(*set.index, source_row);
+  // The sample number of the identity is the source row: the Drizzle weight
+  // matrix uses it as the column of the contribution.
+  footprint.source.sample = source_row;
   footprint.identity = model::make_identity("acsd.DetectorFootprint", 2, 0,
                                              model::sha256_hex(std::to_string(source_row)), "acsd");
   footprint.assessment = model::make_assessment(Code::ok);
@@ -453,9 +456,14 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   std::vector<Dyadic> primitive_lower;
   std::vector<Dyadic> primitive_upper;
 
+  // The source row of the footprint: the column of every primitive and of
+  // every block is the source row, never a hard coded zero.  The source row
+  // is the sample number of the source identity, which the workflow sets to
+  // the number of the pixel (or pixel block) it stands for.
+  const U64 source_row = source->source.sample;
   auto push_primitive = [&](std::uint8_t kind, std::optional<HealpixLeaf> leaf, const Dyadic& lower,
                              const Dyadic& upper) {
-    primitive_source.push_back(0);
+    primitive_source.push_back(source_row);
     if (leaf.has_value()) {
       primitive_orders.push_back(leaf->order);
       primitive_ipix.push_back(leaf->ipix);
@@ -505,7 +513,7 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
     const Dyadic& upper = entry.second.second;
     const U64 row = primitive_source.size();
     push_primitive(2, leaf, lower, upper);
-    overlap_source.push_back(0);
+    overlap_source.push_back(source->source.sample);
     overlap_orders.push_back(leaf.order);
     overlap_ipix.push_back(leaf.ipix);
     overlap_native.push_back(native_row);
@@ -699,7 +707,7 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   footprint_set->assessment = model::make_assessment(Code::ok);
   footprint_set->assessment.complete = true;
 
-  Result<ArrayRef> recipe_rows = store_u64(context, {0ull}, "acsd.geometry.source_rows");
+  Result<ArrayRef> recipe_rows = store_u64(context, {source->source.sample}, "acsd.geometry.source_rows");
   if (!ok(recipe_rows)) {
     return fail<Ref<Overlaps>>(recipe_rows.code, "recipe_store_failed", "compute_overlap");
   }
@@ -763,20 +771,14 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   }
   model::set_included(overlaps->assessment, "affine_strip_cut_cell");
   {
-    // The published contributions carry one source row per source of the
-    // recipe.  A recipe with more than one source row needs the per pixel
-    // attribution of the leaves, which the DetectorFootprint cannot carry:
-    // the contract gap is named here instead of being papered over.
-    const U64 rows = primitives->source_index ? primitives->source_index->size : 1;
-    if (rows > 1) {
-      model::add_issue(overlaps->assessment, Code::unsupported,
-                       "per_pixel_attribution_unavailable", "compute_overlap:source_rows",
-                       "the overlap of this recipe is published per leaf, not per source row, so "
-                       "the Drizzle weights of a multi row recipe cannot be attached to the "
-                       "individual pixels",
-                       "extend DetectorFootprint with the sample to detector transform and the "
-                       "source row, or publish the per source row blocks in Overlaps");
-    }
+    // The fact of the coverage: how many source rows of the recipe this
+    // overlap covers.  The Drizzle weight matrix has one column per source
+    // row, so the caller can check the column count against the frame.
+    const U64 total = primitives->source_index ? primitives->source_index->size : 1;
+    const U64 covered = 1;
+    model::set_included(overlaps->assessment, "source_rows_covered=" + std::to_string(covered) +
+                                                 ":source_rows_total=" + std::to_string(total) +
+                                                 ":source_row=" + std::to_string(source_row));
   }
   model::set_included(overlaps->assessment, "exact_rational_clipping");
   model::set_included(overlaps->assessment, "shared_constraints");

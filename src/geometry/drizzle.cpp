@@ -173,7 +173,9 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
       IntervalValue w = divide(a, IntervalValue{drop.upper, drop.lower});
       w.upper = std::min(1.0, w.upper);
       weight_sum = add(weight_sum, w);
-      const U64 source_row = 0;  // the single source of this recipe
+      // The column of the weight is the source row of the contribution (the
+      // sample number of its source identity), never a hard coded zero.
+      const U64 source_row = contribution.source.sample;
       const double value = source_row < source_count ? x[source_row] : 0.0;
       const IntervalValue signal_interval = multiply(w, IntervalValue{value, value});
       numerator = add(numerator, signal_interval);
