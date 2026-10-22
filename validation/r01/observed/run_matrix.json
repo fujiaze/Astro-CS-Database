@@ -1,0 +1,433 @@
+{
+ "case": "R01",
+ "route": "the command line under a matrix of resource limits",
+ "binary": "build/science/acsd",
+ "runs": [
+  {
+   "id": "threads_1",
+   "resources": {
+    "threads": 1,
+    "bytes": 1073741824
+   },
+   "exit_code": 0,
+   "keys": {
+    "signal_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
+    "configuration_hash": "sha256:bb04bc71d2308f213fde09adca0e78cc5a6010ee730ebd8d64766ed3f4ebcb0b",
+    "manifest_sha256": "24f40081b9e0d7f875e6c4db573adcb66bb20636a4692a575f10f7442be8ac8d",
+    "objects": 6,
+    "blocks": 2
+   },
+   "stdout_is_pure_jsonl": true,
+   "summary": {
+    "cancelled": 0,
+    "failed": 0,
+    "frames": [
+     {
+      "code": "ok",
+      "frame": "export",
+      "reason": "the export was published",
+      "status": "published"
+     }
+    ],
+    "inputs_total": 1,
+    "published": 1,
+    "unsolved": 0
+   },
+   "run_finished": {
+    "assessment": null,
+    "block": null,
+    "code": "ok",
+    "completed": 0,
+    "event": "run_finished",
+    "exit_code": 0,
+    "frame_id": null,
+    "message": "the run finished",
+    "protocol": "acsd.events/2",
+    "run_id": "run-5702a5ff4af09750",
+    "seq": 4,
+    "summary": {
+     "cancelled": 0,
+     "failed": 0,
+     "frames": [
+      {
+       "code": "ok",
+       "frame": "export",
+       "reason": "the export was published",
+       "status": "published"
+      }
+     ],
+     "inputs_total": 1,
+     "published": 1,
+     "unsolved": 0
+    },
+    "total": 0
+   },
+   "foreign_stdout_lines": []
+  },
+  {
+   "id": "threads_4",
+   "resources": {
+    "threads": 4,
+    "bytes": 1073741824
+   },
+   "exit_code": 0,
+   "keys": {
+    "signal_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
+    "configuration_hash": "sha256:29d4060264fb91b09dee78226b34ea1f20ad4e5d84fecb8b940df856faf26cd5",
+    "manifest_sha256": "3f8613948a3b4e4e37ee63270e1ca73b81a7f59097a0ef7182b5be6bc467ae0d",
+    "objects": 6,
+    "blocks": 2
+   },
+   "stdout_is_pure_jsonl": true,
+   "summary": {
+    "cancelled": 0,
+    "failed": 0,
+    "frames": [
+     {
+      "code": "ok",
+      "frame": "export",
+      "reason": "the export was published",
+      "status": "published"
+     }
+    ],
+    "inputs_total": 1,
+    "published": 1,
+    "unsolved": 0
+   },
+   "run_finished": {
+    "assessment": null,
+    "block": null,
+    "code": "ok",
+    "completed": 0,
+    "event": "run_finished",
+    "exit_code": 0,
+    "frame_id": null,
+    "message": "the run finished",
+    "protocol": "acsd.events/2",
+    "run_id": "run-506783796733d8ad",
+    "seq": 4,
+    "summary": {
+     "cancelled": 0,
+     "failed": 0,
+     "frames": [
+      {
+       "code": "ok",
+       "frame": "export",
+       "reason": "the export was published",
+       "status": "published"
+      }
+     ],
+     "inputs_total": 1,
+     "published": 1,
+     "unsolved": 0
+    },
+    "total": 0
+   },
+   "foreign_stdout_lines": []
+  },
+  {
+   "id": "bytes_32MiB",
+   "resources": {
+    "threads": 1,
+    "bytes": 33554432
+   },
+   "exit_code": 0,
+   "keys": {
+    "signal_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
+    "configuration_hash": "sha256:38fff302052cfef093465005d96344a51b6c3852e514862ed842ea076314188c",
+    "manifest_sha256": "97187f9de26cf0d7ed58c5415dc8e745293c2ee36f79f8c7274bd16b16c60bf7",
+    "objects": 6,
+    "blocks": 2
+   },
+   "stdout_is_pure_jsonl": true,
+   "summary": {
+    "cancelled": 0,
+    "failed": 0,
+    "frames": [
+     {
+      "code": "ok",
+      "frame": "export",
+      "reason": "the export was published",
+      "status": "published"
+     }
+    ],
+    "inputs_total": 1,
+    "published": 1,
+    "unsolved": 0
+   },
+   "run_finished": {
+    "assessment": null,
+    "block": null,
+    "code": "ok",
+    "completed": 0,
+    "event": "run_finished",
+    "exit_code": 0,
+    "frame_id": null,
+    "message": "the run finished",
+    "protocol": "acsd.events/2",
+    "run_id": "run-ff00bbb12f66a119",
+    "seq": 4,
+    "summary": {
+     "cancelled": 0,
+     "failed": 0,
+     "frames": [
+      {
+       "code": "ok",
+       "frame": "export",
+       "reason": "the export was published",
+       "status": "published"
+      }
+     ],
+     "inputs_total": 1,
+     "published": 1,
+     "unsolved": 0
+    },
+    "total": 0
+   },
+   "foreign_stdout_lines": []
+  },
+  {
+   "id": "bytes_256MiB",
+   "resources": {
+    "threads": 1,
+    "bytes": 268435456
+   },
+   "exit_code": 0,
+   "keys": {
+    "signal_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
+    "configuration_hash": "sha256:54cfc160fdc7113f63e07e0ec83a2d5a02f626d6fffa1d1ff5b89ee0cf74a0b2",
+    "manifest_sha256": "66ec538c6941c310afe81fb9f8f288d83c31e6b82fe6eb515ea36d77f53c72e0",
+    "objects": 6,
+    "blocks": 2
+   },
+   "stdout_is_pure_jsonl": true,
+   "summary": {
+    "cancelled": 0,
+    "failed": 0,
+    "frames": [
+     {
+      "code": "ok",
+      "frame": "export",
+      "reason": "the export was published",
+      "status": "published"
+     }
+    ],
+    "inputs_total": 1,
+    "published": 1,
+    "unsolved": 0
+   },
+   "run_finished": {
+    "assessment": null,
+    "block": null,
+    "code": "ok",
+    "completed": 0,
+    "event": "run_finished",
+    "exit_code": 0,
+    "frame_id": null,
+    "message": "the run finished",
+    "protocol": "acsd.events/2",
+    "run_id": "run-af454797f138b4bd",
+    "seq": 4,
+    "summary": {
+     "cancelled": 0,
+     "failed": 0,
+     "frames": [
+      {
+       "code": "ok",
+       "frame": "export",
+       "reason": "the export was published",
+       "status": "published"
+      }
+     ],
+     "inputs_total": 1,
+     "published": 1,
+     "unsolved": 0
+    },
+    "total": 0
+   },
+   "foreign_stdout_lines": []
+  },
+  {
+   "id": "work_1",
+   "resources": {
+    "threads": 1,
+    "bytes": 1073741824,
+    "work": 1
+   },
+   "exit_code": 0,
+   "keys": {
+    "signal_sha256": "c8254c426142500cb28f26de4d024d83a539219476ff8c4d054814124ebf5eb0",
+    "configuration_hash": "sha256:3bf9de381b325ffb5c53ad1200a6770c1488b9a83c05c55eb289870d504ced21",
+    "manifest_sha256": "b3181ad783cf863d243db103aa8edd0d2cee3a6dfde24616aadaafc524356592",
+    "objects": 6,
+    "blocks": 2
+   },
+   "stdout_is_pure_jsonl": true,
+   "summary": {
+    "cancelled": 0,
+    "failed": 0,
+    "frames": [
+     {
+      "code": "ok",
+      "frame": "export",
+      "reason": "the export was published",
+      "status": "published"
+     }
+    ],
+    "inputs_total": 1,
+    "published": 1,
+    "unsolved": 0
+   },
+   "run_finished": {
+    "assessment": null,
+    "block": null,
+    "code": "ok",
+    "completed": 0,
+    "event": "run_finished",
+    "exit_code": 0,
+    "frame_id": null,
+    "message": "the run finished",
+    "protocol": "acsd.events/2",
+    "run_id": "run-c357cf5efe88072b",
+    "seq": 4,
+    "summary": {
+     "cancelled": 0,
+     "failed": 0,
+     "frames": [
+      {
+       "code": "ok",
+       "frame": "export",
+       "reason": "the export was published",
+       "status": "published"
+      }
+     ],
+     "inputs_total": 1,
+     "published": 1,
+     "unsolved": 0
+    },
+    "total": 0
+   },
+   "foreign_stdout_lines": []
+  }
+ ],
+ "comparisons": [
+  {
+   "id": "threads_4",
+   "reference": "threads_1",
+   "identical_payload": true,
+   "signal_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
+   "reference_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b"
+  },
+  {
+   "id": "bytes_32MiB",
+   "reference": "threads_1",
+   "identical_payload": true,
+   "signal_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
+   "reference_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b"
+  },
+  {
+   "id": "bytes_256MiB",
+   "reference": "threads_1",
+   "identical_payload": true,
+   "signal_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
+   "reference_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b"
+  }
+ ],
+ "write_failure": {
+  "exit_code": 2,
+  "run_finished": {
+   "assessment": null,
+   "block": null,
+   "code": "failed",
+   "completed": 0,
+   "event": "run_finished",
+   "exit_code": 2,
+   "frame_id": null,
+   "message": "the run finished",
+   "protocol": "acsd.events/2",
+   "run_id": "run-87705ac5ac010f03",
+   "seq": 3,
+   "summary": {
+    "cancelled": 0,
+    "failed": 1,
+    "frames": [
+     {
+      "code": "failed",
+      "frame": "export",
+      "reason": "the destination already exists: /workspace/Astro CS Database/validation/r01/work/products/read_only",
+      "status": "failed"
+     }
+    ],
+    "inputs_total": 1,
+    "published": 0,
+    "unsolved": 0
+   },
+   "total": 0
+  },
+  "summary": {
+   "cancelled": 0,
+   "failed": 1,
+   "frames": [
+    {
+     "code": "failed",
+     "frame": "export",
+     "reason": "the destination already exists: /workspace/Astro CS Database/validation/r01/work/products/read_only",
+     "status": "failed"
+    }
+   ],
+   "inputs_total": 1,
+   "published": 0,
+   "unsolved": 0
+  },
+  "named_failure": true,
+  "published": 0
+ },
+ "cancellation": {
+  "exit_code": 5,
+  "run_finished": {
+   "assessment": null,
+   "block": null,
+   "code": "failed",
+   "completed": 0,
+   "event": "run_finished",
+   "exit_code": 5,
+   "frame_id": null,
+   "message": "the run finished",
+   "protocol": "acsd.events/2",
+   "run_id": "run-9f400112dbaf83a0",
+   "seq": 3,
+   "summary": {
+    "cancelled": 0,
+    "failed": 1,
+    "frames": [
+     {
+      "code": "failed",
+      "frame": "export",
+      "reason": "the export was cancelled",
+      "status": "failed"
+     }
+    ],
+    "inputs_total": 1,
+    "published": 0,
+    "unsolved": 0
+   },
+   "total": 0
+  },
+  "summary": {
+   "cancelled": 0,
+   "failed": 1,
+   "frames": [
+    {
+     "code": "failed",
+     "frame": "export",
+     "reason": "the export was cancelled",
+     "status": "failed"
+    }
+   ],
+   "inputs_total": 1,
+   "published": 0,
+   "unsolved": 0
+  }
+ },
+ "cache_option": "the configuration schema has no cache switch; the cache state cannot be varied from outside"
+}

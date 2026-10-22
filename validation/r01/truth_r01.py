@@ -16,6 +16,7 @@ an empirical resource ledger.
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -167,15 +168,165 @@ def main() -> int:
         "request_hash": content_hash(request),
     })
 
+    # ---- the observed side: the run matrix over the command line -----------
+    import run_matrix
+
+    matrix_path = case.root / "observed" / "run_matrix.json"
+    if not matrix_path.is_file():
+        subprocess.run([sys.executable, str(case.root / "run_matrix.py")],
+                       check=False, capture_output=True, timeout=3600)
+    rows = []
+    failures = []
+    status = "pass"
+    if not matrix_path.is_file():
+        rows.append({"name": "run_matrix_available", "kind": "value",
+                     "status": "pending_implementation", "observed": None,
+                     "expected_success_count": 1, "observed_success_count": 0,
+                     "reason": "the run matrix did not produce a report"})
+        status = "pending_implementation"
+    else:
+        matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+
+        # 1) the payload must not depend on the resource limits
+        comparisons = matrix.get("comparisons", [])
+        identical = all(entry.get("identical_payload") for entry in comparisons)
+        rows.append({"name": "content_hash_identical_across_the_matrix", "kind": "value",
+                     "status": "pass" if comparisons and identical else "fail",
+                     "truth": "identical", "observed": [entry.get("signal_sha256")
+                                                        for entry in comparisons],
+                     "tolerance": 0.0, "unit": "hash",
+                     "expected_success_count": len(comparisons),
+                     "observed_success_count": sum(1 for entry in comparisons
+                                                  if entry.get("identical_payload"))})
+        if not comparisons or not identical:
+            failures.append({"functional": "content_hash_identical_across_the_matrix",
+                             "scope": "run_matrix",
+                             "expected": "identical payload content",
+                             "actual": [entry.get("signal_sha256") for entry in comparisons],
+                             "reason": "the payload depends on the resource limits"})
+            status = "fail"
+
+        # 2) the work budget must be named, not silently change the result
+        work_runs = [run for run in matrix.get("runs", []) if run["id"] == "work_1"]
+        if work_runs:
+            run = work_runs[0]
+            finished = run.get("run_finished") or {}
+            others = [entry for entry in matrix.get("runs", []) if entry["id"] != "work_1"]
+            reference = others[0]["keys"]["signal_sha256"] if others else None
+            named = finished.get("code") not in (None, "ok")
+            same_payload = run["keys"]["signal_sha256"] == reference
+            rows.append({"name": "work_budget_is_named", "kind": "value",
+                         "status": "pass" if (named and same_payload) else "fail",
+                         "truth": "the budget exhaustion is named and the payload is the same",
+                         "observed": {"code": finished.get("code"),
+                                      "signal_sha256": run["keys"]["signal_sha256"],
+                                      "reference_sha256": reference},
+                         "expected_success_count": 1, "observed_success_count": 1})
+            if not (named and same_payload):
+                failures.append({"functional": "work_budget_is_named", "scope": "run_matrix",
+                                 "expected": "a named work exhaustion and an unchanged payload",
+                                 "actual": {"code": finished.get("code"),
+                                            "signal_sha256": run["keys"]["signal_sha256"],
+                                            "reference_sha256": reference},
+                                 "reason": "the work budget of one unit was exceeded but the run "
+                                           "reported success and published a different payload"})
+                status = "fail"
+
+        # 3) a write that cannot be completed must be named and must not publish
+        write_failure = matrix.get("write_failure", {})
+        published = write_failure.get("published", 0)
+        code = (write_failure.get("run_finished") or {}).get("code")
+        rows.append({"name": "write_failure_is_named", "kind": "value",
+                     "status": "pass" if code not in (None, "ok") and published == 0 else "fail",
+                     "truth": "a named failure without a publication",
+                     "observed": {"code": code, "published": published,
+                                  "exit_code": write_failure.get("exit_code")},
+                     "expected_success_count": 1, "observed_success_count": 1})
+        if code in (None, "ok") or published != 0:
+            failures.append({"functional": "write_failure_is_named", "scope": "run_matrix",
+                             "expected": "a named failure without a publication",
+                             "actual": write_failure, "reason": "the write failure was not named"})
+            status = "fail"
+
+        # 4) a cancelled run must be named and must not publish
+        cancellation = matrix.get("cancellation", {})
+        finished = cancellation.get("run_finished") or {}
+        frames = ((cancellation.get("summary") or {}).get("frames") or [])
+        reason = frames[0].get("reason") if frames else None
+        cancelled = (cancellation.get("summary") or {}).get("cancelled", 0)
+        published = (cancellation.get("summary") or {}).get("published", 0)
+        named = "cancel" in str(reason).lower() or "cancel" in str(
+            (cancellation.get("summary") or {}).get("frames")).lower()
+        rows.append({"name": "cancellation_is_named", "kind": "value",
+                     "status": "pass" if named and published == 0 else "fail",
+                     "truth": "a named cancellation without a publication",
+                     "observed": {"reason": reason, "cancelled": cancelled,
+                                  "published": published,
+                                  "exit_code": cancellation.get("exit_code")},
+                     "expected_success_count": 1, "observed_success_count": 1})
+        if not named or published != 0:
+            failures.append({"functional": "cancellation_is_named", "scope": "run_matrix",
+                             "expected": "a named cancellation without a publication",
+                             "actual": cancellation, "reason": "the cancellation was not named"})
+            status = "fail"
+        rows.append({"name": "cancelled_counter", "kind": "value",
+                     "status": "pass" if cancelled >= 1 else "fail",
+                     "truth": "the summary counts the cancelled run",
+                     "observed": cancelled, "expected_success_count": 1,
+                     "observed_success_count": 1,
+                     "reason": "the frame is counted as failed although the reason names the "
+                               "cancellation"})
+        if cancelled < 1:
+            failures.append({"functional": "cancelled_counter", "scope": "run_matrix",
+                             "expected": 1, "actual": cancelled,
+                             "reason": "the summary does not count the cancelled run"})
+            status = "fail"
+
+        # 5) the resource ledger: the work of the geometry path is metered
+        ledger_path = case.root.parent / "g01" / "observed" / "native_g01.json"
+        if ledger_path.is_file():
+            ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+
+            def collect(node: object) -> list:
+                found: list = []
+                if isinstance(node, dict):
+                    for key, value in node.items():
+                        if key == "work_units" and isinstance(value, (int, float)):
+                            found.append(float(value))
+                        else:
+                            found.extend(collect(value))
+                elif isinstance(node, list):
+                    for value in node:
+                        found.extend(collect(value))
+                return found
+
+            work_units = max(collect(ledger), default=0.0)
+            rows.append({"name": "resource_ledger_work_metered", "kind": "value",
+                         "status": "pass" if work_units > 0 else "fail",
+                         "truth": "> 0", "observed": work_units, "tolerance": 0.0,
+                         "unit": "work units", "expected_success_count": 1,
+                         "observed_success_count": 1,
+                         "note": "the geometry path of the native route; the command line "
+                                 "event protocol does not publish the ledger"})
+            if work_units <= 0:
+                failures.append({"functional": "resource_ledger_work_metered",
+                                 "scope": "resource_ledger",
+                                 "expected": "> 0", "actual": work_units,
+                                 "reason": "the work of the geometry path is not metered"})
+                status = "fail"
+
+        # 6) the cache switch is not reachable from the configuration
+        rows.append({"name": "cache_switch_reachable", "kind": "value",
+                     "status": "pending_implementation", "observed": None,
+                     "expected_success_count": 1, "observed_success_count": 0,
+                     "reason": matrix.get("cache_option")})
+        if status == "pass":
+            status = "pending_implementation"
+
     comparison = comparison_payload(
-        case.name.upper(), "pending_implementation",
-        [{"name": "content_hash_identical_across_the_matrix", "kind": "value",
-          "truth": "identical", "tolerance": 0.0, "unit": "hash",
-          "status": "pending_implementation",
-          "reason": "the three command entry points are not available yet"}],
-        [],
-        "The run matrix and the comparison keys are frozen; the observed side is "
-        "pending_implementation.")
+        case.name.upper(), status, rows, failures,
+        "R01: the run matrix over the resource limits and the two named failure paths "
+        "(a write that cannot be completed and a cancelled run)")
 
     case.write_comparison(comparison)
     print(json.dumps({"case": "R01", "runs": [entry["name"] for entry in RUN_MATRIX]}, indent=1))

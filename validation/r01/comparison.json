@@ -1,19 +1,115 @@
 {
   "case": "R01",
-  "failures": [],
+  "failures": [
+    {
+      "actual": {
+        "code": "ok",
+        "reference_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
+        "signal_sha256": "c8254c426142500cb28f26de4d024d83a539219476ff8c4d054814124ebf5eb0"
+      },
+      "expected": "a named work exhaustion and an unchanged payload",
+      "functional": "work_budget_is_named",
+      "reason": "the work budget of one unit was exceeded but the run reported success and published a different payload",
+      "scope": "run_matrix"
+    },
+    {
+      "actual": 0,
+      "expected": 1,
+      "functional": "cancelled_counter",
+      "reason": "the summary does not count the cancelled run",
+      "scope": "run_matrix"
+    }
+  ],
   "functionals": [
     {
+      "expected_success_count": 3,
       "kind": "value",
       "name": "content_hash_identical_across_the_matrix",
-      "reason": "the three command entry points are not available yet",
-      "status": "pending_implementation",
+      "observed": [
+        "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
+        "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
+        "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b"
+      ],
+      "observed_success_count": 3,
+      "status": "pass",
       "tolerance": 0.0,
       "truth": "identical",
       "unit": "hash"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "work_budget_is_named",
+      "observed": {
+        "code": "ok",
+        "reference_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
+        "signal_sha256": "c8254c426142500cb28f26de4d024d83a539219476ff8c4d054814124ebf5eb0"
+      },
+      "observed_success_count": 1,
+      "status": "fail",
+      "truth": "the budget exhaustion is named and the payload is the same"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "write_failure_is_named",
+      "observed": {
+        "code": "failed",
+        "exit_code": 2,
+        "published": 0
+      },
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": "a named failure without a publication"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "cancellation_is_named",
+      "observed": {
+        "cancelled": 0,
+        "exit_code": 5,
+        "published": 0,
+        "reason": "the export was cancelled"
+      },
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": "a named cancellation without a publication"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "cancelled_counter",
+      "observed": 0,
+      "observed_success_count": 1,
+      "reason": "the frame is counted as failed although the reason names the cancellation",
+      "status": "fail",
+      "truth": "the summary counts the cancelled run"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "resource_ledger_work_metered",
+      "note": "the geometry path of the native route; the command line event protocol does not publish the ledger",
+      "observed": 8625.0,
+      "observed_success_count": 1,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": "> 0",
+      "unit": "work units"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "cache_switch_reachable",
+      "observed": null,
+      "observed_success_count": 0,
+      "reason": "the configuration schema has no cache switch; the cache state cannot be varied from outside",
+      "status": "pending_implementation"
     }
   ],
-  "notes": "The run matrix and the comparison keys are frozen; the observed side is pending_implementation.",
-  "status": "pending_implementation",
+  "notes": "R01: the run matrix over the resource limits and the two named failure paths (a write that cannot be completed and a cancelled run)",
+  "status": "fail",
   "status_vocabulary": {
     "fail": "at least one functional is outside the frozen tolerance",
     "not_applicable": "the case does not exercise the requested functional",
