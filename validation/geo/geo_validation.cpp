@@ -1141,6 +1141,103 @@ int main(int argc, char** argv) {
     }
   }
 
+  // 2b. The containment fallback A on the hard configurations: a footprint
+  // whose corner touches the tangent point exactly (a chart cell boundary runs
+  // through that corner) and a very narrow sliver.  Both must keep their mass:
+  // the published interval may not collapse and the analytic reference must
+  // stay inside the published bounds.
+  {
+    auto run_fallback_case = [&](const char* name, const acsd::Box& local_cell,
+                                 const acsd::Box& detector_rect) {
+      const double cd_deg = 0.5;
+      acsd::HeaderFields header =
+          make_header(false, cd_deg, 1.0, 1.0, 0.0, 0.0, "ICRS", false, 0.0, false);
+      const Box domain{{-4.0, -4.0}, {4.0, 4.0}};
+      acsd::AstrometricContext astrometric;
+      Result<Ref<acsd::WcsModel>> model =
+          acsd::make_wcs(context, header, domain, astrometric, "detector-G", budget);
+      if (!good(model)) {
+        geometry.boolean(std::string(name) + "_computed", false);
+        return;
+      }
+      const Ref<acsd::WcsModel>& wcs = value_of(model);
+      Oracle oracle;
+      oracle.crpix[0] = 1.0;
+      oracle.crpix[1] = 1.0;
+      oracle.alpha0 = 0.0;
+      oracle.delta0 = 0.0;
+      const double cd = cd_deg * kDeg;
+      oracle.cd[0] = cd;
+      oracle.cd[3] = cd;
+      auto index = std::make_shared<acsd::Index>();
+      index->size = 1;
+      index->kind = acsd::Index::Kind::native;
+      index->namespace_id = "acsd.validation";
+      index->sources.push_back(
+          acsd::SourceIdentity{"validation", "exposure", "detector", "channel", 0});
+      auto footprints = std::make_shared<acsd::FootprintSet>();
+      footprints->index = index;
+      footprints->width = 1;
+      footprints->height = 1;
+      footprints->detector_from_sample = acsd::Mat2{1.0, 0.0, 0.0, 1.0};
+      footprints->offset = acsd::Vec2{0.0, 0.0};
+      footprints->local_cell = local_cell;
+      footprints->wcs = wcs;
+      footprints->detector_frame = "detector-G";
+      Result<Ref<acsd::DetectorFootprint>> footprint_result =
+          acsd::detector_footprint(context, footprints, 0);
+      if (!good(footprint_result)) {
+        geometry.boolean(std::string(name) + "_computed", false);
+        return;
+      }
+      const Ref<acsd::DetectorFootprint>& footprint = value_of(footprint_result);
+      OracleProvider provider(wcs, oracle);
+      acsd::GeometryBudget geometry_budget;
+      geometry_budget.max_work = 200000;
+      geometry_budget.max_depth = 24;
+      geometry_budget.area_absolute_sr = 1e-12;
+      Result<Ref<acsd::Overlaps>> overlaps =
+          acsd::compute_overlap(context, provider, footprint, 8, 1.0, geometry_budget);
+      geometry.boolean(std::string(name) + "_computed", good(overlaps));
+      if (!good(overlaps)) return;
+      const Ref<acsd::Overlaps>& value = value_of(overlaps);
+      double lower_sum = 0.0;
+      double upper_sum = 0.0;
+      for (const acsd::OverlapContribution& contribution : value->contributions) {
+        lower_sum += contribution.overlap_area.lower_sr;
+        upper_sum += contribution.overlap_area.upper_sr;
+      }
+      // The independent reference: the solid angle density enclosure of the
+      // detector region times its area.
+      Result<acsd::Interval> density = acsd::solid_angle_jacobian(context, wcs, detector_rect, budget);
+      const double area = (detector_rect.upper[0] - detector_rect.lower[0]) *
+                          (detector_rect.upper[1] - detector_rect.lower[1]);
+      double reference_lower = 0.0;
+      double reference_upper = 0.0;
+      if (good(density)) {
+        reference_lower = density.value->lower * area;
+        reference_upper = density.value->upper * area;
+      }
+      geometry.integer(std::string(name) + "_leaf_count",
+                       static_cast<long long>(value->contributions.size()));
+      geometry.number(std::string(name) + "_sum_lower_sr", lower_sum);
+      geometry.number(std::string(name) + "_sum_upper_sr", upper_sum);
+      geometry.number(std::string(name) + "_reference_lower_sr", reference_lower);
+      geometry.number(std::string(name) + "_reference_upper_sr", reference_upper);
+      geometry.boolean(std::string(name) + "_reference_inside_bounds",
+                       lower_sum <= reference_upper && reference_lower <= upper_sum);
+      geometry.boolean(std::string(name) + "_mass_not_lost", upper_sum > 0.0);
+    };
+    // The corner of the footprint sits exactly on the tangent point, where a
+    // chart cell boundary runs: the touching cells stay undecided.
+    run_fallback_case("tangent_corner", acsd::Box{{0.0, 0.0}, {1.0, 1.0}},
+                      acsd::Box{{0.0, 0.0}, {1.0, 1.0}});
+    // A very narrow sliver of the detector: the cells it crosses stay
+    // undecided and keep their mass.
+    run_fallback_case("sliver", acsd::Box{{0.0, 0.0}, {0.05, 1.0}},
+                      acsd::Box{{0.0, 0.0}, {0.05, 1.0}});
+  }
+
   {
     std::ofstream out(directory + "/geo_geometry.json");
     out << geometry.str();

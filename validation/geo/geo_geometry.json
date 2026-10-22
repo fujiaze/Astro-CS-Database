@@ -21,5 +21,21 @@
   "drizzle_built": true,
   "drizzle_operator_present": true,
   "drizzle_estimate_present": true,
-  "drizzle_status_bounded": true
+  "drizzle_status_bounded": true,
+  "tangent_corner_computed": true,
+  "tangent_corner_leaf_count": 20,
+  "tangent_corner_sum_lower_sr": 7.6011916057781864e-05,
+  "tangent_corner_sum_upper_sr": 7.6288241335482088e-05,
+  "tangent_corner_reference_lower_sr": 7.6136959801177247e-05,
+  "tangent_corner_reference_upper_sr": 7.6154354946677264e-05,
+  "tangent_corner_reference_inside_bounds": true,
+  "tangent_corner_mass_not_lost": true,
+  "sliver_computed": true,
+  "sliver_leaf_count": 16,
+  "sliver_sum_lower_sr": 3.8060090705296998e-06,
+  "sliver_sum_upper_sr": 3.8092092101263274e-06,
+  "sliver_reference_lower_sr": 3.8072817401058052e-06,
+  "sliver_reference_upper_sr": 3.8077177473338632e-06,
+  "sliver_reference_inside_bounds": true,
+  "sliver_mass_not_lost": true
 }
