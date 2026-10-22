@@ -66,6 +66,7 @@
      },
      "execution": "complete",
      "included": [
+      "the target covers 256 of 256 pixels and touches 3 leaves",
       "support_approximation"
      ],
      "issues": [
@@ -205,14 +206,14 @@
   }
  },
  "operation": "build_export",
- "output_root": "/tmp/tmpkjhtvbxq",
+ "output_root": "/tmp/tmpx6np627e",
  "protocol": "acsd.contract.response",
  "request_id": "product-2-build",
  "resolved_request_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
  "resources": {
   "byte_budget": 8388608,
   "bytes": 8388608,
-  "elapsed_seconds": 0.000498671,
+  "elapsed_seconds": 0.000429249,
   "peak_payload_bytes": 0,
   "read_bytes": 0,
   "spill_bytes": 0,
@@ -233,6 +234,7 @@
    },
    "execution": "complete",
    "included": [
+    "the target covers 256 of 256 pixels and touches 3 leaves",
     "support_approximation"
    ],
    "issues": [
@@ -252,7 +254,7 @@
   "code": "ok",
   "dependencies": [],
   "usage": {
-   "elapsed_seconds": 3.41e-07,
+   "elapsed_seconds": 6.3e-08,
    "peak_payload_bytes": 0,
    "read_bytes": 0,
    "spill_bytes": 0,
