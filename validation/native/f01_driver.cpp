@@ -309,7 +309,13 @@ int main(int argc, char** argv) {
     double flux;
     double colour;
   };
-  const std::vector<StarTruth> stars = {{5.5, 5.5, 1000.0, 1.0}, {10.25, 6.75, 640.0, 0.8}};
+  // Four stars with different fluxes: the PSF shape fit needs at least as
+  // many independent rows as parameters, so a two star fixture is rank
+  // deficient by construction.
+  const std::vector<StarTruth> stars = {
+      {5.5, 5.5, 1000.0, 1.0}, {10.25, 6.75, 640.0, 0.8}, {4.75, 11.25, 820.0, 0.9},
+      {11.5, 12.5, 520.0, 0.6}, {6.75, 3.25, 910.0, 0.95}, {12.25, 3.75, 470.0, 0.55},
+      {3.25, 8.25, 760.0, 0.85}, {9.5, 9.75, 580.0, 0.65}};
   const std::vector<double> frame_scales = {1.0, 0.5};  // the second frame is dimmer
 
   std::vector<Ref<acsd::NativeObservation>> observations;
@@ -373,10 +379,12 @@ int main(int argc, char** argv) {
       // the astrometry is not the object of this case)
       const double u = stars[index].x + 1.0 - 8.5;
       const double v = stars[index].y + 1.0 - 8.5;
-      const double ra = 10.0 + u * (-1.0e-4) * M_PI / 180.0;
-      const double dec = 20.0 + v * (1.0e-4) * M_PI / 180.0;
-      star.ra_rad = ra * M_PI / 180.0;
-      star.dec_rad = dec * M_PI / 180.0;
+      // the CD is in degrees per pixel: the offset is added in degrees and
+      // the whole position is converted to radians afterwards
+      const double ra_deg = 10.0 + u * (-1.0e-4);
+      const double dec_deg = 20.0 + v * (1.0e-4);
+      star.ra_rad = ra_deg * M_PI / 180.0;
+      star.dec_rad = dec_deg * M_PI / 180.0;
       star.epoch_year = 2016.0;
       star.brightness_mag = -2.5 * std::log10(stars[index].colour);
       star.xp_basis = spectral.basis;

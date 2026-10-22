@@ -17,17 +17,17 @@
    "name": "tan_centered_square",
    "negatives": [
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": true,
      "budget_max_bits": 256,
      "budget_max_work": 1,
      "code": "ok",
-     "fake_pass": true,
+     "fake_pass": false,
      "issues": [],
      "name": "work_1",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 34
+     "termination": "work",
+     "work_units": 38
     },
     {
      "bound_validity": "invalid",
@@ -40,7 +40,7 @@
      "name": "maxprecision_64",
      "support": "positive",
      "termination": "precision",
-     "work_units": 133
+     "work_units": 137
     },
     {
      "bound_validity": "invalid",
@@ -53,7 +53,7 @@
      "name": "maxprecision_16",
      "support": "positive",
      "termination": "precision",
-     "work_units": 133
+     "work_units": 137
     }
    ],
    "overlaps": {
@@ -108,7 +108,7 @@
     "support": "positive",
     "termination": "tolerance_met",
     "unresolved": 0,
-    "work_units": 133
+    "work_units": 137
    },
    "refine": {
     "affected_leaves": 1,
@@ -137,17 +137,17 @@
    "name": "tan_offset_square",
    "negatives": [
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": true,
      "budget_max_bits": 256,
      "budget_max_work": 1,
      "code": "ok",
-     "fake_pass": true,
+     "fake_pass": false,
      "issues": [],
      "name": "work_1",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 34
+     "termination": "work",
+     "work_units": 35
     },
     {
      "bound_validity": "invalid",
@@ -160,7 +160,7 @@
      "name": "maxprecision_64",
      "support": "positive",
      "termination": "precision",
-     "work_units": 34
+     "work_units": 35
     },
     {
      "bound_validity": "invalid",
@@ -173,7 +173,7 @@
      "name": "maxprecision_16",
      "support": "positive",
      "termination": "precision",
-     "work_units": 34
+     "work_units": 35
     }
    ],
    "overlaps": {
@@ -198,7 +198,7 @@
     "support": "positive",
     "termination": "tolerance_met",
     "unresolved": 0,
-    "work_units": 34
+    "work_units": 35
    },
    "refine": {
     "affected_leaves": 1,
@@ -301,17 +301,17 @@
    "name": "polar_extreme",
    "negatives": [
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": true,
      "budget_max_bits": 256,
      "budget_max_work": 1,
      "code": "ok",
-     "fake_pass": true,
+     "fake_pass": false,
      "issues": [],
      "name": "work_1",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 34
+     "termination": "work",
+     "work_units": 36
     },
     {
      "bound_validity": "invalid",
@@ -324,7 +324,7 @@
      "name": "maxprecision_64",
      "support": "positive",
      "termination": "precision",
-     "work_units": 67
+     "work_units": 69
     },
     {
      "bound_validity": "invalid",
@@ -337,7 +337,7 @@
      "name": "maxprecision_16",
      "support": "positive",
      "termination": "precision",
-     "work_units": 67
+     "work_units": 69
     }
    ],
    "overlaps": {
@@ -362,7 +362,7 @@
     "support": "positive",
     "termination": "tolerance_met",
     "unresolved": 0,
-    "work_units": 67
+    "work_units": 69
    },
    "refine": {
     "affected_leaves": 1,
@@ -391,17 +391,17 @@
    "name": "order29_subleaf",
    "negatives": [
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": true,
      "budget_max_bits": 256,
      "budget_max_work": 1,
      "code": "ok",
-     "fake_pass": true,
+     "fake_pass": false,
      "issues": [],
      "name": "work_1",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 34
+     "termination": "work",
+     "work_units": 230
     },
     {
      "bound_validity": "invalid",
@@ -414,7 +414,7 @@
      "name": "maxprecision_64",
      "support": "positive",
      "termination": "precision",
-     "work_units": 8429
+     "work_units": 8625
     },
     {
      "bound_validity": "invalid",
@@ -427,7 +427,7 @@
      "name": "maxprecision_16",
      "support": "positive",
      "termination": "precision",
-     "work_units": 8429
+     "work_units": 8625
     }
    ],
    "overlaps": {
@@ -2402,7 +2402,7 @@
     "support": "positive",
     "termination": "tolerance_met",
     "unresolved": 0,
-    "work_units": 8429
+    "work_units": 8625
    },
    "refine": {
     "affected_leaves": 196,
@@ -2431,17 +2431,17 @@
    "name": "touching_edge",
    "negatives": [
     {
-     "bound_validity": "certified",
+     "bound_validity": "invalid",
      "budget_exceeded": true,
      "budget_max_bits": 256,
      "budget_max_work": 1,
      "code": "ok",
-     "fake_pass": true,
+     "fake_pass": false,
      "issues": [],
      "name": "work_1",
      "support": "positive",
-     "termination": "tolerance_met",
-     "work_units": 34
+     "termination": "work",
+     "work_units": 38
     },
     {
      "bound_validity": "invalid",
@@ -2454,7 +2454,7 @@
      "name": "maxprecision_64",
      "support": "positive",
      "termination": "precision",
-     "work_units": 133
+     "work_units": 137
     },
     {
      "bound_validity": "invalid",
@@ -2467,7 +2467,7 @@
      "name": "maxprecision_16",
      "support": "positive",
      "termination": "precision",
-     "work_units": 133
+     "work_units": 137
     }
    ],
    "overlaps": {
@@ -2522,7 +2522,7 @@
     "support": "positive",
     "termination": "tolerance_met",
     "unresolved": 0,
-    "work_units": 133
+    "work_units": 137
    },
    "refine": {
     "affected_leaves": 1,

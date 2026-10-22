@@ -33,6 +33,10 @@ modules_for_driver() {
     u01_driver) echo "model numerics operators uncertainty" ;;
     c01_driver) echo "model numerics operators uncertainty coordinates" ;;
     g01_driver) echo "model numerics operators uncertainty coordinates geometry" ;;
+    f01_driver) echo "model numerics operators uncertainty coordinates observation sources response photometry" ;;
+    s01_driver) echo "model numerics operators uncertainty coordinates observation sources sky" ;;
+    w01_driver) echo "model numerics operators uncertainty coordinates observation sources sky coadd information" ;;
+    v01_driver) echo "model numerics operators uncertainty coordinates observation sources information" ;;
     *) echo "${ALL_MODULES}" ;;
   esac
 }

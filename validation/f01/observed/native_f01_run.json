@@ -12,7 +12,7 @@
   ],
   "exit_code": 0,
   "missing_entry_points": [],
-  "peak_rss_bytes": 124194816,
+  "peak_rss_bytes": 123940864,
   "reason": "",
   "response": {
     "driver": "f01_native",
@@ -30,5 +30,5 @@
   "status": "ok",
   "stderr": "[validation storage] rejected psf-parameters: bytes=80 shape=3,1, expected=24\n",
   "stdout": "{\n \"driver\": \"f01_native\",\n \"frames\": [\n  {\n   \"code\": \"invalid_request\",\n   \"reason\": \"the parameter bounds cannot be stored\"\n  }\n ],\n \"route\": \"in_memory_public_api\"\n}",
-  "wall_seconds": 0.13849626097362489
+  "wall_seconds": 0.11150803905911744
 }

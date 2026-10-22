@@ -1,42 +1,6 @@
 {
   "case": "G01",
-  "failures": [
-    {
-      "actual": "tolerance_met",
-      "expected": "termination work/precision and no certified bound",
-      "functional": "tan_centered_square:negative_work_1",
-      "reason": "a starved budget was reported as a satisfied tolerance",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": "tolerance_met",
-      "expected": "termination work/precision and no certified bound",
-      "functional": "tan_offset_square:negative_work_1",
-      "reason": "a starved budget was reported as a satisfied tolerance",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": "tolerance_met",
-      "expected": "termination work/precision and no certified bound",
-      "functional": "polar_extreme:negative_work_1",
-      "reason": "a starved budget was reported as a satisfied tolerance",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": "tolerance_met",
-      "expected": "termination work/precision and no certified bound",
-      "functional": "order29_subleaf:negative_work_1",
-      "reason": "a starved budget was reported as a satisfied tolerance",
-      "scope": "compute_overlap"
-    },
-    {
-      "actual": "tolerance_met",
-      "expected": "termination work/precision and no certified bound",
-      "functional": "touching_edge:negative_work_1",
-      "reason": "a starved budget was reported as a satisfied tolerance",
-      "scope": "compute_overlap"
-    }
-  ],
+  "failures": [],
   "functionals": [
     {
       "expected_success_count": 1,
@@ -171,14 +135,14 @@
       "kind": "value",
       "name": "tan_centered_square:negative_work_1",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 34
+        "termination": "work",
+        "work_units": 38
       },
       "observed_success_count": 1,
-      "status": "fail",
+      "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -192,7 +156,7 @@
         "budget_max_work": 1000000,
         "code": "ok",
         "termination": "precision",
-        "work_units": 133
+        "work_units": 137
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -209,7 +173,7 @@
         "budget_max_work": 1000000,
         "code": "ok",
         "termination": "precision",
-        "work_units": 133
+        "work_units": 137
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -324,14 +288,14 @@
       "kind": "value",
       "name": "tan_offset_square:negative_work_1",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 34
+        "termination": "work",
+        "work_units": 35
       },
       "observed_success_count": 1,
-      "status": "fail",
+      "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -345,7 +309,7 @@
         "budget_max_work": 1000000,
         "code": "ok",
         "termination": "precision",
-        "work_units": 34
+        "work_units": 35
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -362,7 +326,7 @@
         "budget_max_work": 1000000,
         "code": "ok",
         "termination": "precision",
-        "work_units": 34
+        "work_units": 35
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -490,14 +454,14 @@
       "kind": "value",
       "name": "polar_extreme:negative_work_1",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 34
+        "termination": "work",
+        "work_units": 36
       },
       "observed_success_count": 1,
-      "status": "fail",
+      "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -511,7 +475,7 @@
         "budget_max_work": 1000000,
         "code": "ok",
         "termination": "precision",
-        "work_units": 67
+        "work_units": 69
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -528,7 +492,7 @@
         "budget_max_work": 1000000,
         "code": "ok",
         "termination": "precision",
-        "work_units": 67
+        "work_units": 69
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -2403,14 +2367,14 @@
       "kind": "value",
       "name": "order29_subleaf:negative_work_1",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 34
+        "termination": "work",
+        "work_units": 230
       },
       "observed_success_count": 1,
-      "status": "fail",
+      "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -2424,7 +2388,7 @@
         "budget_max_work": 1000000,
         "code": "ok",
         "termination": "precision",
-        "work_units": 8429
+        "work_units": 8625
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -2441,7 +2405,7 @@
         "budget_max_work": 1000000,
         "code": "ok",
         "termination": "precision",
-        "work_units": 8429
+        "work_units": 8625
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -2588,14 +2552,14 @@
       "kind": "value",
       "name": "touching_edge:negative_work_1",
       "observed": {
-        "bound_validity": "certified",
+        "bound_validity": "invalid",
         "budget_max_work": 1,
         "code": "ok",
-        "termination": "tolerance_met",
-        "work_units": 34
+        "termination": "work",
+        "work_units": 38
       },
       "observed_success_count": 1,
-      "status": "fail",
+      "status": "pass",
       "tolerance": 0.0,
       "truth": "not a certified pass",
       "unit": "verdict"
@@ -2609,7 +2573,7 @@
         "budget_max_work": 1000000,
         "code": "ok",
         "termination": "precision",
-        "work_units": 133
+        "work_units": 137
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -2626,7 +2590,7 @@
         "budget_max_work": 1000000,
         "code": "ok",
         "termination": "precision",
-        "work_units": 133
+        "work_units": 137
       },
       "observed_success_count": 1,
       "status": "pass",
@@ -2658,7 +2622,7 @@
     }
   ],
   "notes": "G01: the drop area, the leaf enclosure, the starved budgets and the drizzle/refine closure",
-  "status": "fail",
+  "status": "pass",
   "status_vocabulary": {
     "fail": "at least one functional is outside the frozen tolerance",
     "not_applicable": "the case does not exercise the requested functional",

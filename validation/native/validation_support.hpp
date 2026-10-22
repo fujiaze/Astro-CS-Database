@@ -222,6 +222,32 @@ inline const char* code_name(int code) {
   return names[code];
 }
 
+inline acsd::Identity make_identity(const std::string& object_id,
+                                    const std::string& schema_id) {
+  acsd::Identity identity;
+  identity.object_id = object_id;
+  identity.content_hash = "sha256:" + hash_hex(object_id);
+  identity.run_id = "validation";
+  identity.revision = 0;
+  identity.schema_id = schema_id;
+  identity.schema_major = 2;
+  identity.schema_minor = 0;
+  return identity;
+}
+
+inline acsd::Assessment make_assessment(const std::string& estimator = "fixture") {
+  acsd::Assessment assessment;
+  assessment.complete = true;
+  assessment.validity = acsd::Validity::certified;
+  assessment.science = acsd::ScienceState::bounded;
+  assessment.noise = acsd::NoiseState::known;
+  assessment.execution = acsd::ExecutionState::complete;
+  assessment.capability = acsd::Capability::supported;
+  assessment.condition.kind = "fixed_geometry";
+  assessment.condition.estimator = estimator;
+  return assessment;
+}
+
 inline acsd::Unit unit_luminosity() {
   acsd::Unit unit;
   unit.scale = "fixture:L";

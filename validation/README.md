@@ -67,16 +67,16 @@ bash validation/lib/build_native.sh u01_driver c01_driver   # 只编译原生驱
 
 | case | 内容 | 真值类型 | 当前状态 |
 |---|---|---|---|
-| C01 | WCS 绝对坐标：forward / inverse / 导数 / g，原点与 CD 负例 | analytic_exact | 实跑；导数项失败（见 comparison.json） |
-| G01 | 真实面积：解析球面超额、自研细分包围、MC | analytic_exact + enclosure + MC | 真值就绪；观察侧待实现 |
-| U01 | 同 R 矩阵、协方差、符号孔径方差、拆同源负例 | analytic_exact | 实跑通过 |
-| F01 | 像元积分测光、共享 latent、秩负例、尺度区间 | analytic_exact | 真值就绪；观察侧待实现 |
+| C01 | WCS 绝对坐标：forward / inverse / 导数 / g，原点与 CD 负例 | analytic_exact | **实跑 69/69 通过**（含 SIP 2..9 阶与 8 个负例） |
+| G01 | 真实面积：解析球面超额、自研细分包围、MC | analytic_exact + enclosure + MC | **实跑 171/171 通过**（面积、逐叶之和、work/precision 负例） |
+| U01 | 同 R 矩阵、协方差、符号孔径方差、拆同源负例 | analytic_exact | **实跑 14/14 通过**（内存 API + 合同进程双路由） |
+| F01 | 像元积分测光、共享 latent、秩负例、尺度区间 | analytic_exact | 观察侧已实跑；PSF 形状拟合在我的夹具上判秩亏（见 comparison.json） |
 | S01 | 相对天光：KH=0、交叉项、nullspace | analytic_exact + MC | 真值就绪；观察侧待实现 |
 | W01 | BLUE / PSD / 非负 QP 与 100000 次全流程 MC | analytic_exact + MC | 真值就绪；观察侧待实现 |
 | V01 | 稀疏场景方差：δ/M 界、洞、C∞ bump 反例 | analytic_exact + conditional | 真值就绪；观察侧待实现 |
 | E01 | Export：支持均值/积分/外推、同叶合并、FITS 头 | analytic_exact | 真值就绪；观察侧待实现 |
 | P01 | 产品闭包：缺块、hash 冲突、重复曝光、未知 recipe | conditional_model | 真值就绪；观察侧待实现 |
 | R01 | 资源与可复现：线程/内存/cache/取消/乱序矩阵 | conditional + empirical | 真值就绪；观察侧待实现 |
-| X01 | 端到端：物理 Iλ → 原始 ADU → 三命令、盲解 | empirical + analytic_exact | 数据就绪；观察侧待实现 |
+| X01 | 端到端：物理 Iλ → 原始 ADU → 三命令、盲解 | empirical + analytic_exact | 三命令已实跑；A 组推进到 PSF，B 组盲解未过（见 observed/e2e_summary.json） |
 
 详细数字见各 case 的 `truth/`、`observed/` 与 `comparison.json`。
