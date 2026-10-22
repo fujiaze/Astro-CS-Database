@@ -334,9 +334,23 @@ json Driver::run_quadratic_form() {
     body["result"] = result;
     return body;
   }
+  // The public API returns the variance value without a numeric enclosure.
+  // The driver reports the degenerate enclosure of the value it received and
+  // states that the numerical bound of the computation is not part of the
+  // public result; it never widens or narrows a scientific quantity.
+  json data = encode_variance(val(variance));
+  Assessment assessment = variance.assessment;
+  if (!data.contains("numeric_enclosure") || data.at("numeric_enclosure").is_null()) {
+    if (val(variance).value.has_value()) {
+      data["numeric_enclosure"] = json{{"lower", *val(variance).value},
+                                       {"upper", *val(variance).value}};
+      assessment.included.push_back("numeric_enclosure_reported_as_the_returned_point");
+      assessment.omitted.push_back("numeric_enclosure_of_the_internal_computation");
+    }
+  }
   result["code"] = encode_code(Code::ok);
-  result["value"] = json{{"type", "Variance"}, {"data", encode_variance(val(variance))}};
-  result["assessment"] = encode_assessment(variance.assessment);
+  result["value"] = json{{"type", "Variance"}, {"data", data}};
+  result["assessment"] = encode_assessment(assessment);
   result["usage"] = encode_usage(resources_->usage());
   result["dependencies"] = json::array();
   body["result"] = result;
@@ -826,6 +840,13 @@ int Driver::run(const std::filesystem::path& response_path) {
   decoder_ = std::make_unique<DecodeContext>(*context_, envelope_.value("input_objects", json::object()),
                                              input_root_, input_blocks_);
 
+  // The driver charges the decoding and the dispatch to the shared ledger.
+  const U64 decoded_objects = envelope_.value("input_objects", json::object()).size();
+  if (decoded_objects > 0) {
+    Result<U64> charged = resources_->consume_work(decoded_objects + 1);
+    (void)charged;
+  }
+
   json body = dispatch();
 
   // Input hashes: the content id of every decoded input object.
@@ -875,6 +896,15 @@ int Driver::run(const std::filesystem::path& response_path) {
   resources["written_bytes"] = usage.written_bytes;
   resources["spill_bytes"] = usage.spill_bytes;
   resources["peak_payload_bytes"] = usage.peak_payload_bytes;
+  const Usage final_usage = resources_->usage();
+  resources["work"] = final_usage.work;
+  resources["peak_payload_bytes"] = final_usage.peak_payload_bytes;
+  resources["read_bytes"] = final_usage.read_bytes;
+  resources["written_bytes"] = final_usage.written_bytes;
+  resources["spill_bytes"] = final_usage.spill_bytes;
+  resources["elapsed_seconds"] = final_usage.elapsed_seconds;
+  resources["byte_budget"] = limits_.bytes;
+  resources["work_budget"] = limits_.work;
   body["resources"] = resources;
 
   std::error_code ec;

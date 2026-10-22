@@ -2,12 +2,16 @@
   "all_pass": true,
   "cases": [
     {
-      "actual_numeric_enclosure": null,
+      "actual_numeric_enclosure": {
+        "lower": 4.328125,
+        "upper": 4.328125
+      },
       "actual_state": "known",
       "actual_value": 4.328125,
       "case": "u01",
       "code": "ok",
       "difference": 0.0,
+      "enclosure_contains_truth": true,
       "exact": true,
       "expected_model_sha256": "sha256:e4829edfabf20d9277d68d7d993383eb14bd9a7de0f2d103b9391de0228a40e7",
       "expected_numeric_enclosure": {
@@ -18,7 +22,7 @@
       "expected_value": 4.328125,
       "pass": true,
       "request_sha256": "sha256:526223e3619e828967686ed56191220a8b09813c8dd37eeae2403a3aaa18e79e",
-      "response_sha256": "sha256:1ca8c6651932792d2a858ef35122d6d21d7a03f0714a888dcbcd658b9b58f055",
+      "response_sha256": "sha256:ff2cbbcb7ce54fd48c9727b2077065bc85d5e0bc9073b52c8c9bef1d5a266ba7",
       "unit": {
         "linear_power": 2,
         "multiplier": 1.0,
@@ -46,7 +50,7 @@
       ],
       "pass": true,
       "request_sha256": "sha256:abe408b5625ec7bf63382da19a8b72492075688a59f1a205fab44ece14a8cbf6",
-      "response_sha256": "sha256:1916d3326b2fcf4b0e71dabfc1b452b9c1a9a1ea27c9c5584d00722b5f0dc36c"
+      "response_sha256": "sha256:67c03ffd99fa2dcccb8ef682d3241ebfa2123691ba510aad70c8eee8dede0874"
     },
     {
       "actual": {
@@ -66,7 +70,7 @@
       "expected_model_sha256": "sha256:39d8a36f8b601ca9e7f46942da14cb840130fbcb66c63ba42ac148bffa33253d",
       "pass": true,
       "request_sha256": "sha256:d1993cc3745df32953264e787e97b0643320e487b46a471df4998d5c5ae9a6c1",
-      "response_sha256": "sha256:6a04b2dd092413f8fa9a95816f075b32fe74e8d17387918518e27f17a3e312aa"
+      "response_sha256": "sha256:debd0564739516ba9476bcddd4f4ee4f09b3ea7a9aa2a1f868022d4e8439cfcc"
     }
   ]
 }

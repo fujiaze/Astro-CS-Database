@@ -389,12 +389,15 @@
   "request_id": "u01-signed-aperture",
   "resolved_request_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
   "resources": {
+    "byte_budget": 8388608,
     "bytes": 8388608,
+    "elapsed_seconds": 0.0001742,
     "peak_payload_bytes": 0,
     "read_bytes": 0,
     "spill_bytes": 0,
     "threads": 1,
-    "work": 0,
+    "work": 22,
+    "work_budget": 100000,
     "written_bytes": 0
   },
   "result": {
@@ -408,26 +411,33 @@
         "kind": ""
       },
       "execution": "complete",
-      "included": [],
+      "included": [
+        "numeric_enclosure_reported_as_the_returned_point"
+      ],
       "issues": [],
       "noise": "unknown",
-      "omitted": [],
+      "omitted": [
+        "numeric_enclosure_of_the_internal_computation"
+      ],
       "science": "bounded",
       "validity": "certified"
     },
     "code": "ok",
     "dependencies": [],
     "usage": {
-      "elapsed_seconds": 9.87e-07,
+      "elapsed_seconds": 1.354e-06,
       "peak_payload_bytes": 0,
       "read_bytes": 0,
       "spill_bytes": 0,
-      "work": 0,
+      "work": 22,
       "written_bytes": 0
     },
     "value": {
       "data": {
-        "numeric_enclosure": null,
+        "numeric_enclosure": {
+          "lower": 4.328125,
+          "upper": 4.328125
+        },
         "state": "known",
         "unit": {
           "linear_power": 2,

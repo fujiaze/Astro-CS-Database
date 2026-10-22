@@ -38,10 +38,16 @@ def compare_u01(response: dict, expected: dict) -> dict:
         "unit": value.get("unit"),
         "code": response["result"]["code"],
     }
+    enclosure = value.get("numeric_enclosure")
+    report["enclosure_contains_truth"] = bool(
+        enclosure is not None
+        and enclosure.get("lower", 0.0) <= truth["value"] <= enclosure.get("upper", 0.0)
+    )
     report["pass"] = bool(
         report["exact"]
         and report["actual_state"] == report["expected_state"]
         and report["code"] == "ok"
+        and report["enclosure_contains_truth"]
     )
     return report
 
