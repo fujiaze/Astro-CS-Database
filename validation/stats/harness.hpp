@@ -193,6 +193,14 @@ class NoCancellation final : public acsd::Cancellation {
 // Array helpers
 // ---------------------------------------------------------------------------
 
+inline std::vector<std::uint8_t> decode_u8(std::span<const std::byte> bytes) {
+  std::vector<std::uint8_t> out(bytes.size());
+  if (!out.empty()) {
+    std::memcpy(out.data(), bytes.data(), out.size());
+  }
+  return out;
+}
+
 inline std::vector<acsd::U64> decode_u64(std::span<const std::byte> bytes) {
   std::vector<acsd::U64> out(bytes.size() / sizeof(acsd::U64));
   if (!out.empty()) {

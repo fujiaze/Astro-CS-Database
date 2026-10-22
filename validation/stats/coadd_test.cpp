@@ -199,6 +199,41 @@ int main() {
     check(value_of(combined).selection != nullptr, "the coadd carries the selection");
   }
 
+
+  // ---- the mixed observation ------------------------------------------------
+  // A mixed observation has no common mean, so the BLUE weights are not
+  // defined and the automatic policy falls back to the equal weights.
+  {
+    acsd::CoaddRequest mixed = request;
+    mixed.mixed_observation = true;
+    mixed.weights = acsd::WeightPolicy::blue;
+    acsd::Result<acsd::Ref<acsd::WeightSolution>> mixed_blue =
+        acsd::solve_weights(context, provider, value_of(selection), mixed);
+    check(!is_ok(mixed_blue), "the BLUE weights of a mixed observation are not defined");
+    if (!is_ok(mixed_blue)) {
+      std::printf("       the mixed BLUE weights failed with code %d\n",
+                  static_cast<int>(mixed_blue.code));
+    }
+
+    acsd::CoaddRequest automatic = request;
+    automatic.mixed_observation = true;
+    automatic.weights = acsd::WeightPolicy::automatic;
+    acsd::Result<acsd::Ref<acsd::WeightSolution>> automatic_solution =
+        acsd::solve_weights(context, provider, value_of(selection), automatic);
+    check(is_ok(automatic_solution), "the automatic policy of a mixed observation is solved");
+    if (is_ok(automatic_solution)) {
+      check(value_of(automatic_solution)->policy == acsd::WeightPolicy::equal,
+            "the automatic policy of a mixed observation falls back to the equal weights");
+      acsd::Result<acsd::ArrayView> coefficients = context.storage.read(
+          context, value_of(automatic_solution)->coefficients, acsd::BlockRequest{0, 2});
+      if (is_ok(coefficients)) {
+        const std::vector<double> weights = decode_f64(value_of(coefficients).bytes);
+        check_close(weights[0], 0.5, 1e-12, "the first weight of the mixed observation is one half");
+        check_close(weights[1], 0.5, 1e-12, "the second weight of the mixed observation is one half");
+      }
+    }
+  }
+
   std::printf("%d failure(s)\n", failures);
   return failures == 0 ? 0 : 1;
 }

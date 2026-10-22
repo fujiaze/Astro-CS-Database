@@ -712,22 +712,6 @@ Result<Ref<NoiseModel>> build_joint_noise(Context& context, const std::vector<Fr
 
 }  // namespace
 
-// The composition of two actions.  The base helper does not declare the
-// children of its recipe, so the composition is built here.
-Result<Ref<LinearAction>> compose_actions(Context& context, Ref<LinearAction> outer,
-                                           Ref<LinearAction> inner) {
-  if (!outer || !inner) {
-    return model::fail<Ref<LinearAction>>(Code::invalid_request, "the composition needs two actions",
-                                          "sky.compose", "the composition cannot be built");
-  }
-  ActionRecipe recipe;
-  recipe.kind = ActionRecipe::Kind::compose;
-  recipe.algorithm = "canonical_compose_v1";
-  recipe.version = 1;
-  recipe.children = {"outer", "inner"};
-  const std::vector<Ref<LinearAction>> children{outer, inner};
-  return make_action(context, recipe, children, std::span<const ArrayRef>{});
-}
 
 Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvider& frames,
                                              const SkyRequest& request) {
@@ -1190,7 +1174,14 @@ Matrix complete_orthogonal_factorisation(const Matrix& v) {
   return h;
 }
 
-Matrix multiply(const Matrix& a, const Matrix& b) {
+// The product of two dense matrices.  The shapes are checked, because a
+// product of incompatible matrices is silently wrong.
+Result<Matrix> multiply(const Matrix& a, const Matrix& b) {
+  if (a.cols != b.rows) {
+    return model::fail<Matrix>(Code::invalid_model,
+                                "the shapes of the multiplied matrices do not agree",
+                                "sky.multiply", "the product cannot be formed");
+  }
   Matrix out(a.rows, b.cols, 0.0);
   for (std::size_t i = 0; i < a.rows; ++i) {
     for (std::size_t k = 0; k < a.cols; ++k) {
@@ -1199,7 +1190,7 @@ Matrix multiply(const Matrix& a, const Matrix& b) {
       for (std::size_t j = 0; j < b.cols; ++j) out(i, j) += left * b(k, j);
     }
   }
-  return out;
+  return model::ok_result(std::move(out));
 }
 
 Matrix transpose(const Matrix& a) {
@@ -1379,24 +1370,56 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
       }
       component_reference[comp] = reference;
       resolved_gauge.reference = frame_order[reference];
+    }
+    // The constraint rows of the component and the free directions that are
+    // orthogonal to them.  The reference frame fixes its own component, the
+    // weighted sum fixes the sum of the components of the component.
+    const std::size_t local = members.size() * terms;
+    std::vector<std::vector<double>> rows;
+    if (request.gauge.kind == Gauge::Kind::reference_frame) {
+      const std::size_t reference = component_reference[comp];
+      for (std::size_t term = 0; term < terms; ++term) {
+        std::vector<double> row(local, 0.0);
+        row[reference * terms + term] = 1.0;
+        rows.push_back(row);
+      }
     } else {
-      // The weighted sum of the parameters of the component is zero; the free
-      // directions are the ones orthogonal to the constraint rows.
-      const std::size_t local = members.size() * terms;
-      Matrix constraints(local, static_cast<std::size_t>(terms), 0.0);
+      std::vector<double> row(local, 0.0);
       for (std::size_t m = 0; m < members.size(); ++m) {
         for (std::size_t term = 0; term < terms; ++term) {
-          constraints(m * terms + term, term) = weights[members[m]];
+          row[m * terms + term] = weights[members[m]];
         }
       }
-      numerics::SvdResult svd = numerics::jacobi_svd(constraints, 1e-12);
-      std::vector<double> basis;
-      for (std::size_t j = 0; j < svd.rank; ++j) {
-        for (std::size_t i = 0; i < local; ++i) basis.push_back(svd.u(i, j));
-      }
-      component_free_basis[comp] = basis;
-      component_free_columns[comp] = svd.rank;
+      rows.push_back(row);
     }
+    Matrix constraints(rows.size(), local, 0.0);
+    for (std::size_t r = 0; r < rows.size(); ++r) {
+      for (std::size_t i = 0; i < local; ++i) constraints(r, i) = rows[r][i];
+    }
+    numerics::SvdResult svd = numerics::jacobi_svd(numerics::transpose(constraints), 1e-12);
+    Matrix constrained(static_cast<std::size_t>(local), static_cast<std::size_t>(svd.rank), 0.0);
+    for (std::size_t j = 0; j < svd.rank; ++j) {
+      for (std::size_t i = 0; i < local; ++i) {
+        constrained(static_cast<std::size_t>(i), j) = svd.u(static_cast<std::size_t>(i), j);
+      }
+    }
+    const Matrix complete = complete_orthogonal_factorisation(constrained);
+    std::vector<double> basis;
+    for (std::size_t j = svd.rank; j < local; ++j) {
+      // The sign of a free direction is fixed, so that the fit is
+      // reproducible.
+      double first = 0.0;
+      for (std::size_t i = 0; i < local; ++i) {
+        if (std::fabs(complete(i, j)) > 1e-12) {
+          first = complete(i, j);
+          break;
+        }
+      }
+      const double sign = first < 0.0 ? -1.0 : 1.0;
+      for (std::size_t i = 0; i < local; ++i) basis.push_back(sign * complete(i, j));
+    }
+    component_free_basis[comp] = basis;
+    component_free_columns[comp] = local - svd.rank;
   }
 
   // Build the gauge matrix G (P x q).
@@ -1407,11 +1430,7 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
       if (static_cast<std::size_t>(component[f]) == comp) members.push_back(f);
     }
     if (members.empty()) continue;
-    if (request.gauge.kind == Gauge::Kind::reference_frame) {
-      gauge_size += (members.size() - 1) * terms;
-    } else {
-      gauge_size += component_free_columns[comp];
-    }
+    gauge_size += component_free_columns[comp];
   }
   Matrix G(static_cast<std::size_t>(parameters), static_cast<std::size_t>(gauge_size), 0.0);
   {
@@ -1422,28 +1441,17 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
         if (static_cast<std::size_t>(component[f]) == comp) members.push_back(f);
       }
       if (members.empty()) continue;
-      if (request.gauge.kind == Gauge::Kind::reference_frame) {
-        const std::size_t reference = component_reference[comp];
-        for (std::size_t f : members) {
-          if (f == reference) continue;
+      const std::vector<double>& basis = component_free_basis[comp];
+      const std::size_t columns = component_free_columns[comp];
+      const std::size_t local = members.size() * terms;
+      for (std::size_t j = 0; j < columns; ++j) {
+        for (std::size_t m = 0; m < members.size(); ++m) {
           for (std::size_t term = 0; term < terms; ++term) {
-            G(static_cast<std::size_t>(f * terms + term), static_cast<std::size_t>(column)) = 1.0;
-            ++column;
+            G(static_cast<std::size_t>(members[m] * terms + term),
+              static_cast<std::size_t>(column)) = basis[j * local + m * terms + term];
           }
         }
-      } else {
-        const std::vector<double>& basis = component_free_basis[comp];
-        const std::size_t columns = component_free_columns[comp];
-        const std::size_t local = members.size() * terms;
-        for (std::size_t j = 0; j < columns; ++j) {
-          for (std::size_t m = 0; m < members.size(); ++m) {
-            for (std::size_t term = 0; term < terms; ++term) {
-              G(static_cast<std::size_t>(members[m] * terms + term),
-                static_cast<std::size_t>(column)) = basis[j * local + m * terms + term];
-            }
-          }
-          ++column;
-        }
+        ++column;
       }
     }
   }
@@ -1472,8 +1480,12 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
     }
   }
   // Q_w is the orthogonal complement of the column space of W H.
-  const Matrix whitened_h = multiply(W, val(H));
-  numerics::SvdResult h_svd = numerics::jacobi_svd(whitened_h, 1e-12);
+  Result<Matrix> whitened_h = multiply(W, val(H));
+  if (!ok(whitened_h)) {
+    return model::fail<Ref<SkyFit>>(whitened_h.code, "the whitened common sky cannot be formed",
+                                    "fit_relative_sky", "the sky cannot be fitted");
+  }
+  numerics::SvdResult h_svd = numerics::jacobi_svd(val(whitened_h), 1e-12);
   Matrix basis_h(static_cast<std::size_t>(control_count), h_svd.rank, 0.0);
   for (std::size_t j = 0; j < h_svd.rank; ++j) {
     for (std::size_t i = 0; i < control_count; ++i) {
@@ -1492,18 +1504,43 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
 
   // The effective design D = Q_w^T W A G and the projected data Q_w^T W c.
   const Matrix qw_transpose = numerics::transpose(Qw);
-  const Matrix design = multiply(multiply(qw_transpose, multiply(W, val(A))), G);
+  Result<Matrix> whitened_design = multiply(W, val(A));
+  if (!ok(whitened_design)) {
+    return model::fail<Ref<SkyFit>>(whitened_design.code, "the whitened design cannot be formed",
+                                    "fit_relative_sky", "the sky cannot be fitted");
+  }
+  Result<Matrix> projected_design = multiply(qw_transpose, val(whitened_design));
+  if (!ok(projected_design)) {
+    return model::fail<Ref<SkyFit>>(projected_design.code, "the projected design cannot be formed",
+                                    "fit_relative_sky", "the sky cannot be fitted");
+  }
+  Result<Matrix> design = multiply(val(projected_design), G);
+  if (!ok(design)) {
+    return model::fail<Ref<SkyFit>>(design.code, "the effective design cannot be formed",
+                                    "fit_relative_sky", "the sky cannot be fitted");
+  }
 
   std::vector<double> data(static_cast<std::size_t>(control_count), 0.0);
   for (std::size_t i = 0; i < control_count; ++i) data[i] = val(c)[i];
   Matrix c_column(static_cast<std::size_t>(control_count), 1, 0.0);
   for (std::size_t i = 0; i < control_count; ++i) c_column(static_cast<std::size_t>(i), 0) = data[i];
-  const Matrix whitened_data = multiply(qw_transpose, multiply(W, c_column));
+  Result<Matrix> whitened_column = multiply(W, c_column);
+  if (!ok(whitened_column)) {
+    return model::fail<Ref<SkyFit>>(whitened_column.code, "the whitened data cannot be formed",
+                                    "fit_relative_sky", "the sky cannot be fitted");
+  }
+  Result<Matrix> whitened_data = multiply(qw_transpose, val(whitened_column));
+  if (!ok(whitened_data)) {
+    return model::fail<Ref<SkyFit>>(whitened_data.code, "the projected data cannot be formed",
+                                    "fit_relative_sky", "the sky cannot be fitted");
+  }
 
   // The minimum norm solution of the projected least squares problem.
-  numerics::SvdResult design_svd = numerics::jacobi_svd(design, 1e-12);
+  numerics::SvdResult design_svd = numerics::jacobi_svd(val(design), 1e-12);
   std::vector<double> projected_data(complement_size, 0.0);
-  for (std::size_t i = 0; i < complement_size; ++i) projected_data[i] = whitened_data(static_cast<std::size_t>(i), 0);
+  for (std::size_t i = 0; i < complement_size; ++i) {
+    projected_data[i] = val(whitened_data)(static_cast<std::size_t>(i), 0);
+  }
   Matrix pseudoinverse(static_cast<std::size_t>(gauge_size), static_cast<std::size_t>(complement_size), 0.0);
   for (std::size_t j = 0; j < design_svd.v.cols; ++j) {
     const double singular = design_svd.singular_values[j];
@@ -1516,9 +1553,29 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
     }
   }
   // K = G (Q_w W A G)^+ Q_w W.
-  const Matrix K = multiply(G, multiply(pseudoinverse, multiply(qw_transpose, W)));
+  Result<Matrix> projector = multiply(qw_transpose, W);
+  if (!ok(projector)) {
+    return model::fail<Ref<SkyFit>>(projector.code, "the whitened projector cannot be formed",
+                                    "fit_relative_sky", "the sky cannot be fitted");
+  }
+  Result<Matrix> inverse = multiply(pseudoinverse, val(projector));
+  if (!ok(inverse)) {
+    return model::fail<Ref<SkyFit>>(inverse.code, "the estimator cannot be formed",
+                                    "fit_relative_sky", "the sky cannot be fitted");
+  }
+  Result<Matrix> k_matrix = multiply(G, val(inverse));
+  if (!ok(k_matrix)) {
+    return model::fail<Ref<SkyFit>>(k_matrix.code, "the estimator cannot be formed",
+                                    "fit_relative_sky", "the sky cannot be fitted");
+  }
+  const Matrix K = val(k_matrix);
   // beta = K c.
-  Matrix beta_column = multiply(K, c_column);
+  Result<Matrix> beta_result = multiply(K, c_column);
+  if (!ok(beta_result)) {
+    return model::fail<Ref<SkyFit>>(beta_result.code, "the components cannot be formed",
+                                    "fit_relative_sky", "the sky cannot be fitted");
+  }
+  const Matrix beta_column = val(beta_result);
   std::vector<double> beta(static_cast<std::size_t>(parameters), 0.0);
   for (std::size_t p = 0; p < parameters; ++p) beta[p] = beta_column(static_cast<std::size_t>(p), 0);
 
@@ -1582,7 +1639,7 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
     noise_model->shared_factors = source.shared_factors;
     noise_model->influence.reserve(source.influence.size());
     for (const Ref<LinearAction>& influence : source.influence) {
-      Result<Ref<LinearAction>> composed = compose_actions(context, val(k_action), influence);
+      Result<Ref<LinearAction>> composed = compose(context, val(k_action), influence);
       if (!ok(composed)) {
         return model::fail<Ref<SkyFit>>(composed.code, "the parameter covariance cannot be built",
                                         "fit_relative_sky", "the sky cannot be fitted");
@@ -1783,7 +1840,7 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
     noise_model->shared_factors = source.shared_factors;
     noise_model->influence.reserve(source.influence.size());
     for (const Ref<LinearAction>& influence : source.influence) {
-      Result<Ref<LinearAction>> composed = compose_actions(context, fit->P, influence);
+      Result<Ref<LinearAction>> composed = compose(context, fit->P, influence);
       if (!ok(composed)) {
         return model::fail<Ref<SignalEstimate>>(composed.code,
                                                 "the corrected covariance cannot be built",

@@ -6,9 +6,9 @@ header of `src/` and they never reuse a helper of the modules under test.
 
     sh validation/stats/run_validation.sh build/stats
 
-The script builds the three cases against the science libraries of the build
+The script builds the four cases against the science libraries of the build
 directory and runs them.  The real output of the last run is kept in
-`validation/stats/evidence/validation_run.txt` (56 checks, 0 failures).
+`validation/stats/evidence/validation_run.txt` (142 checks, 0 failures).
 
 ## What each case certifies
 
@@ -31,7 +31,19 @@ directory and runs them.  The real output of the last run is kept in
   `Gamma = [[1, 2], [2, 9]]`: the unconstrained BLUE weights are `(7/6, -1/6)`,
   the weights of the non negative quadratic programme are `(1, 0)`, the equal
   weights are `(1/2, 1/2)` and the coadd carries the estimate, the weights and
-  the selection.
+  the selection.  A mixed observation has no BLUE weights and the automatic
+  policy falls back to the equal weights.
+* `coadd_loo_test.cpp` — the conservative leave one out rejection against the
+  frozen truth of W01 (`validation/w01/truth_w01.py`): the same external Gamma
+  families, the same alpha of 0.001, the same threshold `Phi^-1(1 - alpha/(2N))`
+  and the same statistics.  The clean false rejection rates of this run are
+  0, 0, 0, 0.00095, 0.00115, 0.0006 and 0.00095 for N = 1..7 against the
+  reference 0, 0, 0, 0.00089, 0.00096, 0.00101 and 0.00095, the 68% and the 95%
+  coverage agree with the reference within one percentage point, a frame that
+  is shifted by twelve sigma is rejected for every N >= 4 and no frame is
+  rejected for N < 4.  The statistic of the module is also compared with an
+  independent computation of the same quantity: the two reject the same
+  trials.
 
 ## Failed attempts that were kept during the work
 
@@ -59,6 +71,25 @@ failed attempts are not overwritten.
    the same columns and rows of the covariance action.  They are kept in the
    case as the two sources that share `V_F`.
 
+## The cases of the second round
+
+* the native space of `evaluate_scene_variance`: a frame whose covariance acts
+  on two native coordinates and that has a single leaf reports the variance of
+  the functional of the leaf, which is 13 for the functional (2, 3) and the
+  identity covariance;
+* a query outside the declared chart of `reconstruct_scene_variance` has no
+  predicted value and no interval, so the prediction is not a number;
+* the weighted sum gauge of the sky module: the sum of the components of a
+  connected component vanishes and the components are the differences to the
+  weighted mean of the component, so the frame below the mean carries the
+  negative component;
+* the sky module with two patches: every frame contributes a control to each of
+  the two patches and the fit of the three frames reproduces the offsets of the
+  frames;
+* the coadd module after a leave one out rejection: the weights are recomputed
+  on the accepted samples, the rejected frame carries the weight zero and the
+  accepted weights still sum to one.
+
 ## Defects of the base modules that the cases exposed
 
 These are outside the write scope of this agent and are reported to the Lead
@@ -66,13 +97,17 @@ instead of being patched here.
 
 1. `src/operators/api.cpp` — `operators::compose` builds a recipe without
    declaring its children, and `make_action` rejects a recipe whose children
-   do not match the supplied ones.  The composition therefore always fails.
-   The sky module therefore composes the actions with its own helper.
-2. `src/model/exact.cpp` — `Rational::from_double_exact(0.0)` returns a default
+   do not match the supplied ones.  The composition therefore always failed,
+   and the sky module composed the actions with its own helper.
+2. `src/model/exact.cpp` — `Rational::from_double_exact(0.0)` returned a default
    constructed rational whose denominator is zero, and every exact operation on
-   it throws.  The triangulation therefore builds the zero rational with an
+   it threw.  The triangulation therefore built the zero rational with an
    explicit unit denominator.
-3. `src/numerics/linalg.hpp` — the dense `multiply` of this module does not
-   check the shapes of its arguments, so a product of incompatible matrices is
-   silently wrong.  The sky module had to use the transposed projector
-   explicitly.
+3. The dense product of the sky module is a local helper of that module, not
+   a base function.  It now checks the shapes of its arguments and reports a
+   failure, and every product of the fit was re-checked with that guard.
+
+The three base defects were fixed by the Lead in the commits 76f8d9f32 and
+f4a8ea89b.  The local workarounds of the sky module (the own composition
+helper) and of the triangulation (the explicit unit denominator of the zero
+rational) were removed, and the modules use the base implementations again.

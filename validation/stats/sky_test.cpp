@@ -215,6 +215,110 @@ int main() {
     check(value_of(corrected)->noise != nullptr, "the corrected covariance is available");
   }
 
+
+  // ---- the weighted sum gauge ----------------------------------------------
+  // The gauge of the weighted sum fixes the sum of the components of a
+  // connected component to zero, so the components carry the difference of the
+  // frames to their weighted mean.
+  {
+    acsd::SkyRequest weighted = request;
+    weighted.gauge.kind = acsd::Gauge::Kind::weighted_sum;
+    weighted.gauge.reference.clear();
+    acsd::Result<acsd::ArrayRef> gauge_weights = store_f64(
+        context, std::vector<double>{1.0, 1.0}, {2}, "sky_test:gauge_weights", acsd::Unit{});
+    weighted.gauge.weights = value_of(gauge_weights);
+
+    acsd::Result<acsd::Ref<acsd::SkyFit>> weighted_fit =
+        acsd::fit_relative_sky(context, value_of(controls), weighted);
+    check(is_ok(weighted_fit), "the weighted sum gauge is fitted");
+    if (is_ok(weighted_fit)) {
+      acsd::Result<acsd::ArrayView> beta_view = context.storage.read(
+          context, value_of(weighted_fit)->beta, acsd::BlockRequest{0, 2});
+      check(is_ok(beta_view), "the components of the weighted sum gauge can be read");
+      if (is_ok(beta_view)) {
+        const std::vector<double> beta = decode_f64(value_of(beta_view).bytes);
+        check_close(beta[0] + beta[1], 0.0, 1e-9,
+                    "the weighted sum of the components vanishes");
+        check_close(beta[0], -1.0, 1e-9,
+                    "the first component of the weighted sum gauge is minus one");
+        check_close(beta[1], 1.0, 1e-9,
+                    "the second component of the weighted sum gauge is one");
+      }
+    }
+  }
+
+  // ---- several patches ------------------------------------------------------
+  // The frames observe the leaves of two faces, so the control set carries two
+  // patches and every frame contributes a control to each of them.
+  {
+    std::vector<acsd::HealpixLeaf> wide;
+    for (acsd::U64 ipix = 0; ipix < 8; ++ipix) wide.push_back(acsd::HealpixLeaf{1, ipix});
+    std::vector<TestFrame> many;
+    for (int f = 0; f < 3; ++f) {
+      TestFrame frame;
+      frame.frame = f == 0 ? "frame_a" : (f == 1 ? "frame_b" : "frame_c");
+      frame.order = 1;
+      frame.leaves = wide;
+      frame.signal = std::vector<double>(wide.size(), f == 0 ? 1.0 : (f == 1 ? 3.0 : 5.0));
+      frame.dq = std::vector<std::uint16_t>(wide.size(), 0);
+      frame.state = std::vector<std::uint8_t>(wide.size(), 1);
+      frame.noise = value_of(frame_noise);
+      many.push_back(frame);
+    }
+    TestFramesProvider many_provider(many);
+
+    acsd::SkyRequest multi = request;
+    multi.gauge.kind = acsd::Gauge::Kind::reference_frame;
+    multi.gauge.reference = "frame_a";
+    multi.groups.clear();
+    acsd::Comparability multi_group;
+    multi_group.frames = {"frame_a", "frame_b", "frame_c"};
+    multi_group.response_proof = "validation_same_response";
+    multi_group.spatial_kernel_proof = "validation_same_kernel";
+    multi.groups.push_back(multi_group);
+    // The control noise of the six controls of the two patches.
+    std::vector<std::vector<double>> multi_covariance(6, std::vector<double>(6, 0.0));
+    for (std::size_t i = 0; i < 6; ++i) multi_covariance[i][i] = 1.0;
+    acsd::Result<acsd::Ref<acsd::CovarianceAction>> multi_noise =
+        make_covariance(context, multi_covariance, multi_covariance, "multi_control");
+    multi.control_noise = value_of(multi_noise);
+    acsd::Result<acsd::Ref<acsd::SkyControls>> multi_controls =
+        acsd::build_sky_controls(context, many_provider, multi);
+    if (!is_ok(multi_controls)) {
+      std::printf("       the controls of two patches failed with code %d\n",
+                  static_cast<int>(multi_controls.code));
+      for (const acsd::Issue& issue : multi_controls.assessment.issues) {
+        std::printf("       issue: %s\n", issue.reason.c_str());
+      }
+    }
+    check(is_ok(multi_controls), "the controls of two patches are built");
+    if (is_ok(multi_controls)) {
+      const std::size_t control_count = value_of(multi_controls)->c->shape[0];
+      check(control_count == 6, "every frame contributes a control to each of the two patches");
+      acsd::Result<acsd::Ref<acsd::SkyFit>> multi_fit =
+          acsd::fit_relative_sky(context, value_of(multi_controls), multi);
+      if (!is_ok(multi_fit)) {
+        std::printf("       the fit of two patches failed with code %d\n",
+                    static_cast<int>(multi_fit.code));
+        for (const acsd::Issue& issue : multi_fit.assessment.issues) {
+          std::printf("       issue: %s\n", issue.reason.c_str());
+        }
+      }
+      check(is_ok(multi_fit), "the sky of two patches is fitted");
+      if (is_ok(multi_fit)) {
+        acsd::Result<acsd::ArrayView> beta_view = context.storage.read(
+            context, value_of(multi_fit)->beta, acsd::BlockRequest{0, 3});
+        check(is_ok(beta_view), "the components of two patches can be read");
+        if (is_ok(beta_view)) {
+          const std::vector<double> beta = decode_f64(value_of(beta_view).bytes);
+          check_close(beta[0], 0.0, 1e-9, "the reference frame of the first component vanishes");
+          check_close(beta[1], 2.0, 1e-9, "the other frame of the first component carries the offset");
+          check_close(beta[2], 4.0, 1e-9, "the third frame carries its own offset");
+        }
+      }
+    }
+  }
+
   std::printf("%d failure(s)\n", failures);
   return failures == 0 ? 0 : 1;
 }

@@ -356,6 +356,23 @@ int main() {
               truth.push_back(std::exp(a + b * x + c * y));
             }
           }
+          // A query outside the declared chart has no certified prediction.
+          {
+            acsd::SkyICRS far;
+            const double angle = 20.0 * M_PI / 180.0;
+            const double east[3] = {0.0, 1.0, 0.0};
+            const double north[3] = {-0.8, 0.0, 0.6};
+            const double centre[3] = {0.6, 0.0, 0.8};
+            const double raw[3] = {std::sin(angle) * east[0] + std::cos(angle) * centre[0],
+                                   std::sin(angle) * east[1] + std::cos(angle) * centre[1],
+                                   std::sin(angle) * east[2] + std::cos(angle) * centre[2]};
+            const double length = std::sqrt(raw[0] * raw[0] + raw[1] * raw[1] + raw[2] * raw[2]);
+            far.nx = raw[0] / length;
+            far.ny = raw[1] / length;
+            far.nz = raw[2] / length;
+            queries.push_back(far);
+            truth.push_back(std::nan(""));
+          }
           acsd::Result<acsd::VariancePrediction> prediction =
               acsd::reconstruct_scene_variance(context, controls_ref, value_of(mesh), queries);
           check(is_ok(prediction), "the reconstruction is available");
@@ -377,7 +394,7 @@ int main() {
               double worst = 0.0;
               bool inside = true;
 
-              for (std::size_t i = 0; i < queries.size(); ++i) {
+              for (std::size_t i = 0; i + 1 < queries.size(); ++i) {
                 worst = std::max(worst, std::fabs(predicted[i] - truth[i]));
                 if (predicted[i] < lower[i] - 1e-12 || predicted[i] > upper[i] + 1e-12) inside = false;
                 if (!(truth[i] >= lower[i] - 1e-12 && truth[i] <= upper[i] + 1e-12)) inside = false;
@@ -385,6 +402,12 @@ int main() {
               std::printf("       the largest deviation of the log plane reproduction is %.3g\n", worst);
               check(worst < 1e-9, "the log plane is reproduced by the triangulation");
               check(inside, "the truth lies inside the interval of equation (4a)");
+              // The query outside the chart has no certified prediction.
+              const std::size_t far_index = queries.size() - 1;
+              check(std::isnan(predicted[far_index]),
+                    "a query outside the chart has no predicted value");
+              check(std::isnan(lower[far_index]) && std::isnan(upper[far_index]),
+                    "a query outside the chart has no interval");
               check(!result.conditional, "the reconstruction with a curvature bound is certified");
             }
           }
@@ -408,6 +431,76 @@ int main() {
                   "without a curvature bound no certified interval is published");
           }
         }
+      }
+    }
+  }
+
+
+  // ---- the native space of the scene variance -------------------------------
+  // The covariance of the frame acts on two native coordinates and the frame
+  // has a single leaf, so the variance is evaluated in the native space with
+  // the functional of the leaf.
+  {
+    // The native covariance is the identity of the two native coordinates.
+    std::vector<std::vector<double>> native_influence{{1.0, 0.0}, {0.0, 1.0}};
+    std::vector<std::vector<double>> native_factor{{1.0, 0.0}, {0.0, 1.0}};
+    acsd::Result<acsd::Ref<acsd::CovarianceAction>> native_covariance =
+        make_covariance(context, native_factor, native_influence, "native");
+    // The leaf operator maps the native coordinates to the leaf.
+    std::vector<acsd::U64> leaf_offsets{0};
+    std::vector<acsd::U64> leaf_indices;
+    std::vector<double> leaf_values;
+    for (std::size_t i = 0; i < 2; ++i) {
+      leaf_indices.push_back(0);
+      leaf_values.push_back(i == 0 ? 2.0 : 3.0);
+      leaf_offsets.push_back(leaf_indices.size());
+    }
+    acsd::Result<acsd::ArrayRef> leaf_off =
+        store_u64(context, leaf_offsets, {leaf_offsets.size()}, "native_leaf:offsets");
+    acsd::Result<acsd::ArrayRef> leaf_ind =
+        store_u64(context, leaf_indices, {leaf_indices.size()}, "native_leaf:indices");
+    acsd::Result<acsd::ArrayRef> leaf_val = store_f64(
+        context, leaf_values, {leaf_values.size()}, "native_leaf:values", acsd::Unit{});
+    acsd::ActionRecipe leaf_recipe;
+    leaf_recipe.kind = acsd::ActionRecipe::Kind::csr;
+    leaf_recipe.algorithm = "validation_csr_v1";
+    leaf_recipe.version = 1;
+    leaf_recipe.arrays = {"native_leaf:offsets", "native_leaf:indices", "native_leaf:values"};
+    const std::vector<acsd::ArrayRef> leaf_arrays{value_of(leaf_off), value_of(leaf_ind),
+                                                   value_of(leaf_val)};
+    acsd::Result<acsd::Ref<acsd::LinearAction>> native_to_leaf = acsd::make_action(
+        context, leaf_recipe, std::span<const acsd::Ref<acsd::LinearAction>>{}, leaf_arrays);
+
+    std::vector<TestFrame> native_frames;
+    TestFrame native_frame;
+    native_frame.frame = "frame_native";
+    native_frame.order = 1;
+    native_frame.leaves = {acsd::HealpixLeaf{1, 0}};
+    native_frame.signal = {1.0};
+    native_frame.dq = {0};
+    native_frame.state = {1};
+    native_frame.noise = value_of(native_covariance);
+    native_frame.native_to_leaf = value_of(native_to_leaf);
+    native_frames.push_back(native_frame);
+    TestFramesProvider native_provider(native_frames);
+    const std::vector<acsd::HealpixLeaf> native_leaf{acsd::HealpixLeaf{1, 0}};
+    acsd::Result<std::vector<acsd::Variance>> native_scene =
+        acsd::evaluate_scene_variance(context, native_provider, "frame_native", native_leaf);
+    if (!is_ok(native_scene)) {
+      std::printf("       the native scene variance failed with code %d\n",
+                  static_cast<int>(native_scene.code));
+      for (const acsd::Issue& issue : native_scene.assessment.issues) {
+        std::printf("       issue: %s\n", issue.reason.c_str());
+      }
+    }
+    check(is_ok(native_scene), "the scene variance of the native space is available");
+    if (is_ok(native_scene) && !value_of(native_scene).empty()) {
+      const acsd::Variance& variance = value_of(native_scene)[0];
+      check(variance.value.has_value(), "the native scene variance has a value");
+      if (variance.value.has_value()) {
+        // The functional of the leaf is (2, 3), so the variance is 4 + 9.
+        check_close(*variance.value, 13.0, 1e-9,
+                    "the native scene variance uses the functional of the leaf");
       }
     }
   }

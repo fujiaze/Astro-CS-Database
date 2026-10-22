@@ -471,8 +471,11 @@ Result<std::vector<Variance>> evaluate_scene_variance(Context& context, const Fr
                                   ? description.noise->input_output.domain->size
                                   : 0;
 
-  const U64 leaf_rows = action_codomain_size(description.native_to_leaf);
-  const U64 native_rows = action_domain_size(description.native_to_leaf);
+  // The leaf operator maps a leaf of the frame to its functional in the
+  // native coordinates, so the leaves are its domain and the native
+  // coordinates are its codomain.
+  const U64 leaf_rows = action_domain_size(description.native_to_leaf);
+  const U64 native_rows = action_codomain_size(description.native_to_leaf);
   enum class Space { kLeaf, kNative, kUnknown };
   Space space = Space::kUnknown;
   if (covariance_size != 0) {

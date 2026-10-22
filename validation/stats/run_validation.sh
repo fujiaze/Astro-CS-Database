@@ -12,7 +12,7 @@ OUT="$BUILD/validation"
 mkdir -p "$OUT"
 CXX=${CXX:-g++}
 STATUS=0
-for TEST in information_test sky_test coadd_test; do
+for TEST in information_test sky_test coadd_test coadd_loo_test; do
   SOURCE="$ROOT/validation/stats/$TEST.cpp"
   if [ ! -f "$SOURCE" ]; then continue; fi
   echo "=== building $TEST ==="

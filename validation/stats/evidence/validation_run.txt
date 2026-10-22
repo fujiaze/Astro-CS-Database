@@ -20,10 +20,15 @@
        the largest deviation of the log plane reproduction is 2.22e-16
 [ ok ]  the log plane is reproduced by the triangulation
 [ ok ]  the truth lies inside the interval of equation (4a)
+[ ok ]  a query outside the chart has no predicted value
+[ ok ]  a query outside the chart has no interval
 [ ok ]  the reconstruction with a curvature bound is certified
 [ ok ]  the conditional reconstruction is available
 [ ok ]  without a curvature bound the prediction is conditional
 [ ok ]  without a curvature bound no certified interval is published
+[ ok ]  the scene variance of the native space is available
+[ ok ]  the native scene variance has a value
+[ ok ]  the native scene variance uses the functional of the leaf (value 13, expected 13, |difference| 0)
 
 0 failure(s)
 === building sky_test ===
@@ -42,6 +47,18 @@
 [ ok ]  the reference frame keeps its own values (value 1, expected 1, |difference| 0)
 [ ok ]  the corrected signal loses the common offset (value 1, expected 1, |difference| 0)
 [ ok ]  the corrected covariance is available
+[ ok ]  the weighted sum gauge is fitted
+[ ok ]  the components of the weighted sum gauge can be read
+[ ok ]  the weighted sum of the components vanishes (value 4.4408920985e-16, expected 0, |difference| 4.44e-16)
+[ ok ]  the first component of the weighted sum gauge is minus one (value -1, expected -1, |difference| 0)
+[ ok ]  the second component of the weighted sum gauge is one (value 1, expected 1, |difference| 4.44e-16)
+[ ok ]  the controls of two patches are built
+[ ok ]  every frame contributes a control to each of the two patches
+[ ok ]  the sky of two patches is fitted
+[ ok ]  the components of two patches can be read
+[ ok ]  the reference frame of the first component vanishes (value 0, expected 0, |difference| 0)
+[ ok ]  the other frame of the first component carries the offset (value 2, expected 2, |difference| 8.88e-16)
+[ ok ]  the third frame carries its own offset (value 4, expected 4, |difference| 4.44e-16)
 0 failure(s)
 === building coadd_test ===
 === running coadd_test ===
@@ -64,4 +81,93 @@
 [ ok ]  the coadd carries an estimate
 [ ok ]  the coadd carries the weights
 [ ok ]  the coadd carries the selection
+[ ok ]  the BLUE weights of a mixed observation are not defined
+       the mixed BLUE weights failed with code 5
+[ ok ]  the automatic policy of a mixed observation is solved
+[ ok ]  the automatic policy of a mixed observation falls back to the equal weights
+[ ok ]  the first weight of the mixed observation is one half (value 0.5, expected 0.5, |difference| 0)
+[ ok ]  the second weight of the mixed observation is one half (value 0.5, expected 0.5, |difference| 0)
+0 failure(s)
+=== building coadd_loo_test ===
+=== running coadd_loo_test ===
+the leave one out Monte-Carlo of the coadd module
+  n  clean  trials  rejections  rate        reference  68% coverage  95% coverage
+  1  clean    4000          0  0          0          0.69425        0.95075         independent 0
+[ ok ]  the weights of N = 1 (clean) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 1 (clean)
+[ ok ]  no frame is rejected for N = 1 (clean)
+[ ok ]  the rejection count stays zero for N = 1 (clean)
+  1  dirty    4000          0  0          0          0              0               independent 0
+[ ok ]  the weights of N = 1 (contaminated) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 1 (contaminated)
+[ ok ]  no frame is rejected for N = 1 (contaminated)
+[ ok ]  the rejection count stays zero for N = 1 (contaminated)
+  2  clean    4000          0  0          0          0.68025        0.95075         independent 0
+[ ok ]  the weights of N = 2 (clean) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 2 (clean)
+[ ok ]  no frame is rejected for N = 2 (clean)
+[ ok ]  the rejection count stays zero for N = 2 (clean)
+  2  dirty    4000          0  0          0          0              0               independent 0
+[ ok ]  the weights of N = 2 (contaminated) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 2 (contaminated)
+[ ok ]  no frame is rejected for N = 2 (contaminated)
+[ ok ]  the rejection count stays zero for N = 2 (contaminated)
+  3  clean    4000          0  0          0          0.6745         0.9535          independent 0
+[ ok ]  the weights of N = 3 (clean) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 3 (clean)
+[ ok ]  no frame is rejected for N = 3 (clean)
+[ ok ]  the rejection count stays zero for N = 3 (clean)
+  3  dirty    4000          0  0          0          0              0.00225         independent 0
+[ ok ]  the weights of N = 3 (contaminated) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 3 (contaminated)
+[ ok ]  no frame is rejected for N = 3 (contaminated)
+[ ok ]  the rejection count stays zero for N = 3 (contaminated)
+  4  clean   20000         19  0.00095    0.00089    0.6761         0.94945         independent 19
+[ ok ]  the weights of N = 4 (clean) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 4 (clean)
+[ ok ]  the clean false rejection rate of N = 4 (clean) is inside the interval
+[ ok ]  the 68% coverage of N = 4 (clean) agrees with the reference
+[ ok ]  the 95% coverage of N = 4 (clean) agrees with the reference
+  4  dirty   20000      20000  1          1          0.6873         0.9482          independent 20000
+[ ok ]  the weights of N = 4 (contaminated) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 4 (contaminated)
+[ ok ]  the contaminated frame is rejected for N = 4 (contaminated)
+[ ok ]  the 68% coverage of N = 4 (contaminated) agrees with the reference
+[ ok ]  the 95% coverage of N = 4 (contaminated) agrees with the reference
+  5  clean   20000         23  0.00115    0.00096    0.6797         0.95105         independent 23
+[ ok ]  the weights of N = 5 (clean) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 5 (clean)
+[ ok ]  the clean false rejection rate of N = 5 (clean) is inside the interval
+[ ok ]  the 68% coverage of N = 5 (clean) agrees with the reference
+[ ok ]  the 95% coverage of N = 5 (clean) agrees with the reference
+  5  dirty   20000      20000  1          1          0.6836         0.94985         independent 20000
+[ ok ]  the weights of N = 5 (contaminated) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 5 (contaminated)
+[ ok ]  the contaminated frame is rejected for N = 5 (contaminated)
+[ ok ]  the 68% coverage of N = 5 (contaminated) agrees with the reference
+[ ok ]  the 95% coverage of N = 5 (contaminated) agrees with the reference
+  6  clean   20000         12  0.0006     0.00101    0.6824         0.95045         independent 12
+[ ok ]  the weights of N = 6 (clean) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 6 (clean)
+[ ok ]  the clean false rejection rate of N = 6 (clean) is inside the interval
+[ ok ]  the 68% coverage of N = 6 (clean) agrees with the reference
+[ ok ]  the 95% coverage of N = 6 (clean) agrees with the reference
+  6  dirty   20000      20000  1          1          0.68015        0.94945         independent 20000
+[ ok ]  the weights of N = 6 (contaminated) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 6 (contaminated)
+[ ok ]  the contaminated frame is rejected for N = 6 (contaminated)
+[ ok ]  the 68% coverage of N = 6 (contaminated) agrees with the reference
+[ ok ]  the 95% coverage of N = 6 (contaminated) agrees with the reference
+  7  clean   20000         19  0.00095    0.00095    0.681          0.9476          independent 19
+[ ok ]  the weights of N = 7 (clean) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 7 (clean)
+[ ok ]  the clean false rejection rate of N = 7 (clean) is inside the interval
+[ ok ]  the 68% coverage of N = 7 (clean) agrees with the reference
+[ ok ]  the 95% coverage of N = 7 (clean) agrees with the reference
+  7  dirty   20000      20000  1          1          0.6811         0.949           independent 20000
+[ ok ]  the weights of N = 7 (contaminated) are recomputed on the accepted samples
+[ ok ]  the module rejects the same trials as the independent statistic of N = 7 (contaminated)
+[ ok ]  the contaminated frame is rejected for N = 7 (contaminated)
+[ ok ]  the 68% coverage of N = 7 (contaminated) agrees with the reference
+[ ok ]  the 95% coverage of N = 7 (contaminated) agrees with the reference
 0 failure(s)

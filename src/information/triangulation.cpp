@@ -141,13 +141,8 @@ struct Point {
   std::size_t control = 0;
 };
 
-// The exact conversion of a binary64 value.  The base conversion returns a
-// default constructed rational for zero, whose denominator is zero, so the
-// zero case is built here with an explicit unit denominator.
-Rational exact(double value) {
-  if (value == 0.0) return Rational(0, 1);
-  return Rational::from_double_exact(value);
-}
+// The exact conversion of a binary64 value.
+Rational exact(double value) { return Rational::from_double_exact(value); }
 
 // Sign of the orientation determinant, evaluated exactly when the binary64
 // filter is not conclusive.
