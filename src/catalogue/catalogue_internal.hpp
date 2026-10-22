@@ -20,6 +20,7 @@
 //     index arrays.
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "acsd/contracts.hpp"
@@ -77,7 +78,10 @@ bool topocentric_direction(const PropagatedPosition& propagated, const ObserverS
 
 // Upper bound (rad) of the topocentric direction error caused by an unknown
 // observer position: the parallax of the star is the relevant length scale.
-double observer_omission_bound_rad(const StarRow& star);
+// An empty answer means that the error is not bounded: a source without a
+// known distance can be arbitrarily close to the observer, and the omitted
+// term must not be published as a zero error.
+std::optional<double> observer_omission_bound_rad(const StarRow& star);
 
 // ---------------------------------------------------------------------------
 // Sky geometry helpers (gnomonic tangent plane)

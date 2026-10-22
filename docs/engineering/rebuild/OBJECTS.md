@@ -117,7 +117,7 @@ staging 在同文件系统内写块、等待异步写完成、验证闭包/hash�
 | SpectralBasis | knots_nm[K+1] 严增，basis_coefficients[d,K,degree+1]，局部 t=(λ−knot_k)/(knot_{k+1}−knot_k)，升幂系数，单位 W m−2 nm−1 / coefficient_unit；XP 外定标先解码成此表示并把表示截断误差单列 |
 | Response | wavelength/throughput 同长度，严格递增、分段线性，支持域外不是默认已知零，只有显式 provenance 指定零尾。top_hat 与 sampled 二选一；top_hat_center_width_nm=[center,width]，width>0；throughput 不负，includes_photon_conversion 时数值单位含 λ/(hc)；shape_noise 缺失即模型项未知 |
 | Spectrum/ReferenceSED | wavelength nm、flux W/m²/nm，interpolation 首期 linear 或 piecewise_polynomial，外域策略须明确；reference target_response 决定参考转换 c，无谱不猜星云 SED |
-| CatalogueStar | pmRA*cosDec，epoch Julian year，parallax rad；负 measured parallax 保留随机测量，物理距离推断须先验，不直接倒数。RV m/s，可 null；XP coefficient 索引与 basis 一致；同一 source_id 绑定 release+calibration shared namespace |
+| CatalogueStar | pmRA*cosDec，epoch Julian year，parallax rad；负 measured parallax 保留随机测量，物理距离推断须先验，不直接倒数。RV m/s，可 null；XP coefficient 索引与 basis 一致；同一 source_id 绑定 release+calibration shared namespace。`epoch_year` 是该星当前发布位置的历元：`catalogue.query` 按请求历元传播后发布（epoch_year=请求历元），`catalogue.lookup` 按源自身历元发布（epoch_year=目录历元），两者的ra/dec因此不是同一物理量，不得混用 |
 | StarFlux/SourceMeasurements | 总积分 flux L，window 是真实拟合矩形，不是归一域；variance 可 null且说明；joint_noise 包含源间/背景/PSF共用项；training_pixel_ids 保留与原生根的连接 |
 | Basis | 项次为总次数递增、同次 x指数递减：1,x,y,x²,xy,y²…；u=(x−center.x)/scale.x，v 同理，scale>0；plane 在同一个 gnomonic sky chart，Box 是该chart范围。weighted_mean 给空间项训练加权均值，常量项不减 |
 | PhotoSolution | theta 按 frames×basis项；θ0=log a，其余为均值零空间项；alpha=exp(−Σθ_l b_l)，单位由 ADU 到具名 L；support 是训练支持的包围，真实可预测支持还须训练点 hull，不以满 Box 保证；influence 根不能重复参数noise |

@@ -14,6 +14,7 @@
 #include "acsd/contracts.hpp"
 #include "astrometry_common.hpp"
 #include "numerics/linalg.hpp"
+#include "numerics/quadrature.hpp"
 
 namespace acsd::sources {
 namespace {
@@ -34,15 +35,13 @@ double median_of(std::vector<double> values) {
   return 0.5 * (values[middle - 1] + values[middle]);
 }
 
-// The error function and its derivative, used by the pixel integrated
-// Gaussian.
-double erf_value(double x) { return std::erf(x); }
-
 // The integral of the normalised Gaussian over the pixel [x-1/2, x+1/2].
+// The error function comes from the numerics base, so the pixel integrated
+// Gaussian has a single implementation of the error function.
 double pixel_integral(double x, double x0, double sigma) {
   const double a = (x + 0.5 - x0) / (sigma * kSqrt2);
   const double b = (x - 0.5 - x0) / (sigma * kSqrt2);
-  return 0.5 * (erf_value(a) - erf_value(b));
+  return 0.5 * (numerics::erf(a) - numerics::erf(b));
 }
 
 // The derivatives of the pixel integral with respect to the centre and the

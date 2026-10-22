@@ -1,0 +1,38 @@
+{
+ "case": "catalogue_proper_motion_propagation_over_twenty_years",
+ "method": "astropy SkyCoord.apply_space_motion (ERFA space motion)",
+ "oracle": "astropy 7.0.1",
+ "samples": 3,
+ "tolerance_arcsec": 1e-05,
+ "max_angular_difference_arcsec": 3.1006398972920597e-06,
+ "status": "pass",
+ "rows": [
+  {
+   "source_id": 1000000,
+   "pmra_arcsec_per_year": 0.4000000000000001,
+   "pmdec_arcsec_per_year": 0.10000000000000002,
+   "epoch_year": 2016,
+   "target_epoch": 2036,
+   "angular_difference_arcsec": 0.0,
+   "distance_difference_au": 1.0103030945174396e-06
+  },
+  {
+   "source_id": 1000007,
+   "pmra_arcsec_per_year": 2.0,
+   "pmdec_arcsec_per_year": 0.5,
+   "epoch_year": 2016,
+   "target_epoch": 2036,
+   "angular_difference_arcsec": 7.265075899665464e-08,
+   "distance_difference_au": 7.320069926208816e-05
+  },
+  {
+   "source_id": 1000014,
+   "pmra_arcsec_per_year": 4.0,
+   "pmdec_arcsec_per_year": 1.0,
+   "epoch_year": 2016,
+   "target_epoch": 2036,
+   "angular_difference_arcsec": 3.1006398972920597e-06,
+   "distance_difference_au": 0.002395448027527891
+  }
+ ]
+}

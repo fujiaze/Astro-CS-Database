@@ -367,6 +367,19 @@ Result<CataloguePage> CatalogueProviderImpl::query(Context& context,
     page.next_cursor = encode_cursor(dataset_hash_, request_hash, next);
   }
   Result<CataloguePage> out = model::ok_result(std::move(page));
+  // The catalogue carries no observer: the published positions are
+  // barycentric and the topocentric correction is omitted.  The omission is
+  // published with the page; its bound is the parallax of the sources and it
+  // is not finite when a source has no known distance.
+  out.assessment = model::make_assessment(Code::ok);
+  out.assessment.complete = true;
+  out.assessment.omitted.push_back("topocentric_correction");
+  for (std::size_t i = start; i < members.size() && i - start < page.stars.size(); ++i) {
+    if (!catalogue::observer_omission_bound_rad(stars_[members[i]]).has_value()) {
+      out.assessment.noise = NoiseState::unknown;
+      break;
+    }
+  }
   out.usage = context.resources.usage();
   return out;
 }
@@ -501,6 +514,12 @@ Result<std::vector<CatalogueStar>> CatalogueProviderImpl::lookup(
   stars.reserve(source_ids.size());
   Assessment assessment = model::make_assessment(Code::ok);
   assessment.complete = true;
+  // The catalogue carries no observer: the published positions are
+  // barycentric and the topocentric correction is omitted.  The omission is
+  // published with the result; its bound is the parallax of the sources and
+  // it is not finite when a source has no known distance.
+  assessment.omitted.push_back("topocentric_correction");
+  bool bounded = true;
   for (U64 identifier : source_ids) {
     const auto found = by_id_.find(identifier);
     if (found == by_id_.end()) {
@@ -510,10 +529,12 @@ Result<std::vector<CatalogueStar>> CatalogueProviderImpl::lookup(
       continue;
     }
     const StarRow& row = stars_[found->second];
+    if (!catalogue::observer_omission_bound_rad(row).has_value()) bounded = false;
     const catalogue::PropagatedPosition propagated =
         catalogue::propagate_star(row, row.epoch_year);
     stars.push_back(make_star(context, row, row.epoch_year, propagated.parallax_rad));
   }
+  if (!bounded) assessment.noise = NoiseState::unknown;
   Result<std::vector<CatalogueStar>> out = model::ok_result(std::move(stars));
   out.assessment = assessment;
   out.usage = context.resources.usage();

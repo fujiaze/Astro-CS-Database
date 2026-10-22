@@ -213,6 +213,15 @@ std::vector<SyntheticStar> make_catalogue(U64 count, U64 seed) {
     star.unit = unit_from_ra_dec(star.ra_rad, star.dec_rad);
     stars.push_back(star);
   }
+  // Three sources with a large proper motion, for the epoch propagation
+  // oracle: 0.4, 2 and 4 arcsec per year, propagated over twenty years.
+  // The convention is pmRA*cosDec for the right ascension component.
+  const double kProperMotionArcsecPerYear[3] = {0.4, 2.0, 4.0};
+  for (std::size_t k = 0; k < 3 && k < stars.size(); ++k) {
+    const double rate = kProperMotionArcsecPerYear[k] * kDegToRad / 3600.0;
+    stars[k].pmra = rate;
+    stars[k].pmdec = 0.25 * rate;
+  }
   return stars;
 }
 
@@ -823,6 +832,49 @@ int main() {
     json.key("rv_m_s").value(star.rv);
     json.key("rv_present").value(star.rv_present);
     json.key("target_epoch").value(query_epoch);
+    json.end_object();
+  }
+  json.end_array();
+
+  // The epoch propagation sample for the proper motion oracle: three sources
+  // with 0.4, 2 and 4 arcsec per year, propagated over twenty years to the
+  // observation epoch.  The positions are read back from the public provider
+  // query, so the sample is the observable of the production code.
+  const double proper_motion_epoch = 2036.0;
+  json.key("proper_motion_epoch_samples").begin_array();
+  for (std::size_t k = 0; k < 3 && k < catalogue.size(); ++k) {
+    const SyntheticStar& star = catalogue[k];
+    acsd::CatalogueQuery single;
+    single.region.center = SkyICRS{star.unit[0], star.unit[1], star.unit[2]};
+    single.region.radius_rad = 0.01;
+    single.epoch_julian_year = proper_motion_epoch;
+    single.page_size = 4096;
+    double propagated_ra = 0.0;
+    double propagated_dec = 0.0;
+    double propagated_parallax = 0.0;
+    Result<acsd::CataloguePage> page = catalogue_provider->query(context, single);
+    if (ok(page)) {
+      for (const acsd::CatalogueStar& found : val(page).stars) {
+        if (found.source_id != star.source_id) continue;
+        propagated_ra = found.ra_rad;
+        propagated_dec = found.dec_rad;
+        propagated_parallax = found.parallax_rad;
+      }
+    }
+    json.begin_object();
+    json.key("propagated_ra_rad").value(propagated_ra);
+    json.key("propagated_dec_rad").value(propagated_dec);
+    json.key("propagated_parallax_rad").value(propagated_parallax);
+    json.key("source_id").value(static_cast<unsigned long long>(star.source_id));
+    json.key("ra_rad").value(star.ra_rad);
+    json.key("dec_rad").value(star.dec_rad);
+    json.key("epoch_year").value(star.epoch_year);
+    json.key("pmra_cosdec_rad_year").value(star.pmra);
+    json.key("pmdec_rad_year").value(star.pmdec);
+    json.key("parallax_rad").value(star.parallax);
+    json.key("rv_m_s").value(star.rv);
+    json.key("rv_present").value(star.rv_present);
+    json.key("target_epoch").value(proper_motion_epoch);
     json.end_object();
   }
   json.end_array();

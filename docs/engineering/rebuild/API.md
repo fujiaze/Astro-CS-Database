@@ -132,6 +132,7 @@ GUI管理配置、输入分组、运行/取消、事件显示与产品浏览；�
 - bind_wcs(observation,wcs,solution)：校验完整域并创建immutable revision，原生数组共享；无WCS校准合法。
 - bind_observation_model(observation,kernel,response)：将fit结果及响应绑定同观测新revision，校验frame/source index和实际G；不应用α、不改数值，已scale改变response拒绝identity_conflict。
 - build_catalogue_index(request)/make_catalogue_provider(index)：公开列式输入构建有界离线quad索引/只读provider，不藏路径；metadata与页面/XP basis见SYSTEM及声明。
+  历元语义分两条且必须一致使用：`catalogue.lookup` 返回目录历元的目录位置（按source_id取源，位置是该源自身历元，不做观测历元传播）；`catalogue.query` 返回请求历元（`CatalogueQuery.epoch_julian_year`）的预测位置（含pmRA*cosDec、视差与已知RV的空间运动）。盲解、PSF与测光构造位置假设必须用`query`的观测历元预测位置；用`lookup`的目录历元静态位置会把源的自行当成天测误差（历元差20年、pm 4″/yr时约80″）。两入口的历元差必须显式记入结果的assessment与模型身份。目录不含观测者，发布位置为重心坐标，省略的topocentric项列入assessment.omitted。
 - evaluate_psf(psf,request)：单一PSF积分及实际transfer链，输出PsfEvaluation，含[output sample,source position]模板和实际数值包围。预算失败保有效包围和原因，不能另以整数采样替代。
 这些操作是CLI/driver与科学模块实际消费者的接口，不引入插件或注册会话。
 

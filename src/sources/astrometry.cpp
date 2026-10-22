@@ -615,18 +615,38 @@ Result<Ref<AstrometricSolution>> solve_astrometry(Context& context, Ref<NativeOb
     Result<QuadPage> candidates = catalogue.query_quads(context, query);
 
     for (const QuadMatch& match : val(candidates).matches) {
-      // The catalogue positions of the quadruple.
-      Result<std::vector<CatalogueStar>> stars =
-          catalogue.lookup(context, std::span<const U64>(match.source_ids.data(), 4));
-      if (!ok(stars) || val(stars).size() != 4) continue;
-      std::array<Vec3, 4> catalogue_sky{};
-      for (std::size_t k = 0; k < 4; ++k) {
-        const CatalogueStar& star = val(stars)[k];
-        catalogue_sky[k] = Vec3{std::cos(star.dec_rad) * std::cos(star.ra_rad),
-                                std::cos(star.dec_rad) * std::sin(star.ra_rad),
-                                std::sin(star.dec_rad)};
-      }
       const Vec3 centre{match.center.nx, match.center.ny, match.center.nz};
+
+      // The catalogue positions of the quadruple at the observation epoch.
+      // The region query propagates every star to the epoch of the request,
+      // so the hypothesis and the verification below use the same predicted
+      // positions.  The lookup would return the static catalogue epoch
+      // positions, and the proper motion of the source would enter the blind
+      // solve as an astrometric error.
+      const double field_radius = half_diagonal * request.scale_rad_pixel.upper * 1.2 + 1e-9;
+      Result<std::vector<CatalogueStar>> field = query_region(
+          context, catalogue, SkyICRS{centre[0], centre[1], centre[2]}, field_radius, epoch, 4096);
+      if (!ok(field)) continue;
+      std::array<Vec3, 4> catalogue_sky{};
+      bool complete = true;
+      for (std::size_t k = 0; k < 4; ++k) {
+        const CatalogueStar* found = nullptr;
+        for (const CatalogueStar& star : val(field)) {
+          if (star.source_id == match.source_ids[k]) {
+            found = &star;
+            break;
+          }
+        }
+        if (found == nullptr) {
+          complete = false;
+          break;
+        }
+        catalogue_sky[k] = Vec3{std::cos(found->dec_rad) * std::cos(found->ra_rad),
+                                std::cos(found->dec_rad) * std::sin(found->ra_rad),
+                                std::sin(found->dec_rad)};
+      }
+      if (!complete) continue;
+
       const sources::AffineHypothesis hypothesis =
           sources::fit_affine(catalogue_sky, centre, observed.points);
       if (!hypothesis.valid) continue;
@@ -635,12 +655,6 @@ Result<Ref<AstrometricSolution>> solve_astrometry(Context& context, Ref<NativeOb
         continue;
       }
 
-      // The verification against all the detected sources and the epoch
-      // propagated Gaia sources.
-      const double field_radius = half_diagonal * hypothesis.scale_rad_pixel * 1.2 + 1e-9;
-      Result<std::vector<CatalogueStar>> field = query_region(
-          context, catalogue, SkyICRS{centre[0], centre[1], centre[2]}, field_radius, epoch, 4096);
-      if (!ok(field)) continue;
 
       Vec3 east{};
       Vec3 north{};

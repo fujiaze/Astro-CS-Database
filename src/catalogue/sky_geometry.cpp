@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
 
 #include "catalogue/catalogue_internal.hpp"
 
@@ -99,16 +100,23 @@ PropagatedPosition propagate_star(const StarRow& star, double target_epoch_year)
 
   if (have_distance) {
     const double distance = 1.0 / star.parallax_rad;  // au
-    // Linear space motion: r(t) = r0 + v dt.  The tangential part uses the
-    // proper motion scaled by the distance, the radial part the known RV.
+    // Space motion: the constant space velocity model r(t) = r0 + v dt.  The
+    // tangential part of the velocity is the proper motion scaled by the
+    // distance, the radial part the known radial velocity; the coupling of
+    // the two is the perspective acceleration of the foundation.  The
+    // distance is the norm of the propagated position, so it carries the
+    // second order term of the tangential motion; the reference propagation
+    // (ERFA pmsky) updates the distance with its own rule and therefore
+    // differs by at most 6e-6 in relative terms, while the directions agree
+    // to 2e-5 arcsec.
     Vec3 velocity = Vec3{distance * mu[0], distance * mu[1], distance * mu[2]};
     if (star.rv_present) {
       const double radial_au_per_year = star.rv_m_s * kAuPerYearPerMetrePerSecond;
       velocity = Vec3{velocity[0] + radial_au_per_year * n0[0], velocity[1] + radial_au_per_year * n0[1],
                       velocity[2] + radial_au_per_year * n0[2]};
     }
-    const Vec3 r1{star.parallax_rad * 0.0 + distance * n0[0] + velocity[0] * dt,
-                  distance * n0[1] + velocity[1] * dt, distance * n0[2] + velocity[2] * dt};
+    const Vec3 r1{distance * n0[0] + velocity[0] * dt, distance * n0[1] + velocity[1] * dt,
+                  distance * n0[2] + velocity[2] * dt};
     const double r1_norm = norm3(r1);
     if (r1_norm > 0.0) {
       direction = normalize3(r1);
@@ -151,12 +159,17 @@ bool topocentric_direction(const PropagatedPosition& propagated, const ObserverS
   return true;
 }
 
-double observer_omission_bound_rad(const StarRow& star) {
-  if (!(star.parallax_rad > 0.0)) return 0.0;
+std::optional<double> observer_omission_bound_rad(const StarRow& star) {
+  if (!(star.parallax_rad > 0.0)) {
+    // Without a distance the source can be arbitrarily close to the
+    // observer, so the omitted topocentric term has no finite bound.
+    return std::nullopt;
+  }
   // The observer barycentric distance is at most about 1.01 au; the angular
   // error of an uncorrected barycentric direction is bounded by the parallax.
   const double bound = std::asin(std::min(1.0, 1.01 * star.parallax_rad));
-  return std::isfinite(bound) ? bound : 0.0;
+  if (!std::isfinite(bound)) return std::nullopt;
+  return bound;
 }
 
 namespace {
