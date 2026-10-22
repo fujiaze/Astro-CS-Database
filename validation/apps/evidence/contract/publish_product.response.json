@@ -1,0 +1,209 @@
+{
+ "algorithm_set": [
+  {
+   "name": "acsd-contract",
+   "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+   "version": "1"
+  },
+  {
+   "name": "publish_product",
+   "source_hash": "sha256:2b8768d18a99f50daddecd53ed3ddbeebb6cbcfe734acea898269a21211cf184",
+   "version": "1"
+  }
+ ],
+ "arithmetic": {
+  "allow_target_fallback": true,
+  "initial_bits": 64,
+  "max_bits": 256,
+  "mode": "outward"
+ },
+ "blocks": [],
+ "build": {
+  "compiler": "14.2.0",
+  "name": "acsd-contract",
+  "standard": "acsd.contract/1",
+  "version": "2.0.0"
+ },
+ "input_hashes": {
+  "estimate": "acsd.SignalEstimate:f12b214c5867c857be95ecf9c4946da1f9f1fce38f9f9fee7039ceb718148cb0",
+  "graph": "acsd.ProductGraph:20be6dd8ea731dc423f50537e37bd777214f397c5e7fe7a531e440161ab8fe6f",
+  "leaf_index": "acsd.Index:2c3f160d566ceb3ac67f325b0edf628fca712e78e39166555d069bc373fcb502",
+  "pixels": "acsd.Array:c3a8ff8bbf89452d7554c46b20d78e2bd39282f4df9038a098828ec3760d105f",
+  "publish": "acsd.PublishRequest",
+  "support": "acsd.SupportMap:5876e120ee65294ad0b66d4ed88c8289994fcbfee9cdb785cfa46f0006939571"
+ },
+ "major": 1,
+ "objects": {
+  "acsd.Array:c3a8ff8bbf89452d7554c46b20d78e2bd39282f4df9038a098828ec3760d105f": {
+   "data": {
+    "dtype": "f64",
+    "index_id": "",
+    "shape": [
+     1
+    ],
+    "unit": {
+     "linear_power": 1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0,
+     "scale": "L",
+     "sr_power": -1
+    }
+   },
+   "type": "Array"
+  },
+  "acsd.Index:2c3f160d566ceb3ac67f325b0edf628fca712e78e39166555d069bc373fcb502": {
+   "data": {
+    "ids": null,
+    "kind": "leaf",
+    "namespace_id": "acsd.contract.leaves",
+    "order": 6,
+    "partitions": [],
+    "size": 1,
+    "sources": []
+   },
+   "type": "Index"
+  },
+  "acsd.ProductGraph:20be6dd8ea731dc423f50537e37bd777214f397c5e7fe7a531e440161ab8fe6f": {
+   "data": {
+    "closure": [
+     {
+      "$ref": "estimate"
+     },
+     {
+      "$ref": "support"
+     },
+     {
+      "$ref": "leaf_index"
+     }
+    ],
+    "inputs": [],
+    "profile": "full",
+    "signal": {
+     "$ref": "estimate"
+    },
+    "stage": "normalize"
+   },
+   "type": "ProductGraph"
+  },
+  "acsd.PublishRequest": {
+   "data": {
+    "destination": "/tmp/tmpm3jkd200/published",
+    "durable": true,
+    "profile": "full",
+    "signal_dtype": "f64",
+    "tile_log2_width": 6
+   },
+   "type": "PublishRequest"
+  },
+  "acsd.SignalEstimate:f12b214c5867c857be95ecf9c4946da1f9f1fce38f9f9fee7039ceb718148cb0": {
+   "data": {
+    "effective_response": null,
+    "error": null,
+    "estimator": {
+     "id": "contract-frame",
+     "quantity": "brightness",
+     "reference_sed": null,
+     "unit": {
+      "linear_power": 1,
+      "multiplier": 1.0,
+      "nm_power": 0,
+      "pixel_power": 0,
+      "scale": "L",
+      "sr_power": -1
+     }
+    },
+    "noise": null,
+    "numerical_lower": null,
+    "numerical_upper": null,
+    "signal": {
+     "$ref": "pixels"
+    },
+    "support": {
+     "$ref": "support"
+    },
+    "unit": {
+     "linear_power": 1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0,
+     "scale": "L",
+     "sr_power": -1
+    }
+   },
+   "type": "SignalEstimate"
+  },
+  "acsd.SupportMap:5876e120ee65294ad0b66d4ed88c8289994fcbfee9cdb785cfa46f0006939571": {
+   "data": {
+    "area_lower_sr": {
+     "$ref": "areas"
+    },
+    "area_upper_sr": {
+     "$ref": "areas"
+    },
+    "geometry_snapshot": "acsd.contract.snapshot",
+    "index": {
+     "$ref": "leaf_index"
+    },
+    "kind": "primitives",
+    "normalization_states": null,
+    "observational_states": null,
+    "primitives": [],
+    "states": {
+     "$ref": "states"
+    }
+   },
+   "type": "SupportMap"
+  }
+ },
+ "operation": "publish_product",
+ "output_root": "/tmp/tmpmr97perx",
+ "protocol": "acsd.contract.response",
+ "request_id": "product-publish",
+ "resolved_request_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+ "resources": {
+  "byte_budget": 8388608,
+  "bytes": 8388608,
+  "elapsed_seconds": 0.000289923,
+  "peak_payload_bytes": 0,
+  "read_bytes": 0,
+  "spill_bytes": 0,
+  "threads": 1,
+  "work": 10,
+  "work_budget": 100000,
+  "written_bytes": 0
+ },
+ "result": {
+  "assessment": {
+   "capability": "supported",
+   "complete": false,
+   "condition": {
+    "assumptions": [],
+    "estimator": "",
+    "fixed_objects": [],
+    "kind": ""
+   },
+   "execution": "complete",
+   "included": [],
+   "issues": [],
+   "noise": "unknown",
+   "omitted": [],
+   "science": "bounded",
+   "validity": "certified"
+  },
+  "code": "ok",
+  "dependencies": [],
+  "usage": {
+   "elapsed_seconds": 4.14e-06,
+   "peak_payload_bytes": 0,
+   "read_bytes": 0,
+   "spill_bytes": 0,
+   "work": 10,
+   "written_bytes": 0
+  },
+  "value": {
+   "directory": "/tmp/tmpm3jkd200/published",
+   "manifest_hash": "sha256:2838282091d86fa5e7e044c3ed83d90fc106536c978973f626fc70a91fa6578f"
+  }
+ }
+}

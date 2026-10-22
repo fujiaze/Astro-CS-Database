@@ -13,6 +13,7 @@
   "make_footprint_provider",
   "open_product",
   "export_image",
+  "publish_product",
   "build_export",
   "export_signal",
   "integrate_response",
@@ -27,7 +28,7 @@
   "storage.read",
   "storage.open"
  ],
- "count": 25,
+ "count": 26,
  "evidence": [
   "validation/apps/evidence/contract/build_export.request.json",
   "validation/apps/evidence/contract/compute_overlap.request.json",
@@ -35,7 +36,8 @@
   "validation/apps/evidence/contract/integrate_response.request.json",
   "validation/apps/evidence/contract/make_footprint_provider.request.json",
   "validation/apps/evidence/contract/make_wcs.request.json",
-  "validation/apps/evidence/contract/open_product.request.json"
+  "validation/apps/evidence/contract/open_product.request.json",
+  "validation/apps/evidence/contract/publish_product.request.json"
  ],
  "note": "每个已接入的操作都在 validation/apps/evidence/contract/ 下有请求、响应与退出码三件套；未接入的操作返回 unsupported（origin=contract.dispatch），不伪造结果。"
 }

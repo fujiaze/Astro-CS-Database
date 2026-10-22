@@ -1533,6 +1533,23 @@ Result<TypedObject> DecodeContext::decode_node(const json& node) {
     }
     support.primitives = id_list(payload, "primitives");
     support.geometry_snapshot = string_field(payload, "geometry_snapshot");
+    // The leaf index of the support is reopened: the product publishes it.
+    const json& index_node = field(payload, "index");
+    if (index_node.is_object() && index_node.contains("$ref")) {
+      Result<TypedObject> referenced =
+          resolve_reference(index_node.at("$ref").get<std::string>());
+      if (!ok(referenced)) {
+        return model::fail<TypedObject>(referenced.code,
+                                         "the leaf index of the support is missing",
+                                         "contract.decode", "the support cannot be decoded");
+      }
+      if (val(referenced).type != "Index") {
+        return model::fail<TypedObject>(Code::invalid_request,
+                                         "the index of the support is not an index",
+                                         "contract.decode", "the support cannot be decoded");
+      }
+      support.index = std::static_pointer_cast<const Index>(val(referenced).value);
+    }
     support.identity = identity_for("acsd.SupportMap", payload);
     support.assessment = model::make_assessment(Code::ok);
     support.assessment.complete = true;
@@ -1635,6 +1652,55 @@ Result<TypedObject> DecodeContext::decode_node(const json& node) {
     return model::ok_result(TypedObject{"ExportRequest",
                                         std::make_shared<const ExportRequest>(request),
                                         "acsd.ExportRequest"});
+  }
+
+  if (type == "ProductGraph") {
+    ProductGraph graph;
+    const std::string stage = string_field(payload, "stage", "normalize");
+    graph.stage = stage == "mosaic"    ? ProductGraph::Stage::mosaic
+                  : stage == "export_image" ? ProductGraph::Stage::export_image
+                                           : ProductGraph::Stage::normalize;
+    graph.profile = string_field(payload, "profile", "full");
+    graph.inputs = id_list(payload, "inputs");
+    // The signal of the graph.
+    const json& signal = field(payload, "signal");
+    if (signal.is_object() && signal.contains("$ref")) {
+      Result<TypedObject> referenced = resolve_reference(signal.at("$ref").get<std::string>());
+      if (!ok(referenced)) {
+        return model::fail<TypedObject>(referenced.code, "the signal of the graph is missing",
+                                         "contract.decode", "the graph cannot be decoded");
+      }
+      if (val(referenced).type != "SignalEstimate") {
+        return model::fail<TypedObject>(Code::invalid_request,
+                                         "the signal of the graph is not a signal estimate",
+                                         "contract.decode", "the graph cannot be decoded");
+      }
+      graph.signal = std::static_pointer_cast<const SignalEstimate>(val(referenced).value);
+    }
+    // The closure of the graph: the objects of the product.
+    const json& closure = field(payload, "closure");
+    if (closure.is_array()) {
+      for (const json& item : closure) {
+        const std::string name = item.is_object() && item.contains("$ref")
+                                     ? item.at("$ref").get<std::string>()
+                                     : std::string();
+        if (name.empty()) continue;
+        Result<TypedObject> referenced = resolve_reference(name);
+        if (!ok(referenced)) {
+          return model::fail<TypedObject>(referenced.code,
+                                           "the closure of the graph names the unknown object " + name,
+                                           "contract.decode", "the graph cannot be decoded");
+        }
+        graph.closure.push_back(
+            std::static_pointer_cast<const Model>(val(referenced).value));
+      }
+    }
+    graph.identity = identity_for("acsd.ProductGraph", payload);
+    graph.assessment = model::make_assessment(Code::ok);
+    graph.assessment.complete = true;
+    publish("ProductGraph", graph.identity.object_id, payload);
+    return model::ok_result(TypedObject{"ProductGraph", std::make_shared<const ProductGraph>(graph),
+                                        graph.identity.object_id});
   }
 
   if (type == "ExportWorkflowRequest") {

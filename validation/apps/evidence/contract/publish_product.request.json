@@ -1,0 +1,209 @@
+{
+ "protocol": "acsd.contract",
+ "major": 1,
+ "request_id": "product-publish",
+ "operation": "publish_product",
+ "arguments": {
+  "graph": {
+   "$ref": "graph"
+  },
+  "publish": {
+   "$ref": "publish"
+  }
+ },
+ "request": {},
+ "input_objects": {
+  "graph": {
+   "type": "ProductGraph",
+   "data": {
+    "stage": "normalize",
+    "profile": "full",
+    "inputs": [],
+    "signal": {
+     "$ref": "estimate"
+    },
+    "closure": [
+     {
+      "$ref": "estimate"
+     },
+     {
+      "$ref": "support"
+     },
+     {
+      "$ref": "leaf_index"
+     }
+    ]
+   }
+  },
+  "estimate": {
+   "type": "SignalEstimate",
+   "data": {
+    "signal": {
+     "$ref": "pixels"
+    },
+    "unit": {
+     "scale": "L",
+     "linear_power": 1,
+     "sr_power": -1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0
+    },
+    "estimator": {
+     "id": "contract-frame",
+     "quantity": "brightness",
+     "unit": {
+      "scale": "L",
+      "linear_power": 1,
+      "sr_power": -1,
+      "multiplier": 1.0,
+      "nm_power": 0,
+      "pixel_power": 0
+     },
+     "reference_sed": null
+    },
+    "numerical_lower": null,
+    "numerical_upper": null,
+    "support": {
+     "$ref": "support"
+    },
+    "effective_response": null,
+    "noise": null,
+    "error": null
+   }
+  },
+  "support": {
+   "type": "SupportMap",
+   "data": {
+    "kind": "primitives",
+    "primitives": [],
+    "geometry_snapshot": "acsd.contract.snapshot",
+    "index": {
+     "$ref": "leaf_index"
+    },
+    "states": {
+     "$ref": "states"
+    },
+    "area_lower_sr": {
+     "$ref": "areas"
+    },
+    "area_upper_sr": {
+     "$ref": "areas"
+    },
+    "normalization_states": null,
+    "observational_states": null
+   }
+  },
+  "leaf_index": {
+   "type": "Index",
+   "data": {
+    "size": 1,
+    "kind": "leaf",
+    "order": 6,
+    "namespace_id": "acsd.contract.leaves",
+    "ids": {
+     "$ref": "leaf_ids"
+    },
+    "partitions": [],
+    "sources": []
+   }
+  },
+  "leaf_ids": {
+   "type": "Array",
+   "dtype": "u64",
+   "shape": [
+    2
+   ],
+   "unit": {
+    "scale": "L",
+    "linear_power": 1,
+    "sr_power": -1,
+    "multiplier": 1.0,
+    "nm_power": 0,
+    "pixel_power": 0
+   },
+   "index_id": "",
+   "values": [
+    6,
+    100
+   ]
+  },
+  "states": {
+   "type": "Array",
+   "dtype": "u8",
+   "shape": [
+    1
+   ],
+   "unit": {
+    "scale": "L",
+    "linear_power": 1,
+    "sr_power": -1,
+    "multiplier": 1.0,
+    "nm_power": 0,
+    "pixel_power": 0
+   },
+   "index_id": "",
+   "values": [
+    1
+   ]
+  },
+  "areas": {
+   "type": "Array",
+   "dtype": "f64",
+   "shape": [
+    1
+   ],
+   "unit": {
+    "scale": "L",
+    "linear_power": 1,
+    "sr_power": -1,
+    "multiplier": 1.0,
+    "nm_power": 0,
+    "pixel_power": 0
+   },
+   "index_id": "",
+   "values": [
+    3.850971317543004e-07
+   ]
+  },
+  "pixels": {
+   "type": "Array",
+   "dtype": "f64",
+   "shape": [
+    1
+   ],
+   "unit": {
+    "scale": "L",
+    "linear_power": 1,
+    "sr_power": -1,
+    "multiplier": 1.0,
+    "nm_power": 0,
+    "pixel_power": 0
+   },
+   "index_id": "",
+   "values": [
+    2.5
+   ]
+  },
+  "publish": {
+   "type": "PublishRequest",
+   "data": {
+    "destination": "/tmp/tmpm3jkd200/published",
+    "signal_dtype": "f64",
+    "profile": "full",
+    "tile_log2_width": 6,
+    "durable": true
+   }
+  }
+ },
+ "output_root": "/tmp/tmpmr97perx",
+ "resources": {
+  "bytes": 8388608,
+  "work": 100000,
+  "spill_bytes": 0,
+  "threads": 1,
+  "max_depth": 32,
+  "max_precision_bits": 128,
+  "scratch_directory": ".work"
+ }
+}
