@@ -446,15 +446,16 @@ int main() {
     std::vector<std::vector<double>> native_factor{{1.0, 0.0}, {0.0, 1.0}};
     acsd::Result<acsd::Ref<acsd::CovarianceAction>> native_covariance =
         make_covariance(context, native_factor, native_influence, "native");
-    // The leaf operator maps the native coordinates to the leaf.
+    // The leaf operator maps the native signal to the leaf space, so its
+    // domain carries the two native coordinates and its codomain the leaf.
     std::vector<acsd::U64> leaf_offsets{0};
     std::vector<acsd::U64> leaf_indices;
     std::vector<double> leaf_values;
-    for (std::size_t i = 0; i < 2; ++i) {
-      leaf_indices.push_back(0);
-      leaf_values.push_back(i == 0 ? 2.0 : 3.0);
-      leaf_offsets.push_back(leaf_indices.size());
-    }
+    leaf_indices.push_back(0);
+    leaf_indices.push_back(1);
+    leaf_values.push_back(2.0);
+    leaf_values.push_back(3.0);
+    leaf_offsets.push_back(leaf_indices.size());
     acsd::Result<acsd::ArrayRef> leaf_off =
         store_u64(context, leaf_offsets, {leaf_offsets.size()}, "native_leaf:offsets");
     acsd::Result<acsd::ArrayRef> leaf_ind =

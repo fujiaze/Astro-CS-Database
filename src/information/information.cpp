@@ -471,11 +471,11 @@ Result<std::vector<Variance>> evaluate_scene_variance(Context& context, const Fr
                                   ? description.noise->input_output.domain->size
                                   : 0;
 
-  // The leaf operator maps a leaf of the frame to its functional in the
-  // native coordinates, so the leaves are its domain and the native
-  // coordinates are its codomain.
-  const U64 leaf_rows = action_domain_size(description.native_to_leaf);
-  const U64 native_rows = action_codomain_size(description.native_to_leaf);
+  // The leaf operator maps the native signal to the leaf space, so its
+  // codomain carries the leaves and its domain the native coordinates.  The
+  // functional of a leaf in the native space is the transposed operator.
+  const U64 leaf_rows = action_codomain_size(description.native_to_leaf);
+  const U64 native_rows = action_domain_size(description.native_to_leaf);
   enum class Space { kLeaf, kNative, kUnknown };
   Space space = Space::kUnknown;
   if (covariance_size != 0) {
@@ -530,7 +530,7 @@ Result<std::vector<Variance>> evaluate_scene_variance(Context& context, const Fr
       std::vector<double> selector(static_cast<std::size_t>(leaf_rows), 0.0);
       selector[static_cast<std::size_t>(row)] = 1.0;
       Result<std::vector<double>> row_vector =
-          apply_action_full(context, description.native_to_leaf, selector);
+          information::transpose_apply_full(context, description.native_to_leaf, selector);
       if (!ok(row_vector)) {
         return model::fail<std::vector<Variance>>(row_vector.code,
                                                   "the leaf operator cannot be applied",
@@ -556,7 +556,16 @@ Result<std::vector<Variance>> evaluate_scene_variance(Context& context, const Fr
     variance.state = description.noise->model ? description.noise->model->state : NoiseState::known;
     out.push_back(variance);
   }
-  return model::ok_result(std::move(out));
+  Result<std::vector<Variance>> result = model::ok_result(std::move(out));
+  // The two dimensions of the frame are named, so that a reviewer can see
+  // which space the variance was evaluated in.
+  model::set_included(result.assessment,
+                      "leaf_functional_dimension_" + std::to_string(leaf_rows));
+  model::set_included(result.assessment,
+                      "native_coordinate_dimension_" + std::to_string(native_rows));
+  model::set_included(result.assessment, space == Space::kLeaf ? "scene_variance_in_leaf_space"
+                                                               : "scene_variance_in_native_space");
+  return result;
 }
 
 // ---------------------------------------------------------------------------

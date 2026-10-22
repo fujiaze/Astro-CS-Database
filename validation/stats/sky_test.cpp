@@ -319,6 +319,106 @@ int main() {
     }
   }
 
+
+  // ---- the plane basis and the directions that are not estimable ------------
+  // A plane basis gives three terms per frame, so the difference model of two
+  // frames has six parameters while the white noise subspace of the controls
+  // has one dimension.  The two slope directions of the difference model
+  // cannot be separated from the common sky, so they are not estimable and
+  // the data of those directions get no correction.
+  {
+    acsd::SkyRequest plane = request;
+    plane.basis.kind = acsd::Basis::Kind::plane;
+    plane.basis.degree = 1;
+    plane.basis.center = {0.0, 0.0};
+    plane.basis.scale = {1.0, 1.0};
+    acsd::Result<acsd::Ref<acsd::SkyControls>> plane_controls =
+        acsd::build_sky_controls(context, provider, plane);
+    check(is_ok(plane_controls), "the controls of the plane basis are built");
+    if (is_ok(plane_controls)) {
+      std::printf("       the plane controls: %zu\n", value_of(plane_controls)->c->shape[0]);
+    }
+    acsd::Result<acsd::Ref<acsd::SkyFit>> plane_fit =
+        acsd::fit_relative_sky(context, value_of(plane_controls), plane);
+    if (!is_ok(plane_fit)) {
+      std::printf("       the plane fit failed with code %d\n", static_cast<int>(plane_fit.code));
+      for (const acsd::Issue& issue : plane_fit.assessment.issues) {
+        std::printf("       issue: %s\n", issue.reason.c_str());
+      }
+    }
+    check(is_ok(plane_fit), "the plane basis is fitted");
+    if (is_ok(plane_fit)) {
+      acsd::Result<acsd::ArrayView> beta_view = context.storage.read(
+          context, value_of(plane_fit)->beta, acsd::BlockRequest{0, 6});
+      check(is_ok(beta_view), "the components of the plane basis can be read");
+      if (is_ok(beta_view)) {
+        const std::vector<double> beta = decode_f64(value_of(beta_view).bytes);
+        // The first three components belong to the reference frame, the last
+        // three to the other frame.  The reference frame is the gauge, so its
+        // components vanish.  The difference model of the other frame is not
+        // separable from the common sky, so its components are the minimum
+        // norm solution of an underdetermined system and only their effect on
+        // the data is fixed.
+        check_close(beta[0], 0.0, 1e-9, "the constant term of the reference frame vanishes");
+        check_close(beta[1], 0.0, 1e-9, "the first slope term of the reference frame vanishes");
+        check_close(beta[2], 0.0, 1e-9, "the second slope term of the reference frame vanishes");
+      }
+      // The fit reports the directions that the common sky cannot separate.
+      bool not_identifiable = false;
+      for (const acsd::Issue& issue : plane_fit.assessment.issues) {
+        if (issue.code == acsd::Code::not_identifiable) not_identifiable = true;
+      }
+      check(not_identifiable, "the fit reports the directions that are not estimable");
+      const bool has_nullspace =
+          value_of(plane_fit)->rank.nullspace &&
+          value_of(plane_fit)->rank.nullspace->shape.size() == 2 &&
+          value_of(plane_fit)->rank.nullspace->shape[0] > 0 &&
+          value_of(plane_fit)->rank.nullspace->shape[1] > 0;
+      check(has_nullspace, "the difference model has directions that are not estimable");
+
+      // The correction of a data direction that is not estimable is zero and
+      // the position is reported as unavailable.
+      auto plane_signal = std::make_shared<acsd::SignalEstimate>();
+      acsd::Result<acsd::ArrayRef> plane_array =
+          store_f64(context, std::vector<double>(2 * leaves, 1.0), {2 * leaves},
+                    "sky_test:plane_signal", acsd::Unit{});
+      plane_signal->signal = value_of(plane_array);
+      plane_signal->unit = acsd::Unit{};
+      plane_signal->estimator.id = "validation";
+      plane_signal->estimator.quantity = "brightness";
+      acsd::Result<acsd::Ref<acsd::SignalEstimate>> plane_corrected =
+          acsd::apply_sky(context, acsd::Ref<acsd::SignalEstimate>(plane_signal), value_of(plane_fit));
+      check(is_ok(plane_corrected), "the correction with a plane basis is applied");
+      if (is_ok(plane_corrected)) {
+        acsd::Result<acsd::ArrayView> corrected_view = context.storage.read(
+            context, value_of(plane_corrected)->signal,
+            acsd::BlockRequest{0, static_cast<acsd::U64>(2 * leaves)});
+        check(is_ok(corrected_view), "the corrected signal of the plane basis can be read");
+        if (is_ok(corrected_view)) {
+          const std::vector<double> values = decode_f64(value_of(corrected_view).bytes);
+          bool unchanged = true;
+          for (const double value : values) {
+            if (std::fabs(value - 1.0) > 1e-9) unchanged = false;
+          }
+          // The positions whose data direction is not estimable keep no
+          // correction at all, so their values stay untouched.
+          check(unchanged,
+                "a data direction that is not estimable gets no correction");
+          bool finite = true;
+          for (const double value : values) {
+            if (!std::isfinite(value)) finite = false;
+          }
+          check(finite, "the corrected data stay finite");
+        }
+        bool unavailable = false;
+        for (const acsd::Issue& issue : plane_corrected.assessment.issues) {
+          if (issue.code == acsd::Code::unavailable) unavailable = true;
+        }
+        check(unavailable, "the correction reports the unavailable positions");
+      }
+    }
+  }
+
   std::printf("%d failure(s)\n", failures);
   return failures == 0 ? 0 : 1;
 }

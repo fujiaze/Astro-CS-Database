@@ -27,6 +27,37 @@ std::size_t element_count(const std::vector<U64>& shape) {
 
 }  // namespace
 
+// The transpose of an action applied to a vector.  The base implements the
+// transposed product, so the direction of the leaf operator is not decided
+// here.
+Result<std::vector<double>> transpose_apply_full(Context& context, Ref<LinearAction> action,
+                                                  const std::vector<double>& values) {
+  if (!action) {
+    return model::fail<std::vector<double>>(Code::invalid_request, "no action supplied",
+                                            "information.transpose", "the action cannot be applied");
+  }
+  const std::vector<U64> shape{static_cast<U64>(values.size())};
+  Result<ArrayRef> array =
+      operators::write_f64(context, values, shape, model::unit_dimensionless(), Id());
+  if (!ok(array)) {
+    return model::fail<std::vector<double>>(array.code, "the vector cannot be stored",
+                                            "information.transpose", "the action cannot be applied");
+  }
+  Result<ArrayRef> mapped = transpose_apply(context, action, val(array));
+  if (!ok(mapped)) {
+    return model::fail<std::vector<double>>(mapped.code, "the transposed action cannot be applied",
+                                            "information.transpose", "the action cannot be applied");
+  }
+  const std::size_t count = element_count(val(mapped)->shape);
+  Result<std::vector<double>> out = operators::read_f64(context, val(mapped), 0,
+                                                        static_cast<U64>(count));
+  if (!ok(out)) {
+    return model::fail<std::vector<double>>(out.code, "the output cannot be read",
+                                            "information.transpose", "the action cannot be applied");
+  }
+  return out;
+}
+
 Result<std::vector<double>> apply_action_full(Context& context, Ref<LinearAction> action,
                                               const std::vector<double>& values) {
   if (!action) {

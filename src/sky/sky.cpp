@@ -238,8 +238,12 @@ std::vector<double> evaluate_basis(const Basis& basis, const ChartProjection& pr
                                     const SkyICRS& position) {
   Vec2 chart_point{0.0, 0.0};
   if (!project_to_chart(projection, position, chart_point)) return {};
-  const double scale_x = basis.scale[0] != 0.0 ? basis.scale[0] : 1.0;
-  const double scale_y = basis.scale[1] != 0.0 ? basis.scale[1] : 1.0;
+  // The scale of the basis is only used when it is a finite positive number,
+  // so that a basis without an explicit normalisation stays well defined.
+  const double scale_x =
+      (std::isfinite(basis.scale[0]) && basis.scale[0] > 0.0) ? basis.scale[0] : 1.0;
+  const double scale_y =
+      (std::isfinite(basis.scale[1]) && basis.scale[1] > 0.0) ? basis.scale[1] : 1.0;
   const double u = (chart_point[0] - basis.center[0]) / scale_x;
   const double v = (chart_point[1] - basis.center[1]) / scale_y;
   std::vector<double> values;
@@ -1579,17 +1583,30 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
   std::vector<double> beta(static_cast<std::size_t>(parameters), 0.0);
   for (std::size_t p = 0; p < parameters; ++p) beta[p] = beta_column(static_cast<std::size_t>(p), 0);
 
-  // The null space of the design, mapped back to the parameter space.
+  // The null space of the design, mapped back to the parameter space.  The
+  // null space of the design is the orthogonal complement of its row space in
+  // the space of the gauge, so the range of the transposed design is
+  // completed to an orthonormal basis of the space of the gauge.
   const std::size_t null_count = (gauge_size > design_svd.rank) ? gauge_size - design_svd.rank : 0;
   Matrix null_parameters(static_cast<std::size_t>(parameters), null_count, 0.0);
-  for (std::size_t j = 0; j < null_count && design_svd.rank + j < design_svd.v.cols; ++j) {
-    for (std::size_t p = 0; p < parameters; ++p) {
-      double sum = 0.0;
+  if (null_count > 0) {
+    numerics::SvdResult transposed = numerics::jacobi_svd(numerics::transpose(val(design)), 1e-12);
+    Matrix range(static_cast<std::size_t>(gauge_size), static_cast<std::size_t>(transposed.rank), 0.0);
+    for (std::size_t j = 0; j < transposed.rank; ++j) {
       for (std::size_t i = 0; i < gauge_size; ++i) {
-        sum += G(static_cast<std::size_t>(p), static_cast<std::size_t>(i)) *
-               design_svd.v(static_cast<std::size_t>(i), design_svd.rank + j);
+        range(static_cast<std::size_t>(i), j) = transposed.u(static_cast<std::size_t>(i), j);
       }
-      null_parameters(static_cast<std::size_t>(p), j) = sum;
+    }
+    const Matrix complete = complete_orthogonal_factorisation(range);
+    for (std::size_t j = 0; j < null_count; ++j) {
+      for (std::size_t p = 0; p < parameters; ++p) {
+        double sum = 0.0;
+        for (std::size_t i = 0; i < gauge_size; ++i) {
+          sum += G(static_cast<std::size_t>(p), static_cast<std::size_t>(i)) *
+                 complete(static_cast<std::size_t>(i), transposed.rank + j);
+        }
+        null_parameters(static_cast<std::size_t>(p), j) = sum;
+      }
     }
   }
 

@@ -25,6 +25,11 @@ namespace acsd::information {
 Result<std::vector<double>> apply_action_full(Context& context, Ref<LinearAction> action,
                                               const std::vector<double>& values);
 
+// The transpose of an action applied to a vector.  The base implements the
+// transposed product, so the direction of an operator is not decided here.
+Result<std::vector<double>> transpose_apply_full(Context& context, Ref<LinearAction> action,
+                                                  const std::vector<double>& values);
+
 // Number of columns (domain) and rows (codomain) of an action.
 U64 action_domain_size(Ref<LinearAction> action);
 U64 action_codomain_size(Ref<LinearAction> action);

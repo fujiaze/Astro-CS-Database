@@ -340,6 +340,100 @@ int main() {
     }
   }
 
+
+  // ---- the external Gamma of one leaf per sample ---------------------------
+  // The external covariance covers the samples of every leaf, so its domain is
+  // the leaf count times the frame count and the block of a leaf is taken from
+  // the rows of that leaf.
+  {
+    const int frames = 4;
+    const std::size_t frame_count = static_cast<std::size_t>(frames);
+    const std::vector<std::vector<double>> gamma = gamma_family(frames);
+    const std::vector<std::vector<double>> lower = cholesky(gamma);
+    std::vector<std::vector<double>> identity(frame_count, std::vector<double>(frame_count, 0.0));
+    for (std::size_t i = 0; i < frame_count; ++i) identity[i][i] = 1.0;
+    // The external covariance of the two leaves of the four frames.
+    std::vector<std::vector<double>> per_leaf(2 * frame_count, std::vector<double>(2 * frame_count, 0.0));
+    for (std::size_t leaf = 0; leaf < 2; ++leaf) {
+      for (std::size_t i = 0; i < frame_count; ++i) {
+        for (std::size_t j = 0; j < frame_count; ++j) {
+          per_leaf[leaf * frame_count + i][leaf * frame_count + j] = gamma[i][j];
+        }
+      }
+    }
+    // The latent of the external covariance has the size of the sample space.
+    std::vector<std::vector<double>> per_leaf_identity(2 * frame_count,
+                                                         std::vector<double>(2 * frame_count, 0.0));
+    for (std::size_t i = 0; i < 2 * frame_count; ++i) per_leaf_identity[i][i] = 1.0;
+    acsd::Result<acsd::Ref<acsd::CovarianceAction>> external =
+        make_covariance(context, per_leaf_identity, per_leaf, "per_leaf_gamma");
+    std::vector<acsd::Result<acsd::Ref<acsd::CovarianceAction>>> noises;
+    for (std::size_t i = 0; i < frame_count; ++i) {
+      noises.push_back(make_covariance(context, identity, {lower[i]}, "per_leaf_noise", "shared", true));
+    }
+    acsd::CoaddRequest per_leaf_request;
+    per_leaf_request.target.id = "validation";
+    per_leaf_request.target.quantity = "brightness";
+    per_leaf_request.weights = acsd::WeightPolicy::blue;
+    per_leaf_request.rejection.kind = acsd::RejectionPolicy::Kind::single_max_loo;
+    per_leaf_request.rejection.alpha = alpha;
+    per_leaf_request.rejection.external_fixed_covariance = value_of(external);
+    per_leaf_request.rejection.common_mean_proof = "validation_common_mean";
+    per_leaf_request.solve.rank_relative = 1e-12;
+    per_leaf_request.solve.max_iterations = 64;
+    per_leaf_request.solve.dense_max_bytes = 1u << 22;
+
+    std::mt19937_64 generator(20261022ull);
+    std::normal_distribution<double> normal(0.0, 1.0);
+    std::size_t rejections = 0;
+    const std::size_t trials = 4000;
+    for (std::size_t trial = 0; trial < trials; ++trial) {
+      std::vector<double> samples(frame_count, 0.0);
+      for (std::size_t i = 0; i < frame_count; ++i) {
+        double shift = 0.0;
+        for (std::size_t k = 0; k < frame_count; ++k) shift += lower[i][k] * normal(generator);
+        samples[i] = mu + shift;
+      }
+      // The last frame of the first leaf is contaminated.
+      samples[frame_count - 1] += 12.0 * std::sqrt(gamma[frame_count - 1][frame_count - 1]);
+
+      std::vector<TestFrame> per_leaf_frames;
+      for (std::size_t i = 0; i < frame_count; ++i) {
+        TestFrame frame;
+        frame.frame = "frame_" + std::to_string(i);
+        frame.order = 1;
+        frame.leaves = {acsd::HealpixLeaf{1, 0}, acsd::HealpixLeaf{1, 1}};
+        frame.signal = {samples[i], samples[i]};
+        frame.dq = {0, 0};
+        frame.state = {1, 1};
+        frame.noise = value_of(noises[i]);
+        per_leaf_frames.push_back(frame);
+      }
+      TestFramesProvider per_leaf_provider(per_leaf_frames);
+      acsd::Result<acsd::Ref<acsd::Selection>> per_leaf_selection =
+          acsd::select_samples(context, per_leaf_provider, per_leaf_request);
+      if (!is_ok(per_leaf_selection)) {
+        check(false, "the selection with an external Gamma per leaf is available");
+        break;
+      }
+      const std::size_t accepted_count = value_of(per_leaf_selection)->accepted->shape[0] *
+                                         value_of(per_leaf_selection)->accepted->shape[1];
+      acsd::Result<acsd::ArrayView> accepted_view = context.storage.read(
+          context, value_of(per_leaf_selection)->accepted, acsd::BlockRequest{0, accepted_count});
+      const std::vector<std::uint8_t> accepted = decode_u8(value_of(accepted_view).bytes);
+      bool rejected = false;
+      for (std::size_t leaf = 0; leaf < 2; ++leaf) {
+        for (std::size_t i = 0; i < frame_count; ++i) {
+          if (accepted[leaf * frame_count + i] != 1) rejected = true;
+        }
+      }
+      if (rejected) ++rejections;
+    }
+    std::printf("  the external Gamma per leaf rejects %zu of %zu trials\n", rejections, trials);
+    check(rejections == trials,
+          "the external Gamma per leaf rejects the contaminated frame of every leaf");
+  }
+
   std::printf("%d failure(s)\n", failures);
   return failures == 0 ? 0 : 1;
 }
