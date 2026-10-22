@@ -118,21 +118,24 @@ def build_fixtures():
     """The frozen fixture set of C01."""
     # only terms with 2 <= p + q <= order are legal (the specification says so
     # and the implementation rejects the others by name)
+    # The coefficients are scaled so that the induced infinity norm of the
+    # SIP gradient stays below one over the declared domain, which is the
+    # sufficient injectivity condition of the specification.
     sip3 = sip_header(
         3, 3,
-        {(2, 0): 1.0e-3, (0, 2): -7.5e-4, (3, 0): 1.2e-5, (1, 1): 4.0e-4,
-         (1, 2): -2.0e-4, (2, 1): 3.0e-4},
-        {(2, 0): -9.0e-4, (0, 2): 6.0e-4, (3, 0): -9.0e-6, (1, 1): 5.0e-4,
-         (1, 2): 2.5e-4, (2, 1): -1.5e-4},
+        {(2, 0): 4.0e-4, (0, 2): -3.0e-4, (3, 0): 4.8e-6, (1, 1): 1.6e-4,
+         (1, 2): -8.0e-5, (2, 1): 1.2e-4},
+        {(2, 0): -3.6e-4, (0, 2): 2.4e-4, (3, 0): -3.6e-6, (1, 1): 2.0e-4,
+         (1, 2): 1.0e-4, (2, 1): -6.0e-5},
     )
     sip2 = sip_header(2, 2, {(2, 0): 6.0e-4, (0, 2): -4.0e-4, (1, 1): 2.0e-4},
                       {(2, 0): -5.0e-4, (0, 2): 3.0e-4, (1, 1): 2.5e-4})
-    sip9 = sip_header(9, 9, {(9, 0): 1.0e-11, (0, 9): -1.0e-9, (8, 1): 1.0e-11,
-                              (1, 8): -1.0e-9, (5, 4): 1.0e-10, (4, 5): -1.0e-10,
+    sip9 = sip_header(9, 9, {(9, 0): 3.0e-12, (0, 9): -3.0e-10, (8, 1): 3.0e-12,
+                              (1, 8): -3.0e-10, (5, 4): 3.0e-11, (4, 5): -3.0e-11,
                               (2, 0): 1.0e-5, (0, 2): -8.0e-6, (3, 1): 1.0e-7,
                               (1, 3): -8.0e-8},
-                      {(9, 0): -9.0e-12, (0, 9): 9.0e-10, (8, 1): -9.0e-12,
-                       (1, 8): 9.0e-10, (5, 4): -9.0e-11, (4, 5): 9.0e-11,
+                      {(9, 0): -2.7e-12, (0, 9): 2.7e-10, (8, 1): -2.7e-12,
+                       (1, 8): 2.7e-10, (5, 4): -2.7e-11, (4, 5): 2.7e-11,
                        (2, 0): -9.0e-6, (0, 2): 7.0e-6, (3, 1): 9.0e-8,
                        (1, 3): 8.0e-8})
     sip_strong = sip_header(2, 2, {(2, 0): 3.0e-2, (0, 2): 1.0e-2},
@@ -534,18 +537,28 @@ def injectivity_bound(case, a_terms, b_terms):
         return {"sup_grad_dinf": 0.0, "certified": True, "samples": 0}
     crpix, _, _, _ = model_parameters(case)
     domain = case["domain"]
+    u_low = domain["lower"][0] + 1.0 - crpix[0]
+    u_high = domain["upper"][0] + 1.0 - crpix[0]
+    v_low = domain["lower"][1] + 1.0 - crpix[1]
+    v_high = domain["upper"][1] + 1.0 - crpix[1]
+    max_u = max(abs(u_low), abs(u_high))
+    max_v = max(abs(v_low), abs(v_high))
+    # The sufficient condition of the specification is sup_U ||grad D||_inf < 1
+    # with the *induced* infinity norm (the maximum row sum), so the bound is
+    # computed term by term, which is rigorous over the whole rectangle.
     worst = 0.0
-    grid = 41
-    for i in range(grid):
-        for j in range(grid):
-            x = domain["lower"][0] + (domain["upper"][0] - domain["lower"][0]) * i / (grid - 1)
-            y = domain["lower"][1] + (domain["upper"][1] - domain["lower"][1]) * j / (grid - 1)
-            u = x + 1.0 - crpix[0]
-            v = y + 1.0 - crpix[1]
-            for terms in (a_terms, b_terms):
-                du, dv = sip_gradient(terms, u, v)
-                worst = max(worst, abs(du), abs(dv))
-    return {"sup_grad_dinf": worst, "certified": worst < 1.0, "samples": grid * grid}
+    for terms in (a_terms, b_terms):
+        row_u = 0.0
+        row_v = 0.0
+        for (p, q), coefficient in terms.items():
+            magnitude = abs(coefficient)
+            if p >= 1:
+                row_u += magnitude * p * (max_u ** (p - 1)) * (max_v ** q)
+            if q >= 1:
+                row_v += magnitude * q * (max_u ** p) * (max_v ** (q - 1))
+        worst = max(worst, row_u + row_v)
+    return {"sup_grad_dinf": worst, "certified": worst < 1.0,
+            "norm": "induced infinity norm (maximum row sum)"}
 
 
 def main() -> int:

@@ -77,7 +77,7 @@
   "case": "C01",
   "condition": "fixed numeric WCS model; no astrometric parameter error",
   "estimand": "the ICRS unit vector of the forward map, the 0-based pixel of the inverse map, the 3x2 Jacobian dn/d(x,y) and the solid angle per pixel^2",
-  "fixtures_sha256": "0066c81d187a741cb4f481516a801295b53568ea26203d5e8b660b90d7e4f20c",
+  "fixtures_sha256": "fa23e1cf54410e1a69ced99e0b91a93d01cd2be86c50d979d1d96b326b456e97",
   "goal": "Verify the absolute WCS model (forward, inverse, derivative and the solid angle per pixel) against an external complete WCS, and show that the named failure configurations fail by name.",
   "independence": {
     "external_standards": [
@@ -151,7 +151,7 @@
     ],
     "solid_angle_jacobian_relative": 1e-06
   },
-  "truth_sha256": "31f650cd8023a440b3ae91c1659d23213fb6e2090779e58c85e5961fa7120852",
+  "truth_sha256": "68d97485b9572f3f6c6cfeffb1ee55be3f67c86d80b819e958538305a4630b69",
   "truth_type": "analytic_exact",
   "unit": "rad (angles), pixel (positions), sr/pixel^2 (solid angle)"
 }

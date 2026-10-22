@@ -1,0 +1,59 @@
+{
+  "case": "G01",
+  "failures": [],
+  "functionals": [
+    {
+      "kind": "value",
+      "name": "tan_centered_square:drop_area",
+      "reason": "the observed side of G01 is pending_implementation",
+      "status": "pending_implementation",
+      "tolerance": 7.798205794509727e-17,
+      "truth": 7.798205794509727e-08,
+      "unit": "sr"
+    },
+    {
+      "kind": "value",
+      "name": "tan_offset_square:drop_area",
+      "reason": "the observed side of G01 is pending_implementation",
+      "status": "pending_implementation",
+      "tolerance": 1.6376232406911379e-18,
+      "truth": 1.6376232406911377e-09,
+      "unit": "sr"
+    },
+    {
+      "kind": "value",
+      "name": "north_polar:drop_area",
+      "reason": "the observed side of G01 is pending_implementation",
+      "status": "pending_implementation",
+      "tolerance": 3.1192823760693907e-18,
+      "truth": 3.1192823760693906e-09,
+      "unit": "sr"
+    },
+    {
+      "kind": "value",
+      "name": "order29_subleaf:drop_area",
+      "reason": "the observed side of G01 is pending_implementation",
+      "status": "pending_implementation",
+      "tolerance": 3.046174197867061e-25,
+      "truth": 3.046174197867061e-16,
+      "unit": "sr"
+    },
+    {
+      "kind": "value",
+      "name": "touching_edge:drop_area",
+      "reason": "the observed side of G01 is pending_implementation",
+      "status": "pending_implementation",
+      "tolerance": 1.9495514468458296e-17,
+      "truth": 1.9495514468458293e-08,
+      "unit": "sr"
+    }
+  ],
+  "notes": "The independent truth is complete; the observed side waits for the production geometry entry point to be available and for the case to be re-run.",
+  "status": "pending_implementation",
+  "status_vocabulary": {
+    "fail": "at least one functional is outside the frozen tolerance",
+    "not_applicable": "the case does not exercise the requested functional",
+    "pass": "every requested functional is inside the frozen tolerance",
+    "pending_implementation": "the public entry point under test is not implemented yet"
+  }
+}

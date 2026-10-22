@@ -1,0 +1,33 @@
+{
+  "validation_summary": {
+    "cases": [
+      {
+        "case": "C01",
+        "exit_code": 0,
+        "wall_seconds": 11.487011863966472,
+        "stderr": "",
+        "status": "pass",
+        "functionals": 34,
+        "failures": []
+      },
+      {
+        "case": "U01",
+        "exit_code": 0,
+        "wall_seconds": 2.432215364999138,
+        "stderr": "",
+        "status": "pass",
+        "functionals": 13,
+        "failures": []
+      }
+    ],
+    "counts": {
+      "pass": 2,
+      "fail": 0,
+      "pending_implementation": 0,
+      "other": 0
+    },
+    "environment": {
+      "python": "3.13.5"
+    }
+  }
+}

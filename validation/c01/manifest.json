@@ -1,11 +1,11 @@
 {
   "artefacts": {
-    "fixtures": "ae0e645ff65c2ff15849c10157d268c26d82b83df159edcfc9c7874dfc3d7a77",
-    "truth": "a68c6336c90235acc23ddc0ac63b9e991f94cb1abb1f37f3c335d784cc07faf1"
+    "fixtures": "7f017ec0d789ca6682961411a60e7360eca4d4862a8f3884943d702b633b96b8",
+    "truth": "9c0e0ab2cb1f03d4a77b13d2aad6dd604069855fee39ae8ab9ee90e18527ceb1"
   },
   "case": "C01",
   "code_identity": {
-    "validation/c01/truth_c01.py": "72220a9b19540a3e43ba6294ce6d0183b075c67a2451d542bd1a1bfeaf0cfcf7"
+    "validation/c01/truth_c01.py": "3a89856b43d592329f0fbeadee4edc36309122e04e096366e9bef60369b94091"
   },
   "commands": {
     "contract": "acsd-contract --request validation/c01/request.json",
@@ -32,7 +32,7 @@
   },
   "native_driver": "validation/native/c01_driver.cpp",
   "requests": {
-    "request.json": ""
+    "request.json": "b9a423e7aaf12adea076801dbaa5696617882aefdc21fd61125482e420c1a468"
   },
   "seeds": [],
   "trial_denominators": {

@@ -1,0 +1,147 @@
+{
+  "arguments": {
+    "astrometric_context": {
+      "epoch_julian_year": 2016.0,
+      "observation_jd_tdb": 2457600.5
+    },
+    "detector_frame": "detector",
+    "domain": {
+      "lower": [
+        0.0,
+        0.0
+      ],
+      "upper": [
+        16.0,
+        16.0
+      ]
+    },
+    "header": [
+      {
+        "key": "CTYPE1",
+        "value": "RA---TAN-SIP"
+      },
+      {
+        "key": "CTYPE2",
+        "value": "DEC--TAN-SIP"
+      },
+      {
+        "key": "CRPIX1",
+        "value": 17.293
+      },
+      {
+        "key": "CRPIX2",
+        "value": 41.617
+      },
+      {
+        "key": "CRVAL1",
+        "value": 10.0
+      },
+      {
+        "key": "CRVAL2",
+        "value": 20.0
+      },
+      {
+        "key": "CD1_1",
+        "value": -0.00012
+      },
+      {
+        "key": "CD1_2",
+        "value": 6e-05
+      },
+      {
+        "key": "CD2_1",
+        "value": 7e-05
+      },
+      {
+        "key": "CD2_2",
+        "value": 0.00014
+      },
+      {
+        "key": "RADESYS",
+        "value": "ICRS"
+      },
+      {
+        "key": "A_ORDER",
+        "value": 3
+      },
+      {
+        "key": "B_ORDER",
+        "value": 3
+      },
+      {
+        "key": "A_0_2",
+        "value": -0.0003
+      },
+      {
+        "key": "A_1_1",
+        "value": 0.00016
+      },
+      {
+        "key": "A_1_2",
+        "value": -8e-05
+      },
+      {
+        "key": "A_2_0",
+        "value": 0.0004
+      },
+      {
+        "key": "A_2_1",
+        "value": 0.00012
+      },
+      {
+        "key": "A_3_0",
+        "value": 4.8e-06
+      },
+      {
+        "key": "B_0_2",
+        "value": 0.00024
+      },
+      {
+        "key": "B_1_1",
+        "value": 0.0002
+      },
+      {
+        "key": "B_1_2",
+        "value": 0.0001
+      },
+      {
+        "key": "B_2_0",
+        "value": -0.00036
+      },
+      {
+        "key": "B_2_1",
+        "value": -6e-05
+      },
+      {
+        "key": "B_3_0",
+        "value": -3.6e-06
+      }
+    ]
+  },
+  "input_objects": {},
+  "major": 1,
+  "operation": "make_wcs",
+  "output_root": ".work/c01",
+  "protocol": "acsd.contract",
+  "request": {
+    "absolute": 1e-13,
+    "absolute_floor": 0.0,
+    "allow_target_fallback": false,
+    "initial_bits": 128,
+    "max_bits": 256,
+    "max_iterations": 128,
+    "outward": true,
+    "relative": 1e-13,
+    "unit_scale": "rad"
+  },
+  "request_id": "val-c01-make-wcs",
+  "resources": {
+    "bytes": 8388608,
+    "max_depth": 32,
+    "max_precision_bits": 256,
+    "scratch_directory": ".work",
+    "spill_bytes": 0,
+    "threads": 1,
+    "work": 100000
+  }
+}
