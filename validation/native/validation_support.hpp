@@ -277,6 +277,17 @@ inline acsd::Unit unit_variance_luminosity() {
   return unit;
 }
 
+inline acsd::Unit unit_variance(const std::string& scale) {
+  acsd::Unit unit;
+  unit.scale = scale;
+  unit.sr_power = 0;
+  unit.pixel_power = 0;
+  unit.nm_power = 0;
+  unit.multiplier = 1.0;
+  unit.linear_power = 2;
+  return unit;
+}
+
 inline acsd::Unit unit_dimensionless() {
   acsd::Unit unit;
   unit.scale = "1";

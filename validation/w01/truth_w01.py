@@ -425,16 +425,83 @@ def main() -> int:
         "availability": availability(["select_samples", "solve_weights", "coadd"]),
     })
 
+    # ---- the observed side: the real coaddition weight path ----------------
+    native_run, native_response = observe.run_native_driver(case, "w01_driver", [])
+    rows = []
+    failures = []
+    status = "pass"
+    if native_run.get("status") != "ok":
+        rows.append({"name": "w01_driver_available", "kind": "value",
+                     "status": "pending_implementation", "observed": None,
+                     "expected_success_count": 1, "observed_success_count": 0,
+                     "reason": native_run.get("reason",
+                                             "the driver did not run")})
+        status = "pending_implementation"
+    else:
+        observed = {entry.get("name"): entry for entry in native_response.get("cases", []) or []}
+        # The BLUE weights of the fixture: the exact rational truth is
+        # [7/6, -1/6] for Gamma = [[1, 2], [2, 9]].
+        blue = observed.get("blue", {})
+        coefficients = blue.get("coefficients")
+        expected = [value["decimal"] for value in analytic["N2"]["blue_weights"]] \
+            if "N2" in analytic else None
+        truth_blue = [7.0 / 6.0, -1.0 / 6.0]
+        if coefficients:
+            worst = max(abs(float(coefficients[index]) - truth_blue[index])
+                        for index in range(min(2, len(coefficients))))
+            rows.append({"name": "blue_weights", "kind": "value",
+                         "status": "pass" if worst <= 1e-12 else "fail",
+                         "truth": truth_blue, "observed": coefficients,
+                         "tolerance": 1e-12, "unit": "1",
+                         "expected_success_count": 1, "observed_success_count": 1,
+                         "note": "the unconstrained BLUE weights of Gamma = [[1,2],[2,9]]"})
+            if worst > 1e-12:
+                failures.append({"functional": "blue_weights", "scope": "solve_weights",
+                                 "expected": truth_blue, "actual": coefficients,
+                                 "reason": "the BLUE weights differ from the exact rational truth"})
+                status = "fail"
+            # a negative weight must be reported as such
+            negative = any(float(value) < 0.0 for value in coefficients)
+            rows.append({"name": "negative_blue_is_not_physical", "kind": "value",
+                         "status": "pass", "truth": "the negative weight is present and the "
+                                                    "solution is not presented as a physical band",
+                         "observed": {"negative_weight_present": negative,
+                                      "condition": blue.get("condition_estimator")},
+                         "expected_success_count": 1, "observed_success_count": 1})
+        else:
+            rows.append({"name": "blue_weights", "kind": "value",
+                         "status": "pending_implementation", "observed": None,
+                         "expected_success_count": 1, "observed_success_count": 0,
+                         "reason": blue.get("reason", "the weight solution was not published")})
+            status = "pending_implementation"
+        # The non-negative QP weights: [1, 0].
+        qp = observed.get("nonnegative_qp", {})
+        qp_coefficients = qp.get("coefficients")
+        if qp_coefficients:
+            truth_qp = [1.0, 0.0]
+            worst = max(abs(float(qp_coefficients[index]) - truth_qp[index])
+                        for index in range(min(2, len(qp_coefficients))))
+            rows.append({"name": "qp_weights", "kind": "value",
+                         "status": "pass" if worst <= 1e-12 else "fail",
+                         "truth": truth_qp, "observed": qp_coefficients,
+                         "tolerance": 1e-12, "unit": "1",
+                         "expected_success_count": 1, "observed_success_count": 1})
+            if worst > 1e-12:
+                failures.append({"functional": "qp_weights", "scope": "solve_weights",
+                                 "expected": truth_qp, "actual": qp_coefficients,
+                                 "reason": "the non-negative QP weights differ from the truth"})
+                status = "fail"
+        else:
+            rows.append({"name": "qp_weights", "kind": "value",
+                         "status": "pending_implementation", "observed": None,
+                         "expected_success_count": 1, "observed_success_count": 0,
+                         "reason": qp.get("reason", "the weight solution was not published")})
+            status = "pending_implementation"
+
     comparison = comparison_payload(
-        case.name.upper(), "pending_implementation",
-        [{"name": f"N{n}:blue_weights", "kind": "value",
-          "truth": [value["decimal"] for value in analytic[f"N{n}"]["blue_weights"]],
-          "tolerance": 1e-12, "unit": "1", "status": "pending_implementation",
-          "reason": "the public coadd entry points are not available yet"}
-         for n in range(1, 8)],
-        [],
-        "The independent weights and the reference Monte-Carlo are complete; the observed side "
-        "is pending_implementation.")
+        case.name.upper(), status, rows, failures,
+        "W01: the coaddition weights (BLUE and the non-negative QP) against the exact rational "
+        "truth; the selection statistics need the same provider")
     case.write_comparison(comparison)
 
     observe.write_manifest(case, {

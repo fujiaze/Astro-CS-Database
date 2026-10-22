@@ -1,0 +1,21 @@
+{
+  "artifacts": {},
+  "binary_identity": {
+    "path": "",
+    "sha256": "",
+    "size_bytes": "0"
+  },
+  "command": [],
+  "exit_code": null,
+  "missing_entry_points": [
+    "native-api-driver"
+  ],
+  "peak_rss_bytes": null,
+  "reason": "the native in-memory API driver is not built; build it with validation/lib/build_native.sh",
+  "response": null,
+  "route": "native",
+  "status": "pending_implementation",
+  "stderr": "",
+  "stdout": "",
+  "wall_seconds": 0.0
+}
