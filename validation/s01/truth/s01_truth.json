@@ -14,28 +14,34 @@
     "note": "a collinear control set leaves an explicit nullspace that must be reported"
   },
   "results": {
-    "KH_max_abs": 2.220446049250313e-16,
-    "common_gradient_parameter_shift_max_abs": 2.220446049250313e-16,
-    "corrected_covariance_diagonal": [
-      1.5,
-      1.5,
-      1.5,
-      1.5,
-      1.5,
-      1.5,
-      1.5,
-      1.5,
-      15.000000000000009,
-      15.000000000000009,
-      8.400000000000006,
-      8.400000000000006
+    "KH_free_max_abs": 4.306761192126528e-16,
+    "KH_max_abs": 0.708860759493671,
+    "KH_per_column": [
+      0.708860759493671,
+      3.35331857510638e-16,
+      4.306761192126528e-16
     ],
-    "corrected_covariance_offdiagonal_max_abs": 14.20000000000001,
-    "holdout_parameter_variance": 9.900000000000006,
-    "holdout_variance": 8.400000000000006,
-    "independent_addition_wrong_value": 18.30000000000001,
-    "monte_carlo_holdout_variance": 8.364843602588454,
-    "monte_carlo_relative_error": 0.00418528540613707,
+    "common_gradient_parameter_shift_max_abs": 0.708860759493671,
+    "corrected_covariance_diagonal": [
+      1.7177215189873416,
+      0.9177215189873422,
+      3.700000000000001,
+      4.7,
+      2.5047468354430378,
+      1.7047468354430382,
+      1.6047468354430392,
+      2.6047468354430388,
+      2.504746835443036,
+      1.7047468354430364,
+      1.6047468354430368,
+      2.604746835443036
+    ],
+    "corrected_covariance_offdiagonal_max_abs": 3.2000000000000006,
+    "holdout_parameter_variance": 0.427803429343317,
+    "holdout_variance": 2.604746835443036,
+    "independent_addition_wrong_value": 3.032550264786353,
+    "monte_carlo_holdout_variance": 2.6068783306461074,
+    "monte_carlo_relative_error": 0.0008183118505291433,
     "native_covariance_offdiagonal_max_abs": 0.7
   },
   "truth_types": [

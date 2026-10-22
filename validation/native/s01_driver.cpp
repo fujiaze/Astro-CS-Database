@@ -113,8 +113,10 @@ class DenseAction final : public acsd::LinearAction {
       std::memcpy(source.data(), view_value.bytes.data(),
                   std::min(source.size() * sizeof(double), view_value.bytes.size()));
     }
-    const std::size_t inner = transpose ? columns_ : rows_;
-    const std::size_t outer = transpose ? rows_ : columns_;
+    // the row major matrix maps a column vector of the columns onto a row
+    // vector of the rows; the transpose does the opposite
+    const std::size_t inner = transpose ? rows_ : columns_;
+    const std::size_t outer = transpose ? columns_ : rows_;
     if (source.size() != inner) {
       acsd::Result<acsd::ArrayRef> out;
       out.code = Code::invalid_request;
@@ -158,11 +160,13 @@ std::shared_ptr<DenseAction> make_dense(acsd::Context& context, const std::strin
   auto action = std::make_shared<DenseAction>(array, rows, columns, flat);
   action->spaces.input = unit_luminosity();
   action->spaces.output = unit_luminosity();
+  // the action maps a column vector of the columns onto a row vector of the
+  // rows: the domain is the input, the codomain the output
   action->spaces.domain = valsupport::make_index("s01:" + name + ":domain",
-                                                  static_cast<acsd::U64>(rows),
+                                                  static_cast<acsd::U64>(columns),
                                                   acsd::Index::Kind::native);
   action->spaces.codomain = valsupport::make_index("s01:" + name + ":codomain",
-                                                   static_cast<acsd::U64>(columns),
+                                                   static_cast<acsd::U64>(rows),
                                                    acsd::Index::Kind::native);
   action->identity = make_identity("s01:" + name, "acsd.LinearAction");
   action->assessment = valsupport::make_assessment();
@@ -181,11 +185,16 @@ std::vector<std::vector<double>> action_matrix(acsd::Context& context,
   for (std::size_t column = 0; column < columns; ++column) {
     std::vector<double> unit(columns, 0.0);
     unit[column] = 1.0;
-    acsd::Result<acsd::ArrayRef> input =
-        store_doubles(context, unit, {static_cast<acsd::U64>(columns)}, unit_luminosity(),
-                      "s01:probe");
-    if (!ok(input)) return matrix;
-    acsd::Result<acsd::ArrayRef> output = acsd::apply(context, action, val(input));
+    acsd::Result<acsd::ArrayRef> output;
+    // the action may expect a flat vector or a column vector
+    for (int variant = 0; variant < 2 && !ok(output); ++variant) {
+      std::vector<acsd::U64> shape{static_cast<acsd::U64>(columns)};
+      if (variant == 1) shape.push_back(1);
+      acsd::Result<acsd::ArrayRef> input =
+          store_doubles(context, unit, shape, unit_luminosity(), "s01:probe");
+      if (!ok(input)) return matrix;
+      output = acsd::apply(context, action, val(input));
+    }
     if (!ok(output)) return matrix;
     matrix.push_back(read_doubles(context, val(output)));
   }
@@ -254,6 +263,9 @@ int main(int argc, char** argv) {
 
   std::shared_ptr<DenseAction> t_action = make_dense(context, "T", matrix_of("T"));
   std::shared_ptr<DenseAction> h_action = make_dense(context, "H", matrix_of("H"));
+  // The difference mode is an action from the parameter space (one mode) onto
+  // the control space (nine controls): its matrix has one column and nine
+  // rows.
   std::shared_ptr<DenseAction> a_action = make_dense(context, "A", matrix_of("A"));
   std::shared_ptr<DenseAction> e_action = make_dense(context, "E", matrix_of("E"));
   std::shared_ptr<DenseAction> native_action =
@@ -337,6 +349,13 @@ int main(int argc, char** argv) {
   controls->component_ids = val(component_array);
 
   acsd::SkyRequest request;
+  // the frames of the run: three frames of the fixture
+  acsd::Comparability group;
+  group.frames = {"frame-0", "frame-1", "frame-2"};
+  group.response_proof = "fixture:response";
+  group.spatial_kernel_proof = "fixture:psf";
+  group.assumptions = {"identical response", "identical spatial kernel"};
+  request.groups.push_back(group);
   request.basis.kind = acsd::Basis::Kind::constant;
   request.basis.degree = 0;
   request.basis.center = {0.0, 0.0};
@@ -369,7 +388,10 @@ int main(int argc, char** argv) {
     // K and P are linear actions: their matrices are recovered by applying
     // them to the unit vectors.
     item["K"] = action_matrix(context, value.K, 9);
+    // The correction operator may live in the control space or in the native
+    // space; both shapes are tried and the one that applies is reported.
     item["P"] = action_matrix(context, value.P, 12);
+    if (item["P"].empty()) item["P"] = action_matrix(context, value.P, 9);
     item["K_rows"] = item["K"].size();
     item["K_columns"] = item["K"].empty() ? 0 : item["K"][0].size();
     item["P_rows"] = item["P"].size();
@@ -394,16 +416,21 @@ int main(int argc, char** argv) {
         }
       }
       double worst = 0.0;
-      for (std::size_t row = 0; row < k_matrix.size(); ++row) {
-        for (std::size_t column = 0; column < h_matrix.size(); ++column) {
+      json per_column = json::array();
+      for (std::size_t column = 0; column < h_matrix[0].size(); ++column) {
+        double column_worst = 0.0;
+        for (std::size_t row = 0; row < k_matrix.size(); ++row) {
           double sum = 0.0;
           for (std::size_t inner = 0; inner < h_matrix[column].size(); ++inner) {
             sum += k_matrix[row][inner] * h_matrix[column][inner];
           }
-          worst = std::max(worst, std::fabs(sum));
+          column_worst = std::max(column_worst, std::fabs(sum));
         }
+        per_column.push_back(column_worst);
+        worst = std::max(worst, column_worst);
       }
       report["KH_max_abs"] = worst;
+      report["KH_per_column"] = per_column;
     }
     report["fit_has_K"] = static_cast<bool>(value.K);
     report["fit_has_P"] = static_cast<bool>(value.P);

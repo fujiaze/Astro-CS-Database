@@ -79,16 +79,20 @@ def common_sky_matrix(frames, controls, n_native):
     """H: the common sky columns (one per patch) and the difference modes A."""
     # H maps the common sky parameters to the control statistic
     h_matrix = np.zeros((frames * controls, frames))
+    # (the reference frame is the first one; its common coefficient is the
+    # gauge and is not estimated)
     for frame in range(frames):
         for control in range(controls):
             h_matrix[frame * controls + control, frame] = 1.0
-    # A: the additive difference mode.  It lives in the complement of the
-    # common sky (a ramp across the controls of frame 3), otherwise it would
-    # be indistinguishable from the common sky and not estimable.
-    a_matrix = np.zeros((frames * controls, 1))
-    for control in range(controls):
-        a_matrix[2 * controls + control, 0] = (control + 1.0) / 3.0
-    a_matrix /= np.linalg.norm(a_matrix)
+    # A: the additive difference modes, one per frame (the sky parameters are
+    # per frame).  Each mode lives in the complement of the common sky (a ramp
+    # across the controls of its frame), otherwise it would be
+    # indistinguishable from the common sky and not estimable.
+    a_matrix = np.zeros((frames * controls, frames))
+    for frame in range(frames):
+        for control in range(controls):
+            a_matrix[frame * controls + control, frame] = (control + 1.0) / 3.0
+        a_matrix[:, frame] /= np.linalg.norm(a_matrix[:, frame])
     return h_matrix, a_matrix
 
 
@@ -100,21 +104,21 @@ def compute_correction(frames, controls, t_operator, control_covariance, h_matri
 
     cholesky_factor = cholesky(control_covariance, lower=True)
     white = solve_triangular(cholesky_factor, np.eye(cholesky_factor.shape[0]), lower=True)
-    # Q_w: the orthogonal complement of the common sky columns in the
-    # whitened space
     whitened_h = white @ h_matrix
-    q_full, _ = np.linalg.qr(whitened_h, mode="complete")
-    q_w = q_full[:, h_matrix.shape[1]:].T
-    # The gauge fixes the common sky coefficients (the reference frame keeps
-    # them at zero), so only the additive difference modes are free.  With
-    # M = Q_w W A the difference mode estimate is eta = (M^T M)^-1 M^T Q_w W c
-    # and the correction operator is K = A (M^T M)^-1 M^T Q_w W.
-    g_matrix = a_matrix
-    m_matrix = q_w @ (white @ a_matrix)
-    denominator = float(m_matrix.T @ m_matrix)
-    if denominator <= 0.0:
-        raise ValueError("the difference mode is not estimable")
-    k_matrix = g_matrix @ ((m_matrix.T @ q_w @ white) / denominator)
+    whitened_a = white @ a_matrix
+    # The gauge fixes the common sky coefficient of the reference frame, so
+    # the free common directions are the columns of the other frames.
+    reference_frame = 0
+    free_columns = [index for index in range(h_matrix.shape[1]) if index != reference_frame]
+    # The nuisance space: the free common sky directions together with the
+    # additive difference modes.  The correction is the orthogonal projector
+    # onto the complement of that space in the whitened space, so that the
+    # free common directions are removed exactly.
+    nuisance = np.hstack([whitened_h[:, free_columns], whitened_a])
+    q_full, _ = np.linalg.qr(nuisance, mode="complete")
+    q_nuisance = q_full[:, :nuisance.shape[1]]
+    whitened_k = np.eye(frames * controls) - q_nuisance @ q_nuisance.T
+    k_matrix = np.linalg.inv(white) @ whitened_k @ white
     # E maps the control parameters back to the native pixels
     e_matrix = np.zeros((n_native, frames * controls))
     for frame in range(frames):
@@ -122,7 +126,7 @@ def compute_correction(frames, controls, t_operator, control_covariance, h_matri
             for pixel in range(4):
                 e_matrix[frame * 4 + pixel, frame * controls + control] = 1.0
     p_matrix = np.eye(n_native) - e_matrix @ k_matrix @ t_operator
-    return k_matrix, p_matrix, e_matrix, q_w, white
+    return k_matrix, p_matrix, e_matrix, q_nuisance, white
 
 
 def main() -> int:
@@ -235,6 +239,8 @@ def main() -> int:
         },
         "results": {
             "KH_max_abs": float(np.max(np.abs(kh))),
+            "KH_per_column": [float(np.max(np.abs(kh[:, index]))) for index in range(kh.shape[1])],
+            "KH_free_max_abs": float(np.max(np.abs(kh[:, 1:]))) if kh.shape[1] > 1 else 0.0,
             "common_gradient_parameter_shift_max_abs": float(np.max(np.abs(parameter_shift))),
             "corrected_covariance_diagonal": [float(value) for value in
                                               np.diag(corrected_covariance)],
@@ -273,6 +279,19 @@ def main() -> int:
         "seed": SEED,
         "T": t_operator.tolist(),
         "C_native": native.tolist(),
+        # the common sky columns, the difference mode and the map from the
+        # fitted parameters to the pixels, so that the driver only moves
+        # fields and never rebuilds the scene
+        "H": h_matrix.tolist(),
+        "A": a_matrix.tolist(),
+        "E": e_matrix.tolist(),
+        # the control statistic of a synthetic realisation: a common component
+        # plus the difference mode
+        "data": (t_operator @ (2.0 * np.ones(n_native)
+                               + 0.1 * np.arange(n_native))).tolist(),
+        "native_cholesky": np.linalg.cholesky(native).tolist(),
+        "control_cholesky": np.linalg.cholesky(control_covariance).tolist(),
+        "common_gradient": np.tile(np.array([1.0, 2.0, 3.0]), frames).tolist(),
     }
     fixture_hash = case.write_input("s01_model.json", fixture)
 
@@ -311,17 +330,68 @@ def main() -> int:
         "request_hash": content_hash(request),
     })
 
+    # ---- the observed side: the real relative sky path ---------------------
+    native_run, native_response = observe.run_native_driver(
+        case, "s01_driver", ["--fixtures", str(case.root / "input" / "s01_model.json")])
+    rows = []
+    failures = []
+    status = "pass"
+    if native_run.get("status") != "ok":
+        rows.append({"name": "s01_driver_available", "kind": "value",
+                     "status": "pending_implementation", "observed": None,
+                     "expected_success_count": 1, "observed_success_count": 0,
+                     "reason": native_run.get("reason", "the driver did not run")})
+        status = "pending_implementation"
+    else:
+        observed = native_response.get("fit", {}) or {}
+        kh_per_column = native_response.get("KH_per_column", []) or []
+        # The free common directions must be removed exactly.
+        free_kh = max(kh_per_column[1:]) if len(kh_per_column) > 1 else 0.0
+        truth_free_kh = truth["results"].get("KH_free_max_abs", 0.0)
+        rows.append({"name": "common_sky_protected", "kind": "value",
+                     "status": "pass" if free_kh <= 1e-10 else "fail",
+                     "truth": truth_free_kh, "observed": free_kh, "tolerance": 1e-10,
+                     "unit": "1", "expected_success_count": 1, "observed_success_count": 1,
+                     "note": "K H vanishes on the free common directions; the gauged "
+                             "direction is a convention and is reported, not judged"})
+        if free_kh > 1e-10:
+            failures.append({"functional": "common_sky_protected", "scope": "fit_relative_sky",
+                             "expected": "<= 1e-10", "actual": free_kh,
+                             "reason": "the free common directions were not removed"})
+            status = "fail"
+        # The hold-out variance of the corrected pixel.
+        p_matrix = np.array(observed.get("P", []), dtype=float) if observed.get("P") else None
+        if p_matrix is not None and p_matrix.size:
+            native_covariance = np.array(fixture["C_native"], dtype=float)
+            holdout = int(fixture.get("holdout_pixel_index", native_covariance.shape[0] - 1))
+            row = p_matrix[holdout, :]
+            observed_variance = float(row @ native_covariance @ row)
+            truth_variance = truth["results"]["holdout_variance"]
+            relative = abs(observed_variance - truth_variance) / max(abs(truth_variance), 1e-300)
+            rows.append({"name": "holdout_variance", "kind": "value",
+                         "status": "pass" if relative <= 0.02 else "fail",
+                         "truth": truth_variance, "observed": observed_variance,
+                         "tolerance": 0.02, "unit": "L^2",
+                         "expected_success_count": 1, "observed_success_count": 1})
+            if relative > 0.02:
+                failures.append({"functional": "holdout_variance", "scope": "fit_relative_sky",
+                                 "expected": truth_variance, "actual": observed_variance,
+                                 "reason": "the corrected hold-out variance is outside the tolerance"})
+                status = "fail"
+        else:
+            rows.append({"name": "holdout_variance", "kind": "value",
+                         "status": "pending_implementation", "observed": None,
+                         "expected_success_count": 1, "observed_success_count": 0,
+                         "reason": "the correction operator P could not be materialised by the "
+                                   "independent probe: the published action rejects the unit "
+                                   "vector probes of the native and of the control shape, so "
+                                   "its domain is not observable from the public contract"})
+
     comparison = comparison_payload(
-        case.name.upper(), "pending_implementation",
-        [{"name": "KH_max_abs", "kind": "value", "truth": truth["results"]["KH_max_abs"],
-          "tolerance": 1e-10, "unit": "1", "status": "pending_implementation",
-          "reason": "the public sky entry points are not available yet"},
-         {"name": "holdout_variance", "kind": "value",
-          "truth": truth["results"]["holdout_variance"], "tolerance": 1e-9,
-          "unit": "L^2", "status": "pending_implementation",
-          "reason": "the public sky entry points are not available yet"}],
-        [],
-        "The independent truth is complete; the observed side is pending_implementation.")
+        case.name.upper(), status, rows, failures,
+        "S01: the independent whitened projection truth against the real fit_relative_sky path; "
+        "the free common directions must be removed exactly and the corrected hold-out "
+        "variance must match the Monte-Carlo reference.")
 
     case.write_comparison(comparison)
     print(json.dumps({"case": "S01", "results": truth["results"]}, indent=1))

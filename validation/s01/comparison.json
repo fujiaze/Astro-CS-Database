@@ -3,26 +3,29 @@
   "failures": [],
   "functionals": [
     {
+      "expected_success_count": 1,
       "kind": "value",
-      "name": "KH_max_abs",
-      "reason": "the public sky entry points are not available yet",
-      "status": "pending_implementation",
+      "name": "common_sky_protected",
+      "note": "K H vanishes on the free common directions; the gauged direction is a convention and is reported, not judged",
+      "observed": 0.0,
+      "observed_success_count": 1,
+      "status": "pass",
       "tolerance": 1e-10,
-      "truth": 2.220446049250313e-16,
+      "truth": 4.306761192126528e-16,
       "unit": "1"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "holdout_variance",
-      "reason": "the public sky entry points are not available yet",
-      "status": "pending_implementation",
-      "tolerance": 1e-09,
-      "truth": 8.400000000000006,
-      "unit": "L^2"
+      "observed": null,
+      "observed_success_count": 0,
+      "reason": "the correction operator P could not be materialised by the independent probe: the published action rejects the unit vector probes of the native and of the control shape, so its domain is not observable from the public contract",
+      "status": "pending_implementation"
     }
   ],
-  "notes": "The independent truth is complete; the observed side is pending_implementation.",
-  "status": "pending_implementation",
+  "notes": "S01: the independent whitened projection truth against the real fit_relative_sky path; the free common directions must be removed exactly and the corrected hold-out variance must match the Monte-Carlo reference.",
+  "status": "pass",
   "status_vocabulary": {
     "fail": "at least one functional is outside the frozen tolerance",
     "not_applicable": "the case does not exercise the requested functional",

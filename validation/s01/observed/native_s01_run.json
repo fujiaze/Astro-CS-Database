@@ -1,0 +1,105 @@
+{
+  "artifacts": {},
+  "binary_identity": {
+    "path": "/workspace/Astro CS Database/validation/build/s01_driver",
+    "sha256": "b882b34809d6c935c94d2e1b1ca64af87e408e08526fcaedac7149f2da6908a0",
+    "size_bytes": "1838712"
+  },
+  "command": [
+    "/workspace/Astro CS Database/validation/build/s01_driver",
+    "--fixtures",
+    "/workspace/Astro CS Database/validation/s01/input/s01_model.json",
+    "--output",
+    "/workspace/Astro CS Database/validation/s01/observed/native_s01.json"
+  ],
+  "exit_code": 0,
+  "missing_entry_points": [],
+  "peak_rss_bytes": 139563008,
+  "reason": "",
+  "response": {
+    "KH_max_abs": 0.0,
+    "KH_per_column": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "driver": "s01_native",
+    "fit": {
+      "K": [
+        [
+          0.0,
+          -0.5961144481160938,
+          -0.6198078194675833
+        ],
+        [
+          0.0,
+          0.6247732780318472,
+          0.6748362963398211
+        ],
+        [
+          0.0,
+          -0.8247146714152289,
+          -0.6347236815306235
+        ],
+        [
+          0.0,
+          -1.6964292402079313,
+          0.6456811538562677
+        ],
+        [
+          0.0,
+          0.6913909367114502,
+          -0.49923064791388644
+        ],
+        [
+          0.0,
+          1.3517682511863238,
+          0.11759338065716846
+        ],
+        [
+          0.0,
+          0.16049432608705166,
+          -2.819154198165082
+        ],
+        [
+          0.0,
+          -0.3254429382955972,
+          1.879576752961167
+        ],
+        [
+          0.0,
+          0.1634638501680477,
+          0.9338860263388957
+        ]
+      ],
+      "K_columns": 3,
+      "K_rows": 9,
+      "P": [],
+      "P_columns": 0,
+      "P_rows": 0,
+      "beta": [
+        0.0,
+        -0.5494820614166311,
+        -0.2688188059142971
+      ],
+      "has_parameter_covariance": true,
+      "rank": {
+        "certified": true,
+        "columns": 2,
+        "rank": 2
+      },
+      "support": -1
+    },
+    "fit_code": "ok",
+    "fit_has_K": true,
+    "fit_has_P": true,
+    "route": "in_memory_public_api"
+  },
+  "response_file": "s01/observed/native_s01.json",
+  "response_sha256": "22c2ad7a6195ae161ee9b999c783c4f40aeb14ad77fa8470c7d74b77359712b7",
+  "route": "native",
+  "status": "ok",
+  "stderr": "",
+  "stdout": "{\n \"KH_max_abs\": 0.0,\n \"KH_per_column\": [\n  0.0,\n  0.0,\n  0.0\n ],\n \"driver\": \"s01_native\",\n \"fit\": {\n  \"K\": [\n   [\n    0.0,\n    -0.5961144481160938,\n    -0.6198078194675833\n   ],\n   [\n    0.0,\n    0.6247732780318472,\n    0.6748362963398211\n   ],\n   [\n    0.0,\n    -0.8247146714152289,\n    -0.6347236815306235\n   ],\n   [\n    0.0,\n    -1.6964292402079313,\n    0.6456811538562677\n   ],\n   [\n    0.0,\n    0.6913909367114502,\n    -0.49923064791388644\n   ],\n   [\n    0.0,\n    1.3517682511863238,\n    0.11759338065716846\n   ],\n   [\n    0.0,\n    0.16049432608705166,\n    -2.819154198165082\n   ],\n   [\n    0.0,\n    -0.3254429382955972,\n    1.879576752961167\n   ],\n   [\n    0.0,\n    0.1634638501680477,\n    0.9338860263388957\n   ]\n  ],\n  \"K_columns\": 3,\n  \"K_rows\": 9,\n  \"P\": [],\n  \"P_columns\": 0,\n  \"P_rows\": 0,\n  \"beta\": [\n   0.0,\n   -0.5494820614166311,\n   -0.2688188059142971\n  ],\n  \"has_parameter_covariance\": true,\n  \"rank\": {\n   \"certified\": true,\n   \"columns\": 2,\n   \"rank\": 2\n  },\n  \"support\": -1\n },\n \"fit_code\": \"ok\",\n \"fit_has_K\": true,\n \"fit_has_P\": true,\n \"route\": \"in_memory_public_api\"\n}",
+  "wall_seconds": 0.003159465966746211
+}
