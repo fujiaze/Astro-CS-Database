@@ -78,7 +78,7 @@ if(ACSD_BUILD_SCIENCE)
   acsd_link(observation model numerics operators uncertainty)
 
   acsd_add_library(catalogue)
-  acsd_link(catalogue model coordinates numerics)
+  acsd_link(catalogue model coordinates numerics uncertainty)
 
   acsd_add_library(response)
   acsd_link(response model numerics)

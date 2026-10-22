@@ -62,7 +62,7 @@ flowchart TD
 | acsd_numerics / src/numerics | model、Eigen、MPFR/GMP；区间、求积、QR/SVD/LSMR、PSD/QP |
 | acsd_coordinates / src/coordinates | model、numerics、WCSLIB、ERFA；规范 WCS、历元、曲边 |
 | acsd_observation / src/observation | model、operators、uncertainty、numerics；校准和G |
-| acsd_catalogue / src/catalogue | model、coordinates；只读本地索引，Gaia/XP 解码 |
+| acsd_catalogue / src/catalogue | model、coordinates、uncertainty；只读本地索引，Gaia/XP 解码 |
 | acsd_sources / src/sources | observation、coordinates、catalogue、uncertainty、numerics；盲解、PSF、科学源 |
 | acsd_response / src/response | model、numerics；响应基积分 |
 | acsd_photometry / src/photometry | sources、response、uncertainty、numerics；联合尺度及影响 |
@@ -80,7 +80,15 @@ flowchart TD
 | acsd-gui / gui（独立 CMake 工程） | Qt6 Core/Widgets/Network；子进程协议，无核心链接 |
 | validation / validation | 外部独立 oracle 与进程协议；禁止 include src 或复制旧测试 |
 
-依赖方向按表从下往上追溯，无科学模块链接 resources/storage 的具体实现。它们只借 Context 接口。Storage 读产品时构造数据图及 recipe；具体 action 由 workflows 调用 make_action 解码，故 storage 不反向依赖科学库。公开静态入口目标 acsd_science 聚合上述科学库，不再单独包装每个算法。无动态插件、节点描述器、反射工厂或长期服务。当前只构建 acsd_contracts INTERFACE 与文档校验；上述实现目标在负责人接受后逐项建立。
+依赖方向按表从下往上追溯，无科学模块链接 resources/storage 的具体实现。
+
+依赖表的完备性由声明合同反查：每个公开结构里出现的 `Ref` 字段，其类型必须能由该模块
+或它依赖的模块构造。`CatalogueStar.astrometric_noise/xp_noise` 是 `Ref<CovarianceAction>`，
+而 `CovarianceAction` 的唯一构造入口 `make_covariance` 属于 uncertainty；若 catalogue
+不依赖 uncertainty，它只能返回空的协方差引用，这与 OBJECTS「除明确列出的可空例外外
+Ref 字段必需非空」冲突。因此 catalogue 的依赖补入 uncertainty（传递 operators），
+协方差仍只有一份实现，不允许在 catalogue 内复制构造逻辑。该依赖不构成环：
+uncertainty 只依赖 operators 与 numerics。它们只借 Context 接口。Storage 读产品时构造数据图及 recipe；具体 action 由 workflows 调用 make_action 解码，故 storage 不反向依赖科学库。公开静态入口目标 acsd_science 聚合上述科学库，不再单独包装每个算法。无动态插件、节点描述器、反射工厂或长期服务。当前只构建 acsd_contracts INTERFACE 与文档校验；上述实现目标在负责人接受后逐项建立。
 
 ## N1 校准、重组及有效观测
 
@@ -148,7 +156,7 @@ Windows 科学 CLI 优先 MSYS2 UCRT64 GCC14+，MPFR/GMP 与库使用同一 CRT/
 
 ### 盲解 catalogue/XP 公开能力与索引
 
-CatalogueProvider.describe给release/calibration、统一XP basis、quad角尺度覆盖和索引完备状态；query/quad-query均分页，page_size≤4096，cursor锁dataset hash和完整请求，空cursor起始、空next结束；不同查询复用cursor为invalid_request。query按source_id返回指定SkySearchRegion中传播历元后的星，brightness_mag及XP basis随记录可用。lookup按请求ID顺序返回，缺失给逐ID issue而不挤掉位置。query_quads按source四元组排序返回descriptor各分量区间及baseline范围内的所有已登记quad；regions空表示全索引，非空为明确center+radius并集。算法不downcast provider或读隐藏路径。
+CatalogueProvider.describe给release/calibration、统一XP basis、quad角尺度覆盖和索引完备状态；query/quad-query均分页，page_size取整数1..4096（0表示没有可返回的条目，按invalid_request拒绝），cursor锁dataset hash和完整请求，空cursor起始、空next结束；不同查询复用cursor为invalid_request。query按source_id返回指定SkySearchRegion中传播历元后的星，brightness_mag及XP basis随记录可用。lookup按请求ID顺序返回，缺失给逐ID issue而不挤掉位置。query_quads按source四元组排序返回descriptor各分量区间及baseline范围内的所有已登记quad；regions空表示全索引，非空为明确center+radius并集。算法不downcast provider或读隐藏路径。
 
 本地索引构建入口build_catalogue_index使用CatalogueColumns：source_ids[N] u64，astrometry[N,8] f64，列为ra_rad,dec_rad,epoch_year,pmra_cosdec_rad_year,pmdec_rad_year,parallax_rad,RV_m_s,RV_present(0/1)；无RV数值位填0且present=0。brightness_mag[N]，xp_coefficients[N,d]与共同SpectralBasis绑定，noise按同source根保留。Gaia原生BP/RP的外定标和表示转换由GaiaXPy官方外定标模型离线解码为该统一分段多项式basis；保存release/模型/数值转换误差，不能把sampled插值当无损基函数。若用户只有sampled谱，必须输入其已知表示和协方差，物理模型状态conditional。所有帧使用provider.describe.xp_basis调用integrate_response；不从star coefficient长度猜basis。
 
