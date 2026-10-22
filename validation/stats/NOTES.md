@@ -8,7 +8,14 @@ header of `src/` and they never reuse a helper of the modules under test.
 
 The script builds the four cases against the science libraries of the build
 directory and runs them.  The real output of the last run is kept in
-`validation/stats/evidence/validation_run.txt` (142 checks, 0 failures).
+`validation/stats/evidence/validation_run.txt`; its first line records the
+commit of the tree that produced it.  The last run has 156 checks and 0
+failures.
+
+The leave one out case runs 184000 trials and needs about 40 seconds.  The
+trial count must not be reduced: a smaller number of trials weakens the
+statistical power of the false rejection rate of W01, and the interval of the
+reference is computed for the frozen run.
 
 ## What each case certifies
 
@@ -88,7 +95,40 @@ failed attempts are not overwritten.
   frames;
 * the coadd module after a leave one out rejection: the weights are recomputed
   on the accepted samples, the rejected frame carries the weight zero and the
-  accepted weights still sum to one.
+  accepted weights still sum to one;
+* the external Gamma of one leaf per sample: the domain of the external
+  covariance is the leaf count times the frame count, the block of a leaf is
+  taken from the rows of that leaf and the contaminated frame of every leaf is
+  rejected in every trial;
+* the plane basis of the sky module: the difference model of two frames has six
+  parameters while the white noise subspace of the controls has one dimension,
+  so two slope directions cannot be separated from the common sky.  The fit
+  reports them, the data of those directions keep no correction at all and the
+  correction reports the unavailable positions.
+
+## The holes of the triangulation
+
+The contract declares `SupportedTriangulation.holes` and the science note
+requires that a query inside a hole is unavailable instead of being filled
+with the nearest control.  The holes of the implementation are always empty:
+they are **not** implemented.  The Delaunay mesh of the controls covers the
+convex hull of the controls, so the regions without observed support are not
+part of the mesh at all; the support map of the frame states which leaves are
+observed, and the holes have to be derived from the leaves whose state is not
+one.  That derivation is the missing part and it needs the boundary of a leaf
+in the chart, which the module does not compute today.  The query outside the
+declared chart is covered (no value, no interval), the query inside a hole is
+not.
+
+## The multi connected components of the sky
+
+The standard patch builder derives the common sky from the patches that the
+frames of a group share, and it requires the group to have a common support:
+the frames of a group must observe the same leaves.  A group in which the
+frames share only some of their patches therefore has no control at all
+(`no_support`), and the case is rejected before the components are computed.
+The multi component case therefore needs an explicit `T` and `H` in the
+request, which the contract allows.  That construction is not covered yet.
 
 ## Defects of the base modules that the cases exposed
 
@@ -106,6 +146,11 @@ instead of being patched here.
 3. The dense product of the sky module is a local helper of that module, not
    a base function.  It now checks the shapes of its arguments and reports a
    failure, and every product of the fit was re-checked with that guard.
+4. `Basis.center` and `Basis.scale` are `Vec2` without an initialiser, so a
+   default constructed basis carries indeterminate values.  The sky module now
+   uses the scale only when it is finite and positive, and the case sets the
+   centre and the scale explicitly.  The contract should give the two vectors
+   an initialiser or a default of one.
 
 The three base defects were fixed by the Lead in the commits 76f8d9f32 and
 f4a8ea89b.  The local workarounds of the sky module (the own composition

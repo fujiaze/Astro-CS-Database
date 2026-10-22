@@ -1,3 +1,6 @@
+# the commit of the tree that produced this output: f6058c3fe968d2438c037081ee86d40b4cd70501
+# the branch: rebuild/acsd-v2
+
 === building information_test ===
 === running information_test ===
 [ ok ]  V_F of the reference source, 0.5 I (value 1, expected 1, |difference| 4.44e-16)
@@ -59,6 +62,20 @@
 [ ok ]  the reference frame of the first component vanishes (value 0, expected 0, |difference| 0)
 [ ok ]  the other frame of the first component carries the offset (value 2, expected 2, |difference| 8.88e-16)
 [ ok ]  the third frame carries its own offset (value 4, expected 4, |difference| 4.44e-16)
+[ ok ]  the controls of the plane basis are built
+       the plane controls: 2
+[ ok ]  the plane basis is fitted
+[ ok ]  the components of the plane basis can be read
+[ ok ]  the constant term of the reference frame vanishes (value 0, expected 0, |difference| 0)
+[ ok ]  the first slope term of the reference frame vanishes (value 0, expected 0, |difference| 0)
+[ ok ]  the second slope term of the reference frame vanishes (value 0, expected 0, |difference| 0)
+[ ok ]  the fit reports the directions that are not estimable
+[ ok ]  the difference model has directions that are not estimable
+[ ok ]  the correction with a plane basis is applied
+[ ok ]  the corrected signal of the plane basis can be read
+[ ok ]  a data direction that is not estimable gets no correction
+[ ok ]  the corrected data stay finite
+[ ok ]  the correction reports the unavailable positions
 0 failure(s)
 === building coadd_test ===
 === running coadd_test ===
@@ -170,4 +187,6 @@ the leave one out Monte-Carlo of the coadd module
 [ ok ]  the contaminated frame is rejected for N = 7 (contaminated)
 [ ok ]  the 68% coverage of N = 7 (contaminated) agrees with the reference
 [ ok ]  the 95% coverage of N = 7 (contaminated) agrees with the reference
+  the external Gamma per leaf rejects 4000 of 4000 trials
+[ ok ]  the external Gamma per leaf rejects the contaminated frame of every leaf
 0 failure(s)
