@@ -43,13 +43,24 @@ validation/phot/run_validation.sh            # 默认使用 build/dev
   测量通量数值包围内的最大参数偏移，上下界分别求解（非对称）。
 * 未知测量方差不做等权以外的任何假设：等权回退 + 记录未知项 + 结果 conditional。
 
-## 已知失败（底座回归，非本模块引入）
+## 已知失败（根因待裁决）
 
-`P1_photometry_cross_frame_correlation`：帧尺度协方差为 0。用本模块的已提交版本
-（6d6d6a348）重编后同样失败，诊断显示两帧用例的联合白化量级退化到 ~1e-154
-（XP 方差抽取错误所致）。独立探针（/tmp/audit/cov_probe.cpp）测得底座
-`covariance_apply` 对方差 1e-10 的对角协方差返回 1e-30。该缺陷位于 src/uncertainty，
-修好后本用例应回到 corr≈0.4999996。
+`P1_photometry_cross_frame_correlation`：帧尺度协方差为 0（期望 corr≈0.4999996）。
+用本模块的已提交版本（6d6d6a348）重编后同样失败，故**不是后续改动引入的**。
+
+已排除的假设：底座的因子作用没有多算。`validation/phot/covariance_probe.cpp`
+（只用公开合同、自写 Storage/Resources/Cancellation）对角根 F=diag(1e-5)、
+根的 influence 为恒等、协方差动作自身的 influence 为空，实测
+`covariance_apply(v=(1,0)) = 1e-10` = 合同写的 C = F·Fᵀ（此前一次 1e-15 的测量是
+探针自身把因子数组误当作输入向量所致，结论作废）。
+
+已测得的事实：两帧用例的初始量都正常（抽出的 XP 协方差 1e-10、白化子 1e5、
+初始 log a −36.7414、counts 9442），但首迭代的**剖面（Schur 约化）Jacobian**
+量级退化到 ~1e-159，即约化里的相减发生了灾难性抵消。根因待 Lead 裁决。
+
+## 独立探针
+
+`validation/phot/covariance_probe.cpp`：底座协方差语义的最小复现（见上）。
 
 ## 未覆盖 / 交接
 
