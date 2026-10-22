@@ -1,0 +1,8 @@
+[time] calibrate_start 0.01 s
+[time] before_catalogue_query 0.02 s
+[time] before_fit_psf 0.02 s
+[note] the timestamps come from a temporary instrumentation of src/workflows/normalize.cpp
+[note] (the marks were removed after the measurement).  The run of the A group frame
+[note] frame-00 (with the supplied world coordinate solution) stops inside
+[note] measure_science_sources of the observation module: the mark before the
+[note] measurement is printed at 0.02 s and no further mark appears in 10 minutes.
