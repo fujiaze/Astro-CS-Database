@@ -21,6 +21,7 @@ class Sha256 {
   // Appends a length-prefixed field so that concatenations cannot alias.
   void field(std::string_view key, std::string_view value);
   void field(std::string_view key, std::uint64_t value);
+  void field_u64(std::string_view key, std::uint64_t value) { field(key, value); }
   void field_f64(std::string_view key, double value);
   std::array<std::uint8_t, 32> digest() const;
   std::string hex() const;
