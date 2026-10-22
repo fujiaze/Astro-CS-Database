@@ -1,0 +1,113 @@
+{
+ "protocol": "acsd.contract",
+ "major": 1,
+ "request_id": "product-export-image",
+ "operation": "export_image",
+ "arguments": {
+  "request": {
+   "$ref": "workflow"
+  }
+ },
+ "request": {},
+ "input_objects": {
+  "workflow": {
+   "type": "ExportWorkflowRequest",
+   "data": {
+    "input": {
+     "directory": "/workspace/Astro CS Database/.work/product-roundtrip/frame",
+     "manifest_hash": "sha256:1791f9805e32b0b30f1445e49dd0472719f4cb8e88f7ea93ff0aa7fe8139a9bd"
+    },
+    "projection": {
+     "$ref": "projection"
+    },
+    "output": {
+     "$ref": "publish"
+    }
+   }
+  },
+  "projection": {
+   "type": "ExportRequest",
+   "data": {
+    "target": {
+     "model": {
+      "$ref": "wcs"
+     },
+     "width": 16,
+     "height": 16
+    },
+    "quantity": "supported_mean",
+    "support_policy": "full_leaf_approx",
+    "assume_uniform_uncovered": false,
+    "output_dtype": "f64",
+    "budget": {
+     "area_absolute_sr": 1e-12,
+     "normalizer_min_sr": 1e-15,
+     "max_work": 2000000,
+     "max_bytes": 268435456,
+     "max_depth": 64
+    }
+   }
+  },
+  "publish": {
+   "type": "PublishRequest",
+   "data": {
+    "destination": "/tmp/tmpqj4hytr1/published",
+    "signal_dtype": "f64",
+    "profile": "full",
+    "tile_log2_width": 6,
+    "durable": true
+   }
+  },
+  "wcs": {
+   "type": "WcsModel",
+   "data": {
+    "crpix_fits1": [
+     8.5,
+     8.5
+    ],
+    "cd_rad_per_pixel": [
+     -0.00017453292519943296,
+     0.0,
+     0.0,
+     0.00017453292519943296
+    ],
+    "c": [
+     0.6451502731994482,
+     0.7479084586302499,
+     0.1562500000000033
+    ],
+    "e": [
+     -0.7572088465064845,
+     0.6531728429537768,
+     0.0
+    ],
+    "north": [
+     -0.10205825671152978,
+     -0.11831388226664069,
+     0.9877175393299438
+    ],
+    "domain": {
+     "lower": [
+      -0.5,
+      -0.5
+     ],
+     "upper": [
+      15.5,
+      15.5
+     ]
+    },
+    "detector_frame": "acsd.export.target"
+   }
+  }
+ },
+ "output_root": "/tmp/tmpqj4hytr1",
+ "resources": {
+  "bytes": 8388608,
+  "work": 100000,
+  "spill_bytes": 0,
+  "threads": 1,
+  "max_depth": 32,
+  "max_precision_bits": 128,
+  "scratch_directory": ".work"
+ }
+}

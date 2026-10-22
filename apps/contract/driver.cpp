@@ -99,6 +99,7 @@ class Driver {
   json run_make_wcs();
   json run_make_footprint_provider();
   json run_open_product();
+  json run_export_image();
   json run_build_export();
   json run_export_signal();
   json run_integrate_response();
@@ -582,6 +583,43 @@ ProductLocation decode_location(const json& node) {
 }
 
 // Opens a published product.
+
+// The whole export chain: open the product, build the projection and publish
+// the image.
+json Driver::run_export_image() {
+  Result<TypedObject> request_node = argument("request");
+  if (!ok(request_node)) {
+    return failure_body(request_node.code, "the workflow request cannot be decoded",
+                        "contract.decode");
+  }
+  if (val(request_node).type != "ExportWorkflowRequest") {
+    return failure_body(Code::invalid_request,
+                        "the argument request is not an ExportWorkflowRequest", "contract.decode");
+  }
+  Ref<ExportWorkflowRequest> request =
+      std::static_pointer_cast<const ExportWorkflowRequest>(val(request_node).value);
+  json body = envelope_header();
+  json result;
+  Result<ProductLocation> location = export_image(*context_, *request);
+  if (!ok(location)) {
+    result["code"] = encode_code(location.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(location.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  result["code"] = encode_code(Code::ok);
+  result["value"] = json{{"directory", val(location).directory},
+                          {"manifest_hash", val(location).manifest_hash}};
+  result["assessment"] = encode_assessment(model::make_assessment(Code::ok));
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
+  body["result"] = result;
+  return body;
+}
+
 json Driver::run_open_product() {
   const json& node = arguments_.contains("location") ? arguments_.at("location") : json::object();
   ProductLocation location = decode_location(node);
@@ -1250,6 +1288,7 @@ json Driver::dispatch() {
   if (operation_ == "make_wcs") return run_make_wcs();
   if (operation_ == "make_footprint_provider") return run_make_footprint_provider();
   if (operation_ == "open_product") return run_open_product();
+  if (operation_ == "export_image") return run_export_image();
   if (operation_ == "build_export") return run_build_export();
   if (operation_ == "export_signal") return run_export_signal();
   if (operation_ == "integrate_response") return run_integrate_response();
@@ -1421,6 +1460,7 @@ bool operation_supported(const std::string& operation) {
                                      "make_wcs",
                                      "make_footprint_provider",
                                      "open_product",
+                                     "export_image",
                                      "build_export",
                                      "export_signal",
                                      "integrate_response",

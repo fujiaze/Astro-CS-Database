@@ -1,0 +1,175 @@
+{
+ "algorithm_set": [
+  {
+   "name": "acsd-contract",
+   "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+   "version": "1"
+  },
+  {
+   "name": "export_image",
+   "source_hash": "sha256:0a535178bcbc0a1fe85416d560e33b5493dbf480d0f0a0edd8c06597c156b7e0",
+   "version": "1"
+  }
+ ],
+ "arithmetic": {
+  "allow_target_fallback": true,
+  "initial_bits": 64,
+  "max_bits": 256,
+  "mode": "outward"
+ },
+ "blocks": [],
+ "build": {
+  "compiler": "14.2.0",
+  "name": "acsd-contract",
+  "standard": "acsd.contract/1",
+  "version": "2.0.0"
+ },
+ "input_hashes": {
+  "projection": "acsd.ExportRequest",
+  "publish": "acsd.PublishRequest",
+  "wcs": "acsd.WcsModel:f522e082832d81bb3406ce7bfd3d17d74df13548bb888440fdc369394db29a1e",
+  "workflow": "acsd.ExportWorkflowRequest"
+ },
+ "major": 1,
+ "objects": {
+  "acsd.ExportRequest": {
+   "data": {
+    "assume_uniform_uncovered": false,
+    "budget": {
+     "area_absolute_sr": 1e-12,
+     "max_bytes": 268435456,
+     "max_depth": 64,
+     "max_work": 2000000,
+     "normalizer_min_sr": 1e-15
+    },
+    "output_dtype": "f64",
+    "quantity": "supported_mean",
+    "support_policy": "full_leaf_approx",
+    "target": {
+     "height": 16,
+     "model": {
+      "$ref": "wcs"
+     },
+     "width": 16
+    }
+   },
+   "type": "ExportRequest"
+  },
+  "acsd.ExportWorkflowRequest": {
+   "data": {
+    "input": {
+     "directory": "/workspace/Astro CS Database/.work/product-roundtrip/frame",
+     "manifest_hash": "sha256:1791f9805e32b0b30f1445e49dd0472719f4cb8e88f7ea93ff0aa7fe8139a9bd"
+    },
+    "output": {
+     "$ref": "publish"
+    },
+    "projection": {
+     "$ref": "projection"
+    }
+   },
+   "type": "ExportWorkflowRequest"
+  },
+  "acsd.PublishRequest": {
+   "data": {
+    "destination": "/tmp/tmpqj4hytr1/published",
+    "durable": true,
+    "profile": "full",
+    "signal_dtype": "f64",
+    "tile_log2_width": 6
+   },
+   "type": "PublishRequest"
+  },
+  "acsd.WcsModel:f522e082832d81bb3406ce7bfd3d17d74df13548bb888440fdc369394db29a1e": {
+   "data": {
+    "c": [
+     0.6451502731994482,
+     0.7479084586302499,
+     0.1562500000000033
+    ],
+    "cd_rad_per_pixel": [
+     -0.00017453292519943296,
+     0.0,
+     0.0,
+     0.00017453292519943296
+    ],
+    "crpix_fits1": [
+     8.5,
+     8.5
+    ],
+    "detector_frame": "acsd.export.target",
+    "domain": {
+     "lower": [
+      -0.5,
+      -0.5
+     ],
+     "upper": [
+      15.5,
+      15.5
+     ]
+    },
+    "e": [
+     -0.7572088465064845,
+     0.6531728429537768,
+     0.0
+    ],
+    "north": [
+     -0.10205825671152978,
+     -0.11831388226664069,
+     0.9877175393299438
+    ]
+   },
+   "type": "WcsModel"
+  }
+ },
+ "operation": "export_image",
+ "output_root": "/tmp/tmpqj4hytr1",
+ "protocol": "acsd.contract.response",
+ "request_id": "product-export-image",
+ "resolved_request_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+ "resources": {
+  "byte_budget": 8388608,
+  "bytes": 8388608,
+  "elapsed_seconds": 0.000133722,
+  "peak_payload_bytes": 0,
+  "read_bytes": 0,
+  "spill_bytes": 0,
+  "threads": 1,
+  "work": 8965,
+  "work_budget": 100000,
+  "written_bytes": 0
+ },
+ "result": {
+  "assessment": {
+   "capability": "supported",
+   "complete": false,
+   "condition": {
+    "assumptions": [],
+    "estimator": "",
+    "fixed_objects": [],
+    "kind": ""
+   },
+   "execution": "complete",
+   "included": [],
+   "issues": [],
+   "noise": "unknown",
+   "omitted": [],
+   "science": "bounded",
+   "validity": "certified"
+  },
+  "code": "ok",
+  "dependencies": [],
+  "usage": {
+   "elapsed_seconds": 2.31e-07,
+   "peak_payload_bytes": 0,
+   "read_bytes": 0,
+   "spill_bytes": 0,
+   "work": 8965,
+   "written_bytes": 0
+  },
+  "value": {
+   "directory": "/tmp/tmpqj4hytr1/published",
+   "manifest_hash": "sha256:a99115ed0c2c92092311535b282d1517c50b3b4d7410c04b20f96cc3ba1f00bb"
+  }
+ }
+}

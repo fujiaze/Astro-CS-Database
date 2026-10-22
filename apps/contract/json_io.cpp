@@ -1637,6 +1637,54 @@ Result<TypedObject> DecodeContext::decode_node(const json& node) {
                                         "acsd.ExportRequest"});
   }
 
+  if (type == "ExportWorkflowRequest") {
+    ExportWorkflowRequest request;
+    const json& input = field(payload, "input");
+    if (input.is_object()) {
+      if (input.contains("directory") && input.at("directory").is_string()) {
+        request.input.directory = input.at("directory").get<std::string>();
+      }
+      if (input.contains("manifest_hash") && input.at("manifest_hash").is_string()) {
+        request.input.manifest_hash = input.at("manifest_hash").get<std::string>();
+      }
+    }
+    const json& projection = field(payload, "projection");
+    Result<TypedObject> projection_object = resolve_reference(
+        projection.is_object() && projection.contains("$ref")
+            ? projection.at("$ref").get<std::string>()
+            : std::string());
+    if (!ok(projection_object)) {
+      return model::fail<TypedObject>(projection_object.code,
+                                       "the export request is missing", "contract.decode",
+                                       "the request cannot be decoded");
+    }
+    if (val(projection_object).type != "ExportRequest") {
+      return model::fail<TypedObject>(Code::invalid_request,
+                                       "the projection is not an ExportRequest", "contract.decode",
+                                       "the request cannot be decoded");
+    }
+    request.projection = *std::static_pointer_cast<const ExportRequest>(val(projection_object).value);
+    const json& output = field(payload, "output");
+    Result<TypedObject> output_object = resolve_reference(
+        output.is_object() && output.contains("$ref") ? output.at("$ref").get<std::string>()
+                                                      : std::string());
+    if (!ok(output_object)) {
+      return model::fail<TypedObject>(output_object.code, "the publish request is missing",
+                                       "contract.decode", "the request cannot be decoded");
+    }
+    if (val(output_object).type != "PublishRequest") {
+      return model::fail<TypedObject>(Code::invalid_request,
+                                       "the output is not a PublishRequest", "contract.decode",
+                                       "the request cannot be decoded");
+    }
+    request.output = *std::static_pointer_cast<const PublishRequest>(val(output_object).value);
+    publish("ExportWorkflowRequest", "acsd.ExportWorkflowRequest", payload);
+    return model::ok_result(
+        TypedObject{"ExportWorkflowRequest",
+                    std::make_shared<const ExportWorkflowRequest>(request),
+                    "acsd.ExportWorkflowRequest"});
+  }
+
   if (type == "PublishRequest") {
     PublishRequest request;
     request.destination = string_field(payload, "destination");
