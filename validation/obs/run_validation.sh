@@ -37,16 +37,25 @@ src/uncertainty/api.cpp
 src/uncertainty/covariance.cpp
 src/resources/cpu_resources.cpp
 src/storage/local_storage.cpp
+src/coordinates/healpix.cpp
+src/coordinates/wcs.cpp
+src/coordinates/tan_sip.cpp
+src/coordinates/chart.cpp
 src/observation/observation.cpp
 src/observation/calibrate.cpp
 src/observation/regroup.cpp
+src/observation/bind.cpp
 src/sources/psf.cpp
+src/sources/psf_model.cpp
+src/sources/psf_fit.cpp
 src/sources/measure.cpp
 validation/obs/obs_validation.cpp
 validation/obs/cases_calibration.cpp
 validation/obs/cases_regroup.cpp
 validation/obs/cases_psf.cpp
 validation/obs/cases_measurement.cpp
+validation/obs/cases_bind.cpp
+validation/obs/cases_timing.cpp
 "
 
 OBJECTS=""

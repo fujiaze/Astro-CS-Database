@@ -93,9 +93,16 @@ Result<acsd::Ref<acsd::LinearAction>> make_csr(
     const std::vector<U64>& indices, const std::vector<double>& values,
     std::shared_ptr<const Index> domain, std::shared_ptr<const Index> codomain, const Unit& unit);
 
+// The analytic integral of a separable Gaussian density over one pixel: the
+// one dimensional integral is sigma*sqrt(2*pi)/2 times the difference of the
+// error functions, so the normalisation leaves a factor of one quarter.
+double gaussian_pixel_integral(double px, double py, double x, double y, double sigma);
+
 int run_calibration_cases();
 int run_regroup_cases();
 int run_psf_cases();
 int run_measurement_cases();
+int run_bind_cases();
+int run_timing_cases();
 
 }  // namespace acsd_validation

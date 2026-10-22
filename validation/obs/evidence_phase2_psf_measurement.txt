@@ -1,0 +1,31 @@
+[calibration]
+  x[0] = 860 (expected 860)
+  calibration cases done
+[regroup]
+  binned[0] = 410 (expected 410)
+  regroup cases done
+[psf]
+  max |pixel integral - analytic erf| = 0
+  collected mass over the whole frame = 0.999998791422
+    Moffat row 7: template 9.63773272422e-05 reference 9.63773101138e-05
+    Moffat row 8: template 9.51666481085e-05 reference 9.51666312578e-05
+    Moffat row 23: template 0.000235545589198 reference 0.000235545535205
+  max |Moffat pixel integral - reference| = 5.4e-11
+    Airy row 7: template 0.000472229013598 reference 0.000472229358249
+    Airy row 8: template 0.000471926651063 reference 0.000471926994379
+    Airy row 23: template 0.000118250042876 reference 0.000118249499986
+  max |Airy pixel integral - reference| = 5.43e-10
+  psf cases done
+[measurement]
+  measured flux = 100.0000000000 (truth 100)
+  flux enclosure half width: narrow 2.78533e-12, wide 15.602
+  measurement cases done
+[bind]
+  fitted sigma = 1.599726 (truth 1.600000)
+  bind cases done
+[timing]
+  fit_psf on 128x128 samples: 0.003 s
+  measure_science_sources on 128x128 samples: 0.001 s
+  timing cases done
+
+160 checks, 0 failures

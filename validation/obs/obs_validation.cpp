@@ -278,6 +278,13 @@ Result<acsd::Ref<acsd::LinearAction>> make_csr(Context& context, U64 rows, U64 c
                                               std::span<const ArrayRef>{arrays.data(), arrays.size()});
 }
 
+double gaussian_pixel_integral(double px, double py, double x, double y, double sigma) {
+  const double root = std::sqrt(2.0) * sigma;
+  const double ex = std::erf((x + 0.5 - px) / root) - std::erf((x - 0.5 - px) / root);
+  const double ey = std::erf((y + 0.5 - py) / root) - std::erf((y - 0.5 - py) / root);
+  return 0.25 * ex * ey;
+}
+
 }  // namespace acsd_validation
 
 int main() {
@@ -286,6 +293,8 @@ int main() {
   status |= acsd_validation::run_regroup_cases();
   status |= acsd_validation::run_psf_cases();
   status |= acsd_validation::run_measurement_cases();
+  status |= acsd_validation::run_bind_cases();
+  status |= acsd_validation::run_timing_cases();
   std::printf("\n%d checks, %d failures\n", acsd_validation::g_checks, acsd_validation::g_failures);
   return acsd_validation::g_failures == 0 ? 0 : 1;
 }
