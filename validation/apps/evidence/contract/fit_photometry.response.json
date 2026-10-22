@@ -1,0 +1,203 @@
+{
+ "algorithm_set": [
+  {
+   "name": "acsd-contract",
+   "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+   "version": "1"
+  },
+  {
+   "name": "fit_photometry",
+   "source_hash": "sha256:d4d5182fc46fc0806339125d38861e7f9c08e48d60aec15762c18b99d4c20a3a",
+   "version": "1"
+  }
+ ],
+ "arithmetic": {
+  "allow_target_fallback": true,
+  "initial_bits": 64,
+  "max_bits": 256,
+  "mode": "outward"
+ },
+ "blocks": [],
+ "build": {
+  "compiler": "14.2.0",
+  "name": "acsd-contract",
+  "standard": "acsd.contract/1",
+  "version": "2.0.0"
+ },
+ "input_hashes": {
+  "measurements": "acsd.SourceMeasurements:f180c6dcfb7ad6e52242393f0a2e9e295435d260853e6eef24526e8a2528bb17",
+  "prediction": "acsd.SpectralPrediction:890e6fe79080631d4a4a3342edb0ba70f916ec183df2511fcb40b66faf894fc4",
+  "prediction_errors": "acsd.Array:c29409c40fb0af8aa84f2e39064d84ec240c088a6728aaa8bf87a529acad83a8",
+  "prediction_values": "acsd.Array:54c100ab926b46be0d828ab2807679998cf2516d649014fd78be538fd17abe8b",
+  "stars": "acsd.CatalogueStars"
+ },
+ "major": 1,
+ "objects": {
+  "acsd.Array:54c100ab926b46be0d828ab2807679998cf2516d649014fd78be538fd17abe8b": {
+   "data": {
+    "dtype": "f64",
+    "index_id": "",
+    "shape": [
+     3
+    ],
+    "unit": {
+     "linear_power": 1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0,
+     "scale": "L",
+     "sr_power": -1
+    }
+   },
+   "type": "Array"
+  },
+  "acsd.Array:c29409c40fb0af8aa84f2e39064d84ec240c088a6728aaa8bf87a529acad83a8": {
+   "data": {
+    "dtype": "f64",
+    "index_id": "",
+    "shape": [
+     3
+    ],
+    "unit": {
+     "linear_power": 1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0,
+     "scale": "L",
+     "sr_power": -1
+    }
+   },
+   "type": "Array"
+  },
+  "acsd.CatalogueStars": {
+   "data": {
+    "stars": [
+     {
+      "brightness_mag": 15.0,
+      "dec_rad": 0.13962634015954636,
+      "epoch_year": 2016.0,
+      "parallax_rad": 0.0,
+      "pmdec_rad_year": 0.0,
+      "pmra_cosdec_rad_year": 0.0,
+      "ra_rad": 0.8552113334772214,
+      "source_id": 1
+     },
+     {
+      "brightness_mag": 16.0,
+      "dec_rad": 0.13963332147655436,
+      "epoch_year": 2016.0,
+      "parallax_rad": 0.0,
+      "pmdec_rad_year": 0.0,
+      "pmra_cosdec_rad_year": 0.0,
+      "ra_rad": 0.8552252961112374,
+      "source_id": 2
+     },
+     {
+      "brightness_mag": 17.0,
+      "dec_rad": 0.1396193588425384,
+      "epoch_year": 2016.0,
+      "parallax_rad": 0.0,
+      "pmdec_rad_year": 0.0,
+      "pmra_cosdec_rad_year": 0.0,
+      "ra_rad": 0.8552008615017095,
+      "source_id": 3
+     }
+    ]
+   },
+   "type": "CatalogueStars"
+  },
+  "acsd.SourceMeasurements:f180c6dcfb7ad6e52242393f0a2e9e295435d260853e6eef24526e8a2528bb17": {
+   "data": {
+    "frame": "contract-frame",
+    "stars": [
+     {
+      "definition": "aperture",
+      "gaia_source_id": 1,
+      "integrated_flux": 100.0,
+      "window": {
+       "lower": [
+        0.0,
+        0.0
+       ],
+       "upper": [
+        2.0,
+        2.0
+       ]
+      }
+     }
+    ]
+   },
+   "type": "SourceMeasurements"
+  },
+  "acsd.SpectralPrediction:890e6fe79080631d4a4a3342edb0ba70f916ec183df2511fcb40b66faf894fc4": {
+   "data": {
+    "absolute_errors": {
+     "$ref": "prediction_errors"
+    },
+    "basis_integrals": {
+     "$ref": "prediction_values"
+    },
+    "support_nm": {
+     "lower": 400.0,
+     "upper": 700.0
+    }
+   },
+   "type": "SpectralPrediction"
+  }
+ },
+ "operation": "fit_photometry",
+ "output_root": "/tmp/tmp2bqtoq04",
+ "protocol": "acsd.contract.response",
+ "request_id": "contract-fit_photometry",
+ "resolved_request_hash": "sha256:f188531c9899070b8e1c5ae86925248c9f4aac45887e49c4ce1bc9fb819e4feb",
+ "resources": {
+  "byte_budget": 8388608,
+  "bytes": 8388608,
+  "elapsed_seconds": 0.000151813,
+  "peak_payload_bytes": 0,
+  "read_bytes": 0,
+  "spill_bytes": 0,
+  "threads": 1,
+  "work": 18,
+  "work_budget": 1000000,
+  "written_bytes": 0
+ },
+ "result": {
+  "assessment": {
+   "capability": "supported",
+   "complete": false,
+   "condition": {
+    "assumptions": [],
+    "estimator": "",
+    "fixed_objects": [],
+    "kind": ""
+   },
+   "execution": "failed",
+   "included": [],
+   "issues": [
+    {
+     "code": "invalid_request",
+     "impact": "no photometric solution can be produced",
+     "origin": "fit_photometry",
+     "reason": "the frames, the responses, the measurements and the predictions must have the same length",
+     "retry_condition": ""
+    }
+   ],
+   "noise": "unknown",
+   "omitted": [],
+   "science": "bounded",
+   "validity": "certified"
+  },
+  "code": "invalid_request",
+  "dependencies": [],
+  "usage": {
+   "elapsed_seconds": 1.01e-07,
+   "peak_payload_bytes": 0,
+   "read_bytes": 0,
+   "spill_bytes": 0,
+   "work": 18,
+   "written_bytes": 0
+  },
+  "value": null
+ }
+}

@@ -24,6 +24,7 @@ struct TypedObject {
   std::string type;
   std::shared_ptr<const void> value;
   Id hash;  // content id of the decoded payload (empty for plain values)
+  json payload;  // the payload the object was decoded from
 };
 
 // Decoding context: holds the request envelope, the storage and the objects
@@ -41,6 +42,8 @@ class DecodeContext {
   Result<TypedObject> decode_named(const std::string& name);
   // Resolves a reference to an already decoded object.
   Result<TypedObject> resolve_reference(const std::string& name);
+  // The reference resolution of a caller outside the decoder.
+  Result<TypedObject> resolve(const std::string& name) { return resolve_reference(name); }
 
   Context& context() { return context_; }
   const std::vector<BlockDescriptor>& blocks() const { return blocks_; }
@@ -92,6 +95,10 @@ json encode_support_map(const SupportMap& support);
 json encode_signal_estimate(const SignalEstimate& estimate);
 // The typed payload of the recipe of an action.
 json encode_action_recipe(const ActionRecipe& recipe);
+// The typed payload of an effective point spread function.
+json encode_effective_psf(const EffectivePSF& kernel);
+// The typed payload of the measurements of the science sources.
+json encode_source_measurements(const SourceMeasurements& measurements);
 
 // Decoders for the plain (non model) contract types.
 Interval decode_interval(const json& node);

@@ -101,6 +101,10 @@ class Driver {
   json run_open_product();
   json run_export_image();
   json run_publish_product();
+  json run_fit_psf();
+  json run_fit_photometry();
+  json run_apply_scale();
+  json run_measure_science_sources();
   json run_build_export();
   json run_export_signal();
   json run_integrate_response();
@@ -589,6 +593,340 @@ ProductLocation decode_location(const json& node) {
 // the image.
 
 // Publishes a product graph.
+
+
+// The local accessors of the driver (the ones of the decoder are private to
+// its translation unit).
+std::string driver_string_field(const json& node, const char* key,
+                                 const std::string& fallback = "") {
+  if (!node.is_object() || !node.contains(key)) return fallback;
+  const json& value = node.at(key);
+  return value.is_string() ? value.get<std::string>() : fallback;
+}
+
+U64 driver_u64_field(const json& node, const char* key, U64 fallback = 0) {
+  if (!node.is_object() || !node.contains(key)) return fallback;
+  const json& value = node.at(key);
+  return value.is_number_integer() ? static_cast<U64>(value.get<long long>()) : fallback;
+}
+
+const json& driver_field(const json& node, const char* key) {
+  static const json empty = json(nullptr);
+  if (!node.is_object() || !node.contains(key)) return empty;
+  return node.at(key);
+}
+
+// The point spread function request of an operation.
+PsfRequest decode_psf_request_field(const json& node) {
+  PsfRequest request;
+  const std::string family = driver_string_field(node, "family", "gaussian");
+  request.family = family == "moffat"    ? PsfRequest::Family::moffat
+                  : family == "airy"     ? PsfRequest::Family::airy
+                                         : PsfRequest::Family::gaussian;
+  request.spatial_degree = static_cast<U32>(driver_u64_field(node, "spatial_degree", 0));
+  request.initial_width_pixel = decode_f64(driver_field(node, "initial_width_pixel"));
+  request.tail_absolute_flux = decode_f64(driver_field(node, "tail_absolute_flux"));
+  request.window_radius_pixel = decode_f64(driver_field(node, "window_radius_pixel"));
+  request.budget = decode_numeric_budget(node);
+  return request;
+}
+
+// The catalogue stars of an argument.
+Result<std::vector<CatalogueStar>> argument_stars(const TypedObject& node) {
+  std::vector<CatalogueStar> stars;
+  if (node.type != "CatalogueStars") {
+    return model::fail<std::vector<CatalogueStar>>(
+        Code::invalid_request, "the argument is not a list of catalogue stars", "contract.decode");
+  }
+  const json& payload = node.payload;
+  const json& rows = payload.contains("stars") ? payload.at("stars") : json::array();
+  if (!rows.is_array()) {
+    return model::fail<std::vector<CatalogueStar>>(
+        Code::invalid_request, "the catalogue stars are not a list", "contract.decode");
+  }
+  for (const json& row : rows) {
+    CatalogueStar star;
+    star.source_id = row.contains("source_id") && row.at("source_id").is_number_integer()
+                         ? row.at("source_id").get<U64>()
+                         : 0;
+    star.ra_rad = decode_f64(row.contains("ra_rad") ? row.at("ra_rad") : json(nullptr));
+    star.dec_rad = decode_f64(row.contains("dec_rad") ? row.at("dec_rad") : json(nullptr));
+    star.epoch_year = decode_f64(row.contains("epoch_year") ? row.at("epoch_year") : json(nullptr));
+    star.pmra_cosdec_rad_year =
+        decode_f64(row.contains("pmra_cosdec_rad_year") ? row.at("pmra_cosdec_rad_year")
+                                                        : json(nullptr));
+    star.pmdec_rad_year =
+        decode_f64(row.contains("pmdec_rad_year") ? row.at("pmdec_rad_year") : json(nullptr));
+    star.parallax_rad =
+        decode_f64(row.contains("parallax_rad") ? row.at("parallax_rad") : json(nullptr));
+    star.brightness_mag =
+        decode_f64(row.contains("brightness_mag") ? row.at("brightness_mag") : json(nullptr));
+    stars.push_back(star);
+  }
+  return model::ok_result(stars);
+}
+
+// The point spread function of an argument.
+Result<Ref<EffectivePSF>> argument_kernel(const TypedObject& node) {
+  if (node.type != "EffectivePSF") {
+    return model::fail<Ref<EffectivePSF>>(
+        Code::invalid_request, "the argument is not an effective point spread function",
+        "contract.decode");
+  }
+  return model::ok_result(std::static_pointer_cast<const EffectivePSF>(node.value));
+}
+
+// The observation of an argument.
+Result<Ref<NativeObservation>> argument_observation(const TypedObject& node) {
+  if (node.type != "NativeObservation") {
+    return model::fail<Ref<NativeObservation>>(
+        Code::invalid_request, "the argument is not a native observation", "contract.decode");
+  }
+  return model::ok_result(std::static_pointer_cast<const NativeObservation>(node.value));
+}
+
+// The fits of the point spread function of a frame.
+json Driver::run_fit_psf() {
+  Result<TypedObject> observation_node = argument("observation");
+  if (!ok(observation_node)) {
+    return failure_body(observation_node.code, "the observation cannot be decoded",
+                        "contract.decode");
+  }
+  Result<TypedObject> wcs_node = argument("wcs");
+  if (!ok(wcs_node)) {
+    return failure_body(wcs_node.code, "the world coordinate model cannot be decoded",
+                        "contract.decode");
+  }
+  Result<TypedObject> stars_node = argument("stars");
+  if (!ok(stars_node)) {
+    return failure_body(stars_node.code, "the catalogue stars cannot be decoded",
+                        "contract.decode");
+  }
+  Result<Ref<NativeObservation>> observation = argument_observation(val(observation_node));
+  Result<std::vector<CatalogueStar>> stars = argument_stars(val(stars_node));
+  if (!ok(observation) || !ok(stars)) {
+    return failure_body(observation.code == Code::ok ? stars.code : observation.code,
+                        "the arguments of the fit cannot be used", "contract.decode");
+  }
+  if (val(wcs_node).type != "WcsModel") {
+    return failure_body(Code::invalid_request, "the argument wcs is not a WcsModel",
+                        "contract.decode");
+  }
+  Ref<WcsModel> wcs = std::static_pointer_cast<const WcsModel>(val(wcs_node).value);
+  PsfRequest request = decode_psf_request_field(request_);
+  json body = envelope_header();
+  json result;
+  Result<Ref<EffectivePSF>> kernel =
+      fit_psf(*context_, val(observation), wcs, val(stars), request);
+  if (!ok(kernel)) {
+    result["code"] = encode_code(kernel.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(kernel.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  const Id hash = model::sha256_hex("acsd.EffectivePSF:fit_psf");
+  result["code"] = encode_code(Code::ok);
+  result["value"] = encode_ref_value(hash);
+  result["assessment"] = encode_assessment(val(kernel)->assessment);
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
+  decoder_->publish("EffectivePSF", hash, encode_effective_psf(*val(kernel)));
+  body["result"] = result;
+  return body;
+}
+
+// The measurement of the science sources of a frame.
+json Driver::run_measure_science_sources() {
+  Result<TypedObject> observation_node = argument("observation");
+  if (!ok(observation_node)) {
+    return failure_body(observation_node.code, "the observation cannot be decoded",
+                        "contract.decode");
+  }
+  Result<TypedObject> wcs_node = argument("wcs");
+  if (!ok(wcs_node)) {
+    return failure_body(wcs_node.code, "the world coordinate model cannot be decoded",
+                        "contract.decode");
+  }
+  Result<TypedObject> stars_node = argument("stars");
+  if (!ok(stars_node)) {
+    return failure_body(stars_node.code, "the catalogue stars cannot be decoded",
+                        "contract.decode");
+  }
+  Result<TypedObject> psf_node = argument("psf");
+  if (!ok(psf_node)) {
+    return failure_body(psf_node.code, "the point spread function cannot be decoded",
+                        "contract.decode");
+  }
+  Result<Ref<NativeObservation>> observation = argument_observation(val(observation_node));
+  Result<std::vector<CatalogueStar>> stars = argument_stars(val(stars_node));
+  Result<Ref<EffectivePSF>> kernel = argument_kernel(val(psf_node));
+  if (!ok(observation) || !ok(stars) || !ok(kernel)) {
+    return failure_body(Code::invalid_request, "the arguments of the measurement cannot be used",
+                        "contract.decode");
+  }
+  if (val(wcs_node).type != "WcsModel") {
+    return failure_body(Code::invalid_request, "the argument wcs is not a WcsModel",
+                        "contract.decode");
+  }
+  Ref<WcsModel> wcs = std::static_pointer_cast<const WcsModel>(val(wcs_node).value);
+  PsfRequest request = decode_psf_request_field(request_);
+  json body = envelope_header();
+  json result;
+  Result<Ref<SourceMeasurements>> measured =
+      measure_science_sources(*context_, val(observation), wcs, val(stars), val(kernel), request);
+  if (!ok(measured)) {
+    result["code"] = encode_code(measured.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(measured.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  const Id hash = model::sha256_hex("acsd.SourceMeasurements:measure_science_sources");
+  result["code"] = encode_code(Code::ok);
+  result["value"] = encode_ref_value(hash);
+  result["assessment"] = encode_assessment(val(measured)->assessment);
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
+  decoder_->publish("SourceMeasurements", hash, encode_source_measurements(*val(measured)));
+  body["result"] = result;
+  return body;
+}
+
+
+
+
+// The joint photometry of a set of measurements.
+json Driver::run_fit_photometry() {
+  Result<TypedObject> measurements_node = argument("measurements");
+  if (!ok(measurements_node)) {
+    return failure_body(measurements_node.code, "the measurements cannot be decoded",
+                        "contract.decode");
+  }
+  Result<TypedObject> stars_node = argument("stars");
+  if (!ok(stars_node)) {
+    return failure_body(stars_node.code, "the catalogue stars cannot be decoded",
+                        "contract.decode");
+  }
+  Result<TypedObject> predictions_node = argument("predictions");
+  if (!ok(predictions_node)) {
+    return failure_body(predictions_node.code, "the predictions cannot be decoded",
+                        "contract.decode");
+  }
+  Result<std::vector<CatalogueStar>> stars = argument_stars(val(stars_node));
+  if (!ok(stars)) {
+    return failure_body(stars.code, "the catalogue stars cannot be used", "contract.decode");
+  }
+  // The measurements and the predictions of the arguments.
+  std::vector<Ref<SourceMeasurements>> measurements;
+  if (val(measurements_node).type == "SourceMeasurements") {
+    measurements.push_back(
+        std::static_pointer_cast<const SourceMeasurements>(val(measurements_node).value));
+  }
+  std::vector<Ref<SpectralPrediction>> predictions;
+  if (val(predictions_node).type == "SpectralPrediction") {
+    predictions.push_back(
+        std::static_pointer_cast<const SpectralPrediction>(val(predictions_node).value));
+  }
+  PhotometryRequest request;
+  // The policy of the solve: the residual and the rank tolerances.
+  request.solve.relative_residual =
+      driver_field(driver_field(request_, "solve"), "relative_residual").is_number()
+          ? driver_field(driver_field(request_, "solve"), "relative_residual").get<double>()
+          : 1e-10;
+  request.solve.absolute_residual =
+      driver_field(driver_field(request_, "solve"), "absolute_residual").is_number()
+          ? driver_field(driver_field(request_, "solve"), "absolute_residual").get<double>()
+          : 1e-12;
+  request.solve.rank_relative =
+      driver_field(driver_field(request_, "solve"), "rank_relative").is_number()
+          ? driver_field(driver_field(request_, "solve"), "rank_relative").get<double>()
+          : 1e-10;
+  request.max_outer_iterations =
+      static_cast<U32>(driver_u64_field(driver_field(request_, "max_outer_iterations"), "", 32));
+  request.gradient_tolerance =
+      driver_field(request_, "gradient_tolerance").is_number()
+          ? driver_field(request_, "gradient_tolerance").get<double>()
+          : 1e-10;
+  request.step_tolerance = driver_field(request_, "step_tolerance").is_number()
+                               ? driver_field(request_, "step_tolerance").get<double>()
+                               : 1e-10;
+  json body = envelope_header();
+  json result;
+  Result<Ref<PhotoSolution>> solution =
+      fit_photometry(*context_, measurements, val(stars), predictions, request);
+  if (!ok(solution)) {
+    result["code"] = encode_code(solution.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(solution.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  const Id hash = model::sha256_hex("acsd.PhotoSolution:fit_photometry");
+  result["code"] = encode_code(Code::ok);
+  result["value"] = encode_ref_value(hash);
+  result["assessment"] = encode_assessment(val(solution)->assessment);
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
+  decoder_->publish("PhotoSolution", hash, json{{"application_id", val(solution)->application_id},
+                                                {"frames", val(solution)->frames}});
+  body["result"] = result;
+  return body;
+}
+
+// The application of a photometric scale to a frame.
+json Driver::run_apply_scale() {
+  Result<TypedObject> solution_node = argument("solution");
+  if (!ok(solution_node)) {
+    return failure_body(solution_node.code, "the solution cannot be decoded", "contract.decode");
+  }
+  Result<TypedObject> observation_node = argument("observation");
+  if (!ok(observation_node)) {
+    return failure_body(observation_node.code, "the observation cannot be decoded",
+                        "contract.decode");
+  }
+  if (val(solution_node).type != "PhotoSolution") {
+    return failure_body(Code::invalid_request, "the argument solution is not a PhotoSolution",
+                        "contract.decode");
+  }
+  Result<Ref<NativeObservation>> observation = argument_observation(val(observation_node));
+  if (!ok(observation)) {
+    return failure_body(observation.code, "the observation cannot be used", "contract.decode");
+  }
+  const Id frame = driver_string_field(request_, "frame");
+  json body = envelope_header();
+  json result;
+  Result<Ref<NativeObservation>> scaled =
+      apply_scale(*context_, std::static_pointer_cast<const PhotoSolution>(val(solution_node).value),
+                   val(observation), frame);
+  if (!ok(scaled)) {
+    result["code"] = encode_code(scaled.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(scaled.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  const Id hash = model::sha256_hex("acsd.NativeObservation:apply_scale");
+  result["code"] = encode_code(Code::ok);
+  result["value"] = encode_ref_value(hash);
+  result["assessment"] = encode_assessment(val(scaled)->assessment);
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
+  decoder_->publish("NativeObservation", hash, json{{"frame", val(scaled)->frame},
+                                                     {"physical_collection",
+                                                      val(scaled)->physical_collection}});
+  body["result"] = result;
+  return body;
+}
+
 json Driver::run_publish_product() {
   Result<TypedObject> graph_node = argument("graph");
   if (!ok(graph_node)) {
@@ -1336,6 +1674,10 @@ json Driver::dispatch() {
   if (operation_ == "open_product") return run_open_product();
   if (operation_ == "export_image") return run_export_image();
   if (operation_ == "publish_product") return run_publish_product();
+  if (operation_ == "fit_psf") return run_fit_psf();
+  if (operation_ == "fit_photometry") return run_fit_photometry();
+  if (operation_ == "apply_scale") return run_apply_scale();
+  if (operation_ == "measure_science_sources") return run_measure_science_sources();
   if (operation_ == "build_export") return run_build_export();
   if (operation_ == "export_signal") return run_export_signal();
   if (operation_ == "integrate_response") return run_integrate_response();
@@ -1509,6 +1851,10 @@ bool operation_supported(const std::string& operation) {
                                      "open_product",
                                      "export_image",
                                      "publish_product",
+                                     "fit_psf",
+                                     "fit_photometry",
+                                     "apply_scale",
+                                     "measure_science_sources",
                                      "build_export",
                                      "export_signal",
                                      "integrate_response",

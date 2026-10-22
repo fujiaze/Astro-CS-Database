@@ -510,6 +510,52 @@ json encode_assessment(const Assessment& assessment) {
 }
 
 
+
+json encode_effective_psf(const EffectivePSF& kernel) {
+  json node;
+  const char* family = "gaussian";
+  switch (kernel.family) {
+    case PsfRequest::Family::gaussian: family = "gaussian"; break;
+    case PsfRequest::Family::moffat: family = "moffat"; break;
+    case PsfRequest::Family::airy: family = "airy"; break;
+  }
+  node["family"] = family;
+  node["spatial_domain"] = json{{"lower", json::array({encode_f64(kernel.spatial_domain.lower[0]),
+                                                        encode_f64(kernel.spatial_domain.lower[1])})},
+                                 {"upper", json::array({encode_f64(kernel.spatial_domain.upper[0]),
+                                                        encode_f64(kernel.spatial_domain.upper[1])})}};
+  node["wavelength_nm"] = json{{"lower", encode_f64(kernel.wavelength_nm.lower)},
+                                {"upper", encode_f64(kernel.wavelength_nm.upper)}};
+  node["tail_mass_upper"] = encode_f64(kernel.tail_mass_upper);
+  node["achromatic"] = kernel.achromatic;
+  node["spatial_basis"] = json{{"kind", kernel.spatial_basis.kind == Basis::Kind::plane
+                                            ? "plane"
+                                            : kernel.spatial_basis.kind == Basis::Kind::polynomial
+                                                ? "polynomial"
+                                                : "constant"},
+                                {"degree", kernel.spatial_basis.degree}};
+  return node;
+}
+
+json encode_source_measurements(const SourceMeasurements& measurements) {
+  json node;
+  node["frame"] = measurements.frame;
+  json stars = json::array();
+  for (const StarFlux& star : measurements.stars) {
+    json entry;
+    entry["gaia_source_id"] = star.gaia_source_id;
+    entry["integrated_flux"] = encode_f64(star.integrated_flux);
+    entry["definition"] = star.definition;
+    entry["window"] = json{{"lower", json::array({encode_f64(star.window.lower[0]),
+                                                  encode_f64(star.window.lower[1])})},
+                            {"upper", json::array({encode_f64(star.window.upper[0]),
+                                                  encode_f64(star.window.upper[1])})}};
+    stars.push_back(entry);
+  }
+  node["stars"] = stars;
+  return node;
+}
+
 json encode_signal_estimate(const SignalEstimate& estimate) {
   json node;
   node["identity"] = encode_identity(estimate.identity);
@@ -1445,7 +1491,8 @@ Result<TypedObject> DecodeContext::decode_node(const json& node) {
     publish("WcsModel", wcs.identity.object_id, payload);
     return model::ok_result(TypedObject{"WcsModel",
                                         std::make_shared<const WcsModel>(wcs),
-                                        wcs.identity.object_id});
+                                        wcs.identity.object_id,
+                                        payload});
   }
 
   if (type == "FootprintProvider") {
@@ -1652,6 +1699,277 @@ Result<TypedObject> DecodeContext::decode_node(const json& node) {
     return model::ok_result(TypedObject{"ExportRequest",
                                         std::make_shared<const ExportRequest>(request),
                                         "acsd.ExportRequest"});
+  }
+
+  if (type == "SpectralPrediction") {
+    SpectralPrediction prediction;
+    const char* const arrays[2] = {"basis_integrals", "absolute_errors"};
+    ArrayRef* const targets[2] = {&prediction.basis_integrals, &prediction.absolute_errors};
+    for (int index = 0; index < 2; ++index) {
+      const json& node = field(payload, arrays[index]);
+      if (!node.is_object() || !node.contains("$ref")) continue;
+      Result<TypedObject> referenced = resolve_reference(node.at("$ref").get<std::string>());
+      if (!ok(referenced) || val(referenced).type != "Array") {
+        return model::fail<TypedObject>(Code::invalid_request,
+                                         std::string("the array ") + arrays[index] +
+                                             " of the prediction cannot be decoded",
+                                         "contract.decode", "the prediction cannot be decoded");
+      }
+      *targets[index] = std::static_pointer_cast<const Array>(val(referenced).value);
+    }
+    prediction.support_nm = decode_interval(field(payload, "support_nm"));
+    prediction.identity = identity_for("acsd.SpectralPrediction", payload);
+    prediction.assessment = model::make_assessment(Code::ok);
+    prediction.assessment.complete = true;
+    publish("SpectralPrediction", prediction.identity.object_id, payload);
+    return model::ok_result(
+        TypedObject{"SpectralPrediction", std::make_shared<const SpectralPrediction>(prediction),
+                    prediction.identity.object_id});
+  }
+
+  if (type == "PhotoSolution") {
+    PhotoSolution solution;
+    const json& theta = field(payload, "theta");
+    if (theta.is_object() && theta.contains("$ref")) {
+      Result<TypedObject> referenced = resolve_reference(theta.at("$ref").get<std::string>());
+      if (!ok(referenced) || val(referenced).type != "Array") {
+        return model::fail<TypedObject>(Code::invalid_request,
+                                         "the parameters of the solution cannot be decoded",
+                                         "contract.decode", "the solution cannot be decoded");
+      }
+      solution.theta = std::static_pointer_cast<const Array>(val(referenced).value);
+    }
+    solution.application_id = string_field(payload, "application_id");
+    solution.frames = id_list(payload, "frames");
+    solution.spatial_basis.kind = Basis::Kind::constant;
+    solution.identity = identity_for("acsd.PhotoSolution", payload);
+    solution.assessment = model::make_assessment(Code::ok);
+    solution.assessment.complete = true;
+    publish("PhotoSolution", solution.identity.object_id, payload);
+    return model::ok_result(
+        TypedObject{"PhotoSolution", std::make_shared<const PhotoSolution>(solution),
+                    solution.identity.object_id});
+  }
+
+  if (type == "CatalogueStars") {
+    const json& rows = field(payload, "stars");
+    if (!rows.is_array()) {
+      return model::fail<TypedObject>(Code::invalid_request, "the catalogue stars are not a list",
+                                       "contract.decode", "the stars cannot be decoded");
+    }
+    publish("CatalogueStars", "acsd.CatalogueStars", payload);
+    return model::ok_result(TypedObject{"CatalogueStars", nullptr, "acsd.CatalogueStars", payload});
+  }
+
+  if (type == "FootprintSet") {
+    FootprintSet set;
+    set.width = u64_field(payload, "width", 0);
+    set.height = u64_field(payload, "height", 0);
+    const json& matrix = field(payload, "detector_from_sample");
+    if (matrix.is_array() && matrix.size() == 4) {
+      set.detector_from_sample = {decode_f64(matrix[0]), decode_f64(matrix[1]),
+                                  decode_f64(matrix[2]), decode_f64(matrix[3])};
+    }
+    const json& offset = field(payload, "offset");
+    if (offset.is_array() && offset.size() == 2) {
+      set.offset = {decode_f64(offset[0]), decode_f64(offset[1])};
+    }
+    const json& cell = field(payload, "local_cell");
+    if (cell.is_array() && cell.size() == 2) {
+      set.local_cell = {{decode_f64(cell[0].at(0)), decode_f64(cell[0].at(1))},
+                        {decode_f64(cell[1].at(0)), decode_f64(cell[1].at(1))}};
+    }
+    set.detector_frame = string_field(payload, "detector_frame");
+    // The index and the world coordinate model of the set.
+    const json& index_node = field(payload, "index");
+    if (index_node.is_object() && index_node.contains("$ref")) {
+      Result<TypedObject> referenced = resolve_reference(index_node.at("$ref").get<std::string>());
+      if (!ok(referenced) || val(referenced).type != "Index") {
+        return model::fail<TypedObject>(Code::invalid_request, "the index of the footprint set "
+                                                             "cannot be decoded",
+                                         "contract.decode", "the set cannot be decoded");
+      }
+      set.index = std::static_pointer_cast<const Index>(val(referenced).value);
+    }
+    const json& wcs_node = field(payload, "wcs");
+    if (wcs_node.is_object() && wcs_node.contains("$ref")) {
+      Result<TypedObject> referenced = resolve_reference(wcs_node.at("$ref").get<std::string>());
+      if (!ok(referenced) || val(referenced).type != "WcsModel") {
+        return model::fail<TypedObject>(Code::invalid_request,
+                                         "the world coordinate model of the footprint set cannot "
+                                         "be decoded",
+                                         "contract.decode", "the set cannot be decoded");
+      }
+      set.wcs = std::static_pointer_cast<const WcsModel>(val(referenced).value);
+    }
+    // The inline footprints of the sources of the set.
+    const json& inline_footprints = field(payload, "inline_footprints");
+    if (inline_footprints.is_array()) {
+      for (const json& item : inline_footprints) {
+        DetectorFootprint footprint;
+        const json& wcs_node = field(item, "wcs");
+        if (wcs_node.is_object() && wcs_node.contains("$ref")) {
+          Result<TypedObject> referenced =
+              resolve_reference(wcs_node.at("$ref").get<std::string>());
+          if (!ok(referenced) || val(referenced).type != "WcsModel") {
+            return model::fail<TypedObject>(Code::invalid_request,
+                                             "the world coordinate model of a footprint cannot "
+                                             "be decoded",
+                                             "contract.decode", "the set cannot be decoded");
+          }
+          footprint.wcs = std::static_pointer_cast<const WcsModel>(val(referenced).value);
+        }
+        const json& rings = field(item, "detector_rings");
+        if (rings.is_array()) {
+          for (const json& ring : rings) {
+            Ring entry;
+            entry.hole = field(ring, "hole").is_boolean() ? field(ring, "hole").get<bool>() : false;
+            const json& vertices = field(ring, "vertices");
+            if (vertices.is_array()) {
+              for (const json& vertex : vertices) {
+                if (vertex.is_array() && vertex.size() == 2) {
+                  entry.vertices.push_back(PixelEdge0{decode_f64(vertex[0]), decode_f64(vertex[1])});
+                }
+              }
+            }
+            footprint.detector_rings.push_back(entry);
+          }
+        }
+        const json& source = field(item, "source");
+        if (source.is_object()) {
+          footprint.source.dataset = string_field(source, "dataset");
+          footprint.source.exposure = string_field(source, "exposure");
+          footprint.source.detector = string_field(source, "detector");
+          footprint.source.channel = string_field(source, "channel");
+          footprint.source.sample = u64_field(source, "sample", 0);
+        }
+        set.inline_footprints.push_back(std::make_shared<const DetectorFootprint>(footprint));
+      }
+    }
+    set.identity = identity_for("acsd.FootprintSet", payload);
+    set.assessment = model::make_assessment(Code::ok);
+    set.assessment.complete = true;
+    publish("FootprintSet", set.identity.object_id, payload);
+    return model::ok_result(TypedObject{"FootprintSet", std::make_shared<const FootprintSet>(set),
+                                        set.identity.object_id});
+  }
+
+  if (type == "EffectivePSF") {
+    EffectivePSF kernel;
+    const std::string family = string_field(payload, "family", "gaussian");
+    kernel.family = family == "moffat"    ? PsfRequest::Family::moffat
+                    : family == "airy"     ? PsfRequest::Family::airy
+                                           : PsfRequest::Family::gaussian;
+    if (field(payload, "parameters").is_array() ||
+        (field(payload, "parameters").is_object() && field(payload, "parameters").contains("$ref"))) {
+      Result<ArrayRef> parameter_array =
+          store_f64_values(context_, field(payload, "parameters"), "acsd.psf.parameters");
+      if (!ok(parameter_array)) {
+        return model::fail<TypedObject>(parameter_array.code,
+                                         "the parameters of the kernel cannot be stored",
+                                         "contract.decode", "the kernel cannot be decoded");
+      }
+      kernel.parameters = val(parameter_array);
+    }
+    kernel.spatial_domain = decode_box(field(payload, "spatial_domain"));
+    kernel.wavelength_nm = decode_interval(field(payload, "wavelength_nm"));
+    kernel.tail_mass_upper = decode_f64(field(payload, "tail_mass_upper"));
+    kernel.achromatic = !payload.contains("achromatic") ||
+                        payload.at("achromatic").is_boolean() == false
+                            ? true
+                            : payload.at("achromatic").get<bool>();
+    const json& basis = field(payload, "spatial_basis");
+    const std::string kind = string_field(basis, "kind", "constant");
+    kernel.spatial_basis.kind = kind == "plane"    ? Basis::Kind::plane
+                                : kind == "polynomial" ? Basis::Kind::polynomial
+                                                      : Basis::Kind::constant;
+    kernel.spatial_basis.degree = static_cast<U32>(u64_field(basis, "degree", 0));
+    kernel.spatial_basis.normalization_domain = decode_box(field(basis, "normalization_domain"));
+    kernel.identity = identity_for("acsd.EffectivePSF", payload);
+    kernel.assessment = model::make_assessment(Code::ok);
+    kernel.assessment.complete = true;
+    publish("EffectivePSF", kernel.identity.object_id, payload);
+    return model::ok_result(TypedObject{"EffectivePSF", std::make_shared<const EffectivePSF>(kernel),
+                                        kernel.identity.object_id});
+  }
+
+  if (type == "NativeObservation") {
+    NativeObservation observation;
+    observation.frame = string_field(payload, "frame");
+    observation.physical_collection = !payload.contains("physical_collection") ||
+                                     payload.at("physical_collection").is_boolean() == false
+                                         ? true
+                                         : payload.at("physical_collection").get<bool>();
+    observation.unit = decode_unit(field(payload, "unit"));
+    observation.scale_applications = id_list(payload, "scale_applications");
+    // The arrays of the observation.
+    const char* const arrays[2] = {"integrated_values", "dq"};
+    ArrayRef* const targets[2] = {&observation.integrated_values, &observation.dq};
+    for (int index = 0; index < 2; ++index) {
+      const json& node = field(payload, arrays[index]);
+      if (!node.is_object() || !node.contains("$ref")) continue;
+      Result<TypedObject> referenced = resolve_reference(node.at("$ref").get<std::string>());
+      if (!ok(referenced) || val(referenced).type != "Array") {
+        return model::fail<TypedObject>(Code::invalid_request,
+                                         std::string("the array ") + arrays[index] +
+                                             " of the observation cannot be decoded",
+                                         "contract.decode", "the observation cannot be decoded");
+      }
+      *targets[index] = std::static_pointer_cast<const Array>(val(referenced).value);
+    }
+    // The index of the observation.
+    const json& index_node = field(payload, "native_index");
+    if (index_node.is_object() && index_node.contains("$ref")) {
+      Result<TypedObject> referenced = resolve_reference(index_node.at("$ref").get<std::string>());
+      if (!ok(referenced) || val(referenced).type != "Index") {
+        return model::fail<TypedObject>(Code::invalid_request,
+                                         "the index of the observation cannot be decoded",
+                                         "contract.decode", "the observation cannot be decoded");
+      }
+      observation.native_index = std::static_pointer_cast<const Index>(val(referenced).value);
+    }
+    // The footprint set of the observation.
+    const json& footprints_node = field(payload, "footprints");
+    if (footprints_node.is_object() && footprints_node.contains("$ref")) {
+      Result<TypedObject> referenced =
+          resolve_reference(footprints_node.at("$ref").get<std::string>());
+      if (!ok(referenced) || val(referenced).type != "FootprintSet") {
+        return model::fail<TypedObject>(Code::invalid_request,
+                                         "the footprint set of the observation cannot be decoded",
+                                         "contract.decode", "the observation cannot be decoded");
+      }
+      observation.footprints = std::static_pointer_cast<const FootprintSet>(val(referenced).value);
+    }
+    observation.identity = identity_for("acsd.NativeObservation", payload);
+    observation.assessment = model::make_assessment(Code::ok);
+    observation.assessment.complete = true;
+    publish("NativeObservation", observation.identity.object_id, payload);
+    return model::ok_result(
+        TypedObject{"NativeObservation", std::make_shared<const NativeObservation>(observation),
+                    observation.identity.object_id});
+  }
+
+  if (type == "SourceMeasurements") {
+    SourceMeasurements measurements;
+    measurements.frame = string_field(payload, "frame");
+    const json& stars = field(payload, "stars");
+    if (stars.is_array()) {
+      for (const json& item : stars) {
+        StarFlux star;
+        star.gaia_source_id = u64_field(item, "gaia_source_id", 0);
+        star.integrated_flux = decode_f64(field(item, "integrated_flux"));
+        star.definition = string_field(item, "definition");
+        star.window = decode_box(field(item, "window"));
+        measurements.stars.push_back(star);
+      }
+    }
+    measurements.identity = identity_for("acsd.SourceMeasurements", payload);
+    measurements.assessment = model::make_assessment(Code::ok);
+    measurements.assessment.complete = true;
+    publish("SourceMeasurements", measurements.identity.object_id, payload);
+    return model::ok_result(
+        TypedObject{"SourceMeasurements", std::make_shared<const SourceMeasurements>(measurements),
+                    measurements.identity.object_id});
   }
 
   if (type == "ProductGraph") {

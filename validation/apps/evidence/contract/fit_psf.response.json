@@ -1,0 +1,322 @@
+{
+ "algorithm_set": [
+  {
+   "name": "acsd-contract",
+   "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+   "version": "1"
+  },
+  {
+   "name": "fit_psf",
+   "source_hash": "sha256:3e7d6298f10ed00528edaab49c73b9ba2bba187acf140c852890ce8ee76ba9db",
+   "version": "1"
+  }
+ ],
+ "arithmetic": {
+  "allow_target_fallback": true,
+  "initial_bits": 64,
+  "max_bits": 256,
+  "mode": "outward"
+ },
+ "blocks": [],
+ "build": {
+  "compiler": "14.2.0",
+  "name": "acsd-contract",
+  "standard": "acsd.contract/1",
+  "version": "2.0.0"
+ },
+ "input_hashes": {
+  "dq": "acsd.Array:f77d6cf94c88e8394f0e0ebd5e1737d9c5c5c365374716f5c3be61f80dd6e440",
+  "footprints": "acsd.FootprintSet:c8ae88f5c0c1a1c10819a62ddeb6f331bd18c65c75cf20b41d8b468b951a2e26",
+  "leaf_index": "acsd.Index:0645999e6d66d6ecf9030e242f10c44a489ed691a68b47f37224ed39f7184037",
+  "native_index": "acsd.Index:7bb23b1b8848b8237445e10a819c2fd8341be1aefa05e6e710fe41ca0ea0444f",
+  "observation": "acsd.NativeObservation:69fbabe7774f9a7ba84daf5d0b984905f02c30f9e63f833d70198a7f2e9a73e8",
+  "stars": "acsd.CatalogueStars",
+  "values": "acsd.Array:925c70644fa0aa8986279c518cfcaa121ccb44157e2a48da0c4b5fc4bb8a9209",
+  "wcs": "acsd.WcsModel:9b640d96e2b6af478d35f46d7dcd7f3c89b3454ca3164fb4c226c13996de7b9a"
+ },
+ "major": 1,
+ "objects": {
+  "acsd.Array:925c70644fa0aa8986279c518cfcaa121ccb44157e2a48da0c4b5fc4bb8a9209": {
+   "data": {
+    "dtype": "f64",
+    "index_id": "",
+    "shape": [
+     64
+    ],
+    "unit": {
+     "linear_power": 1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0,
+     "scale": "L",
+     "sr_power": -1
+    }
+   },
+   "type": "Array"
+  },
+  "acsd.Array:f77d6cf94c88e8394f0e0ebd5e1737d9c5c5c365374716f5c3be61f80dd6e440": {
+   "data": {
+    "dtype": "u8",
+    "index_id": "",
+    "shape": [
+     64
+    ],
+    "unit": {
+     "linear_power": 1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0,
+     "scale": "L",
+     "sr_power": -1
+    }
+   },
+   "type": "Array"
+  },
+  "acsd.CatalogueStars": {
+   "data": {
+    "stars": [
+     {
+      "brightness_mag": 15.0,
+      "dec_rad": 0.13962634015954636,
+      "epoch_year": 2016.0,
+      "parallax_rad": 0.0,
+      "pmdec_rad_year": 0.0,
+      "pmra_cosdec_rad_year": 0.0,
+      "ra_rad": 0.8552113334772214,
+      "source_id": 1
+     },
+     {
+      "brightness_mag": 16.0,
+      "dec_rad": 0.13963332147655436,
+      "epoch_year": 2016.0,
+      "parallax_rad": 0.0,
+      "pmdec_rad_year": 0.0,
+      "pmra_cosdec_rad_year": 0.0,
+      "ra_rad": 0.8552252961112374,
+      "source_id": 2
+     },
+     {
+      "brightness_mag": 17.0,
+      "dec_rad": 0.1396193588425384,
+      "epoch_year": 2016.0,
+      "parallax_rad": 0.0,
+      "pmdec_rad_year": 0.0,
+      "pmra_cosdec_rad_year": 0.0,
+      "ra_rad": 0.8552008615017095,
+      "source_id": 3
+     }
+    ]
+   },
+   "type": "CatalogueStars"
+  },
+  "acsd.FootprintSet:c8ae88f5c0c1a1c10819a62ddeb6f331bd18c65c75cf20b41d8b468b951a2e26": {
+   "data": {
+    "detector_frame": "acsd.contract.detector",
+    "detector_from_sample": [
+     1.0,
+     0.0,
+     0.0,
+     1.0
+    ],
+    "height": 8,
+    "index": {
+     "$ref": "leaf_index"
+    },
+    "inline_footprints": [
+     {
+      "detector_rings": [
+       {
+        "hole": false,
+        "vertices": [
+         [
+          3.0,
+          3.0
+         ],
+         [
+          5.0,
+          3.0
+         ],
+         [
+          5.0,
+          5.0
+         ],
+         [
+          3.0,
+          5.0
+         ]
+        ]
+       }
+      ],
+      "source": {
+       "channel": "c1",
+       "dataset": "acsd.contract",
+       "detector": "d1",
+       "exposure": "e1",
+       "sample": 0
+      },
+      "wcs": {
+       "$ref": "wcs"
+      }
+     }
+    ],
+    "offset": [
+     0.0,
+     0.0
+    ],
+    "wcs": {
+     "$ref": "wcs"
+    },
+    "width": 8
+   },
+   "type": "FootprintSet"
+  },
+  "acsd.Index:0645999e6d66d6ecf9030e242f10c44a489ed691a68b47f37224ed39f7184037": {
+   "data": {
+    "ids": null,
+    "kind": "leaf",
+    "namespace_id": "acsd.contract.leaves",
+    "order": 0,
+    "partitions": [],
+    "size": 1,
+    "sources": []
+   },
+   "type": "Index"
+  },
+  "acsd.Index:7bb23b1b8848b8237445e10a819c2fd8341be1aefa05e6e710fe41ca0ea0444f": {
+   "data": {
+    "ids": null,
+    "kind": "native",
+    "namespace_id": "acsd.contract.detector.pixels",
+    "order": 0,
+    "partitions": [],
+    "size": 64,
+    "sources": []
+   },
+   "type": "Index"
+  },
+  "acsd.NativeObservation:69fbabe7774f9a7ba84daf5d0b984905f02c30f9e63f833d70198a7f2e9a73e8": {
+   "data": {
+    "dq": {
+     "$ref": "dq"
+    },
+    "footprints": {
+     "$ref": "footprints"
+    },
+    "frame": "contract-frame",
+    "integrated_values": {
+     "$ref": "values"
+    },
+    "native_index": {
+     "$ref": "native_index"
+    },
+    "physical_collection": true,
+    "scale_applications": [],
+    "unit": {
+     "linear_power": 1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0,
+     "scale": "L",
+     "sr_power": -1
+    }
+   },
+   "type": "NativeObservation"
+  },
+  "acsd.WcsModel:9b640d96e2b6af478d35f46d7dcd7f3c89b3454ca3164fb4c226c13996de7b9a": {
+   "data": {
+    "c": [
+     0.6496743076188995,
+     0.7473647984679657,
+     0.13917310096006544
+    ],
+    "cd_rad_per_pixel": [
+     -1.7453292519943296e-05,
+     0.0,
+     0.0,
+     1.7453292519943296e-05
+    ],
+    "crpix_fits1": [
+     4.5,
+     4.5
+    ],
+    "detector_frame": "acsd.contract.detector",
+    "domain": {
+     "lower": [
+      -0.5,
+      -0.5
+     ],
+     "upper": [
+      7.5,
+      7.5
+     ]
+    },
+    "e": [
+     -0.754709580222772,
+     0.6560590289905073,
+     0.0
+    ],
+    "north": [
+     -0.09130576947745837,
+     -0.10503527260387245,
+     0.9902680687415704
+    ]
+   },
+   "type": "WcsModel"
+  }
+ },
+ "operation": "fit_psf",
+ "output_root": "/tmp/tmp_0cgkfbq",
+ "protocol": "acsd.contract.response",
+ "request_id": "contract-fit_psf",
+ "resolved_request_hash": "sha256:191fce66b0fde91b94d793f7e91f93c2d95726e8dd62d1ec91ce4dd1de8a7f6a",
+ "resources": {
+  "byte_budget": 8388608,
+  "bytes": 8388608,
+  "elapsed_seconds": 0.000325635,
+  "peak_payload_bytes": 0,
+  "read_bytes": 0,
+  "spill_bytes": 0,
+  "threads": 1,
+  "work": 24,
+  "work_budget": 1000000,
+  "written_bytes": 0
+ },
+ "result": {
+  "assessment": {
+   "capability": "supported",
+   "complete": false,
+   "condition": {
+    "assumptions": [],
+    "estimator": "",
+    "fixed_objects": [],
+    "kind": ""
+   },
+   "execution": "failed",
+   "included": [],
+   "issues": [
+    {
+     "code": "nonconverged",
+     "impact": "the fit cannot be built",
+     "origin": "fit_psf",
+     "reason": "the model has no support on the fit samples; the design matrix of a degenerate model cannot be used to judge the estimability of the parameters",
+     "retry_condition": ""
+    }
+   ],
+   "noise": "unknown",
+   "omitted": [],
+   "science": "bounded",
+   "validity": "certified"
+  },
+  "code": "nonconverged",
+  "dependencies": [],
+  "usage": {
+   "elapsed_seconds": 1.72e-07,
+   "peak_payload_bytes": 0,
+   "read_bytes": 0,
+   "spill_bytes": 0,
+   "work": 24,
+   "written_bytes": 0
+  },
+  "value": null
+ }
+}

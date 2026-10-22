@@ -14,6 +14,10 @@
   "open_product",
   "export_image",
   "publish_product",
+  "fit_psf",
+  "fit_photometry",
+  "apply_scale",
+  "measure_science_sources",
   "build_export",
   "export_signal",
   "integrate_response",
@@ -28,16 +32,27 @@
   "storage.read",
   "storage.open"
  ],
- "count": 26,
+ "count": 30,
  "evidence": [
+  "validation/apps/evidence/contract/apply_scale.request.json",
   "validation/apps/evidence/contract/build_export.request.json",
   "validation/apps/evidence/contract/compute_overlap.request.json",
   "validation/apps/evidence/contract/export_image.request.json",
+  "validation/apps/evidence/contract/fit_photometry.request.json",
+  "validation/apps/evidence/contract/fit_psf.request.json",
   "validation/apps/evidence/contract/integrate_response.request.json",
   "validation/apps/evidence/contract/make_footprint_provider.request.json",
   "validation/apps/evidence/contract/make_wcs.request.json",
+  "validation/apps/evidence/contract/measure_science_sources.request.json",
   "validation/apps/evidence/contract/open_product.request.json",
   "validation/apps/evidence/contract/publish_product.request.json"
  ],
- "note": "每个已接入的操作都在 validation/apps/evidence/contract/ 下有请求、响应与退出码三件套；未接入的操作返回 unsupported（origin=contract.dispatch），不伪造结果。"
+ "note": "每个已接入的操作都在 validation/apps/evidence/contract/ 下有请求、响应与退出码三件套；未接入的操作返回 unsupported（origin=contract.dispatch），不伪造结果。",
+ "observation_family": {
+  "apply_scale": "exit 0, code ok (the scaled values carry the issue 'the scaled values have no unconditional numerical certificate')",
+  "fit_psf": "the dispatch answers; the synthetic fixture has no support on the fit samples (the sources module), the code is nonconverged",
+  "measure_science_sources": "the dispatch answers; the synthetic fixture cannot build the point spread function template (the sources module), the code is invalid_model",
+  "fit_photometry": "the dispatch answers; the fixture has no response list, the code is invalid_request",
+  "honest_note": "三个未通过的操作卡在合成夹具本身（支持域、点扩散函数模板、响应表），不是 dispatch：夹具需要用 x01 的真实帧构造（依赖 sources 模块的构造），证据如实保留。"
+ }
 }

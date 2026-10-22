@@ -1,0 +1,329 @@
+{
+ "algorithm_set": [
+  {
+   "name": "acsd-contract",
+   "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+   "version": "1"
+  },
+  {
+   "name": "apply_scale",
+   "source_hash": "sha256:659360808c6dfc910fc4b82719a934782b5f3b6751d69ca9c8f1ff56f9cede4f",
+   "version": "1"
+  }
+ ],
+ "arithmetic": {
+  "allow_target_fallback": true,
+  "initial_bits": 64,
+  "max_bits": 256,
+  "mode": "outward"
+ },
+ "blocks": [],
+ "build": {
+  "compiler": "14.2.0",
+  "name": "acsd-contract",
+  "standard": "acsd.contract/1",
+  "version": "2.0.0"
+ },
+ "input_hashes": {
+  "dq": "acsd.Array:f77d6cf94c88e8394f0e0ebd5e1737d9c5c5c365374716f5c3be61f80dd6e440",
+  "footprints": "acsd.FootprintSet:c8ae88f5c0c1a1c10819a62ddeb6f331bd18c65c75cf20b41d8b468b951a2e26",
+  "leaf_index": "acsd.Index:0645999e6d66d6ecf9030e242f10c44a489ed691a68b47f37224ed39f7184037",
+  "native_index": "acsd.Index:7bb23b1b8848b8237445e10a819c2fd8341be1aefa05e6e710fe41ca0ea0444f",
+  "observation": "acsd.NativeObservation:69fbabe7774f9a7ba84daf5d0b984905f02c30f9e63f833d70198a7f2e9a73e8",
+  "solution": "acsd.PhotoSolution:07abd9133e404edf7cd5d9b942655862fc45a06872881dbf4fb5651f70889cd4",
+  "theta": "acsd.Array:1d27bfb4231fdc8c5d1a21fd38a350df2a36bc83b8171a3f76078fe49f44862e",
+  "values": "acsd.Array:925c70644fa0aa8986279c518cfcaa121ccb44157e2a48da0c4b5fc4bb8a9209",
+  "wcs": "acsd.WcsModel:9b640d96e2b6af478d35f46d7dcd7f3c89b3454ca3164fb4c226c13996de7b9a"
+ },
+ "major": 1,
+ "objects": {
+  "4db7489f6334e96948d3e2b18a382d90adbccfb497cd51936d34094c2d4cd6eb": {
+   "data": {
+    "frame": "contract-frame",
+    "physical_collection": true
+   },
+   "type": "NativeObservation"
+  },
+  "acsd.Array:1d27bfb4231fdc8c5d1a21fd38a350df2a36bc83b8171a3f76078fe49f44862e": {
+   "data": {
+    "dtype": "f64",
+    "index_id": "",
+    "shape": [
+     3
+    ],
+    "unit": {
+     "linear_power": 1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0,
+     "scale": "L",
+     "sr_power": -1
+    }
+   },
+   "type": "Array"
+  },
+  "acsd.Array:925c70644fa0aa8986279c518cfcaa121ccb44157e2a48da0c4b5fc4bb8a9209": {
+   "data": {
+    "dtype": "f64",
+    "index_id": "",
+    "shape": [
+     64
+    ],
+    "unit": {
+     "linear_power": 1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0,
+     "scale": "L",
+     "sr_power": -1
+    }
+   },
+   "type": "Array"
+  },
+  "acsd.Array:f77d6cf94c88e8394f0e0ebd5e1737d9c5c5c365374716f5c3be61f80dd6e440": {
+   "data": {
+    "dtype": "u8",
+    "index_id": "",
+    "shape": [
+     64
+    ],
+    "unit": {
+     "linear_power": 1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0,
+     "scale": "L",
+     "sr_power": -1
+    }
+   },
+   "type": "Array"
+  },
+  "acsd.FootprintSet:c8ae88f5c0c1a1c10819a62ddeb6f331bd18c65c75cf20b41d8b468b951a2e26": {
+   "data": {
+    "detector_frame": "acsd.contract.detector",
+    "detector_from_sample": [
+     1.0,
+     0.0,
+     0.0,
+     1.0
+    ],
+    "height": 8,
+    "index": {
+     "$ref": "leaf_index"
+    },
+    "inline_footprints": [
+     {
+      "detector_rings": [
+       {
+        "hole": false,
+        "vertices": [
+         [
+          3.0,
+          3.0
+         ],
+         [
+          5.0,
+          3.0
+         ],
+         [
+          5.0,
+          5.0
+         ],
+         [
+          3.0,
+          5.0
+         ]
+        ]
+       }
+      ],
+      "source": {
+       "channel": "c1",
+       "dataset": "acsd.contract",
+       "detector": "d1",
+       "exposure": "e1",
+       "sample": 0
+      },
+      "wcs": {
+       "$ref": "wcs"
+      }
+     }
+    ],
+    "offset": [
+     0.0,
+     0.0
+    ],
+    "wcs": {
+     "$ref": "wcs"
+    },
+    "width": 8
+   },
+   "type": "FootprintSet"
+  },
+  "acsd.Index:0645999e6d66d6ecf9030e242f10c44a489ed691a68b47f37224ed39f7184037": {
+   "data": {
+    "ids": null,
+    "kind": "leaf",
+    "namespace_id": "acsd.contract.leaves",
+    "order": 0,
+    "partitions": [],
+    "size": 1,
+    "sources": []
+   },
+   "type": "Index"
+  },
+  "acsd.Index:7bb23b1b8848b8237445e10a819c2fd8341be1aefa05e6e710fe41ca0ea0444f": {
+   "data": {
+    "ids": null,
+    "kind": "native",
+    "namespace_id": "acsd.contract.detector.pixels",
+    "order": 0,
+    "partitions": [],
+    "size": 64,
+    "sources": []
+   },
+   "type": "Index"
+  },
+  "acsd.NativeObservation:69fbabe7774f9a7ba84daf5d0b984905f02c30f9e63f833d70198a7f2e9a73e8": {
+   "data": {
+    "dq": {
+     "$ref": "dq"
+    },
+    "footprints": {
+     "$ref": "footprints"
+    },
+    "frame": "contract-frame",
+    "integrated_values": {
+     "$ref": "values"
+    },
+    "native_index": {
+     "$ref": "native_index"
+    },
+    "physical_collection": true,
+    "scale_applications": [],
+    "unit": {
+     "linear_power": 1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0,
+     "scale": "L",
+     "sr_power": -1
+    }
+   },
+   "type": "NativeObservation"
+  },
+  "acsd.PhotoSolution:07abd9133e404edf7cd5d9b942655862fc45a06872881dbf4fb5651f70889cd4": {
+   "data": {
+    "application_id": "contract-solution",
+    "frames": [
+     "contract-frame"
+    ],
+    "theta": {
+     "$ref": "theta"
+    }
+   },
+   "type": "PhotoSolution"
+  },
+  "acsd.WcsModel:9b640d96e2b6af478d35f46d7dcd7f3c89b3454ca3164fb4c226c13996de7b9a": {
+   "data": {
+    "c": [
+     0.6496743076188995,
+     0.7473647984679657,
+     0.13917310096006544
+    ],
+    "cd_rad_per_pixel": [
+     -1.7453292519943296e-05,
+     0.0,
+     0.0,
+     1.7453292519943296e-05
+    ],
+    "crpix_fits1": [
+     4.5,
+     4.5
+    ],
+    "detector_frame": "acsd.contract.detector",
+    "domain": {
+     "lower": [
+      -0.5,
+      -0.5
+     ],
+     "upper": [
+      7.5,
+      7.5
+     ]
+    },
+    "e": [
+     -0.754709580222772,
+     0.6560590289905073,
+     0.0
+    ],
+    "north": [
+     -0.09130576947745837,
+     -0.10503527260387245,
+     0.9902680687415704
+    ]
+   },
+   "type": "WcsModel"
+  }
+ },
+ "operation": "apply_scale",
+ "output_root": "/tmp/tmper7p7coq",
+ "protocol": "acsd.contract.response",
+ "request_id": "contract-apply_scale",
+ "resolved_request_hash": "sha256:03a12a427d0dc0fa6868163d0c438c7ad29a30d4a4fb6391c623b82dd8f6c6b2",
+ "resources": {
+  "byte_budget": 8388608,
+  "bytes": 8388608,
+  "elapsed_seconds": 0.000269204,
+  "peak_payload_bytes": 0,
+  "read_bytes": 0,
+  "spill_bytes": 0,
+  "threads": 1,
+  "work": 18,
+  "work_budget": 1000000,
+  "written_bytes": 0
+ },
+ "result": {
+  "assessment": {
+   "capability": "supported",
+   "complete": false,
+   "condition": {
+    "assumptions": [],
+    "estimator": "scaled_native_observation",
+    "fixed_objects": [],
+    "kind": "photometric_scale"
+   },
+   "execution": "complete",
+   "included": [
+    "per_native_sample_spatial_factor",
+    "physical_regrouping_after_the_factor",
+    "noise_chain_scaled_with_the_same_factor"
+   ],
+   "issues": [
+    {
+     "code": "unavailable",
+     "impact": "the scale is conditional",
+     "origin": "apply_scale",
+     "reason": "the scaled values have no unconditional numerical certificate",
+     "retry_condition": "provide a parent enclosure and a certified parameter box"
+    }
+   ],
+   "noise": "unknown",
+   "omitted": [],
+   "science": "conditional",
+   "validity": "certified"
+  },
+  "code": "ok",
+  "dependencies": [],
+  "usage": {
+   "elapsed_seconds": 6.84e-07,
+   "peak_payload_bytes": 0,
+   "read_bytes": 0,
+   "spill_bytes": 0,
+   "work": 18,
+   "written_bytes": 0
+  },
+  "value": {
+   "$ref": "4db7489f6334e96948d3e2b18a382d90adbccfb497cd51936d34094c2d4cd6eb"
+  }
+ }
+}

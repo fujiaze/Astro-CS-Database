@@ -27,3 +27,21 @@ of the sources module, which is outside the apps scope.
 
 The earlier record of "more than 35 minutes per frame" is kept as the history
 of the attempt; its cause was the sources module, not the geometry.
+
+## The block level path is not claimed correct
+
+With `ACSD_DRIZZLE_BLOCK=16` the source rows are the 16x16 blocks of the detector
+(64 rows, 0.282 s per frame, 640 work units after the geometry optimisation) and
+the weight matrix has **64 columns, not the number of the pixels of the frame**.
+The weight of a block is then a *nominal* share: the pixels inside the block
+that cross a leaf boundary are attributed to the leaf of their centre, while
+the exact overlap of the pixel with the leaf is nearly zero.  Measured against
+the exact intersection over 32 pixels and 575 (source row, leaf) pairs the
+difference reaches **1.0** with an RMS of **0.1055**.  The block path would
+need the block internal attribution error inside the numerator; until that
+exists the block path is **not claimed correct** and is kept only as the
+precision against cost alternative.
+
+The default is therefore one pixel per source row: 16384 source rows, 75.3 s per
+frame, 33280 work units, and the columns of the weight matrix equal the number
+of the pixels of the frame; every weight is an exact area share.
