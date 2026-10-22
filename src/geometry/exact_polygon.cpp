@@ -29,11 +29,18 @@ RationalPolygon clip_half_space(const RationalPolygon& polygon, const Rational& 
     if (inside_current) result.push_back(current);
     if (inside_current != inside_next) {
       // Exact intersection of the segment with the boundary line.
+      std::fprintf(stderr, "[clip] crossing\n"); std::fflush(stderr);
+      std::fprintf(stderr, "[clip] bits a=%zu b=%zu c=%zu x=%zu y=%zu\n", a.numerator().bit_length(),
+                   b.numerator().bit_length(), c.numerator().bit_length(), current.x.numerator().bit_length(),
+                   current.y.numerator().bit_length());
+      std::fflush(stderr);
       const Rational f0 = a * current.x + b * current.y - c;
       const Rational f1 = a * next.x + b * next.y - c;
       const Rational denominator = f0 - f1;
       if (!denominator.is_zero()) {
         const Rational t = f0 / denominator;
+        std::fprintf(stderr, "[clip] t bits %zu\n", t.numerator().bit_length());
+        std::fflush(stderr);
         RationalPoint crossing;
         crossing.x = current.x + t * (next.x - current.x);
         crossing.y = current.y + t * (next.y - current.y);
