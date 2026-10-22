@@ -472,4 +472,113 @@ inline std::pair<double, double> clopper_pearson(std::size_t successes, std::siz
   return {lower, upper};
 }
 
+// ---------------------------------------------------------------------------
+// Actions and covariances
+// ---------------------------------------------------------------------------
+
+// Builds a noise model with one root whose factor and influence are given.
+acsd::Result<acsd::Ref<acsd::CovarianceAction>> make_covariance(
+    acsd::Context& context, const std::vector<std::vector<double>>& factor,
+    const std::vector<std::vector<double>>& influence, const std::string& index,
+    const std::string& shared = std::string(), bool shared_root = false) {
+  const std::size_t rows = influence.size();
+  const std::size_t columns = influence.empty() ? 0 : influence[0].size();
+  std::vector<acsd::U64> offsets{0};
+  std::vector<acsd::U64> indices;
+  std::vector<double> values;
+  for (std::size_t i = 0; i < rows; ++i) {
+    for (std::size_t j = 0; j < columns; ++j) {
+      if (influence[i][j] == 0.0) continue;
+      indices.push_back(j);
+      values.push_back(influence[i][j]);
+    }
+    offsets.push_back(indices.size());
+  }
+  auto build_action = [&](const std::vector<std::vector<double>>& matrix,
+                          const std::string& name) -> acsd::Result<acsd::Ref<acsd::LinearAction>> {
+    const std::size_t m = matrix.size();
+    const std::size_t n = m == 0 ? 0 : matrix[0].size();
+    std::vector<acsd::U64> off{0};
+    std::vector<acsd::U64> ind;
+    std::vector<double> val;
+    for (std::size_t i = 0; i < m; ++i) {
+      for (std::size_t j = 0; j < n; ++j) {
+        if (matrix[i][j] == 0.0) continue;
+        ind.push_back(j);
+        val.push_back(matrix[i][j]);
+      }
+      off.push_back(ind.size());
+    }
+    acsd::Result<acsd::ArrayRef> offsets = store_u64(context, off, {off.size()}, name + ":offsets");
+    acsd::Result<acsd::ArrayRef> columns = store_u64(context, ind, {ind.size()}, name + ":indices");
+    acsd::Result<acsd::ArrayRef> entries = store_f64(context, val, {val.size()}, name + ":values",
+                                                       acsd::Unit{});
+    if (!is_ok(offsets) || !is_ok(columns) || !is_ok(entries)) {
+      return make_fail<acsd::Ref<acsd::LinearAction>>(Code::internal, "the arrays cannot be stored");
+    }
+    acsd::ActionRecipe recipe;
+    recipe.kind = acsd::ActionRecipe::Kind::csr;
+    recipe.algorithm = "validation_csr_v1";
+    recipe.version = 1;
+    recipe.arrays = {name + ":offsets", name + ":indices", name + ":values"};
+    const std::vector<acsd::ArrayRef> arrays{value_of(offsets), value_of(columns), value_of(entries)};
+    return acsd::make_action(context, recipe, std::span<const acsd::Ref<acsd::LinearAction>>{}, arrays);
+  };
+
+  acsd::Result<acsd::Ref<acsd::LinearAction>> factor_action = build_action(factor, index + ":factor");
+  acsd::Result<acsd::Ref<acsd::LinearAction>> influence_result = build_action(influence, index + ":influence");
+  if (!is_ok(factor_action) || !is_ok(influence_result)) {
+    return make_fail<acsd::Ref<acsd::CovarianceAction>>(Code::internal, "the actions cannot be built");
+  }
+  auto root = std::make_shared<acsd::NoiseRoot>();
+  root->shared_id = acsd::SharedId{"validation", shared.empty() ? index : shared, "1", "root"};
+  root->unit = acsd::Unit{};
+  root->factor = value_of(factor_action);
+  auto coordinates = std::make_shared<acsd::Index>();
+  coordinates->size = columns;
+  coordinates->kind = acsd::Index::Kind::latent;
+  root->coordinates = std::shared_ptr<const acsd::Index>(coordinates);
+
+  auto noise = std::make_shared<acsd::NoiseModel>();
+  noise->variance_unit = acsd::Unit{};
+  if (shared_root) {
+    noise->shared_factors.push_back(std::shared_ptr<const acsd::NoiseRoot>(root));
+  } else {
+    noise->innovations.push_back(std::shared_ptr<const acsd::NoiseRoot>(root));
+  }
+  noise->influence.push_back(value_of(influence_result));
+  noise->state = acsd::NoiseState::known;
+  return acsd::make_covariance(context,
+                               acsd::Ref<acsd::NoiseModel>(std::shared_ptr<const acsd::NoiseModel>(noise)));
+}
+
+// The identity action of a given size.
+acsd::Result<acsd::Ref<acsd::LinearAction>> identity_action(acsd::Context& context, std::size_t size,
+                                                             const std::string& name) {
+  std::vector<std::vector<double>> matrix(size, std::vector<double>(size, 0.0));
+  for (std::size_t i = 0; i < size; ++i) matrix[i][i] = 1.0;
+  std::vector<acsd::U64> offsets{0};
+  std::vector<acsd::U64> indices;
+  std::vector<double> values;
+  for (std::size_t i = 0; i < size; ++i) {
+    indices.push_back(i);
+    values.push_back(1.0);
+    offsets.push_back(indices.size());
+  }
+  acsd::Result<acsd::ArrayRef> off = store_u64(context, offsets, {offsets.size()}, name + ":offsets");
+  acsd::Result<acsd::ArrayRef> ind = store_u64(context, indices, {indices.size()}, name + ":indices");
+  acsd::Result<acsd::ArrayRef> val = store_f64(context, values, {values.size()}, name + ":values",
+                                                acsd::Unit{});
+  if (!is_ok(off) || !is_ok(ind) || !is_ok(val)) {
+    return make_fail<acsd::Ref<acsd::LinearAction>>(Code::internal, "the arrays cannot be stored");
+  }
+  acsd::ActionRecipe recipe;
+  recipe.kind = acsd::ActionRecipe::Kind::csr;
+  recipe.algorithm = "validation_csr_v1";
+  recipe.version = 1;
+  recipe.arrays = {name + ":offsets", name + ":indices", name + ":values"};
+  const std::vector<acsd::ArrayRef> arrays{value_of(off), value_of(ind), value_of(val)};
+  return acsd::make_action(context, recipe, std::span<const acsd::Ref<acsd::LinearAction>>{}, arrays);
+}
+
 }  // namespace acsd_validation

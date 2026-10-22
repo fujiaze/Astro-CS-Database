@@ -322,7 +322,13 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
   for (std::vector<operators::CsrMatrix>& blocks_of_root : shared_blocks) {
     operators::CsrMatrix merged;
     if (blocks_of_root.empty()) continue;
-    merged.cols = blocks_of_root.front().cols;
+    // The column count is the largest one of the blocks: a block may leave
+    // trailing latent columns without a non zero.
+    merged.cols = 0;
+    for (const operators::CsrMatrix& block : blocks_of_root) {
+      merged.cols = std::max(merged.cols, block.cols);
+      for (const U64 index : block.indices) merged.cols = std::max(merged.cols, index + 1);
+    }
     merged.rows = 0;
     for (const operators::CsrMatrix& block : blocks_of_root) merged.rows += block.rows;
     merged.offsets.assign(static_cast<std::size_t>(merged.rows) + 1, 0);

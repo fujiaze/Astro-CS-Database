@@ -1,0 +1,67 @@
+=== building information_test ===
+=== running information_test ===
+[ ok ]  V_F of the reference source, 0.5 I (value 1, expected 1, |difference| 4.44e-16)
+[ ok ]  V_F of the reference source, 0.82 I (value 1, expected 1, |difference| 0)
+[ ok ]  the two reference sources have the same V_F
+[ ok ]  the inverse variance weight of the first scene leaf is 2
+[ ok ]  the inverse variance weight of the second scene leaf is 1.219512
+[ ok ]  1/V_F is not the inverse variance weight of the actual scene
+[ ok ]  the scene variance of the leaf is available
+[ ok ]  V_B of the leaf is 0.82 (value 0.82, expected 0.82, |difference| 0)
+[ ok ]  1/V_B differs from 1/V_F for the same frames
+[ ok ]  the information of the exact constraint is available
+[ ok ]  the exact constraint gives a finite variance
+[ ok ]  the exact constraint gives V_F = 0 (value 0, expected 0, |difference| 0)
+[ ok ]  the absorbed flux does not fail the call
+[ ok ]  the absorbed flux has no finite variance
+[ ok ]  the absorbed flux is reported as not identifiable
+[ ok ]  the triangulation of the control grid is built
+[ ok ]  the reconstruction is available
+       the largest deviation of the log plane reproduction is 2.22e-16
+[ ok ]  the log plane is reproduced by the triangulation
+[ ok ]  the truth lies inside the interval of equation (4a)
+[ ok ]  the reconstruction with a curvature bound is certified
+[ ok ]  the conditional reconstruction is available
+[ ok ]  without a curvature bound the prediction is conditional
+[ ok ]  without a curvature bound no certified interval is published
+
+0 failure(s)
+=== building sky_test ===
+=== running sky_test ===
+[ ok ]  the sky controls are built
+[ ok ]  the control vector can be read
+[ ok ]  the relative sky is fitted
+[ ok ]  the fitted components can be read
+[ ok ]  the fit has one component per frame
+[ ok ]  the component of the reference frame vanishes (value 0, expected 0, |difference| 0)
+[ ok ]  the component of the other frame carries the offset (value 2, expected 2, |difference| 0)
+[ ok ]  the estimator leaves the common sky untouched (K H = 0)
+[ ok ]  the sky correction is applied
+[ ok ]  the corrected signal can be read
+[ ok ]  the corrected signal keeps the joint length
+[ ok ]  the reference frame keeps its own values (value 1, expected 1, |difference| 0)
+[ ok ]  the corrected signal loses the common offset (value 1, expected 1, |difference| 0)
+[ ok ]  the corrected covariance is available
+0 failure(s)
+=== building coadd_test ===
+=== running coadd_test ===
+[ ok ]  the samples are selected
+[ ok ]  the BLUE weights are solved
+[ ok ]  the weights can be read
+[ ok ]  there is one weight per frame
+[ ok ]  the weights sum to one (value 1, expected 1, |difference| 0)
+[ ok ]  the BLUE weights are (7/6, -1/6)
+[ ok ]  the non negative weights are solved
+[ ok ]  the non negative weights can be read
+[ ok ]  the non negative weights have one entry per frame
+[ ok ]  the non negative weights are non negative
+[ ok ]  the non negative weights sum to one (value 1, expected 1, |difference| 0)
+[ ok ]  the non negative weights are (1, 0)
+[ ok ]  the equal weights are solved
+[ ok ]  the first equal weight is one half (value 0.5, expected 0.5, |difference| 0)
+[ ok ]  the second equal weight is one half (value 0.5, expected 0.5, |difference| 0)
+[ ok ]  the coadd is produced
+[ ok ]  the coadd carries an estimate
+[ ok ]  the coadd carries the weights
+[ ok ]  the coadd carries the selection
+0 failure(s)

@@ -300,13 +300,16 @@ QpResult solve_nonnegative_qp(const Matrix& gamma, const std::vector<std::string
       sum += current[i];
       if (current[i] < -1e-12) positive = false;
     }
+    // The free weights satisfy the stationarity, the active ones carry a non
+    // negative multiplier, so their reduced gradient may not become negative.
     double stationarity = 0.0;
-    for (std::size_t i = 0; i < n; ++i) {
-      stationarity = std::max(stationarity, std::fabs(gradient[i] - mu));
-    }
     double complementarity = 0.0;
     for (std::size_t i = 0; i < n; ++i) {
-      if (active[i]) complementarity = std::max(complementarity, std::fabs(gradient[i] - mu));
+      if (active[i]) {
+        complementarity = std::max(complementarity, mu - gradient[i]);
+      } else {
+        stationarity = std::max(stationarity, std::fabs(gradient[i] - mu));
+      }
     }
     const bool converged = positive && std::fabs(sum - 1.0) < 1e-10 &&
                            stationarity < 1e-8 && complementarity < 1e-8;

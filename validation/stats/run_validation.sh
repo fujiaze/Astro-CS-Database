@@ -19,7 +19,7 @@ for TEST in information_test sky_test coadd_test; do
   "$CXX" -std=c++20 -O2 -fno-fast-math -ffp-contract=off \
     -I "$ROOT/include" -I "$ROOT/validation/stats" \
     "$SOURCE" -o "$OUT/$TEST" \
-    -L "$BUILD" -linformation -lsky -lcoadd -luncertainty -loperators -lnumerics -lmodel
+    -L "$BUILD" -lsky -lcoadd -linformation -luncertainty -loperators -lnumerics -lmodel
   echo "=== running $TEST ==="
   "$OUT/$TEST" || STATUS=1
 done

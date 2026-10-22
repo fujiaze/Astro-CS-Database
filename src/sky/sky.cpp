@@ -712,6 +712,23 @@ Result<Ref<NoiseModel>> build_joint_noise(Context& context, const std::vector<Fr
 
 }  // namespace
 
+// The composition of two actions.  The base helper does not declare the
+// children of its recipe, so the composition is built here.
+Result<Ref<LinearAction>> compose_actions(Context& context, Ref<LinearAction> outer,
+                                           Ref<LinearAction> inner) {
+  if (!outer || !inner) {
+    return model::fail<Ref<LinearAction>>(Code::invalid_request, "the composition needs two actions",
+                                          "sky.compose", "the composition cannot be built");
+  }
+  ActionRecipe recipe;
+  recipe.kind = ActionRecipe::Kind::compose;
+  recipe.algorithm = "canonical_compose_v1";
+  recipe.version = 1;
+  recipe.children = {"outer", "inner"};
+  const std::vector<Ref<LinearAction>> children{outer, inner};
+  return make_action(context, recipe, children, std::span<const ArrayRef>{});
+}
+
 Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvider& frames,
                                              const SkyRequest& request) {
   if (request.groups.empty()) {
@@ -772,8 +789,13 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
       U64 ix = 0;
       U64 iy = 0;
       sky::local_leaf_face_xy(block.order, block.leaves[row].ipix, face, ix, iy);
-      const U64 bx = ix / kPatchSide;
-      const U64 by = iy / kPatchSide;
+      // The patch side never exceeds the grid of the face, so the centre of a
+      // patch stays inside its face.
+      const U64 nside = 1ull << block.order;
+      U64 side = kPatchSide;
+      while (side > 1 && side > nside) side >>= 1;
+      const U64 bx = ix / side;
+      const U64 by = iy / side;
       const std::string key =
           std::to_string(face) + ":" + std::to_string(bx) + ":" + std::to_string(by);
       auto found = patch_index.find(key);
@@ -782,11 +804,12 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
         patch.face = face;
         patch.ix = bx;
         patch.iy = by;
-        const U64 nside = 1ull << block.order;
-        const double s = (static_cast<double>(bx * kPatchSide) + kPatchSide / 2.0) /
-                         static_cast<double>(nside);
-        const double t = (static_cast<double>(by * kPatchSide) + kPatchSide / 2.0) /
-                         static_cast<double>(nside);
+        const double s =
+            (static_cast<double>(bx * side) + static_cast<double>(side) / 2.0) /
+            static_cast<double>(nside);
+        const double t =
+            (static_cast<double>(by * side) + static_cast<double>(side) / 2.0) /
+            static_cast<double>(nside);
         patch.center = sky::local_face_point(face, s, t);
         patch_index[key] = patches.size();
         patches.push_back(patch);
@@ -1467,14 +1490,15 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
     }
   }
 
-  // The effective design D = Q_w W A G and the projected data Q_w W c.
-  const Matrix design = multiply(multiply(Qw, multiply(W, val(A))), G);
+  // The effective design D = Q_w^T W A G and the projected data Q_w^T W c.
+  const Matrix qw_transpose = numerics::transpose(Qw);
+  const Matrix design = multiply(multiply(qw_transpose, multiply(W, val(A))), G);
 
   std::vector<double> data(static_cast<std::size_t>(control_count), 0.0);
   for (std::size_t i = 0; i < control_count; ++i) data[i] = val(c)[i];
   Matrix c_column(static_cast<std::size_t>(control_count), 1, 0.0);
   for (std::size_t i = 0; i < control_count; ++i) c_column(static_cast<std::size_t>(i), 0) = data[i];
-  const Matrix whitened_data = multiply(Qw, multiply(W, c_column));
+  const Matrix whitened_data = multiply(qw_transpose, multiply(W, c_column));
 
   // The minimum norm solution of the projected least squares problem.
   numerics::SvdResult design_svd = numerics::jacobi_svd(design, 1e-12);
@@ -1492,7 +1516,7 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
     }
   }
   // K = G (Q_w W A G)^+ Q_w W.
-  const Matrix K = multiply(G, multiply(pseudoinverse, multiply(Qw, W)));
+  const Matrix K = multiply(G, multiply(pseudoinverse, multiply(qw_transpose, W)));
   // beta = K c.
   Matrix beta_column = multiply(K, c_column);
   std::vector<double> beta(static_cast<std::size_t>(parameters), 0.0);
@@ -1535,6 +1559,7 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
   sky_recipe.kind = ActionRecipe::Kind::sky;
   sky_recipe.algorithm = "canonical_sky_v1";
   sky_recipe.version = 1;
+  sky_recipe.children = {"E", "K", "T"};
   const std::vector<Ref<LinearAction>> children{controls->E, val(k_action), controls->T};
   Result<Ref<LinearAction>> p_action =
       make_action(context, sky_recipe, children, std::span<const ArrayRef>{});
@@ -1557,7 +1582,7 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
     noise_model->shared_factors = source.shared_factors;
     noise_model->influence.reserve(source.influence.size());
     for (const Ref<LinearAction>& influence : source.influence) {
-      Result<Ref<LinearAction>> composed = compose(context, val(k_action), influence);
+      Result<Ref<LinearAction>> composed = compose_actions(context, val(k_action), influence);
       if (!ok(composed)) {
         return model::fail<Ref<SkyFit>>(composed.code, "the parameter covariance cannot be built",
                                         "fit_relative_sky", "the sky cannot be fitted");
@@ -1758,7 +1783,7 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
     noise_model->shared_factors = source.shared_factors;
     noise_model->influence.reserve(source.influence.size());
     for (const Ref<LinearAction>& influence : source.influence) {
-      Result<Ref<LinearAction>> composed = compose(context, fit->P, influence);
+      Result<Ref<LinearAction>> composed = compose_actions(context, fit->P, influence);
       if (!ok(composed)) {
         return model::fail<Ref<SignalEstimate>>(composed.code,
                                                 "the corrected covariance cannot be built",
