@@ -1,0 +1,57 @@
+{
+ "reports": [
+  {
+   "file": "validation/apps/evidence/export/products/export/signal.fits",
+   "bytes": 5760,
+   "shape": [
+    16,
+    16
+   ],
+   "dtype": ">f8",
+   "finite": 256,
+   "crpix": [
+    8.5,
+    8.5
+   ],
+   "crval": [
+    49.21875,
+    8.989299345163
+   ],
+   "bunit": "fixture:L/sr",
+   "ctype": [
+    "RA---TAN",
+    "DEC--TAN"
+   ],
+   "warnings": [],
+   "round_trip_max_difference": 0.0,
+   "round_trip": "ok"
+  },
+  {
+   "file": ".work/product-roundtrip/frame/signal/Norder6/Dir0/Npix0.fits",
+   "bytes": 397440,
+   "shape": [
+    12,
+    64,
+    64
+   ],
+   "dtype": ">f8",
+   "finite": 3,
+   "crpix": [
+    0.5,
+    64.5
+   ],
+   "crval": [
+    45.0,
+    0.0
+   ],
+   "bunit": "fixture:L",
+   "ctype": [
+    "RA---HPX",
+    "DEC--HPX"
+   ],
+   "warnings": [],
+   "round_trip_max_difference": 0.0,
+   "round_trip": "ok"
+  }
+ ]
+}

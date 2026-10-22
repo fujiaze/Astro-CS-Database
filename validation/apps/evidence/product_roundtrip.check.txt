@@ -1,3 +1,3 @@
-[info] tile: 64x64x12 CTYPE1='RA---HPX' CRPIX1=5.000000000000e-01 CD1_1=-7.031250000000e-01
+[info] tile: 64x64x12 CTYPE1='RA---HPX' CRPIX1=5.000000000000E-01 CD1_1=-7.031250000000E-01
 [info] the finite values of the tile: [-2.0, 0.0, 3.0]
 [PASS] the product is published, reopened and the signal is read back

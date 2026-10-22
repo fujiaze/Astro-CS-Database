@@ -42,11 +42,19 @@ using model::ok_result;
 constexpr std::size_t kBlock = 2880;
 
 // One header card: the keyword, the value and an optional comment.
-std::string card(const std::string& keyword, const std::string& value,
-                 const std::string& comment) {
+//
+// The standard right justifies a number and a logical in the value field
+// (the value ends in column 30) and left justifies a quoted string (the
+// value starts in column 11).  A strict reader (astropy) refuses a file
+// whose SIMPLE card does not follow that rule.
+std::string card(const std::string& keyword, const std::string& value, const std::string& comment,
+                 bool right_justified = true) {
   std::string text = keyword;
   text.resize(8, ' ');
   text += "= ";
+  if (right_justified && text.size() + value.size() < 30) {
+    text.append(30 - text.size() - value.size(), ' ');
+  }
   text += value;
   if (text.size() < 30) text.resize(30, ' ');
   if (!comment.empty()) text += " / " + comment;
@@ -55,6 +63,11 @@ std::string card(const std::string& keyword, const std::string& value,
   return text;
 }
 
+// The value of a numeric card.
+//
+// The FITS standard writes a floating point value with an uppercase exponent
+// and a mantissa of at most twelve significant digits ("1.234567890123E+23");
+// a strict reader (astropy) refuses the lowercase exponent of the C++ stream.
 std::string numeric_value(double value) {
   std::ostringstream stream;
   if (value == static_cast<double>(static_cast<long long>(value)) && std::fabs(value) < 1e15) {
@@ -69,6 +82,10 @@ std::string numeric_value(double value) {
     alternative.precision(12);
     alternative << std::scientific << value;
     text = alternative.str();
+  }
+  // The exponent of the standard is uppercase.
+  for (char& character : text) {
+    if (character == 'e') character = 'E';
   }
   return text;
 }
@@ -165,7 +182,7 @@ void append_header(const std::vector<HeaderCard>& cards, std::vector<std::string
     if (numeric) {
       header.push_back(card(entry.first, numeric_value(std::stod(entry.second)), ""));
     } else {
-      header.push_back(card(entry.first, string_value(entry.second), ""));
+      header.push_back(card(entry.first, string_value(entry.second), "", false));
     }
   }
 }
