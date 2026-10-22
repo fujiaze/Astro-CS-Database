@@ -76,8 +76,12 @@ struct ChartBox {
 bool chart_enclosure(const WcsModel& wcs, double u0, double u1, double v0, double v1, ChartBox& out);
 
 // Overlap of a rectangular detector region with the leaves of the given order.
-KernelOutcome cut_cell_overlap(const WcsModel& wcs, const Box& detector_rect, U32 order,
-                               const GeometryBudget& budget);
+//
+// The work is charged to the shared ledger of the context (one unit per
+// processed block plus one unit per candidate cell), so that the caller sees
+// the real cost of the geometry and the shared budget bounds the kernel.
+KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box& detector_rect,
+                               U32 order, const GeometryBudget& budget);
 
 // Area enclosure of a set of detector rings (outer rings counter clockwise,
 // holes clockwise).  The result is an exact dyadic interval in steradian.

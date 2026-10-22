@@ -258,6 +258,13 @@ ContainmentOutcome target_containment(Context& context, const WcsModel& wcs, Ref
     for (long long ix = ix_lo; ix <= ix_hi; ++ix) {
       if (outcome.work >= max_work) return outcome;
       ++outcome.work;
+      // The shared work ledger: one unit per decided cell plus one unit per
+      // boundary segment that the separation test has to exclude.
+      {
+        const U64 units = 1 + boundary.size();
+        const Result<U64> charged = context.resources.consume_work(units);
+        if (charged.code != Code::ok) return outcome;
+      }
       const double s_lo = static_cast<double>(ix) * inv_nside;
       const double s_hi = static_cast<double>(ix + 1) * inv_nside;
       const double t_lo = static_cast<double>(iy) * inv_nside;

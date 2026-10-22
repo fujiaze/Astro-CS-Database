@@ -51,6 +51,12 @@ bool chart_partials_interval(const Iv& z, const Iv& phi, U32 face, Iv& ds_dz, Iv
 int chart_j(U32 face);
 int chart_l(U32 face);
 
+// The longitude of a direction in the branch that belongs to the face: the
+// chart coordinates of a face are defined with respect to the longitude of
+// that face, so every use of the chart must use this value and not the
+// absolute longitude.
+double chart_face_longitude(double phi, U32 face);
+
 // Interval enclosure of the chart coordinates over an interval of (z, phi)
 // for the given face.
 bool chart_interval(U32 face, const Iv& z, const Iv& phi, Iv& s, Iv& t);

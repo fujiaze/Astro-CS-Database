@@ -18,6 +18,7 @@ namespace {
 using Iv = numerics::Interval;
 
 constexpr U64 kMaxCandidatesPerBlock = 4096;
+constexpr double kPi = 3.14159265358979323846;
 
 double abs_max(const Iv& value) {
   return std::max(std::fabs(value.lower), std::fabs(value.upper));
@@ -106,7 +107,8 @@ SkyICRS forward_point(const WcsModel& wcs, double u, double v) {
   return coordinates::direction_from_tangent(wcs, q);
 }
 
-bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& model) {
+bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& model,
+                       bool& outcome_reason_apex) {
   model.cu = 0.5 * (block.u0 + block.u1);
   model.cv = 0.5 * (block.v0 + block.v1);
   const double hu = 0.5 * (block.u1 - block.u0);
@@ -138,16 +140,26 @@ bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& mode
   }
   const double angle_bound = dn_max * (1.0 + 1.0e-9) + 1.0e-12;
 
-  const double phi_centre = std::atan2(centre.ny, centre.nx);
+  // The chart coordinates of a face are defined with respect to the longitude
+  // of that face, so the chart API must be fed the face relative longitude
+  // (the same branch that chart_inverse uses), never the absolute one.
+  const double phi_absolute = std::atan2(centre.ny, centre.nx);
+  const double phi_centre = coordinates::chart_face_longitude(phi_absolute, model.face);
+  const double branch_centre = static_cast<double>(coordinates::chart_l(model.face)) * kPi / 4.0;
+  const double branch_half = kPi / 4.0;
   const Iv phi(phi_centre - angle_bound, phi_centre + angle_bound);
   const Iv z = nz;
+  // The block must stay inside the branch of the face; otherwise the chart
+  // case is ambiguous and the block has to be refined.
+  if (phi.lower < branch_centre - branch_half || phi.upper > branch_centre + branch_half) {
+    return false;
+  }
 
   // The chart case must be unambiguous over the whole block.
   const double two_thirds = 2.0 / 3.0;
   const bool pure_band = z.lower >= -two_thirds && z.upper <= two_thirds;
   const bool pure_north = z.lower > two_thirds;
   const bool pure_south = z.upper < -two_thirds;
-  if (!pure_band && !pure_north && !pure_south) return false;
 
   Iv s;
   Iv t;
@@ -163,7 +175,7 @@ bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& mode
   double ds_dphi = 0.0;
   double dt_dz = 0.0;
   double dt_dphi = 0.0;
-  if (!coordinates::chart_partials(centre.nz, phi_centre, ds_dz, ds_dphi, dt_dz, dt_dphi)) return false;
+  if (!coordinates::chart_partials(centre.nz, phi_centre, ds_dz, ds_dphi, dt_dz, dt_dphi)) { return false; }
   double jacobian_matrix[3][2];
   coordinates::jacobian(wcs, model.cu, model.cv, jacobian_matrix);
   const double nxy2 = centre.nx * centre.nx + centre.ny * centre.ny;
@@ -186,6 +198,10 @@ bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& mode
   Iv dt_dphi_iv;
   if (!coordinates::chart_partials_interval(z, phi, model.face, ds_dz_iv, ds_dphi_iv, dt_dz_iv,
                                             dt_dphi_iv)) {
+    // The block touches the apex of a polar face: the chart derivative of the
+    // face is singular there, so the affine cut cell model cannot be built.
+    // The reason is named, never silent.
+    outcome_reason_apex = true;
     return false;
   }
   const Iv nxy2_iv = numerics::interval_add(numerics::interval_mul(nx, nx),
@@ -387,7 +403,8 @@ bool chart_enclosure(const WcsModel& wcs, double u0, double u1, double v0, doubl
   block.v0 = v0;
   block.v1 = v1;
   BlockModel model;
-  if (!build_block_model(wcs, block, model)) return false;
+  bool apex = false;
+  if (!build_block_model(wcs, block, model, apex)) return false;
   out.valid = true;
   out.face = model.face;
   out.s_lo = model.s_lo;
@@ -403,8 +420,8 @@ bool chart_enclosure(const WcsModel& wcs, double u0, double u1, double v0, doubl
 // The cut cell kernel
 // ---------------------------------------------------------------------------
 
-KernelOutcome cut_cell_overlap(const WcsModel& wcs, const Box& detector_rect, U32 order,
-                               const GeometryBudget& budget) {
+KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box& detector_rect,
+                               U32 order, const GeometryBudget& budget) {
   KernelOutcome outcome;
   const U64 nside = 1ull << order;
   const double inv_nside = 1.0 / static_cast<double>(nside);
@@ -431,6 +448,8 @@ KernelOutcome cut_cell_overlap(const WcsModel& wcs, const Box& detector_rect, U3
 
   const U32 max_depth = std::max<U32>(1, budget.max_depth);
   const U64 max_work = budget.max_work > 0 ? budget.max_work : 1000000ull;
+  U64 cells_visited = 0;
+  U64 cells_pending = 0;
 
   auto keep_unresolved = [&](const Block& block) {
     const Iv u(block.u0, block.u1);
@@ -456,9 +475,28 @@ KernelOutcome cut_cell_overlap(const WcsModel& wcs, const Box& detector_rect, U3
     queue.pop_front();
     ++outcome.work;
 
+    // The shared work ledger: one unit for the block and one unit for every
+    // candidate cell of the previous block.  The science budget and the
+    // shared ledger are the same limit, so a caller never sees one exhausted
+    // while the other still reports budget.
+    {
+      const U64 units = 1 + cells_pending;
+      cells_pending = 0;
+      const Result<U64> charged = context.resources.consume_work(units);
+      if (charged.code != Code::ok) {
+        outcome.termination = Termination::work;
+        outcome.reason = "shared_work_budget_exhausted";
+        break;
+      }
+    }
     BlockModel model;
-    const bool modelled = build_block_model(wcs, block, model);
+    bool apex = false;
+    const bool modelled = build_block_model(wcs, block, model, apex);
     if (!modelled) {
+      if (apex && block.depth + 1 >= max_depth) {
+        outcome.termination = Termination::unsupported;
+        outcome.reason = "chart_apex_singular";
+      }
       if (block.depth + 1 < max_depth) {
         const double cu = 0.5 * (block.u0 + block.u1);
         const double cv = 0.5 * (block.v0 + block.v1);
@@ -529,6 +567,10 @@ KernelOutcome cut_cell_overlap(const WcsModel& wcs, const Box& detector_rect, U3
         integrate_affine(inner, model, inner_lower, inner_upper);
         integrate_affine(outer, model, outer_lower, outer_upper);
 
+        {
+        }
+        ++cells_visited;
+        ++cells_pending;
         LeafLedger& ledger = ledgers[{leaf.order, leaf.ipix}];
         ledger.lower.add(inner_lower, false);
         ledger.upper.add(outer_upper, true);
@@ -588,7 +630,8 @@ RationalAreaBound footprint_area_rational(const WcsModel& wcs,
   block.v0 = v_lo;
   block.v1 = v_hi;
   BlockModel model;
-  if (!build_block_model(wcs, block, model)) return bound;
+  bool apex = false;
+  if (!build_block_model(wcs, block, model, apex)) return bound;
 
   Rational area(0, 1);
   Rational moment_u(0, 1);

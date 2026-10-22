@@ -181,6 +181,8 @@ bool chart_partials_interval(const Iv& z, const Iv& phi, U32 face, Iv& ds_dz, Iv
 }
 
 int chart_j(U32 face) { return kJ[face % 12]; }
+
+double chart_face_longitude(double phi, U32 face) { return face_longitude(phi, kL[face % 12]); }
 int chart_l(U32 face) { return kL[face % 12]; }
 
 bool chart_interval(U32 face, const Iv& z, const Iv& phi, Iv& s, Iv& t) {

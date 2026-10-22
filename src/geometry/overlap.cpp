@@ -293,6 +293,14 @@ Result<Ref<CurvedBoundary>> footprint(Context& context, const FootprintProvider&
   if (context.cancellation.requested()) {
     return fail<Ref<CurvedBoundary>>(Code::cancelled, "cancelled", "footprint");
   }
+  {
+    U64 vertices = 0;
+    for (const auto& ring : source->detector_rings) vertices += ring.vertices.size();
+    const Result<U64> charged = context.resources.consume_work(std::max<U64>(1, vertices));
+    if (!ok(charged)) {
+      return fail<Ref<CurvedBoundary>>(charged.code, "shared_work_budget_exhausted", "footprint");
+    }
+  }
   const auto rings = contract_rings(footprint_rings(*source), pixfrac, source->contraction_center);
 
   CurvedBoundary boundary;
@@ -348,6 +356,16 @@ Result<SphericalAreaInterval> measure(Context& context, const FootprintProvider&
   Ref<WcsModel> model = provider.model();
   if (!model) {
     return fail<SphericalAreaInterval>(Code::invalid_model, "provider_without_model", "measure");
+  }
+  {
+    // The shared work ledger: one unit per ring vertex of the measured
+    // footprint.
+    U64 vertices = 0;
+    for (const auto& ring : source->detector_rings) vertices += ring.vertices.size();
+    const Result<U64> charged = context.resources.consume_work(std::max<U64>(1, vertices));
+    if (!ok(charged)) {
+      return fail<SphericalAreaInterval>(charged.code, "shared_work_budget_exhausted", "measure");
+    }
   }
   const AreaBound bound = geometry::footprint_area(*model, footprint_rings(*source));
   if (geometry::dyadic_to_double(bound.upper) <= 0.0 &&
@@ -408,8 +426,8 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
                                "compute_overlap");
   }
 
-  const geometry::KernelOutcome kernel = geometry::cut_cell_overlap(*model, drop_rectangle, order,
-                                                                      request);
+  const geometry::KernelOutcome kernel =
+      geometry::cut_cell_overlap(context, *model, drop_rectangle, order, request);
   if (kernel.leaves.size() > kMaxInlineContributions) {
     return fail<Ref<Overlaps>>(Code::resource_exhausted, "too_many_contributions", "compute_overlap");
   }
@@ -710,6 +728,25 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   overlaps->constraints = constraints;
   overlaps->status.termination = kernel.termination;
   overlaps->status.bound_validity = Validity::certified;
+  // The precision budget: the certified endpoints are exact dyadics, so the
+  // working precision must be able to carry them.  When the budget does not
+  // allow it the termination is named precision and no bound is certified.
+  {
+    const double area = std::fabs(geometry::dyadic_to_double(kernel.total_upper));
+    const U32 max_bits = request.arithmetic.max_bits > 0 ? request.arithmetic.max_bits : 256;
+    double required_bits = static_cast<double>(geometry::DyadicLedger::kScaleBits);
+    if (area > 0.0) required_bits += std::log2(area);
+    if (required_bits > static_cast<double>(max_bits)) {
+      overlaps->status.termination = Termination::precision;
+      overlaps->status.bound_validity = Validity::invalid;
+      model::add_issue(overlaps->assessment, Code::precision_exhausted,
+                       "precision_budget_exhausted", "compute_overlap:certified_bounds",
+                       "the certified endpoints need " + std::to_string(required_bits) +
+                           " bits, the budget allows " + std::to_string(max_bits) +
+                           "; no bound is certified",
+                       "raise arithmetic.max_bits");
+    }
+  }
   overlaps->status.support = kernel.unresolved.empty() ? SupportState::positive
                                                         : SupportState::bounded_undecided;
   overlaps->identity = model::make_identity("acsd.Overlaps", 2, 0, model::sha256_hex("acsd.overlaps"),
@@ -725,6 +762,22 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
                      "refine with a larger budget");
   }
   model::set_included(overlaps->assessment, "affine_strip_cut_cell");
+  {
+    // The published contributions carry one source row per source of the
+    // recipe.  A recipe with more than one source row needs the per pixel
+    // attribution of the leaves, which the DetectorFootprint cannot carry:
+    // the contract gap is named here instead of being papered over.
+    const U64 rows = primitives->source_index ? primitives->source_index->size : 1;
+    if (rows > 1) {
+      model::add_issue(overlaps->assessment, Code::unsupported,
+                       "per_pixel_attribution_unavailable", "compute_overlap:source_rows",
+                       "the overlap of this recipe is published per leaf, not per source row, so "
+                       "the Drizzle weights of a multi row recipe cannot be attached to the "
+                       "individual pixels",
+                       "extend DetectorFootprint with the sample to detector transform and the "
+                       "source row, or publish the per source row blocks in Overlaps");
+    }
+  }
   model::set_included(overlaps->assessment, "exact_rational_clipping");
   model::set_included(overlaps->assessment, "shared_constraints");
   if (containment.complete) {
