@@ -194,7 +194,7 @@ ctest --test-dir build/gui --output-on-failure
 | `acsd --version --json` | 2 条事件（`run_started` + `run_finished`），`exit_code=0`，`summary={"version":"2.0.0"}` | 真实的 exit 0 完整运行；**输出是 JSONL 事件流，不是单个 JSON 对象** |
 | 无效配置 | `issue` + `run_finished(exit_code=2)`，进程退出码 2 | 与 API.md 的退出码表一致 |
 | 帧输入不可读 | `frame_finished(code=failed)` + `run_finished(exit_code=4)`，进程退出码 4 | 一致 |
-| 完整 normalize（`validation/apps/evidence/x01/config.json`，8 帧真实 FITS） | 18 条事件，`run_finished(exit_code=4)`，每帧 `frame_finished` 给出 `unsolved`/`failed` 原因 | 事件流与 schema 逐条相符 |
+| 完整 normalize（`validation/apps/evidence/x01/config.json`，8 帧真实 FITS） | 16:44 版二进制：18 条事件 + `run_finished(exit_code=4)`，约 21 s；**当前**二进制（19:30 后重建）：900 s 内只发出 9 条事件、没有终事件 | 事件流与 schema 逐条相符；当前二进制在该输入上跑不完，GUI 按「缺终事件 → 失败」处理（见 `gui/evidence/real_cli_full_run.json`） |
 | 取消报文 | `{"protocol":"acsd.control/2","command":"cancel","run_id":"..."}\n` 被 CLI 的控制线程接受 | 报文形态与 API.md 一致 |
 | 崩溃（SIGKILL） | 没有 `run_finished` | GUI 必须判失败，不能推断成功 |
 
@@ -242,6 +242,10 @@ Qt6Gui 在链接期需要 `libGL.so.1` / `libEGL.so.1`（它自己的 `DT_NEEDED
 * **真实 CLI 已接入验证**（`build/science/acsd`，2.0.0）：`gui/evidence/real_cli_smoke.json`
   与 `real_gui_smoke.json` 是用真实二进制跑出来的证据；`gui/tests/fake_acsd.py`
   只保留作离线单测，不再是协议验收的唯一依据。
+* **完整 8 帧真实 normalize 的耗时随 CLI 变化很大**：16:44 版二进制约 21 s 跑完
+  （18 条事件、exit 4）；19:30 之后重建的二进制在同一输入上 900 s 仍未跑完
+  （只发出 9 条事件）。这是 CLI/科学侧的状态，不是 GUI 的问题；
+  证据见 `gui/evidence/real_cli_full_run.json`（含超时标记）。
 * **命令覆盖范围**：GUI 侧三个命令（normalize/mosaic/export）走的是同一套通用流程
   （同一个配置编辑器、同一套事件解析、同一个取消协议），命令名来自配置文件的
   `command` 字段，**没有按命令分叉的专用页面**。已用真实 CLI 实跑过 **normalize**

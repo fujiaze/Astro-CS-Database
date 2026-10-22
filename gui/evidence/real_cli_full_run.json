@@ -1,0 +1,529 @@
+{
+  "tool": "real_cli_smoke.py",
+  "cli": "/workspace/Astro CS Database/build/science/acsd",
+  "cases": [
+    {
+      "case": "version_probe",
+      "ok": true,
+      "detail": "真实 --version --json：2 条事件，exit_code=0，进程退出码=0",
+      "events": [
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "run_started",
+          "frame_id": null,
+          "message": "acsd 2.0.0",
+          "protocol": "acsd.events/2",
+          "run_id": "run-22a785dfcc82de6d",
+          "seq": 0,
+          "total": 0
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "run_finished",
+          "exit_code": 0,
+          "frame_id": null,
+          "message": "the run finished",
+          "protocol": "acsd.events/2",
+          "run_id": "run-22a785dfcc82de6d",
+          "seq": 1,
+          "summary": {
+            "version": "2.0.0"
+          },
+          "total": 0
+        }
+      ],
+      "schema_problems": []
+    },
+    {
+      "case": "version_probe_schema",
+      "ok": true,
+      "detail": "按 events.schema.json 校验：通过"
+    },
+    {
+      "case": "version_probe_fields",
+      "ok": true,
+      "detail": "字段核对：出现 ['assessment', 'block', 'code', 'completed', 'event', 'exit_code', 'frame_id', 'message', 'protocol', 'run_id', 'seq', 'summary', 'total']"
+    },
+    {
+      "case": "exit_code_2",
+      "ok": true,
+      "detail": "无效配置：exit_code=2，进程退出码=2，事件数=2",
+      "events": [
+        {
+          "assessment": null,
+          "block": null,
+          "code": "invalid_request",
+          "completed": 0,
+          "event": "issue",
+          "frame_id": null,
+          "message": "the configuration schema is not acsd.config/2",
+          "protocol": "acsd.events/2",
+          "run_id": "run-4f408e473181a94d",
+          "seq": 0,
+          "total": 0
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "failed",
+          "completed": 0,
+          "event": "run_finished",
+          "exit_code": 2,
+          "frame_id": null,
+          "message": "the run finished",
+          "protocol": "acsd.events/2",
+          "run_id": "run-4f408e473181a94d",
+          "seq": 1,
+          "summary": {
+            "cancelled": 0,
+            "failed": 0,
+            "frames": [],
+            "inputs_total": 0,
+            "published": 0,
+            "unsolved": 0
+          },
+          "total": 0
+        }
+      ],
+      "summary": {
+        "cancelled": 0,
+        "failed": 0,
+        "frames": [],
+        "inputs_total": 0,
+        "published": 0,
+        "unsolved": 0
+      }
+    },
+    {
+      "case": "exit_code_4",
+      "ok": true,
+      "detail": "缺 FITS 的帧：exit_code=4，进程退出码=4，事件数=4",
+      "events": [
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "run_started",
+          "frame_id": null,
+          "message": "the normalize command started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-28096743d19e6ad6",
+          "seq": 0,
+          "total": 1
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "frame_started",
+          "frame_id": "frame-0",
+          "message": "the frame frame-0 started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-28096743d19e6ad6",
+          "seq": 1,
+          "total": 1
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "failed",
+          "completed": 0,
+          "event": "frame_finished",
+          "frame_id": "frame-0",
+          "message": "the FITS file cannot be read: could not open the named file",
+          "protocol": "acsd.events/2",
+          "run_id": "run-28096743d19e6ad6",
+          "seq": 2,
+          "total": 1
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "failed",
+          "completed": 0,
+          "event": "run_finished",
+          "exit_code": 4,
+          "frame_id": null,
+          "message": "the run finished",
+          "protocol": "acsd.events/2",
+          "run_id": "run-28096743d19e6ad6",
+          "seq": 3,
+          "summary": {
+            "cancelled": 0,
+            "failed": 1,
+            "frames": [
+              {
+                "code": "invalid_request",
+                "frame": "frame-0",
+                "status": "failed"
+              }
+            ],
+            "inputs_total": 1,
+            "published": 0,
+            "unsolved": 0
+          },
+          "total": 0
+        }
+      ],
+      "summary": {
+        "cancelled": 0,
+        "failed": 1,
+        "frames": [
+          {
+            "code": "invalid_request",
+            "frame": "frame-0",
+            "status": "failed"
+          }
+        ],
+        "inputs_total": 1,
+        "published": 0,
+        "unsolved": 0
+      }
+    },
+    {
+      "case": "summary_fields",
+      "ok": true,
+      "detail": "run_summary 字段：['cancelled', 'failed', 'frames', 'inputs_total', 'published', 'unsolved']"
+    },
+    {
+      "case": "exit_code_4_schema",
+      "ok": true,
+      "detail": "按 events.schema.json 校验：通过"
+    },
+    {
+      "case": "cancel_message",
+      "ok": true,
+      "detail": "取消报文字节：b'{\"protocol\":\"acsd.control/2\",\"command\":\"cancel\",\"run_id\":\"run-01aebb168a07ca5d\"}\\n'",
+      "cancel_bytes": "{\"protocol\":\"acsd.control/2\",\"command\":\"cancel\",\"run_id\":\"run-01aebb168a07ca5d\"}\n"
+    },
+    {
+      "case": "cancel_accepted_by_cli",
+      "ok": true,
+      "detail": "真实 CLI 收到取消报文后的终事件 exit_code=4（进程退出码 4）",
+      "events": [
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "run_started",
+          "frame_id": null,
+          "message": "the normalize command started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-01aebb168a07ca5d",
+          "seq": 0,
+          "total": 1
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "frame_started",
+          "frame_id": "frame-0",
+          "message": "the frame frame-0 started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-01aebb168a07ca5d",
+          "seq": 1,
+          "total": 1
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "failed",
+          "completed": 0,
+          "event": "frame_finished",
+          "frame_id": "frame-0",
+          "message": "the FITS file cannot be read: could not open the named file",
+          "protocol": "acsd.events/2",
+          "run_id": "run-01aebb168a07ca5d",
+          "seq": 2,
+          "total": 1
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "failed",
+          "completed": 0,
+          "event": "run_finished",
+          "exit_code": 4,
+          "frame_id": null,
+          "message": "the run finished",
+          "protocol": "acsd.events/2",
+          "run_id": "run-01aebb168a07ca5d",
+          "seq": 3,
+          "summary": {
+            "cancelled": 0,
+            "failed": 1,
+            "frames": [
+              {
+                "code": "invalid_request",
+                "frame": "frame-0",
+                "status": "failed"
+              }
+            ],
+            "inputs_total": 1,
+            "published": 0,
+            "unsolved": 0
+          },
+          "total": 0
+        }
+      ],
+      "note": "CLI 侧当前不会把取消变成 exit 5，见报告"
+    },
+    {
+      "case": "crash_no_terminal",
+      "ok": true,
+      "detail": "SIGSTOP+SIGKILL 后：终事件数=0，进程退出码=-9（负值表示被信号杀死），已收到事件 1 条",
+      "events": [
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "run_started",
+          "frame_id": null,
+          "message": "the normalize command started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-08c07301e3eaebb3",
+          "seq": 0,
+          "total": 1
+        }
+      ],
+      "stderr": ""
+    },
+    {
+      "case": "real_normalize_run",
+      "ok": false,
+      "detail": "真实配置 config.json：事件 9 条，exit_code=无，进程退出码=-9（超时）",
+      "events": [
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "run_started",
+          "frame_id": null,
+          "message": "the normalize command started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-5a15ef2b26b568a8",
+          "seq": 0,
+          "total": 8
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "frame_started",
+          "frame_id": "frame-00",
+          "message": "the frame frame-00 started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-5a15ef2b26b568a8",
+          "seq": 1,
+          "total": 8
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "frame_started",
+          "frame_id": "frame-01",
+          "message": "the frame frame-01 started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-5a15ef2b26b568a8",
+          "seq": 2,
+          "total": 8
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "frame_started",
+          "frame_id": "frame-02",
+          "message": "the frame frame-02 started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-5a15ef2b26b568a8",
+          "seq": 3,
+          "total": 8
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "frame_started",
+          "frame_id": "frame-03",
+          "message": "the frame frame-03 started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-5a15ef2b26b568a8",
+          "seq": 4,
+          "total": 8
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "frame_started",
+          "frame_id": "frame-04",
+          "message": "the frame frame-04 started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-5a15ef2b26b568a8",
+          "seq": 5,
+          "total": 8
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "frame_started",
+          "frame_id": "frame-05",
+          "message": "the frame frame-05 started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-5a15ef2b26b568a8",
+          "seq": 6,
+          "total": 8
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "frame_started",
+          "frame_id": "frame-06",
+          "message": "the frame frame-06 started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-5a15ef2b26b568a8",
+          "seq": 7,
+          "total": 8
+        },
+        {
+          "assessment": null,
+          "block": null,
+          "code": "ok",
+          "completed": 0,
+          "event": "frame_started",
+          "frame_id": "frame-07",
+          "message": "the frame frame-07 started",
+          "protocol": "acsd.events/2",
+          "run_id": "run-5a15ef2b26b568a8",
+          "seq": 8,
+          "total": 8
+        }
+      ],
+      "summary": null
+    },
+    {
+      "case": "real_normalize_schema",
+      "ok": true,
+      "detail": "按 events.schema.json 校验真实运行：通过"
+    },
+    {
+      "case": "gui_state_mapping",
+      "ok": false,
+      "detail": "GUI 协议代码读真实 CLI：exit_code=None → 状态 运行中（期望 None），终事件数 0",
+      "report": {
+        "cancel_acknowledged": false,
+        "cancel_sent": false,
+        "fatal_reason": "",
+        "mode": "normal",
+        "seq_strictly_increasing": true,
+        "state": "运行中",
+        "state_code": 1,
+        "stream": [
+          "0|run_started|ok|0/8|-|-",
+          "1|frame_started|ok|0/8|frame-00|-",
+          "2|frame_started|ok|0/8|frame-01|-",
+          "3|frame_started|ok|0/8|frame-02|-",
+          "4|frame_started|ok|0/8|frame-03|-",
+          "5|frame_started|ok|0/8|frame-04|-",
+          "6|frame_started|ok|0/8|frame-05|-",
+          "7|frame_started|ok|0/8|frame-06|-",
+          "8|frame_started|ok|0/8|frame-07|-"
+        ],
+        "summary": {},
+        "terminal_count": 0
+      }
+    }
+  ],
+  "failures": 2,
+  "results": [
+    {
+      "case": "version_probe",
+      "ok": true,
+      "detail": "真实 --version --json：2 条事件，exit_code=0，进程退出码=0"
+    },
+    {
+      "case": "version_probe_schema",
+      "ok": true,
+      "detail": "按 events.schema.json 校验：通过"
+    },
+    {
+      "case": "version_probe_fields",
+      "ok": true,
+      "detail": "字段核对：出现 ['assessment', 'block', 'code', 'completed', 'event', 'exit_code', 'frame_id', 'message', 'protocol', 'run_id', 'seq', 'summary', 'total']"
+    },
+    {
+      "case": "exit_code_2",
+      "ok": true,
+      "detail": "无效配置：exit_code=2，进程退出码=2，事件数=2"
+    },
+    {
+      "case": "exit_code_4",
+      "ok": true,
+      "detail": "缺 FITS 的帧：exit_code=4，进程退出码=4，事件数=4"
+    },
+    {
+      "case": "summary_fields",
+      "ok": true,
+      "detail": "run_summary 字段：['cancelled', 'failed', 'frames', 'inputs_total', 'published', 'unsolved']"
+    },
+    {
+      "case": "exit_code_4_schema",
+      "ok": true,
+      "detail": "按 events.schema.json 校验：通过"
+    },
+    {
+      "case": "cancel_message",
+      "ok": true,
+      "detail": "取消报文字节：b'{\"protocol\":\"acsd.control/2\",\"command\":\"cancel\",\"run_id\":\"run-01aebb168a07ca5d\"}\\n'"
+    },
+    {
+      "case": "cancel_accepted_by_cli",
+      "ok": true,
+      "detail": "真实 CLI 收到取消报文后的终事件 exit_code=4（进程退出码 4）"
+    },
+    {
+      "case": "crash_no_terminal",
+      "ok": true,
+      "detail": "SIGSTOP+SIGKILL 后：终事件数=0，进程退出码=-9（负值表示被信号杀死），已收到事件 1 条"
+    },
+    {
+      "case": "real_normalize_run",
+      "ok": false,
+      "detail": "真实配置 config.json：事件 9 条，exit_code=无，进程退出码=-9（超时）"
+    },
+    {
+      "case": "real_normalize_schema",
+      "ok": true,
+      "detail": "按 events.schema.json 校验真实运行：通过"
+    },
+    {
+      "case": "gui_state_mapping",
+      "ok": false,
+      "detail": "GUI 协议代码读真实 CLI：exit_code=None → 状态 运行中（期望 None），终事件数 0"
+    }
+  ]
+}
