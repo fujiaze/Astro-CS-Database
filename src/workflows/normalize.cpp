@@ -556,9 +556,12 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     // size bounds the cost; the number of source rows and the block size are
     // written into the assessment.
     // The size of the source block: the tunable that bounds the cost of the
-    // exact kernel.  The environment variable overrides the default so that
-    // the precision and the cost can be traded without a schema change.
-    U64 block_size = 16;
+    // exact kernel.  The default is one pixel per source row, so the number
+    // of the source rows equals the number of the pixels of the frame and
+    // every weight of the drizzle matrix is an exact area share.  The
+    // environment variable overrides the default for the configurations that
+    // trade the precision against the cost.
+    U64 block_size = 1;
     if (const char* override_size = std::getenv("ACSD_DRIZZLE_BLOCK")) {
       const long parsed = std::atol(override_size);
       if (parsed > 0 && parsed <= 1024) block_size = static_cast<U64>(parsed);
@@ -641,9 +644,12 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     merged_overlaps->assessment = model::make_assessment(Code::ok);
     merged_overlaps->assessment.complete = true;
     merged_overlaps->assessment.included.push_back(
-        "the source rows are the blocks of the detector: " + std::to_string(source_rows) +
-        " blocks of " + std::to_string(block_size) + " by " + std::to_string(block_size) +
-        " pixels");
+        block_size == 1
+            ? "the source rows are the pixels of the detector: " + std::to_string(source_rows) +
+                  " source rows for " + std::to_string(source_rows) + " pixels"
+            : "the source rows are the blocks of the detector: " + std::to_string(source_rows) +
+                  " blocks of " + std::to_string(block_size) + " by " + std::to_string(block_size) +
+                  " pixels");
     merged = merged_overlaps;
     if (outcome.failed) {
       result.frames.emplace_back(outcome.frame, outcome.assessment);
