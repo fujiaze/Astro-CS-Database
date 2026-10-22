@@ -1,0 +1,14 @@
+case encoder_self_check: PASS | the local little endian encoding round trips
+case R1_response_analytic_photon: PASS | photon convention, truth 5.5375282242969813e+19, computed 5.5375282242969764e+19, relative difference 8.8761624336894656e-16
+case R1_response_analytic_energy: PASS | energy convention, truth 20, computed 19.999999999999982, relative difference 8.8817841970012523e-16
+case R2_response_segmented: PASS | truth 1.1201014240210973e+20, computed 1.1201014240211011e+20, relative difference 3.3642667701215334e-15
+case R2_response_top_hat_edge_on_knot: PASS | truth 1.3214555989799613e+20, computed 1.3214555989799602e+20, relative difference 8.6789143796074784e-16
+case P1_photometry_shared_latent: PASS | log a recovered -36.741361487904733 and -36.741361487904733 (truth -36.741361487904733)
+case P1_photometry_cross_frame_correlation: PASS | cov(log a_0, log a_1) = 29999.963489747992, var(log a_0) = 59999.974754448733, correlation = 0.4999995965526583
+case P2_photometry_rank_deficient: PASS | the fit returned code 7
+case P3_photometry_unknown_variance: PASS | log a recovered -45.951701859880913, the unknown term is recorded: yes, the assessment is conditional: yes, the logarithmic scale error is 0
+case F01_scale_interval: PASS | tight box [-36.841361487904734, -36.84136148790472], loose box [-36.851411823758234, -36.831411157051555]
+case F01_scale_interval_width: PASS | tight width 1.4210854715202004e-14, loose width 0.020000666706678771
+case S1_apply_scale_per_pixel: PASS | the per pixel factors range from 8646059011460347 to 8710664294286843
+case S1_apply_scale_identity_conflict: PASS | the repeated application returned code 10
+ALL CASES PASSED
