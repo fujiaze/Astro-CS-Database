@@ -1,0 +1,83 @@
+{
+ "case": "apps-cancel",
+ "config": "validation/x01/input/cli/normalize.config.json (8 frames of the frozen X01 set)",
+ "runs": [
+  {
+   "name": "the cancel arrives before the first frame is read",
+   "construction": "the control message is written to the standard input before the run starts",
+   "exit_code": 5,
+   "seconds": 0,
+   "the terminal events": 1,
+   "summary": {
+    "cancelled": 8,
+    "failed": 0,
+    "frames": [
+     {
+      "code": "cancelled",
+      "frame": "x01-00",
+      "status": "cancelled"
+     },
+     {
+      "code": "cancelled",
+      "frame": "x01-01",
+      "status": "cancelled"
+     },
+     {
+      "code": "cancelled",
+      "frame": "x01-02",
+      "status": "cancelled"
+     },
+     {
+      "code": "cancelled",
+      "frame": "x01-03",
+      "status": "cancelled"
+     },
+     {
+      "code": "cancelled",
+      "frame": "x01-04",
+      "status": "cancelled"
+     },
+     {
+      "code": "cancelled",
+      "frame": "x01-05",
+      "status": "cancelled"
+     },
+     {
+      "code": "cancelled",
+      "frame": "x01-06",
+      "status": "cancelled"
+     },
+     {
+      "code": "cancelled",
+      "frame": "x01-07",
+      "status": "cancelled"
+     }
+    ],
+    "inputs_total": 8,
+    "published": 0,
+    "unsolved": 0
+   },
+   "note": "the command checks the cancellation at the frame boundary, so the run ends at once"
+  },
+  {
+   "name": "the cancel arrives 20 seconds into the run",
+   "construction": "the control message is written 20 seconds after the start",
+   "exit_code": 4,
+   "seconds": 189,
+   "note": "the frames that were already in a stage without a cancellation checkpoint (the blind solve of the sources module, the point spread function and the measurement) finish that stage first; the run therefore ends with the frames' own outcome, not with exit 5"
+  }
+ ],
+ "the checkpoints of the apps side": [
+  "the command reads the frames (apps/cli/commands.cpp): the cancellation is checked before every frame",
+  "the workflow frame loop (src/workflows/normalize.cpp): the cancellation is checked before every frame",
+  "the geometry block loop (src/workflows/normalize.cpp): the cancellation is checked before every block",
+  "the export pixel loop (src/projection/export_projection.cpp): the cancellation is checked before every pixel"
+ ],
+ "the stages without a checkpoint (not the apps scope)": [
+  "the blind solve (src/sources): the hypothesis search and the fit",
+  "the point spread function and the source measurement (src/sources)",
+  "the joint photometry (src/photometry)",
+  "the coaddition and the relative sky (src/stats)",
+  "the response integration (src/response)"
+ ]
+}

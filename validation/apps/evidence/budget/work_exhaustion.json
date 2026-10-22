@@ -1,0 +1,16 @@
+{
+ "case": "apps-budget",
+ "construction": "acsd export --json with resources.work = 1 against the same product and target",
+ "baseline": {
+  "work": 10000000,
+  "exit_code": 0,
+  "payload_hash": "c6eeb29c917065667741834e146a7ed8283169cb13a53b169d44e5f0b1cdc4b3"
+ },
+ "exhausted": {
+  "work": 1,
+  "exit_code": 4,
+  "code": "resource_exhausted",
+  "published": false,
+  "note": "the geometry terminates with the named work termination; the export stops with that code and publishes nothing, so the payload cannot differ from the baseline"
+ }
+}

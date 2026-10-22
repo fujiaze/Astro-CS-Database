@@ -223,6 +223,21 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
       // pixfrac = 1: the target pixel is never contracted a second time.
       Result<Ref<Overlaps>> overlaps = compute_overlap(context, *val(provider), footprint, order, 1.0,
                                                         request.budget);
+      if (ok(overlaps)) {
+        // A named termination of the kernel (the work or the precision budget
+        // exhausted) gives no certified bound: the export stops with that
+        // code instead of publishing a payload that differs from the
+        // baseline.
+        const Termination termination = val(overlaps)->status.termination;
+        if (termination != Termination::tolerance_met) {
+          const Code code = termination == Termination::work      ? Code::resource_exhausted
+                             : termination == Termination::precision ? Code::precision_exhausted
+                                                                   : Code::unsupported;
+          return fail<ExportResult>(code,
+                                    "the geometry did not reach the requested tolerance",
+                                    "build_export", "the export cannot be built");
+        }
+      }
       if (!ok(overlaps)) {
         return fail<ExportResult>(overlaps.code,
                                   overlaps.assessment.issues.empty()

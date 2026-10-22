@@ -210,6 +210,37 @@ Result<Ref<SupportMap>> build_support(Context& context, const std::vector<Healpi
   return ok_result(std::shared_ptr<const SupportMap>(support));
 }
 
+
+// A stage that ended with a named termination (the work or the precision
+// budget exhausted, the cancellation, an unresolved domain) does not give a
+// result.  The code and the reason of the termination are taken from the
+// assessment of the stage.
+bool stage_terminated(const Assessment& assessment, Code& code, std::string& reason) {
+  for (const Issue& issue : assessment.issues) {
+    switch (issue.code) {
+      case Code::resource_exhausted:
+      case Code::precision_exhausted:
+      case Code::cancelled:
+      case Code::nonconverged:
+      case Code::geometry_solve_unresolved:
+      case Code::selection_unresolved:
+      case Code::support_unresolved:
+      case Code::no_support:
+      case Code::not_identifiable:
+      case Code::unsolved:
+      case Code::hash_mismatch:
+      case Code::corrupt_product:
+      case Code::missing_dependency:
+        code = issue.code;
+        reason = issue.reason;
+        return true;
+      default:
+        break;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
 Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& catalogue,
@@ -566,6 +597,18 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
                                                           request.drizzle.order,
                                                           request.drizzle.pixfrac,
                                                           request.drizzle.budget);
+        if (ok(overlaps) && val(overlaps)->status.termination != Termination::tolerance_met) {
+          // A named termination (the work or the precision budget exhausted)
+          // gives no certified bound: the frame publishes nothing.
+          const Termination termination = val(overlaps)->status.termination;
+          outcome.failed = true;
+          outcome.code = termination == Termination::work      ? Code::resource_exhausted
+                          : termination == Termination::precision ? Code::precision_exhausted
+                                                                 : Code::unsupported;
+          outcome.reason = "the geometry did not reach the requested tolerance";
+          result.frames.emplace_back(outcome.frame, outcome.assessment);
+          break;
+        }
         if (!ok(overlaps)) {
           outcome.failed = true;
           outcome.code = overlaps.code;
@@ -607,6 +650,22 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       continue;
     }
     Result<DrizzleResult> drizzle = build_drizzle(context, merged, observation, request.drizzle);
+    if (ok(drizzle)) {
+      // The geometry may end with a named termination (the work budget
+      // exhausted, the domain unresolved).  Such a frame publishes nothing:
+      // an exhausted budget must not change the published payload silently.
+      Code termination = Code::ok;
+      std::string reason;
+      if (stage_terminated(val(drizzle).op ? val(drizzle).op->assessment
+                                            : val(drizzle).estimate->assessment,
+                            termination, reason)) {
+        outcome.failed = true;
+        outcome.code = termination;
+        outcome.reason = reason;
+        result.frames.emplace_back(outcome.frame, outcome.assessment);
+        continue;
+      }
+    }
     if (!ok(drizzle)) {
       outcome.failed = true;
       outcome.code = drizzle.code;

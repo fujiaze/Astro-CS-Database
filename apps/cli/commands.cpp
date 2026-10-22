@@ -943,10 +943,12 @@ int run_export(Config& config, EventWriter& events, CancellationSource& cancella
     const std::string reason = location.assessment.issues.empty()
                                    ? "the export failed"
                                    : location.assessment.issues.front().reason;
+    const bool cancelled = location.code == Code::cancelled;
     events.frame_finished("export", code_name(location.code), 0, 1, reason);
     json frames = json::array();
-    frames.push_back(frame_status("export", "failed", reason));
-    events.run_finished(exit_code_of(location.code), make_summary(1, 0, 0, 1, 0, frames));
+    frames.push_back(frame_status("export", cancelled ? "cancelled" : "failed", reason));
+    events.run_finished(exit_code_of(location.code),
+                        make_summary(1, 0, 0, cancelled ? 0 : 1, cancelled ? 1 : 0, frames));
     return exit_code_of(location.code);
   }
   events.product_published("export", val(location).directory);
@@ -1027,6 +1029,15 @@ int run_normalize(Config& config, EventWriter& events, CancellationSource& cance
   U64 cancelled = 0;
   U64 failed = 0;
   for (const InputEntry& input : config.inputs) {
+    // The cancellation is checked at the frame boundary of the command.
+    if (cancellation.requested()) {
+      ++cancelled;
+      events.frame_finished(input.frame_id, "cancelled", 0, config.inputs.size(),
+                            "the run was cancelled");
+      frames.push_back(json{{"frame", input.frame_id}, {"status", "cancelled"},
+                            {"code", "cancelled"}});
+      continue;
+    }
     events.frame_started(input.frame_id, config.inputs.size());
     const std::filesystem::path image_path = config.base / input.path;
     Result<FitsImage> image = read_fits_image(image_path);
@@ -1144,17 +1155,26 @@ int run_normalize(Config& config, EventWriter& events, CancellationSource& cance
       events.frame_finished(entry.first, "ok", published, config.inputs.size(),
                             "the frame was published");
       frames.push_back(json{{"frame", entry.first}, {"status", "published"}, {"code", "ok"}});
-    } else {
-      ++unsolved;
-      const Code status = entry.second.issues.empty() ? Code::unsolved : entry.second.issues.back().code;
-      events.frame_finished(entry.first, "failed", published, config.inputs.size(),
-                            entry.second.issues.empty()
-                                ? "the frame was not solved"
-                                : entry.second.issues.back().reason);
-      frames.push_back(json{{"frame", entry.first}, {"status", status == Code::unsolved ? "unsolved"
-                                                                                          : "failed"},
-                            {"code", status == Code::unsolved ? "unsolved" : "failed"}});
+      continue;
     }
+    // A cancelled frame is counted as cancelled, not as unsolved or failed.
+    const Code status = entry.second.issues.empty() ? Code::unsolved : entry.second.issues.back().code;
+    const std::string reason = entry.second.issues.empty()
+                                   ? "the frame was not solved"
+                                   : entry.second.issues.back().reason;
+    if (status == Code::cancelled) {
+      ++cancelled;
+      events.frame_finished(entry.first, "cancelled", published, config.inputs.size(), reason);
+      frames.push_back(json{{"frame", entry.first}, {"status", "cancelled"},
+                            {"code", "cancelled"}, {"reason", reason}});
+      continue;
+    }
+    ++unsolved;
+    events.frame_finished(entry.first, "failed", published, config.inputs.size(), reason);
+    frames.push_back(json{{"frame", entry.first},
+                          {"status", status == Code::unsolved ? "unsolved" : "failed"},
+                          {"code", status == Code::unsolved ? "unsolved" : "failed"},
+                          {"reason", reason}});
   }
   for (const ProductLocation& location : val(result).published) {
     events.product_published("normalize", location.directory);
@@ -1223,11 +1243,13 @@ int run_mosaic(Config& config, EventWriter& events, CancellationSource& cancella
     const std::string reason = location.assessment.issues.empty()
                                    ? "the mosaic failed"
                                    : location.assessment.issues.front().reason;
+    const bool cancelled = location.code == Code::cancelled;
     events.frame_finished("mosaic", code_name(location.code), 0, config.inputs.size(), reason);
     json frames = json::array();
-    frames.push_back(frame_status("mosaic", "failed", reason));
+    frames.push_back(frame_status("mosaic", cancelled ? "cancelled" : "failed", reason));
     events.run_finished(exit_code_of(location.code),
-                        make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0, frames));
+                        make_summary(config.inputs.size(), 0, 0, cancelled ? 0 : config.inputs.size(),
+                                     cancelled ? 1 : 0, frames));
     return exit_code_of(location.code);
   }
   events.product_published("mosaic", val(location).directory);
