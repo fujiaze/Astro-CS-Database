@@ -938,8 +938,9 @@ Result<InverseResult> inverse(Context& context, Ref<WcsModel> wcs, SkyICRS sky,
   const double eta = model.injectivity.eta.upper;
   const double eps = residual * (1.0 + 1.0e-12) + 1.0e-15;
   const double radius = h_norm * eps / std::max(1.0e-16, 1.0 - eta);
-  const double center_x = u + 1.0 - model.crpix_fits1[0];
-  const double center_y = v + 1.0 - model.crpix_fits1[1];
+  // The base variables are u = x + 1 - CRPIX, so the pixel is x = u - 1 + CRPIX.
+  const double center_x = u - 1.0 + model.crpix_fits1[0];
+  const double center_y = v - 1.0 + model.crpix_fits1[1];
   Box root_box{{center_x - radius, center_y - radius}, {center_x + radius, center_y + radius}};
   if (root_box.lower[0] < model.domain.lower[0] || root_box.upper[0] > model.domain.upper[0] ||
       root_box.lower[1] < model.domain.lower[1] || root_box.upper[1] > model.domain.upper[1]) {
