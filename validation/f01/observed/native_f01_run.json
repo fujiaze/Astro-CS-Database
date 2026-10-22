@@ -1,0 +1,34 @@
+{
+  "artifacts": {},
+  "binary_identity": {
+    "path": "/workspace/Astro CS Database/validation/build/f01_driver",
+    "sha256": "296ec0dfb5288ee27bdc97ed7178e955ccdb06ef82b0d9240e1fbfec4737ff68",
+    "size_bytes": "3385760"
+  },
+  "command": [
+    "/workspace/Astro CS Database/validation/build/f01_driver",
+    "--output",
+    "/workspace/Astro CS Database/validation/f01/observed/native_f01.json"
+  ],
+  "exit_code": 0,
+  "missing_entry_points": [],
+  "peak_rss_bytes": 124194816,
+  "reason": "",
+  "response": {
+    "driver": "f01_native",
+    "frames": [
+      {
+        "code": "invalid_request",
+        "reason": "the parameter bounds cannot be stored"
+      }
+    ],
+    "route": "in_memory_public_api"
+  },
+  "response_file": "f01/observed/native_f01.json",
+  "response_sha256": "ec6c8d729db10a3f1d6bf10128f583ba4771cd7f96060611f6703819d1ab1eea",
+  "route": "native",
+  "status": "ok",
+  "stderr": "[validation storage] rejected psf-parameters: bytes=80 shape=3,1, expected=24\n",
+  "stdout": "{\n \"driver\": \"f01_native\",\n \"frames\": [\n  {\n   \"code\": \"invalid_request\",\n   \"reason\": \"the parameter bounds cannot be stored\"\n  }\n ],\n \"route\": \"in_memory_public_api\"\n}",
+  "wall_seconds": 0.13849626097362489
+}

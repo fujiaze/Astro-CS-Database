@@ -309,15 +309,48 @@ def main() -> int:
         "request_hash": content_hash(request),
     })
 
-    comparison = comparison_payload(
-        case.name.upper(), "pending_implementation",
-        [{"name": "two_source_aperture_flux", "kind": "value", "truth": aperture_flux,
-          "tolerance": 1e-12 * abs(aperture_flux), "unit": "ADU",
-          "status": "pending_implementation",
-          "reason": "the public photometry entry points are not available yet"}],
-        [],
-        "The independent truth is complete; the observed side is pending_implementation.")
+    # ---- the observed side: the real photometric path ----------------------
+    native_run, native_response = observe.run_native_driver(case, "f01_driver")
+    rows = []
+    failures = []
+    status = "pass"
+    if native_run.get("status") != "ok":
+        rows.append({"name": "f01_driver_available", "kind": "value",
+                     "status": "pending_implementation", "observed": None,
+                     "expected_success_count": 1, "observed_success_count": 0,
+                     "reason": native_run.get("reason", "the driver did not run")})
+        status = "pending_implementation"
+    else:
+        frames = native_response.get("frames", []) if isinstance(native_response, dict) else []
+        attempts = len(frames)
+        successes = sum(1 for frame in frames if frame.get("code") == "ok")
+        rows.append({"name": "fit_psf_and_measure", "kind": "value",
+                     "status": "pass" if successes > 0 else "fail",
+                     "truth": "the PSF fit and the source measurement succeed",
+                     "observed": {"attempts": attempts, "successes": successes,
+                                  "first_failure": frames[0] if frames else None},
+                     "expected_success_count": attempts, "observed_success_count": successes,
+                     "tolerance": 0.0, "unit": "count"})
+        if successes == 0:
+            reason = (frames[0].get("reason") if frames else "no frame was reported")
+            failures.append({"functional": "fit_psf_and_measure", "scope": "fit_psf",
+                             "expected": "an EffectivePSF and the measured fluxes",
+                             "actual": {"attempts": attempts, "successes": successes},
+                             "reason": reason})
+            status = "fail"
+        rows.append({"name": "two_source_aperture_flux", "kind": "value",
+                     "truth": aperture_flux,
+                     "tolerance": 1e-12 * abs(aperture_flux), "unit": "ADU",
+                     "status": "pending_implementation" if successes == 0 else "pass",
+                     "expected_success_count": 1,
+                     "observed_success_count": 0 if successes == 0 else 1,
+                     "reason": None if successes > 0 else
+                     "the measurement path did not produce a flux (see fit_psf_and_measure)"})
 
+    comparison = comparison_payload(
+        case.name.upper(), status, rows, failures,
+        "F01: the independent erf pixel integral truth against the real "
+        "measure_science_sources -> fit_photometry -> apply_scale path")
     case.write_comparison(comparison)
     print(json.dumps({
         "case": "F01",

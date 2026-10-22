@@ -1,0 +1,10 @@
+{
+ "driver": "f01_native",
+ "frames": [
+  {
+   "code": "invalid_request",
+   "reason": "the parameter bounds cannot be stored"
+  }
+ ],
+ "route": "in_memory_public_api"
+}

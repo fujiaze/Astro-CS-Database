@@ -18,6 +18,7 @@
       "src/coordinates/healpix.cpp",
       "src/coordinates/tan_sip.cpp",
       "src/coordinates/wcs.cpp",
+      "src/geometry/containment.cpp",
       "src/geometry/drizzle.cpp",
       "src/geometry/exact_polygon.cpp",
       "src/geometry/kernel.cpp",
@@ -33,6 +34,7 @@
       "src/numerics/interval.cpp",
       "src/numerics/linalg.cpp",
       "src/numerics/quadrature.cpp",
+      "src/observation/bind.cpp",
       "src/observation/calibrate.cpp",
       "src/observation/observation.cpp",
       "src/observation/regroup.cpp",
@@ -54,6 +56,8 @@
       "src/sources/astrometry_wcs.cpp",
       "src/sources/measure.cpp",
       "src/sources/psf.cpp",
+      "src/sources/psf_fit.cpp",
+      "src/sources/psf_model.cpp",
       "src/storage/local_storage.cpp",
       "src/uncertainty/api.cpp",
       "src/uncertainty/covariance.cpp",
@@ -68,14 +72,11 @@
     "entry_points": {
       "apply_scale": true,
       "fit_photometry": true,
-      "fit_psf": false,
+      "fit_psf": true,
       "integrate_response": true,
-      "measure_science_sources": false
+      "measure_science_sources": true
     },
-    "missing": [
-      "fit_psf",
-      "measure_science_sources"
-    ]
+    "missing": []
   },
   "case": "F01",
   "condition": "high signal Gaussian regime; the Poisson regime is out of scope",

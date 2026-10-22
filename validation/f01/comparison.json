@@ -1,19 +1,50 @@
 {
   "case": "F01",
-  "failures": [],
+  "failures": [
+    {
+      "actual": {
+        "attempts": 1,
+        "successes": 0
+      },
+      "expected": "an EffectivePSF and the measured fluxes",
+      "functional": "fit_psf_and_measure",
+      "reason": "the parameter bounds cannot be stored",
+      "scope": "fit_psf"
+    }
+  ],
   "functionals": [
     {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "fit_psf_and_measure",
+      "observed": {
+        "attempts": 1,
+        "first_failure": {
+          "code": "invalid_request",
+          "reason": "the parameter bounds cannot be stored"
+        },
+        "successes": 0
+      },
+      "observed_success_count": 0,
+      "status": "fail",
+      "tolerance": 0.0,
+      "truth": "the PSF fit and the source measurement succeed",
+      "unit": "count"
+    },
+    {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "two_source_aperture_flux",
-      "reason": "the public photometry entry points are not available yet",
+      "observed_success_count": 0,
+      "reason": "the measurement path did not produce a flux (see fit_psf_and_measure)",
       "status": "pending_implementation",
       "tolerance": 1.5707599904756592e-10,
       "truth": 157.07599904756592,
       "unit": "ADU"
     }
   ],
-  "notes": "The independent truth is complete; the observed side is pending_implementation.",
-  "status": "pending_implementation",
+  "notes": "F01: the independent erf pixel integral truth against the real measure_science_sources -> fit_photometry -> apply_scale path",
+  "status": "fail",
   "status_vocabulary": {
     "fail": "at least one functional is outside the frozen tolerance",
     "not_applicable": "the case does not exercise the requested functional",
