@@ -1,8 +1,11 @@
-> 本分支将本篇作为既定科学输入，保留以下历史审核措辞和有限证据身份。工程状态只由[新设计入口](../../engineering/rebuild/README.md)定义；历史中的“不创建分支/生产未修改/复算命令”描述其原始研究时点，不约束本分支。历史实验源码和证据已从新树移除，本篇相关路径仅指[固定基线研究档案](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)，不是新实现/测试依赖。实际公共字段由新合同唯一拥有。
+> 当前科学设计状态：已完成独立科学及工程完整性复核，未发现尚存P0/P1设计阻碍；结论与范围见[最终审核记录](../../audit/final-review.md#科学审核状态)。不再以重复的通用独立科学审核作为启动实现前置；负责人启动授权、实现后的独立数值/产品/性能验证及真实数据适用性验证仍分别成立。公共字段、签名与枚举只由[contracts.hpp](../../../include/acsd/contracts.hpp)拥有。
+>
+> 历史证据边界：下文所有“已运行/生产探针/本轮/独立脚本”、研究性能数字及研究文件名均指[固定基线档案c5fee09fe](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)。这些脚本及旧生产源码不在当前工作树；复算只能在该提交的单独历史checkout及其依赖环境中进行，不能在本分支根目录直接运行，也不能用其结果验收新实现。当前可运行内容仅为[根README](../../../README.md)列出的设计/schema/声明检查，未来科学测试另按VERIFICATION重新编写。
+
 
 # 观测、坐标与像元：重建科学基础
 
-**候选科学规范，待外部独立审核。** 本目录的五篇文档是 #111 所要求的重新开发依据；旧 science、工程合同和 C++ 只作参考，不要求新算法继承其对象或调度。本文拥有观测模型、坐标和 Export 定义；[响应](GAIA_RESPONSE.md)、[几何](SPHERICAL_DRIZZLE.md)、[统计](STATISTICS_SKY_COADD.md)、[证据](INDEPENDENT_ORACLES.md)分别展开其余定义。本文不声称旧产品或真实数据已验收。
+**当前科学设计基线（审核范围见页首）。** 本目录的五篇文档是 #111 所要求的重新开发依据；旧 science、工程合同和 C++ 只作参考，不要求新算法继承其对象或调度。本文拥有观测模型、坐标和 Export 定义；[响应](GAIA_RESPONSE.md)、[几何](SPHERICAL_DRIZZLE.md)、[统计](STATISTICS_SKY_COADD.md)、[证据](INDEPENDENT_ORACLES.md)分别展开其余定义。本文不声称旧产品或真实数据已验收。
 
 ## 1. 量、单位与前向模型
 
@@ -48,14 +51,7 @@ PSF \(p\) 的单位 sr⁻¹，按出射方向积分为1；\(\rho_i\) 为 PRF/相
 
 数组为 `data[y,x]`，shape 为 `(height,width)`，x 为列、y 为行。第一像元中心 `(0,0)`，面积单元 `[-.5,.5]²`；完整图像域 `[-.5,width-.5]×[-.5,height-.5]`。中心和边缘都允许实数，不能把两者混成“整数像素”。
 
-```cpp
-struct PixelCenter0 { double x, y; }; // detector pixel
-struct PixelEdge0   { double x, y; }; // 同一连续平面、不同对象角色
-struct FitsPixel1   { double x, y; }; // 唯一边界转换 p1=p0+(1,1)
-struct SkyICRS     { double nx, ny, nz; }; // 单位向量；历元另附
-struct HealpixLeaf { uint32_t order; uint64_t ipix; }; // ICRS NESTED，order≤29
-struct FacetPoint  { uint8_t face; double s, t; }; // s,t∈[0,1]
-```
+字段与实际类型只见[唯一声明合同](../../../include/acsd/contracts.hpp)；本篇保留数学角色、单位与误差语义，不另声明工程结构。
 
 坐标角以 radians 运算；FITS CD/CUNIT 与外部 RA/Dec 接口按明确单位转换。天空角误差用 `atan2(norm(n1×n2),n1·n2)`，极点不比较 RA，RA 回绕不作欧氏减法。Gaia catalog 的 ICRS 位置须按 proper motion、parallax 和观测时间传播到实际匹配历元；输入合同包含 epoch 与时间尺度、`pmRA*cosDec` 约定、观测者站址或 barycentric position，已知 RV 时纳入 perspective acceleration。缺失信息时记录忽略项及其位置误差预算，不能只凭 parallax 和时间制造已知 topocentric 方向。大气折射/DCR 另有观测条件，不能偷偷改变 ICRS 定义。
 
@@ -73,11 +69,7 @@ c 为 CRVAL 方向，e 为当地东向，n_N 为北向。CD 作用在 SIP **之�
 
 逆过程先 \(q=(n\cdot e,n\cdot n_N)/(n\cdot c)\)，`n·c<=0` 不属于该 TAN 图；再解 \(u+(A,B)=C^{-1}q\)，最后 \(p_0=u+r-1\)。AP/BP 只是可选逆多项式初值，不能用其误差替代真实残差。用有阻尼 Newton 和解析 Jacobian，按 detector pixel 残差停止；遇到非单射、奇异 Jacobian 或不收敛返回具名状态。对单个 Q，\(\sup_Q\|\nabla(A,B)\|_\infty<1\) 充分保证 SIP 全局单射；这是可编码的充分域，并非所有有效 SIP 的必要条件。未满足时不作“已证明 fold”的判断，必须增加单射证据或返回 `injectivity_unresolved`。
 
-```text
-sky_from_pixel(WcsModel, PixelCenter0|PixelEdge0) -> {SkyICRS,status}
-pixel_from_sky(WcsModel, SkyICRS, residual_pixel_budget) -> {PixelCenter0,residual,status}
-pixel_measure(WcsModel, DetectorRectangle, area_budget) -> AreaInterval[sr]
-```
+点前向/逆向与面积操作分别调用声明中的forward、inverse、measure；完整参数、返回和错误语义见[API](../../engineering/rebuild/API.md)，不另起接口名。
 
 多项式次数 d、一个点的直接计算 O(d²)，Newton m 次 O(md²)；批量广播/缓存不改变坐标定义。精度预算分为头模型误差、坐标运算误差、逆求解残差；小 round-trip 只能说明内部自洽，不能发现同向的原点错误。
 
@@ -203,100 +195,19 @@ HST coadd 只能作为已知有效 PSF 与分辨率的**条件场景**。若模�
 
 ## 7. 重新开发的公共科学接口
 
-以下是最小数学接口，类型名与字段语义冻结；容器、allocator、调度和磁盘协议不在本阶段定义。所有实数默认 binary64，角以rad、面积以sr、像素长度以声明的 detector 单位；累计与包含原语另按几何规范决定更高精度/有向舍入。接口不通过隐式double重载转换原点。`Result<T>` 同时返回值、状态与所含数值/物理误差身份，失败时不得给可被误认成功的任意坐标。
+本节解释数学对象责任；实际类型与签名由唯一声明合同定义，容器、资源与磁盘协议由工程正本定义。所有实数默认 binary64，角以rad、面积以sr、像素长度以声明的 detector 单位；累计与包含原语另按几何规范决定更高精度/有向舍入。接口不通过隐式double重载转换原点。`Result<T>` 同时返回值、状态与所含数值/物理误差身份，失败时不得给可被误认成功的任意坐标。
 
-```cpp
-struct PixelCenter0 { double x, y; };       // 实数，首像元中心0
-struct PixelEdge0   { double x, y; };       // 同一连续平面中的边界点
-struct FitsPixel1   { double x, y; };       // 仅在FITS/WCS边界 p1=p0+1
-struct SkyICRS     { double nx, ny, nz; }; // 有限单位向量；不以RA决定极点
+字段与实际类型只见[唯一声明合同](../../../include/acsd/contracts.hpp)；本篇保留数学角色、单位与误差语义，不另声明工程结构。
 
-struct WcsModel {
-  Vec2 crpix_fits1; Mat2 cd_rad_per_pixel; Vec3 c,e,north;
-  Polynomial2D sip_a, sip_b; DetectorDomain domain;
-  InjectivityCertificate injectivity; NumericError normalization_error;
-  AstrometricContext epoch_frame_observer; ModelIdentity identity;
-};
-struct DetectorFootprint {
-  ModelRef wcs; OwnedDirectedRings detector_rings; // 原生收光域，有洞可多个环
-  ResponseRef pixel_response; SourceIdentity source; // PRF/response，非几何面积权
-};
-struct SphericalAreaInterval {
-  double lower_sr, upper_sr; BoundIdentity simultaneous_bound;
-};
-struct HealpixLeaf { uint32_t order; uint64_t ipix; }; // ICRS/NESTED，不是tile行列
-struct OverlapContribution {
-  SourceIdentity source; HealpixLeaf leaf;
-  SphericalAreaInterval native_area, drop_area, overlap_area;
-  ConstraintRef shared_geometry_constraints; // a≤A≤Ω及同source分割约束等
-};
-struct GeometryBudget {
-  OwnedQuantityRequests requested_functionals; // 量/单位/容差/有效支持条件
-  OwnedLeafAreaLimits per_leaf_absolute_area; // [sr]，由εB/εflux/εcov反推
-  uint64_t max_work, max_bytes; uint32_t max_depth;
-  NumericPrimitivePolicy arithmetic; // 保证/近似及其误差，非fast-math默认
-};
-struct GeometryStatus {
-  Termination termination; // tolerance_met / work / depth / precision / unsupported
-  BoundValidity bound_validity;
-  SupportState support;   // absent / positive / bounded_undecided
-  OwnedUnresolvedDomains unresolved; // 明确位置及面积上界，不能只存总数
-};
-struct DrizzleOperator {
-  OwnedSparseRows rows; OwnedSourceIndex source_index; // R_pj [sr^-1]
-  OwnedGeometryBounds bounds; ConstraintRef geometry_constraints;
-  SupportMap support; GeometryStatus status;
-};
-struct SignalEstimate {
-  OwnedValues signal; SignalUnit unit; EstimatorDefinition estimator;
-  OwnedIntervals numerical_bounds; SupportMap support;
-  ResponseRef effective_response; ErrorIdentity error_identity;
-  NoiseModelRef noise; // absent/unknown不改变合法负signal与有限零
-};
-struct NoiseModel {
-  SignalUnitSquared unit; Condition condition;
-  OwnedIndependentBlocks innovations; OwnedSharedFactors shared_factors;
-  OwnedInfluenceOperators influence; OwnedUnknownTerms unknown_terms;
-  NoiseState state; // known / conditional / approximate / unknown
-};
-struct CovarianceAction {
-  NoiseModelRef model; OwnedOperatorChain influence;
-  DomainAndUnits input_output; ApproximationBound omitted_action;
-  OptionalAbsoluteFactorAction absolute_factor_bound;
-  OptionalSpectralNormBound operator_norm_upper;
-};
-```
+`FootprintProvider` 是 WcsModel 的数值几何能力入口，TAN/SIP是首期具体实现。未来非TAN或lookup模型只有同时实现以下包含接口、给出有效域及全局单射/可分片证据，并由独立Oracle验证后，才可作为新实现注册；仅能点前向的对象只能用于点查询，不能流入严格Drizzle。
 
-`FootprintProvider` 是 WcsModel 的数值几何能力入口，TAN/SIP是首期具体实现。未来非TAN或lookup模型只有同时实现以下包含接口、给出有效域及全局单射/可分片证据，并由独立Oracle验证后，才可作为新实现注册；仅能 point_forward 的对象只能用于点查询，不能流入严格Drizzle。
-
-```text
-make_wcs(header, detector_domain, astrometric_context) -> Result<WcsModel>
-to_fits(PixelCenter0|PixelEdge0) -> FitsPixel1                // 唯一+1边界
-from_fits(FitsPixel1) -> 指定角色的0基坐标                   // 唯一-1边界
-forward(model, center|edge, sky_budget) -> Result<SkyICRS>
-inverse(model, SkyICRS, pixel_budget) -> Result<PixelCenter0,root_box,residual>
-derivative(model, point) -> Result<Mat3x2,J_error>             // 同一连续W
-solid_angle_jacobian(model, detector_box) -> Result<Interval> // sr/pixel²
-footprint(provider, DetectorFootprint, pixfrac) -> Result<OwnedCurvedBoundary>
-    boundary_interval(curve, t_interval) -> EnclosedSkyRegion
-    forward_interval(detector_box) -> EnclosedSkyRegion
-    derivative_interval(detector_box) -> EnclosedMat3x2
-    measure(detector_region, GeometryBudget) -> SphericalAreaInterval,status
-compute_overlap(provider, footprint, HealpixLeaf/order, GeometryBudget)
-    -> OwnedOverlapContributions,GeometryStatus
-build_drizzle(overlaps, SourceSignals) -> DrizzleOperator,SignalEstimate
-apply(R,x), transpose_apply(R,v) -> OwnedValues
-covariance_apply(CovarianceAction,v) -> OwnedValues             // Cv
-quadratic_form(CovarianceAction,t) -> variance_or_unknown       // tᵀCt
-geometry_covariance_bound(CovarianceAction, operator_error)
-    -> BoundOrUnavailable // 需要绝对因子action或可信谱界，普通Cv不够
-```
+创建WCS、坐标原点转换、点/导数/面积/交叠和Drizzle的完整调用仅由声明合同定义；反向原点转换分别是from_fits_center与from_fits_edge。FootprintProvider的包含能力与错误合同见[API](../../engineering/rebuild/API.md)。
 
 每个字段的数学责任与下游约束如下，面积/算子误差的细算由[几何规范](SPHERICAL_DRIZZLE.md)拥有，随机误差action由[统计规范](STATISTICS_SKY_COADD.md)拥有，以下不另定义一套估计量。
 
 | 类型 | 输入/输出与数学责任 | 所有权、寿命、精度与失败 |
 |---|---|---|
-| PixelCenter0 / PixelEdge0 / FitsPixel1 | 前两者共享连续数轴但角色不同；FitsPixel1只过外部边界。检测/PSF/Gaia预测、孔径及Drizzle均使用同一Center0 | 小值对象按值；非有限拒绝。角色改变显式，不因“边缘”自动+.5；旧sdet的首中心.5属于另一原点，需显式−.5入口适配 |
+| PixelCenter0 / PixelEdge0 / FitsPixel1 | 前两者共享连续数轴但角色不同；FitsPixel1只过外部边界。检测/PSF/Gaia预测、孔径及Drizzle均使用同一Center0 | 小值对象按值；非有限拒绝。角色改变显式，不因“边缘”自动+.5；历史sdet的首中心.5属于另一原点，仅说明历史差异；新核心直接产生Center0，不要求旧适配器 |
 | SkyICRS | 坐标向量+外附观测历元/传播条件；匹配、WCS、HEALPix唯一公共天空对象 | 按值；检查归一误差并纳预算，零向量拒绝。不能静默把apparent/topocentric与ICRS混同 |
 | WcsModel | 拥有规范化系数、原始身份、域和连续单射证书；点/导数/面积共享同一F | 不可变拥有数据，可共享只读。调用不保留临时header指针；域外及不支持模型具名失败，不能丢畸变后降级 |
 | DetectorFootprint / FootprintProvider | 前者定义真实收集域与PRF；后者给连续W及包含运算。drop先在声明detector域收缩，源Ω与drop A分别计算 | 拥有rings，model/response引用为有寿命的只读共享句柄。像元改变/缺孔不只改shape；provider无认证能力就拒绝严格交叠 |

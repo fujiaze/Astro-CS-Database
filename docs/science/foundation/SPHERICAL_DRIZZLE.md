@@ -1,8 +1,11 @@
-> 本分支将本篇作为既定科学输入，保留以下历史审核措辞和有限证据身份。工程状态只由[新设计入口](../../engineering/rebuild/README.md)定义；历史中的“不创建分支/生产未修改/复算命令”描述其原始研究时点，不约束本分支。历史实验源码和证据已从新树移除，本篇相关路径仅指[固定基线研究档案](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)，不是新实现/测试依赖。实际公共字段由新合同唯一拥有。
+> 当前科学设计状态：已完成独立科学及工程完整性复核，未发现尚存P0/P1设计阻碍；结论与范围见[最终审核记录](../../audit/final-review.md#科学审核状态)。不再以重复的通用独立科学审核作为启动实现前置；负责人启动授权、实现后的独立数值/产品/性能验证及真实数据适用性验证仍分别成立。公共字段、签名与枚举只由[contracts.hpp](../../../include/acsd/contracts.hpp)拥有。
+>
+> 历史证据边界：下文所有“已运行/生产探针/本轮/独立脚本”、研究性能数字及研究文件名均指[固定基线档案c5fee09fe](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)。这些脚本及旧生产源码不在当前工作树；复算只能在该提交的单独历史checkout及其依赖环境中进行，不能在本分支根目录直接运行，也不能用其结果验收新实现。当前可运行内容仅为[根README](../../../README.md)列出的设计/schema/声明检查，未来科学测试另按VERIFICATION重新编写。
+
 
 # 连续 WCS/SIP 到真实 HEALPix 叶的球面 Drizzle
 
-**候选科学规范，待外部独立审核。** 本文给出已实现的小型求解方案，不把未来的 Green 公式设想当交付。观测量和坐标来自[观测定义](OBSERVATION_COORDINATES.md)，数值入口为 `实验/science-foundation/oracles/chart_overlap.py` 和独立的 `detector_independent.py`。生产 C++ 未修改。
+**当前科学设计基线（审核范围见页首）。** 本文给出历史档案已实现的小型求解方案，不把未来的 Green 公式设想当交付。观测量和坐标来自[观测定义](OBSERVATION_COORDINATES.md)，数值入口为 `实验/science-foundation/oracles/chart_overlap.py` 和独立的 `detector_independent.py`。生产 C++ 未修改。
 
 ## 1. 区域、被估计量和算子
 

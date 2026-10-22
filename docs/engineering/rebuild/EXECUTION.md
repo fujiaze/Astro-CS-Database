@@ -8,7 +8,7 @@
 
 对象生命周期为 builder 独占写 → validate → publish immutable → consumer leases → 最后一份租约释放 → 回收或可验证 spill。部分写入对象不可见；迭代得到新版本，不覆盖被读取模型。async I/O、排队 task、action recipe 的依赖都持租约；cancel 发出后先阻止新任务，再让在途任务到安全边界，完成/撤销 I/O，最后释放，不能先销毁数组再等待 future。
 
-科学模块只申请 scratch/输出/任务子预算，不建线程池，不自行长期缓存数组，不直接读写文件。provider 的内存块由 I/O/runtime 承担租约与计费；纯 in-memory 独立调用由 caller 提供等价上下文。无 Runtime 也能串行执行同一 API。
+科学模块只申请 scratch/输出/任务子预算，不建线程池，不自行长期缓存数组，不直接读写文件。provider 的内存块由 Storage/Resources 承担租约与计费；纯 in-memory 独立调用由 caller 提供等价上下文。仅由公开Context也能串行执行同一 API。
 
 ## 实际算子和流式计算
 

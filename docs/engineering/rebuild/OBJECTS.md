@@ -49,8 +49,8 @@
 | `DetectorFootprint / FootprintProvider` | 原生收集域有向 rings/holes、PRF、源身份；provider 有点/区间/导数/测度能力等级 | observation/coordinates → geometry、PSF |
 | `NativeObservation` | 具名积分 x、DQ、真实收集核、G 重组与 native source index、已应用标度、noise/模型影响 | observation/photometry → geometry、uncertainty |
 | `Response / ReferenceSED / SpectralPrediction` | photon/energy、归一、谱域、折点或解析曲线、实测/假设、v、积分误差及 shared spectral factors | response → photometry、混合核 |
-| `StarFlux / PhotoSolution` | 总 flux 定义/单位/位置/窗/孔径与 source_id；θ/basis/domain、rank、covariance 与同数据 influence | sources_psf/photometry → apply_scale、noise |
-| `EffectivePSF / ObservationKernel` | 归一/尾损失、像元积分、首期achromatic的空间依赖、PRF、G与标度作用；一般 signed G 不称概率 | sources_psf/operators → information、sky、coadd |
+| `StarFlux / PhotoSolution` | 总 flux 定义/单位/位置/窗/孔径与 source_id；θ/basis/domain、rank、covariance 与同数据 influence | sources/photometry → apply_scale、noise |
+| `EffectivePSF / ObservationKernel` | 归一/尾损失、像元积分、首期achromatic的空间依赖、PRF、G与标度作用；一般 signed G 不称概率 | sources/operators → information、sky、coadd |
 | `SphericalAreaInterval / OverlapContribution` | 单位 sr，0≤a≤A≤Ω，原始 primitive/共同分母/每源 Σa=A 的约束身份，未决位置及上界 | geometry → R、预算、Export |
 | `GeometryBudget / GeometryStatus` | B/F/Cov/孔径请求及单位/容差、支持需求、逐叶绝对限额、工作/内存/深度/算术；成功作用域 | 工作流/geometry → 数值执行与报告 |
 | `GeometryRevision` | base/new snapshot、不可变primitive/R版本、受影响source/leaf/domain及共同约束、替换映射、资源账本和未决状态 | refine_geometry → 预算控制器及下游闭包事务重建 |
@@ -60,7 +60,7 @@
 | `PrecisionControls` | 类型 reference_flux / actual_scene / control_statistic、值/单位、estimator/condition/support、δ/M 来源或预测误差 | information → 同类稀疏重建，不能换名充权 |
 | `SkyFit` | T/H/A/basis/gauge、β、K/E/P action、可估子空间、共同模式及额外零空间、参数 covariance、训练/预测域 | sky → corrected frame provider、coadd |
 | `ScientificFrameView` | 帧/网格/signal/DQ/support/response/PSF/noise、native_to_leaf、可选 sky 与邻域能力 | products/provider → coadd 与独立驱动 |
-| `Selection / WeightSolution` | 原始资格、接受 source 集、原因/阈值、实际 t、Γ身份、策略、数据依赖性、数值/选择状态 | selection_coadd → 合成、有效核、全过程验证 |
+| `Selection / WeightSolution` | 原始资格、接受 source 集、原因/阈值、实际 t、Γ身份、策略、数据依赖性、数值/选择状态 | coadd → 合成、有效核、全过程验证 |
 | `SpatialResponse` | 实际 Σt c K 的组合 action 或可恢复模型，空间/光谱耦合、可能 signed、条件选择身份 | coadd/projection → 产品解释 |
 
 类型里 `NoiseModel` 的数学信息和 `CovarianceAction` 的执行引用指向同一模型图；不建两个可分别更新的 covariance 正本。`LinearAction` 允许无显式矩阵，但必须可列出输入源身份和依赖块。任何核截断、低秩截断、FP32 量化都记录误差及其适用泛函；无界近似不冒称 certified。

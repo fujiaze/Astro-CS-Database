@@ -1,8 +1,11 @@
-> 本分支将本篇作为既定科学输入，保留以下历史审核措辞和有限证据身份。工程状态只由[新设计入口](../../engineering/rebuild/README.md)定义；历史中的“不创建分支/生产未修改/复算命令”描述其原始研究时点，不约束本分支。历史实验源码和证据已从新树移除，本篇相关路径仅指[固定基线研究档案](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)，不是新实现/测试依赖。实际公共字段由新合同唯一拥有。
+> 当前科学设计状态：已完成独立科学及工程完整性复核，未发现尚存P0/P1设计阻碍；结论与范围见[最终审核记录](../../audit/final-review.md#科学审核状态)。不再以重复的通用独立科学审核作为启动实现前置；负责人启动授权、实现后的独立数值/产品/性能验证及真实数据适用性验证仍分别成立。公共字段、签名与枚举只由[contracts.hpp](../../../include/acsd/contracts.hpp)拥有。
+>
+> 历史证据边界：下文所有“已运行/生产探针/本轮/独立脚本”、研究性能数字及研究文件名均指[固定基线档案c5fee09fe](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)。这些脚本及旧生产源码不在当前工作树；复算只能在该提交的单独历史checkout及其依赖环境中进行，不能在本分支根目录直接运行，也不能用其结果验收新实现。当前可运行内容仅为[根README](../../../README.md)列出的设计/schema/声明检查，未来科学测试另按VERIFICATION重新编写。
+
 
 # 独立 Oracle、计算证据与科学适用域
 
-**候选科学规范，待另一个外部独立审核者重新推导与验收。** 研究及独立验证 Agent 的检查不构成正式科学验收。第一轮生产基线 `e7d273ed78b7d118cf8344110b97224af7378b2a`；第二轮研究基线 `9f0c8bcebd41ccfd74bcda32831ac8eb7ce0d9d0`，2026-10-21，针对[外部审核6294372640](https://github.com/fujiaze/Astro-CS-Database/issues/111#issuecomment-6294372640)继续补证。以下§2–7保留第一轮证据，§8列本轮最终结论和复算入口。生产 C++ 未修改，不创建重构分支或 PR；交付SHA记录在 #111 评论。
+**当前科学设计基线（审核范围见页首）。** 以下保留历史研究与复算身份，不把它们转记为新实现或真实数据验收。第一轮生产基线 `e7d273ed78b7d118cf8344110b97224af7378b2a`；第二轮研究基线 `9f0c8bcebd41ccfd74bcda32831ac8eb7ce0d9d0`，2026-10-21，针对[外部审核6294372640](https://github.com/fujiaze/Astro-CS-Database/issues/111#issuecomment-6294372640)继续补证。以下§2–7保留第一轮证据，§8列本轮最终结论和复算入口。历史研究时未修改旧生产 C++、未创建重构分支或 PR；当时交付SHA记录在 #111 评论。
 
 ## 1. 阅读入口及证据身份
 
@@ -25,13 +28,16 @@
 
 读过 #111 正文及其坐标 Oracle、#98–#102 原研究/补充裁决，最高设计、统一模型、相关科学分册和实际源消费者。原研究中的阶段性方案不是本轮实现的证据；例如 R2 的 Green 公式模板在本轮被实际包含型积分替代。#102 的混阶扩展已由负责人撤回，本规范保留同阶输入要求。
 
-## 2. 复算包与独立性
+## 2. 历史复算包与独立性
 
-根目录 [实验/science-foundation](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/) 存独立 Python 与轻量 JSON，不包含用户真实 FITS。实际环境为 Python3.12.2、NumPy1.26.4、SciPy1.15.3、Astropy7.1.0、WCSLIB8.4、Astropy-HEALPix1.0.3、mpmath1.3.0；依赖版本见 [requirements.txt](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/requirements.txt)。这些版本用于复算身份，不是新软件内部版本协议。坐标生产探针另用 GCC16.1，临时编译相关原始翻译单元，未跑整个CLI。
+固定历史checkout根目录 [实验/science-foundation](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/) 存独立 Python 与轻量 JSON，不包含用户真实 FITS。实际环境为 Python3.12.2、NumPy1.26.4、SciPy1.15.3、Astropy7.1.0、WCSLIB8.4、Astropy-HEALPix1.0.3、mpmath1.3.0；依赖版本见 [requirements.txt](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/requirements.txt)。这些版本用于复算身份，不是新软件内部版本协议。坐标生产探针另用 GCC16.1，临时编译相关原始翻译单元，未跑整个CLI。
 
-从仓库根依次执行：
+仅从上述固定历史checkout的根目录依次执行：
+
+历史复算命令：仅在固定c5fee09fe的独立历史checkout运行，当前工作树没有这些脚本；不是新实现验证命令。
 
 ```text
+# HISTORICAL_CHECKOUT_ONLY: c5fee09fedb97ccbe39cb47ea0985e0d8a339db2
 python 实验/science-foundation/oracles/coordinates_independent.py --production-probe
 python 实验/science-foundation/oracles/chart_overlap_independent_review.py
 python 实验/science-foundation/oracles/geometry_experiments.py --output 实验/science-foundation/evidence/geometry_experiments.json
@@ -168,7 +174,7 @@ Export最初每像元60000节点、绝对面积预算2e−5sr仍有未收敛，�
 5. **天光**：纯真实共同梯度阴性、已知正负差模阳性、断连/稀疏支持、异PSF/混Hα+Red负对照；测低频结构保真与留出接缝，禁止只为平缝扣天体色差。
 6. **合成/Export**：N1..7、单/多宇宙线、跨tile拖线、真实时变源；比较无排异和正式基线，记录误拒/漏拒及选择后coverage。独立FITS reader核对CRPIX/BUNIT/响应、部分覆盖的支持积分及二次重采样相关性。
 
-算法、数据语义和接口经另一个审核者独立重推与复算认可后，才讨论新核心重构分支；上述物理假设仍需真实数据支持，不能以科学接口定型代替科学产品验收。此次提交是研究候选与计算证据，不是生产修复或架构发布。
+历史研究阶段提出的“先额外独立审核、再讨论重构分支”门槛已由最终设计独立复核承接，当前状态见页首与最终审核记录。上述物理假设仍需真实数据支持；历史研究证据不构成新实现修复或科学产品验收。
 
 ## 8. 第二轮：科学预算、严格快速路径与唯一 WCS 合同
 
@@ -226,7 +232,10 @@ WCS唯一合同已在[观测规范 §3、§7](OBSERVATION_COORDINATES.md)冻结�
 
 主要新增入口（从仓库根运行，输出文件中的源码/输入身份必须一起核对）：
 
+历史复算命令：仅在固定c5fee09fe的独立历史checkout运行，当前工作树没有这些脚本；不是新实现验证命令。
+
 ```text
+# HISTORICAL_CHECKOUT_ONLY: c5fee09fedb97ccbe39cb47ea0985e0d8a339db2
 python 实验/science-foundation/oracles/round2_wcs_contract.py
 python 实验/science-foundation/oracles/round2_science_budget.py
 python 实验/science-foundation/oracles/round2_sliver.py
@@ -244,4 +253,4 @@ C++构建命令和编译器/可执行文件hash在性能JSON的build中；需GCC
 
 **DERIVED**：面积到signed分式估计、支持/覆盖区别、Cov和求解扰动、affine-strip包含及WCS规范化/导数。**INDEPENDENTLY_TESTED**：上述有限解析真值、A/B重算、C++独立实现/成员及实际微测。**ASSUMPTION**：所用IEEE/MPFR/GMP/mpmath区间原语的正确性、固定WCS/PRF/PSF/response与噪声物理模型。**REQUIRES_REAL_DATA**：§7的真实物理模型及吞吐/星云/孔径/coverage问题。
 
-当前已具备科学接口和有界数值算法的架构设计依据；这不表示全域生产吞吐已验证，亦不自行宣布科学地基正式验收。下一位审核者应从上述标准接口自行产生新真值，重点检验预算反推、高精度fallback、边界支持和真实模型输入身份，再决定能否进入重构设计。#111保持待外部复审，本轮不创建重构分支。
+当前科学与工程设计已完成最终独立复核，状态及范围以页首和最终审核记录为准；历史#111的待外部复审/未建分支措辞不是当前启动门槛。新实现仍须以公开合同自行生成真值，检验预算反推、高精度fallback、边界支持和真实模型输入身份；这些属于实现与产品验证，不把历史研究吞吐转记为生产通过。

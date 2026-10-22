@@ -1,8 +1,11 @@
-> 本分支将本篇作为既定科学输入，保留以下历史审核措辞和有限证据身份。工程状态只由[新设计入口](../../engineering/rebuild/README.md)定义；历史中的“不创建分支/生产未修改/复算命令”描述其原始研究时点，不约束本分支。历史实验源码和证据已从新树移除，本篇相关路径仅指[固定基线研究档案](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)，不是新实现/测试依赖。实际公共字段由新合同唯一拥有。
+> 当前科学设计状态：已完成独立科学及工程完整性复核，未发现尚存P0/P1设计阻碍；结论与范围见[最终审核记录](../../audit/final-review.md#科学审核状态)。不再以重复的通用独立科学审核作为启动实现前置；负责人启动授权、实现后的独立数值/产品/性能验证及真实数据适用性验证仍分别成立。公共字段、签名与枚举只由[contracts.hpp](../../../include/acsd/contracts.hpp)拥有。
+>
+> 历史证据边界：下文所有“已运行/生产探针/本轮/独立脚本”、研究性能数字及研究文件名均指[固定基线档案c5fee09fe](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)。这些脚本及旧生产源码不在当前工作树；复算只能在该提交的单独历史checkout及其依赖环境中进行，不能在本分支根目录直接运行，也不能用其结果验收新实现。当前可运行内容仅为[根README](../../../README.md)列出的设计/schema/声明检查，未来科学测试另按VERIFICATION重新编写。
+
 
 # Gaia XP、经验标度与响应
 
-**候选科学规范，待外部独立审核。** 输入观测、像元和单位由[观测模型](OBSERVATION_COORDINATES.md)定义；本文不依赖旧 ACSD 的光度结构或历史 XPMODEL 数值习惯。全部结果附 response、reference SED 和误差来源身份。
+**当前科学设计基线（审核范围见页首）。** 输入观测、像元和单位由[观测模型](OBSERVATION_COORDINATES.md)定义；本文不依赖旧 ACSD 的光度结构或历史 XPMODEL 数值习惯。全部结果附 response、reference SED 和误差来源身份。
 
 ## 1. 合成积分及可辨识量
 
@@ -45,8 +48,7 @@ Gaia synthetic photometry 原文 Appendix B 定义 \(R_f=\mathrm{FWHM}_{band}/\m
 首选在 flux 域作联合潜变量拟合。令每颗星真实谱系数 c_s（或仅需的通带潜通量 q_s）为 nuisance，Gaia 测量满足 `c_Gaia=c+η`，counts 模型为 \(m_s(\theta,c_s)=a\exp(b_s^T\theta) v^T c_s\)。对 `[counts,c_Gaia]` 的固定联合 Gaussian covariance 作白化最小二乘，跨帧共用同一星的 latent 与误差身份；独立代码 `fit_shared_gaia` 实现其潜通量形式。消去 latent 而改用参数依赖的残差 covariance 时，须明确 profile 或 marginal likelihood；不能仅更新权重就将其称为同一个完整 likelihood，marginal Gaussian 还含 logdet 项。低 SNR flux 保留符号；其强 Poisson/read 非Gaussian域改用原始计数似然/参数化bootstrap，不把本轮高SNR Gaussian实验外推为低SNR已验证。
 
 ```text
-integrate_response(Response, SpectralBasis, budget) -> {v, numerical_error}
-fit_photometry(StarObservations, Responses, basis, gauge, NoiseModel)
+数学过程（非公共签名）：响应基积分 → 联合光度拟合；实际调用见唯一声明
     选择非饱和、可测总flux、位置/谱覆盖合格星；保留选择身份
     θ 初始化为 scalar；按星分块组装 counts 与 Gaia 的联合协方差
     联合计算 counts/Gaia residual 与 θ/latent Jacobian
@@ -60,17 +62,7 @@ fit_photometry(StarObservations, Responses, basis, gauge, NoiseModel)
 
 颜色项默认用于诊断响应模型，或在有谱先验的恒星上作预测；不能用星色替代每个星云像元的 SED。拟合空间项需实际位置支持与留出预测；超出支持可退回 scalar 或带外推误差，不能仅因设计满秩就声称全帧准确。相同 Gaia 星跨帧复用建立跨帧参数 covariance，不以 frame_id 重置误差。
 
-```cpp
-struct StarFlux { uint64_t gaia_source_id; PixelCenter0 position;
-  double integrated_flux, variance; FluxDefinition definition; NoiseState noise; };
-struct SpectralPrediction { double q; SparseFactors shared_spectral_error;
-  double integration_abs_error; Domain spectral_support; };
-struct PhotoSolution { Vector theta; CovarianceAction covariance;
-  Basis spatial_basis; Domain support; Response response; ReferenceSED reference;
-  RankReport rank; FitInfluence influence; };
-// α 的单位 L/ADU；Jθ 的每列单位随θ定义，保留训练像元依赖。
-apply_scale(PhotoSolution, NativePatch) -> CalibratedPatch;
-```
+字段与实际类型只见[唯一声明合同](../../../include/acsd/contracts.hpp)；本篇保留数学角色、单位与误差语义，不另声明工程结构。
 
 星位、PSF积分域及光度应用共享[观测合同](OBSERVATION_COORDINATES.md)的 `PixelCenter0/WcsModel/DetectorFootprint`，不在Gaia或PSF接口再补原点偏移。输出积分 x 的单位与 `SignalEstimate` 一致，数值求积/拟合舍入界、XP随机误差和响应模型偏差分别保留；有限确定偏差不自动作为独立方差。后续面积区间按[几何规范 §5](SPHERICAL_DRIZZLE.md)传播到同一R、B与Cov，若x也有数值区间，signed numerator按完整端点积取界，或用 `ΣR_U δx` 增加确定信号误差界。该数值项不覆盖未知谱线和真实response失配。
 

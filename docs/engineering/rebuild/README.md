@@ -1,6 +1,6 @@
 # ACSD v2：唯一设计入口
 
-状态：设计交付，等待负责人正式审核；无科学算法实现或生产验收声明。分支 `rebuild/acsd-v2` 从 `c5fee09fedb97ccbe39cb47ea0985e0d8a339db2` 建立，不兼容旧接口、对象、产品或构建系统。
+状态：独立科学/完整性设计复核已完成（REVIEWED_FOR_IMPLEMENTATION，详见[审核状态](../../audit/final-review.md#科学审核状态)），等待负责人启动实现；无科学算法实现或生产验收声明。分支 `rebuild/acsd-v2` 从 `c5fee09fedb97ccbe39cb47ea0985e0d8a339db2` 建立，不兼容旧接口、对象、产品或构建系统。
 
 ACSD 在 Windows/Linux amd64 CPU 上提供独立的 Normalize、Mosaic、Export。统一天空为 ICRS、HEALPix NESTED、order≤29；Normalize 输出逐帧面亮度和可恢复模型，Mosaic 输出一个 signal HiPS，Export 输出一个有 WCS 的二维 signal FITS。不同通带可按显式混合目标组合；未知噪声不阻止合法信号，也不成为零方差。Windows GUI 独立构建，仅消费 CLI 配置、事件和产品。
 
@@ -17,7 +17,7 @@ ACSD 在 Windows/Linux amd64 CPU 上提供独立的 Normalize、Mosaic、Export�
 | 5 | [EXECUTION](EXECUTION.md) | 精度、误差分账、细化、任务、内存、I/O、线程和停止 |
 | 6 | [VERIFICATION](VERIFICATION.md) | 独立真值、必要验收、性能方法与审核门槛 |
 
-字段表是语义说明，不另起一套类型。五份科学基础中的示例 struct 是数学角色示意，由声明合同统一为实际工程字段；不得将不同分册示例逐字实现为互不相容的对象。工程正本不能修改科学公式。若发现科学矛盾，记录反例、修订科学正本并同步合同。
+字段表是语义说明，不另起一套类型。五份科学基础不再另行声明struct或公共签名，数学对象语义由声明合同统一为实际工程字段。工程正本不能修改科学公式。若发现科学矛盾，记录反例、修订科学正本并同步合同。
 
 每种通用抽象均有具体消费者：Storage 给分块数组持租约及计费；Resources 为所有算法共享预算；LinearAction 给 R/G/sky/Q 复用及转置；CovarianceAction 给共享根的一次传播；provider 为同一算法接内存和磁盘；GeometryRevision 给精度反馈原子替换依赖闭包。这些不构成运行节点系统或动态插件。
 

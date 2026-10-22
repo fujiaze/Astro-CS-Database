@@ -2,78 +2,43 @@
 
 本合同定义目标接口；已有可编译声明与schema，科学函数及驱动程序尚未实现。科学类型遵循[统一对象](OBJECTS.md)，所有 action 的域、单位、原点及随机变量身份必须匹配。独立 Agent 只需本合同和五份科学规范即可构造输入，不需要理解旧 CLI、adapter、scheduler 或 session。
 
-## 统一调用约定
+## 唯一签名与调用约定
 
-所有接口形如 `operation(Context, immutable inputs, request) -> Result<T>`。Context 只含 caller 提供的 allocator、scratch、取消 token、work/bytes/线程租约及可选只读 provider；科学配置全部在具名 request 内。纯数学调用不需要磁盘、CLI、全局配置或 Runtime。拥有内存的 in-memory provider 足以运行每项原语；production 使用同一算法 API 的 file-backed provider。
+[contracts.hpp](../../../include/acsd/contracts.hpp) 唯一拥有公共字段、函数签名、参数名和枚举值；[science-input.schema.json](../../../schemas/science-input.schema.json)仅由声明生成。本篇拥有操作语义、错误、所有权和进程协议，不另定义伪代码签名或 Request 类型。所有未在声明出现的操作均不构成实现要求。
 
-`Result<T>={value?,assessment,issues[],consumed_resources,dependencies}`。输入错误在读取值之前拒绝；取消、资源耗尽、能力缺失与模型未决分别返回。值存在不表示所有泛函成功：area 可以有有效界且 science_unconverged。failure 不返回可误用的任意 sky/权/方差。每个 issue 含 code、scope（run/frame/block/leaf/functional）、origin、reason、影响和可重试条件。异常不得跨 C 边界，算法不得 exit。
+Context 实际字段仅 Resources&、const Cancellation&、Storage&。所有科学函数同步，span/Context 借用至返回，Ref<const T>拥有共享依赖；输出数组由Storage租约保字节，独占scratch按调用申请。异步GUI在子进程层集成，不增加异步科学API或C ABI。只读模型可并发，每次调用的scratch/迭代状态独占。取消在有界工作单元边界检查，最大工作及位长仍计入统一预算。
 
-同步输入 span 仅借用到调用返回；异步请求先取得显式 retain 租约，completion 之后才释放。返回对象由 caller allocator 或 opaque handle 持有，唯一 release 方明确；模块不能保存栈 span。只读模型可并发，scratch/迭代游标/输出缓冲每次调用独占。取消在有界工作单元边界检查；精确裁剪/求解一次不可中断区的最大工作/位长也计入预算。
+Result<T> 实际字段为 code、value、assessment、usage、dependencies；issues在assessment.issues，不在Result顶层。值存在不表示所有泛函成功，面积有效而科学量未收敛可以同时成立；failure不返回可误用的任意sky/权/方差。Issue的作用域、原因和重试条件遵声明，算法不exit，不以异常文本作协议。
 
-## 科学操作表
+## 策略与请求字段
 
-下表为规范签名；集合输入均带 ordered identity 和单位，`Request` 包含该行目标容差与模型选择。`Owned` 为拥有输出，provider 返回有租约的只读块。
+下表只解释声明中现有字段，大小写与wire枚举完全一致。完整字段由声明及生成schema提供；模板先展开完整请求再计算hash，缺科学必需项返回invalid_request。
 
-| 操作 | 输入 → 输出 | 特定前置/失败 |
-|---|---|---|
-| `make_wcs` | HeaderFields、DetectorDomain、AstrometricContext → WcsModel | 显式 ICRS、二维 TAN[-SIP]、degree 输入、CD 或 PC+CDELT、0或2…9阶、cond₂≤10⁸、≤60°域和全局单射证据；完整准入服从科学规范 |
-| `to_fits / from_fits` | Center0 或 Edge0 ↔ FitsPixel1 | 精确一次 ±1；角色显式，禁止隐式 double pair 重载 |
-| `forward / inverse` | WcsModel、center/edge 或 SkyICRS、数值 budget → sky 或 center/root_box/residual | 背半球、horizon、边界根盒未决、不收敛具名返回；AP/BP 仅初值 |
-| `derivative / solid_angle_jacobian` | WcsModel、点或 box → J/J_error 或 g interval | 来自同一解析连续模型；不拿中心 g 乘区域当面积 |
-| `footprint / measure / compute_overlap` | provider、DetectorFootprint、pixfrac、leaf/order、GeometryBudget → 曲边、Ω/A/a/约束/未决域 | source 收缩在 detector；输出有向边界/有效域，不能只四角；候选超限保位置与质量 |
-| `calibrate_observation / regroup_observation` | RawObservation、masters/readout/flat、G/真实 footprint → NativeObservation | dark 含 bias 与曝光规则显式；gain 未知不伪造 shot noise；mean-bin 积分身份显式恢复 |
-| `solve_astrometry` | 校准像元、blind-detection request、本地 catalogue/context → AstrometricSolution 或 unsolved | 内含WcsModel、参数误差/随机根及同观测influence或显式unknown、适用域/模型偏差；solver候选单独输出；无输入WCS仍实际尝试 |
-| `measure_science_sources / fit_psf` | 校准观测、WCS、Gaia positions、PSF/PRF/窗口请求 → StarFlux、EffectivePSF、influence | 像元积分而非整数 PSF 采样；不把有限窗重归一成总通量 |
-| `integrate_response` | Response、SpectralBasis、integration budget → v/error/domain | 分段折点、不双乘 photon conversion；缺谱域/XP 分辨率偏差单列 |
-| `fit_photometry / apply_scale` | StarObservations/共享 XP latent、responses/basis/gauge/noise → PhotoSolution；solution+NativePatch → CalibratedPatch | flux 域联合白化 QR/SVD/分块消元，rank不足不 ridge；application_id 去重、空间 α 逐像元 |
-| `build_drizzle` | OverlapProvider、SourceSignals、Request → DrizzleOperator、SignalEstimate | F=Σwx,N=ΣwΩ,B=F/N,R=w/N；平均强度入口另用 ΣwΩb；signed 分式界与共同约束保留 |
-| `refine_geometry` | RefinableGeometryProvider、base snapshot、primitive绝对限额、arithmetic/resources → GeometryRevision | 返回新不可变Ω/A/a、R或其重建recipe、受影响source/leaf/constraint集合和完整未决状态；不能原地修改旧action |
-| `apply / transpose_apply / compose` | LinearAction、有域单位的 vector → OwnedValues 或 action | 检查输入/输出索引版本；transpose是真转置，不是重新采样 |
-| `covariance_apply / quadratic_form` | CovarianceAction、v 或 signed aperture t → Cv 或 variance_or_unknown | 未知项非零影响则完整结果 unknown；PSD 零空间保精确约束 |
-| `geometry_covariance_bound` | CovarianceAction、operator error、functional → BoundOrUnavailable | 需要绝对因子 action 或可信谱界；仅 Cv 不足以给 |C| |
-| `estimate_flux_information` | h,Z,C、reference/condition → V_F、rank/nullspace | 白化投影或 PSD 约束解；不可辨识不取伪逆 FF 元 |
-| `evaluate_scene_variance / control_covariance` | 帧模型、query rows 或 T → V_B/Γ 或 V_ctrl action | 使用真实场景和控制统计；参考 SNR 不能换名输入 |
-| `reconstruct_scene_variance` | 同类 Controls、Chart、支持三角网、Query、可选外部 δ/M → value/bound/support/identity | 域外/洞不可用；无M仅conditional预测，不造跨叶covariance |
-| `build_sky_controls / fit_relative_sky` | frame provider、comparability、T/H/basis/noise/gauge → controls、SkyFit | PSF/response 可比、实际rank、全部共同模态；图连通不等于平面可辨识 |
-| `apply_sky` | y、SkyFit → z、P action | z=y−Eβ，P=I−EKT；同 basis，不独立加 sky 参数方差 |
-| `select_samples / solve_weights / coadd` | CoaddRequest、FramesProvider → Selection、WeightSolution、CoaddResult | 资格→可选单步LOO→权；LOO需共同可比较均值、N≥4、外部固定可信Γ；不满足跳过，不能对合法混合色差直接排异；权依目标/Γ/响应约束，unknown降级具名 |
-| `build_export / export_signal` | 产品provider、OutputWcs、support policy、quantity request → Q、SignalEstimate | b真实交叠，不收缩；均值/支持积分/外推整像元积分不同身份 |
-| `open_product / publish_product` | manifest/root 或完整产品对象图 → provider 或 PublishedProductRef | 统一I/O；必须闭包/hash/版本/单位检查，失败不得发布完整身份 |
-
-`FramesProvider` 提供 `list_frames`、`describe_frame`、`read_leaf_block(frame,range,halo,fields)`、`read_native_dependencies(source_set)`、`open_action(id)`、`query_support(region)`。能力先查询，再读；fields 包括 signal/DQ/support/PSF/response/noise，不强迫只读预累加值。halo 由各算法实际核与作用域请求，资源不足拆分或 spill，不能静默裁掉邻域。provider 不根据请求顺序改变返回科学对象。
-
-可重细化产品另暴露 `open_refinable_geometry(snapshot)` 和 `refine_geometry`。GeometryRevision包含base/new snapshot hash、primitive/算子版本、受影响source/leaf/domain、旧对象到新对象的映射和资源账本；按source细化共同A/Ω可能影响该源所有目标叶，失效范围不得只列本次查询叶。重复同一base请求不覆盖任何现有版本。
-
-工作流预算控制器消费revision，依依赖图重新计算受影响signal/PSF/noise/basis、controls/T/H、sky K/P、Γ、selection/weights及Export，直到所有请求达标或资源耗尽。即使T/H数值不变也必须绑定新输入snapshot；sky分量全局拟合受影响时整分量失效。新下游闭包校验通过后原子发布一个新snapshot；在此之前读者继续持旧闭包，绝不把新R与旧K/权混接。多轮refinement共享剩余work/bytes总预算与取消域，不在每次API调用重置配额。不可恢复或不具refine能力返回unsupported并标具体geometry_solve_unresolved/science_unconverged；不偷偷重读未锁定外部源或冻结中心解冒充重算界。
-
-请求类型的必需字段及首期默认如下。模板可以补默认，但进入 API 的有效请求必须完整展开并记录hash；科学必需项缺失返回 invalid_request，不从信号数值或历史目录猜测。
-
-| 请求类型 | 必需字段与策略 |
+| 正本字段 | 唯一取值/语义 |
 |---|---|
-| `QuantityRequest` | `id,kind,unit,domain,functional,absolute_tolerance,conditioning`；kind为B/assigned_flux/supported_flux/aperture/covariance。functional为具名叶选择、带单位signed稀疏t或成对t/u；要求相对容差时必须另给正的absolute floor，零附近不能只算相对误差 |
-| `GeometryRequest` | source集合、统一order、pixfrac（Normalize默认1，Export固定不收缩）、scope、QuantityRequests或area-only绝对预算、Nmin、算术及max_work/max_bytes/max_depth。Nmin默认0，仅用NL>0判断有保证归一；用户正阈值产生weak_support，不删除合法精确信号 |
-| `NoiseRequest` | estimator/condition、根/共享模型、included/omitted、linearization及请求functional；condition区分actual_scene、blank_background、named_reference、fixed_selection；无模型不默认独立/零方差 |
-| `PhotometryRequest` | Response/ReferenceSED、空间basis/归一域、gauge、source选择、counts/Gaia noise、flux likelihood/鲁棒policy、收敛与rank阈值、application_id。默认scalar+flux-domain joint Gaussian仅用于声明适用域，非Gaussian必须明确原始计数似然或条件近似 |
-| `SkyRequest` | comparability证据、T/H和共享basis、分量gauge、noise、训练/预测支持、solver及rank/残差/扰动预算；默认每可估分量reference-frame系数0，公开reference身份；孤立/无比较组 correction0仅为规范 |
-| `CoaddRequest` | FramesProvider、target estimator或显式mixed_observation、权policy、selection、support、science requests。默认selection=DQ_only，noise完整且共同量可比时auto权为BLUE；否则auto为equal并写原因。nonnegative_QP、经验权和任何启发式排异均显式选择；数据依赖Γ标condition |
-| `RejectionPolicy` | none/DQ_only/single_max_LOO/explicit_heuristic；LOO含alpha（基线默认.001）、外部固定Γ身份、共同均值可比性与Gaussian条件，最多拒1、只1轮；不满足前置则逐位置skip+reason，不能自动换启发式 |
-| `ExportRequest` | 目标WcsModel或中心/尺寸/尺度/方向、quantity（默认supported_mean）、support policy（exact/full_leaf_approx/effective_area_approx）、science budget、输出dtype。全像元外推必须显式 `assume_uniform_uncovered`；不支持的投影/缺必要subleaf形状不静默伪装exact |
+| QuantityRequest.kind | brightness、assigned_flux、supported_flux、aperture、covariance、area；index及left/right明确泛函，tolerance和condition随对象传递 |
+| GeometryBudget | requested_functionals、per_leaf_absolute_area、area_absolute_sr、normalizer_min_sr、max_work/max_bytes/max_depth、arithmetic；DrizzleRequest通过budget嵌入它 |
+| PhotometryRequest | responses/reference/basis/frames/application_id/solve/gradient_tolerance/step_tolerance/max_outer_iterations/likelihood；声明模型为joint_flux_gaussian。Gaia latent锚定尺度，空间基均值零；不另加参考帧gauge。SolvePolicy.huber控制显式Huber IRLS |
+| RejectionPolicy.kind | dq_only、single_max_loo；dq_only仍执行DQ资格，表示无统计排异。single_max_loo使用alpha、external_fixed_covariance、common_mean_proof，最多拒一个且仅一轮；前置不满足逐位置skip+reason |
+| WeightPolicy | automatic、equal、blue、nonnegative_qp；automatic在共同量可比且C完整时选blue，否则equal并记原因；显式blue缺能力则unavailable。mixed_observation只允许equal或显式nonnegative_qp，automatic选equal |
+| SupportMap::Kind / ExportRequest.support_policy | primitives、dyadic_cells提供实际支持形状的严格交叠；full_leaf_approx、effective_area_approx是具名近似。严格请求缺所选支持能力则unavailable，不把近似冒充精确 |
+| ExportRequest.quantity | supported_mean、supported_flux、extrapolated_full_flux；最后一项必须assume_uniform_uncovered=true。target是OutputWcs，dtype和budget均显式 |
 
-rank/迭代阈值是带列尺度及误差解释的数值请求，不是以任意epsilon删除真实模态；固定默认与精度分支见EXECUTION，实施时须独立数值验证。本架构定义可估性及失败语义，不为不同矩阵统一发明一个科学误差阈值。
+unknown噪声不是零方差。首期不提供自定义经验权或启发式排异策略，未来若扩展必须先修唯一声明/schema及科学语义；不能把文中数学讨论当另一个枚举入口。rank阈值是带尺度与误差解释的请求，默认及停止分支见EXECUTION，不用任意epsilon删除真实模态。
 
-## 线性 action 的可执行合同
+## 线性 action 的能力合同
 
-每个 action 暴露 `describe`、`apply`、`transpose_apply`、`dependency_blocks`、`serialize_recipe` 和 error/conditioning。可选 `row_enclosure`、`absolute_factor_apply`、`operator_norm_upper`、`solve/whiten` 逐项声明；没有的能力返回 unsupported，不能由普通 apply 推断。
+LinearAction的实际方法仅apply、transpose_apply、dependency_blocks、serialize_recipe、row_enclosure；域和单位直接读spaces，误差从recipe.error_record强引用取得。row_enclosure缺能力返回unsupported。CovarianceAction为声明中的数据模型，absolute_factor_bound、operator_norm_upper、omitted_action_norm是可空能力字段，不是另设的成员函数。普通Cv不能当白化或绝对系数action；solve/白化由SolveSpec、已给因子及numerics中的唯一求解实现完成，失败按已声明Code返回。
 
-对于原生 C=BDBᵀ+C_loc+UΛUᵀ，covariance action 为 L C Lᵀ；不同 frame view 共同 shared 根形成 cross action。GLS 要 inverse/whitening 或带约束的增广系统，不能将 C(v) 当白化。转置、共享 latent 坐标、signed aperture 和空域须在 driver 可见。非线性拟合/选择的 influence 是指定条件下线性化，记录线性化点；全过程 MC 才评价数据依赖后的 coverage。
+FramesProvider的实际方法、参数及RefinableGeometryProvider/GeometryRevision字段只由声明拥有，特定合同见下表与OBJECTS。几何revision使同源全部叶、sky分量、权/选择和Export依赖失效，workflows按依赖重新计算；新闭包完成前旧闭包保持可读，不混R/K/权版本。细化共享本进程剩余预算，不能每次API重置配额。缺refine能力返回unsupported及科学未达标状态，不偷读未锁定源。
 
 ## 实际公共接口、入口和结果规则
 
-[contracts.hpp](../../../include/acsd/contracts.hpp) 是所有字段/签名的唯一可编译声明。前文概念表不再授权实现者另造 Request 类型。C++20静态库是首期进程内 API，CLI与contract驱动均直接调用它。首期没有 C ABI 或异步科学 ABI；未来如有真实进程内外语消费者另作版本设计，不提前建设 opaque-handle/函数表包装。GUI及独立语言 oracle 使用下面JSON文件/子进程边界，已满足同步核心与异步集成。
+[contracts.hpp](../../../include/acsd/contracts.hpp) 是所有字段/签名的唯一可编译声明。本篇不授权实现者另造 Request 类型。C++20静态库是首期进程内 API，CLI与contract驱动均直接调用它。首期没有 C ABI 或异步科学 ABI；未来如有真实进程内外语消费者另作版本设计，不提前建设 opaque-handle/函数表包装。GUI及独立语言 oracle 使用下面JSON文件/子进程边界，已满足同步核心与异步集成。
 
 所有 science函数同步；Context在整个进程中可共享同一Resources+Storage（commands各有取消域），线程安全只读Ref和provider可跨调用共享。运行清单/提交状态只属于本次command。输出Ref可超调用活着，最后引用释放数组/模型；Context外部所有者必须保持Resources和Storage直到全部Ref/Lease释放。函数不保存span，provider请求完成后其输出Lease保字节。Context本身为轻量借用，无旧会话注册。
 
-Result.code=ok 表示调用被完整处理且必要目标达标；partial value在nonconverged/resource_exhausted/precision_exhausted时允许，只能消费标为有效的子域/条件对象。invalid_request/invalid_model/identity_conflict/corrupt_product/io_error/internal/cancelled不提供可发布的value；unavailable/not_identifiable/unsolved可提供仅诊断对象，必须无正式signal。无支持行code=no_support可作为批量value的行状态；空向量不等于失败。单体数学函数遇非有限输入invalid_model；to_fits/from_fits是唯一无Result的纯值运算，前置条件有限且加减1可表示，否则caller边界先拒绝。这四项不创建对象/状态。
+Result.code=ok 表示调用被完整处理且必要目标达标；partial value在nonconverged/resource_exhausted/precision_exhausted时允许，只能消费标为有效的子域/条件对象。invalid_request/invalid_model/identity_conflict/corrupt_product/io_error/internal/cancelled不提供可发布的value；unavailable/not_identifiable/unsolved可提供仅诊断对象，必须无正式signal。无支持行code=no_support可作为批量value的行状态；空向量不等于失败。单体数学函数遇非有限输入invalid_model；to_fits/from_fits_center/from_fits_edge是唯一无Result的纯值运算，前置条件有限且加减1可表示，否则caller边界先拒绝。这四项不创建对象/状态。
 
 ### 独立构造与全部操作特定合同
 
@@ -84,7 +49,7 @@ Result.code=ok 表示调用被完整处理且必要目标达标；partial value�
 | Storage.copy/read | dtype+little-endian bytes+shape+Unit+index创建不可变Array；校验bytes/元素数，计费后复制；read取flatten BlockRequest、保Lease；越界invalid_request、配额不足resource_exhausted。copy是独立驱动构造矩阵/噪声的公开入口 |
 | Resources.reserve/consume_work/usage | 同时预留bytes和线程，Reservation.lease释放归还容量；work消耗不可归还，零units可查询剩余；失败不改变配额。usage为进程累计；调用开始/结束差记Result |
 | make_action | OBJECTS白名单recipe+有序children/arrays；检索对象不靠全局注册。维度/单位/索引/版本不一致invalid_model/unsupported；成功给不可变action并retain依赖 |
-| make_covariance | roots+同一shared根先合并总influence，PSD因子合法才构造C action。显著负谱invalid_covariance；unknown保留；不会把满秩假设加入noise |
+| make_covariance | NoiseModel内roots+同一shared根先合并总influence，PSD因子合法才构造C action。显著负谱invalid_covariance；unknown保留；不会把满秩假设加入noise |
 | make_frames_provider | descriptions/signals/dq等长逐帧、同index、唯一frame/source；内存provider完整实现FramesProvider，缺某能力unavailable；返回对象保全部数组，完全不需产品目录 |
 | make_wcs | HeaderFields typed list而非不可信字符串拼接；Box覆盖完整footprint，context/budget；结果Ref<WcsModel>包括完整准入证书，缺必需参考系/畸变unsupported。符号未证明返回domain，不返回可用于严格几何的Wcs |
 | forward/inverse | 点输入必须在domain，SkyICRS单位化误差纳rad预算；inverse返回点+root_box+分列残差，不能只返回近似点。域/切平面/存在性未决在issues.reason精确列projection_unresolved等科学原因 |
@@ -98,18 +63,18 @@ Result.code=ok 表示调用被完整处理且必要目标达标；partial value�
 | integrate_response | Response/SpectralBasis/budget，输出v[d]、absolute_errors[d]及支持域；积分界不掩盖谱分辨率未知bias，缺尾界complete=false。相同响应和basis hash可按算术预算缓存 |
 | fit_photometry | measurements按PhotometryRequest.frames显式顺序，CatalogueStar按source_id与测量join，prediction按response一一对应；未观测latent不造数据。rank缺失返回not_identifiable带nullspace；GN失败nonconverged，不应用任意scale |
 | apply_scale | solution显式含frame，application_id不重复，原单位与模型匹配；输出新NativeObservation，α空间逐像元；下游PSF/noise/signal只取新revision |
-| build_drizzle | overlaps source全匹配NativeObservation、order/f同overlap身份；构造同R的signal/noise/support/response。no_support或未证明正支持不构造归一行。DrizzleRequest.requested_functionals必须反映最终量，area-only只能证明area |
+| build_drizzle | overlaps source全匹配NativeObservation、order/f同overlap身份；构造同R的signal/noise/support/response。no_support或未证明正支持不构造归一行。DrizzleRequest.budget.requested_functionals必须反映最终量，area-only只能证明area |
 | RefinableGeometryProvider.open/refine、refine_geometry | open锁hash与闭包，refine依GeometryBudget生成immutable revision；base不存在missing_dependency；不能refine unsupported。GeometryRevision.next成功后事务替换依赖，前文失效协议适用 |
-| LinearAction全部方法、apply/transpose_apply/compose | DomainUnits.index和单位严格相合；dependency_blocks返回实际源block IDs，transpose=true返回反向依赖；row_enclosure可unsupported；compose outer(inner(x))，所有误差和索引在新action保留 |
+| LinearAction全部方法、apply/transpose_apply/compose | DomainUnits.domain/codomain和单位严格相合；dependency_blocks返回实际源block IDs，transpose=true返回反向依赖；row_enclosure可unsupported；compose outer(inner(x))，所有误差和索引在新action保留 |
 | covariance_apply/quadratic_form | 检查C域与输入的同随机量index；full未知时covariance_apply返回unavailable无假Cv，quadratic_form可返回Variance{value=null,state=unknown}并列未知项；完全已知返回Cv/非负variance，微小负仅在证明数值区间含0时截为0并记录 |
 | geometry_covariance_bound | nominal R、非负绝对误差E、signed functional t，计算统计§2.1式3b的方差变化半径；没有absolute-factor或谱界则BoundOrUnavailable.bound=null、reason，名义C仍可用。结果不是随机variance增量 |
 | estimate_flux_information | h[N]单位1/sr或归一flux模板、background:N×P、C、具名reference；输出flux_variance+rank，h被背景吸收not_identifiable，无有限V；PSD精确约束可给真实V=0 |
 | evaluate_scene_variance/control_covariance | 前者实际leaf query、后者C及T；结果分别各leaf Variance和TCTᵀ，不将reference变scene。跨frame Γ由相同根拼接frame域后调用同一C API |
 | reconstruct_scene_variance | Controls.kind必须actual_scene，chart/三角/holes和Query，δ/M来自controls显式外部输入；输出查询顺序values/intervals/states。无M条件预测，外域NaN且absent，禁止制造C offdiag |
-| FramesProvider全部方法 | list按frame ID排序；describe给能力；read明确中心leaves、halo、fields，只支持声明字段，不能静默漏halo；native_dependencies按请求SourceIdentity顺序；open_action锁hash；query_support只返回请求index范围；refinable缺失unsupported。并发/请求顺序不改变科学结果 |
+| FramesProvider全部方法 | list_frames按frame ID排序；describe_frame给能力；read_leaf_block的FrameReadRequest明确中心leaves、halo、fields，只支持声明字段，不能静默漏halo；read_native_dependencies按请求SourceIdentity顺序；open_action锁hash；query_support只返回请求index范围；refinable缺失unsupported。并发/请求顺序不改变科学结果 |
 | build_sky_controls/fit_relative_sky/apply_sky | request指定groups、T/H或默认patch、共同Basis、gauge、noise及solve；build产T,H,A,E；fit产β,K,P/nullspace；apply返回z及同P噪声。不可比不造边、孤立0仅gauge；nullspace影响查询处修正不可用 |
 | select_samples/solve_weights/coadd | 共享CoaddRequest，前两者分别产Selection与WeightSolution；coadd按同过程调用，禁止另实现一次。coadd输入provider必须已应用给定sky或由函数构造P，不能重复apply_sky。request mixed=false需common_mean证据；mixed=true保实际核。BLUE缺C明确unavailable，auto才equal |
-| build_export/export_signal | 前者prodProvider+目标Q/quantity/support/dtype/budget产Q和estimate，后者仅序列化ExportResult；不重新投影。无noise保unknown，exact support缺模型unavailable；extrapolation没有显式假设invalid_request |
+| build_export/export_signal | 前者prodProvider+目标Q/quantity/support/dtype/budget产Q和estimate，后者仅序列化ExportResult；不重新投影。无noise保unknown，primitives/dyadic_cells严格支持缺模型unavailable；extrapolation没有显式假设invalid_request |
 | ProductProvider.graph/read_array、open_product/publish_product | graph不可变闭包，read_array同Storage租约；open锁manifest_hash并验证，publish一次新目录，闭包缺失missing_dependency，写盘失败io_error，无完成身份。不得执行产品携带的任意代码 |
 | normalize | NormalizeRequest.frames与outputs等长，frame ID唯一，联合photometry跨frames；supplied_wcs非null走已知头路径且记录supplied，不再盲解。不能标度的帧仅allow_relative_uncalibrated=true才出具名相对L并noise条件。逐帧失败不取消其它可用帧；返回partial及完整分母，失败帧不产HiPS |
 | mosaic | 先open每个input，检查同order、Source去重、单位可解释→构建sky→coadd→publish；任一输入损坏默认整体失败，不静默少帧。sky/选择未达请求可留诊断，不把其发布为完整成功 |
@@ -131,7 +96,7 @@ result.json字段：protocol,major,request_id,operation,input_hashes,resolved_re
 
 CLI只有 acsd normalize|mosaic|export --json config.json、--version --json、doctor --json、template <command>；后两项是环境诊断/静态模板，不构造科学数据。三命令配置遵循[config.schema.json](../../../schemas/config.schema.json)：schema="acsd.config/2"，command，inputs，scientific（typed request JSON路径），output，resources，product_profile。配置路径相对config所在目录、产品内部相对产品根，不相对进程cwd。inputs为真实FITS/manifest列表，scientific文件为NormalizeRequest/MosaicRequest/ExportWorkflowRequest字段，但frames.raw、outputs、inputs、input/output由CLI从配置输入/输出唯一注入，若科学文件同时提供冲突字段则invalid_request；CLI只做解码和构建公开对象，不含算法。
 
-Normalize每项input含frame_id、FITS path、可选calibration与response对象路径，catalogue路径另有配置；Mosaic/Export为product manifest路径+必需expected_hash。scientific文件中非I/O字段严格同头合同，无未知键。所有有效配置展开后按schema/类型验证并存闭包。模板默认：f=1、select=dq_only、weights=automatic、topology support=exact、publication full、threads=可用CPU的min(8,quota)、memory=1GiB、work=10000000、spill=8GiB、max_depth=64、initial_bits=64、max_bits=256、solver max_iter=200、rank_relative=1e−12（只是数值分类起点，必须同时记录误差界）。科学 tolerance、response、参考SED/单位、尺度搜索域和历元无通用默认，缺失invalid_request。
+Normalize每项input含frame_id、FITS path、可选calibration与response对象路径，catalogue路径另有配置；Mosaic/Export为product manifest路径+必需expected_hash。scientific文件中非I/O字段严格同头合同，无未知键。所有有效配置展开后按schema/类型验证并存闭包。模板默认：f=1、select=dq_only、weights=automatic、support_policy=dyadic_cells、publication full、threads=可用CPU的min(8,quota)、memory=1GiB、work=10000000、spill=8GiB、max_depth=64、initial_bits=64、max_bits=256、solver max_iter=200、rank_relative=1e−12（只是数值分类起点，必须同时记录误差界）。科学 tolerance、response、参考SED/单位、尺度搜索域和历元无通用默认，缺失invalid_request。
 
 退出码：0所有必需目标达标并发布；2配置/输入无效；3能力不支持/必需模型 unavailable；4计算/I/O/完整性失败；5取消；6部分帧失败或数值未达标。优先级取消>完整性/I/O>输入>能力>partial>成功。无论退出码，run_summary列全部输入数量、已发布/unsolved/failed/cancelled数量与逐帧状态，不把仅完成部分当exit0。
 
@@ -145,7 +110,7 @@ GUI管理配置、输入分组、运行/取消、事件显示与产品浏览；�
 
 新增操作：
 - detector_footprint(footprints,source_row)：流式解析一条detector足迹，不需要WCS；绑定后才可几何。
-- bind_wcs(observation,wcs)：校验完整域并创建immutable revision，原生数组共享；无WCS校准合法。
+- bind_wcs(observation,wcs,solution)：校验完整域并创建immutable revision，原生数组共享；无WCS校准合法。
 - bind_observation_model(observation,kernel,response)：将fit结果及响应绑定同观测新revision，校验frame/source index和实际G；不应用α、不改数值，已scale改变response拒绝identity_conflict。
 - build_catalogue_index(request)/make_catalogue_provider(index)：公开列式输入构建有界离线quad索引/只读provider，不藏路径；metadata与页面/XP basis见SYSTEM及声明。
 - evaluate_psf(psf,request)：单一PSF积分及实际transfer链，输出PsfEvaluation，含[output sample,source position]模板和实际数值包围。预算失败保有效包围和原因，不能另以整数采样替代。
@@ -161,11 +126,11 @@ Unit增加linear_power：信号L为1，variance为2，纯面积/功能系数为0
 
 ### 可机检的科学输入与CLI科学文件
 
-[science-input.schema.json](../../../schemas/science-input.schema.json)由唯一声明导出每种struct实际字段、数组维数类型、enum、Ref及全部operation参数；contract.schema直接引用它。本机验证器注册本地schema，不访问占位域名acsd.invalid。运行tools/generate_contract_schema.py再check_design --同步检查；生成物不能反向修改科学。Schema只检形状；单位/index/支持/PSD/原语能力等语义仍须在集中边界校验，合法JSON不等于科学有效。
+[science-input.schema.json](../../../schemas/science-input.schema.json)由唯一声明导出每种struct实际字段、数组维数类型、enum、Ref及全部operation参数；contract.schema直接引用它。本机验证器注册本地schema，不访问占位域名acsd.invalid。运行tools/generate_contract_schema.py，再运行check_design.py同步检查；生成物不能反向修改科学。Schema只检形状；单位/index/支持/PSD/原语能力等语义仍须在集中边界校验，合法JSON不等于科学有效。
 
 CLI的scientific文件按[cli-science.schema.json](../../../schemas/cli-science.schema.json)，形状为{command,request,frame_options?}，command必须等config.command。request是对应workflow类型去掉I/O注入字段：Normalize去frames/outputs，Mosaic去inputs/output，Export去input/output。Normalize.frame_options是{frame,supplied_wcs,regroup}列表（可省为空），按frame ID join config.inputs，不得有重复/未知frame；缺项默认null/null。frames的raw/Calibration/Response由input文件构建，calibration缺省是显式无母版/噪声unknown，不从目录搜索。Mosaic/Export input从manifest锁hash构造。Normalize.outputs为config.output下按frame ID的SHA256十六进制目录，避免路径注入；publication默认FP64/tile512/durable，与展开请求一起记录。若用户要求不同dtype/tilesize/durability，在科学文件之外用config.publication显式覆盖并展开，Export与projection.output_dtype必须一致，否则invalid_request。
 
-ReferenceInformationRequest的noise可空只有actual_scene分支；named_reference/blank_background缺noise返回precision unavailable，不能填零，也不取消合法signal。build_supported_triangulation(controls,chart,support)输出可恢复的有限观测三角网，失败/资源未完成不提供可用网；全部插值只在其支持内。输入物理组件没有给出时，接口不授权Agent推导未知shot variance。
+ReferenceInformationRequest的native_noise可空只有actual_scene分支；named_reference/blank_background缺noise返回precision unavailable，不能填零，也不取消合法signal。build_supported_triangulation(controls,chart,support)输出可恢复的有限观测三角网，失败/资源未完成不提供可用网；全部插值只在其支持内。输入物理组件没有给出时，接口不授权Agent推导未知shot variance。
 
 C++参数名是唯一wire key；variant标签严格用声明的std::string/double/std::int64_t。JSON数字可为有限decimal；规范持久化f64位编码另由产品decoder读取，调用输入也允许{f64:16hex}保精度，并先拒绝其NaN/Inf位模式。所有Array.values按dtype范围与shape检查；Array小例index_id别名必须解析后再校验。输入对象DAG不按JSON key顺序绑定。
 
@@ -175,7 +140,7 @@ C++参数名是唯一wire key；variant标签严格用声明的std::string/doubl
 
 u64必须由保留64位整数的parser读取；C++/Python可直接用十进制JSON整数，JavaScript客户端必须采用无损整数解析，不能先JSON.parse成double再声称相同输入。大型index/ids在u64二进制块中传递，GUI事件与产品浏览不要求它自行重算NESTED。外部f64位模式先检查有限，decimal容差取不宽于请求的保守解析值并保原lexeme身份。
 
-CLI初始化一个CpuResources实现、一个Storage实现和取消源，按Limits创建Context；独立C++调用者可实现这三份公开接口或复用services实现。实现中Resources原子准入、Storage内存/磁盘backend及immutable arrays均遵循EXECUTION，无注册会话、无科学全局配置。所有大数组以Storage.copy/读取构造；发布前对象可由caller独占builder组装，consumer集中校验，publish后Ref<const>不可写。
+CLI初始化一个CpuResources实现、一个Storage实现和取消源，按Limits创建Context；独立C++调用者可实现这三份公开接口或复用src/resources与src/storage实现。实现中Resources原子准入、Storage内存/磁盘backend及immutable arrays均遵循EXECUTION，无注册会话、无科学全局配置。所有大数组以Storage.copy/读取构造；发布前对象可由caller独占builder组装，consumer集中校验，publish后Ref<const>不可写。
 
 校验顺序固定：协议/字段/类型→尺寸与溢出、单位/index/identity→科学域/能力与资源准入→算法→逐泛函误差/状态→序列化量化→发布闭包。无效模型在消费边界一次拒绝，内部已验证块不逐元素重复防御或记录日志。未知能力只限制对应操作，不能把合法负值/零删掉。
 

@@ -1,8 +1,11 @@
-> 本分支将本篇作为既定科学输入，保留以下历史审核措辞和有限证据身份。工程状态只由[新设计入口](../../engineering/rebuild/README.md)定义；历史中的“不创建分支/生产未修改/复算命令”描述其原始研究时点，不约束本分支。历史实验源码和证据已从新树移除，本篇相关路径仅指[固定基线研究档案](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)，不是新实现/测试依赖。实际公共字段由新合同唯一拥有。
+> 当前科学设计状态：已完成独立科学及工程完整性复核，未发现尚存P0/P1设计阻碍；结论与范围见[最终审核记录](../../audit/final-review.md#科学审核状态)。不再以重复的通用独立科学审核作为启动实现前置；负责人启动授权、实现后的独立数值/产品/性能验证及真实数据适用性验证仍分别成立。公共字段、签名与枚举只由[contracts.hpp](../../../include/acsd/contracts.hpp)拥有。
+>
+> 历史证据边界：下文所有“已运行/生产探针/本轮/独立脚本”、研究性能数字及研究文件名均指[固定基线档案c5fee09fe](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)。这些脚本及旧生产源码不在当前工作树；复算只能在该提交的单独历史checkout及其依赖环境中进行，不能在本分支根目录直接运行，也不能用其结果验收新实现。当前可运行内容仅为[根README](../../../README.md)列出的设计/schema/声明检查，未来科学测试另按VERIFICATION重新编写。
+
 
 # 统一误差、相对天光和传统合成
 
-**候选科学规范，待外部独立审核。** 从[同一观测模型](OBSERVATION_COORDINATES.md)与[同一几何 R](SPHERICAL_DRIZZLE.md)出发。本文定义可执行的统计基线；独立代码 `statistics_independent.py` 实现小矩阵参考，真实大规模数据适用性另列。
+**当前科学设计基线（审核范围见页首）。** 从[同一观测模型](OBSERVATION_COORDINATES.md)与[同一几何 R](SPHERICAL_DRIZZLE.md)出发。本文定义可执行的统计基线；独立代码 `statistics_independent.py` 实现小矩阵参考，真实大规模数据适用性另列。
 
 ## 1. 三种估计量与真实缺参数
 
@@ -22,7 +25,7 @@ V_{d,i}=(\mu_{{src},i}+\mu_{{sky},i}+\mu_{{dark},i}+\sigma_{r,i}^2)/g_i^2.\tag{1
 
 校准例 `x=(d−b−t dark)/flat` 的 Jacobian 为 `(1/flat,−1/flat,−t/flat,−x/flat)`，母版 combine rule 决定其 covariance；共同母版按同一个 shared_id 跨帧归属。修复/去马赛克若是线性插值也传播其算子；非线性处理另作线性化或模拟。
 
-误差状态使用 `known/conditional/approximate/unknown`，附 included_terms、omitted_terms、conditioning、单位、共享身份及模型偏差。非零 R 系数对应任何未知误差项，完整 V_B 就未知；已知部分可作诊断，不能将未知项填0。缺精度不删除合法信号，默认可用明确 equal/经验权，输出不标 full_IVAR。
+误差状态使用 `known/conditional/approximate/unknown`，附 included_terms、omitted_terms、conditioning、单位、共享身份及模型偏差。非零 R 系数对应任何未知误差项，完整 V_B 就未知；已知部分可作诊断，不能将未知项填0。缺精度不删除合法信号，首期默认可用明确equal权；其它经验权只是科学讨论，不属于当前公共策略，输出不标 full_IVAR。
 
 ## 2. 同一随机变量的一次传播
 
@@ -121,7 +124,7 @@ V(x)\in[\exp(\hat u-\Delta),\exp(\hat u+\Delta)].\tag{4a}
 \]
 δ/M是外部信息或物理先验，不能从同一稀疏点拟合后自证。无M时可以发布具名conditional预测和空间块留出误差，不给上述严格区间；该预测误差不是新生成的photon noise，也不补出未知跨叶covariance。smooth函数在全部有限控点为0、查询处任意大bump的反例证明：没有额外约束就不存在有限上界。
 
-`reconstruct_scene_variance(Controls,Chart,SupportedTriangulation,Query,optional δ/M)` 返回 `{value,log_error_bound,interval_or_null,support_state,estimator_identity}`。小域三角剖分预处理约O(M_c log M_c)，每查询定位约O(log M_c)、三权计算O(1)，按球面分块及halo处理，不在全天空直接作单个平面Delaunay。曲率M只适用于声明chart，不把角坐标欧氏Hessian直接搬入球面。
+重建过程消费控点、其外部δ/M、声明chart内的支持三角网与查询位置，产生名义预测、可得数值区间及支持/估计量身份；实际调用reconstruct_scene_variance的参数、VariancePrediction字段和错误合同只见[唯一声明](../../../include/acsd/contracts.hpp)与[API](../../engineering/rebuild/API.md)。小域三角剖分预处理约O(M_c log M_c)，每查询定位约O(log M_c)、三权计算O(1)，按球面分块及halo处理，不在全天空直接作单个平面Delaunay。曲率M只适用于声明chart，不把角坐标欧氏Hessian直接搬入球面。
 
 独立 `sparse_variance_reference.py` 的25控点/5000查询中，log平面一次再现最大误差1.61e−15；加入已知δ和二次真值Hessian界后，两个5000查询实验均无区间违例，最大`|error|/Δ`约.949/.960；图外不可用和无M的bump负例均实际执行。这是有限数学真值检查，不是对真实稀疏场曲率的测量。
 
@@ -145,7 +148,7 @@ s 是任意共同真实天空，包括星云斜坡、暗云、恒星晕；Aβ �
 `K=G(Q_w W A G)^+ Q_w W`，参数满可估子空间后才发布有限协方差。只有连接图连通不够：所有控制共线时二维平面仍缺秩。列尺度归一后用 QR/SVD 识别实际零空间，新增未识别方向不得靠 ridge 变“测量”。孤立帧可取 correction0 的 gauge，但无相对测量，状态单列。
 
 ```text
-fit_relative_sky(controls, H, basis, C, gauge):
+相对天光数学过程（非公共函数签名）：
     按响应/空间可比性与有效控制构图，分连通分量
     用同一个 basis.eval(frame,sky_position) 装配 A 和输出 E
     对公共s白化消元，gauge子空间内QR/SVD/稀疏LSQR
@@ -181,7 +184,7 @@ q_k=(z_k-\mu_{-k})/\sqrt{v_{res,k}} .\tag{10}
 \]
 `t_-k` 为真实 covariance 子块的 GLS。清洁共同均值 Gaussian 且 Γ 外部固定时每 q_k 边际 N(0,1)，故阈值 `Φ^-1(1−α/(2N))` 给逐位置 family false-reject probability≤α；q_k 不需互相独立。参考 α=.001，是研究基线参数而非全图误拒率承诺。N=1..3 不自动识别异常身份；N4..7 已实跑。N更大可仍用该保守基线、二维mask或成熟异方差 clipped mean；多异常策略须对其污染/PSF模型独立验证，不凭此单异常实验外推。
 
-禁止默认 `median±p|median|`：`[-2,-1,0,1,2]` 留0，整体+10后留[8,9,10,11]均值9.5≠10，违反加性平移等变性。真实天体零点、负信号不应改变噪声显著性。未知 variance 时用户可选明确启发式 robust 策略，但不附该 Gaussian 定理。变星、瞬变、移动天体不自动定义为坏像素。
+禁止默认 `median±p|median|`：`[-2,-1,0,1,2]` 留0，整体+10后留[8,9,10,11]均值9.5≠10，违反加性平移等变性。真实天体零点、负信号不应改变噪声显著性。未知variance时首期跳过此统计排异、保留DQ资格及合法signal；启发式robust仅为未来扩展的科学讨论，当前无公开请求入口，也不附该Gaussian定理。变星、瞬变、移动天体不自动定义为坏像素。
 
 不能并行丢弃所有超阈 q_k：一个坏帧污染其余留一预测，可能 swamping。失败试验 N5 单12σ污染后95%coverage=.91603；单步只拒最大者改为 .95096。**这不证明任何污染幅度或多污染都可靠**。固定接受集合后 `tᵀΓt` 是冻结选择公式，数据选择后的真正条件分布已截尾；需全过程forward MC/可识别污染模型的bootstrap。不得把“给定mask”误写成选择后精确95%区间。
 
@@ -189,20 +192,7 @@ q_k=(z_k-\mu_{-k})/\sqrt{v_{res,k}} .\tag{10}
 
 ## 6. 最小输入/输出合同
 
-```cpp
-struct NoiseModel { EstimatorIdentity estimator; Unit variance_unit;
-  NoiseState state; CovarianceAction action; DependencyGroups shared;
-  TermSet included, omitted; Domain observed_support; };
-struct SkyFit { Basis basis; Gauge gauge; Vector beta; LinearAction K,T,E;
-  CovarianceAction parameter_cov; RankReport rank; Domain support; };
-struct ScientificFrameView { FrameId id; TargetGrid grid; Array signal; Mask valid;
-  SupportGeometry support; Response response; EffectivePSF psf;
-  NoiseModel noise; LinearAction native_to_leaf; SkyFit sky; };
-struct CoaddRequest { FramesProvider frames_and_neighborhood;
-  EstimatorIdentity target; RejectionPolicy rejection; WeightPolicy weights; };
-struct CoaddResult { Array single_signal; InternalDiagnostics diagnostics;
-  CovarianceAction optional_covariance; SpatialResponse effective_response; };
-```
+字段与实际类型只见[唯一声明合同](../../../include/acsd/contracts.hpp)；本篇保留数学角色、单位与误差语义，不另声明工程结构。
 
 接口按真实球面位置、单位和响应交换，不引用旧scheduler或adapter。不同相机直接 Normalize 到同一 leaf order；Mosaic 混order明确拒绝，不做同tile/index错误叠加或额外混阶重映射。未来 SACoadd 可访问逐帧邻域、PSF、noise/response/support；不能只传预累加 `Σwy,Σw`。本轮只定义成熟传统合成。输出一个正式 signal HiPS；协方差 action、support 和选择为内部/诊断，不创造另一个物理信号。
 
