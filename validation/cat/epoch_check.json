@@ -1,0 +1,10 @@
+{
+  "case": "catalogue_epoch_propagation",
+  "max_angle_difference_arcsec": 1.9205058762704026e-05,
+  "max_angle_difference_rad": 9.310875234671489e-11,
+  "max_distance_difference_au": 0.051358206910663284,
+  "method": "astropy SkyCoord.apply_space_motion (ERFA space motion)",
+  "oracle": "astropy 7.0.1",
+  "samples": 18,
+  "worst_source_id": 1007672
+}
