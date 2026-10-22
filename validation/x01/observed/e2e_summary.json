@@ -27,7 +27,7 @@
    "first_failure": {
     "frame_id": "x01-00",
     "code": "failed",
-    "message": "the pixel integral cannot be built"
+    "message": "no catalogue star supplied"
    }
   },
   {
@@ -38,7 +38,7 @@
    "failed_frames": 1,
    "first_failure": {
     "frame_id": "mosaic",
-    "code": "failed",
+    "code": "missing_dependency",
     "message": "the product directory is missing"
    }
   },
@@ -50,11 +50,13 @@
    "failed_frames": 1,
    "first_failure": {
     "frame_id": "export",
-    "code": "failed",
+    "code": "missing_dependency",
     "message": "the product directory is missing"
    }
   }
  ],
+ "stdout_is_pure_jsonl": true,
+ "foreign_stdout_lines": [],
  "commands": [
   {
    "command": "normalize",

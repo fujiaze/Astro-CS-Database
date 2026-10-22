@@ -40,13 +40,19 @@ def run_command(binary: Path, command: str, config: str, timeout: float = 900.0)
     completed = subprocess.run([str(binary), command, "--json", config], capture_output=True,
                                text=True, timeout=timeout, cwd=str(CLI_DIR))
     events: List[Dict[str, Any]] = []
+    foreign_lines: List[str] = []
     for line in completed.stdout.splitlines():
         line = line.strip()
+        if not line:
+            continue
         if not line.startswith("{"):
+            # a line that is not an event: the protocol stream is polluted
+            foreign_lines.append(line)
             continue
         try:
             events.append(json.loads(line))
         except json.JSONDecodeError:
+            foreign_lines.append(line)
             continue
     frames = [event for event in events if event.get("event") == "frame_finished"]
     finished = [event for event in events if event.get("event") == "run_finished"]
@@ -63,6 +69,9 @@ def run_command(binary: Path, command: str, config: str, timeout: float = 900.0)
         "unsolved": (summary or {}).get("unsolved", 0),
         "failed_frames": (summary or {}).get("failed", 0),
         "stderr": completed.stderr[-600:],
+        # the protocol stream must be pure JSONL: every stdout line is an event
+        "foreign_stdout_lines": foreign_lines,
+        "stdout_is_pure_jsonl": not foreign_lines,
     }
 
 
@@ -101,13 +110,17 @@ def main() -> int:
             "first_failure": failing[0] if failing else None,
         })
 
-    status = "pass" if all(result["exit_code"] == 0 for result in results) else "fail"
+    pure = all(result["stdout_is_pure_jsonl"] for result in results)
+    status = "pass" if all(result["exit_code"] == 0 for result in results) and pure else "fail"
     summary = {
         "status": status,
         "route": "the three commands of the acsd command line on the frozen frames",
         "binary": str(binary.relative_to(REPO_ROOT)),
         "inputs": manifest,
         "stages": stages,
+        "stdout_is_pure_jsonl": pure,
+        "foreign_stdout_lines": [line for result in results
+                                 for line in result["foreign_stdout_lines"]][:20],
         "commands": [{"command": result["command"], "exit_code": result["exit_code"],
                       "published": result["published"], "unsolved": result["unsolved"],
                       "stderr": result["stderr"]} for result in results],
