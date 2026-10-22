@@ -18,7 +18,7 @@ struct SmokeOptions {
   QStringList scenarios{QStringLiteral("normal"), QStringLiteral("cancel"), QStringLiteral("crash"),
                         QStringLiteral("terminate")};
   int cancelDelayMs = 400;
-  int timeoutMs = 20000;
+  int timeoutMs = 180000;
 };
 
 // 执行冒烟；返回 0 表示全部场景符合预期。证据始终写入 evidencePath。

@@ -31,11 +31,13 @@ gui/
     smoke.{h,cpp}         离屏冒烟模式（--smoke）
     main.cpp              入口
   tests/
-    fake_acsd.py          假 CLI：只回放协议，不产生科学数据
+    fake_acsd.py          假 CLI：只回放协议，不产生科学数据（离线单测用）
     protocol_smoke.py     不依赖 Qt 的协议级冒烟（独立参考实现 + 与 GUI 代码交叉比对）
+    real_cli_smoke.py     真实 CLI（build/science/acsd）的协议冒烟 + events.schema.json 逐条校验
     protocol_check.cpp    无窗口协议检查器（复用 GUI 同一份协议/运行代码）
-    run_offscreen_smoke.sh 离屏冒烟运行器（同时跑 GUI 冒烟与协议冒烟）
+    run_offscreen_smoke.sh 离屏冒烟运行器（假 CLI + 真实 CLI 的全部冒烟）
     sample-config.json    冒烟用配置样例
+    real-config/          给真实 CLI 用的快速配置（缺 FITS → 真实 CLI 报 exit 4）
   evidence/               实际运行输出（冒烟日志与证据 JSON）
 ```
 
@@ -153,6 +155,7 @@ stdout 每行 UTF-8 单对象。`EventParser`（`src/protocol.cpp`）逐行强�
 * **输入分组**：normalize 按 `frame_id` 分组，mosaic/export 按产品分组；
   选中分组可过滤事件表。
 * **运行 / 取消**：选择 CLI、工作目录；运行、取消、强制终止；运行中禁用重复启动。
+  配置页还有「从 CLI 模板填充」：调用 `acsd template <command>` 取真实 CLI 的静态模板填入编辑器。
 * **事件显示**：按 `seq` 顺序列出事件、帧、块、`code`、进度（`completed/total`）、消息；
   `issue` 高亮、协议错误行标红；聚合进度条；`run_summary` 与单事件 `assessment` 详情面板；
   完整 GUI 日志。
@@ -179,6 +182,51 @@ ctest --test-dir build/gui --output-on-failure
   跑同样场景，并把两套实现的规范化事件流逐行对比。
 * `acsd-gui --smoke`：真实创建窗口（`QT_QPA_PLATFORM=offscreen`）、加载配置、
   连接 CLI、收 `run_finished`、发一次取消、读产品 manifest、验证不兼容配置被拒绝。
+* `gui/tests/real_cli_smoke.py`：**用真实构建出来的 `build/science/acsd`** 跑协议冒烟，
+  并把真实事件流逐条按 `schemas/events.schema.json` 校验（jsonschema）。
+* `acsd-gui --smoke --cli <真实 acsd> --scenario real-run,real-crash,real-terminate`：
+  GUI 侧用真实 CLI 跑运行 / 崩溃 / 强制终止。
+
+### 6.1 真实 CLI（`build/science/acsd`）的实测结果
+
+| 用例 | 真实输出 | 结论 |
+| --- | --- | --- |
+| `acsd --version --json` | 2 条事件（`run_started` + `run_finished`），`exit_code=0`，`summary={"version":"2.0.0"}` | 真实的 exit 0 完整运行；**输出是 JSONL 事件流，不是单个 JSON 对象** |
+| 无效配置 | `issue` + `run_finished(exit_code=2)`，进程退出码 2 | 与 API.md 的退出码表一致 |
+| 帧输入不可读 | `frame_finished(code=failed)` + `run_finished(exit_code=4)`，进程退出码 4 | 一致 |
+| 完整 normalize（`validation/apps/evidence/x01/config.json`，8 帧真实 FITS） | 18 条事件，`run_finished(exit_code=4)`，每帧 `frame_finished` 给出 `unsolved`/`failed` 原因 | 事件流与 schema 逐条相符 |
+| 取消报文 | `{"protocol":"acsd.control/2","command":"cancel","run_id":"..."}\n` 被 CLI 的控制线程接受 | 报文形态与 API.md 一致 |
+| 崩溃（SIGKILL） | 没有 `run_finished` | GUI 必须判失败，不能推断成功 |
+
+字段核对结论（`events.schema.json` ↔ 真实 CLI）：
+
+* 事件字段名与 schema 的 required 完全一致：
+  `protocol`/`run_id`/`seq`/`event`/`frame_id`/`block`/`code`/`assessment`/`completed`/`total`/`message`，
+  `run_finished` 另带 `exit_code`/`summary`；**没有多余字段，也没有缺字段**。
+* `run_summary` 的字段名是 `inputs_total`/`published`/`unsolved`/`failed`/`cancelled`/`frames`
+  （`frames` 是逐帧状态数组）。GUI 的"部分成功"判定用的 `failed`/`unsolved`/`cancelled`
+  三个键与之一致。
+* 退出码与 API.md 的表一致：0 成功、2 输入无效、3 能力不支持、4 计算/IO 失败、
+  5 取消、6 部分成功。GUI 的状态映射与之一致（`gui/src/runner.cpp`）。
+* 取消报文格式与 API.md 一致（键顺序 `protocol`,`command`,`run_id` + 换行）。
+
+### 6.2 与真实 CLI 互操作时发现的问题（**CLI 侧，不在 gui/ 的写作用域**）
+
+1. **取消目前不会变成 exit 5**：CLI 的控制线程正确读到了
+   `{"protocol":"acsd.control/2","command":"cancel","run_id":...}`，但
+   `apps/cli/main.cpp` 建立的控制源与 `run_normalize`/`run_mosaic`/`run_export`
+   内部各自新建的 `CancellationSource` 不是同一个对象，token 没有传到 workflow，
+   实测取消后真实 CLI 仍以自己的退出码（4）结束。GUI 侧行为正确：它发出取消、
+   等待终事件，并按收到的 `exit_code` 显示状态。
+2. **CLI 忽略 SIGTERM**：`watch_control_stream` 捕获 SIGINT/SIGTERM 后只置标志，
+   标志同样没接到 workflow 上，所以 `timeout` 也杀不掉它（实测留下多个占满 CPU 的
+   孤儿进程）。GUI 的"强制终止"用的是 SIGKILL，可以立刻结束。
+3. **CLI 在 stdin 未关闭时不退出**：控制线程阻塞在 `std::getline(std::cin, …)`，
+   进程退出时要等 stdin 关闭（实测 `sleep 15 | acsd …` 会挂 15 秒）。
+   GUI 侧的对策：收到 `run_finished` 后立刻 `closeWriteChannel()`，让 CLI 及时退出。
+
+以上三点都不影响 GUI 的协议判定，但会影响"取消 → exit 5"这条验收路径；
+**请 apps/Lead 侧确认**。
 
 ### 无 OpenGL 开发包的最小环境
 
@@ -191,10 +239,20 @@ Qt6Gui 在链接期需要 `libGL.so.1` / `libEGL.so.1`（它自己的 `DT_NEEDED
 
 ## 7. 限制与未完成
 
-* **真实 CLI 未就绪**：科学 CLI 由 `apps` Agent 实现（`apps/cli/` 目前只有 README）。
-  本目录的验证用**假 CLI**（`gui/tests/fake_acsd.py`）回放符合
-  `schemas/events.schema.json` 的 JSONL，只验证 GUI 侧的协议行为，
-  **不构成对真实 CLI 的协议验收**；真实 CLI 可用后需补一次真协议冒烟。
+* **真实 CLI 已接入验证**（`build/science/acsd`，2.0.0）：`gui/evidence/real_cli_smoke.json`
+  与 `real_gui_smoke.json` 是用真实二进制跑出来的证据；`gui/tests/fake_acsd.py`
+  只保留作离线单测，不再是协议验收的唯一依据。
+* **命令覆盖范围**：GUI 侧三个命令（normalize/mosaic/export）走的是同一套通用流程
+  （同一个配置编辑器、同一套事件解析、同一个取消协议），命令名来自配置文件的
+  `command` 字段，**没有按命令分叉的专用页面**。已用真实 CLI 实跑过 **normalize**
+  （完整 8 帧运行 + 快速失败用例）；**mosaic 与 export 尚未用真实 CLI 实跑**
+  （缺少可用的已发布产品输入；GUI 侧的产品浏览已用真实产品目录
+  `.work/product-roundtrip/frame` 的 `manifest.json` 验证）。
+  真实 CLI 的 normalize/mosaic/export 目前都还达不到 exit 0（科学链未完成，
+  实测 exit 3/4），所以"三命令全部 exit 0"目前**做不到**，GUI 只能验证到
+  "事件流解析正确、退出码映射正确、终事件缺失判失败"。
+* **`--version --json` 的形态**：真实 CLI 输出的是 JSONL 事件流而不是单个 JSON 对象，
+  版本探测已按两种形态兼容（`gui/src/protocol.cpp` 的 `parseVersionPayload`）。
 * GUI 不做科学解释：`run_summary` 的字段名未在正本固定，因此"部分成功"的判定
   采用宽松匹配（`failed`/`unsolved`/`cancelled`/`unpublished`/`incomplete`/`partial`/
   `errors` 等键的非零计数，或 `complete=false`）。真实 CLI 定稿后应收紧为固定字段。
@@ -203,4 +261,8 @@ Qt6Gui 在链接期需要 `libGL.so.1` / `libEGL.so.1`（它自己的 `DT_NEEDED
   其余枚举字段未做额外猜测。
 * 产品浏览只读目录，不解析产品携带的科学对象、不执行产品内的任何内容。
 * 输入分组是**派生视图**（`acsd.config/2` 没有分组字段），不写回配置。
-* Windows 下用 Qt6/MSVC 构建；本轮只在 Linux amd64 + Qt 6.7.3 上实跑过。
+* **Windows 未实跑**：本轮全部验证都在 Linux amd64 + Qt 6.7.3 上完成，
+  Windows（Qt6/MSVC）只写了构建配置（`/utf-8`、独立安装目标），
+  **没有在 Windows 上编译或运行过**，不能算通过。
+* 崩溃/强制终止场景的确定性依赖 POSIX 的 FIFO（`mkfifo`）让真实 CLI 阻塞在打开
+  FITS 上；Windows 上该场景退回普通配置（非确定性）。

@@ -79,10 +79,41 @@ protocol_status=${PIPESTATUS[0]}
 set -e
 
 echo
+echo "== 真实 CLI 冒烟（build/science/acsd） =="
+real_cli="${ACSD_REAL_CLI:-$repo_root/build/science/acsd}"
+real_status=0
+if [ -x "$real_cli" ]; then
+  echo "真实 CLI：$real_cli"
+  set +e
+  "$build_dir/acsd-gui" --smoke \
+    --config "$here/real-config/config.json" \
+    --cli "$real_cli" \
+    --scenario real-run,real-crash,real-terminate \
+    --timeout-ms 120000 \
+    --evidence "$evidence_dir/real_gui_smoke.json" \
+    2>&1 | tee "$evidence_dir/real_gui_smoke.log"
+  real_gui_status=${PIPESTATUS[0]}
+  python3 "$here/real_cli_smoke.py" \
+    --cli "$real_cli" \
+    --check "$build_dir/acsd-protocol-check" \
+    --out "$evidence_dir/real_cli_smoke.json" \
+    2>&1 | tee "$evidence_dir/real_cli_smoke.log"
+  real_protocol_status=${PIPESTATUS[0]}
+  set -e
+  real_status=$(( real_gui_status + real_protocol_status ))
+  echo "真实 CLI 的 GUI 冒烟退出码=$real_gui_status"
+  echo "真实 CLI 的协议冒烟退出码=$real_protocol_status"
+else
+  echo "没有找到真实 CLI（$real_cli），跳过真实 CLI 冒烟"
+  real_status=0
+fi
+
+echo
 echo "== 汇总 =="
 echo "GUI 冒烟退出码=$gui_status"
 echo "协议冒烟退出码=$protocol_status"
-if [ "$gui_status" = "0" ] && [ "$protocol_status" = "0" ]; then
+echo "真实 CLI 冒烟退出码=$real_status"
+if [ "$gui_status" = "0" ] && [ "$protocol_status" = "0" ] && [ "$real_status" = "0" ]; then
   echo "全部通过"
   exit 0
 fi

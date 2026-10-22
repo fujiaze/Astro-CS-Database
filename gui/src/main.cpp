@@ -39,12 +39,16 @@ int main(int argc, char** argv) {
   QCommandLineOption cancelDelayOption(QStringList{QStringLiteral("cancel-delay-ms")},
                                         QStringLiteral("发出取消的延迟（毫秒）"), QStringLiteral("ms"),
                                         QStringLiteral("400"));
+  QCommandLineOption timeoutOption(QStringList{QStringLiteral("timeout-ms")},
+                                    QStringLiteral("单个场景的超时（毫秒）"), QStringLiteral("ms"),
+                                    QStringLiteral("180000"));
   parser.addOption(smokeOption);
   parser.addOption(configOption);
   parser.addOption(cliOption);
   parser.addOption(evidenceOption);
   parser.addOption(scenarioOption);
   parser.addOption(cancelDelayOption);
+  parser.addOption(timeoutOption);
   parser.process(app);
 
   if (parser.isSet(smokeOption)) {
@@ -53,6 +57,7 @@ int main(int argc, char** argv) {
     options.cliPath = parser.value(cliOption);
     options.evidencePath = parser.value(evidenceOption);
     options.cancelDelayMs = parser.value(cancelDelayOption).toInt();
+    options.timeoutMs = parser.value(timeoutOption).toInt();
     if (options.configPath.isEmpty() || options.cliPath.isEmpty()) {
       qWarning("--smoke 需要 --config 与 --cli");
       return 2;

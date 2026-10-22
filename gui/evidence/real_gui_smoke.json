@@ -1,0 +1,243 @@
+{
+    "all_ok": true,
+    "application": {
+        "application_name": "acsd-gui",
+        "application_version": "2.0.0",
+        "qt_version": "6.7.3"
+    },
+    "cli": "/workspace/Astro CS Database/build/science/acsd",
+    "cli_template": {
+        "command": "normalize",
+        "error": "",
+        "input_count": 1,
+        "ok": true
+    },
+    "config": "/workspace/Astro CS Database/gui/tests/real-config/config.json",
+    "incompatible_config": {
+        "loaded": false,
+        "reason": "配置 schema major 3 与 GUI 支持的 2 不兼容，拒绝启动",
+        "satisfied": true
+    },
+    "input_groups": 2,
+    "mode": "offscreen-smoke",
+    "platform": "offscreen",
+    "product": {
+        "block_count": 1,
+        "capabilities": [
+            "signal",
+            "noise_unknown"
+        ],
+        "complete": true,
+        "error": "",
+        "object_count": 1,
+        "ok": true,
+        "profile": "full",
+        "satisfied": true,
+        "stage": "normalize"
+    },
+    "scenarios": [
+        {
+            "detail": "",
+            "elapsed_ms": 23,
+            "ok": true,
+            "run": {
+                "cancel_acknowledged": false,
+                "cancel_sent": false,
+                "cli": "/workspace/Astro CS Database/build/science/acsd",
+                "command": "normalize",
+                "config_file": "/tmp/acsd-gui-SaHcim/config.json",
+                "events": [
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "run_started",
+                        "fatal": false,
+                        "message": "the normalize command started",
+                        "run_id": "run-476f48611c3c8f91",
+                        "seq": 0,
+                        "total": 1,
+                        "valid": true
+                    },
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "frame_started",
+                        "fatal": false,
+                        "frame_id": "frame-0",
+                        "message": "the frame frame-0 started",
+                        "run_id": "run-476f48611c3c8f91",
+                        "seq": 1,
+                        "total": 1,
+                        "valid": true
+                    },
+                    {
+                        "code": "failed",
+                        "completed": 0,
+                        "error": "",
+                        "event": "frame_finished",
+                        "fatal": false,
+                        "frame_id": "frame-0",
+                        "message": "the FITS file cannot be read: could not open the named file",
+                        "run_id": "run-476f48611c3c8f91",
+                        "seq": 2,
+                        "total": 1,
+                        "valid": true
+                    },
+                    {
+                        "code": "failed",
+                        "completed": 0,
+                        "error": "",
+                        "event": "run_finished",
+                        "exit_code": 4,
+                        "fatal": false,
+                        "message": "the run finished",
+                        "run_id": "run-476f48611c3c8f91",
+                        "seq": 3,
+                        "summary": {
+                            "cancelled": 0,
+                            "failed": 1,
+                            "frames": [
+                                {
+                                    "code": "invalid_request",
+                                    "frame": "frame-0",
+                                    "status": "failed"
+                                }
+                            ],
+                            "inputs_total": 1,
+                            "published": 0,
+                            "unsolved": 0
+                        },
+                        "total": 0,
+                        "valid": true
+                    }
+                ],
+                "exit_code": 4,
+                "fatal_reason": "",
+                "process_exit_code": -1,
+                "run_id": "run-476f48611c3c8f91",
+                "state": "失败",
+                "state_code": 7,
+                "state_description": "运行失败",
+                "summary": {
+                    "cancelled": 0,
+                    "failed": 1,
+                    "frames": [
+                        {
+                            "code": "invalid_request",
+                            "frame": "frame-0",
+                            "status": "failed"
+                        }
+                    ],
+                    "inputs_total": 1,
+                    "published": 0,
+                    "unsolved": 0
+                },
+                "version_event_major": 2,
+                "version_probe_detail": "events/2"
+            },
+            "scenario": "real-run"
+        },
+        {
+            "detail": "",
+            "elapsed_ms": 604,
+            "ok": true,
+            "run": {
+                "cancel_acknowledged": false,
+                "cancel_sent": false,
+                "cli": "/workspace/Astro CS Database/build/science/acsd",
+                "command": "normalize",
+                "config_file": "/tmp/acsd-gui-SaHcim/config.json",
+                "events": [
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "run_started",
+                        "fatal": false,
+                        "message": "the normalize command started",
+                        "run_id": "run-36c77663b4e36049",
+                        "seq": 0,
+                        "total": 1,
+                        "valid": true
+                    },
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "frame_started",
+                        "fatal": false,
+                        "frame_id": "frame-0",
+                        "message": "the frame frame-0 started",
+                        "run_id": "run-36c77663b4e36049",
+                        "seq": 1,
+                        "total": 1,
+                        "valid": true
+                    }
+                ],
+                "fatal_reason": "",
+                "process_exit_code": 9,
+                "run_id": "run-36c77663b4e36049",
+                "state": "失败",
+                "state_code": 7,
+                "state_description": "运行失败",
+                "summary": {
+                },
+                "version_event_major": 2,
+                "version_probe_detail": "events/2"
+            },
+            "scenario": "real-crash"
+        },
+        {
+            "detail": "",
+            "elapsed_ms": 604,
+            "ok": true,
+            "run": {
+                "cancel_acknowledged": false,
+                "cancel_sent": false,
+                "cli": "/workspace/Astro CS Database/build/science/acsd",
+                "command": "normalize",
+                "config_file": "/tmp/acsd-gui-SaHcim/config.json",
+                "events": [
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "run_started",
+                        "fatal": false,
+                        "message": "the normalize command started",
+                        "run_id": "run-2b8e4252ec187f65",
+                        "seq": 0,
+                        "total": 1,
+                        "valid": true
+                    },
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "frame_started",
+                        "fatal": false,
+                        "frame_id": "frame-0",
+                        "message": "the frame frame-0 started",
+                        "run_id": "run-2b8e4252ec187f65",
+                        "seq": 1,
+                        "total": 1,
+                        "valid": true
+                    }
+                ],
+                "fatal_reason": "",
+                "process_exit_code": 9,
+                "run_id": "run-2b8e4252ec187f65",
+                "state": "已中止",
+                "state_code": 9,
+                "state_description": "用户主动终止，未收到终止事件，按中止处理",
+                "summary": {
+                },
+                "version_event_major": 2,
+                "version_probe_detail": "events/2"
+            },
+            "scenario": "real-terminate"
+        }
+    ]
+}

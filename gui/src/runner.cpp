@@ -2,6 +2,8 @@
 
 #include <QDir>
 #include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonParseError>
 #include <QJsonValue>
 #include <QRegularExpression>
 
@@ -128,22 +130,76 @@ ProbeResult probeCliVersion(const QString& cliPath, const QString& workingDir, i
   return result;
 }
 
+QJsonObject fetchCliTemplate(const QString& cliPath, const QString& command, const QString& workingDir,
+                             QString* error) {
+  if (cliPath.trimmed().isEmpty()) {
+    if (error != nullptr) {
+      *error = QStringLiteral("未设置 CLI 可执行文件路径");
+    }
+    return QJsonObject();
+  }
+  QProcess process;
+  if (!workingDir.trimmed().isEmpty()) {
+    process.setWorkingDirectory(workingDir);
+  }
+  process.start(cliPath, {QStringLiteral("template"), command});
+  if (!process.waitForStarted(5000)) {
+    if (error != nullptr) {
+      *error = QStringLiteral("无法启动 CLI 读取模板：%1").arg(process.errorString());
+    }
+    return QJsonObject();
+  }
+  if (!process.waitForFinished(5000)) {
+    process.kill();
+    process.waitForFinished(1000);
+    if (error != nullptr) {
+      *error = QStringLiteral("读取 CLI 模板超时");
+    }
+    return QJsonObject();
+  }
+  const QByteArray payload = process.readAllStandardOutput();
+  if (process.exitCode() != 0) {
+    if (error != nullptr) {
+      *error = QStringLiteral("CLI 模板命令返回 %1：%2")
+                   .arg(process.exitCode())
+                   .arg(QString::fromUtf8(process.readAllStandardError()).trimmed());
+    }
+    return QJsonObject();
+  }
+  QJsonParseError perr{};
+  const QJsonDocument document = QJsonDocument::fromJson(payload, &perr);
+  if (perr.error != QJsonParseError::NoError || !document.isObject()) {
+    if (error != nullptr) {
+      *error = QStringLiteral("CLI 模板不是合法 JSON 对象：%1").arg(perr.errorString());
+    }
+    return QJsonObject();
+  }
+  return document.object();
+}
+
 RunController::RunController(QObject* parent) : QObject(parent) {}
 
 RunController::~RunController() {
   // 析构时若子进程仍在运行，必须先结束它，否则 QProcess 析构会崩。
-  if (process_.state() != QProcess::NotRunning) {
-    process_.kill();
-    process_.waitForFinished(2000);
+  if (process_ != nullptr) {
+    if (process_->state() != QProcess::NotRunning) {
+      process_->kill();
+      process_->waitForFinished(2000);
+    }
+    delete process_;
+    process_ = nullptr;
   }
 }
 
 void RunController::setProcessEnvironment(const QProcessEnvironment& environment) {
-  process_.setProcessEnvironment(environment);
+  environment_ = environment;
+  if (process_ != nullptr) {
+    process_->setProcessEnvironment(environment);
+  }
 }
 
 QProcessEnvironment RunController::processEnvironment() const {
-  return process_.processEnvironment();
+  return environment_;
 }
 
 bool RunController::start(const QString& cliPath, const QString& command, const QString& configPath,
@@ -188,38 +244,41 @@ bool RunController::start(const QString& cliPath, const QString& command, const 
   command_ = command;
   configPath_ = configPath;
 
-  if (!workingDir.trimmed().isEmpty()) {
-    process_.setWorkingDirectory(workingDir);
-  }
-  process_.setProcessChannelMode(QProcess::SeparateChannels);
-
-  connect(&process_, &QProcess::readyReadStandardOutput, this, &RunController::onReadyRead);
-  connect(&process_, &QProcess::readyReadStandardError, this, [this]() {
-    const QByteArray data = process_.readAllStandardError();
-    if (!data.isEmpty()) {
-      emit logMessage(QString::fromUtf8(data).trimmed());
-    }
-  });
-  connect(&process_, &QProcess::errorOccurred, this, &RunController::onProcessError);
-  connect(&process_, &QProcess::finished, this, &RunController::onFinished);
-
-  // 上一次运行的子进程可能还在退出；QProcess 不允许在运行中再次 start。
-  if (process_.state() != QProcess::NotRunning) {
-    process_.waitForFinished(5000);
-    if (process_.state() != QProcess::NotRunning) {
-      lastError_ = QStringLiteral("上一次的子进程仍未结束，无法启动新运行");
-      if (error != nullptr) {
-        *error = lastError_;
+  // 上一次运行的子进程可能还在退出；先断开它的信号再等它结束，
+  // 否则它的退出会被当成本轮的终事件（会吞掉本轮的 runFinished）。
+  if (process_ != nullptr) {
+    process_->disconnect(this);
+    if (process_->state() != QProcess::NotRunning) {
+      const bool finished = process_->waitForFinished(5000);
+      if (!finished || process_->state() != QProcess::NotRunning) {
+        lastError_ = QStringLiteral("上一次的子进程仍未结束（state=%1，waitForFinished=%2），无法启动新运行")
+                         .arg(static_cast<int>(process_->state()))
+                         .arg(finished ? "true" : "false");
+        if (error != nullptr) {
+          *error = lastError_;
+        }
+        setState(RunState::Failed);
+        return false;
       }
-      setState(RunState::Failed);
-      return false;
     }
+    delete process_;
+    process_ = nullptr;
   }
+
+  QProcess* process = new QProcess(this);
+  if (!workingDir.trimmed().isEmpty()) {
+    process->setWorkingDirectory(workingDir);
+  }
+  process->setProcessChannelMode(QProcess::SeparateChannels);
+  if (!environment_.isEmpty()) {
+    process->setProcessEnvironment(environment_);
+  }
+  attachProcess(process);
 
   const QStringList arguments{QStringLiteral("%1").arg(command), QStringLiteral("--json"), configPath};
-  process_.start(cliPath, arguments);
-  if (!process_.waitForStarted(5000)) {
-    lastError_ = QStringLiteral("无法启动子进程：%1").arg(process_.errorString());
+  process->start(cliPath, arguments);
+  if (!process->waitForStarted(5000)) {
+    lastError_ = QStringLiteral("无法启动子进程：%1").arg(process->errorString());
     if (error != nullptr) {
       *error = lastError_;
     }
@@ -255,8 +314,8 @@ void RunController::writeCancelControl() {
     return;
   }
   const QByteArray line = cancelControlLine(runId_);
-  process_.write(line);
-  if (!process_.waitForBytesWritten(1000)) {
+  process_->write(line);
+  if (!process_->waitForBytesWritten(1000)) {
     recordWarning(QStringLiteral("取消控制消息未能在 1 秒内写入子进程 stdin"));
   }
   cancelSent_ = true;
@@ -271,11 +330,20 @@ void RunController::forceTerminate() {
   }
   userAborted_ = true;
   emit logMessage(QStringLiteral("用户主动终止子进程（标记 aborted）"));
-  process_.kill();
+  process_->kill();
+}
+
+void RunController::simulateExternalKill() {
+  if (state_ != RunState::Running && state_ != RunState::Cancelling) {
+    return;
+  }
+  emit logMessage(QStringLiteral("模拟外部终止子进程（崩溃场景，不标记 aborted），pid=%1")
+                      .arg(process_->processId()));
+  process_->kill();
 }
 
 void RunController::onReadyRead() {
-  const QByteArray data = process_.readAllStandardOutput();
+  const QByteArray data = process_->readAllStandardOutput();
   if (data.isEmpty()) {
     return;
   }
@@ -328,6 +396,12 @@ void RunController::handleLine(const QString& line) {
   }
   if (event.kind == EventKind::RunFinished) {
     terminalSeen_ = true;
+    // 终事件之后关闭子进程的写通道：真实 CLI 的控制线程阻塞在读 stdin 上，
+    // 若管道一直开着，进程会在退出清理里等到 stdin 关闭才结束（实测挂住）。
+    // 关闭写通道让控制线程读到 EOF，子进程即可正常退出；取消通道只在运行期需要。
+    if (process_->state() != QProcess::NotRunning) {
+      process_->closeWriteChannel();
+    }
     exitCode_ = event.exitCode;
     summary_ = event.summary;
     if (event.exitCode.has_value() && *event.exitCode == 5) {
@@ -339,19 +413,20 @@ void RunController::handleLine(const QString& line) {
 
 void RunController::onProcessError(QProcess::ProcessError error) {
   if (error == QProcess::FailedToStart) {
-    lastError_ = QStringLiteral("子进程无法启动：%1").arg(process_.errorString());
+    lastError_ = QStringLiteral("子进程无法启动：%1").arg(process_->errorString());
     finalize(RunState::Failed, lastError_);
   } else if (error == QProcess::Crashed) {
-    lastError_ = QStringLiteral("子进程崩溃：%1").arg(process_.errorString());
-    if (fatal_.isEmpty()) {
-      fatal_ = lastError_;
-    }
+    // 崩溃不是协议违规：缺终事件一律按「失败」处理，不推断成功。
+    lastError_ = QStringLiteral("子进程崩溃：%1").arg(process_->errorString());
     finalize(RunState::Failed, lastError_);
   }
 }
 
 void RunController::onFinished(int exitCode, QProcess::ExitStatus status) {
   processExitCode_ = exitCode;
+  emit logMessage(QStringLiteral("子进程结束：退出码 %1，状态 %2")
+                      .arg(exitCode)
+                      .arg(status == QProcess::CrashExit ? QStringLiteral("崩溃") : QStringLiteral("正常")));
   // 冲刷解码器与半行缓冲。
   onReadyRead();
   const QString tail = decoder_.decode(QByteArray());
@@ -442,6 +517,19 @@ void RunController::finalize(RunState state, const QString& reason) {
     finishedEmitted_ = true;
     emit runFinished(finalState);
   }
+}
+
+void RunController::attachProcess(QProcess* process) {
+  process_ = process;
+  connect(process, &QProcess::readyReadStandardOutput, this, &RunController::onReadyRead);
+  connect(process, &QProcess::readyReadStandardError, this, [this, process]() {
+    const QByteArray data = process->readAllStandardError();
+    if (!data.isEmpty()) {
+      emit logMessage(QString::fromUtf8(data).trimmed());
+    }
+  });
+  connect(process, &QProcess::errorOccurred, this, &RunController::onProcessError);
+  connect(process, &QProcess::finished, this, &RunController::onFinished);
 }
 
 void RunController::setState(RunState state) {

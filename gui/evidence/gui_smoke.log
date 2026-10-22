@@ -1,13 +1,37 @@
 This plugin does not support propagateSizeHints()
+[gui] [19:41:39] 已加载配置：/tmp/acsd-gui-PygshT/config.json
+[gui] [19:41:39] 版本探测：events/2
 [smoke] 版本探测：executed=yes detail=events/2
+[gui] [19:41:39] 已启动：/workspace/Astro CS Database/gui/tests/fake_acsd.py normalize --json /tmp/acsd-gui-PygshT/acsd-gui-run-config.json
+[gui] [19:41:39] 运行配置：/tmp/acsd-gui-PygshT/acsd-gui-run-config.json
 This plugin does not support propagateSizeHints()
 This plugin does not support propagateSizeHints()
-[smoke] 场景 normal：通过（） state=成功 exit_code=0 cancel_sent=0 events=13
-[smoke] 场景 cancel：通过（） state=已取消 exit_code=5 cancel_sent=1 events=3
-[smoke] 场景 crash：通过（） state=失败 exit_code=-1 cancel_sent=0 events=2
-[smoke] 场景 terminate：通过（） state=已中止 exit_code=-1 cancel_sent=1 events=1
+[gui] [19:41:39] 运行结束：成功（收到 run_finished 且 exit_code=0）
+[gui] [19:41:39] 子进程结束：退出码 0，状态 正常
+[smoke] 场景 normal：通过（） state=成功 exit_code=0 cancel_sent=0 events=13 用时=34ms
+[gui] [19:41:39] 已启动：/workspace/Astro CS Database/gui/tests/fake_acsd.py normalize --json /tmp/acsd-gui-PygshT/acsd-gui-run-config.json
+[gui] [19:41:39] 运行配置：/tmp/acsd-gui-PygshT/acsd-gui-run-config.json
+[gui] [19:41:40] 已发送取消控制消息：{"protocol":"acsd.control/2","command":"cancel","run_id":"cb3bb6bc-84bb-4d69-943e-f6f7f04a7108"}
+[gui] [19:41:40] 运行结束：已取消（run_finished exit_code=5：已取消）
+[smoke] 场景 cancel：通过（） state=已取消 exit_code=5 cancel_sent=1 events=3 用时=403ms
+[gui] [19:41:40] 已启动：/workspace/Astro CS Database/gui/tests/fake_acsd.py normalize --json /tmp/acsd-gui-PygshT/acsd-gui-run-config.json
+[gui] [19:41:40] 运行配置：/tmp/acsd-gui-PygshT/acsd-gui-run-config.json
+[gui] [19:41:40] fake acsd: 模拟崩溃，不发终事件
+[gui] [19:41:40] 子进程结束：退出码 1，状态 正常
+[gui] [19:41:40] 运行结束：失败（运行失败）
+[smoke] 场景 crash：通过（） state=失败 exit_code=-1 cancel_sent=0 events=2 用时=30ms
+[gui] [19:41:40] 已启动：/workspace/Astro CS Database/gui/tests/fake_acsd.py normalize --json /tmp/acsd-gui-PygshT/acsd-gui-run-config.json
+[gui] [19:41:40] 运行配置：/tmp/acsd-gui-PygshT/acsd-gui-run-config.json
+[gui] [19:41:40] 已发送取消控制消息：{"protocol":"acsd.control/2","command":"cancel","run_id":"c0ae9f59-3847-4991-94f1-06cdd3fc259a"}
+[gui] [19:41:40] 用户主动终止子进程（标记 aborted）
+[gui] [19:41:40] 运行结束：失败（运行失败）
+[gui] [19:41:40] 子进程结束：退出码 9，状态 崩溃
+[smoke] 场景 terminate：通过（） state=已中止 exit_code=-1 cancel_sent=1 events=1 用时=704ms
+[gui] [19:41:40] 已读取产品 manifest：/tmp/acsd-gui-PygshT/product
 [smoke] 产品浏览：通过 stage=normalize profile=full complete=true capabilities=2 objects=1 blocks=1
+[gui] [19:41:40] 配置 schema major 3 与 GUI 支持的 2 不兼容，拒绝启动
 [smoke] 不兼容配置拒绝启动：通过（配置 schema major 3 与 GUI 支持的 2 不兼容，拒绝启动）
-[smoke] 输入分组：3 组（通过）
+[smoke] 从 CLI 模板填充配置：通过（command=normalize，输入数=1）
+[smoke] 输入分组：2 组（通过）
 [smoke] 证据已写入：/workspace/Astro CS Database/gui/evidence/gui_smoke.json
 [smoke] 总体结果：全部场景符合预期

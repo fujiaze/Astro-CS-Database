@@ -1,0 +1,33 @@
+This plugin does not support propagateSizeHints()
+[gui] [19:41:41] 已加载配置：/tmp/acsd-gui-SaHcim/config.json
+[gui] [19:41:41] 版本探测：events/2
+[smoke] 版本探测：executed=yes detail=events/2
+[gui] [19:41:41] 已启动：/workspace/Astro CS Database/build/science/acsd normalize --json /workspace/Astro CS Database/gui/tests/real-config/config.json
+[gui] [19:41:41] 运行配置文件：/workspace/Astro CS Database/gui/tests/real-config/config.json
+This plugin does not support propagateSizeHints()
+[gui] [19:41:41] 运行结束：失败（运行失败）
+[gui] [19:41:41] 已加载配置：/tmp/acsd-gui-SaHcim/config.json
+[smoke] 场景 real-run：通过（） state=失败 exit_code=4 cancel_sent=0 events=4 用时=23ms
+[gui] [19:41:41] 已启动：/workspace/Astro CS Database/build/science/acsd normalize --json /tmp/acsd-gui-SaHcim/blocking-config.json
+[gui] [19:41:41] 运行配置文件：/tmp/acsd-gui-SaHcim/blocking-config.json
+This plugin does not support propagateSizeHints()
+[gui] [19:41:42] 模拟外部终止子进程（崩溃场景，不标记 aborted），pid=4082637
+[gui] [19:41:42] 运行结束：失败（运行失败）
+[gui] [19:41:42] 子进程结束：退出码 9，状态 崩溃
+[gui] [19:41:42] 已加载配置：/tmp/acsd-gui-SaHcim/config.json
+[smoke] 场景 real-crash：通过（） state=失败 exit_code=-1 cancel_sent=0 events=2 用时=604ms
+[gui] [19:41:42] 已启动：/workspace/Astro CS Database/build/science/acsd normalize --json /tmp/acsd-gui-SaHcim/blocking-config.json
+[gui] [19:41:42] 运行配置文件：/tmp/acsd-gui-SaHcim/blocking-config.json
+[gui] [19:41:42] 用户主动终止子进程（标记 aborted）
+[gui] [19:41:42] 运行结束：失败（运行失败）
+[gui] [19:41:42] 子进程结束：退出码 9，状态 崩溃
+[gui] [19:41:42] 已加载配置：/tmp/acsd-gui-SaHcim/config.json
+[smoke] 场景 real-terminate：通过（） state=已中止 exit_code=-1 cancel_sent=0 events=2 用时=604ms
+[gui] [19:41:42] 已读取产品 manifest：/tmp/acsd-gui-SaHcim/product
+[smoke] 产品浏览：通过 stage=normalize profile=full complete=true capabilities=2 objects=1 blocks=1
+[gui] [19:41:42] 配置 schema major 3 与 GUI 支持的 2 不兼容，拒绝启动
+[smoke] 不兼容配置拒绝启动：通过（配置 schema major 3 与 GUI 支持的 2 不兼容，拒绝启动）
+[smoke] 从 CLI 模板填充配置：通过（command=normalize，输入数=1）
+[smoke] 输入分组：2 组（通过）
+[smoke] 证据已写入：/workspace/Astro CS Database/gui/evidence/real_gui_smoke.json
+[smoke] 总体结果：全部场景符合预期

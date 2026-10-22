@@ -1,0 +1,6 @@
+{
+  "wavelength_nm": [500.0, 600.0],
+  "throughput": [0.8, 0.6],
+  "provenance": "gui.tests.real-config",
+  "normalization": "unity"
+}

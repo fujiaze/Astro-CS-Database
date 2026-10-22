@@ -1,0 +1,14 @@
+PASS  version_probe          真实 --version --json：2 条事件，exit_code=0，进程退出码=0
+PASS  version_probe_schema   按 events.schema.json 校验：通过
+PASS  version_probe_fields   字段核对：出现 ['assessment', 'block', 'code', 'completed', 'event', 'exit_code', 'frame_id', 'message', 'protocol', 'run_id', 'seq', 'summary', 'total']
+PASS  exit_code_2            无效配置：exit_code=2，进程退出码=2，事件数=2
+PASS  exit_code_4            缺 FITS 的帧：exit_code=4，进程退出码=4，事件数=4
+PASS  summary_fields         run_summary 字段：['cancelled', 'failed', 'frames', 'inputs_total', 'published', 'unsolved']
+PASS  exit_code_4_schema     按 events.schema.json 校验：通过
+PASS  cancel_message         取消报文字节：b'{"protocol":"acsd.control/2","command":"cancel","run_id":"run-b937936942d359a2"}\n'
+PASS  cancel_accepted_by_cli 真实 CLI 收到取消报文后的终事件 exit_code=4（进程退出码 4）
+PASS  crash_no_terminal      SIGSTOP+SIGKILL 后：终事件数=0，进程退出码=-9（负值表示被信号杀死），已收到事件 1 条
+PASS  gui_state_mapping      GUI 协议代码读真实 CLI：exit_code=4 → 状态 失败（期望 失败），终事件数 1
+
+总计 11 项，失败 0 项
+证据已写入：/workspace/Astro CS Database/gui/evidence/real_cli_smoke.json

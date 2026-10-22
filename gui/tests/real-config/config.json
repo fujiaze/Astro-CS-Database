@@ -1,0 +1,24 @@
+{
+  "schema": "acsd.config/2",
+  "command": "normalize",
+  "inputs": [
+    {
+      "path": "missing-frame.fits",
+      "frame_id": "frame-0",
+      "response": "response.json"
+    }
+  ],
+  "catalogue": "catalogue.json",
+  "scientific": "normalize.scientific.json",
+  "output": "products",
+  "resources": {
+    "bytes": 1073741824,
+    "work": 10000000,
+    "spill_bytes": 0,
+    "threads": 2,
+    "max_depth": 64,
+    "max_precision_bits": 64,
+    "scratch_directory": ".work"
+  },
+  "product_profile": "full"
+}

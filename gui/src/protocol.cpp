@@ -390,20 +390,42 @@ QByteArray cancelControlLine(const QString& runId) {
 
 CliVersion parseVersionPayload(const QByteArray& payload) {
   CliVersion out;
-  QJsonParseError perr{};
-  const QJsonDocument doc = QJsonDocument::fromJson(payload, &perr);
-  if (perr.error != QJsonParseError::NoError) {
-    out.detail = QStringLiteral("版本输出不是合法 JSON：%1").arg(perr.errorString());
-    return out;
+  // 真实 CLI 的 `acsd --version --json` 输出的是 **JSONL 事件流**
+  // （run_started + run_finished），不是单个 JSON 对象；因此两种形态都要认。
+  QByteArray rest = payload;
+  bool parsedAny = false;
+  while (!rest.isEmpty()) {
+    const int newline = rest.indexOf('\n');
+    QByteArray line = newline < 0 ? rest : rest.left(newline);
+    rest = newline < 0 ? QByteArray() : rest.mid(newline + 1);
+    const QString text = QString::fromUtf8(line).trimmed();
+    if (text.isEmpty()) {
+      continue;
+    }
+    QJsonParseError perr{};
+    const QJsonDocument doc = QJsonDocument::fromJson(text.toUtf8(), &perr);
+    if (perr.error != QJsonParseError::NoError || !doc.isObject()) {
+      continue;
+    }
+    parsedAny = true;
+    const QJsonObject obj = doc.object();
+    collectVersion(obj, &out);
+    if (obj.contains(QStringLiteral("version")) && obj.value(QStringLiteral("version")).isString()) {
+      out.productVersion = obj.value(QStringLiteral("version")).toString();
+    }
+    // 事件流里的 run_finished 把产品版本放在 summary 中。
+    const QJsonValue summary = obj.value(QStringLiteral("summary"));
+    if (summary.isObject()) {
+      const QJsonObject summaryObject = summary.toObject();
+      if (summaryObject.contains(QStringLiteral("version")) &&
+          summaryObject.value(QStringLiteral("version")).isString()) {
+        out.productVersion = summaryObject.value(QStringLiteral("version")).toString();
+      }
+    }
   }
-  if (!doc.isObject()) {
-    out.detail = QStringLiteral("版本输出不是 JSON 对象");
+  if (!parsedAny) {
+    out.detail = QStringLiteral("版本输出既不是 JSON 对象也不是 JSONL 事件流");
     return out;
-  }
-  const QJsonObject obj = doc.object();
-  collectVersion(obj, &out);
-  if (obj.contains(QStringLiteral("version")) && obj.value(QStringLiteral("version")).isString()) {
-    out.productVersion = obj.value(QStringLiteral("version")).toString();
   }
   if (!out.known) {
     out.detail = QStringLiteral("版本输出中没有 acsd.*/N 协议标识或 major 字段");

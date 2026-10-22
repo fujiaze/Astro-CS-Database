@@ -187,7 +187,21 @@ QWidget* MainWindow::buildConfigTab() {
   auto* commandForm = new QFormLayout(commandBox);
   commandCombo_ = new QComboBox(commandBox);
   commandCombo_->addItems(configCommandList());
-  commandForm->addRow(QStringLiteral("命令"), commandCombo_);
+  auto* commandRow = new QWidget(commandBox);
+  auto* commandLayout = new QHBoxLayout(commandRow);
+  commandLayout->setContentsMargins(0, 0, 0, 0);
+  auto* templateButton = new QPushButton(QStringLiteral("从 CLI 模板填充"), commandRow);
+  commandLayout->addWidget(commandCombo_, 1);
+  commandLayout->addWidget(templateButton);
+  commandForm->addRow(QStringLiteral("命令"), commandRow);
+  connect(templateButton, &QPushButton::clicked, this, [this]() {
+    QString error;
+    if (!loadTemplateFromCli(commandCombo_->currentText(), &error)) {
+      appendLog(QStringLiteral("读取 CLI 模板失败：%1").arg(error));
+      return;
+    }
+    appendLog(QStringLiteral("已用 CLI 模板填充配置：%1").arg(commandCombo_->currentText()));
+  });
 
   auto* scientificRow = new QWidget(commandBox);
   auto* scientificLayout = new QHBoxLayout(scientificRow);
@@ -806,7 +820,9 @@ bool MainWindow::setCliPath(const QString& path, QString* error) {
     }
     return false;
   }
-  cliPathEdit_->setText(path);
+  // 存绝对路径：子进程的工作目录会被改到用户指定的工作目录，
+  // 相对路径的 CLI 在那里可能找不到。
+  cliPathEdit_->setText(QFileInfo(path).absoluteFilePath());
   return true;
 }
 
@@ -891,6 +907,35 @@ bool MainWindow::loadConfigFile(const QString& path, QString* error) {
     }
     return false;
   }
+  return true;
+}
+
+bool MainWindow::loadTemplateFromCli(const QString& command, QString* error) {
+  const QJsonObject object =
+      fetchCliTemplate(cliPath(), command, workingDirEdit_->text().trimmed(), error);
+  if (object.isEmpty()) {
+    if (error != nullptr && error->isEmpty()) {
+      *error = QStringLiteral("CLI 没有给出可用的模板");
+    }
+    return false;
+  }
+  AcsdConfig config;
+  QString parseError;
+  if (!AcsdConfig::fromJson(object, &config, &parseError)) {
+    if (error != nullptr) {
+      *error = parseError;
+    }
+    return false;
+  }
+  applyConfigToWidgets(config);
+  const ConfigValidation validation = validateConfig(config);
+  QStringList messages;
+  for (const ConfigDiagnostic& diagnostic : validation.diagnostics) {
+    messages.append(QStringLiteral("[%1] %2：%3").arg(diagnostic.level, diagnostic.field, diagnostic.message));
+  }
+  configValidationLabel_->setText(messages.isEmpty()
+                                      ? QStringLiteral("配置结构校验通过")
+                                      : messages.join(QStringLiteral("\n")));
   return true;
 }
 
@@ -1050,6 +1095,78 @@ bool MainWindow::startRun(QString* error) {
     return false;
   }
   appendLog(QStringLiteral("运行配置：%1").arg(runConfigPath));
+  updateStatus();
+  return true;
+}
+
+bool MainWindow::startRunWithConfig(const QString& configPath, QString* error) {
+  if (runner_.state() == RunState::Running || runner_.state() == RunState::Cancelling) {
+    if (error != nullptr) {
+      *error = QStringLiteral("已有运行在进行中");
+    }
+    return false;
+  }
+  QString reason;
+  if (!checkVersionForRun(&reason)) {
+    if (error != nullptr) {
+      *error = reason;
+    }
+    appendLog(QStringLiteral("拒绝启动：%1").arg(reason));
+    return false;
+  }
+  QFile file(configPath);
+  if (!file.open(QIODevice::ReadOnly)) {
+    if (error != nullptr) {
+      *error = QStringLiteral("无法读取配置 %1：%2").arg(configPath, file.errorString());
+    }
+    return false;
+  }
+  const QByteArray payload = file.readAll();
+  file.close();
+  QJsonParseError perr{};
+  const QJsonDocument document = QJsonDocument::fromJson(payload, &perr);
+  if (perr.error != QJsonParseError::NoError || !document.isObject()) {
+    if (error != nullptr) {
+      *error = QStringLiteral("配置不是合法 JSON 对象：%1").arg(perr.errorString());
+    }
+    return false;
+  }
+  const QJsonObject object = document.object();
+  const ConfigVersion version = parseConfigSchema(object);
+  if (!version.ok || version.major != kConfigMajor) {
+    const QString text = version.ok
+                             ? QStringLiteral("配置 schema major %1 与 GUI 支持的 %2 不兼容，拒绝启动")
+                                   .arg(version.major)
+                                   .arg(kConfigMajor)
+                             : version.detail;
+    if (error != nullptr) {
+      *error = text;
+    }
+    appendLog(QStringLiteral("拒绝启动：%1").arg(text));
+    return false;
+  }
+  const QString command = object.value(QStringLiteral("command")).toString();
+  if (!configCommandList().contains(command)) {
+    if (error != nullptr) {
+      *error = QStringLiteral("配置里的命令非法：%1").arg(command);
+    }
+    return false;
+  }
+  eventTable_->setRowCount(0);
+  summaryEdit_->clear();
+  detailEdit_->clear();
+  progressBar_->setValue(0);
+  groupFilter_.clear();
+  configFilePath_ = configPath;
+  configPathEdit_->setText(configPath);
+  const QString workDir = workingDirEdit_->text().trimmed();
+  // 绝对路径：CLI 把配置里的相对路径按「相对 config 所在目录」解析，
+  // 相对路径的配置会随子进程工作目录漂移。
+  const QString absoluteConfig = QFileInfo(configPath).absoluteFilePath();
+  if (!runner_.start(cliPath(), command, absoluteConfig, workDir, error)) {
+    return false;
+  }
+  appendLog(QStringLiteral("运行配置文件：%1").arg(absoluteConfig));
   updateStatus();
   return true;
 }

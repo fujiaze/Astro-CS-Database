@@ -49,6 +49,11 @@ struct ProbeResult {
 // 同步探测 `acsd --version --json`。
 ProbeResult probeCliVersion(const QString& cliPath, const QString& workingDir, int timeoutMs = 5000);
 
+// 读取 `acsd template <command>` 的配置模板（静态模板，不构造科学数据）。
+// 成功时返回解析后的配置对象，失败时返回空对象并给出原因。
+QJsonObject fetchCliTemplate(const QString& cliPath, const QString& command, const QString& workingDir,
+                             QString* error);
+
 class RunController : public QObject {
   Q_OBJECT
 
@@ -66,6 +71,10 @@ class RunController : public QObject {
 
   // 用户主动强制终止：杀掉子进程并把本次运行标记为 aborted。
   void forceTerminate();
+
+  // 供冒烟使用：杀掉子进程但**不**标记为用户中止（模拟外部崩溃、系统 OOM kill）。
+  // 这种情况下缺少终事件，运行状态必须是「失败」，不能推断成功。
+  void simulateExternalKill();
 
   void setProcessEnvironment(const QProcessEnvironment& environment);
   QProcessEnvironment processEnvironment() const;
@@ -98,6 +107,8 @@ class RunController : public QObject {
  private:
   void setState(RunState state);
   void handleLine(const QString& line);
+  QProcess* activeProcess() const { return process_; }
+  void attachProcess(QProcess* process);
   void writeCancelControl();
   void finalize(RunState state, const QString& reason);
   void recordWarning(const QString& text);
@@ -108,7 +119,10 @@ class RunController : public QObject {
   void onFinished(int exitCode, QProcess::ExitStatus status);
 
  private:
-  QProcess process_;
+  // 每次运行一个独立的 QProcess：复用同一个对象会把上一轮进程的退出
+  // 混进下一轮的终事件判定（实测会吞掉新运行的 runFinished）。
+  QProcess* process_ = nullptr;
+  QProcessEnvironment environment_;  // 每次运行创建子进程时套用
   QStringDecoder decoder_{QStringConverter::Utf8};
   EventParser parser_;
   QVector<AcsdEvent> events_;

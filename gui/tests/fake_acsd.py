@@ -104,9 +104,40 @@ def wait_for_cancel(run_id: str, seq: int) -> bool:
     return False
 
 
+TEMPLATE = {
+    "normalize": {
+        "schema": "acsd.config/2",
+        "command": "normalize",
+        "inputs": [{"path": "frame.fits", "frame_id": "frame-01", "response": "response.json"}],
+        "catalogue": "catalogue.json",
+        "scientific": "normalize.scientific.json",
+        "output": "products",
+        "resources": {"bytes": 1073741824, "work": 10000000, "spill_bytes": 0, "threads": 4,
+                      "max_depth": 64, "max_precision_bits": 256, "scratch_directory": ".work"},
+        "product_profile": "full",
+        "publication": {"signal_dtype": "f64", "tile_log2_width": 9, "durable": True},
+    },
+}
+
+
+def print_template(command: str) -> int:
+    template = TEMPLATE.get(command)
+    if template is None:
+        sys.stderr.write("fake acsd: unknown command %s\n" % command)
+        return 2
+    sys.stdout.write(json.dumps(template, ensure_ascii=False, indent=2) + "\n")
+    sys.stdout.flush()
+    return 0
+
+
 def main(argv: list[str]) -> int:
     if "--version" in argv:
         return version_probe()
+    if argv and argv[0] == "template":
+        if len(argv) < 2:
+            sys.stderr.write("fake acsd: the template command needs a command name\n")
+            return 2
+        return print_template(argv[1])
 
     mode = os.environ.get("FAKE_ACSD_MODE", "normal")
     command = None

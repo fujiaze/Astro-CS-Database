@@ -14,6 +14,11 @@
 #include <QTextStream>
 #include <QTimer>
 
+#ifdef Q_OS_UNIX
+#include <sys/stat.h>
+#include <sys/types.h>
+#endif
+
 #include "mainwindow.h"
 #include "runner.h"
 
@@ -93,8 +98,133 @@ bool scenarioSatisfied(const QString& scenario, const QJsonObject& snapshot, QSt
     }
     return true;
   }
+  // ---- 真实 CLI 场景 ----
+  if (scenario == QStringLiteral("real-run")) {
+    if (!terminal) {
+      *detail = QStringLiteral("真实 CLI 没有给出 run_finished");
+      return false;
+    }
+    const int exitCode = snapshot.value(QStringLiteral("exit_code")).toInt(-1);
+    QString expected = QStringLiteral("失败");
+    switch (exitCode) {
+      case 0: expected = QStringLiteral("成功"); break;
+      case 2: expected = QStringLiteral("输入无效"); break;
+      case 3: expected = QStringLiteral("能力不支持"); break;
+      case 4: expected = QStringLiteral("失败"); break;
+      case 5: expected = QStringLiteral("已取消"); break;
+      case 6: expected = QStringLiteral("部分成功"); break;
+      default: break;
+    }
+    if (state != expected) {
+      *detail = QStringLiteral("exit_code=%1 应映射为 %2，实际 %3").arg(exitCode).arg(expected, state);
+      return false;
+    }
+    if (snapshot.value(QStringLiteral("summary")).toObject().isEmpty()) {
+      *detail = QStringLiteral("run_summary 没有被解析");
+      return false;
+    }
+    return true;
+  }
+  if (scenario == QStringLiteral("real-crash")) {
+    if (terminal) {
+      *detail = QStringLiteral("崩溃场景竟然收到 run_finished");
+      return false;
+    }
+    if (state != QStringLiteral("失败")) {
+      *detail = QStringLiteral("崩溃场景未标失败，状态=%1").arg(state);
+      return false;
+    }
+    return true;
+  }
+  if (scenario == QStringLiteral("real-terminate")) {
+    if (state != QStringLiteral("已中止")) {
+      *detail = QStringLiteral("主动终止后状态不是已中止：%1").arg(state);
+      return false;
+    }
+    return true;
+  }
   *detail = QStringLiteral("未知场景");
   return false;
+}
+
+// 为 real-crash / real-terminate 造一份会阻塞的配置：把输入换成一个 FIFO，
+// 真实 CLI 会在打开 FITS 时阻塞，于是「杀掉进程」确定性地落在运行中间
+// （此时不可能已经有 run_finished）。Windows 没有 FIFO，退回原配置。
+QString prepareBlockingConfig(const QString& configPath, const QString& temporaryDirectory,
+                              QString* error) {
+  QFile file(configPath);
+  if (!file.open(QIODevice::ReadOnly)) {
+    if (error != nullptr) {
+      *error = QStringLiteral("无法读取配置 %1：%2").arg(configPath, file.errorString());
+    }
+    return {};
+  }
+  const QByteArray payload = file.readAll();
+  file.close();
+  QJsonParseError perr{};
+  const QJsonDocument document = QJsonDocument::fromJson(payload, &perr);
+  if (perr.error != QJsonParseError::NoError || !document.isObject()) {
+    if (error != nullptr) {
+      *error = QStringLiteral("配置不是合法 JSON 对象");
+    }
+    return {};
+  }
+  QJsonObject object = document.object();
+  const QDir base = QFileInfo(configPath).absoluteDir();
+  // 相对路径改成绝对路径（配置在临时目录里跑，兄弟文件仍在原目录）。
+  const QString catalogue = object.value(QStringLiteral("catalogue")).toString();
+  if (!catalogue.isEmpty()) {
+    object.insert(QStringLiteral("catalogue"), base.filePath(catalogue));
+  }
+  const QString scientific = object.value(QStringLiteral("scientific")).toString();
+  if (!scientific.isEmpty()) {
+    object.insert(QStringLiteral("scientific"), base.filePath(scientific));
+  }
+  QJsonArray inputs = object.value(QStringLiteral("inputs")).toArray();
+  if (inputs.isEmpty()) {
+    if (error != nullptr) {
+      *error = QStringLiteral("配置没有输入");
+    }
+    return {};
+  }
+  QJsonObject first = inputs.at(0).toObject();
+  const QString response = first.value(QStringLiteral("response")).toString();
+  if (!response.isEmpty()) {
+    first.insert(QStringLiteral("response"), base.filePath(response));
+  }
+  const QString calibration = first.value(QStringLiteral("calibration")).toString();
+  if (!calibration.isEmpty()) {
+    first.insert(QStringLiteral("calibration"), base.filePath(calibration));
+  }
+  const QString fifo = QDir(temporaryDirectory).filePath(QStringLiteral("blocking-frame.fits"));
+  QFile::remove(fifo);
+#ifdef Q_OS_UNIX
+  if (::mkfifo(QFile::encodeName(fifo).constData(), 0600) != 0) {
+    if (error != nullptr) {
+      *error = QStringLiteral("无法创建 FIFO %1").arg(fifo);
+    }
+    return {};
+  }
+  first.insert(QStringLiteral("path"), fifo);
+#else
+  if (error != nullptr) {
+    *error = QStringLiteral("该平台没有 FIFO，阻塞场景不可用");
+  }
+  return {};
+#endif
+  inputs.replace(0, first);
+  object.insert(QStringLiteral("inputs"), inputs);
+  const QString target = QDir(temporaryDirectory).filePath(QStringLiteral("blocking-config.json"));
+  QFile output(target);
+  if (!output.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    if (error != nullptr) {
+      *error = QStringLiteral("无法写入阻塞配置 %1：%2").arg(target, output.errorString());
+    }
+    return {};
+  }
+  output.write(QJsonDocument(object).toJson(QJsonDocument::Indented));
+  output.close();
+  return target;
 }
 
 }  // namespace
@@ -111,6 +241,11 @@ int runSmoke(const SmokeOptions& options, const QJsonObject& applicationContext)
   window.setWindowTitle(QStringLiteral("ACSD v2 控制台（冒烟）"));
   window.show();
   QCoreApplication::processEvents();
+  // 把 GUI 自身的日志打到标准输出，便于证据里看出状态迁移。
+  QObject::connect(&window, &MainWindow::logAppended, &window, [](const QString& text) {
+    out() << "[gui] " << text << "\n";
+    out().flush();
+  });
 
   QString error;
   if (!window.setCliPath(options.cliPath, &error)) {
@@ -157,7 +292,33 @@ int runSmoke(const SmokeOptions& options, const QJsonObject& applicationContext)
   bool allOk = true;
   for (const QString& scenario : options.scenarios) {
     window.setProcessEnvironmentVariable(QStringLiteral("FAKE_ACSD_MODE"), scenario);
-    if (!window.startRun(&error)) {
+    QElapsedTimer scenarioTimer;
+    scenarioTimer.start();
+    const bool realScenario = scenario.startsWith(QStringLiteral("real-"));
+    const QString savedConfigPath = window.configFilePath();
+    if (realScenario) {
+      // 真实 CLI 场景：直接用原配置文件运行（不重写配置，不污染别人的目录）。
+      // 崩溃/终止场景改用会阻塞的配置，保证「杀掉进程」落在运行中间。
+      QString scenarioConfig = options.configPath;
+      if (scenario == QStringLiteral("real-crash") || scenario == QStringLiteral("real-terminate")) {
+        QString blockingError;
+        const QString blocking = prepareBlockingConfig(options.configPath, temporaryDir.path(),
+                                                       &blockingError);
+        if (blocking.isEmpty()) {
+          out() << "[smoke] 场景 " << scenario << " 无法准备阻塞配置：" << blockingError << "\n";
+          out().flush();
+          allOk = false;
+          continue;
+        }
+        scenarioConfig = blocking;
+      }
+      if (!window.startRunWithConfig(scenarioConfig, &error)) {
+        out() << "[smoke] 场景 " << scenario << " 启动失败：" << error << "\n";
+        out().flush();
+        allOk = false;
+        continue;
+      }
+    } else if (!window.startRun(&error)) {
       out() << "[smoke] 场景 " << scenario << " 启动失败：" << error << "\n";
       out().flush();
       allOk = false;
@@ -171,11 +332,23 @@ int runSmoke(const SmokeOptions& options, const QJsonObject& applicationContext)
       if (scenario == QStringLiteral("terminate")) {
         QTimer::singleShot(300, &loop, [&]() { window.forceTerminate(); });
       }
+      if (scenario == QStringLiteral("real-crash")) {
+        // 模拟外部杀死（崩溃）：不是用户中止，缺少终事件必须判失败。
+        QTimer::singleShot(200, &loop, [&]() { window.runner()->simulateExternalKill(); });
+      }
+      if (scenario == QStringLiteral("real-terminate")) {
+        QTimer::singleShot(200, &loop, [&]() { window.forceTerminate(); });
+      }
     });
     QTimer::singleShot(options.timeoutMs, &loop, &QEventLoop::quit);
     QObject::connect(window.runner(), &RunController::runFinished, &loop, [&]() { loop.quit(); });
     loop.exec();
 
+    if (realScenario) {
+      window.loadConfigFile(temporaryConfig, &error);  // 恢复临时配置为当前配置
+      window.setWorkingDirectory(temporaryDir.path());
+      Q_UNUSED(savedConfigPath);
+    }
     const QJsonObject snapshot = window.evidenceSnapshot();
     QString detail;
     const bool ok = scenarioSatisfied(scenario, snapshot, &detail);
@@ -185,12 +358,14 @@ int runSmoke(const SmokeOptions& options, const QJsonObject& applicationContext)
     scenarioReport.insert(QStringLiteral("ok"), ok);
     scenarioReport.insert(QStringLiteral("detail"), detail);
     scenarioReport.insert(QStringLiteral("run"), snapshot);
+    scenarioReport.insert(QStringLiteral("elapsed_ms"), static_cast<qint64>(scenarioTimer.elapsed()));
     scenarioReports.append(scenarioReport);
     out() << "[smoke] 场景 " << scenario << "：" << (ok ? "通过" : "不通过") << "（" << detail << "）"
           << " state=" << snapshot.value(QStringLiteral("state")).toString()
           << " exit_code=" << snapshot.value(QStringLiteral("exit_code")).toInt(-1)
           << " cancel_sent=" << snapshot.value(QStringLiteral("cancel_sent")).toBool()
-          << " events=" << snapshot.value(QStringLiteral("events")).toArray().size() << "\n";
+          << " events=" << snapshot.value(QStringLiteral("events")).toArray().size()
+          << " 用时=" << scenarioTimer.elapsed() << "ms\n";
     out().flush();
   }
   report.insert(QStringLiteral("scenarios"), scenarioReports);
@@ -280,6 +455,26 @@ int runSmoke(const SmokeOptions& options, const QJsonObject& applicationContext)
     report.insert(QStringLiteral("incompatible_config"), versionReport);
     allOk = allOk && versionOk;
     out() << "[smoke] 不兼容配置拒绝启动：" << (versionOk ? "通过" : "不通过") << "（" << reason << "）\n";
+    out().flush();
+  }
+
+  // ---- 从 CLI 模板填充配置（acsd template <command>） ----
+  {
+    QString templateError;
+    const bool ok = window.loadTemplateFromCli(QStringLiteral("normalize"), &templateError);
+    const AcsdConfig config = window.currentConfig();
+    const bool filled = ok && config.command == QStringLiteral("normalize") &&
+                        !config.inputs.isEmpty() && !config.scientific.isEmpty();
+    QJsonObject templateReport;
+    templateReport.insert(QStringLiteral("ok"), filled);
+    templateReport.insert(QStringLiteral("error"), templateError);
+    templateReport.insert(QStringLiteral("command"), config.command);
+    templateReport.insert(QStringLiteral("input_count"), config.inputs.size());
+    report.insert(QStringLiteral("cli_template"), templateReport);
+    allOk = allOk && filled;
+    out() << "[smoke] 从 CLI 模板填充配置：" << (filled ? "通过" : "不通过")
+          << "（command=" << config.command << "，输入数=" << config.inputs.size()
+          << (templateError.isEmpty() ? QString() : "，" + templateError) << "）\n";
     out().flush();
   }
 

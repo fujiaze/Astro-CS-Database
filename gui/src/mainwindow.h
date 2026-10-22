@@ -40,12 +40,18 @@ class MainWindow : public QMainWindow {
   bool setCliPath(const QString& path, QString* error = nullptr);
   QString cliPath() const;
   bool loadConfigFile(const QString& path, QString* error = nullptr);
+  // 用 `acsd template <command>` 的静态模板填充配置编辑器。
+  bool loadTemplateFromCli(const QString& command, QString* error = nullptr);
   bool saveConfigFile(const QString& path, QString* error = nullptr);
   QString configFilePath() const;
   AcsdConfig currentConfig() const;
   void setCurrentConfig(const AcsdConfig& config);
   void setWorkingDirectory(const QString& directory);
   bool startRun(QString* error = nullptr);
+  // 直接用给定的配置文件运行（不重写配置、不落临时文件）。
+  // 命令取自该配置文件的 command 字段。冒烟用真实 CLI 时使用，
+  // 避免在别人的目录里写运行配置。
+  bool startRunWithConfig(const QString& configPath, QString* error = nullptr);
   bool cancelRun();
   void forceTerminate();
   ProbeResult probeVersion();
