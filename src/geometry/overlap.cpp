@@ -10,6 +10,7 @@
 #include "acsd/contracts.hpp"
 #include "coordinates/healpix.hpp"
 #include "coordinates/chart.hpp"
+#include "geometry/containment.hpp"
 #include "geometry/kernel.hpp"
 #include "model/array.hpp"
 #include "model/result.hpp"
@@ -387,9 +388,17 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   const auto drop_rings = contract_rings(native_rings, pixfrac, source->contraction_center);
   Box drop_rectangle{};
   if (!rings_are_axis_aligned_rectangle(drop_rings, drop_rectangle)) {
-    return fail<Ref<Overlaps>>(Code::unsupported, "non_rectangular_footprint_not_supported",
-                               "compute_overlap",
-                               "the production cut cell kernel requires a rectangular collection domain");
+    Result<Ref<Overlaps>> out = fail<Ref<Overlaps>>(
+        Code::unsupported, "non_rectangular_footprint_not_supported", "compute_overlap:source_footprint",
+        "the production cut cell kernel and the containment fallback require a rectangular "
+        "collection domain, the overlap of this footprint is not published",
+        "use a rectangular collection domain or a footprint without holes");
+    model::add_issue(out.assessment, Code::unsupported, "non_rectangular_footprint_not_supported",
+                     "compute_overlap:source_footprint",
+                     "the overlap of this footprint is not published; the caller must use a "
+                     "rectangular collection domain",
+                     "use a rectangular collection domain or a footprint without holes");
+    return out;
   }
 
   const AreaBound native = geometry::footprint_area(*model, native_rings);
@@ -403,6 +412,19 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
                                                                       request);
   if (kernel.leaves.size() > kMaxInlineContributions) {
     return fail<Ref<Overlaps>>(Code::resource_exhausted, "too_many_contributions", "compute_overlap");
+  }
+
+  // The second algorithm: the equal-area containment integral A (SPHERICAL_DRIZZLE
+  // section 3).  It proves for every candidate target cell whether the whole
+  // cell lies inside or outside the source region and keeps the whole cell
+  // mass of an undecided cell as the error bound.  Its per leaf intervals are
+  // an independent enclosure of the same overlap mass, so the published
+  // interval is the intersection of the two algorithms.
+  const geometry::ContainmentOutcome containment =
+      geometry::target_containment(context, *model, model, drop_rectangle, order, request);
+  std::map<std::pair<U32, U64>, geometry::ContainmentLeaf> containment_leaves;
+  for (const geometry::ContainmentLeaf& leaf : containment.leaves) {
+    containment_leaves[{leaf.leaf.order, leaf.leaf.ipix}] = leaf;
   }
 
   // --- the primitive table ------------------------------------------------
@@ -441,27 +463,58 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   std::vector<U64> overlap_overlap;
 
   std::vector<OverlapContribution> contributions;
+  std::map<std::pair<U32, U64>, std::pair<Dyadic, Dyadic>> published;
   for (const geometry::LeafAreaBound& leaf : kernel.leaves) {
+    published[{leaf.leaf.order, leaf.leaf.ipix}] = {leaf.lower, leaf.upper};
+  }
+  // The containment algorithm is the fallback for the leaves that the cut cell
+  // kernel could not resolve.  It is only used for a leaf without any kernel
+  // contribution: the two algorithms cover different cell sets for such a
+  // leaf, so their masses add instead of intersecting.
+  model::BigInt containment_added_lower(0);
+  model::BigInt containment_added_upper(0);
+  for (const auto& entry : containment_leaves) {
+    if (published.find(entry.first) != published.end()) continue;
+    published[entry.first] = {entry.second.lower, entry.second.upper};
+    containment_added_lower =
+        containment_added_lower + model::BigInt::from_string(entry.second.lower.signed_integer);
+    containment_added_upper =
+        containment_added_upper + model::BigInt::from_string(entry.second.upper.signed_integer);
+  }
+  for (const auto& entry : published) {
+    const HealpixLeaf leaf{entry.first.first, entry.first.second};
+    const Dyadic& lower = entry.second.first;
+    const Dyadic& upper = entry.second.second;
     const U64 row = primitive_source.size();
-    push_primitive(2, leaf.leaf, leaf.lower, leaf.upper);
+    push_primitive(2, leaf, lower, upper);
     overlap_source.push_back(0);
-    overlap_orders.push_back(leaf.leaf.order);
-    overlap_ipix.push_back(leaf.leaf.ipix);
+    overlap_orders.push_back(leaf.order);
+    overlap_ipix.push_back(leaf.ipix);
     overlap_native.push_back(native_row);
     overlap_drop.push_back(drop_row);
     overlap_overlap.push_back(row);
     OverlapContribution contribution;
     contribution.source = source->source;
-    contribution.leaf = leaf.leaf;
+    contribution.leaf = leaf;
     contribution.native_area = area_interval(native.lower, native.upper, "primitive:native");
     contribution.drop_area = area_interval(drop.lower, drop.upper, "primitive:drop");
-    contribution.overlap_area = area_interval(leaf.lower, leaf.upper, "primitive:overlap");
+    contribution.overlap_area = area_interval(lower, upper, "primitive:overlap");
     contribution.shared_geometry_constraints = "geometry:constraints";
     contributions.push_back(std::move(contribution));
   }
 
   const U64 coarse_row = primitive_source.size();
-  push_primitive(3, std::nullopt, Dyadic{"0", 0}, kernel.unresolved_upper);
+  Dyadic coarse_upper = kernel.unresolved_upper;
+  {
+    // The mass that the containment algorithm proved inside the source region
+    // leaves the unresolved mass.  Only the proven part is removed, so the
+    // coarse row stays an upper bound of the unresolved mass.
+    const model::BigInt kernel_upper = model::BigInt::from_string(coarse_upper.signed_integer);
+    const model::BigInt removed = containment_added_upper;
+    const model::BigInt remaining = kernel_upper > removed ? kernel_upper - removed : model::BigInt(0);
+    coarse_upper.signed_integer = remaining.to_string();
+  }
+  push_primitive(3, std::nullopt, Dyadic{"0", 0}, coarse_upper);
 
   const Id primitive_index = "acsd.geometry.primitives";
   Result<ArrayRef> source_rows_array = store_u64(context, primitive_source, primitive_index);
@@ -674,6 +727,18 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   model::set_included(overlaps->assessment, "affine_strip_cut_cell");
   model::set_included(overlaps->assessment, "exact_rational_clipping");
   model::set_included(overlaps->assessment, "shared_constraints");
+  if (containment.complete) {
+    model::set_included(overlaps->assessment, "target_domain_containment_fallback");
+  }
+  if (!containment.complete) {
+    // The containment fallback could not prove the chart enclosure of the
+    // source boundary: the boundary is named, never silent.
+    model::add_issue(overlaps->assessment, Code::unsupported,
+                     "containment_fallback_incomplete", "compute_overlap:target_containment",
+                     "the equal-area containment proof of the target cells is unavailable, the "
+                     "cut cell kernel bounds remain authoritative",
+                     "refine the chart model or raise the geometry budget");
+  }
   model::set_omitted(overlaps->assessment, "astrometric_parameter_error");
 
   return ok_result(std::static_pointer_cast<const Overlaps>(overlaps));

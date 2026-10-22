@@ -37,7 +37,5 @@ Rational polygon_signed_area(const RationalPolygon& polygon);
 Rational polygon_moment_x(const RationalPolygon& polygon);
 Rational polygon_moment_y(const RationalPolygon& polygon);
 
-// Converts a binary64 constant into an exact rational.
-Rational rational_from_double(double value);
 
 }  // namespace acsd::geometry

@@ -132,11 +132,26 @@ Result<SphericalAreaInterval> TanSipFootprintProvider::measure(Context& context,
   (void)source;
   (void)request;
   // The certified area ledger is owned by the geometry module: this provider
-  // publishes the model and the enclosures, not an independent area.
-  return model::fail<SphericalAreaInterval>(Code::unsupported, "area_ledger_owned_by_geometry_module",
-                                             "measure");
+  // publishes the model and the enclosures, not an independent area.  The
+  // boundary is named, never silent.
+  Result<SphericalAreaInterval> out =
+      model::fail<SphericalAreaInterval>(Code::unsupported, "area_ledger_owned_by_geometry_module",
+                                         "measure:source_footprint");
+  model::add_issue(out.assessment, Code::unsupported, "area_ledger_owned_by_geometry_module",
+                   "measure:source_footprint",
+                   "the certified area of this footprint is published by acsd_geometry::measure and "
+                   "acsd_geometry::compute_overlap, not by the provider",
+                   "call the geometry module for the certified spherical area");
+  return out;
 }
 
+}  // namespace acsd::coordinates
+
+namespace acsd {
+
+// The single public construction entry of a footprint provider (contracts.hpp).
+// The provider identity is bound to the content hash of its WcsModel, so two
+// different WCS models must never share one provider instance.
 Result<Ref<FootprintProvider>> make_footprint_provider(Context& context, Ref<WcsModel> model) {
   using model::fail;
   using model::ok_result;
@@ -146,8 +161,8 @@ Result<Ref<FootprintProvider>> make_footprint_provider(Context& context, Ref<Wcs
   if (context.cancellation.requested()) {
     return fail<Ref<FootprintProvider>>(Code::cancelled, "cancelled", "make_footprint_provider");
   }
-  auto provider = std::make_shared<TanSipFootprintProvider>(model);
+  auto provider = std::make_shared<coordinates::TanSipFootprintProvider>(model);
   return ok_result(std::static_pointer_cast<const FootprintProvider>(provider));
 }
 
-}  // namespace acsd::coordinates
+}  // namespace acsd

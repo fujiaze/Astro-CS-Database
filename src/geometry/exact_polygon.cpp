@@ -13,12 +13,6 @@ int side_of(const RationalPoint& point, const Rational& a, const Rational& b, co
 
 }  // namespace
 
-Rational rational_from_double(double value) {
-  if (!std::isfinite(value)) return Rational(0, 1);
-  if (value == 0.0) return Rational(0, 1);
-  return Rational::from_double_exact(value);
-}
-
 RationalPolygon clip_half_space(const RationalPolygon& polygon, const Rational& a, const Rational& b,
                                 const Rational& c) {
   RationalPolygon result;

@@ -63,7 +63,7 @@ Result<Ref<GeometryRevision>> refine_geometry(Context& context, const RefinableG
                                          "refine_geometry");
     }
     Result<Ref<FootprintProvider>> footprint_provider =
-        coordinates::make_footprint_provider(context, recipe.footprints->wcs);
+        acsd::make_footprint_provider(context, recipe.footprints->wcs);
     if (!ok(footprint_provider)) {
       return fail<Ref<GeometryRevision>>(footprint_provider.code, "provider_unavailable",
                                          "refine_geometry");

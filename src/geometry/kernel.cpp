@@ -237,12 +237,12 @@ void integrate_affine(const RationalPolygon& polygon, const BlockModel& model, R
   const Rational area = polygon_signed_area(polygon);
   const Rational moment_u = polygon_moment_x(polygon);
   const Rational moment_v = polygon_moment_y(polygon);
-  const Rational cu = rational_from_double(model.cu);
-  const Rational cv = rational_from_double(model.cv);
-  const Rational g0 = rational_from_double(model.g0);
-  const Rational gu = rational_from_double(model.gu);
-  const Rational gv = rational_from_double(model.gv);
-  const Rational eg = rational_from_double(model.e_g);
+  const Rational cu = Rational::from_double_exact(model.cu);
+  const Rational cv = Rational::from_double_exact(model.cv);
+  const Rational g0 = Rational::from_double_exact(model.g0);
+  const Rational gu = Rational::from_double_exact(model.gu);
+  const Rational gv = Rational::from_double_exact(model.gv);
+  const Rational eg = Rational::from_double_exact(model.e_g);
   const Rational centre = g0 * area + gu * (moment_u - cu * area) + gv * (moment_v - cv * area);
   lower = centre - eg * area;
   upper = centre + eg * area;
@@ -262,12 +262,12 @@ HalfSpace chart_half_space_le(const BlockModel& model, bool s_axis, double bound
   const double gv = s_axis ? model.gs_v : model.gt_v;
   const double value = s_axis ? model.s0 : model.t0;
   HalfSpace space;
-  space.a = rational_from_double(gu);
-  space.b = rational_from_double(gv);
+  space.a = Rational::from_double_exact(gu);
+  space.b = Rational::from_double_exact(gv);
   // s_model(u,v) = gu*u + gv*v + (value - gu*cu - gv*cv), so
   // s_model <= bound  <=>  gu*u + gv*v <= bound - value + gu*cu + gv*cv.
   const double offset = bound - value + gu * model.cu + gv * model.cv;
-  space.c = rational_from_double(offset);
+  space.c = Rational::from_double_exact(offset);
   return space;
 }
 
@@ -281,10 +281,10 @@ HalfSpace chart_half_space_ge(const BlockModel& model, bool s_axis, double bound
 
 RationalPolygon rectangle_polygon(const Block& block) {
   RationalPolygon polygon;
-  polygon.push_back({rational_from_double(block.u0), rational_from_double(block.v0)});
-  polygon.push_back({rational_from_double(block.u1), rational_from_double(block.v0)});
-  polygon.push_back({rational_from_double(block.u1), rational_from_double(block.v1)});
-  polygon.push_back({rational_from_double(block.u0), rational_from_double(block.v1)});
+  polygon.push_back({Rational::from_double_exact(block.u0), Rational::from_double_exact(block.v0)});
+  polygon.push_back({Rational::from_double_exact(block.u1), Rational::from_double_exact(block.v0)});
+  polygon.push_back({Rational::from_double_exact(block.u1), Rational::from_double_exact(block.v1)});
+  polygon.push_back({Rational::from_double_exact(block.u0), Rational::from_double_exact(block.v1)});
   return polygon;
 }
 
@@ -332,6 +332,32 @@ Dyadic rational_to_dyadic(const Rational& value, bool upper) {
   return out;
 }
 
+namespace {
+
+// The integer value of a dyadic, scaled to the common exponent.
+BigInt scaled_to(const Dyadic& value, int exponent) {
+  BigInt integer = BigInt::from_string(value.signed_integer);
+  const int difference = exponent - value.exponent2;
+  if (difference > 0) integer = integer << static_cast<unsigned>(difference);
+  return integer;
+}
+
+}  // namespace
+
+Dyadic dyadic_max(const Dyadic& a, const Dyadic& b) {
+  const int exponent = std::min(a.exponent2, b.exponent2);
+  const BigInt left = scaled_to(a, exponent);
+  const BigInt right = scaled_to(b, exponent);
+  return compare(left, right) >= 0 ? a : b;
+}
+
+Dyadic dyadic_min(const Dyadic& a, const Dyadic& b) {
+  const int exponent = std::min(a.exponent2, b.exponent2);
+  const BigInt left = scaled_to(a, exponent);
+  const BigInt right = scaled_to(b, exponent);
+  return compare(left, right) <= 0 ? a : b;
+}
+
 double dyadic_to_double(const Dyadic& value) {
   double result = 0.0;
   const std::string& text = value.signed_integer;
@@ -347,6 +373,30 @@ double dyadic_to_double(const Dyadic& value) {
   }
   if (negative) result = -result;
   return std::ldexp(result, value.exponent2);
+}
+
+// ---------------------------------------------------------------------------
+// The chart enclosure of a detector box
+// ---------------------------------------------------------------------------
+
+bool chart_enclosure(const WcsModel& wcs, double u0, double u1, double v0, double v1,
+                     ChartBox& out) {
+  Block block;
+  block.u0 = u0;
+  block.u1 = u1;
+  block.v0 = v0;
+  block.v1 = v1;
+  BlockModel model;
+  if (!build_block_model(wcs, block, model)) return false;
+  out.valid = true;
+  out.face = model.face;
+  out.s_lo = model.s_lo;
+  out.s_hi = model.s_hi;
+  out.t_lo = model.t_lo;
+  out.t_hi = model.t_hi;
+  out.e_s = model.e_s;
+  out.e_t = model.e_t;
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -546,8 +596,8 @@ RationalAreaBound footprint_area_rational(const WcsModel& wcs,
   for (const auto& ring : rings) {
     RationalPolygon single;
     for (const auto& vertex : ring) {
-      single.push_back({rational_from_double(vertex[0] + 1.0 - wcs.crpix_fits1[0]),
-                         rational_from_double(vertex[1] + 1.0 - wcs.crpix_fits1[1])});
+      single.push_back({Rational::from_double_exact(vertex[0] + 1.0 - wcs.crpix_fits1[0]),
+                         Rational::from_double_exact(vertex[1] + 1.0 - wcs.crpix_fits1[1])});
     }
     area = area + polygon_signed_area(single);
     moment_u = moment_u + polygon_moment_x(single);
@@ -558,12 +608,12 @@ RationalAreaBound footprint_area_rational(const WcsModel& wcs,
     moment_u = -moment_u;
     moment_v = -moment_v;
   }
-  const Rational cu = rational_from_double(model.cu);
-  const Rational cv = rational_from_double(model.cv);
-  const Rational g0 = rational_from_double(model.g0);
-  const Rational gu = rational_from_double(model.gu);
-  const Rational gv = rational_from_double(model.gv);
-  const Rational eg = rational_from_double(model.e_g);
+  const Rational cu = Rational::from_double_exact(model.cu);
+  const Rational cv = Rational::from_double_exact(model.cv);
+  const Rational g0 = Rational::from_double_exact(model.g0);
+  const Rational gu = Rational::from_double_exact(model.gu);
+  const Rational gv = Rational::from_double_exact(model.gv);
+  const Rational eg = Rational::from_double_exact(model.e_g);
   const Rational centre = g0 * area + gu * (moment_u - cu * area) + gv * (moment_v - cv * area);
   bound.lower = centre - eg * area;
   bound.upper = centre + eg * area;

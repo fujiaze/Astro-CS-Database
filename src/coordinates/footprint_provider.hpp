@@ -28,7 +28,4 @@ class TanSipFootprintProvider final : public FootprintProvider {
   Ref<WcsModel> model_;
 };
 
-// Builds the canonical provider for one WcsModel.
-Result<Ref<FootprintProvider>> make_footprint_provider(Context& context, Ref<WcsModel> model);
-
 }  // namespace acsd::coordinates

@@ -61,6 +61,20 @@ struct KernelOutcome {
   Dyadic unresolved_upper;
 };
 
+// The chart enclosure of a detector box: the face of the equal-area chart and
+// the enclosure of the chart coordinates over the box.
+struct ChartBox {
+  bool valid = false;
+  U32 face = 0;
+  double s_lo = 0.0;
+  double s_hi = 0.0;
+  double t_lo = 0.0;
+  double t_hi = 0.0;
+  double e_s = 0.0;
+  double e_t = 0.0;
+};
+bool chart_enclosure(const WcsModel& wcs, double u0, double u1, double v0, double v1, ChartBox& out);
+
 // Overlap of a rectangular detector region with the leaves of the given order.
 KernelOutcome cut_cell_overlap(const WcsModel& wcs, const Box& detector_rect, U32 order,
                                const GeometryBudget& budget);
@@ -87,5 +101,9 @@ double dyadic_to_double(const Dyadic& value);
 
 // Converts an exact rational into the fixed dyadic grid, outward.
 Dyadic rational_to_dyadic(const Rational& value, bool upper);
+
+// The larger and the smaller of two exact dyadics.
+Dyadic dyadic_max(const Dyadic& a, const Dyadic& b);
+Dyadic dyadic_min(const Dyadic& a, const Dyadic& b);
 
 }  // namespace acsd::geometry
