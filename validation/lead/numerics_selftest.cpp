@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstdio>
 #include <string>
+#include <vector>
 
 using acsd::numerics::adaptive_integrate;
 using acsd::numerics::adaptive_integrate_gauss;
@@ -85,6 +86,40 @@ int main() {
         std::printf("FAIL   %s factor dimensions\n", label);
         ++failures;
       }
+    }
+  }
+
+  // The least squares path must return the true minimiser: the reflector
+  // vector must not be confused with the diagonal of R, and the column
+  // scaling and the permutation must be undone in the right order.
+  {
+    acsd::numerics::Matrix a(3, 2);
+    a(0, 0) = 1.0; a(0, 1) = 0.0;
+    a(1, 0) = 0.0; a(1, 1) = 1.0;
+    a(2, 0) = 1.0; a(2, 1) = 1.0;
+    const auto fit = acsd::numerics::least_squares(a, std::vector<double>{1.0, 2.0, 3.0}, 1e-12);
+    check("least squares x0", fit.solution[0], 1.0, 1e-10);
+    check("least squares x1", fit.solution[1], 2.0, 1e-10);
+    double residual = 0.0;
+    const auto fitted = acsd::numerics::matvec(a, fit.solution);
+    for (std::size_t i = 0; i < fitted.size(); ++i) {
+      const double want = i == 0 ? 1.0 : (i == 1 ? 2.0 : 3.0);
+      residual = std::max(residual, std::fabs(fitted[i] - want));
+    }
+    check("least squares residual", residual, 0.0, 1e-10);
+
+    acsd::numerics::Matrix identity(2, 2);
+    identity(0, 0) = 1.0; identity(1, 1) = 1.0;
+    const auto exact = acsd::numerics::least_squares(identity, std::vector<double>{1.0, 2.0}, 1e-12);
+    check("least squares identity", exact.solution[0], 1.0, 1e-12);
+
+    const auto many = acsd::numerics::least_squares(
+        identity, std::vector<std::vector<double>>{{1.0, 2.0}, {3.0, 4.0}}, 1e-12);
+    if (many.solutions.size() != 2) {
+      std::printf("FAIL   least squares multiple right hand sides\n");
+      ++failures;
+    } else {
+      check("least squares multi rhs", many.solutions[1][1], 4.0, 1e-12);
     }
   }
 

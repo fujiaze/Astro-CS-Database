@@ -243,11 +243,18 @@ RankReport classify_rank(const SvdResult& svd, std::size_t columns, double rank_
 
 namespace {
 
-// Householder QR with column pivoting, applied in place to a working copy.
+// Householder QR with column pivoting.
+//
+// The reflectors are kept separately from R: the classical implementation
+// stores the reflector vector in the lower part of the working column, which
+// destroys the diagonal of R, so the back substitution would read the
+// reflector instead of the triangular factor.
 struct QrFactor {
-  Matrix qr;
+  Matrix r;                            // upper triangular factor
   std::vector<std::size_t> permutation;
   std::vector<double> column_scales;
+  std::vector<std::vector<double>> reflectors;  // reflectors[k][i] is the i-th entry
+  std::vector<double> taus;
   std::size_t rank = 0;
   std::vector<double> singular_values;
 };
@@ -255,58 +262,77 @@ struct QrFactor {
 QrFactor householder_qr(const Matrix& a) {
   QrFactor factor;
   const std::size_t m = a.rows, n = a.cols;
-  factor.qr = a;
+  Matrix work = a;
   factor.permutation.resize(n);
   std::iota(factor.permutation.begin(), factor.permutation.end(), 0);
   factor.column_scales.resize(n, 1.0);
   for (std::size_t j = 0; j < n; ++j) {
     double norm = 0.0;
-    for (std::size_t i = 0; i < m; ++i) norm = std::max(norm, std::fabs(factor.qr(i, j)));
+    for (std::size_t i = 0; i < m; ++i) norm = std::max(norm, std::fabs(work(i, j)));
     factor.column_scales[j] = norm > 0.0 ? norm : 1.0;
-    for (std::size_t i = 0; i < m; ++i) factor.qr(i, j) /= factor.column_scales[j];
+    for (std::size_t i = 0; i < m; ++i) work(i, j) /= factor.column_scales[j];
   }
   std::vector<double> column_norms(n, 0.0);
   for (std::size_t j = 0; j < n; ++j) {
     double norm = 0.0;
-    for (std::size_t i = 0; i < m; ++i) norm += factor.qr(i, j) * factor.qr(i, j);
+    for (std::size_t i = 0; i < m; ++i) norm += work(i, j) * work(i, j);
     column_norms[j] = std::sqrt(norm);
   }
+
+  factor.reflectors.assign(n, {});
+  factor.taus.assign(n, 0.0);
   for (std::size_t k = 0; k < n; ++k) {
     // Column pivoting.
     std::size_t pivot = k;
     for (std::size_t j = k + 1; j < n; ++j)
       if (column_norms[j] > column_norms[pivot]) pivot = j;
     if (pivot != k) {
-      for (std::size_t i = 0; i < m; ++i) std::swap(factor.qr(i, k), factor.qr(i, pivot));
+      for (std::size_t i = 0; i < m; ++i) std::swap(work(i, k), work(i, pivot));
       std::swap(column_norms[k], column_norms[pivot]);
       std::swap(factor.column_scales[k], factor.column_scales[pivot]);
       std::swap(factor.permutation[k], factor.permutation[pivot]);
     }
-    double norm = 0.0;
-    for (std::size_t i = k; i < m; ++i) norm += factor.qr(i, k) * factor.qr(i, k);
-    norm = std::sqrt(norm);
-    if (norm == 0.0) continue;
-    if (factor.qr(k, k) > 0.0) norm = -norm;
-    for (std::size_t i = k; i < m; ++i) factor.qr(i, k) /= -norm;
-    factor.qr(k, k) += 1.0;
-    for (std::size_t j = k + 1; j < n; ++j) {
-      double s = 0.0;
-      for (std::size_t i = k; i < m; ++i) s += factor.qr(i, k) * factor.qr(i, j);
-      s = -s / factor.qr(k, k);
-      for (std::size_t i = k; i < m; ++i) factor.qr(i, j) += s * factor.qr(i, k);
+
+    // Householder reflector for the current column (LAPACK dlarfg form).
+    const double alpha = work(k, k);
+    double tail = 0.0;
+    for (std::size_t i = k + 1; i < m; ++i) tail += work(i, k) * work(i, k);
+    tail = std::sqrt(tail);
+    std::vector<double> reflector(m - k, 0.0);
+    double tau = 0.0;
+    if (tail > 0.0) {
+      const double beta = (alpha >= 0.0 ? -1.0 : 1.0) * std::sqrt(alpha * alpha + tail * tail);
+      tau = (beta - alpha) / beta;
+      reflector[0] = 1.0;
+      for (std::size_t i = k + 1; i < m; ++i) reflector[i - k] = work(i, k) / (alpha - beta);
+      work(k, k) = beta;
+      for (std::size_t i = k + 1; i < m; ++i) work(i, k) = 0.0;
+      // Apply the reflector to the remaining columns.
+      for (std::size_t j = k + 1; j < n; ++j) {
+        double dot = work(k, j);
+        for (std::size_t i = k + 1; i < m; ++i) dot += reflector[i - k] * work(i, j);
+        work(k, j) -= tau * dot;
+        for (std::size_t i = k + 1; i < m; ++i) work(i, j) -= tau * reflector[i - k] * dot;
+      }
     }
-    for (std::size_t i = k + 1; i < m; ++i) factor.qr(i, k) = 0.0;
-    column_norms[k] = norm;
+    factor.reflectors[k] = std::move(reflector);
+    factor.taus[k] = tau;
   }
-  // Rank from the trailing 2x2 block of R.
+
+  // Extract the triangular factor.
+  factor.r = Matrix(m, n);
+  for (std::size_t i = 0; i < m; ++i)
+    for (std::size_t j = 0; j < n; ++j)
+      factor.r(i, j) = (i <= j) ? work(i, j) : 0.0;
+
   double rnorm = 0.0;
-  for (std::size_t j = 0; j < n; ++j) rnorm = std::max(rnorm, std::fabs(factor.qr(j, j)));
-  const double tol = (m > 0 && n > 0) ? std::max(m, n) * kEps * rnorm : 0.0;
+  for (std::size_t j = 0; j < n; ++j) rnorm = std::max(rnorm, std::fabs(factor.r(j, j)));
+  const double tol = (m > 0 && n > 0) ? static_cast<double>(std::max(m, n)) * kEps * rnorm : 0.0;
   factor.rank = 0;
   for (std::size_t j = 0; j < n; ++j)
-    if (std::fabs(factor.qr(j, j)) > tol) ++factor.rank;
+    if (std::fabs(factor.r(j, j)) > tol) ++factor.rank;
   factor.singular_values.resize(n);
-  for (std::size_t j = 0; j < n; ++j) factor.singular_values[j] = std::fabs(factor.qr(j, j));
+  for (std::size_t j = 0; j < n; ++j) factor.singular_values[j] = std::fabs(factor.r(j, j));
   return factor;
 }
 
@@ -317,30 +343,36 @@ LeastSquaresResult least_squares(const Matrix& a, const std::vector<double>& rhs
   LeastSquaresResult out;
   const std::size_t m = a.rows, n = a.cols;
   if (m == 0 || n == 0) return out;
-  QrFactor factor = householder_qr(a);
+  const QrFactor factor = householder_qr(a);
 
-  std::vector<double> scaled_rhs(rhs.size(), 0.0);
-  for (std::size_t i = 0; i < rhs.size(); ++i) scaled_rhs[i] = rhs[i];
-
-  std::vector<double> y(m, 0.0);
-  for (std::size_t k = 0; k < m; ++k) {
-    double s = 0.0;
-    for (std::size_t i = k; i < m; ++i) s += factor.qr(i, k) * scaled_rhs[i];
-    s = -s / factor.qr(k, k);
-    for (std::size_t i = k; i < m; ++i) scaled_rhs[i] += s * factor.qr(i, k);
+  // Apply the reflectors to the right hand side: Q^T b.
+  std::vector<double> transformed(rhs.size(), 0.0);
+  for (std::size_t i = 0; i < rhs.size() && i < m; ++i) transformed[i] = rhs[i];
+  for (std::size_t k = 0; k < n; ++k) {
+    const double tau = factor.taus[k];
+    if (tau == 0.0) continue;
+    const std::vector<double>& reflector = factor.reflectors[k];
+    double dot = transformed[k];
+    for (std::size_t i = k + 1; i < m; ++i) dot += reflector[i - k] * transformed[i];
+    transformed[k] -= tau * dot;
+    for (std::size_t i = k + 1; i < m; ++i) transformed[i] -= tau * reflector[i - k] * dot;
   }
-  for (std::size_t i = 0; i < m; ++i) y[i] = scaled_rhs[i];
 
-  std::vector<double> z(n, 0.0);
-  const std::size_t r = std::min(factor.rank, n);
-  for (std::size_t k = r; k-- > 0;) {
-    double sum = y[k];
-    for (std::size_t j = k + 1; j < n; ++j) sum -= factor.qr(k, j) * z[j];
-    z[k] = sum / factor.qr(k, k);
+  // Back substitution on the triangular factor.
+  std::vector<double> y(n, 0.0);
+  for (std::size_t k = n; k-- > 0;) {
+    if (k >= factor.rank || factor.r(k, k) == 0.0) { y[k] = 0.0; continue; }
+    double sum = transformed[k];
+    for (std::size_t j = k + 1; j < n; ++j) sum -= factor.r(k, j) * y[j];
+    y[k] = sum / factor.r(k, k);
   }
-  // Map the pivoted solution back to the original column order.
+
+  // Undo the column scaling and the permutation: A = A' S^{-1} P^{-1}, so the
+  // solution of A x = b is x = P S y.
   out.solution.assign(n, 0.0);
-  for (std::size_t j = 0; j < n; ++j) out.solution[factor.permutation[j]] = z[j] / factor.column_scales[j];
+  for (std::size_t j = 0; j < n; ++j) {
+    out.solution[factor.permutation[j]] = factor.column_scales[j] * y[j];
+  }
 
   const std::vector<double> fitted = matvec(a, out.solution);
   double residual_norm = 0.0;
@@ -365,25 +397,18 @@ LeastSquaresResult least_squares(const Matrix& a, const std::vector<double>& rhs
 LeastSquaresResult least_squares(const Matrix& a, const std::vector<std::vector<double>>& rhs,
                                   double rank_relative) {
   LeastSquaresResult combined;
-  const std::size_t columns = rhs.empty() ? 0 : rhs[0].size();
-  std::vector<double> combined_rhs(columns, 0.0);
-  LeastSquaresResult first;
-  if (!rhs.empty()) {
-    first = least_squares(a, rhs[0], rank_relative);
-    combined_rhs = rhs[0];
-  }
-  combined.rank = first.rank;
-  combined.rank_certified = first.rank_certified;
-  combined.rank_error = first.rank_error;
-  combined.singular_values = first.singular_values;
-  combined.converged = first.converged;
-  combined.residuals = first.residuals;
-  combined.scaled_residual = first.scaled_residual;
-  for (std::size_t c = 1; c < rhs.size(); ++c) {
-    LeastSquaresResult single = least_squares(a, rhs[c], rank_relative);
+  combined.converged = true;
+  for (const std::vector<double>& column : rhs) {
+    LeastSquaresResult single = least_squares(a, column, rank_relative);
+    combined.solutions.push_back(single.solution);
     combined.residuals.push_back(single.residuals.empty() ? 0.0 : single.residuals[0]);
     combined.scaled_residual = std::max(combined.scaled_residual, single.scaled_residual);
+    combined.rank = single.rank;
+    combined.rank_certified = single.rank_certified;
+    combined.rank_error = single.rank_error;
+    combined.singular_values = single.singular_values;
   }
+  if (!combined.solutions.empty()) combined.solution = combined.solutions.front();
   return combined;
 }
 

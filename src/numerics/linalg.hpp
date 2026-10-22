@@ -60,7 +60,8 @@ struct SvdResult {
 SvdResult jacobi_svd(const Matrix& a, double rank_relative = 1e-12);
 
 struct LeastSquaresResult {
-  std::vector<double> solution;
+  std::vector<double> solution;         // solution of the first right hand side
+  std::vector<std::vector<double>> solutions;  // one solution per right hand side
   std::vector<double> residuals;   // per right-hand side residual norms
   double scaled_residual = 0.0;     // ||D^T r||_inf style measure
   std::size_t rank = 0;
