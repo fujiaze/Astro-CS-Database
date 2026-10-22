@@ -128,6 +128,41 @@ int main() {
     check("the variance is 4", value == 4.0, "the influence was ignored");
   }
 
+  // Two roots with the same shared identity are the same random variable:
+  // their influences must be merged, so the cross terms appear once.  With
+  // the scalar factor and the scalar influence of one, a single root gives
+  // the variance 1 and two roots of the same identity give 4 (not 2).
+  {
+    auto build = [&](int root_count) -> Result<Variance> {
+      NoiseModel shared;
+      shared.variance_unit = model::unit_dimensionless();
+      shared.state = NoiseState::known;
+      for (int k = 0; k < root_count; ++k) {
+        NoiseRoot root;
+        root.shared_id.external_namespace = "selftest";
+        root.shared_id.entity = "shared";
+        root.shared_id.model_revision = "1";
+        root.shared_id.component = "all";
+        root.unit = model::unit_dimensionless();
+        root.factor = val(identity);
+        shared.shared_factors.push_back(std::make_shared<const NoiseRoot>(root));
+        shared.influence.push_back(val(identity));
+      }
+      auto action = make_covariance(context, std::make_shared<const NoiseModel>(shared));
+      if (!ok(action)) {
+        return model::fail<Variance>(action.code, "the covariance cannot be built", "selftest",
+                                     "the variance cannot be computed");
+      }
+      return quadratic_form(context, val(action), val(stored));
+    };
+    const auto single = build(1);
+    check("one shared root gives the variance 1",
+          ok(single) && val(single).value.value_or(-1.0) == 1.0);
+    const auto twice = build(2);
+    check("two roots of the same identity are merged",
+          ok(twice) && val(twice).value.value_or(-1.0) == 4.0);
+  }
+
   std::printf("%s: %d failure(s)\n",
               failures == 0 ? "covariance self test PASS" : "covariance self test FAIL", failures);
   return failures == 0 ? 0 : 1;

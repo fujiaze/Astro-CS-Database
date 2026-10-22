@@ -9,6 +9,87 @@
 #include "uncertainty/covariance.hpp"
 
 namespace acsd {
+namespace {
+
+// Two units are the same when the scale, every power and the multiplier agree.
+bool same_unit(const Unit& a, const Unit& b) {
+  return a.scale == b.scale && a.sr_power == b.sr_power && a.pixel_power == b.pixel_power &&
+         a.nm_power == b.nm_power && a.linear_power == b.linear_power &&
+         a.multiplier == b.multiplier;
+}
+
+bool same_shared_id(const SharedId& a, const SharedId& b) {
+  return a.external_namespace == b.external_namespace && a.entity == b.entity &&
+         a.model_revision == b.model_revision && a.component == b.component;
+}
+
+// Merge the shared roots that carry the same identity into one root whose
+// influence is the sum of the influences of the group.  The factor of the
+// group is the factor of its first member: the roots describe the same
+// random variable.
+Result<Ref<NoiseModel>> merge_shared_roots(Context& context, Ref<NoiseModel> model) {
+  const std::size_t innovation_count = model->innovations.size();
+  std::vector<Ref<NoiseRoot>> merged_shared;
+  std::vector<Ref<LinearAction>> merged_influence;
+  for (std::size_t i = 0; i < innovation_count; ++i) {
+    merged_influence.push_back(model->influence[i]);
+  }
+  std::size_t index = innovation_count;
+  std::size_t group_start = 0;
+  while (group_start < model->shared_factors.size()) {
+    std::size_t group_end = group_start + 1;
+    while (group_end < model->shared_factors.size() &&
+           same_shared_id(model->shared_factors[group_start]->shared_id,
+                          model->shared_factors[group_end]->shared_id)) {
+      ++group_end;
+    }
+    if (group_end - group_start == 1) {
+      merged_shared.push_back(model->shared_factors[group_start]);
+      merged_influence.push_back(model->influence[index + group_start]);
+    } else {
+      std::vector<Ref<LinearAction>> members;
+      for (std::size_t k = group_start; k < group_end; ++k) {
+        members.push_back(model->influence[index + k]);
+      }
+      // The total influence is the sum of the influences of the group.
+      std::vector<double> coefficients(members.size(), 1.0);
+      const std::vector<U64> coefficient_shape{static_cast<U64>(members.size())};
+      Result<ArrayRef> stored =
+          operators::write_f64(context, coefficients, std::span<const U64>(coefficient_shape),
+                               model::unit_dimensionless(), Id());
+      if (!ok(stored)) {
+        return model::fail<Ref<NoiseModel>>(stored.code, "the coefficients cannot be stored",
+                                            "make_covariance", "the covariance cannot be built");
+      }
+      ActionRecipe recipe;
+      recipe.kind = ActionRecipe::Kind::sum;
+      recipe.algorithm = "shared_root_merge_v1";
+      recipe.version = 1;
+      recipe.children.clear();
+      for (const Ref<LinearAction>& member : members) {
+        recipe.children.push_back(member->spaces.domain ? member->spaces.domain->identity.object_id
+                                                        : Id());
+      }
+      recipe.arrays = {"shared_root_merge_coefficients"};
+      std::vector<ArrayRef> arrays{val(stored)};
+      Result<Ref<LinearAction>> total = make_action(context, recipe, members, arrays);
+      if (!ok(total)) {
+        return model::fail<Ref<NoiseModel>>(total.code, "the total influence cannot be built",
+                                            "make_covariance", "the covariance cannot be built");
+      }
+      NoiseRoot root = *model->shared_factors[group_start];
+      merged_shared.push_back(std::make_shared<const NoiseRoot>(root));
+      merged_influence.push_back(val(total));
+    }
+    group_start = group_end;
+  }
+  auto out = std::make_shared<NoiseModel>(*model);
+  out->shared_factors = std::move(merged_shared);
+  out->influence = std::move(merged_influence);
+  return model::ok_result<Ref<NoiseModel>>(out);
+}
+
+}  // namespace
 
 Result<Ref<CovarianceAction>> make_covariance(Context& context, Ref<NoiseModel> model) {
   if (!model) {
@@ -42,14 +123,16 @@ Result<Ref<CovarianceAction>> make_covariance(Context& context, Ref<NoiseModel> 
                                                 "the covariance cannot be built");
     }
   }
-  // Shared roots with the same identity must carry the same definition.
+  // Shared roots with the same identity must carry the same definition: the
+  // whole unit, not only the multiplier (a scale or a power may differ while
+  // the multiplier stays equal).
   for (std::size_t i = 0; i < model->shared_factors.size(); ++i) {
     for (std::size_t j = i + 1; j < model->shared_factors.size(); ++j) {
       const SharedId& a = model->shared_factors[i]->shared_id;
       const SharedId& b = model->shared_factors[j]->shared_id;
       const bool same = a.external_namespace == b.external_namespace && a.entity == b.entity &&
                         a.model_revision == b.model_revision && a.component == b.component;
-      if (same && model->shared_factors[i]->unit.multiplier != model->shared_factors[j]->unit.multiplier) {
+      if (same && !same_unit(model->shared_factors[i]->unit, model->shared_factors[j]->unit)) {
         return model::fail<Ref<CovarianceAction>>(
             Code::identity_conflict, "a shared root is defined twice with different units",
             "make_covariance", "the covariance cannot be built");
@@ -57,8 +140,36 @@ Result<Ref<CovarianceAction>> make_covariance(Context& context, Ref<NoiseModel> 
     }
   }
 
+  // The shared roots that carry the same identity are the same random
+  // variable.  Their influences must be merged into one total influence, so
+  // that the cross terms of the same source appear once:
+  //   (L1 + L2) F F^T (L1 + L2)^T = L1FF^TL1^T + L1FF^TL2^T + L2FF^TL1^T + L2FF^TL2^T
+  // Applying the roots one by one would drop the two cross terms.
+  auto merged = model::ok_result<Ref<NoiseModel>>(model);
+  if (model->shared_factors.size() > 1) {
+    bool repeated = false;
+    for (std::size_t i = 0; i < model->shared_factors.size(); ++i) {
+      for (std::size_t j = i + 1; j < model->shared_factors.size(); ++j) {
+        const SharedId& a = model->shared_factors[i]->shared_id;
+        const SharedId& b = model->shared_factors[j]->shared_id;
+        if (a.external_namespace == b.external_namespace && a.entity == b.entity &&
+            a.model_revision == b.model_revision && a.component == b.component) {
+          repeated = true;
+        }
+      }
+    }
+    if (repeated) {
+      Result<Ref<NoiseModel>> built = merge_shared_roots(context, model);
+      if (!ok(built)) {
+        return model::fail<Ref<CovarianceAction>>(built.code, "the shared roots cannot be merged",
+                                                  "make_covariance", "the covariance cannot be built");
+      }
+      merged = built;
+    }
+  }
+
   auto covariance = std::make_shared<CovarianceAction>();
-  covariance->model = model;
+  covariance->model = val(merged);
   DomainUnits spaces;
   if (!model->innovations.empty() && model->innovations.front()) {
     spaces.domain = model->innovations.front()->coordinates;
@@ -69,8 +180,9 @@ Result<Ref<CovarianceAction>> make_covariance(Context& context, Ref<NoiseModel> 
   spaces.input = model->variance_unit;
   spaces.output = model->variance_unit;
   covariance->input_output = spaces;
+  const std::size_t merged_count = val(merged)->innovations.size() + val(merged)->shared_factors.size();
   covariance->identity = model::make_identity("acsd.CovarianceAction", 2, 0,
-                                              model::hash_index(Index::Kind::latent, root_count, 0, {}),
+                                              model::hash_index(Index::Kind::latent, merged_count, 0, {}),
                                               "acsd");
   covariance->assessment = model::make_assessment(Code::ok);
   covariance->assessment.complete = true;
