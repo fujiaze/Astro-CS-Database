@@ -21,6 +21,7 @@
 #include "model/hash.hpp"
 #include "model/result.hpp"
 #include "model/units.hpp"
+#include "uncertainty/covariance.hpp"
 
 namespace acsd {
 namespace {
@@ -113,6 +114,19 @@ class CatalogueProviderImpl final : public CatalogueProvider {
       by_id_[stars_[i].source_id] = i;
     }
     load_index_arrays(context);
+    // The noise of the catalogue is exposed as the covariance action built by
+    // the single public constructor; a missing noise model stays null, which
+    // means unknown and not zero.
+    if (index_->columns->astrometric_noise) {
+      Result<Ref<CovarianceAction>> covariance =
+          make_covariance(context, index_->columns->astrometric_noise);
+      if (ok(covariance)) astrometric_noise_ = val(covariance);
+    }
+    if (index_->columns->xp_noise) {
+      Result<Ref<CovarianceAction>> covariance =
+          make_covariance(context, index_->columns->xp_noise);
+      if (ok(covariance)) xp_noise_ = val(covariance);
+    }
   }
 
   Result<Ref<CatalogueMetadata>> describe(Context& context) const override {
@@ -152,6 +166,8 @@ class CatalogueProviderImpl final : public CatalogueProvider {
   std::vector<StarRow> stars_;
   std::unordered_map<U64, std::size_t> by_id_;
   std::string dataset_hash_;
+  Ref<CovarianceAction> astrometric_noise_;
+  Ref<CovarianceAction> xp_noise_;
 
   // The exported index arrays, decoded once.
   std::vector<std::array<U64, 4>> quad_source_ids_;
@@ -270,6 +286,8 @@ CatalogueStar CatalogueProviderImpl::make_star(Context& context, const StarRow& 
   if (row.rv_present) star.radial_velocity_m_s = row.rv_m_s;
   star.brightness_mag = row.brightness_mag;
   star.xp_basis = index_->columns->xp_basis;
+  star.astrometric_noise = astrometric_noise_;
+  star.xp_noise = xp_noise_;
 
   // The spectral coefficients of this source are exported as their own array.
   const U64 coefficients = catalogue::spectral_coefficient_count(*index_->columns);

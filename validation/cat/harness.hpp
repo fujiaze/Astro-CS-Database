@@ -142,7 +142,7 @@ class MemoryStorage final : public Storage {
     (void)context;
     U64 count = 1;
     for (U64 extent : shape) count *= extent;
-    const std::size_t item = dtype == DType::f64 ? 8 : (dtype == DType::u64 ? 8 : 1);
+    const std::size_t item = dtype_size(dtype);
     if (bytes.size() != count * item) {
       return fail<ArrayRef>(Code::invalid_request, "the byte count does not match the shape",
                                     "validation.storage", "the array cannot be created");
@@ -193,7 +193,7 @@ class MemoryStorage final : public Storage {
       return fail<ArrayView>(Code::invalid_request, "the range is out of bounds",
                                     "validation.storage", "the range cannot be read");
     }
-    const std::size_t item = array->dtype == DType::f64 ? 8 : (array->dtype == DType::u64 ? 8 : 1);
+    const std::size_t item = dtype_size(array->dtype);
     const std::size_t offset = static_cast<std::size_t>(range.begin) * item;
     const std::size_t length = static_cast<std::size_t>(range.count) * item;
     ArrayView view;
@@ -215,6 +215,24 @@ class MemoryStorage final : public Storage {
   }
 
  private:
+  static std::size_t dtype_size(DType dtype) {
+    switch (dtype) {
+      case DType::f64:
+      case DType::u64:
+        return 8;
+      case DType::f32:
+      case DType::u32:
+        return 4;
+      case DType::u16:
+        return 2;
+      case DType::u8:
+        return 1;
+      case DType::dyadic:
+        return 0;
+    }
+    return 0;
+  }
+
   static std::string hash_bytes(DType dtype, const std::vector<U64>& shape, const Unit& unit,
                                 const std::vector<std::byte>& bytes) {
     std::ostringstream stream;

@@ -1,0 +1,15 @@
+{
+  "case": "blind_astrometric_solve_oracle",
+  "compared_pixels": 1681,
+  "field_height": 2048,
+  "field_width": 2048,
+  "max_difference_arcsec": 0.2931617464924404,
+  "max_difference_rad": 8.143381847012234e-05,
+  "oracle": "astropy 7.0.1",
+  "status": "pass",
+  "tolerance_arcsec": 2.0,
+  "worst_pixel": [
+    0.0,
+    2047.0
+  ]
+}

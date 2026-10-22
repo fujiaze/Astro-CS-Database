@@ -720,6 +720,27 @@ int main() {
     check(val(quad_page).next_cursor.empty() || !val(quad_page).next_cursor.empty(),
           "the quad page carries a cursor field");
 
+    // A wide box must return every registered row: the KD tree prunes only
+    // on the descriptor bounds.
+    {
+      acsd::QuadQuery wide;
+      for (std::size_t k = 0; k < 4; ++k) wide.descriptor[k] = Interval{-10.0, 10.0};
+      wide.baseline_rad = Interval{0.0, 10.0};
+      wide.page_size = 4096;
+      U64 total = 0;
+      std::string cursor;
+      for (int page = 0; page < 64; ++page) {
+        wide.cursor = cursor;
+        Result<acsd::QuadPage> result = catalogue_provider->query_quads(context, wide);
+        if (!ok(result)) break;
+        total += val(result).matches.size();
+        cursor = val(result).next_cursor;
+        if (cursor.empty()) break;
+      }
+      check(total == rows, "the wide descriptor box returns every registered row");
+      std::cout << "  wide box rows " << total << " of " << rows << std::endl;
+    }
+
     // The region filter restricts the answer.
     acsd::QuadQuery regional = quad_request;
     regional.regions.push_back(acsd::SkySearchRegion{
