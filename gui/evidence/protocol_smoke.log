@@ -1,0 +1,8 @@
+PASS  normal     run_finished=1 exit_code=0 事件数=13
+PASS  cancel     取消报文字节一致 exit_code=5
+PASS  crash      无终事件 → 必须判失败（不得推断成功）
+PASS  terminate  主动终止后无终事件 → 必须标 aborted
+PASS  cross_check 两套实现事件流一致（2 行）
+
+总计 7 项，失败 0 项
+证据已写入：/workspace/Astro CS Database/gui/evidence/protocol_smoke.json

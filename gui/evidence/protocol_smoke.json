@@ -1,0 +1,42 @@
+{
+  "tool": "protocol_smoke.py",
+  "python": "3.13.5",
+  "results": [
+    {
+      "scenario": "normal",
+      "ok": true,
+      "detail": "run_finished=1 exit_code=0 事件数=13"
+    },
+    {
+      "scenario": "cancel",
+      "ok": true,
+      "detail": "取消报文字节一致 exit_code=5"
+    },
+    {
+      "scenario": "crash",
+      "ok": true,
+      "detail": "无终事件 → 必须判失败（不得推断成功）"
+    },
+    {
+      "scenario": "terminate",
+      "ok": true,
+      "detail": "主动终止后无终事件 → 必须标 aborted"
+    },
+    {
+      "scenario": "cross_check:normal",
+      "ok": true,
+      "detail": "两套实现事件流一致（13 行）"
+    },
+    {
+      "scenario": "cross_check:cancel",
+      "ok": true,
+      "detail": "两套实现事件流一致（3 行）"
+    },
+    {
+      "scenario": "cross_check:crash",
+      "ok": true,
+      "detail": "两套实现事件流一致（2 行）"
+    }
+  ],
+  "failures": 0
+}

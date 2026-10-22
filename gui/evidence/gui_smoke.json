@@ -1,0 +1,423 @@
+{
+    "all_ok": true,
+    "application": {
+        "application_name": "acsd-gui",
+        "application_version": "2.0.0",
+        "qt_version": "6.7.3"
+    },
+    "cli": "/workspace/Astro CS Database/gui/tests/fake_acsd.py",
+    "config": "/workspace/Astro CS Database/gui/tests/sample-config.json",
+    "incompatible_config": {
+        "loaded": false,
+        "reason": "配置 schema major 3 与 GUI 支持的 2 不兼容，拒绝启动",
+        "satisfied": true
+    },
+    "input_groups": 3,
+    "mode": "offscreen-smoke",
+    "platform": "offscreen",
+    "product": {
+        "block_count": 1,
+        "capabilities": [
+            "signal",
+            "noise_unknown"
+        ],
+        "complete": true,
+        "error": "",
+        "object_count": 1,
+        "ok": true,
+        "profile": "full",
+        "satisfied": true,
+        "stage": "normalize"
+    },
+    "scenarios": [
+        {
+            "detail": "",
+            "ok": true,
+            "run": {
+                "cancel_acknowledged": false,
+                "cancel_sent": false,
+                "cli": "/workspace/Astro CS Database/gui/tests/fake_acsd.py",
+                "command": "normalize",
+                "config_file": "/tmp/acsd-gui-Xbxxco/config.json",
+                "events": [
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "run_started",
+                        "fatal": false,
+                        "message": "fake acsd 开始：command=normalize mode=normal",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 0,
+                        "total": 0,
+                        "valid": true
+                    },
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "frame_started",
+                        "fatal": false,
+                        "frame_id": "frame-001",
+                        "message": "开始处理帧 frame-001",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 1,
+                        "total": 0,
+                        "valid": true
+                    },
+                    {
+                        "block": 0,
+                        "code": "ok",
+                        "completed": 1,
+                        "error": "",
+                        "event": "block_progress",
+                        "fatal": false,
+                        "frame_id": "frame-001",
+                        "message": "frame-001 块 1/3",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 2,
+                        "total": 3,
+                        "valid": true
+                    },
+                    {
+                        "block": 1,
+                        "code": "ok",
+                        "completed": 2,
+                        "error": "",
+                        "event": "block_progress",
+                        "fatal": false,
+                        "frame_id": "frame-001",
+                        "message": "frame-001 块 2/3",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 3,
+                        "total": 3,
+                        "valid": true
+                    },
+                    {
+                        "block": 2,
+                        "code": "ok",
+                        "completed": 3,
+                        "error": "",
+                        "event": "block_progress",
+                        "fatal": false,
+                        "frame_id": "frame-001",
+                        "message": "frame-001 块 3/3",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 4,
+                        "total": 3,
+                        "valid": true
+                    },
+                    {
+                        "assessment": {
+                            "capability": "supported",
+                            "complete": true,
+                            "execution": "complete",
+                            "issues": [
+                            ],
+                            "noise": "conditional",
+                            "science": "bounded",
+                            "validity": "certified"
+                        },
+                        "code": "ok",
+                        "completed": 3,
+                        "error": "",
+                        "event": "frame_finished",
+                        "fatal": false,
+                        "frame_id": "frame-001",
+                        "message": "帧 frame-001 完成",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 5,
+                        "total": 3,
+                        "valid": true
+                    },
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "frame_started",
+                        "fatal": false,
+                        "frame_id": "frame-002",
+                        "message": "开始处理帧 frame-002",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 6,
+                        "total": 0,
+                        "valid": true
+                    },
+                    {
+                        "block": 0,
+                        "code": "ok",
+                        "completed": 1,
+                        "error": "",
+                        "event": "block_progress",
+                        "fatal": false,
+                        "frame_id": "frame-002",
+                        "message": "frame-002 块 1/3",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 7,
+                        "total": 3,
+                        "valid": true
+                    },
+                    {
+                        "block": 1,
+                        "code": "ok",
+                        "completed": 2,
+                        "error": "",
+                        "event": "block_progress",
+                        "fatal": false,
+                        "frame_id": "frame-002",
+                        "message": "frame-002 块 2/3",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 8,
+                        "total": 3,
+                        "valid": true
+                    },
+                    {
+                        "block": 2,
+                        "code": "ok",
+                        "completed": 3,
+                        "error": "",
+                        "event": "block_progress",
+                        "fatal": false,
+                        "frame_id": "frame-002",
+                        "message": "frame-002 块 3/3",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 9,
+                        "total": 3,
+                        "valid": true
+                    },
+                    {
+                        "assessment": {
+                            "capability": "supported",
+                            "complete": true,
+                            "execution": "complete",
+                            "issues": [
+                            ],
+                            "noise": "conditional",
+                            "science": "bounded",
+                            "validity": "certified"
+                        },
+                        "code": "ok",
+                        "completed": 3,
+                        "error": "",
+                        "event": "frame_finished",
+                        "fatal": false,
+                        "frame_id": "frame-002",
+                        "message": "帧 frame-002 完成",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 10,
+                        "total": 3,
+                        "valid": true
+                    },
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "product_published",
+                        "fatal": false,
+                        "message": "发布产品到 out/normalize",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 11,
+                        "total": 0,
+                        "valid": true
+                    },
+                    {
+                        "code": "ok",
+                        "completed": 2,
+                        "error": "",
+                        "event": "run_finished",
+                        "exit_code": 0,
+                        "fatal": false,
+                        "message": "全部完成",
+                        "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                        "seq": 12,
+                        "summary": {
+                            "cancelled": 0,
+                            "failed": 0,
+                            "inputs": 2,
+                            "published": 2,
+                            "unsolved": 0
+                        },
+                        "total": 2,
+                        "valid": true
+                    }
+                ],
+                "exit_code": 0,
+                "fatal_reason": "",
+                "process_exit_code": -1,
+                "run_id": "1da0e737-c0aa-44e1-a360-2f38ff3110df",
+                "state": "成功",
+                "state_code": 3,
+                "state_description": "收到 run_finished 且 exit_code=0",
+                "summary": {
+                    "cancelled": 0,
+                    "failed": 0,
+                    "inputs": 2,
+                    "published": 2,
+                    "unsolved": 0
+                },
+                "version_event_major": 2,
+                "version_probe_detail": "events/2"
+            },
+            "scenario": "normal"
+        },
+        {
+            "detail": "",
+            "ok": true,
+            "run": {
+                "cancel_acknowledged": true,
+                "cancel_sent": true,
+                "cli": "/workspace/Astro CS Database/gui/tests/fake_acsd.py",
+                "command": "normalize",
+                "config_file": "/tmp/acsd-gui-Xbxxco/config.json",
+                "events": [
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "run_started",
+                        "fatal": false,
+                        "message": "fake acsd 开始：command=normalize mode=cancel",
+                        "run_id": "035a8230-9590-49c0-b7d8-275df9f797cf",
+                        "seq": 0,
+                        "total": 0,
+                        "valid": true
+                    },
+                    {
+                        "code": "cancelled",
+                        "completed": 0,
+                        "error": "",
+                        "event": "issue",
+                        "fatal": false,
+                        "message": "收到取消控制消息，开始安全收尾",
+                        "run_id": "035a8230-9590-49c0-b7d8-275df9f797cf",
+                        "seq": 1,
+                        "total": 0,
+                        "valid": true
+                    },
+                    {
+                        "code": "cancelled",
+                        "completed": 0,
+                        "error": "",
+                        "event": "run_finished",
+                        "exit_code": 5,
+                        "fatal": false,
+                        "message": "运行已取消",
+                        "run_id": "035a8230-9590-49c0-b7d8-275df9f797cf",
+                        "seq": 2,
+                        "summary": {
+                            "cancelled": 2,
+                            "failed": 0,
+                            "inputs": 2,
+                            "published": 0,
+                            "unsolved": 0
+                        },
+                        "total": 2,
+                        "valid": true
+                    }
+                ],
+                "exit_code": 5,
+                "fatal_reason": "",
+                "process_exit_code": 5,
+                "run_id": "035a8230-9590-49c0-b7d8-275df9f797cf",
+                "state": "已取消",
+                "state_code": 8,
+                "state_description": "run_finished exit_code=5：已取消",
+                "summary": {
+                    "cancelled": 2,
+                    "failed": 0,
+                    "inputs": 2,
+                    "published": 0,
+                    "unsolved": 0
+                },
+                "version_event_major": 2,
+                "version_probe_detail": "events/2"
+            },
+            "scenario": "cancel"
+        },
+        {
+            "detail": "",
+            "ok": true,
+            "run": {
+                "cancel_acknowledged": false,
+                "cancel_sent": false,
+                "cli": "/workspace/Astro CS Database/gui/tests/fake_acsd.py",
+                "command": "normalize",
+                "config_file": "/tmp/acsd-gui-Xbxxco/config.json",
+                "events": [
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "run_started",
+                        "fatal": false,
+                        "message": "fake acsd 开始：command=normalize mode=crash",
+                        "run_id": "dc353981-6ea0-4a8b-b368-c4648c95958b",
+                        "seq": 0,
+                        "total": 0,
+                        "valid": true
+                    },
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "frame_started",
+                        "fatal": false,
+                        "frame_id": "frame-crash",
+                        "message": "崩溃演示：即将异常退出",
+                        "run_id": "dc353981-6ea0-4a8b-b368-c4648c95958b",
+                        "seq": 1,
+                        "total": 0,
+                        "valid": true
+                    }
+                ],
+                "fatal_reason": "",
+                "process_exit_code": 1,
+                "run_id": "dc353981-6ea0-4a8b-b368-c4648c95958b",
+                "state": "失败",
+                "state_code": 7,
+                "state_description": "运行失败",
+                "summary": {
+                },
+                "version_event_major": 2,
+                "version_probe_detail": "events/2"
+            },
+            "scenario": "crash"
+        },
+        {
+            "detail": "",
+            "ok": true,
+            "run": {
+                "cancel_acknowledged": false,
+                "cancel_sent": true,
+                "cli": "/workspace/Astro CS Database/gui/tests/fake_acsd.py",
+                "command": "normalize",
+                "config_file": "/tmp/acsd-gui-Xbxxco/config.json",
+                "events": [
+                    {
+                        "code": "ok",
+                        "completed": 0,
+                        "error": "",
+                        "event": "run_started",
+                        "fatal": false,
+                        "message": "fake acsd 开始：command=normalize mode=terminate",
+                        "run_id": "0d5adb8c-a361-4630-936d-cc4446c4c741",
+                        "seq": 0,
+                        "total": 0,
+                        "valid": true
+                    }
+                ],
+                "fatal_reason": "子进程崩溃：Process crashed",
+                "process_exit_code": 9,
+                "run_id": "0d5adb8c-a361-4630-936d-cc4446c4c741",
+                "state": "已中止",
+                "state_code": 9,
+                "state_description": "用户主动终止，未收到终止事件，按中止处理",
+                "summary": {
+                },
+                "version_event_major": 2,
+                "version_probe_detail": "events/2"
+            },
+            "scenario": "terminate"
+        }
+    ]
+}

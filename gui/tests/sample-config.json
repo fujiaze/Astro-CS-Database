@@ -1,0 +1,29 @@
+{
+  "schema": "acsd.config/2",
+  "command": "normalize",
+  "inputs": [
+    {
+      "path": "frames/frame-001.fits",
+      "frame_id": "frame-001",
+      "response": "responses/gaia_bp.response.json"
+    },
+    {
+      "path": "frames/frame-002.fits",
+      "frame_id": "frame-002",
+      "response": "responses/gaia_rp.response.json"
+    }
+  ],
+  "scientific": "scientific/normalize.request.json",
+  "output": "out/normalize",
+  "catalogue": "catalogue/gaia.index",
+  "resources": {
+    "bytes": 1073741824,
+    "work": 10000000,
+    "spill_bytes": 8589934592,
+    "threads": 8,
+    "max_depth": 64,
+    "max_precision_bits": 64,
+    "scratch_directory": "scratch"
+  },
+  "product_profile": "full"
+}

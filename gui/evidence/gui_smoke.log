@@ -1,0 +1,13 @@
+This plugin does not support propagateSizeHints()
+[smoke] 版本探测：executed=yes detail=events/2
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+[smoke] 场景 normal：通过（） state=成功 exit_code=0 cancel_sent=0 events=13
+[smoke] 场景 cancel：通过（） state=已取消 exit_code=5 cancel_sent=1 events=3
+[smoke] 场景 crash：通过（） state=失败 exit_code=-1 cancel_sent=0 events=2
+[smoke] 场景 terminate：通过（） state=已中止 exit_code=-1 cancel_sent=1 events=1
+[smoke] 产品浏览：通过 stage=normalize profile=full complete=true capabilities=2 objects=1 blocks=1
+[smoke] 不兼容配置拒绝启动：通过（配置 schema major 3 与 GUI 支持的 2 不兼容，拒绝启动）
+[smoke] 输入分组：3 组（通过）
+[smoke] 证据已写入：/workspace/Astro CS Database/gui/evidence/gui_smoke.json
+[smoke] 总体结果：全部场景符合预期
