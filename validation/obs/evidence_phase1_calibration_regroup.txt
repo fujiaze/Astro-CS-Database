@@ -1,0 +1,10 @@
+[calibration]
+  x[0] = 860 (expected 860)
+  calibration cases done
+[regroup]
+  binned[0] = 410 (expected 410)
+  regroup cases done
+[psf] not implemented yet
+[measurement] not implemented yet
+
+84 checks, 0 failures
