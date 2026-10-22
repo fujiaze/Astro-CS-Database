@@ -81,3 +81,41 @@ source geometry可独立并行，但共享tile导数/边缓存不可变发布；
 同一build/后端/算术、相同输入和配置，改变线程数或完成顺序应保持规范结果内容一致；进度、计时、内存和run_id不在科学内容hash内。跨后端/平台不承诺bitwise，但必须各自保合法包围且通过预先指定的绝对/相对科学容差。数据依赖选择受舍入影响可能换支时，不以“数值接近”豁免选择状态。
 
 验证至少覆盖1线程/多线程、正常/极低内存spill、正常/取消/写盘失败、随机任务完成顺序；各输出比较同一模型身份、共享根、支持/失败范围、signal/协方差泛函和数值界。cache关闭与开启必须保持科学状态和允差；cache只能复用有输入/hash/domain/arithmetic身份的证明。机器benchmark决定并发/块大小，不选择不同科学算法或放宽容差。
+
+## 一个进程的资源所有权与调用预算（实现定案）
+
+上文“每次命令独立RunContext/线程预算”意为取消域与工作账本独立，不能解释为同进程各自建池。一个进程仅一个Resources服务、Storage、CPU池与I/O队列；多个嵌入式同步调用共享总H和线程上限，每命令是子配额。命令间只通过已发布产品交换科学状态。Context是Resources/Storage/Cancellation借用，不是Runtime对象系统。默认科学配置不藏在Context中。
+
+Resources.reserve必须原子同时预留输入pin、输出、scratch及必要I/O缓冲，失败返回resource_exhausted，不阻塞等待另一半资源。Reservation租约释放归还bytes/线程；consume_work用原子计数，失败无副作用，无调用可把总work重置。Storage解压、std::vector/共享模型控制块、大整数、排序、线程栈显式余量、事件队列均在准入估算内，实际计费超过reservation先扩预留，失败在有保证的安全边界保留未决，不让std::bad_alloc破坏包含记录。无法截获的库分配以实测峰值+20%余量预留；OS RSS不是硬受控payload上限，二者同时报告。
+
+取消检查不超过4096 work或100ms可中断批（先到者）；MPFR/精确裁剪单步按最大位长/顶点预留，无法保证可中断时先缩小块。I/O chunk≤8MiB，最多 min(threads,4) 在途读及2个写缓冲，每任务自己的预算也约束。LRU cache默认≤H/8，key含输入hash、domain、algorithm、precision、condition；pin计费、逐出只影响性能。无队列可无限增长；work调度队列≤2*threads，spool有磁盘配额，任务产生速度由reserve控制。
+
+大模型的dense_max_bytes默认min(H/4,64MiB)，小系统稠密QR/SVD；超过选稀疏/迭代路线，若任一必要分解（例如局部K² Γ）无结构化方法且超预算，返回resource_exhausted，不假定独立或改权。解完成前保留所需观测根多遍读能力；没有重读能力的provider在准入拒绝而非读一半后丢依赖。
+
+## 数值求解、可估性和停止的具体步骤
+
+所有列先除其2范数（精确零列保零）；参数结果和nullspace映回原单位。稠密SVD的singular_error_bound至少含分解残差、矩阵输入区间界及舍入项的谱范数上界。rank_relative=1e−12只是报告分类：σ下界>threshold为可估，σ上界<threshold可列数值不可估，误差区间跨threshold则rank_unresolved并升级算术/细化。任何真实零空间须有解析/gauge结构证据或明确conditional numerical_rank；不能把任意阈值删去的小但真实非零模态称精确物理不可辨识。
+
+SPD模型优先因子白化：C=F Fᵀ小系统Cholesky，病态用对称eigen。负特征值小于−spectral_error_bound即invalid_covariance；跨0的谱为precision_unresolved，精确零须输入结构或认证证书。PSD零空间U0先求 D0θ=y0（D0=U0ᵀD），不一致超过误差界invalid_model；求可行θp+Zη，再在正谱子空间白化GLS。exact约束可决定F并给V=0。伪逆只在已明确参数子空间中使用，不把 C+ 当总体精度。
+
+大系统首选 sparse QR；内存不能承受时LSMR，停止同时满足缩放残差 ||Dᵀr||∞≤abs_res+rel_res||D||1||r||∞ 和已要求的输出泛函残差界，且迭代数未超。默认 rel_res=1e−10、abs_res=1e−12（输入白化无量纲空间），它们不能代替科学 tolerance；未给有限下游误差证书仅conditional。仅covariance action时KKT+MINRES，内层求解的残差/作用误差纳外层证书。预条件器不得加ridge改变目标，可以只作迭代加速。没有验证大系统nullspace能力时返回not_identifiable/geometry_solve_unresolved，不用LSMR收敛自动证明唯一性。
+
+非线性PSF/photometry：每步按SYSTEM求GN/真实score导数，Armijo参数1e−4，回溯≤32次，改变量在精确likelihood下降且step norm与gradient都低于请求阈值才converged；默认step=1e−10、gradient=1e−8、outer≤100。目标不下降/overflow回溯失败nonconverged，不裁参数到任意物理值。covariance/influence只条件于报告的线性化模型，未知模型偏差不由Hessian变已知。
+
+### BLUE、PSD和非负QP
+
+SPD Γ：QR/Cholesky解 Γq=1，检查q/denominator误差；1ᵀq下界>0才给t=q/(1ᵀq)。PSD：先检查是否存在Γ零空间向量v且1ᵀv!=0；存在则有零方差归一解，取最小范数归一解并保存精确约束。否则在range(Γ)解q，若1在range外的分量未定则精度/秩未决；禁止用epsilon地板。权的数值区间由统计式3d传播，σ或分母太弱返回geometry_solve_unresolved。
+
+非负QP用active-set：从equal可行解开始，在当前自由集解equality-constrained PSD QP；候选有负权时沿当前到候选线段走到最先碰0者，按frame ID打破平手并加入active；可行候选后计算KKT梯度，若active有负reduced gradient则放开最小者，反之最优。每步至多K个线性约束变化，max_iterations与work均限制；退化循环时按frame ID Bland规则。精确PSD多解取最小2范数最优权。停止验证sum=1、t≥0、stationarity和complementarity的区间残差，目标方差/权泛函误差必须在预算；max_iterations后nonconverged。Γ未知时显式QP/BLUE unavailable，automatic才equal并列原因。不同均值mixed结果的方差可算，但不是共同量最佳无偏估计。
+
+LOO只计算一次所有候选q，从最大|q|超过Φ⁻¹(1−α/(2N))者拒一个，相等按frame ID；v_res必须有严格正下界，精确0且残差也0无需拒，0且残差被精确约束否定则模型不一致，不能除0。数值区间跨阈值是selection_unresolved：细化/升级，或显式固定实际分支conditional；默认不以任意中点决策认证成功。
+
+## 全链误差记录和发布门
+
+每个输出的ErrorRecord以不同字段保存：numerical_bound、stochastic_noise_ref、finite_model_bias、unknown_model_terms、linearization/selection_condition、requested/achieved functional。它们不相加成一张“总variance”。x/G/α的数值误差先输入同一R分子，再传P、权与Q；同数据影响及根的shared identity随compose保留。no_noise不表示numerical_bound未知；geometry certified不表示物理误差known。
+
+预算优先级：先保证输入模型有效/原语有界→证明支持/可估性→请求的所有科学泛函→序列化量化。每次细化按贡献上界从大到小、再按source/leaf ID排序，至少留总容差1/8作累计舍入与输出量化；四种误差合计仍须满足最终绝对+相对floor标准。相对容差的有效目标为max(absolute_floor,absolute+relative*|nominal|)，零附近不得以未证明nominal放松停止；保守用区间中最小|true|检验relative目标。输出所有尚未达标请求，不能用多数叶通过代表run成功。
+
+GeometryRevision使Ω/A共同源相关、全部目标叶、全sky分量、selection/weight及Export依赖失效；有新闭包之前旧闭包完整可消费，不混版本。峰值旧+新闭包预留不足时按可验证checkpoint/spill串行，不提前销毁仍有Lease的数组。科学方向的反馈不在模块DAG建循环：workflows迭代控制调用geometry与下游纯函数，所有版本依赖仍无环。
+
+publish_product只有required quantities均达标、所有必需closed graph存在时产生complete=true；明确conditional信号可发布但capability/condition必须匹配用户接受的目标。资源耗尽的面积/diagnostics可写run目录，不能偷标正式complete产品。FP32失败→FP64；FP64量化仍超预算则publication nonconverged，不自动降低请求或无依据允许高精度FITS dtype（FITS signal首期仅float32/64）。高精度primitive及模型端点仍可持久化供后续计算。

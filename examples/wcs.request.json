@@ -1,0 +1,154 @@
+{
+  "protocol": "acsd.contract",
+  "major": 1,
+  "request_id": "wcs-01",
+  "operation": "make_wcs",
+  "input_objects": {},
+  "arguments": {
+    "header": [
+      {
+        "key": "CTYPE1",
+        "value": {
+          "alternative": "string",
+          "value": "RA---TAN"
+        }
+      },
+      {
+        "key": "CTYPE2",
+        "value": {
+          "alternative": "string",
+          "value": "DEC--TAN"
+        }
+      },
+      {
+        "key": "CUNIT1",
+        "value": {
+          "alternative": "string",
+          "value": "deg"
+        }
+      },
+      {
+        "key": "CUNIT2",
+        "value": {
+          "alternative": "string",
+          "value": "deg"
+        }
+      },
+      {
+        "key": "RADESYS",
+        "value": {
+          "alternative": "string",
+          "value": "ICRS"
+        }
+      },
+      {
+        "key": "CRPIX1",
+        "value": {
+          "alternative": "double",
+          "value": 1.25
+        }
+      },
+      {
+        "key": "CRPIX2",
+        "value": {
+          "alternative": "double",
+          "value": 2.5
+        }
+      },
+      {
+        "key": "CRVAL1",
+        "value": {
+          "alternative": "double",
+          "value": 0
+        }
+      },
+      {
+        "key": "CRVAL2",
+        "value": {
+          "alternative": "double",
+          "value": 0
+        }
+      },
+      {
+        "key": "CD1_1",
+        "value": {
+          "alternative": "double",
+          "value": -0.001
+        }
+      },
+      {
+        "key": "CD1_2",
+        "value": {
+          "alternative": "double",
+          "value": 0
+        }
+      },
+      {
+        "key": "CD2_1",
+        "value": {
+          "alternative": "double",
+          "value": 0
+        }
+      },
+      {
+        "key": "CD2_2",
+        "value": {
+          "alternative": "double",
+          "value": 0.001
+        }
+      }
+    ],
+    "domain": {
+      "lower": [
+        -0.5,
+        -0.5
+      ],
+      "upper": [
+        3.5,
+        3.5
+      ]
+    },
+    "astrometric_context": {
+      "epoch_julian_year": 2016,
+      "observation_jd_tdb": 2457388.5,
+      "barycentric_observer_au": null,
+      "geodetic_lon_lat_height_rad_m": null,
+      "omitted": [
+        "topocentric",
+        "DCR"
+      ],
+      "omitted_position_bound_rad": null
+    }
+  },
+  "request": {
+    "tolerance": {
+      "absolute": 1e-12,
+      "relative": 0,
+      "absolute_floor": 1e-12,
+      "unit": {
+        "scale": "1",
+        "sr_power": 0,
+        "pixel_power": 0,
+        "nm_power": 0,
+        "multiplier": 1
+      }
+    },
+    "max_iterations": 200,
+    "arithmetic": {
+      "mode": "outward",
+      "initial_bits": 128,
+      "max_bits": 256,
+      "allow_target_fallback": true
+    }
+  },
+  "resources": {
+    "bytes": 1048576,
+    "work": 100000,
+    "spill_bytes": 0,
+    "threads": 1,
+    "max_depth": 32,
+    "max_precision_bits": 128,
+    "scratch_directory": ".work"
+  },
+  "output_root": ".work/wcs"
+}

@@ -1,7 +1,0 @@
-# pre-fix (HEAD cebef3ebb, acsd sha256 50255616...) 真实 CLI 退出码
-# 期望：混阶本应 fail-closed；pre-fix 全部放行 coverage，仅在缺观测几何的 sky_plane 失败 -> exit 2
-mixed01   EXIT=2   # orders (0,1)
-mixed10   EXIT=2   # orders (1,0)
-mixed010  EXIT=2   # orders (0,1,0)
-same00    EXIT=2   # orders (0,0)
-same11    EXIT=2   # orders (1,1)

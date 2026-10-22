@@ -1,7 +1,0 @@
-op,baseline_ns,avx2_variant_ns,improvement_pct,decision
-calibration,4254907,9816718,-130.7,SHIP(avx2)
-driz_accum,7403633,10432037,-40.9,
-hips,50724651,35037281,+30.9,SHIP(avx2)
-integration,14389466,,,
-noise,110867912,,,
-spmv,7882075,,,

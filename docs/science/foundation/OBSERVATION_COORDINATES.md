@@ -1,3 +1,5 @@
+> 本分支将本篇作为既定科学输入，保留以下历史审核措辞和有限证据身份。工程状态只由[新设计入口](../../engineering/rebuild/README.md)定义；历史中的“不创建分支/生产未修改/复算命令”描述其原始研究时点，不约束本分支。历史实验源码和证据已从新树移除，本篇相关路径仅指[固定基线研究档案](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)，不是新实现/测试依赖。实际公共字段由新合同唯一拥有。
+
 # 观测、坐标与像元：重建科学基础
 
 **候选科学规范，待外部独立审核。** 本目录的五篇文档是 #111 所要求的重新开发依据；旧 science、工程合同和 C++ 只作参考，不要求新算法继承其对象或调度。本文拥有观测模型、坐标和 Export 定义；[响应](GAIA_RESPONSE.md)、[几何](SPHERICAL_DRIZZLE.md)、[统计](STATISTICS_SKY_COADD.md)、[证据](INDEPENDENT_ORACLES.md)分别展开其余定义。本文不声称旧产品或真实数据已验收。
@@ -179,7 +181,7 @@ FITS `BUNIT` 明确对应 L/sr 或 L；非标准模型单位不伪装成标准 S
 
 IPV 迭代逆接口的 +1 已由 1003 点生产函数探针对照确认；详细位置、调用可达性与 detector 半像元疑点见[独立证据 §3](INDEPENDENT_ORACLES.md)。不把该接口错误扩大成“当前所有 CLI 星位都偏1像元”。crop/bin/flip/transpose 用复合 WCS 对拍，真实 FITS 读写与 HiPS 第三方生产者方向仍需单独验证。
 
-第二轮独立实现 [round2_wcs_contract.py](../../../实验/science-foundation/oracles/round2_wcs_contract.py) 不 import 第一轮坐标或几何实现；[实际结果](../../../实验/science-foundation/evidence/round2_wcs_contract.json) 含完整新头、环境、源码hash及运行数。7个新构型各303个前向点共2121点，CRPIX=(17.293,41.617)、SIP2/3/4/5/7/9、精确双极点、RAwrap、PC+CDELT、非180° LONPOLE、缺省LONPOLE的双极点及0.3°/pixel宽场。10种连续变换（含3×4 bin与四个Bayer相）各200点；不同于第一轮 fixture。
+第二轮独立实现 [round2_wcs_contract.py](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/oracles/round2_wcs_contract.py) 不 import 第一轮坐标或几何实现；[实际结果](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/round2_wcs_contract.json) 含完整新头、环境、源码hash及运行数。7个新构型各303个前向点共2121点，CRPIX=(17.293,41.617)、SIP2/3/4/5/7/9、精确双极点、RAwrap、PC+CDELT、非180° LONPOLE、缺省LONPOLE的双极点及0.3°/pixel宽场。10种连续变换（含3×4 bin与四个Bayer相）各200点；不同于第一轮 fixture。
 
 | 本轮独立验证 | 实际结果与证据边界 |
 |---|---|

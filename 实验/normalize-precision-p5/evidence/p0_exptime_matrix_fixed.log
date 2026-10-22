@@ -1,8 +1,0 @@
-== P0 EXPTIME matrix (tag=fixed, binary=./build/linux-sci-p5/acsd) ==
-  valid    exit=0   san=-              exposure=600.0 source=input light header EXPTIME controls=64/64 snr=14.471222195983142
-  missing  exit=0   san=-              exposure=0.0 source=unavailable: no EXPTIME in input light header controls=64/64 snr=14.471222195983142
-  zero     exit=0   san=-              exposure=0.0 source=unavailable: no EXPTIME in input light header controls=64/64 snr=14.471222195983142
-  negative exit=0   san=-              exposure=0.0 source=unavailable: no EXPTIME in input light header controls=64/64 snr=14.471222195983142
-  nan      exit=0   san=-              exposure=0.0 source=unavailable: no EXPTIME in input light header controls=64/64 snr=14.471222195983142
-matrix -> /workspace/Astro CS Database/实验/normalize-precision-p5/evidence/p0_exptime_fixed_matrix.json
-MATRIX_EXIT=0

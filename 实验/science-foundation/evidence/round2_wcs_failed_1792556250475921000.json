@@ -1,4 +1,0 @@
-{
-  "exception": "ValueError('Floating point nan values are not allowed in FITS headers.')",
-  "source_sha256": "39806e0cbe504e1c01ea137af86c3fba49fb9c185161acb1e7ae76318cd8befe"
-}

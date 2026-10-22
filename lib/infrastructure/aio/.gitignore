@@ -1,9 +1,0 @@
-*.dll
-*.o
-*.obj
-logs/
-__pycache__/
-*.pyc
-test_output.fits
-test_roundtrip.fits
-python/tests/output/

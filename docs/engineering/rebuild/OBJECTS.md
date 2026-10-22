@@ -96,3 +96,77 @@ HiPS sky index与图像数组分开：tile宽W=2^t，leaf_order=tile_order+t；N
 model graph 只允许白名单 action recipe（diagonal、CSR、local PSD factor、shared factor、compose、sky solve、selection、leaf merge）；禁止从产品加载任意代码/动态路径。未知 recipe/version 返回 unsupported，合法 signal 仍可独立读取。闭包检查包括循环引用、单位/索引、shared 定义一致、hash、未决域和状态；模型影响 DAG 与执行调度 DAG 分别验证，不能把循环依赖用临时文件隐藏。
 
 staging 在同文件系统内写块、等待异步写完成、验证闭包/hash、刷盘并原子发布完成 manifest；覆盖已有产品先写新 revision，再原子更新入口。取消不发布完成清单。spill 与正式产品分 namespace，不作为跨阶段产品；恢复只能使用匹配输入/config/algorithm/arithmetic 的完整检查点，其它保持不可消费。
+
+## 字段、布局及构造的唯一正本
+
+实际 C++20 类型/签名以 [contracts.hpp](../../../include/acsd/contracts.hpp) 为正本，所有类型均已定义，Ref<T> 是 shared_ptr<const T>，不拥有裸指针借用。Model 是 Identity+Assessment；所有继承 Model 的对象在 JSON 中平铺这些字段。上述概念登记表及科学分册的伪代码不额外产生同名字段。NoiseModel 统一以 innovations/shared_factors+对应 influence 表示，统计分册 §6 的 action 字段由 make_covariance 构造，不另存第二份 covariance。
+
+索引以 Index.content_hash 绑定完整排序，数组 shape 不等于 index 身份。native index 按 (dataset,exposure,detector,channel,sample) 字节词典序；leaf 按 (order,ipix)，parameter 按 (模型、basis项)、latent 按 SharedId 和分量序。所有 flatten 为 row-major。uint64 乘加先查溢出，空数组合法、零输入 action 输出严格零；不支持/unknown 与空域不同。原生二维像元 flatten=y*width+x。Index.ids 对 leaf 存 [N,2] u64 的 order,ipix（Index.order 再校验统一阶）；native 在 sources 中存完整身份且 ids 存 [N] sample。小索引可内联，大索引可块化。
+
+| 类型/字段 | 约束、形状和单位 |
+|---|---|
+| Unit | multiplier>0；scale 给 L 身份（例如 adu:detector/revision、photon_rate_m2:response/hash），sr/pixel/nm 指数为整数。unit 不只显示字符串；平方 covariance 的 scale 是对应 L²，multiplier 平方。不同 scale 只有显式有物理依据的 action 可转换 |
+| Identity | object_id 为逻辑 UUID；revision uint64 单调；content_hash 为规范内容 hash，schema_id=acsd.<类型名>、major=2、minor=0。run_id 不进科学hash |
+| Interval / ExactInterval | 有限有序端点；后者 signed_integer 为无多余零的十进制 GMP 整数，端点=integer*2^exponent2，bits 记录原语精度。科学容差也按外包解析。允许 ExactInterval 表示超 binary64 可分辨范围 |
+| Array | [shape]、dtype、unit、index_id、按 flatten 范围排序的 block_ids；分块不跨元素，无 stride/隐式转置，little endian；dyadic 元素用两个有符号整数端点及 exponent 编码，不按固定字节假定 |
+| ArrayView/Lease | 每 read 保留所有输入、解压缓冲及计费直到 lease 最后一份释放；span 与 shape 不可修改；read 可重入，不保留游标状态。跨API传 Ref<Array>，不传临时 ArrayView |
+| WcsModel | cd[2,2] rad/pixel，c/e/north 是右手切基；sip 的项唯一且按 (总阶,x_power) 排序；Box 闭域；normalization_error_rad 对原解析数值模型转换的数值误差，不是真实天测误差 |
+| DetectorFootprint | rings 归属 wcs detector 域，source 为真实收光样本；contraction_center 必需，pixfrac 只由调用生成 drop；PRF 响应缺失意味着 uniform_PRF 假设必须在 condition 明写 |
+| Calibration | dark 数组是 dark 曝光中的积分 ADU；t=exposure_seconds/dark_exposure_seconds，dark_exposure_seconds>0。flat 数值除 flat_normalization 后进入公式；缺 bias/dark/flat 分别为显式 absent，不猜磁盘母版 |
+| NativeObservation | integrated_values[N] f64、dq[N] u16、native_index，footprints 与 N 同序，unit 必须积分L；原始 G!=I 时 footprints 和 kernel 的 constituent 根保持原生身份，G 保存变换，不能既把值变为 Gx 又重复施加 G |
+| SpectralBasis | knots_nm[K+1] 严增，basis_coefficients[d,K,degree+1]，局部 t=(λ−knot_k)/(knot_{k+1}−knot_k)，升幂系数，单位 W m−2 nm−1 / coefficient_unit；XP 外定标先解码成此表示并把表示截断误差单列 |
+| Response | wavelength/throughput 同长度，严格递增、分段线性，支持域外不是默认已知零，只有显式 provenance 指定零尾。top_hat 与 sampled 二选一；top_hat_center_width_nm=[center,width]，width>0；throughput 不负，includes_photon_conversion 时数值单位含 λ/(hc)；shape_noise 缺失即模型项未知 |
+| Spectrum/ReferenceSED | wavelength nm、flux W/m²/nm，interpolation 首期 linear 或 piecewise_polynomial，外域策略须明确；reference target_response 决定参考转换 c，无谱不猜星云 SED |
+| CatalogueStar | pmRA*cosDec，epoch Julian year，parallax rad；负 measured parallax 保留随机测量，物理距离推断须先验，不直接倒数。RV m/s，可 null；XP coefficient 索引与 basis 一致；同一 source_id 绑定 release+calibration shared namespace |
+| StarFlux/SourceMeasurements | 总积分 flux L，window 是真实拟合矩形，不是归一域；variance 可 null且说明；joint_noise 包含源间/背景/PSF共用项；training_pixel_ids 保留与原生根的连接 |
+| Basis | 项次为总次数递增、同次 x指数递减：1,x,y,x²,xy,y²…；u=(x−center.x)/scale.x，v 同理，scale>0；plane 在同一个 gnomonic sky chart，Box 是该chart范围。weighted_mean 给空间项训练加权均值，常量项不减 |
+| PhotoSolution | theta 按 frames×basis项；θ0=log a，其余为均值零空间项；alpha=exp(−Σθ_l b_l)，单位由 ADU 到具名 L；support 是训练支持的包围，真实可预测支持还须训练点 hull，不以满 Box 保证；influence 根不能重复参数noise |
+| NoiseRoot/NoiseModel | root.coordinates 为随机根坐标，factor 为从独立标准 latent 到有单位根的F；精确奇异/零方差合法。NoiseModel.influence 长度=innovation+shared长度，每个是根坐标→输出的 L_k；CovarianceAction.influence 是此输出上的附加 action，初始I；Σ L_k F_k F_kᵀ L_kᵀ |
+| UnknownTerm | 影响不为零则完整 covariance未知；有 norm upper 可给模型上界但不虚构已知 covariance；空影响必须有结构性零证明。根共享判同依据 SharedId+factor/coordinate hash，同id异定义报 identity_conflict |
+| Overlaps | contributions 小例内联，contribution_blocks 大例有序列编码；Ω/A每source只一份，a每source/leaf一份。共同约束数据包含 a≥0、a≤A≤Ω、Σ全叶a=A，coarse候选计入总量。SphericalAreaInterval.double 只外包显示，exact 是真正运算端点 |
+| DrizzleOperator | rows 输出 leaf、输入 native 积分L，系数 sr−1；normalizer_sr 与叶同序，no_support行以支持位表示，不存任意R；refine 后旧引用继续有效 |
+| SignalEstimate | f64 signal、numerical_lower/upper 同shape与单位；内部无支持 signal=NaN且validity独立；未知数值界用缺数组+issue，不用 ±Inf JSON；noise 指向同 signal index；error_identity 指误差记录对象 |
+| FrameDescription/LeafBlock | Index 是该帧实际有效leaf全集，read 返回请求顺序且不重复的子集加无支持状态；不隐式按文件顺序。halo 先去重，中心与halo共享同leaf随机身份。PSF/response/noise/native_to_leaf 缺失按capabilities给原因 |
+| SkyControls/SkyFit | c[M]，T:M×N，H:M×S，A:M×P，E:N×P，K:P×M，P:N×N但只action；β[P]，component_ids[M]，输出的component另在support。gauge=reference/weighted_sum，所有共享basis公共模和额外nullspace必须持久化 |
+| Selection/WeightSolution | eligibility/accepted/reasons shape [leaf,frame]，u8/u8/u16；按 leaf,frame 索引。coefficients f64同shape；inactive=0，active sum=1；无人可用无权行，signal NaN。Γ不是一张仅对角图片 |
+| SpatialResponse | spatial_actions[k] 解释原输入→当前输出核，weights[k,p]、reference_factors[k] 同 frames 顺序；已吸收进 spatial_actions 的 t/c 不再乘一次，以 recipe children角色验证；signed_response反映真实负系数 |
+| ExportRequest/Result | Q:M×N，支持均值系数无量纲，积分系数sr；target尺寸与pixel index一致；width,height>0；target.wcs覆盖完整输出域。extrapolated_full_flux 必须 assume_uniform_uncovered=true |
+| GeometryRevision | base/next 锁hash；affected含共享Ω/A影响的所有source/leaf，约束重估使全sky分量失效。replacements 是旧hash→新hash的完整传递闭包。资源不足不发布next，允许返回只含新有效面积的 partial revision，status未达标 |
+
+PhotoSolution.theta、RankReport 和 ExactInterval 的数组/向量必须随闭包保存；字段 null 的可选性来自 Ref 可空规则：除明确允许 absent 的 noise/PSF/response/refinement、可选 Calibration map、SkyRequest T/H 外，Ref 字段必需非空，违反 invalid_model。所有给能力名的 Ref 空缺均必须有对应 unavailable issue。
+
+### action recipe 的精确定义
+
+所有 action 必须暴露 apply 和真 transpose，拒绝非同index/单位输入；返回数组通过 Context.storage 分配。make_action 接受配方和已解析有序 children/arrays，长度及content_hash须与配方一致。不存在隐式科学全局注册。
+
+| kind | children / arrays 顺序；计算 |
+|---|---|
+| identity | 0/0，codomain=domain，同单位 |
+| diagonal | 0/1：[N]对角d，y=d*x |
+| csr | 0/3：offsets u64[M+1]、indices u64[nnz]、values f64[nnz]；每行列升序且已合并重复 |
+| compose | 2/0：outer,inner；outer(inner(x))；transpose顺序反转 |
+| sum | J/1：coeff f64[J]，Σcoeff[j]*child[j](x)，所有域相同 |
+| transpose | 1/0：childᵀ，交换域 |
+| factor_covariance | J/0：各child为独立latent→输出的总L_kF_k；Σ child childᵀ，共享latent先合并同根列，不独立求和 |
+| solve | 1/4：child=M，arrays=[可估子空间Z、精确约束U0、预条件器块、SolvePolicy数值记录]；固定gauge/秩下求约束解，transpose是真伴随解，参数/残差在error_record。只支持 SYSTEM 规定QR/SVD/LSMR/MINRES，不装载任意代码 |
+| sky | 3/0：E,K,T；I−EKT，transpose=I−TᵀKᵀEᵀ |
+| selection | 0/2：indices u64[M]、scale f64[M]；选取/缩放，transpose scatter确定归并 |
+| leaf_merge | 0/3：与CSR相同，输入若原始片共用leaf则先以共同index聚合，不造独立root |
+
+row_enclosure 返回完整domain列顺序的区间小行，超预算可 unsupported；大规模用dependency_blocks+稀疏CSR bound数据。absolute_factor_bound 若有必须是各根总因子的逐元绝对上界 action（codomain/latent索引明确），不能只是 |C(v)|。通过谱范数路线则用 operator_norm_upper 及 ||δ||₂，保存来源。所有 solve recipe 持久化实际系统、分解/可再生参数、列尺度、gauge/秩；只有“算法版本号”不构成闭包。
+
+### 产品具体布局和版本规则
+
+产品根目录：manifest.json，frame_science.json 或 mosaic_science.json 或 export_science.json，objects/<hash>.json，blocks/<sha256>.bin[.zst]，signal/Norder*/Dir*/Npix*.fits（Export 改 signal.fits）。manifest 字段：format=acsd.product，major=2，minor=0，stage，product_id，revision，root_object，profile，capabilities，inputs[]（manifest hash），objects[]（相对路径+hash），blocks[]（descriptor），configuration_hash，algorithm_set，arithmetic，assessment，complete=true。完成前只有 staging manifest，正式 manifest 绝不先写。
+
+block descriptor 为 {id,path,dtype,shape,index_id,unit,begin,count,codec,raw_bytes,stored_bytes,raw_sha256}；begin/count为元素范围，不能与字节混用。raw或zstd单frame无dictionary，zstd解压上限=raw_bytes且经shape*itemsize验证；dyadic用JSON对象数组UTF8块，dtype=dyadic且raw_bytes按实际计费。FITS 为标准可读image，不复用bin块作浏览格式。sidecar根指root_object，同一图一份正本。
+
+规范JSON数字：整数直接十进制，binary64以 {"f64":"<16hex little-endian bits>"} 规范hash，用户可读JSON有限decimal输入在解析后转换该hash表示；-0保留位，科学值禁止非有限，NaN仅图像块带validity时准入。字符串NFC，key按UTF8排序，无空白、无重复key；Id内容hash不含自身content_hash/object_id/revision/run_id、物理路径、时间/耗时，但包含依赖的内容hash、schema、数据值/单位/状态/算法误差记录。数组block hash覆盖未压缩规范bytes。语义相同但舍入不同的float不会碰巧同hash。
+
+对象图不包含raw C++指针、Lease或Context。header构造的Ref递归序列化为 {"$ref":"sha256:..."}，对象唯一存objects目录。ActionRecipe通过白名单可重开，算法升级无法重放同系数则保存CSR或依赖分解；不接受“使用当前最新算法” recipe。产品major不兼容直接拒绝；minor未知可选字段保留并纳hash，未知必需capability只禁对应模型操作，signal可在manifest基本解析成功后读取。
+
+发布目的路径必须不存在；首期不自动覆盖目录。新revision为新目录，入口指针单独atomic rename更新。Windows FlushFileBuffers+同卷MoveFileEx(WRITE_THROUGH)，Linux fdatasync文件+fsync目录+rename；不支持原子语义的远程文件系统返回 unsupported。进程崩溃留下staging可按checkpoint验证恢复，绝不把其当product。检查点是同格式的私有对象图另加 completed_work_keys、input/config/algorithm/arithmetic hashes、剩余账本和spool分区hash；只恢复已完整校验work，资源消耗累计，不重新给满work。checkpoint/正式产品区分路径及complete标志。
+
+默认 full 模式必须自包含 Mosaic/Export需要的 x、WCS/footprint、noise共享根、影响、PSF/response、实际R及geometry primitive闭包；默认同时可refine。signal_only 仅允许显式选，标no_noise/no_refinement/no_detailed_response；Mosaic equal与Export signal仍可用，不伪称严格全物理误差。外部原FITS引用仅显式 external_inputs profile，hash和required能力清楚；full禁依赖外路径。
+
+磁盘配额耗尽返回resource_exhausted且保留staging诊断；只要正式manifest未发布，不产生完成身份。重开先验hash可按访问惰性验证块，但任何未经验证块不可用于科学值；manifest/object闭包先全验证索引/循环/SharedId。损坏signal块致该产品不可用，不静默转零；损坏可选模型块只失去该能力并报错。

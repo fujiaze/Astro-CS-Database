@@ -1,5 +1,0 @@
-[FAIL] empty_halpha   exit=0 obs_filter='Halpha' dist={'(undeclared)': 1, 'Halpha': 1} (44s)
-[PASS] halpha_empty   exit=0 obs_filter='mixed:2_passbands' dist={'(undeclared)': 1, 'Halpha': 1} (37s)
-[PASS] empty_empty    exit=0 obs_filter='' dist={'(undeclared)': 2} (32s)
-[PASS] red_blue       exit=0 obs_filter='mixed:2_passbands' dist={'Blue': 1, 'Red': 1} (45s)
-== FAIL=1/4 ==

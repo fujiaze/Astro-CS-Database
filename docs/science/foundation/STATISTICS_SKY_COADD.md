@@ -1,3 +1,5 @@
+> 本分支将本篇作为既定科学输入，保留以下历史审核措辞和有限证据身份。工程状态只由[新设计入口](../../engineering/rebuild/README.md)定义；历史中的“不创建分支/生产未修改/复算命令”描述其原始研究时点，不约束本分支。历史实验源码和证据已从新树移除，本篇相关路径仅指[固定基线研究档案](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)，不是新实现/测试依赖。实际公共字段由新合同唯一拥有。
+
 # 统一误差、相对天光和传统合成
 
 **候选科学规范，待外部独立审核。** 从[同一观测模型](OBSERVATION_COORDINATES.md)与[同一几何 R](SPHERICAL_DRIZZLE.md)出发。本文定义可执行的统计基线；独立代码 `statistics_independent.py` 实现小矩阵参考，真实大规模数据适用性另列。

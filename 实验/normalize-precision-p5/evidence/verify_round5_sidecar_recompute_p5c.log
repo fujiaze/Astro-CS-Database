@@ -1,8 +1,0 @@
-frame: M42_M4_T2_flying_dutchman-20251212_033644-600S-H-alpha controls: 64 models: 256 F_ref: 1000.0
-per-control f_enclosed: 64 recorded, 63 distinct values (R2-F01 fix verified: per-point, not one shared minimum)
-rank agreement: 63/64 identical; 1 near-null disagreements
-  near-null: p3_r0 independent rank=621 vs production rank=622 (V_F rel 6.10e-05; sigma_min sits at the 1e-10 relative cutoff)
-frame summary: recomputed 14.7088589524 vs sidecar 14.7088589524 (rel 0.00e+00)
-
-independent recomputation: 64 ok, 0 failed, 0 skipped(unavailable)
-worst V_F relative diff vs production: 6.100e-05

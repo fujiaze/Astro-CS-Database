@@ -1,8 +1,0 @@
-# command: python3 eng/tests/unit/run_p3_tile_semantics_test.py --build build/linux-dev
-# acsd source: HEAD 45bbd87a49de934476ed65b8f126eb4f7a442afb
-
-115/115 checks passed
-+ g++ -std=c++17 -O2 -o /workspace/Astro CS Database/实验/issue87-stage3-tile-integrity/evidence/p3_tile_semantics_test /workspace/Astro CS Database/eng/tests/unit/p3_tile_semantics_test.cpp -I/workspace/Astro CS Database/lib/algorithms/resample -I/workspace/Astro CS Database/lib/include -I/workspace/Astro CS Database/lib/include/acsd -I/workspace/Astro CS Database/lib/algorithms/shared -I/workspace/Astro CS Database/lib/algorithms/shared/crypto -I/workspace/Astro CS Database/lib/algorithms/shared/healpix -I/workspace/Astro CS Database/lib/infrastructure/aio/include -I/workspace/Astro CS Database/build/linux-dev /workspace/Astro CS Database/build/linux-dev/lib/algorithms/resample/libacsd_p3_rsmp.a /workspace/Astro CS Database/build/linux-dev/libacsd_hips_properties.a /workspace/Astro CS Database/build/linux-dev/libacsd_hips.a /workspace/Astro CS Database/build/linux-dev/libacsd_aio.a /workspace/Astro CS Database/build/linux-dev/libacsd_common.a /workspace/Astro CS Database/build/linux-dev/libacsd_cfitsio.a -lz -lpthread -lm
-+ /workspace/Astro CS Database/实验/issue87-stage3-tile-integrity/evidence/p3_tile_semantics_test /workspace/Astro CS Database/实验/issue87-stage3-tile-integrity/work/fixtures 45.000000000000 41.810314895779 0.000000000000 0.000000000000 90.000000000000 0.000000000000 270.000000000000 0.000000000000 45.000000000000 -41.810314895779 157.500000000000 41.810314895779
-
-exit_code=0

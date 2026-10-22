@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acsd.invalid/schema/config/2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "command",
+    "inputs",
+    "scientific",
+    "output",
+    "resources",
+    "product_profile"
+  ],
+  "properties": {
+    "schema": {
+      "const": "acsd.config/2"
+    },
+    "command": {
+      "enum": [
+        "normalize",
+        "mosaic",
+        "export"
+      ]
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_hash": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "frame_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "calibration": {
+            "type": "string",
+            "minLength": 1
+          },
+          "response": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "scientific": {
+      "type": "string",
+      "minLength": 1
+    },
+    "output": {
+      "type": "string",
+      "minLength": 1
+    },
+    "catalogue": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bytes",
+        "work",
+        "spill_bytes",
+        "threads",
+        "max_depth",
+        "max_precision_bits",
+        "scratch_directory"
+      ],
+      "properties": {
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "work": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "spill_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "threads": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "max_precision_bits": {
+          "type": "integer",
+          "minimum": 64,
+          "maximum": 16384
+        },
+        "scratch_directory": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "product_profile": {
+      "enum": [
+        "full",
+        "signal_only",
+        "external_inputs"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "normalize"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "catalogue"
+        ],
+        "properties": {
+          "inputs": {
+            "items": {
+              "required": [
+                "frame_id",
+                "response"
+              ]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "inputs": {
+            "items": {
+              "required": [
+                "expected_hash"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "export"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "inputs": {
+            "maxItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

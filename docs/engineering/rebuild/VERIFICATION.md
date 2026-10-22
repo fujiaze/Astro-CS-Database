@@ -4,7 +4,7 @@
 
 ## 独立性和输入包
 
-独立 Agent 阅读五份科学规范、本目录和公开协议。生成真值前不阅读被测求解器内部，不 import 生产 coordinates/overlap/noise/sky/coadd helper；允许共享标准定义、公开schema、输入头、单位、source身份和通用第三方库。生产C API由薄绑定调用，绑定只转字段/数组，不做科学计算。真值生成与被测结果文件分目录，原始请求冻结并hash后再启动被测程序。
+独立 Agent 阅读五份科学规范、本目录和公开协议。生成真值前不阅读被测求解器内部，不 import 生产 coordinates/overlap/noise/sky/coadd helper；允许共享标准定义、公开schema、输入头、单位、source身份和通用第三方库。生产C++ API由进程驱动调用，驱动只转字段/数组，不做科学计算。真值生成与被测结果文件分目录，原始请求冻结并hash后再启动被测程序。
 
 每个 case 包含：`case.json`（目标/假设/估计量/单位/condition/容差/正负例预期）；`input/`（解析后精确数值模型、块/hash、源与共享latent）；`truth/`（独立算法、解析式/高精度区间/随机生成器）；`request.json`；`observed/`（驱动原始response、stdout/stderr与资源）；`comparison.json`（每个泛函与失败作用域）；`manifest.json`（来源、版本、seed、trial分母、代码/库身份、依赖/命令）。失败追加attempt目录，不覆盖原始失败。真值代码不从observed中心系数反推输入或调整容差。
 
@@ -44,4 +44,34 @@ HST处理后图只可作带已有PSF和噪声的条件结构模板，额外退�
 
 设计审核记录实际阅读范围、发现、修订和未验证项。设计合同可以在未编写驱动器前完成独立审核，但不能声称标准接口已可运行。架构仍缺定义的核心数据或交互必须先修订；仅性能未知、真实模型待验证等已明确能力边界可作为后续实验要求保留，不能用审批字样掩盖缺接口。
 
-负责人接受经过独立审核的架构后，建立独立重构分支，以确定提交为设计基线，按科学依赖直接实现：公共对象/坐标/数值与合同驱动 → 校准/响应/共享误差 → 严格几何/同R → sky/coadd/Export → 产品/CLI/GUI集成。每个实现主题同时提供独立真值和负例，旧算法选择性接纳，最终执行双平台三命令及真实数据验证。分支名称和起点在进入该阶段时锁定，本阶段不预建分支、不写生产实现。
+独立重构分支已从c5fee09fe建立；负责人接受本设计后才开始科学代码实现。顺序：公共对象/数值/坐标/驱动→校准/PSF/响应/共享误差→严格几何及同R→sky/coadd/Export→产品/CLI/GUI。每阶段配独立真值和负例；代码存在、编译、模拟、真实运行分别报告。
+
+## 可交给独立实现者的最小验收包
+
+每项先冻结输入和明确tolerance，再调用公开API；下列规模为首期必要案例集合，不继承旧测试或把所有历史构型机械复制为回归。一个case可以同时证伪多份合同。所有数值容差是fixture的目标，生产科学请求仍逐用户定义。
+
+| case | 固定输入与独立真值 | 调用、判断与完整路径 |
+|---|---|---|
+| C01 | TAN切点(0,0)、非整数CRPIX、镜像CD、SIP三阶、极点/LONPOLE与Bayer变换；Astropy/WCSLIB绝对坐标；目标1e−10rad及1e−7pixel | make_wcs/forward/inverse/J/footprint；外库值必须落数值界或给合理声明近似；+1/+.5/只改CD负例必失败 |
+| G01 | 12face等面积矩形及TAN球三角；新detector域高精度区间算法B，不import geometry；touch/tiny±1e12 | compute_overlap→build_drizzle→refine；面积真值在界，正支持只以下界证明，科学B绝对.01；work=1/maxprecision=64负例不伪PASS |
+| U01 | R=[[.5,.5,0],[0,.25,.75]] sr−1，C=[[4,1,0],[1,9,2],[0,2,16]] L²；t=[1,−.5]，显式有理矩阵 | C输出[[3.75,2],[2,10.3125]]，孔径方差4.328125；使用Storage.copy/make_action/make_covariance/apply/quadratic_form及进程驱动；拆同源假独立必须被证伪 |
+| F01 | Gaussian erf像元积分+常量sky、两个相邻源、均匀/空间α；counts/Gaia真实共享latent；解析宽度/通量/参数秩 | fit_psf/measure/integrate/fit_photometry/apply_scale；总flux有限窗不归一，跨帧shared floor不随K消失；颜色=位置rank负例、unknown gain负例 |
+| S01 | 三帧共同平面+已知差平面、controls共享C，reference gauge；独立SVD小矩阵与显式PCPᵀ | controls→sky→apply，KH=0精度1e−10，公共坡不被扣；共线控制保nullspace，异响应不造边，空间holdout仍保交叉项 |
+| W01 | N=1..7，固定外部Γ和解析BLUE/PSD/非负QP；nonnegative例Γ=[[1,2],[2,9]] unconstrained权[7/6,−1/6]、QP[1,0] | select/weights/coadd；清洁Gaussian+指定单污染全流程MC，各100000 trials，seed冻结；报告误拒/68/95coverage及精确二项CI，不从本矩阵外推真实宇宙线 |
+| V01 | chart logV线性/已知Hessian二次，洞/外域，有限点bump反例 | reconstruct_scene_variance；有M/δ时真值在界，无M只能conditional且不产生跨叶C |
+| E01 | 2×2偶数输出，CRPIX=(1.37,1.12)，mirror CD/RAwrap，leaf值−2/0/+3；独立detector积分、partial支持真值及外部FITS reader | build_export→publish→新进程open→export；支持均值/积分和外推量分开，同叶先merge，无二次pixfrac，FITS数值头量化入界 |
+| P01 | U01扩展成跨tile共享root及sky的完整产品，另signal_only；故意缺块、hash冲突、重复exposure、unknown recipe | publish/open与Mosaic/Export；full无原FITS仍可全部调用/refine；signal_only误差unknown且equal；坏闭包不发布 |
+| R01 | 相同科学输入1/4线程、H=32MiB/256MiB、cache off/on、writefail/cancel，frame和target块乱序完成 | 同科学content hash、误差/支持一致；实际peak/资源账本不越承诺；新旧revision重叠预留不足正确spill/失败，无新R混旧sky |
+| X01 | 从物理Iλ独立积分的8张128×128原ADU、已知仪器/PSF/noise、3幅sky，两个响应组 | 全新三命令经真正磁盘产品；无WCS组必须实际blind solve；GUI只作协议冒烟，不替代科学路径 |
+
+U01真值须由独立实现者自行有理数重算，本表数值与算法不得相互自证。truth可以共享数学定义、公开头和通用库，不能读取R0输出后构造“真输入”。C01/G01可包含多个分支小例，避免一条assertion一个重复fixture。
+
+## 性能与资源验收
+
+固定两组输入：P-small=256×256原生像元、order18、TAN f=.63、均匀与1e9亮点对比，P-large=4096×4096×8帧、order18、跨tile/面缝及2阶SIP，实际tolerance分别B=.01及Cov=.001（具名模型单位）；第二组可分任务在双平台执行。首次实现记录机器、版本/编译器、源hash、后端、CPU配额、预算、读取字节、wall/CPU时间、peak RSS与payload、spill、nnz、precision升级和未达标作用域；先给正确性/停止，再给吞吐。不得以失败输入更快为优化通过。
+
+同输入同精度比较baseline/优化：若科学结果/误差/支持不同则比较无效。首期性能门不是未经实跑的固定ms：要求资源有界、增长趋势符合EXECUTION的实际nnz/秩/精度模型；P-large工作集H≤1GiB时无需全图常驻且可完成或明确资源拒绝。发布吞吐目标由首次有效双平台profile后负责人评估；数值失败不能以“性能达标”遮盖。统计MC和真实数据另计，不混几何微benchmark。
+
+## 独立设计审核的交付标准
+
+正式记录见[REVIEW](../../audit/REVIEW.md)。审核者不参与编写，不从旧src获取暗知识，必须尝试只用头合同和文档构造至少一个完整Normalize→持久化→Mosaic→Export追踪，以及U01式矩阵调用。每项问题列文件/符号、反例构型、影响和最小修订。修订后的新审核者再执行同标准；未决P0/P1编码阻碍必须继续补齐。链接/编译/schema检查只能辅助发现结构错误，不能作为语义通过的依据。

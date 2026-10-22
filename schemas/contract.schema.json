@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acsd.invalid/schema/contract/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol",
+    "major",
+    "request_id",
+    "operation",
+    "input_objects",
+    "arguments",
+    "request",
+    "resources",
+    "output_root"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "acsd.contract"
+    },
+    "major": {
+      "const": 1
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operation": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_objects": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "arguments": {
+      "type": "object"
+    },
+    "request": {
+      "type": "object"
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bytes",
+        "work",
+        "spill_bytes",
+        "threads",
+        "max_depth",
+        "max_precision_bits",
+        "scratch_directory"
+      ],
+      "properties": {
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "work": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "spill_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "threads": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "max_precision_bits": {
+          "type": "integer",
+          "minimum": 64,
+          "maximum": 16384
+        },
+        "scratch_directory": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "output_root": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

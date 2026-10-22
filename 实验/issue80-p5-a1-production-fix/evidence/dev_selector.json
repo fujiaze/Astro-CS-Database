@@ -1,9 +1,0 @@
-{
-  "perf": {"enabled": false},
-  "snapshots": {"enabled": true,
-                "probe_ids": ["mosaic.sky.normal_matrix"],
-                "max_frames": 64,
-                "max_tiles": 8,
-                "max_total_bytes": 1073741824,
-                "max_inflight_bytes": 268435456}
-}

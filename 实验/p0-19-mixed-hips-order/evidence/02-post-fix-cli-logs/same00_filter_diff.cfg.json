@@ -1,8 +1,0 @@
-{
-  "schema_version": "1",
-  "hips_paths": [
-    "/tmp/p019/fx/ord0_halpha",
-    "/tmp/p019/fx/ord0_red"
-  ],
-  "output_dir": "/tmp/p019/matrix/same00_filter_diff"
-}

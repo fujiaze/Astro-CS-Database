@@ -1,112 +1,29 @@
 {
-  "$schema": "https://cmake.org/cmake/help/v3.31/schema/presets.schema.json",
-  "version": 10,
-  "$comment": "ACSD BLD-001 frozen toolchain presets. Formal Windows generator is Visual Studio 17 2022 (x64 / v143 host=x64 without a pinned MSVC build number / SDK 10.0.26100.0 / CMake 3.31.12) per eng/packaging/windows/README.md (value landing) + eng/packaging/schemas/preset-contract.json (machine source of truth). V8-CI-010 F-R3-02b: VS instance is discovered by cmake via vswhere (no CMAKE_GENERATOR_INSTANCE override); toolset carries no version= pin so the hosted mirror default v143 and the local VS default v143 both resolve. Machine validation: eng/cmake/toolchain/verify_toolchain.py against eng/packaging/schemas/preset-contract.schema.json.",
-  "cmakeMinimumRequired": {
-    "major": 3,
-    "minor": 31,
-    "patch": 0
-  },
-  "vendor": {
-    "acsd.org/toolchain/1": {
-      "doc": "eng/packaging/windows/README.md",
-      "frozen_utc": "2026-09-02T00:00:00Z",
-      "contract_schema": "eng/packaging/schemas/preset-contract.schema.json",
-      "windows_formal": {
-        "generator": "Visual Studio 17 2022",
-        "architecture": "x64",
-        "toolset": "v143,host=x64",
-        "sdk": "10.0.26100.0",
-        "cmake_pin": "3.31.12",
-        "note": "cmakeMinimumRequired.patch is 0 so any 3.31.x parses the file; the exact 3.31.12 install pin is enforced by the toolchain verifier and machine acceptance."
-      }
-    }
-  },
+  "version": 6,
   "configurePresets": [
     {
-      "name": "base-msvc",
-      "hidden": true,
-      "displayName": "ACSD Windows x64 MSVC base (frozen)",
-      "description": "Hidden base for the single formal Windows preset. VS 17 2022 x64 only, host x64, toolset v143 without a version pin (hosted mirror default / local VS default), SDK 10.0.26100.0, DLL CRT everywhere (/MD /MDd). VS instance is NOT pinned: cmake discovers it via vswhere (V8-CI-010 F-R3-02b — a hardcoded CMAKE_GENERATOR_INSTANCE local path made hosted configure fail in 0.4s). Never edits this preset to another generator.",
-      "generator": "Visual Studio 17 2022",
-      "architecture": {
-        "value": "x64",
-        "strategy": "set"
-      },
-      "toolset": {
-        "value": "v143,host=x64",
-        "strategy": "set"
-      },
-      "binaryDir": "${sourceDir}/build/win-msvc-17.14.39-x64",
-      "installDir": "${sourceDir}/build/win-install",
+      "name": "design",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/design",
       "cacheVariables": {
-        "CMAKE_SYSTEM_VERSION": "10.0.26100.0",
-        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL",
-        "CMAKE_CXX_STANDARD": "17",
-        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "CMAKE_C_STANDARD": "11",
-        "CMAKE_C_STANDARD_REQUIRED": "ON"
-      },
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
-      }
-    },
-    {
-      "name": "win-msvc-17.14.39-x64",
-      "inherits": "base-msvc",
-      "displayName": "ACSD Windows x64 正式发布工具链 (VS17 2022 v143 14.44.35207 SDK 26100)",
-      "description": "正式 Windows 构建：Visual Studio 17 2022 / x64 / host x64 / v143（不固定 build 号，cmake 经 vswhere 自动发现 VS 实例）/ Windows SDK 10.0.26100.0 / CMake 3.31.12 / C++17 / CRT /MD /MDd。仅 AMD64；不含 Win32/ARM/ARM64。只在 Windows 主机生效。",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
-      }
-    },
-    {
-      "name": "linux-control",
-      "displayName": "ACSD Linux 控制节点轻验证 (非发布产物)",
-      "description": "Linux amd64 控制节点的轻验证配置，仅供静态检查/轻量编译/小合成实验；不是发布产物，不驱动 Windows 工具链。不固定 Ninja/MinGW，不写死并行度。",
-      "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/linux-control",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      },
-      "condition": {
-        "type": "notEquals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
+        "CMAKE_BUILD_TYPE": "Release",
+        "ACSD_BUILD_SCIENCE": "OFF"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "win-rel",
-      "configurePreset": "win-msvc-17.14.39-x64",
-      "displayName": "Windows 正式构建 (RelWithDebInfo; 并行度由 executor 决定，不写死)",
-      "configuration": "RelWithDebInfo"
-    },
-    {
-      "name": "linux",
-      "configurePreset": "linux-control",
-      "displayName": "Linux 轻验证构建"
+      "name": "design",
+      "configurePreset": "design"
     }
   ],
   "testPresets": [
     {
-      "name": "win-rel",
-      "configurePreset": "win-msvc-17.14.39-x64",
-      "displayName": "Windows 正式测试 (RelWithDebInfo)",
-      "configuration": "RelWithDebInfo",
+      "name": "design",
+      "configurePreset": "design",
       "output": {
         "outputOnFailure": true
       }
-    },
-    {
-      "name": "linux",
-      "configurePreset": "linux-control",
-      "displayName": "Linux 轻验证测试"
     }
   ]
 }

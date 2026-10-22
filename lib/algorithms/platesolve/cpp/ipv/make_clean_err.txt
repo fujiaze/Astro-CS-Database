@@ -1,3 +1,0 @@
-process_begin: CreateProcess(NULL, rm -rf obj ipv_solver.dll test_kvector.exe *.o, ...) failed.
-make (e=2): 系统找不到指定的文件。
-mingw32-make: *** [Makefile:65: clean] Error 2

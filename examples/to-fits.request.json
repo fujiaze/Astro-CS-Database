@@ -1,0 +1,27 @@
+{
+  "protocol": "acsd.contract",
+  "major": 1,
+  "request_id": "origin-check-01",
+  "operation": "to_fits",
+  "input_objects": {},
+  "arguments": {
+    "point": {
+      "type": "PixelCenter0",
+      "data": {
+        "x": 0.25,
+        "y": 2.5
+      }
+    }
+  },
+  "request": {},
+  "resources": {
+    "bytes": 1048576,
+    "work": 100,
+    "spill_bytes": 0,
+    "threads": 1,
+    "max_depth": 32,
+    "max_precision_bits": 128,
+    "scratch_directory": ".work"
+  },
+  "output_root": ".work/origin-check"
+}

@@ -1,3 +1,0 @@
-LIBRARY acsd_p1_calibration
-EXPORTS
-    acsd_module_query_v1

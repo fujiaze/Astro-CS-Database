@@ -1,3 +1,5 @@
+> 本分支将本篇作为既定科学输入，保留以下历史审核措辞和有限证据身份。工程状态只由[新设计入口](../../engineering/rebuild/README.md)定义；历史中的“不创建分支/生产未修改/复算命令”描述其原始研究时点，不约束本分支。历史实验源码和证据已从新树移除，本篇相关路径仅指[固定基线研究档案](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)，不是新实现/测试依赖。实际公共字段由新合同唯一拥有。
+
 # 独立 Oracle、计算证据与科学适用域
 
 **候选科学规范，待另一个外部独立审核者重新推导与验收。** 研究及独立验证 Agent 的检查不构成正式科学验收。第一轮生产基线 `e7d273ed78b7d118cf8344110b97224af7378b2a`；第二轮研究基线 `9f0c8bcebd41ccfd74bcda32831ac8eb7ce0d9d0`，2026-10-21，针对[外部审核6294372640](https://github.com/fujiaze/Astro-CS-Database/issues/111#issuecomment-6294372640)继续补证。以下§2–7保留第一轮证据，§8列本轮最终结论和复算入口。生产 C++ 未修改，不创建重构分支或 PR；交付SHA记录在 #111 评论。
@@ -25,7 +27,7 @@
 
 ## 2. 复算包与独立性
 
-根目录 [实验/science-foundation](../../../实验/science-foundation/) 存独立 Python 与轻量 JSON，不包含用户真实 FITS。实际环境为 Python3.12.2、NumPy1.26.4、SciPy1.15.3、Astropy7.1.0、WCSLIB8.4、Astropy-HEALPix1.0.3、mpmath1.3.0；依赖版本见 [requirements.txt](../../../实验/science-foundation/requirements.txt)。这些版本用于复算身份，不是新软件内部版本协议。坐标生产探针另用 GCC16.1，临时编译相关原始翻译单元，未跑整个CLI。
+根目录 [实验/science-foundation](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/) 存独立 Python 与轻量 JSON，不包含用户真实 FITS。实际环境为 Python3.12.2、NumPy1.26.4、SciPy1.15.3、Astropy7.1.0、WCSLIB8.4、Astropy-HEALPix1.0.3、mpmath1.3.0；依赖版本见 [requirements.txt](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/requirements.txt)。这些版本用于复算身份，不是新软件内部版本协议。坐标生产探针另用 GCC16.1，临时编译相关原始翻译单元，未跑整个CLI。
 
 从仓库根依次执行：
 
@@ -58,7 +60,7 @@ python 实验/science-foundation/oracles/hips_orientation.py
 
 ## 3. S0：确证缺陷、正确桥接及仍未知的影响
 
-详细逐行记录见 [coordinates_static_audit.md](../../../实验/science-foundation/evidence/coordinates_static_audit.md)，实际数字见 [coordinates_independent.json](../../../实验/science-foundation/evidence/coordinates_independent.json)。以下源行均锁定本轮基线。
+详细逐行记录见 [coordinates_static_audit.md](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/coordinates_static_audit.md)，实际数字见 [coordinates_independent.json](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/coordinates_independent.json)。以下源行均锁定本轮基线。
 
 | 发现 | 精确证据与范围 | 分类 |
 |---|---|---|
@@ -77,7 +79,7 @@ python 实验/science-foundation/oracles/hips_orientation.py
 
 ## 4. S2：真曲边计算证据与失败修正
 
-几何A的18组实际结果在 [geometry_experiments.json](../../../实验/science-foundation/evidence/geometry_experiments.json)：12个face中心+双apex/转折/RAwrap/细阶共17构型，另有解析TAN矩形；全部按各自输入预算收敛。全12face连续offset四个阶数共240点，最大外库向量角差1.45e−15rad。独立审核另用18240点跨完整face、r=1/3和极点邻域做区间包含抽查，未见超界。
+几何A的18组实际结果在 [geometry_experiments.json](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/geometry_experiments.json)：12个face中心+双apex/转折/RAwrap/细阶共17构型，另有解析TAN矩形；全部按各自输入预算收敛。全12face连续offset四个阶数共240点，最大外库向量角差1.45e−15rad。独立审核另用18240点跨完整face、r=1/3和极点邻域做区间包含抽查，未见超界。
 
 | 数学真值/反例 | 结果 |
 |---|---|
@@ -88,17 +90,17 @@ python 实验/science-foundation/oracles/hips_orientation.py
 | 原生P与f=.37的Q双面积 | 独立detector有界积分 A/Ω区间约[.13686678,.13686951]，排除f²=.1369 |
 | 完整R的常数场/协方差 | 独立矩阵以非单位Ω、不同drop面积验证同一R；不得用D_p代N_p |
 
-**独立审核修正一：参考A的质量累计与预算。** 原float账本的`.25+100·4^-28`可丢失面积，末端扩1ulp不够；初始递归可在max_nodes=1时处理64节点。现全部质量改精确Fraction dyadic、所有根与子块走统一队列、max_depth≤48、未展开粗候选保留位置和上界。独立复核504节点的受控精确集合夹住70位真值，max_nodes=1只处理1节点，精度耗尽仍保界。原反例及修正证据在 [chart_overlap_independent_review.json](../../../实验/science-foundation/evidence/chart_overlap_independent_review.json)。
+**独立审核修正一：参考A的质量累计与预算。** 原float账本的`.25+100·4^-28`可丢失面积，末端扩1ulp不够；初始递归可在max_nodes=1时处理64节点。现全部质量改精确Fraction dyadic、所有根与子块走统一队列、max_depth≤48、未展开粗候选保留位置和上界。独立复核504节点的受控精确集合夹住70位真值，max_nodes=1只处理1节点，精度耗尽仍保界。原反例及修正证据在 [chart_overlap_independent_review.json](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/chart_overlap_independent_review.json)。
 
 **独立审核修正二：外部球冠查询不能当候选完备证明。** 第一版B以Astropy-HEALPix1.0.3的inclusive cone唯一候选判整块内含，在N=2¹⁸、近北极、1arcsec SIP/drop构型中，与A的四个叶区间均不相交，虽然总面积相符。第三路2百万iid积分支持A；5118个A内含块各8点，共40944点用外部完整逆WCS抽查，0个域外点。
 
-已找到具体漏选：detector子矩形`(.175,.35,−.175,0)`，cap半径`8.187563679e−7rad`，外部query只返回叶274877380095；矩形角点(.35,0)到cap中心的真实向量角距`6.20327635e−7rad`（半径的.758倍），却属于未返回的274877380437。不能靠调宽面积容差、仅增加节点数或总面积闭合掩盖此反例。失败在 [detector_cone_completeness_counterexample.json](../../../实验/science-foundation/evidence/detector_cone_completeness_counterexample.json) 和 [cross_geometry_cone_failure.json](../../../实验/science-foundation/evidence/cross_geometry_cone_failure.json) 留存；**旧cone模式结果撤销作为科学包围证据的资格**。
+已找到具体漏选：detector子矩形`(.175,.35,−.175,0)`，cap半径`8.187563679e−7rad`，外部query只返回叶274877380095；矩形角点(.35,0)到cap中心的真实向量角距`6.20327635e−7rad`（半径的.758倍），却属于未返回的274877380437。不能靠调宽面积容差、仅增加节点数或总面积闭合掩盖此反例。失败在 [detector_cone_completeness_counterexample.json](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/detector_cone_completeness_counterexample.json) 和 [cross_geometry_cone_failure.json](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/cross_geometry_cone_failure.json) 留存；**旧cone模式结果撤销作为科学包围证据的资格**。
 
 正式B因此改用独立区间TAN向量→正向NESTED floor分支的完整成员包围；外库索引/offset/MC仍用于独立对照，外部cone只保留失败重现用途。新B正向分类与外部12face/三阶数288点无遗漏，另60个天球向量含精确双极点和LONPOLE旋转，对Astropy最大差7.02e−16rad。原漏叶矩形的新候选正确同时包含两叶；极端候选工作预算不足时保留all-sky未决质量，也已实际检查。
 
-**最终新双算法对拍**：[cross_geometry.json](../../../实验/science-foundation/evidence/cross_geometry.json) 的8例（两个代表面、RAwrap、双极区、转折、tiny sliver和高阶小drop）A/B均按各自预算收敛，全部叶区间与总面积区间有交集；三份源码hash均与交付代码一致。N=2¹⁸近极点原失败构型的新B在全drop0.5%预算下12265节点收敛，A、B与第三路iid相容。
+**最终新双算法对拍**：[cross_geometry.json](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/cross_geometry.json) 的8例（两个代表面、RAwrap、双极区、转折、tiny sliver和高阶小drop）A/B均按各自预算收敛，全部叶区间与总面积区间有交集；三份源码hash均与交付代码一致。N=2¹⁸近极点原失败构型的新B在全drop0.5%预算下12265节点收敛，A、B与第三路iid相容。
 
-独立B全20例在40001节点预算下11例收敛、9例保持budget_exhausted；后9例以**相同0.5%阈值**追加到80001预算，均在41733或43761节点收敛，见 [detector_interval_refinements.json](../../../实验/science-foundation/evidence/detector_interval_refinements.json)。原20例的源码为修tiny-spill显示条件之前的加载快照，已精确保存 `evidence/source_snapshots/detector_interval_pre_spill_guard.py` 且hash相符；追加9例和最终cross使用最终源码。正常20构型无该极端spill，未混淆运行身份。
+独立B全20例在40001节点预算下11例收敛、9例保持budget_exhausted；后9例以**相同0.5%阈值**追加到80001预算，均在41733或43761节点收敛，见 [detector_interval_refinements.json](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/detector_interval_refinements.json)。原20例的源码为修tiny-spill显示条件之前的加载快照，已精确保存 `evidence/source_snapshots/detector_interval_pre_spill_guard.py` 且hash相符；追加9例和最终cross使用最终源码。正常20构型无该极端spill，未混淆运行身份。
 
 不能按两算法中点强制归一再宣布相符。逼近零的sliver保留正upper；未收敛状态保留。性能仅是独立Python小尺寸参考的实际耗时，不保证亿级吞吐。
 
@@ -106,7 +108,7 @@ python 实验/science-foundation/oracles/hips_orientation.py
 
 ## 5. Gaia、统计、sky及合成的实际数值
 
-[statistics_independent.json](../../../实验/science-foundation/evidence/statistics_independent.json) 每个noise构型100000次，seed=11120261020；Gaia联合拟合1000次，保存Clopper–Pearson精确二项95%区间。详解见 [STATISTICS_RESEARCH](../../../实验/science-foundation/STATISTICS_RESEARCH.md)。
+[statistics_independent.json](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/statistics_independent.json) 每个noise构型100000次，seed=11120261020；Gaia联合拟合1000次，保存Clopper–Pearson精确二项95%区间。详解见 [STATISTICS_RESEARCH](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/STATISTICS_RESEARCH.md)。
 
 | 实验 | 实际读数 | 能证明/不能证明 |
 |---|---|---|
@@ -123,15 +125,15 @@ python 实验/science-foundation/oracles/hips_orientation.py
 | N5单步最大LOO，α=.001 | 清洁误拒.00102，95%CI[.00083176,.00123808] | 与清洁Gaussian外部C的理论界相容 |
 | 单12σ污染后68/95%coverage | Gaussian .67990/.95096；Poisson+read .67955/.94869 | 指定全流程MC结果，不是选择后一般定理 |
 
-原并行拒所有极端LOO的N5污染后95%coverage=.91603，已否定该方案作为基线，失败原输出 [statistics_parallel_loo_failed.json](../../../实验/science-foundation/evidence/statistics_parallel_loo_failed.json) 保留。N1..3缺少外部身份信息时不自动判坏；污染后可能完全不覆盖真值，这是能力边界。不同污染幅度、多污染、真实暂现源仍需真实/合成针对性验证。
+原并行拒所有极端LOO的N5污染后95%coverage=.91603，已否定该方案作为基线，失败原输出 [statistics_parallel_loo_failed.json](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/statistics_parallel_loo_failed.json) 保留。N1..3缺少外部身份信息时不自动判坏；污染后可能完全不覆盖真值，这是能力边界。不同污染幅度、多污染、真实暂现源仍需真实/合成针对性验证。
 
 当前生产静态差异另见研究报告：spectrum_integrator中旧λ积分是具名模型惯例，不能按新photon单位直接解释；小N百分比接受带不具平移等变性；sky floor-bin拟合与bilinear求值不共享basis。修正科学定义不代表本轮改动这些C++。
 
 ### 5.1 稀疏精度与Export的独立闭环
 
-[sparse_variance_reference.json](../../../实验/science-foundation/evidence/sparse_variance_reference.json)从25个actual-scene正方差控点构造局部球面gnomonic三角插值。log平面5000查询一次再现最大误差1.61e−15；外部δ/Hessian界下平面/二次真值各5000点均被界包围，最大误差/界约.949/.960。图外返回unavailable；缺曲率先验的C∞ bump在全部控点为0、查询值可任意大，独立证伪仅凭“光滑”即可认证稀疏场的主张。普通float插值实验不是机器区间证书，不混入真实photon covariance。
+[sparse_variance_reference.json](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/sparse_variance_reference.json)从25个actual-scene正方差控点构造局部球面gnomonic三角插值。log平面5000查询一次再现最大误差1.61e−15；外部δ/Hessian界下平面/二次真值各5000点均被界包围，最大误差/界约.949/.960。图外返回unavailable；缺曲率先验的C∞ bump在全部控点为0、查询值可任意大，独立证伪仅凭“光滑”即可认证稀疏场的主张。普通float插值实验不是机器区间证书，不混入真实photon covariance。
 
-[export_independent.json](../../../实验/science-foundation/evidence/export_independent.json)将真实叶内−2/0/+3信号导入2×2偶数尺寸WCS，CRPIX=(1.37,1.12)、RA回绕、镜像非对角CD。四百万独立外部WCS/成员detector积分给16量的Hoeffding联合失败概率≤1e−6；全/部分支持的面积、积分与均值区间均与reference相交。部分支持像元面积约30.08%，正确支持均值−2、错用全像元分母−.6015。200000次Gaussian covariance模拟最大偏差2.36个抽样标准误；显式双和与同一合并leaf矩阵差5.55e−17。拆同叶.35/.65后假独立会只报正确白噪声方差的.545。
+[export_independent.json](https://github.com/fujiaze/Astro-CS-Database/blob/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation/evidence/export_independent.json)将真实叶内−2/0/+3信号导入2×2偶数尺寸WCS，CRPIX=(1.37,1.12)、RA回绕、镜像非对角CD。四百万独立外部WCS/成员detector积分给16量的Hoeffding联合失败概率≤1e−6；全/部分支持的面积、积分与均值区间均与reference相交。部分支持像元面积约30.08%，正确支持均值−2、错用全像元分母−.6015。200000次Gaussian covariance模拟最大偏差2.36个抽样标准误；显式双和与同一合并leaf矩阵差5.55e−17。拆同叶.35/.65后假独立会只报正确白噪声方差的.545。
 
 Export最初每像元60000节点、绝对面积预算2e−5sr仍有未收敛，且当时未保存逐像元明细；失败范围如实在 `export_initial_precision_failed.json` 中说明。后续参考预算明确为3e−4sr，逐像元立即缓存并把实际几何区间传到最终结果。这是给定精度下的参考验证，不声称达到初始精度；初始失败不删除。目标科学预算必须由后续真实PSF/孔径用途决定。
 
