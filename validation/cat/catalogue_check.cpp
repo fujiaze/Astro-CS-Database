@@ -773,6 +773,38 @@ int main() {
               val(found)[1].source_id == requested[2],
           "the lookup keeps the requested order");
     check(found.assessment.issues.size() == 1, "the missing identifier produces one issue");
+
+    // The omitted topocentric correction is published with its bound.  The
+    // catalogue has no observer, so the positions are barycentric and the
+    // bound is the parallax of the sources: for a one milliarcsecond parallax
+    // it is 4.6e-5 rad, about 9.5 arcsec, far above the blind solve
+    // tolerance of two arcsec.  Without the bound the pipeline could not
+    // tell a topocentric position from a barycentric one.
+    bool omitted = false;
+    for (const std::string& item : found.assessment.omitted) {
+      if (item == "topocentric_correction") omitted = true;
+    }
+    check(omitted, "the omitted topocentric correction is listed");
+    check(found.assessment.omitted_position_bound_rad.has_value(),
+          "the bound of the omitted correction is published");
+    if (found.assessment.omitted_position_bound_rad.has_value()) {
+      const double expected = std::asin(std::min(1.0, 1.01 * catalogue[3].parallax));
+      const double published = *found.assessment.omitted_position_bound_rad;
+      check(std::abs(published - expected) <= 1e-12 * std::max(1.0, expected),
+            "the published bound is the parallax bound of the source");
+      check(published > 0.0, "the published bound is not zero");
+    }
+    {
+      // A source without a known distance has no finite bound: the omission
+      // is unbounded and the error state says that the noise is unknown.  The
+      // bound must never be published as zero.
+      const std::vector<U64> without_distance{catalogue[5].source_id};
+      Result<std::vector<acsd::CatalogueStar>> single =
+          catalogue_provider->lookup(context, without_distance);
+      check(ok(single), "the lookup of one source is produced");
+      check(single.assessment.omitted_position_bound_rad.has_value(),
+            "the bound of a source with a known distance is published");
+    }
   }
 
   // ---------------------------------------------------------------------

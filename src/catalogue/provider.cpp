@@ -374,11 +374,26 @@ Result<CataloguePage> CatalogueProviderImpl::query(Context& context,
   out.assessment = model::make_assessment(Code::ok);
   out.assessment.complete = true;
   out.assessment.omitted.push_back("topocentric_correction");
+  out.assessment.included.push_back("barycentric_position");
+  double bound = 0.0;
+  bool unbounded = false;
   for (std::size_t i = start; i < members.size() && i - start < page.stars.size(); ++i) {
-    if (!catalogue::observer_omission_bound_rad(stars_[members[i]]).has_value()) {
-      out.assessment.noise = NoiseState::unknown;
+    const std::optional<double> source_bound =
+        catalogue::observer_omission_bound_rad(stars_[members[i]]);
+    if (!source_bound.has_value()) {
+      // The omitted correction is unbounded: the result carries no bound and
+      // the error state says that the noise is not known.  An omitted error
+      // is never published as zero.
+      unbounded = true;
       break;
     }
+    bound = std::max(bound, *source_bound);
+  }
+  if (unbounded) {
+    out.assessment.noise = NoiseState::unknown;
+    out.assessment.omitted_position_bound_rad = std::nullopt;
+  } else {
+    out.assessment.omitted_position_bound_rad = bound;
   }
   out.usage = context.resources.usage();
   return out;
@@ -519,7 +534,9 @@ Result<std::vector<CatalogueStar>> CatalogueProviderImpl::lookup(
   // published with the result; its bound is the parallax of the sources and
   // it is not finite when a source has no known distance.
   assessment.omitted.push_back("topocentric_correction");
-  bool bounded = true;
+  assessment.included.push_back("barycentric_position");
+  double bound = 0.0;
+  bool unbounded = false;
   for (U64 identifier : source_ids) {
     const auto found = by_id_.find(identifier);
     if (found == by_id_.end()) {
@@ -529,12 +546,25 @@ Result<std::vector<CatalogueStar>> CatalogueProviderImpl::lookup(
       continue;
     }
     const StarRow& row = stars_[found->second];
-    if (!catalogue::observer_omission_bound_rad(row).has_value()) bounded = false;
+    const std::optional<double> source_bound = catalogue::observer_omission_bound_rad(row);
+    if (!source_bound.has_value()) {
+      // The omitted correction is unbounded: the result carries no bound and
+      // the error state says that the noise is not known.  An omitted error
+      // is never published as zero.
+      unbounded = true;
+    } else {
+      bound = std::max(bound, *source_bound);
+    }
     const catalogue::PropagatedPosition propagated =
         catalogue::propagate_star(row, row.epoch_year);
     stars.push_back(make_star(context, row, row.epoch_year, propagated.parallax_rad));
   }
-  if (!bounded) assessment.noise = NoiseState::unknown;
+  if (unbounded) {
+    assessment.noise = NoiseState::unknown;
+    assessment.omitted_position_bound_rad = std::nullopt;
+  } else {
+    assessment.omitted_position_bound_rad = bound;
+  }
   Result<std::vector<CatalogueStar>> out = model::ok_result(std::move(stars));
   out.assessment = assessment;
   out.usage = context.resources.usage();

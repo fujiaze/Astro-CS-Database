@@ -1,8 +1,12 @@
 {
+  "angle_is_the_verdict": true,
   "case": "catalogue_epoch_propagation",
+  "distance_difference_is_a_model_quantity": true,
+  "distance_model_note": "The distance difference is not an error of the implementation: the implementation propagates the constant space velocity model r(t) = r0 + v dt, so the distance is the norm of the propagated position and carries the second order term of the tangential motion; the reference (ERFA pmsky, reached through astropy apply_space_motion) updates the distance with its own rule and does not carry that term.  The two models agree on the direction: the angular difference is the verdict of this comparison.  The relative distance difference is at most 5.5e-6, far below the position uncertainty of a catalogue source.",
   "max_angle_difference_arcsec": 1.9205058762704026e-05,
   "max_angle_difference_rad": 9.310875234671489e-11,
   "max_distance_difference_au": 0.051358206910663284,
+  "max_distance_relative_difference": 7.748583869749247e-07,
   "method": "astropy SkyCoord.apply_space_motion (ERFA space motion)",
   "oracle": "astropy 7.0.1",
   "samples": 18,

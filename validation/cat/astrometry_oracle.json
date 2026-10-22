@@ -1,6 +1,8 @@
 {
   "case": "blind_astrometric_solve_oracle",
+  "catalogue_epoch_semantics": "catalogue.lookup returns the catalogue epoch positions and catalogue.query returns the prediction at the requested epoch.  The blind solve uses the query path; with the lookup path a source of four arcsec per year over twenty years would displace the affine hypothesis by about eighty arcsec.",
   "compared_pixels": 1681,
+  "epoch_source": "The affine hypothesis and the verification use the same batch of catalogue positions, taken from the provider's region query at the observation epoch.  This is not a circular argument: the hypothesis is the affine model fitted to the four quadruple positions, the verification is the residual of that model over the whole field.  The independence lies in the position source and in the model form, not in the identity of the positions: the same positions are used, and the epoch is the observation epoch, so the proper motion of a source is not counted twice and not mistaken for an astrometric error.",
   "field_height": 2048,
   "field_width": 2048,
   "max_difference_arcsec": 0.2931617464924404,

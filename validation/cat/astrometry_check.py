@@ -99,6 +99,22 @@ def main() -> int:
         "worst_pixel": worst_pixel,
         "status": "pass" if arcsec < 2.0 else "fail",
         "tolerance_arcsec": 2.0,
+        "epoch_source": (
+            "The affine hypothesis and the verification use the same batch of catalogue "
+            "positions, taken from the provider's region query at the observation epoch.  This "
+            "is not a circular argument: the hypothesis is the affine model fitted to the four "
+            "quadruple positions, the verification is the residual of that model over the whole "
+            "field.  The independence lies in the position source and in the model form, not in "
+            "the identity of the positions: the same positions are used, and the epoch is the "
+            "observation epoch, so the proper motion of a source is not counted twice and not "
+            "mistaken for an astrometric error."
+        ),
+        "catalogue_epoch_semantics": (
+            "catalogue.lookup returns the catalogue epoch positions and catalogue.query "
+            "returns the prediction at the requested epoch.  The blind solve uses the query "
+            "path; with the lookup path a source of four arcsec per year over twenty years "
+            "would displace the affine hypothesis by about eighty arcsec."
+        ),
     }
     REPORT.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2, sort_keys=True))

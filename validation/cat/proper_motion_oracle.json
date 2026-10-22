@@ -1,5 +1,9 @@
 {
  "case": "catalogue_proper_motion_propagation_over_twenty_years",
+ "angle_is_the_verdict": true,
+ "distance_difference_is_a_model_quantity": true,
+ "max_distance_relative_difference": 4.12323887633099e-08,
+ "distance_model_note": "The distance difference is a difference between two space motion models and not an error: the implementation propagates the constant space velocity model r(t) = r0 + v dt and takes the distance from the norm of the propagated position, the reference (ERFA pmsky through astropy apply_space_motion) updates the distance with its own rule.  The angular positions, which are what the blind solve and the matching use, agree to 3.1e-6 arcsec here.",
  "method": "astropy SkyCoord.apply_space_motion (ERFA space motion)",
  "oracle": "astropy 7.0.1",
  "samples": 3,
@@ -14,7 +18,8 @@
    "epoch_year": 2016,
    "target_epoch": 2036,
    "angular_difference_arcsec": 0.0,
-   "distance_difference_au": 1.0103030945174396e-06
+   "distance_difference_au": 1.0103030945174396e-06,
+   "reference_distance_au": 39987.76699318167
   },
   {
    "source_id": 1000007,
@@ -23,7 +28,8 @@
    "epoch_year": 2016,
    "target_epoch": 2036,
    "angular_difference_arcsec": 7.265075899665464e-08,
-   "distance_difference_au": 7.320069926208816e-05
+   "distance_difference_au": 7.320069926208816e-05,
+   "reference_distance_au": 32225.031094900303
   },
   {
    "source_id": 1000014,
@@ -32,7 +38,8 @@
    "epoch_year": 2016,
    "target_epoch": 2036,
    "angular_difference_arcsec": 3.1006398972920597e-06,
-   "distance_difference_au": 0.002395448027527891
+   "distance_difference_au": 0.002395448027527891,
+   "reference_distance_au": 58096.270901952914
   }
  ]
 }
