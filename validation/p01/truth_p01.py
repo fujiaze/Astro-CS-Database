@@ -209,6 +209,7 @@ def main() -> int:
         [],
         "The independent closure checker is ready; the observed side is pending_implementation.")
 
+    case.write_comparison(comparison)
     print(json.dumps({"case": "P01", "expectations": list(expectations["closure_checks"])},
                      indent=1))
     return 0

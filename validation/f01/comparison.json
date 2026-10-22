@@ -1,0 +1,23 @@
+{
+  "case": "F01",
+  "failures": [],
+  "functionals": [
+    {
+      "kind": "value",
+      "name": "two_source_aperture_flux",
+      "reason": "the public photometry entry points are not available yet",
+      "status": "pending_implementation",
+      "tolerance": 1.5707599904756592e-10,
+      "truth": 157.07599904756592,
+      "unit": "ADU"
+    }
+  ],
+  "notes": "The independent truth is complete; the observed side is pending_implementation.",
+  "status": "pending_implementation",
+  "status_vocabulary": {
+    "fail": "at least one functional is outside the frozen tolerance",
+    "not_applicable": "the case does not exercise the requested functional",
+    "pass": "every requested functional is inside the frozen tolerance",
+    "pending_implementation": "the public entry point under test is not implemented yet"
+  }
+}

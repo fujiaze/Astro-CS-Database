@@ -425,6 +425,18 @@ def main() -> int:
         "availability": availability(["select_samples", "solve_weights", "coadd"]),
     })
 
+    comparison = comparison_payload(
+        case.name.upper(), "pending_implementation",
+        [{"name": f"N{n}:blue_weights", "kind": "value",
+          "truth": [value["decimal"] for value in analytic[f"N{n}"]["blue_weights"]],
+          "tolerance": 1e-12, "unit": "1", "status": "pending_implementation",
+          "reason": "the public coadd entry points are not available yet"}
+         for n in range(1, 8)],
+        [],
+        "The independent weights and the reference Monte-Carlo are complete; the observed side "
+        "is pending_implementation.")
+    case.write_comparison(comparison)
+
     observe.write_manifest(case, {
         "truth_type": "analytic_exact + stochastic_confidence",
         "seeds": {"base": SEED,

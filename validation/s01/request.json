@@ -1,0 +1,36 @@
+{
+  "arguments": {},
+  "input_objects": {},
+  "major": 1,
+  "operation": "fit_relative_sky",
+  "output_root": ".work/s01",
+  "protocol": "acsd.contract",
+  "request": {
+    "allow_prediction": false,
+    "basis": {
+      "kind": "plane"
+    },
+    "gauge": {
+      "kind": "reference_frame"
+    },
+    "groups": [
+      {
+        "frames": [
+          "f1",
+          "f2",
+          "f3"
+        ]
+      }
+    ]
+  },
+  "request_id": "val-s01-relative-sky",
+  "resources": {
+    "bytes": 8388608,
+    "max_depth": 32,
+    "max_precision_bits": 128,
+    "scratch_directory": ".work",
+    "spill_bytes": 0,
+    "threads": 1,
+    "work": 100000
+  }
+}

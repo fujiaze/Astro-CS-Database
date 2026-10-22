@@ -307,6 +307,7 @@ def main() -> int:
         "The synthetic observation is complete and frozen; the observed side is "
         "pending_implementation.")
 
+    case.write_comparison(comparison)
     print(json.dumps({"case": "X01",
                       "frames": len(frame_files), "sky_frames": len(sky_files),
                       "photon_rate_a": sed_truth["photon_rate_group_a_s_m2"],

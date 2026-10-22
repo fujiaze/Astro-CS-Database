@@ -1,0 +1,32 @@
+{
+  "case": "S01",
+  "failures": [],
+  "functionals": [
+    {
+      "kind": "value",
+      "name": "KH_max_abs",
+      "reason": "the public sky entry points are not available yet",
+      "status": "pending_implementation",
+      "tolerance": 1e-10,
+      "truth": 2.220446049250313e-16,
+      "unit": "1"
+    },
+    {
+      "kind": "value",
+      "name": "holdout_variance",
+      "reason": "the public sky entry points are not available yet",
+      "status": "pending_implementation",
+      "tolerance": 1e-09,
+      "truth": 8.400000000000006,
+      "unit": "L^2"
+    }
+  ],
+  "notes": "The independent truth is complete; the observed side is pending_implementation.",
+  "status": "pending_implementation",
+  "status_vocabulary": {
+    "fail": "at least one functional is outside the frozen tolerance",
+    "not_applicable": "the case does not exercise the requested functional",
+    "pass": "every requested functional is inside the frozen tolerance",
+    "pending_implementation": "the public entry point under test is not implemented yet"
+  }
+}

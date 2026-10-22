@@ -177,6 +177,7 @@ def main() -> int:
         "The run matrix and the comparison keys are frozen; the observed side is "
         "pending_implementation.")
 
+    case.write_comparison(comparison)
     print(json.dumps({"case": "R01", "runs": [entry["name"] for entry in RUN_MATRIX]}, indent=1))
     return 0
 

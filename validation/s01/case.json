@@ -1,0 +1,134 @@
+{
+  "assumptions": [
+    "the frames share a response and a spatial kernel so a relative sky is identifiable",
+    "the control statistic is a fixed linear patch average",
+    "the gauge fixes the reference frame coefficients",
+    "the same-data influence is kept in the corrected covariance"
+  ],
+  "availability": {
+    "checked_sources": [
+      "src/catalogue/columns.cpp",
+      "src/catalogue/index.cpp",
+      "src/catalogue/provider.cpp",
+      "src/catalogue/sky_geometry.cpp",
+      "src/coadd/coadd.cpp",
+      "src/coadd/weights.cpp",
+      "src/coordinates/chart.cpp",
+      "src/coordinates/footprint_provider.cpp",
+      "src/coordinates/healpix.cpp",
+      "src/coordinates/tan_sip.cpp",
+      "src/coordinates/wcs.cpp",
+      "src/geometry/drizzle.cpp",
+      "src/geometry/exact_polygon.cpp",
+      "src/geometry/kernel.cpp",
+      "src/geometry/overlap.cpp",
+      "src/geometry/refine.cpp",
+      "src/information/information.cpp",
+      "src/information/internal.cpp",
+      "src/information/triangulation.cpp",
+      "src/model/array.cpp",
+      "src/model/exact.cpp",
+      "src/model/hash.cpp",
+      "src/model/units.cpp",
+      "src/numerics/interval.cpp",
+      "src/numerics/linalg.cpp",
+      "src/numerics/quadrature.cpp",
+      "src/observation/calibrate.cpp",
+      "src/observation/observation.cpp",
+      "src/observation/regroup.cpp",
+      "src/operators/api.cpp",
+      "src/operators/linear_action.cpp",
+      "src/photometry/api.cpp",
+      "src/photometry/apply_scale.cpp",
+      "src/photometry/joint_fit.cpp",
+      "src/photometry/spatial_basis.cpp",
+      "src/projection/export_projection.cpp",
+      "src/resources/cpu_resources.cpp",
+      "src/response/api.cpp",
+      "src/response/spectral.cpp",
+      "src/sky/sky.cpp",
+      "src/sources/astrometry.cpp",
+      "src/sources/astrometry_detection.cpp",
+      "src/sources/astrometry_fit.cpp",
+      "src/sources/astrometry_match.cpp",
+      "src/sources/astrometry_wcs.cpp",
+      "src/sources/measure.cpp",
+      "src/sources/psf.cpp",
+      "src/storage/local_storage.cpp",
+      "src/uncertainty/api.cpp",
+      "src/uncertainty/covariance.cpp",
+      "src/workflows/export_workflow.cpp",
+      "src/workflows/fits_writer.cpp",
+      "src/workflows/frames_provider.cpp",
+      "src/workflows/mosaic.cpp",
+      "src/workflows/normalize.cpp",
+      "src/workflows/product.cpp",
+      "src/workflows/product_io.cpp"
+    ],
+    "entry_points": {
+      "apply_sky": true,
+      "build_sky_controls": true,
+      "fit_relative_sky": true
+    },
+    "missing": []
+  },
+  "case": "S01",
+  "condition": "common Gaussian sky with a shared floor; one known difference mode",
+  "estimand": "the correction operator P = I - E K T, the corrected covariance P C P^T and the corrected variance of a held-out pixel",
+  "goal": "Verify the relative sky correction: the common sky must be protected (K H = 0 to 1e-10), the common constant and slopes must not be removed, a collinear control set must keep its nullspace, different responses must not create edges and a spatial hold-out must still carry the cross terms.",
+  "independence": {
+    "external_standards": [
+      "astropy",
+      "wcslib",
+      "astropy-healpix",
+      "healpy",
+      "scipy",
+      "numpy"
+    ],
+    "note": "truth is produced before and independently of any observed run",
+    "truth_code_imports_production": false
+  },
+  "input_model_sha256": "2ee07ba52f662ad644302ddb738511d8e263406f91c7852e5005938670b9cf0e",
+  "negative_expectations": [
+    {
+      "expectation": "collinear controls must keep an explicit nullspace and must not be 'fixed' by a ridge",
+      "id": "collinear_nullspace"
+    },
+    {
+      "expectation": "frames with different responses must not be connected",
+      "id": "no_fake_edges"
+    },
+    {
+      "expectation": "the same-data sky variance must not be added as an independent term",
+      "id": "no_independent_addition"
+    }
+  ],
+  "positive_expectations": [
+    {
+      "expectation": "K H is zero to 1e-10",
+      "id": "KH_zero"
+    },
+    {
+      "expectation": "adding a common gradient does not change the correction",
+      "id": "common_mode_protected"
+    },
+    {
+      "expectation": "P C P^T keeps the off-diagonal terms",
+      "id": "cross_terms_kept"
+    },
+    {
+      "expectation": "a held-out pixel keeps the parameter variance term",
+      "id": "holdout_cross_term"
+    }
+  ],
+  "request_sha256": "4cacc3d16470423ca06f611ed42e49a498f3c994134e07cf7675921a16145a0b",
+  "tolerance": {
+    "KH_absolute": 1e-10,
+    "common_slope_removed": "the common slope must survive the correction",
+    "holdout_cross_term_relative": 1e-09,
+    "variance_relative": 1e-09
+  },
+  "truth_sha256": "1db4a4460b3baf75e0cf489ed4c437bbe5ada8b963b579d61543395fb5ec8173",
+  "truth_type": "analytic_exact + stochastic_confidence",
+  "unit": "L^2 for the variance; dimensionless for the operators"
+}

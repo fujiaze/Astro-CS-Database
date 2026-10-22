@@ -6,7 +6,7 @@
   },
   "case": "W01",
   "code_identity": {
-    "validation/w01/truth_w01.py": "fd6be655f70b4cb063948a93c8ad2f75be8668667dbfb8fe7683d895bf161ac1"
+    "validation/w01/truth_w01.py": "e9fa9dfb0b6c97cfa7ed262a1d5a3ac75e4442dc001f3a8b2a323f11d53f1168"
   },
   "commands": {
     "truth": "python3 validation/w01/truth_w01.py"

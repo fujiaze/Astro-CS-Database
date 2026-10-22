@@ -300,6 +300,7 @@ def main() -> int:
         [],
         "The independent truth is complete; the observed side is pending_implementation.")
 
+    case.write_comparison(comparison)
     print(json.dumps({
         "case": "E01",
         "pixels": [{k: v for k, v in entry.items() if k != "support_area_per_leaf_sr"}

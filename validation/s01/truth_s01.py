@@ -58,8 +58,10 @@ def build_scene():
     for frame in range(frames):
         for control in range(controls):
             row = frame * controls + control
-            for pixel in range(3):
-                t_operator[row, frame * 4 + pixel] = 1.0 / 3.0
+            # three distinct control patches per frame, so that the control
+            # operator has full row rank
+            t_operator[row, frame * 4 + control] = 0.5
+            t_operator[row, frame * 4 + control + 1] = 0.5
     # the native covariance: independent pixels with a shared floor
     native = np.zeros((frames * 4, frames * 4))
     for frame in range(frames):
@@ -80,35 +82,39 @@ def common_sky_matrix(frames, controls, n_native):
     for frame in range(frames):
         for control in range(controls):
             h_matrix[frame * controls + control, frame] = 1.0
-    # A: the additive difference modes (frame 3 only)
+    # A: the additive difference mode.  It lives in the complement of the
+    # common sky (a ramp across the controls of frame 3), otherwise it would
+    # be indistinguishable from the common sky and not estimable.
     a_matrix = np.zeros((frames * controls, 1))
     for control in range(controls):
-        a_matrix[2 * controls + control, 0] = 1.0
+        a_matrix[2 * controls + control, 0] = (control + 1.0) / 3.0
+    a_matrix /= np.linalg.norm(a_matrix)
     return h_matrix, a_matrix
 
 
-def compute_correction(frames, controls, t_operator, control_covariance, h_matrix, a_matrix):
+def compute_correction(frames, controls, t_operator, control_covariance, h_matrix, a_matrix,
+                       n_native):
     """The gauge-fixed joint solve of the foundation, done explicitly."""
-    # white = C_c^{-1/2}; use an eigen decomposition (the matrix is small)
-    eigenvalues, eigenvectors = np.linalg.eigh(control_covariance)
-    inverse_sqrt = (eigenvectors * (1.0 / np.sqrt(eigenvalues))) @ eigenvectors.T
-    white = inverse_sqrt
+    # white = L^-1 with C_c = L L^T (Cholesky), so that white C_c white^T = I
+    from scipy.linalg import cholesky, solve_triangular
+
+    cholesky_factor = cholesky(control_covariance, lower=True)
+    white = solve_triangular(cholesky_factor, np.eye(cholesky_factor.shape[0]), lower=True)
     # Q_w: the orthogonal complement of the common sky columns in the
     # whitened space
     whitened_h = white @ h_matrix
-    q_perp, _ = np.linalg.qr(whitened_h.T, mode="complete")
-    q_w = q_perp[:, h_matrix.shape[1]:].T
-    # G: the gauge constrained parameter subspace (the reference frame keeps
-    # its common coefficients at zero, so only the difference modes are free)
-    gauge = np.zeros((frames, frames))
-    gauge[0, 0] = 1.0
-    g_matrix = a_matrix @ gauge[:a_matrix.shape[1], :a_matrix.shape[1]] if False else a_matrix
-    # solve the normal equations in the parameter space
-    design = np.hstack([whitened_h @ np.zeros((frames, frames)), white @ a_matrix])
-    # the common modes are projected out; only the difference modes are free
-    free = design
-    pseudo = np.linalg.pinv(free)
-    k_matrix = g_matrix @ pseudo @ q_w @ white
+    q_full, _ = np.linalg.qr(whitened_h, mode="complete")
+    q_w = q_full[:, h_matrix.shape[1]:].T
+    # The gauge fixes the common sky coefficients (the reference frame keeps
+    # them at zero), so only the additive difference modes are free.  With
+    # M = Q_w W A the difference mode estimate is eta = (M^T M)^-1 M^T Q_w W c
+    # and the correction operator is K = A (M^T M)^-1 M^T Q_w W.
+    g_matrix = a_matrix
+    m_matrix = q_w @ (white @ a_matrix)
+    denominator = float(m_matrix.T @ m_matrix)
+    if denominator <= 0.0:
+        raise ValueError("the difference mode is not estimable")
+    k_matrix = g_matrix @ ((m_matrix.T @ q_w @ white) / denominator)
     # E maps the control parameters back to the native pixels
     e_matrix = np.zeros((n_native, frames * controls))
     for frame in range(frames):
@@ -165,7 +171,7 @@ def main() -> int:
     n_native = frames * 4
     h_matrix, a_matrix = common_sky_matrix(frames, controls, n_native)
     k_matrix, p_matrix, e_matrix, q_w, white = compute_correction(
-        frames, controls, t_operator, control_covariance, h_matrix, a_matrix)
+        frames, controls, t_operator, control_covariance, h_matrix, a_matrix, n_native)
 
     kh = k_matrix @ h_matrix
     corrected_covariance = p_matrix @ native @ p_matrix.T
@@ -174,8 +180,10 @@ def main() -> int:
     # not change the fitted parameters
     common_gradient = np.zeros(n_native)
     for frame in range(frames):
-        common_gradient[frame * 4 + 0] = 1.0
-        common_gradient[frame * 4 + 1] = 2.0
+        # a gradient that is constant over the controls of a frame is a pure
+        # common sky mode and must not change the fitted parameters
+        for pixel in range(4):
+            common_gradient[frame * 4 + pixel] = 1.0
     control_gradient = t_operator @ common_gradient
     parameter_shift = k_matrix @ control_gradient
 
@@ -208,6 +216,7 @@ def main() -> int:
         for control in range(3):
             collinear_t[control, frame * 4 + 0] = 1.0 / 3.0
             collinear_t[control, frame * 4 + 1] = 1.0 / 3.0
+    # (the collinear control set has three identical rows: its rank is one)
     collinear_e = np.zeros((n_native, 3))
     for frame in range(frames):
         for pixel in range(4):
@@ -314,6 +323,7 @@ def main() -> int:
         [],
         "The independent truth is complete; the observed side is pending_implementation.")
 
+    case.write_comparison(comparison)
     print(json.dumps({"case": "S01", "results": truth["results"]}, indent=1))
     return 0
 

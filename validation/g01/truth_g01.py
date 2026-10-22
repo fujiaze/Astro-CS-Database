@@ -502,6 +502,8 @@ def main() -> int:
         "The independent truth is complete; the observed side waits for the production geometry "
         "entry point to be available and for the case to be re-run.")
 
+    case.write_comparison(comparison)
+
     observe.write_manifest(case, {
         "truth_type": "analytic_exact + deterministic_enclosure + stochastic_confidence",
         "seeds": {entry["name"]: entry["monte_carlo"]["seed"] for entry in truth_cases},

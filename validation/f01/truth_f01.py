@@ -318,6 +318,7 @@ def main() -> int:
         [],
         "The independent truth is complete; the observed side is pending_implementation.")
 
+    case.write_comparison(comparison)
     print(json.dumps({
         "case": "F01",
         "single_source_flux": single_flux,

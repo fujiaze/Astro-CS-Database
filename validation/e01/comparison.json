@@ -1,0 +1,50 @@
+{
+  "case": "E01",
+  "failures": [],
+  "functionals": [
+    {
+      "kind": "value",
+      "name": "pixel_0:supported_mean",
+      "reason": "the public export entry points are not available yet",
+      "status": "pending_implementation",
+      "tolerance": 1e-09,
+      "truth": -2.0,
+      "unit": "L/sr"
+    },
+    {
+      "kind": "value",
+      "name": "pixel_1:supported_mean",
+      "reason": "the public export entry points are not available yet",
+      "status": "pending_implementation",
+      "tolerance": 1e-09,
+      "truth": -2.0,
+      "unit": "L/sr"
+    },
+    {
+      "kind": "value",
+      "name": "pixel_2:supported_mean",
+      "reason": "the public export entry points are not available yet",
+      "status": "pending_implementation",
+      "tolerance": 1e-09,
+      "truth": 3.0,
+      "unit": "L/sr"
+    },
+    {
+      "kind": "value",
+      "name": "pixel_3:supported_mean",
+      "reason": "the public export entry points are not available yet",
+      "status": "pending_implementation",
+      "tolerance": 1e-09,
+      "truth": 0.5096270285888668,
+      "unit": "L/sr"
+    }
+  ],
+  "notes": "The independent truth is complete; the observed side is pending_implementation.",
+  "status": "pending_implementation",
+  "status_vocabulary": {
+    "fail": "at least one functional is outside the frozen tolerance",
+    "not_applicable": "the case does not exercise the requested functional",
+    "pass": "every requested functional is inside the frozen tolerance",
+    "pending_implementation": "the public entry point under test is not implemented yet"
+  }
+}

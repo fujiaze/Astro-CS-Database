@@ -5,7 +5,7 @@
   },
   "case": "E01",
   "code_identity": {
-    "validation/e01/truth_e01.py": "4bdeef93445f4a226b8cf2ce23d7e418fe50e3eb095decc93793042ddfbbc691"
+    "validation/e01/truth_e01.py": "686a6aceb48b85246528343783629ae491fd8a13dcafa2a4c5aedb20c6d7b1db"
   },
   "commands": {
     "truth": "python3 validation/e01/truth_e01.py"

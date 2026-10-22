@@ -1,0 +1,23 @@
+{
+  "case": "P01",
+  "failures": [],
+  "functionals": [
+    {
+      "kind": "value",
+      "name": "closure_verdict",
+      "reason": "no published product exists yet; the product writer is not available",
+      "status": "pending_implementation",
+      "tolerance": 0.0,
+      "truth": "ok",
+      "unit": "verdict"
+    }
+  ],
+  "notes": "The independent closure checker is ready; the observed side is pending_implementation.",
+  "status": "pending_implementation",
+  "status_vocabulary": {
+    "fail": "at least one functional is outside the frozen tolerance",
+    "not_applicable": "the case does not exercise the requested functional",
+    "pass": "every requested functional is inside the frozen tolerance",
+    "pending_implementation": "the public entry point under test is not implemented yet"
+  }
+}

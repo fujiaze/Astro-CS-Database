@@ -278,6 +278,7 @@ def main() -> int:
         [],
         "The independent truth is complete; the observed side is pending_implementation.")
 
+    case.write_comparison(comparison)
     print(json.dumps({
         "case": "V01",
         "plane_all_inside": all(row["truth_inside"] for row in plane_rows),

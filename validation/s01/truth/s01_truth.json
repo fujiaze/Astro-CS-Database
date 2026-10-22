@@ -1,0 +1,45 @@
+{
+  "case": "S01",
+  "methods": {
+    "correction": "explicit K = G (Q_w W A G)^+ Q_w W and P = I - E K T",
+    "covariance": "the explicit P C P^T product",
+    "monte_carlo": "200000 iid draws with seed 20261028"
+  },
+  "no_fake_edges": {
+    "note": "a frame with a different response must not enter the comparable group; the expected behaviour is a disconnected component with no relative measurement"
+  },
+  "nullspace": {
+    "collinear_control_columns": 3,
+    "collinear_control_rank": 1,
+    "note": "a collinear control set leaves an explicit nullspace that must be reported"
+  },
+  "results": {
+    "KH_max_abs": 2.220446049250313e-16,
+    "common_gradient_parameter_shift_max_abs": 2.220446049250313e-16,
+    "corrected_covariance_diagonal": [
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      1.5,
+      15.000000000000009,
+      15.000000000000009,
+      8.400000000000006,
+      8.400000000000006
+    ],
+    "corrected_covariance_offdiagonal_max_abs": 14.20000000000001,
+    "holdout_parameter_variance": 9.900000000000006,
+    "holdout_variance": 8.400000000000006,
+    "independent_addition_wrong_value": 18.30000000000001,
+    "monte_carlo_holdout_variance": 8.364843602588454,
+    "monte_carlo_relative_error": 0.00418528540613707,
+    "native_covariance_offdiagonal_max_abs": 0.7
+  },
+  "truth_types": [
+    "analytic_exact",
+    "stochastic_confidence"
+  ]
+}
