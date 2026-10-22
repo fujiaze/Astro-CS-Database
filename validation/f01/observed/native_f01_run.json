@@ -2,8 +2,8 @@
   "artifacts": {},
   "binary_identity": {
     "path": "/workspace/Astro CS Database/validation/build/f01_driver",
-    "sha256": "296ec0dfb5288ee27bdc97ed7178e955ccdb06ef82b0d9240e1fbfec4737ff68",
-    "size_bytes": "3385760"
+    "sha256": "edb74929ca4dcc64057955ac4f21fd5e4833adab1e94973e36ebd67dadd6db08",
+    "size_bytes": "1618408"
   },
   "command": [
     "/workspace/Astro CS Database/validation/build/f01_driver",
@@ -12,23 +12,23 @@
   ],
   "exit_code": 0,
   "missing_entry_points": [],
-  "peak_rss_bytes": 123940864,
+  "peak_rss_bytes": 124190720,
   "reason": "",
   "response": {
     "driver": "f01_native",
     "frames": [
       {
-        "code": "invalid_request",
-        "reason": "the parameter bounds cannot be stored"
+        "code": "not_identifiable",
+        "reason": "the design matrix is rank deficient; the singular values are 3.464102 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000"
       }
     ],
     "route": "in_memory_public_api"
   },
   "response_file": "f01/observed/native_f01.json",
-  "response_sha256": "ec6c8d729db10a3f1d6bf10128f583ba4771cd7f96060611f6703819d1ab1eea",
+  "response_sha256": "1f3de2d804b138584efec24e28cd57118a624a41cefd97bdc5a1af4f5cdaadad",
   "route": "native",
   "status": "ok",
-  "stderr": "[validation storage] rejected psf-parameters: bytes=80 shape=3,1, expected=24\n",
-  "stdout": "{\n \"driver\": \"f01_native\",\n \"frames\": [\n  {\n   \"code\": \"invalid_request\",\n   \"reason\": \"the parameter bounds cannot be stored\"\n  }\n ],\n \"route\": \"in_memory_public_api\"\n}",
-  "wall_seconds": 0.11150803905911744
+  "stderr": "",
+  "stdout": "{\n \"driver\": \"f01_native\",\n \"frames\": [\n  {\n   \"code\": \"not_identifiable\",\n   \"reason\": \"the design matrix is rank deficient; the singular values are 3.464102 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000\"\n  }\n ],\n \"route\": \"in_memory_public_api\"\n}",
+  "wall_seconds": 48.96207480703015
 }

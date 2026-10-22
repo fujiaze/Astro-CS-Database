@@ -322,15 +322,13 @@ int main(int argc, char** argv) {
   // the component identities: one per control
   std::vector<acsd::U64> component_ids(data.size());
   for (std::size_t index = 0; index < data.size(); ++index) component_ids[index] = index;
+  std::vector<std::byte> component_bytes(component_ids.size() * sizeof(acsd::U64));
+  if (!component_ids.empty()) {
+    std::memcpy(component_bytes.data(), component_ids.data(), component_bytes.size());
+  }
+  const std::vector<acsd::U64> component_shape{static_cast<acsd::U64>(component_ids.size())};
   acsd::Result<acsd::ArrayRef> component_array =
-      context.storage.copy(context, acsd::DType::u64,
-                           [index = 0u]() {
-                             std::vector<std::byte> bytes;
-                             bytes.resize(component_ids.size() * sizeof(acsd::U64));
-                             std::memcpy(bytes.data(), component_ids.data(), bytes.size());
-                             return bytes;
-                           }(),
-                           {static_cast<acsd::U64>(component_ids.size())},
+      context.storage.copy(context, acsd::DType::u64, component_bytes, component_shape,
                            valsupport::unit_dimensionless(), "s01:components");
   if (!ok(component_array)) {
     std::cerr << "the component identities could not be stored\n";

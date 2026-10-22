@@ -2,8 +2,8 @@
  "driver": "f01_native",
  "frames": [
   {
-   "code": "invalid_request",
-   "reason": "the parameter bounds cannot be stored"
+   "code": "not_identifiable",
+   "reason": "the design matrix is rank deficient; the singular values are 3.464102 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000"
   }
  ],
  "route": "in_memory_public_api"

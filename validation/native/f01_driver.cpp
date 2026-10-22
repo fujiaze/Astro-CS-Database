@@ -270,7 +270,9 @@ Ref<acsd::FootprintSet> make_footprints(acsd::Context& context, Ref<acsd::WcsMod
   footprints->height = SIDE;
   footprints->detector_from_sample = {1.0, 0.0, 0.0, 1.0};
   footprints->offset = {0.0, 0.0};
-  footprints->local_cell = {{0.0, 0.0}, {1.0, 1.0}};
+  // the pixel cell is centred on the sample: the source positions use the
+  // PixelCenter0 convention, so the cell runs from -0.5 to 0.5
+  footprints->local_cell = {{-0.5, -0.5}, {0.5, 0.5}};
   footprints->wcs = wcs;
   footprints->detector_frame = frame;
   footprints->identity = make_identity("fixture-footprints", "acsd.FootprintSet");
@@ -312,10 +314,13 @@ int main(int argc, char** argv) {
   // Four stars with different fluxes: the PSF shape fit needs at least as
   // many independent rows as parameters, so a two star fixture is rank
   // deficient by construction.
+  // The stars are spread over the detector, at least three pixels apart and
+  // not on one line: a degenerate geometry would make the design matrix
+  // rank deficient for reasons of the fixture and not of the implementation.
   const std::vector<StarTruth> stars = {
-      {5.5, 5.5, 1000.0, 1.0}, {10.25, 6.75, 640.0, 0.8}, {4.75, 11.25, 820.0, 0.9},
-      {11.5, 12.5, 520.0, 0.6}, {6.75, 3.25, 910.0, 0.95}, {12.25, 3.75, 470.0, 0.55},
-      {3.25, 8.25, 760.0, 0.85}, {9.5, 9.75, 580.0, 0.65}};
+      {4.5, 4.5, 1000.0, 1.0}, {10.5, 5.5, 640.0, 0.8}, {3.5, 11.5, 820.0, 0.9},
+      {12.5, 10.5, 520.0, 0.6}, {8.5, 2.5, 910.0, 0.95}, {13.5, 3.5, 470.0, 0.55},
+      {2.5, 8.5, 760.0, 0.85}, {7.5, 12.5, 580.0, 0.65}};
   const std::vector<double> frame_scales = {1.0, 0.5};  // the second frame is dimmer
 
   std::vector<Ref<acsd::NativeObservation>> observations;
@@ -377,14 +382,19 @@ int main(int argc, char** argv) {
       star.source_id = 1000 + index;
       // the pixel of the star, projected with the fixture WCS (the truth of
       // the astrometry is not the object of this case)
-      const double u = stars[index].x + 1.0 - 8.5;
-      const double v = stars[index].y + 1.0 - 8.5;
-      // the CD is in degrees per pixel: the offset is added in degrees and
-      // the whole position is converted to radians afterwards
-      const double ra_deg = 10.0 + u * (-1.0e-4);
-      const double dec_deg = 20.0 + v * (1.0e-4);
-      star.ra_rad = ra_deg * M_PI / 180.0;
-      star.dec_rad = dec_deg * M_PI / 180.0;
+      // The sky position of the star comes from the public forward of the
+      // pixel centre; the catalogue never invents an astrometric solution.
+      Result<acsd::SkyICRS> sky = acsd::forward(
+          context, models[0], acsd::PixelCenter0{stars[index].x, stars[index].y},
+          valsupport::numeric_budget());
+      if (!ok(sky)) {
+        std::cerr << "the forward of the star failed\n";
+        return 2;
+      }
+      const acsd::SkyICRS& direction = *sky.value;
+      star.ra_rad = std::atan2(direction.ny, direction.nx);
+      if (star.ra_rad < 0.0) star.ra_rad += 2.0 * M_PI;
+      star.dec_rad = std::asin(std::max(-1.0, std::min(1.0, direction.nz)));
       star.epoch_year = 2016.0;
       star.brightness_mag = -2.5 * std::log10(stars[index].colour);
       star.xp_basis = spectral.basis;
@@ -393,13 +403,37 @@ int main(int argc, char** argv) {
     }
   }
 
+  // The round trip of the star positions: the catalogue position must come
+  // back to the pixel of the fixture through the public inverse.
+  {
+    json round_trip = json::array();
+    for (std::size_t index = 0; index < catalogue.size(); ++index) {
+      const double cos_dec = std::cos(catalogue[index].dec_rad);
+      acsd::SkyICRS sky{cos_dec * std::cos(catalogue[index].ra_rad),
+                        cos_dec * std::sin(catalogue[index].ra_rad),
+                        std::sin(catalogue[index].dec_rad)};
+      Result<acsd::InverseResult> inverse =
+          acsd::inverse(context, models[0], sky, valsupport::numeric_budget());
+      json item;
+      item["code"] = code_name(static_cast<int>(inverse.code));
+      if (ok(inverse)) {
+        item["x"] = val(inverse).point.x;
+        item["y"] = val(inverse).point.y;
+        item["expected_x"] = stars[index].x;
+        item["expected_y"] = stars[index].y;
+      }
+      round_trip.push_back(item);
+    }
+    report["position_round_trip"] = round_trip;
+  }
+
   // ---- the PSF and the source measurements --------------------------------
   std::vector<Ref<acsd::EffectivePSF>> psfs;
   std::vector<Ref<acsd::SourceMeasurements>> measurements;
   for (int frame = 0; frame < FRAMES; ++frame) {
     acsd::PsfRequest psf_request;
     psf_request.family = acsd::PsfRequest::Family::gaussian;
-    psf_request.spatial_degree = 0;
+    psf_request.spatial_degree = 2;
     psf_request.initial_width_pixel = 1.2;
     psf_request.tail_absolute_flux = 1e-4;
     psf_request.window_radius_pixel = 5.0;
