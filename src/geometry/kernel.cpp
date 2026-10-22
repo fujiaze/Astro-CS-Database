@@ -270,9 +270,9 @@ void integrate_affine(const RationalPolygon& polygon, const BlockModel& model, R
 }
 
 struct HalfSpace {
-  Rational a;
-  Rational b;
-  Rational c;
+  ExactFraction a;
+  ExactFraction b;
+  ExactFraction c;
 };
 
 // The affine chart model satisfies  s_model(u,v) = (gs_u u + gs_v v) + k.
@@ -281,12 +281,12 @@ HalfSpace chart_half_space_le(const BlockModel& model, bool s_axis, double bound
   const double gv = s_axis ? model.gs_v : model.gt_v;
   const double value = s_axis ? model.s0 : model.t0;
   HalfSpace space;
-  space.a = Rational::from_double_exact(gu);
-  space.b = Rational::from_double_exact(gv);
+  space.a = ExactFraction::from_double_exact(gu);
+  space.b = ExactFraction::from_double_exact(gv);
   // s_model(u,v) = gu*u + gv*v + (value - gu*cu - gv*cv), so
   // s_model <= bound  <=>  gu*u + gv*v <= bound - value + gu*cu + gv*cv.
   const double offset = bound - value + gu * model.cu + gv * model.cv;
-  space.c = Rational::from_double_exact(offset);
+  space.c = ExactFraction::from_double_exact(offset);
   return space;
 }
 
@@ -300,10 +300,14 @@ HalfSpace chart_half_space_ge(const BlockModel& model, bool s_axis, double bound
 
 RationalPolygon rectangle_polygon(const Block& block) {
   RationalPolygon polygon;
-  polygon.push_back({Rational::from_double_exact(block.u0), Rational::from_double_exact(block.v0)});
-  polygon.push_back({Rational::from_double_exact(block.u1), Rational::from_double_exact(block.v0)});
-  polygon.push_back({Rational::from_double_exact(block.u1), Rational::from_double_exact(block.v1)});
-  polygon.push_back({Rational::from_double_exact(block.u0), Rational::from_double_exact(block.v1)});
+  polygon.push_back({ExactFraction::from_double_exact(block.u0),
+                     ExactFraction::from_double_exact(block.v0)});
+  polygon.push_back({ExactFraction::from_double_exact(block.u1),
+                     ExactFraction::from_double_exact(block.v0)});
+  polygon.push_back({ExactFraction::from_double_exact(block.u1),
+                     ExactFraction::from_double_exact(block.v1)});
+  polygon.push_back({ExactFraction::from_double_exact(block.u0),
+                     ExactFraction::from_double_exact(block.v1)});
   return polygon;
 }
 
@@ -712,8 +716,8 @@ RationalAreaBound footprint_area_rational(const WcsModel& wcs,
   for (const auto& ring : rings) {
     RationalPolygon single;
     for (const auto& vertex : ring) {
-      single.push_back({Rational::from_double_exact(vertex[0] + 1.0 - wcs.crpix_fits1[0]),
-                         Rational::from_double_exact(vertex[1] + 1.0 - wcs.crpix_fits1[1])});
+      single.push_back({ExactFraction::from_double_exact(vertex[0] + 1.0 - wcs.crpix_fits1[0]),
+                         ExactFraction::from_double_exact(vertex[1] + 1.0 - wcs.crpix_fits1[1])});
     }
     area = area + polygon_signed_area(single);
     moment_u = moment_u + polygon_moment_x(single);

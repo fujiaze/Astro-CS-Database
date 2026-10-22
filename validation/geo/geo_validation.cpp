@@ -122,6 +122,8 @@ class TestResources final : public acsd::Resources {
     usage.work = work_used_;
     return usage;
   }
+  // The work units the shared ledger has consumed.
+  U64 work_used() const { return work_used_; }
 
  private:
   acsd::Limits limits_;
@@ -1857,6 +1859,103 @@ int main(int argc, char** argv) {
           checks.add("cancellation_is_a_named_code", overlaps.code == acsd::Code::cancelled,
                      "code=" + code_name(overlaps.code));
         }
+      }
+    }
+  }
+
+  // 2g. The two work limits must be the same limit: the shared ledger and the
+  // science budget of the request.  The same configuration must give the same
+  // conclusion whichever of the two binds first, and the tighter one wins.
+  {
+    const double cd_deg = 0.5;
+    acsd::HeaderFields header =
+        make_header(false, cd_deg, 1.0, 1.0, 0.0, 0.0, "ICRS", false, 0.0, false);
+    const Box domain{{-2.0, -2.0}, {2.0, 2.0}};
+    acsd::AstrometricContext astrometric;
+    Result<Ref<acsd::WcsModel>> model =
+        acsd::make_wcs(context, header, domain, astrometric, "detector-D", budget);
+    if (good(model)) {
+      const Ref<acsd::WcsModel>& wcs = value_of(model);
+      auto index = std::make_shared<acsd::Index>();
+      index->size = 1;
+      index->kind = acsd::Index::Kind::native;
+      index->namespace_id = "acsd.validation";
+      index->sources.push_back(
+          acsd::SourceIdentity{"validation", "exposure", "detector", "channel", 0});
+      auto footprints = std::make_shared<acsd::FootprintSet>();
+      footprints->index = index;
+      footprints->width = 1;
+      footprints->height = 1;
+      footprints->detector_from_sample = acsd::Mat2{1.0, 0.0, 0.0, 1.0};
+      footprints->offset = acsd::Vec2{0.0, 0.0};
+      footprints->local_cell = Box{{-0.5, -0.5}, {0.5, 0.5}};
+      footprints->wcs = wcs;
+      footprints->detector_frame = "detector-D";
+      Result<Ref<acsd::DetectorFootprint>> footprint_result =
+          acsd::detector_footprint(context, footprints, 0);
+      if (good(footprint_result)) {
+        const Ref<acsd::DetectorFootprint>& footprint = value_of(footprint_result);
+        OracleProvider provider(wcs, Oracle{});
+        // The run of one source row with a shared ledger of `ledger_work` units
+        // and a science budget of `budget_work` units.
+        auto run_pair = [&](U64 ledger_work, U64 budget_work, U64& work_used) {
+          acsd::Limits limits;
+          limits.bytes = 1ull << 30;
+          limits.work = ledger_work;
+          limits.threads = 1;
+          TestResources pair_resources(limits);
+          Context pair_context{pair_resources, cancellation, storage};
+          acsd::GeometryBudget geometry_budget;
+          geometry_budget.max_work = budget_work;
+          geometry_budget.max_depth = 24;
+          geometry_budget.area_absolute_sr = 1e-12;
+          geometry_budget.arithmetic.initial_bits = 64;
+          geometry_budget.arithmetic.max_bits = 256;
+          Result<Ref<acsd::Overlaps>> overlaps = acsd::compute_overlap(
+              pair_context, provider, footprint, 8, 1.0, geometry_budget);
+          work_used = pair_resources.work_used();
+          return overlaps;
+        };
+        // The shared ledger binds first.
+        U64 work_used = 0;
+        Result<Ref<acsd::Overlaps>> ledger_binds = run_pair(1, 200000, work_used);
+        geometry.boolean("ledger_binds_returned", good(ledger_binds));
+        std::string ledger_termination = "none";
+        if (good(ledger_binds)) {
+          ledger_termination = value_of(ledger_binds)->status.termination ==
+                                       acsd::Termination::work
+                                   ? "work"
+                                   : "other";
+        }
+        geometry.text("ledger_binds_termination", ledger_termination);
+        // The science budget binds first.
+        Result<Ref<acsd::Overlaps>> budget_binds = run_pair(200000, 1, work_used);
+        geometry.boolean("budget_binds_returned", good(budget_binds));
+        std::string budget_termination = "none";
+        if (good(budget_binds)) {
+          budget_termination = value_of(budget_binds)->status.termination ==
+                                       acsd::Termination::work
+                                   ? "work"
+                                   : "other";
+        }
+        geometry.text("budget_binds_termination", budget_termination);
+        // Both limits equal and below the requirement of the run: the two
+        // limits are the same limit, so the conclusion is the same.
+        Result<Ref<acsd::Overlaps>> both_equal = run_pair(10, 10, work_used);
+        std::string equal_termination = "none";
+        if (good(both_equal)) {
+          equal_termination = value_of(both_equal)->status.termination ==
+                                      acsd::Termination::work
+                                  ? "work"
+                                  : "other";
+        }
+        geometry.text("equal_limits_termination", equal_termination);
+        geometry.number("equal_limits_work_used", static_cast<double>(work_used));
+        checks.add("ledger_and_budget_agree", ledger_termination == budget_termination &&
+                                                  budget_termination == equal_termination &&
+                                                  ledger_termination == "work",
+                   "ledger=" + ledger_termination + " budget=" + budget_termination +
+                       " equal=" + equal_termination);
       }
     }
   }

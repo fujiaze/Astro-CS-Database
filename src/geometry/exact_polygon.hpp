@@ -11,15 +11,19 @@
 #include <vector>
 
 #include "acsd/contracts.hpp"
+#include "geometry/exact_fraction.hpp"
 #include "model/exact.hpp"
 
 namespace acsd::geometry {
 
 using model::Rational;
 
+// The vertices and the half space constants are exact fractions that are not
+// reduced on every operation: the value of a fraction does not depend on its
+// representation, and the reduction is the expensive part of the clipping.
 struct RationalPoint {
-  Rational x;
-  Rational y;
+  ExactFraction x;
+  ExactFraction y;
 };
 
 // Convex polygon, vertices in counter clockwise order.
@@ -27,8 +31,8 @@ using RationalPolygon = std::vector<RationalPoint>;
 
 // Clips the polygon by the closed half space a*x + b*y <= c.  Returns the
 // clipped polygon (possibly empty).  All arithmetic is exact.
-RationalPolygon clip_half_space(const RationalPolygon& polygon, const Rational& a, const Rational& b,
-                                const Rational& c);
+RationalPolygon clip_half_space(const RationalPolygon& polygon, const ExactFraction& a,
+                                const ExactFraction& b, const ExactFraction& c);
 
 // Signed area (shoelace).  Positive for a counter clockwise polygon.
 Rational polygon_signed_area(const RationalPolygon& polygon);
