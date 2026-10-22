@@ -1,5 +1,7 @@
-# the commit of the tree that produced this output: f6058c3fe968d2438c037081ee86d40b4cd70501
+# the commit of the tree that produced this output: 785adc34b25e2d95fef75aa0c247c495d0b15e7a
 # the branch: rebuild/acsd-v2
+# the full build cmake --build build/science: exit 0, no error
+# the validation script sh validation/stats/run_validation.sh build/stats: exit 0
 
 === building information_test ===
 === running information_test ===
@@ -18,6 +20,14 @@
 [ ok ]  the absorbed flux does not fail the call
 [ ok ]  the absorbed flux has no finite variance
 [ ok ]  the absorbed flux is reported as not identifiable
+[ ok ]  the nearly parallel background can be built
+[ ok ]  the nearly parallel design does not fail the call
+[ ok ]  a mode with a singular value above the threshold keeps a finite variance
+[ ok ]  the variance of the nearly parallel design is positive
+[ ok ]  the two columns of the nearly parallel design are estimable
+       the Gram matrix of the design has the relative singular value 5.55e-16
+[ ok ]  the Gram matrix of the design would drop the mode at the relative threshold
+[ ok ]  the Jacobian of the design keeps the mode that the Gram matrix drops
 [ ok ]  the triangulation of the control grid is built
 [ ok ]  the reconstruction is available
        the largest deviation of the log plane reproduction is 2.22e-16
@@ -29,6 +39,14 @@
 [ ok ]  the conditional reconstruction is available
 [ ok ]  without a curvature bound the prediction is conditional
 [ ok ]  without a curvature bound no certified interval is published
+[ ok ]  the arrays of the hole case are stored
+[ ok ]  the mesh of the hole case is built
+[ ok ]  the mesh carries the holes of the unsupported leaves
+[ ok ]  the reconstruction of a query inside a hole is available
+[ ok ]  the arrays of the query inside a hole can be read
+[ ok ]  a query inside a hole has no value
+[ ok ]  a query inside a hole has no interval
+[ ok ]  a query inside a hole has the support state zero
 [ ok ]  the scene variance of the native space is available
 [ ok ]  the native scene variance has a value
 [ ok ]  the native scene variance uses the functional of the leaf (value 13, expected 13, |difference| 0)
@@ -61,7 +79,7 @@
 [ ok ]  the components of two patches can be read
 [ ok ]  the reference frame of the first component vanishes (value 0, expected 0, |difference| 0)
 [ ok ]  the other frame of the first component carries the offset (value 2, expected 2, |difference| 8.88e-16)
-[ ok ]  the third frame carries its own offset (value 4, expected 4, |difference| 4.44e-16)
+[ ok ]  the third frame carries its own offset (value 4, expected 4, |difference| 8.88e-16)
 [ ok ]  the controls of the plane basis are built
        the plane controls: 2
 [ ok ]  the plane basis is fitted
@@ -76,6 +94,9 @@
 [ ok ]  a data direction that is not estimable gets no correction
 [ ok ]  the corrected data stay finite
 [ ok ]  the correction reports the unavailable positions
+[ ok ]  the controls of an illegal basis are not built
+       the illegal basis failed with code 2
+[ ok ]  the fit of an illegal basis does not succeed
 0 failure(s)
 === building coadd_test ===
 === running coadd_test ===
