@@ -431,8 +431,25 @@ Result<Ref<SpectralPrediction>> integrate_response(Context& context, Ref<Respons
         if (!(b > a)) {
           continue;
         }
+        // The cancellation checkpoint of the segmentation loop: a cancelled
+        // run must leave the call with Code::cancelled and without a partial
+        // result, so the check comes before the segment is integrated.
+        if (context.cancellation.requested()) {
+          return model::fail<Ref<SpectralPrediction>>(Code::cancelled, "the call was cancelled",
+                                                      kOrigin, "the basis integrals are incomplete");
+        }
         for (std::size_t function = 0; function < basis_data.functions; ++function) {
+          // The cancellation checkpoint inside the panel: the integrand is
+          // called by the shared base kernel at every quadrature node, so the
+          // flag is raised while the panel is being integrated.  The kernel
+          // itself is the base's and is not modified; the segment is
+          // abandoned as soon as the panel returns.
+          bool cancelled_during_panel = false;
           const auto integrand = [&](double lambda) -> double {
+            if (context.cancellation.requested()) {
+              cancelled_during_panel = true;
+              return 0.0;
+            }
             const double basis_part = response::basis_value(basis_data, function, lambda);
             if (basis_part == 0.0) {
               return 0.0;
@@ -448,6 +465,10 @@ Result<Ref<SpectralPrediction>> integrate_response(Context& context, Ref<Respons
           // difference of the half order rule as its error estimate.
           numerics::QuadratureResult panel = numerics::adaptive_integrate_gauss(
               integrand, a, b, kPanelOrder, absolute_tolerance, relative_tolerance, max_panels);
+          if (cancelled_during_panel || context.cancellation.requested()) {
+            return model::fail<Ref<SpectralPrediction>>(Code::cancelled, "the call was cancelled",
+                                                        kOrigin, "the basis integrals are incomplete");
+          }
           entry.integrals[function] += panel.value;
           entry.errors[function] += panel.absolute_error;
           absolute_sums[function] += std::fabs(panel.value);
@@ -455,10 +476,6 @@ Result<Ref<SpectralPrediction>> integrate_response(Context& context, Ref<Respons
           entry.panels += panel.panels;
           if (!panel.converged) {
             entry.converged = false;
-          }
-          if (context.cancellation.requested()) {
-            return model::fail<Ref<SpectralPrediction>>(Code::cancelled, "the call was cancelled",
-                                                        kOrigin, "the basis integrals are incomplete");
           }
         }
         const U64 consumed = context.resources.consume_work(1).code == Code::ok ? 1u : 0u;

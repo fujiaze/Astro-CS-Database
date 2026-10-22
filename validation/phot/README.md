@@ -25,7 +25,7 @@ validation/phot/run_validation.sh            # 默认使用 build/dev
 | `R2_response_segmented` | 5 节点分段线性响应（4 个折点）+ 常数谱基，对照逐段解析积分 | 相对差 ≤ 1e-14 | 3.36e-15 |
 | `R2_response_top_hat_edge_on_knot` | top-hat 端点正落在谱基折点上（端点不跨阶跃） | 相对差 ≤ 1e-15 | 8.68e-16 |
 | `P1_photometry_shared_latent` | 2 帧 × 6 星、共享谱潜变量、平面空间基，精确数据 | 恢复的 log a 与真值一致（≤1e-9） | 误差 0（−36.741361487904733） |
-| `P1_photometry_cross_frame_correlation` | 同一 source 跨帧共用 latent 后的帧尺度协方差 | 相关系数非零且 ≤1（真相关，非重置误差） | corr = 0.49999960 |
+| `P1_photometry_cross_frame_correlation` | 同一 source 跨帧共用 latent 后的帧尺度协方差 | 相关系数非零且 ≤1（真相关，非重置误差） | **当前失败：cov=0**。原因在底座：src/uncertainty 的对角协方差作用对单位向量返回 1e-30 而不是 1e-10（实测），使光度模块抽出的 XP 方差错误、共享 latent 的白化退化；本模块的提交 6d6d6a348 与本次改动都复现该结果 |
 | `P2_photometry_rank_deficient` | 训练位置共线（颜色/位置混淆的等价构型），平面基 | 必须返回 `not_identifiable`（7），不得 ridge、不得发布尺度 | code 7 |
 | `P3_photometry_unknown_variance` | 测量方差未知（未知 gain 分支） | 未知项必须被记录，结果必须为 conditional；尺度不得无条件发布 | 未知项已记录，conditional，尺度误差 0 |
 | `F01_scale_interval` | counts=100、通量包围 [100,100] 与 [99,101] | 紧包围给出点区间；宽包围给出 log 1.01−log 0.99 的区间并含 [log 0.99, log 1.01] | 紧 1.4e-14；宽 0.02000067，区间 [−36.851411823758234, −36.831411157051555] |
@@ -42,6 +42,14 @@ validation/phot/run_validation.sh            # 默认使用 build/dev
 * 数值参数盒为「剖面区间」：在潜变量固定于剖面最优时，使模型预测仍落在
   测量通量数值包围内的最大参数偏移，上下界分别求解（非对称）。
 * 未知测量方差不做等权以外的任何假设：等权回退 + 记录未知项 + 结果 conditional。
+
+## 已知失败（底座回归，非本模块引入）
+
+`P1_photometry_cross_frame_correlation`：帧尺度协方差为 0。用本模块的已提交版本
+（6d6d6a348）重编后同样失败，诊断显示两帧用例的联合白化量级退化到 ~1e-154
+（XP 方差抽取错误所致）。独立探针（/tmp/audit/cov_probe.cpp）测得底座
+`covariance_apply` 对方差 1e-10 的对角协方差返回 1e-30。该缺陷位于 src/uncertainty，
+修好后本用例应回到 corr≈0.4999996。
 
 ## 未覆盖 / 交接
 

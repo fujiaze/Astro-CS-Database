@@ -671,6 +671,14 @@ Result<Ref<PhotoSolution>> fit_photometry(Context& context,
     auto error = std::make_shared<ErrorRecord>();
     error->linearization_selection =
         model::make_condition("photometric_scale", "joint_flux_gaussian");
+    // The nature of the numerical parameter box is part of the record: it is
+    // the profile interval of the model prediction with the latent held
+    // fixed, not the interval Newton root certificate of the score.  A reader
+    // must not mistake it for a certified root interval.
+    error->linearization_selection.assumptions.push_back(
+        "the numerical parameter box is the profile interval of the model prediction with the "
+        "latent spectral coefficient held fixed at the profiled solution; it is not the interval "
+        "Newton root certificate of the score");
     error->unknown_model_terms = outcome.unknown_terms;
     for (const std::string& note : outcome.notes) {
       error->unknown_model_terms.push_back(note);
@@ -704,6 +712,14 @@ Result<Ref<PhotoSolution>> fit_photometry(Context& context,
   model::set_included(solution->assessment, "shared_latent_across_frames");
   model::set_omitted(solution->assessment, "xp_resolution_model_bias");
   model::set_omitted(solution->assessment, "aperture_and_psf_model_bias");
+  // The box is a profile interval, not a certified root interval: the state
+  // says so explicitly.
+  model::set_omitted(solution->assessment,
+                      "the_strict_root_certificate_of_the_parameter_box");
+  solution->assessment.condition.assumptions.push_back(
+      "the numerical parameter box is the profile interval of the model prediction with the latent "
+      "spectral coefficient held fixed at the profiled solution; it is not the interval Newton root "
+      "certificate of the score");
   if (!outcome.parameter_box_certified) {
     model::add_issue(solution->assessment, Code::unavailable,
                      "the numerical parameter box could not be certified", kFitOrigin,

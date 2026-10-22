@@ -655,6 +655,29 @@ numerics::Matrix reduced_jacobian(const numerics::Matrix& jacobian, std::size_t 
   return reduced;
 }
 
+// The inverse of the normal matrix of the reduced jacobian.
+//
+// The pseudo inverse R^+ of the reduced jacobian comes from the base
+// (numerics::pseudo_inverse), so that the threshold of the singular values is
+// the same everywhere in the tree.  For a reduced jacobian with a full column
+// rank the inverse of the normal matrix is R^+ (R^+)^T, so the product below
+// is the only place where the two are combined.
+numerics::Matrix gram_inverse(const numerics::Matrix& pseudo) {
+  const std::size_t columns = pseudo.rows;
+  const std::size_t rows = pseudo.cols;
+  numerics::Matrix out(columns, columns);
+  for (std::size_t i = 0; i < columns; ++i) {
+    for (std::size_t j = 0; j < columns; ++j) {
+      double sum = 0.0;
+      for (std::size_t l = 0; l < rows; ++l) {
+        sum += pseudo(i, l) * pseudo(j, l);
+      }
+      out(i, j) = sum;
+    }
+  }
+  return out;
+}
+
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -919,23 +942,23 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
     }
 
     // Gauss-Newton step: delta = -(R^T R)^{-1} score.
-    // Only the modes that the rank classification accepts enter the step: a
+    // The pseudo inverse of the reduced jacobian comes from the base, so that
+    // the threshold of the singular values is the same everywhere.  Only the
+    // modes that the rank classification accepts enter the inverse: a
     // direction below the classification threshold would otherwise blow the
     // step up by the inverse of a numerically zero singular value.
+    // R^+ (R^+)^T = (R^T R)^{-1} for a full column rank R, so the same matrix
+    // serves the step and the parameter covariance.
+    const numerics::Matrix inverse =
+        numerics::pseudo_inverse(svd, problem.n_theta, settings.rank_relative);
+    const numerics::Matrix normal_inverse = gram_inverse(inverse);
     std::vector<double> step(problem.n_theta, 0.0);
-    for (std::size_t mode = 0; mode < rank.singular_values.size() && mode < rank.rank; ++mode) {
-      const double sigma = rank.singular_values[mode];
-      if (!(sigma > 0.0)) {
-        continue;
+    for (std::size_t j = 0; j < problem.n_theta; ++j) {
+      double sum = 0.0;
+      for (std::size_t l = 0; l < problem.n_theta; ++l) {
+        sum += normal_inverse(j, l) * score[l];
       }
-      double projection = 0.0;
-      for (std::size_t j = 0; j < problem.n_theta; ++j) {
-        projection += svd.v(j, mode) * score[j];
-      }
-      const double factor = -projection / (sigma * sigma);
-      for (std::size_t j = 0; j < problem.n_theta; ++j) {
-        step[j] += factor * svd.v(j, mode);
-      }
+      step[j] = -sum;
     }
 
     double scaled_gradient = 0.0;
@@ -1017,21 +1040,13 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
       result.failure = "the joint design matrix is rank deficient in the scale parameters";
       return model::ok_result(std::move(result));
     }
-    // Covariance of theta: V Sigma^{-2} V^T of the reduced jacobian.
-    numerics::Matrix covariance(problem.n_theta, problem.n_theta);
-    for (std::size_t mode = 0;
-         mode < result.rank.singular_values.size() && mode < result.rank.rank; ++mode) {
-      const double sigma = result.rank.singular_values[mode];
-      if (!(sigma > 0.0)) {
-        continue;
-      }
-      const double factor = 1.0 / (sigma * sigma);
-      for (std::size_t i = 0; i < problem.n_theta; ++i) {
-        for (std::size_t j = 0; j < problem.n_theta; ++j) {
-          covariance(i, j) += factor * svd.v(i, mode) * svd.v(j, mode);
-        }
-      }
-    }
+    // Covariance of theta: the inverse of the normal matrix of the reduced
+    // jacobian, (R^T R)^{-1} = R^+ (R^+)^T, with the pseudo inverse of the
+    // base.  The threshold of the singular values is therefore the same
+    // everywhere in the tree.
+    const numerics::Matrix inverse =
+        numerics::pseudo_inverse(svd, problem.n_theta, settings.rank_relative);
+    const numerics::Matrix covariance = gram_inverse(inverse);
     result.covariance.assign(problem.n_theta * problem.n_theta, 0.0);
     for (std::size_t i = 0; i < problem.n_theta; ++i) {
       for (std::size_t j = 0; j < problem.n_theta; ++j) {
