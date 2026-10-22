@@ -1,5 +1,7 @@
 #include "coordinates/healpix.hpp"
 
+#include "coordinates/chart.hpp"
+
 #include <algorithm>
 #include <cmath>
 
@@ -102,59 +104,11 @@ std::vector<HealpixLeaf> healpix_all_leaves(U32 order) {
 }
 
 bool healpix_lookup(U32 order, const SkyICRS& direction, HealpixLeaf& leaf) {
-  const double norm = std::sqrt(direction.nx * direction.nx + direction.ny * direction.ny +
-                                direction.nz * direction.nz);
-  if (!(norm > 0.0) || !std::isfinite(norm)) return false;
-  const double nx = direction.nx / norm;
-  const double ny = direction.ny / norm;
-  const double nz = direction.nz / norm;
-  const double phi = std::atan2(ny, nx);
-  double tt = phi / (M_PI / 2.0);
-  if (tt < 0.0) tt += 4.0;
-  const double z = nz;
-  const U64 nside = nside_for(order);
-  U64 face = 0;
-  U64 ix = 0, iy = 0;
-  if (std::fabs(z) <= 2.0 / 3.0) {
-    const double jp = std::floor(static_cast<double>(nside) * (0.5 + tt - 0.75 * z));
-    const double jm = std::floor(static_cast<double>(nside) * (0.5 + tt + 0.75 * z));
-    const U64 ifp = static_cast<U64>(jp) / nside;
-    const U64 ifm = static_cast<U64>(jm) / nside;
-    U64 ifinal = 0;
-    if (ifp == ifm) {
-      ifinal = ifp | 4ull;
-    } else if (ifp < ifm) {
-      ifinal = ifp;
-    } else {
-      ifinal = ifm + 8ull;
-    }
-    face = ifinal;
-    const U64 ixp = static_cast<U64>(jp) % nside;
-    const U64 ixm = static_cast<U64>(jm) % nside;
-    ix = ixm;
-    iy = nside - 1 - ixp;
-  } else {
-    const bool north = z > 0.0;
-    const U64 sector = static_cast<U64>(std::floor(tt));
-    const double tp = tt - static_cast<double>(sector);
-    const double tmp = static_cast<double>(nside) * std::sqrt(3.0 * (1.0 - std::fabs(z)));
-    const U64 jp = std::min<U64>(nside - 1, static_cast<U64>(std::floor(tp * tmp)));
-    const U64 jm = std::min<U64>(nside - 1, static_cast<U64>(std::floor((1.0 - tp) * tmp)));
-    if (north) {
-      face = sector % 4ull;
-      ix = nside - jm - 1;
-      iy = nside - jp - 1;
-    } else {
-      face = 8ull + (sector % 4ull);
-      ix = jp;
-      iy = jm;
-    }
-  }
-  if (face >= 12) return false;
-  const U64 ipix = face * nside * nside + healpix_face_index(order, ix, iy);
-  leaf.order = order;
-  leaf.ipix = ipix;
-  return true;
+  // The exact leaf is obtained from the inverse equal area face chart, which is
+  // the single implementation of the chart used by the whole project.  The
+  // integer floor rule of SPHERICAL_DRIZZLE section 4 is a conservative
+  // candidate rule and is only used by healpix_candidate_leaves.
+  return chart_leaf_for_direction(order, direction, leaf);
 }
 
 bool healpix_candidate_leaves(U32 order, const SkyICRS& direction,

@@ -163,26 +163,33 @@ BigInt operator*(const BigInt& a, const BigInt& b) {
 
 BigInt operator/(const BigInt& a, const BigInt& b) {
   if (b.limbs_.empty()) throw std::domain_error("BigInt division by zero");
-  // Simple schoolbook long division on magnitudes; adequate for the ledger sizes.
+  // Binary long division on the magnitudes.  The quotient is accumulated bit by
+  // bit from the most significant one, which keeps the limb order explicit:
+  // the little endian limb vector of the remainder grows by appending the next
+  // less significant limb, and the quotient bits are written directly into
+  // their limb.
+  const bool negative_result = (a.negative() != b.negative());
+  const BigInt numerator = a.abs();
+  const BigInt denominator = b.abs();
   BigInt quotient;
-  std::vector<std::uint32_t> a_limbs = a.limbs_;
-  std::vector<std::uint32_t> rem;
-  for (std::size_t i = a_limbs.size(); i-- > 0;) {
-    rem.insert(rem.begin(), a_limbs[i]);
-    while (!rem.empty() && rem.back() == 0) rem.pop_back();
-    if (BigInt::compare_magnitude(rem, b.limbs_) < 0) {
-      quotient.limbs_.insert(quotient.limbs_.begin(), 0u);
-      continue;
+  BigInt remainder;
+  std::vector<std::uint32_t> quotient_limbs;
+  const std::size_t bits = numerator.bit_length();
+  for (std::size_t k = bits; k-- > 0;) {
+    remainder = remainder << 1;
+    const std::uint32_t bit = (numerator.limbs_[k / 32] >> (k % 32)) & 1u;
+    if (bit != 0u) {
+      if (remainder.limbs_.empty()) remainder.limbs_.push_back(1u);
+      else remainder.limbs_[0] |= 1u;
     }
-    std::uint32_t digit = 0;
-    while (BigInt::compare_magnitude(rem, b.limbs_) >= 0) {
-      rem = BigInt::sub_magnitude(rem, b.limbs_);
-      ++digit;
-      if (digit == 0xffffffffu) break;
+    if (compare(remainder, denominator) >= 0) {
+      remainder = remainder - denominator;
+      if (quotient_limbs.size() <= k / 32) quotient_limbs.resize(k / 32 + 1, 0u);
+      quotient_limbs[k / 32] |= (1u << (k % 32));
     }
-    quotient.limbs_.insert(quotient.limbs_.begin(), digit);
   }
-  quotient.negative_ = (a.negative() != b.negative());
+  quotient.limbs_ = std::move(quotient_limbs);
+  quotient.negative_ = negative_result;
   quotient.trim();
   return quotient;
 }

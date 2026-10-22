@@ -132,6 +132,11 @@ if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/num
   add_test(NAME numerics_selftest COMMAND acsd_numerics_selftest)
 endif()
 
+if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/healpix_dump.cpp)
+  add_executable(acsd_healpix_dump validation/lead/healpix_dump.cpp)
+  target_link_libraries(acsd_healpix_dump PRIVATE coordinates)
+endif()
+
 add_library(acsd_contracts_compile OBJECT validation/contracts_compile.cpp)
 target_link_libraries(acsd_contracts_compile PRIVATE acsd_contracts)
 find_package(Python3 3.12 REQUIRED COMPONENTS Interpreter)
