@@ -1,0 +1,214 @@
+{
+  "format": "acsd.implementation_review",
+  "major": 1,
+  "reviewed_revision": "630e8e1d0697b50276c1c0663f21b28fc6276ca2",
+  "reviewer": "cat",
+  "scope": [
+    "src/model",
+    "src/numerics",
+    "src/operators",
+    "src/uncertainty",
+    "src/resources",
+    "src/storage",
+    "src/coordinates",
+    "src/geometry",
+    "src/observation",
+    "src/information",
+    "src/sky",
+    "src/coadd",
+    "src/workflows",
+    "src/projection",
+    "apps/cli",
+    "apps/contract",
+    "gui/",
+    "include/acsd/contracts.hpp",
+    "schemas/",
+    "docs/engineering/rebuild/"
+  ],
+  "discipline": {
+    "read_only": true,
+    "implementation_files_modified": 0,
+    "git_writes": 0,
+    "files_created": [
+      "validation/audit/cat_review.md",
+      "validation/audit/cat_review.json"
+    ],
+    "legacy_sources_read": false,
+    "independent_truth_imports_production_helpers": false
+  },
+  "commands_run": [
+    "cmake -S . -B build/audit -G Ninja -DACSD_BUILD_SCIENCE=ON",
+    "cmake --build build/audit",
+    "python3 tools/check_design.py",
+    "python3 validation/run_all.py",
+    "g++ -std=c++20 -Iinclude -o /tmp/audit/u01_driver /tmp/audit/u01_driver.cpp build/audit/libuncertainty.a build/audit/liboperators.a build/audit/libnumerics.a build/audit/libmodel.a",
+    "/tmp/audit/u01_driver",
+    "g++ -std=c++20 -Iinclude -o /tmp/audit/shared_root /tmp/audit/shared_root.cpp build/audit/libuncertainty.a build/audit/liboperators.a build/audit/libnumerics.a build/audit/libmodel.a",
+    "/tmp/audit/shared_root",
+    "./build/audit/acsd-contract --request examples/u01.request.json --response /tmp/audit/u01.response.json",
+    "./build/audit/acsd --version --json",
+    "./build/audit/acsd doctor --json",
+    "./build/audit/acsd normalize --json /tmp/audit/incomplete.json",
+    "python3 /tmp/audit/cli_protocol.py build/audit/acsd",
+    "python3 /tmp/audit/product_closure.py build/audit/acsd-contract .work/product-roundtrip/frame sha256:1791f9805e32b0b30f1445e49dd0472719f4cb8e88f7ea93ff0aa7fe8139a9bd"
+  ],
+  "findings": [
+    {
+      "id": "F01",
+      "severity": "P1",
+      "location": "apps/cli/config.cpp:86 (and 132, 152, 156, 193, 213); apps/cli has no exception handling",
+      "configuration": "a configuration file with the schema and the command but without the required inputs: {\"schema\":\"acsd.config/2\",\"command\":\"normalize\"}; run acsd normalize --json config.json",
+      "expected": "exit code 2 with a JSONL event stream and result.code, as declared in API.md (exit 2 for an invalid configuration) and brief section 2 (no exception as protocol)",
+      "actual": "an uncaught nlohmann::json out_of_range (key 'inputs' not found) terminates the process with SIGABRT, exit code 134, no event stream on stdout",
+      "fix": "use the checked accessors in the configuration decoder and return a decoding failure; wrap the command entry in a try/catch that maps the exception to exit 2 with the event envelope"
+    },
+    {
+      "id": "F02",
+      "severity": "P1",
+      "location": "src/uncertainty/api.cpp (make_covariance) and src/uncertainty/covariance.cpp (apply_covariance)",
+      "configuration": "a NoiseModel with two shared_factors entries with the same shared_id, the same factor (the 2x2 identity) and the same influence R = [1, 1]; the functional is t = [1]",
+      "expected": "the total influence of the same shared root is formed first and applied once: (2R)(2R)^T = 8, as required by API.md (same shared root is merged before the total influence) and STATISTICS_SKY_COADD.md line 32 (one propagation with J_xi Cov(xi) J_xi^T)",
+      "actual": "quadratic_form returns 4 (the two entries are applied as independent roots, the cross term of the same source is lost); the independent driver prints 'case B the same shared root twice: value 4 expected 8'",
+      "fix": "merge the shared factors with the same shared_id into one root whose influence is the sum, and apply the merged root once"
+    },
+    {
+      "id": "F03",
+      "severity": "P1",
+      "location": "validation/run_summary.json (produced by the run) and apps/contract/driver.cpp:1412 (the operation whitelist)",
+      "configuration": "python3 validation/run_all.py over the eleven cases required by the VERIFICATION matrix",
+      "expected": "every case of the required matrix is executed and compared against its frozen truth",
+      "actual": "C01, G01 and U01 pass; F01 fails (fit_psf design matrix rank deficient, outside the audited scope); S01, W01, V01, E01, P01, R01 and X01 are pending_implementation because the contract driver does not implement the sky, coadd, information, workflow and publication operations although the production entry points exist",
+      "fix": "extend the operation whitelist of apps/contract (or add the native drivers and wire them into validation/run_all.py) so the seven cases can reach the public API"
+    },
+    {
+      "id": "F04",
+      "severity": "P2",
+      "location": "src/uncertainty/api.cpp (the shared root consistency check compares unit.multiplier only)",
+      "configuration": "two shared roots with the same shared_id, the same multiplier 1.0 and different unit scales (fixture:L and other:L)",
+      "expected": "Code::identity_conflict",
+      "actual": "make_covariance returns ok (code 0); the two units are mixed and the variance unit loses its meaning",
+      "fix": "compare the whole Unit (scale, the powers and the multiplier)"
+    },
+    {
+      "id": "F05",
+      "severity": "P2",
+      "location": "src/information/information.cpp:350-358 (the rank is classified on the Gram matrix)",
+      "configuration": "estimate_flux_information with a design whose singular value ratio is 1e-8, between the declared 1e-12 and 1e-6",
+      "expected": "the rank_relative threshold acts on the singular values of the design (EXECUTION: rank_relative=1e-12 is the classification threshold)",
+      "actual": "the Gram matrix carries the squared singular values, so the effective threshold on the design is 1e-6; a genuinely estimable mode is reported as unestimable",
+      "fix": "classify the rank on the whitened or reduced matrix and keep the Gram only for the projection"
+    },
+    {
+      "id": "F06",
+      "severity": "P2",
+      "location": "src/workflows/product_io.cpp (the block reading path of open_product)",
+      "configuration": "delete one block file of a published product and open it in a fresh process",
+      "expected": "Code::missing_dependency (API.md: a missing closure is missing_dependency)",
+      "actual": "Code::io_error; the caller cannot distinguish an incomplete closure from a disk failure",
+      "fix": "separate the absent file from the unreadable file; keep hash_mismatch for a block whose content does not match"
+    },
+    {
+      "id": "F07",
+      "severity": "P2",
+      "location": "apps/cli/commands.cpp (the doctor branch)",
+      "configuration": "acsd doctor --json",
+      "expected": "stdout carries one JSON object per line (API.md: stdout is the JSONL event stream)",
+      "actual": "the doctor writes a multi line pretty printed object between the two events, so a line by line JSON reader of the GUI fails",
+      "fix": "write the diagnostic to stderr or as a single line event"
+    },
+    {
+      "id": "F08",
+      "severity": "P2",
+      "location": "apps/cli/main.cpp (the --version branch)",
+      "configuration": "acsd --version --json",
+      "expected": "the run_summary lists the input, published, unsolved, failed and cancelled counters and the per frame statuses (API.md)",
+      "actual": "the summary only carries {\"version\":\"2.0.0\"}; the doctor branch builds the full summary",
+      "fix": "reuse the common summary builder"
+    },
+    {
+      "id": "F09",
+      "severity": "P2",
+      "location": "src/workflows/mosaic.cpp and src/workflows/export_workflow.cpp (no cancellation check; only src/workflows/normalize.cpp:258,547 has one)",
+      "configuration": "write {\"protocol\":\"acsd.control/2\",\"command\":\"cancel\",\"run_id\":...} to stdin during a long mosaic or export",
+      "expected": "the run stops at a safe boundary and exits with code 5 (API.md: the cancel is a named termination)",
+      "actual": "these paths have no cancellation point, so the cancellation is only observed inside normalize",
+      "fix": "add the cancellation check to the per frame loop of mosaic and the per block loop of export"
+    }
+  ],
+  "cases": {
+    "C01": "pass",
+    "G01": "pass",
+    "U01": "pass",
+    "F01": "fail",
+    "S01": "pending_implementation",
+    "W01": "pending_implementation",
+    "V01": "pending_implementation",
+    "E01": "pending_implementation",
+    "P01": "pending_implementation",
+    "R01": "pending_implementation",
+    "X01": "pending_implementation"
+  },
+  "checks_run_by_the_reviewer": {
+    "u01_process_path": {
+      "status": "pass",
+      "value": 4.328125,
+      "state": "known",
+      "enclosure": [4.328125, 4.328125]
+    },
+    "u01_independent_driver": {
+      "status": "pass",
+      "value": 4.328125,
+      "covariance_columns": [[3.75, 2.0], [2.0, 10.3125]],
+      "exact_rational_truth": "19492142137212928/4503599627370496",
+      "discriminating_negative": "20336567067344896/4503599627370496",
+      "reads_expected_model": false
+    },
+    "shared_root_merge": {
+      "status": "fail",
+      "one_shared_root": 2.0,
+      "same_shared_root_twice": 4.0,
+      "expected_twice": 8.0
+    },
+    "unknown_term": {
+      "status": "pass",
+      "value": null,
+      "state": "unknown",
+      "unknown_terms": 1
+    },
+    "product_closure": {
+      "status": "pass",
+      "intact_reopen": "ok",
+      "wrong_manifest_hash": "refused",
+      "missing_block": "refused",
+      "corrupted_block": "hash_mismatch",
+      "truncated_manifest": "hash_mismatch"
+    },
+    "cli_event_schema": {
+      "status": "pass_except_doctor",
+      "validated_streams": ["--version --json", "doctor --json", "missing config", "malformed config"],
+      "exception": "the doctor command writes a multi line object to stdout"
+    },
+    "single_implementation_search": {
+      "status": "pass",
+      "svd": "src/numerics/linalg.cpp only",
+      "least_squares": "src/numerics/linalg.cpp only",
+      "quadrature": "src/numerics/quadrature.cpp only",
+      "healpix_lookup": "src/coordinates only",
+      "linear_action": "src/operators only",
+      "covariance_action": "src/uncertainty only"
+    }
+  },
+  "not_run": [
+    "R01: the scientific content identity under one and four threads, the spill at a low memory budget, the cancellation and the write failure",
+    "X01: the three commands over a real disk product with an independent blind solve",
+    "S01, W01, V01, E01, P01: the observed side of the required cases",
+    "the GUI process itself: only the protocol and the schema were checked",
+    "Windows",
+    "real HST and M42 data",
+    "the Huber bootstrap"
+  ],
+  "observations": [
+    "cfitsio 4.6.2 is available (reported by acsd doctor) but the FITS reader and writer are hand written; the writer is verified by an independent reader for a single tile only, the E01 case is pending",
+    "during the audit the shared working tree briefly failed the whole build because tools/generate_contract_schema.py could not parse the Box declaration while another agent was editing; the state was not reproducible and is not counted as a finding"
+  ]
+}

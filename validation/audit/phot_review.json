@@ -1,0 +1,156 @@
+{
+  "format": "acsd.implementation_review",
+  "major": 1,
+  "reviewed_revision": "e171d8995704f6427d7017931e809d8229798d09",
+  "reviewer": "phot",
+  "scope": [
+    "src/catalogue",
+    "src/sources",
+    "src/response",
+    "src/photometry",
+    "apps/cli",
+    "apps/contract",
+    "src/workflows"
+  ],
+  "independence": {
+    "note": "src/response and src/photometry were written by this reviewer (commit 6d6d6a348); the findings on those two modules are self-review and are marked as such. src/catalogue, src/sources and the consumption paths were not written by this reviewer.",
+    "read_only": true,
+    "implementation_files_modified": 0,
+    "git_writes": 0,
+    "files_created": [
+      "validation/audit/phot_review.md",
+      "validation/audit/phot_review.json"
+    ],
+    "legacy_sources_read": false,
+    "independent_truth_imports_production_helpers": false
+  },
+  "commands_run": [
+    "cmake -S . -B build/dev -G Ninja -DACSD_BUILD_SCIENCE=ON",
+    "cmake --build build/dev --target sources photometry response catalogue",
+    "python3 validation/run_all.py",
+    "cmake -S validation/cat -B /tmp/audit/catbuild -G Ninja",
+    "cmake --build /tmp/audit/catbuild",
+    "/tmp/audit/catbuild/catalogue_check",
+    "/tmp/audit/catbuild/astrometry_check",
+    "python3 validation/cat/astrometry_check.py",
+    "python3 validation/cat/epoch_check.py",
+    "g++ -std=c++20 -O2 -I include -I /tmp/audit /tmp/audit/epoch_case.cpp build/dev/libsources.a build/dev/libcatalogue.a build/dev/libcoordinates.a build/dev/libgeometry.a build/dev/libobservation.a build/dev/liboperators.a build/dev/libuncertainty.a build/dev/libnumerics.a build/dev/libmodel.a -o /tmp/audit/epoch_case",
+    "/tmp/audit/epoch_case 0.4 2025 2005",
+    "/tmp/audit/epoch_case 2.0 2025 2005",
+    "g++ -std=c++20 -O1 -I include -I src /tmp/audit/psf_probe.cpp build/dev/libsources.a build/dev/libcatalogue.a build/dev/libcoordinates.a build/dev/libgeometry.a build/dev/libobservation.a build/dev/liboperators.a build/dev/libuncertainty.a build/dev/libnumerics.a build/dev/libmodel.a -o /tmp/audit/psf_probe",
+    "/tmp/audit/psf_probe",
+    "g++ -std=c++20 -O1 -I include -I src -I validation/native /tmp/audit/f01_probe.cpp build/dev/libphotometry.a build/dev/libresponse.a build/dev/libsources.a build/dev/libcatalogue.a build/dev/libcoordinates.a build/dev/libgeometry.a build/dev/libobservation.a build/dev/liboperators.a build/dev/libuncertainty.a build/dev/libnumerics.a build/dev/libmodel.a -o /tmp/audit/f01_probe",
+    "/tmp/audit/f01_probe",
+    "python3 -c \"compare the operation names of schemas/science-input.schema.json with the driver\""
+  ],
+  "findings": [
+    {
+      "id": "F01",
+      "severity": "P0",
+      "location": "src/sources/psf_fit.cpp:451-459 (the rank verdict), src/sources/psf_fit.cpp:476-501 (the unbounded step), src/sources/psf_model.cpp:177-186 (density returns 0 for an invalid parameter set)",
+      "configuration": "the F01 fixture: a Gaussian PSF, the spatial degree two, eight catalogue stars, a 16x16 detector. Run: python3 validation/run_all.py f01 (evidence validation/f01/observed/native_f01.json).",
+      "expected": "the fit converges, or it fails with nonconverged and the reason that the model degenerated; the design was full rank in the previous iteration (the singular values 2.048, 1.763, ... 0.0898 measured with an instrumented copy of the driver in /tmp/audit/f01_probe.cpp).",
+      "actual": "the fit returns not_identifiable with the reason 'the design matrix is rank deficient; the singular values are 1.000000 0.000000 ...' (43 values, 42 of them exactly 0.000000). The instrumented run shows that in the last iteration the template values and all the column norms collapse to 0: the Gauss-Newton step has taken the correlation parameter to |rho|=1, density() then returns 0 for every pixel, and the rank verdict is computed on a degenerate model. The whole fit_psf -> measure_science_sources -> fit_photometry -> apply_scale chain is blocked (the second functional of F01 stays pending_implementation).",
+      "fix": "density() must not silently return 0 for an invalid parameter set: the template builder must check sigma_x>0, sigma_y>0 and |rho|<1 and fail with Code::domain. The Gauss-Newton step must be constrained so that a trial stays in the valid region (a box on the local parameters, or the rejection of an invalid trial in the Armijo loop). When the rank collapses because the model degenerated, the verdict must be nonconverged (or domain), not not_identifiable: the design was not rank deficient."
+    },
+    {
+      "id": "F02",
+      "severity": "P1",
+      "location": "src/sources/psf_fit.cpp:196-203, 327-331, 443-449 (eight std::printf(\"DEBUG ...\") calls in the shipped library)",
+      "configuration": "any run that reaches fit_psf, for example acsd normalize --json config.json, whose machine interface is the JSON event stream on stdout.",
+      "expected": "a library writes nothing to stdout; the events of the CLI on stdout stay parseable JSON lines.",
+      "actual": "the library prints 'DEBUG fit rows=...', 'DEBUG position ...', 'DEBUG template first values:', 'DEBUG column norms:' and 'DEBUG singular values:' on stdout; the same DEBUG prints are also left in the validation driver validation/native/f01_driver.cpp.",
+      "fix": "delete the prints from src/sources/psf_fit.cpp and from the validation driver; if a diagnostic is wanted, route it through the assessment or the usage record."
+    },
+    {
+      "id": "F03",
+      "severity": "P1",
+      "location": "src/catalogue/provider.cpp: CatalogueProviderImpl::lookup (propagates to row.epoch_year) against CatalogueProviderImpl::query (propagates to request.epoch_julian_year); the consumer is src/sources/astrometry.cpp:620 (the affine hypothesis of the blind solver).",
+      "configuration": "the probe /tmp/audit/epoch_case.cpp: a catalogue at epoch 2005, an observation at epoch 2025, a proper motion of 0.4 arcsec/yr. The same source is read through both public entry points.",
+      "expected": "both entry points return the position at the requested epoch: docs/science/foundation/OBSERVATION_COORDINATES.md section 2 requires the Gaia position to be propagated with the proper motion, the parallax and the observation time to the matching epoch.",
+      "actual": "lookup returns the catalogue epoch: the shift against the observation epoch truth is 12.93 arcsec (0.4 arcsec/yr, 20 years), 64.65 arcsec (2 arcsec/yr) and 129.29 arcsec (4 arcsec/yr); query returns the observation epoch: the shift is 1.1e-5 arcsec or less. The blind solver builds the affine hypothesis of the quadruple from lookup, so the hypothesis is fitted against the wrong epoch while the verification field of the same solver uses query and is correct.",
+      "fix": "let lookup take the requested epoch (the declared lookup has no epoch parameter, so the contract needs an epoch argument or the solver has to take its positions from query); the solver must not mix the two epochs in one hypothesis."
+    },
+    {
+      "id": "F04",
+      "severity": "P1",
+      "location": "src/sources/psf_model.cpp:477-487 (propagate_star of the sources module)",
+      "configuration": "a catalogue star with pmra_cosdec_rad_year = 1.96e-4 rad/yr (40.5 arcsec/yr) at dec = 19 degrees, propagated over 5.5 years.",
+      "expected": "the pmRA*cosDec convention: the change of the right ascension is pmRA_cosdec * dt / cos(dec) (the catalogue module does this correctly in src/catalogue/sky_geometry.cpp:91-108).",
+      "actual": "ra += star.pmra_cosdec_rad_year * dt: the factor 1/cos(dec) is missing, so the right ascension is shifted by a factor cos(dec) (a 6 percent error at dec = 19 degrees, 16 percent at dec = 35 degrees). The parallax and the radial velocity of the star are ignored as well.",
+      "fix": "use one shared propagation for the whole tree (see F07): move the catalogue's propagation into the base and call it from src/sources and src/catalogue, so the pmRA*cosDec convention, the parallax and the radial velocity are applied once and identically."
+    },
+    {
+      "id": "F05",
+      "severity": "P2",
+      "location": "apps/contract/driver.cpp:1242-1266 (24 implemented operations) against schemas/science-input.schema.json (the whole declared contract)",
+      "configuration": "the comparison of the operation names of the schema with the operation list of the driver.",
+      "expected": "every operation that the schema declares for the catalogue, the astrometry, the PSF, the photometry and the scale has a wire in the contract driver, so that the machine interface of these modules is exercised.",
+      "actual": "the driver implements 24 operations (to_fits, from_fits_center, from_fits_edge, apply, transpose_apply, quadratic_form, covariance_apply, make_covariance, make_wcs, make_footprint_provider, open_product, build_export, export_signal, integrate_response, control_covariance, measure, compute_overlap, forward, inverse, derivative, solid_angle_jacobian, storage.copy, storage.read, storage.open). build_catalogue_index, make_catalogue_provider, catalogue.describe, catalogue.query, catalogue.query_quads, catalogue.lookup, solve_astrometry, fit_psf, evaluate_psf, measure_science_sources, fit_photometry, apply_scale, bind_wcs, bind_observation_model, calibrate_observation and regroup_observation are declared by the schema but answered with 'unsupported' by the driver.",
+      "fix": "implement the operations of this scope in the driver, or mark them unsupported in the schema; in both cases the schema and the driver must agree."
+    },
+    {
+      "id": "F06",
+      "severity": "P2",
+      "location": "apps/cli/commands.cpp:737-772 (load_catalogue)",
+      "configuration": "a catalogue JSON with an unknown key (for example 'astromety' instead of 'astrometry'), or with XP coefficient rows of different lengths.",
+      "expected": "a named failure: an unknown key is not silently ignored and the coefficient rows must be rectangular.",
+      "actual": "every key is read with document.contains(name) ? document.at(name) : default, so an unknown key is dropped without a message and the catalogue is silently built from fewer columns; the coefficient count is taken from the last row (coefficient_count = row.size()) and the rows are flattened, so a ragged table is accepted and mis-shaped.",
+      "fix": "check the key set against the expected set and reject an unknown key with invalid_request; check that every coefficient row has the same length as the first one."
+    },
+    {
+      "id": "F07",
+      "severity": "P2",
+      "location": "the epoch propagation (src/catalogue/sky_geometry.cpp:81 versus src/sources/psf_model.cpp:477), the quad descriptor (src/catalogue/sky_geometry.cpp:202 versus src/sources/astrometry_match.cpp:39), the SVD pseudo inverse step (src/sources/psf_model.cpp:431-475 versus src/photometry/joint_fit.cpp), the one dimensional Gaussian pixel integral (src/sources/psf_model.cpp versus src/sources/astrometry_detection.cpp:42)",
+      "configuration": "a code reading of the four modules; the two quad descriptors are compared on the same configurations by validation/cat/astrometry_check.cpp (the maximum descriptor error 1.7e-16 in the catalogue check).",
+      "expected": "one algorithm, one implementation (AGENTS.md); the base numerics (src/numerics/linalg.hpp) and the base model are used by every module.",
+      "actual": "four algorithms exist in two or three copies. The copies differ in their conventions: the two epoch propagations disagree on the pmRA*cosDec factor (F04) and on the parallax and the radial velocity; the two quad descriptors break the baseline tie differently (source identifier against point index) and the canonical value is the mirror invariant minimum, so a tie in the baseline can make the catalogue and the solver disagree on the descriptor value.",
+      "fix": "move the shared algorithms into the base (a propagation, a descriptor, an SVD step) and call them from the modules; the tie break of the descriptor has to be part of one written definition."
+    },
+    {
+      "id": "F08",
+      "severity": "P2",
+      "location": "include/acsd/contracts.hpp:107 (AstrometricContext::omitted_position_bound_rad); the dead helper src/catalogue/catalogue_internal.hpp:80 (observer_omission_bound_rad); the omission is recorded only in src/sources/astrometry.cpp:855 (the assessment of the solution).",
+      "configuration": "an observation without a barycentric observer position: the solver skips the topocentric correction and records the omission in the assessment.",
+      "expected": "docs/science/foundation/OBSERVATION_COORDINATES.md section 2: the missing information is recorded as an ignored item together with its position error budget.",
+      "actual": "omitted_position_bound_rad is never written anywhere in the tree, and the WcsModel::epoch_frame_observer.omitted list stays empty even though the topocentric correction was not applied; the budget that the catalogue computes (asin(1.01 * parallax)) is never published.",
+      "fix": "set epoch_frame_observer.omitted and omitted_position_bound_rad in the solver when the observer is unknown, and use the shared bound helper of the catalogue (F07)."
+    },
+    {
+      "id": "F09",
+      "severity": "P2",
+      "location": "src/catalogue/sky_geometry.cpp:100-116 (the linear space motion of the catalogue propagation)",
+      "configuration": "validation/cat/epoch_check.py: 18 sources of the catalogue check, propagated from 2016.0 to 2021.5 and compared with astropy SkyCoord.apply_space_motion (ERFA space motion).",
+      "expected": "the propagated distance agrees with the reference.",
+      "actual": "the direction agrees (the maximum angular difference 1.92e-5 arcsec) but the distance differs by up to 0.0514 au (2.4e-6 relative for a source at 21,700 au with 40 arcsec/yr): the linear motion in the tangent plane omits the second order curvature term, so the propagated parallax is not the ERFA one. The astrometric impact is negligible (the topocentric correction scales with the parallax), but the catalogue's distance is not the reference distance.",
+      "fix": "document the propagation model in the catalogue (linear tangent plane motion) and either use the same model in the sources module (F04) or use a second order motion; the topocentric correction must use the same distance model as the astrometry."
+    },
+    {
+      "id": "F10",
+      "severity": "P2",
+      "location": "src/photometry/joint_fit.cpp (the parameter box) and src/photometry/api.cpp (the equal weight fallback); self-review, not independent",
+      "configuration": "the F01 fixture of validation/phot: counts = 100 with the flux enclosure [100,100] against [99,101].",
+      "expected": "docs/engineering/rebuild/EXECUTION.md asks for a certified numerical parameter box.",
+      "actual": "the box is the profile interval with the latent held fixed at the profiled solution (the bounds are [log 0.99, log 1.01] around the fit, width 0.02000067 = log 1.01 - log 0.99, against 1.4e-14 for the degenerate enclosure) and not the full interval Newton certificate of the score; the unknown measurement variance falls back to equal weights with a recorded unknown term and a conditional science state.",
+      "fix": "decide the box definition once in the execution document and implement it; either the profile interval is accepted and written down as such, or the score root certificate is implemented."
+    }
+  ],
+  "cases": {
+    "F01": "fail",
+    "catalogue_check": "pass",
+    "astrometry_check": "pass",
+    "catalogue_epoch_propagation_vs_astropy": "pass",
+    "blind_astrometric_solve_vs_astropy": "pass",
+    "C01": "pass",
+    "G01": "pass",
+    "U01": "pass",
+    "S01": "pending_implementation",
+    "P01": "pending_implementation",
+    "R01": "pending_implementation",
+    "E01": "pending_implementation",
+    "V01": "pending_implementation",
+    "W01": "pending_implementation",
+    "X01": "pending_implementation",
+    "phot_module_validation": "pass (the module's own validation, validation/phot; not an independent check)"
+  }
+}
