@@ -49,35 +49,40 @@ std::size_t dtype_size(DType dtype) {
 bool dtype_is_float(DType dtype) { return dtype == DType::f64 || dtype == DType::f32; }
 
 std::vector<std::byte> encode_f64(std::span<const double> values) {
-  std::vector<std::byte> out(values.size() * 8);
+  std::vector<std::byte> out;
+  out.reserve(values.size() * 8);
   for (std::size_t i = 0; i < values.size(); ++i) append_f64_le(out, values[i]);
   return out;
 }
 
 std::vector<std::byte> encode_u64(std::span<const U64> values) {
-  std::vector<std::byte> out(values.size() * 8);
+  std::vector<std::byte> out;
+  out.reserve(values.size() * 8);
   for (std::size_t i = 0; i < values.size(); ++i) append_u64_le(out, values[i]);
   return out;
 }
 
 std::vector<std::byte> encode_u32(std::span<const U32> values) {
-  std::vector<std::byte> out(values.size() * 4);
+  std::vector<std::byte> out;
+  out.reserve(values.size() * 4);
   for (std::size_t i = 0; i < values.size(); ++i) append_u32_le(out, values[i]);
   return out;
 }
 
 std::vector<std::byte> encode_u16(std::span<const std::uint16_t> values) {
-  std::vector<std::byte> out(values.size() * 2);
+  std::vector<std::byte> out;
+  out.reserve(values.size() * 2);
   for (std::size_t i = 0; i < values.size(); ++i) {
-    out[2 * i] = static_cast<std::byte>(values[i] & 0xffu);
-    out[2 * i + 1] = static_cast<std::byte>((values[i] >> 8) & 0xffu);
+    out.push_back(static_cast<std::byte>(values[i] & 0xffu));
+    out.push_back(static_cast<std::byte>((values[i] >> 8) & 0xffu));
   }
   return out;
 }
 
 std::vector<std::byte> encode_u8(std::span<const std::uint8_t> values) {
-  std::vector<std::byte> out(values.size());
-  for (std::size_t i = 0; i < values.size(); ++i) out[i] = static_cast<std::byte>(values[i]);
+  std::vector<std::byte> out;
+  out.reserve(values.size());
+  for (std::size_t i = 0; i < values.size(); ++i) out.push_back(static_cast<std::byte>(values[i]));
   return out;
 }
 
