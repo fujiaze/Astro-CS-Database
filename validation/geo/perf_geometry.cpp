@@ -243,6 +243,7 @@ int main(int argc, char** argv) {
   const acsd::U64 height = argc > 5 ? static_cast<acsd::U64>(std::atoll(argv[5])) : 128;
   const acsd::U64 max_work = argc > 6 ? static_cast<acsd::U64>(std::atoll(argv[6])) : 2000000;
   const acsd::U64 row_limit = argc > 7 ? static_cast<acsd::U64>(std::atoll(argv[7])) : 0;
+  const acsd::U64 max_depth = argc > 8 ? static_cast<acsd::U64>(std::atoll(argv[8])) : 24;
 
   acsd::Limits limits;
   limits.bytes = 1ull << 30;
@@ -274,7 +275,7 @@ int main(int argc, char** argv) {
 
   acsd::GeometryBudget geometry_budget;
   geometry_budget.max_work = max_work;
-  geometry_budget.max_depth = max_depth;
+  geometry_budget.max_depth = static_cast<acsd::U32>(max_depth);
   geometry_budget.area_absolute_sr = 1e-12;
   geometry_budget.arithmetic.initial_bits = 64;
   geometry_budget.arithmetic.max_bits = 256;

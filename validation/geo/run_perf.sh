@@ -20,6 +20,7 @@ width="${4:-128}"
 height="${5:-128}"
 max_work="${6:-2000000}"
 rows="${7:-0}"
+max_depth="${8:-24}"
 
 if [ ! -f "${build}/libgeometry.a" ]; then
   cmake -S "${root}" -B "${build}" -G Ninja -DACSD_BUILD_SCIENCE=ON
@@ -34,4 +35,4 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off \
   "${build}/libnumerics.a" "${build}/libmodel.a"
 
 "${here}/perf_geometry" "${here}" "${order}" "${block_size}" "${width}" "${height}" \
-  "${max_work}" "${rows}"
+  "${max_work}" "${rows}" "${max_depth:-24}"

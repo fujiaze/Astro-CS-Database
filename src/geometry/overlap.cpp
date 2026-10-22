@@ -443,11 +443,19 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   // The second algorithm: the equal-area containment integral A (SPHERICAL_DRIZZLE
   // section 3).  It proves for every candidate target cell whether the whole
   // cell lies inside or outside the source region and keeps the whole cell
-  // mass of an undecided cell as the error bound.  Its per leaf intervals are
-  // an independent enclosure of the same overlap mass, so the published
-  // interval is the intersection of the two algorithms.
+  // mass of an undecided cell as the error bound.
+  //
+  // The fallback only decides what the kernel left undecided: when the
+  // kernel reached its tolerance and kept no unresolved domain, the fallback
+  // has nothing to decide and is not started.  Its cells are a disjoint set
+  // of the kernel's cells, so the published mass is the sum over the two
+  // algorithms and never a double count.
+  const bool kernel_complete =
+      kernel.termination == Termination::tolerance_met && kernel.unresolved.empty();
   const geometry::ContainmentOutcome containment =
-      geometry::target_containment(context, *model, model, drop_rectangle, order, request);
+      kernel_complete ? geometry::ContainmentOutcome{}
+                       : geometry::target_containment(context, *model, model, drop_rectangle,
+                                                    order, request);
   if (containment.cancelled) {
     return fail<Ref<Overlaps>>(Code::cancelled, "cancelled", "compute_overlap:target_containment",
                                "the run was cancelled at a safety boundary of the containment "

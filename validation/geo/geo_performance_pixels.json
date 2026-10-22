@@ -1,0 +1,18 @@
+{
+  "configuration": {"width": 128, "height": 128, "block_size": 1, "source_rows": 16384, "order": 6, "pixfrac": 1.0, "max_work": 2000000},
+  "wall_seconds": 75.2726,
+  "sum_row_seconds": 75.1201,
+  "mean_row_seconds": 0.00458497,
+  "median_row_seconds": 0.00420169,
+  "slowest_row_seconds": 0.0207489,
+  "rows_completed": 16384,
+  "rows_failed": 0,
+  "first_failure": "",
+  "leaves": 1,
+  "total_area_sr": 3.85097e-07,
+  "work_used": 33280,
+  "kernel_counts": {"chart_models": 49152, "candidate_cells": 16384, "rational_clips": 131072, "blocks": 16384, "boundary_segments": 0, "cells_decided": 0, "cells_undecided": 0, "inverse_calls": 0, "work_charges": 32768, "work_units": 32768, "leaves": 0},
+  "containment_counts": {"chart_models": 0, "candidate_cells": 0, "rational_clips": 0, "blocks": 0, "boundary_segments": 0, "cells_decided": 0, "cells_undecided": 0, "inverse_calls": 0, "work_charges": 0, "work_units": 0, "leaves": 0},
+  "kernel_timings": {"chart_model_ms": 122, "candidate_enumeration_ms": 1, "rational_clip_ms": 45734, "boundary_segmentation_ms": 0, "separation_test_ms": 0, "membership_test_ms": 0, "work_metering_ms": 12, "dyadic_merge_ms": 966},
+  "containment_timings": {"chart_model_ms": 0, "candidate_enumeration_ms": 0, "rational_clip_ms": 0, "boundary_segmentation_ms": 0, "separation_test_ms": 0, "membership_test_ms": 0, "work_metering_ms": 0, "dyadic_merge_ms": 0}
+}

@@ -1960,6 +1960,113 @@ int main(int argc, char** argv) {
     }
   }
 
+  // 2h. The per pixel attribution against an independent mouth: the exact
+  // overlap of every pixel (one source row per pixel) against the attribution
+  // by the pixel centre.  The difference is the partial pixel effect and it
+  // must be reported, not hidden.
+  {
+    const double cd_deg = 0.5;
+    acsd::HeaderFields header =
+        make_header(false, cd_deg, 1.0, 1.0, 0.0, 0.0, "ICRS", false, 0.0, false);
+    const Box domain{{-2.0, -2.0}, {2.0, 2.0}};
+    acsd::AstrometricContext astrometric;
+    Result<Ref<acsd::WcsModel>> model =
+        acsd::make_wcs(context, header, domain, astrometric, "detector-E", budget);
+    if (good(model)) {
+      const Ref<acsd::WcsModel>& wcs = value_of(model);
+      Oracle oracle;
+      OracleProvider provider(wcs, oracle);
+      acsd::GeometryBudget geometry_budget;
+      geometry_budget.max_work = 200000;
+      geometry_budget.max_depth = 24;
+      geometry_budget.area_absolute_sr = 1e-12;
+      geometry_budget.arithmetic.initial_bits = 64;
+      geometry_budget.arithmetic.max_bits = 256;
+      // The pixels of a small strip of the detector, one source row each.
+      const acsd::U64 pixels = 32;
+      double max_difference = 0.0;
+      double square_difference = 0.0;
+      std::size_t compared = 0;
+      bool all_published = true;
+      for (acsd::U64 pixel = 0; pixel < pixels; ++pixel) {
+        acsd::DetectorFootprint footprint;
+        footprint.wcs = wcs;
+        footprint.source = acsd::SourceIdentity{"validation", "exposure", "detector", "channel",
+                                                pixel};
+        footprint.identity.object_id = "acsd.validation.pixel";
+        footprint.assessment = acsd::Assessment{};
+        footprint.assessment.complete = true;
+        footprint.assessment.complete = true;
+        const double x0 = static_cast<double>(pixel) - 0.5;
+        const double y0 = -0.5;
+        const double x1 = static_cast<double>(pixel) + 0.5;
+        const double y1 = 0.5;
+        footprint.contraction_center = acsd::PixelCenter0{0.5 * (x0 + x1), 0.5 * (y0 + y1)};
+        acsd::Ring ring;
+        ring.hole = false;
+        const double corners[4][2] = {{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1}};
+        for (const auto& corner : corners) {
+          acsd::PixelEdge0 edge;
+          edge.x = corner[0];
+          edge.y = corner[1];
+          ring.vertices.push_back(edge);
+        }
+        footprint.detector_rings.push_back(ring);
+        const Ref<acsd::DetectorFootprint> footprint_ref =
+            std::make_shared<acsd::DetectorFootprint>(footprint);
+        Result<Ref<acsd::Overlaps>> overlaps =
+            acsd::compute_overlap(context, provider, footprint_ref, 8, 1.0, geometry_budget);
+        if (!good(overlaps)) {
+          all_published = false;
+          break;
+        }
+        // The independent attribution: the direction of the pixel centre and
+        // the leaf that carries it.
+        const SkyICRS centre = oracle.forward(0.5 * (x0 + x1), 0.5 * (y0 + y1));
+        int centre_face = 0;
+        double centre_s = 0.0;
+        double centre_t = 0.0;
+        const bool centre_known = chart_inverse(centre, centre_face, centre_s, centre_t);
+        // The exact weight of every leaf of this pixel and the attribution by
+        // the pixel centre: the centre gives all of the pixel to its leaf.
+        const acsd::U64 nside = 1ull << 8;
+        const auto& contributions = value_of(overlaps)->contributions;
+        for (const acsd::OverlapContribution& contribution : contributions) {
+          const double area = contribution.drop_area.lower_sr;
+          if (!(area > 0.0)) continue;
+          const double exact_weight = contribution.overlap_area.lower_sr / area;
+          double nominal = 0.0;
+          if (centre_known) {
+            const long long ix = static_cast<long long>(std::floor(centre_s * static_cast<double>(nside)));
+            const long long iy = static_cast<long long>(std::floor(centre_t * static_cast<double>(nside)));
+            // The leaf of the pixel centre in the same face.
+            const acsd::HealpixLeaf centre_leaf =
+                oracle_leaf(8, centre);
+            if (centre_leaf.ipix == contribution.leaf.ipix &&
+                centre_leaf.order == contribution.leaf.order) {
+              nominal = 1.0;
+            }
+            (void)ix;
+            (void)iy;
+          }
+          const double difference = std::fabs(exact_weight - nominal);
+          max_difference = std::max(max_difference, difference);
+          square_difference += difference * difference;
+          ++compared;
+        }
+      }
+      geometry.boolean("pixel_attribution_published", all_published);
+      geometry.number("pixel_attribution_compared", static_cast<double>(compared));
+      geometry.number("pixel_attribution_max_difference", max_difference);
+      geometry.number("pixel_attribution_rms_difference",
+                       compared > 0 ? std::sqrt(square_difference / static_cast<double>(compared))
+                                    : 0.0);
+      checks.add("pixel_attribution_difference_reported", all_published && compared > 0,
+                 "compared " + std::to_string(compared) + " source row and leaf pairs, max " +
+                     std::to_string(max_difference));
+    }
+  }
+
 {
     geometry.raw("checks", checks.str());
     geometry.integer("check_failures", checks.failures());
