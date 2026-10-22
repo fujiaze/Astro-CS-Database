@@ -3,80 +3,209 @@
   "failures": [],
   "functionals": [
     {
+      "expected_success_count": 1,
       "kind": "value",
-      "name": "plane_truth_inside",
-      "reason": "the public entry point is not available yet",
-      "status": "pending_implementation",
+      "name": "plane_truth_inside[0]",
+      "note": "the plane truth must lie inside the published log interval",
+      "observed": [
+        0.3408975955107596,
+        0.36097070369150847
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
       "tolerance": 0.0,
-      "truth": 0.0,
-      "unit": "1"
+      "truth": [
+        0.34093414960113394,
+        0.36093414960113396
+      ],
+      "unit": "log variance"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
-      "name": "plane_truth_inside",
-      "reason": "the public entry point is not available yet",
-      "status": "pending_implementation",
+      "name": "plane_truth_inside[1]",
+      "note": "the plane truth must lie inside the published log interval",
+      "observed": [
+        0.6027152603550961,
+        0.6227518144454706
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
       "tolerance": 0.0,
-      "truth": 0.0,
-      "unit": "1"
+      "truth": [
+        0.6027335374002833,
+        0.6227335374002834
+      ],
+      "unit": "log variance"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
-      "name": "plane_truth_inside",
-      "reason": "the public entry point is not available yet",
-      "status": "pending_implementation",
+      "name": "plane_truth_inside[2]",
+      "note": "the plane truth must lie inside the published log interval",
+      "observed": [
+        2.644735254317473,
+        2.6648022701498264
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
       "tolerance": 0.0,
-      "truth": 0.0,
-      "unit": "1"
+      "truth": [
+        2.6447687622336495,
+        2.664768762233649
+      ],
+      "unit": "log variance"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
-      "name": "plane_truth_inside",
-      "reason": "the public entry point is not available yet",
-      "status": "pending_implementation",
+      "name": "plane_truth_inside[3]",
+      "note": "the plane truth must lie inside the published log interval",
+      "observed": [
+        0.689951261212834,
+        0.7100487387871658
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
       "tolerance": 0.0,
-      "truth": 0.0,
-      "unit": "1"
+      "truth": [
+        0.69,
+        0.71
+      ],
+      "unit": "log variance"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "quadratic_truth_inside[0]",
-      "reason": "the public entry point is not available yet",
-      "status": "pending_implementation",
+      "note": "the quadratic truth must lie inside the interval of the known Hessian bound",
+      "observed": [
+        0.3409743591005458,
+        0.3610474672812946
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
       "tolerance": 0.0,
-      "truth": 0.0,
-      "unit": "1"
+      "truth": [
+        0.3409743591005458,
+        0.3610474672812946
+      ],
+      "unit": "log variance"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "quadratic_truth_inside[1]",
-      "reason": "the public entry point is not available yet",
-      "status": "pending_implementation",
+      "note": "the quadratic truth must lie inside the interval of the known Hessian bound",
+      "observed": [
+        0.6027262265822086,
+        0.6227627806725831
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
       "tolerance": 0.0,
-      "truth": 0.0,
-      "unit": "1"
+      "truth": [
+        0.6027262265822086,
+        0.6227627806725831
+      ],
+      "unit": "log variance"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
       "name": "quadratic_truth_inside[2]",
-      "reason": "the public entry point is not available yet",
-      "status": "pending_implementation",
+      "note": "the quadratic truth must lie inside the interval of the known Hessian bound",
+      "observed": [
+        2.6448497904673127,
+        2.664916806299666
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
       "tolerance": 0.0,
+      "truth": [
+        2.6448497904673123,
+        2.6649168062996655
+      ],
+      "unit": "log variance"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "quadratic_truth_inside[3]",
+      "note": "the quadratic truth must lie inside the interval of the known Hessian bound",
+      "observed": [
+        0.6899622274399463,
+        0.7100597050142778
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": [
+        0.6899622274399464,
+        0.7100597050142781
+      ],
+      "unit": "log variance"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "linear_exact",
+      "note": "the barycentric interpolation reproduces the affine truth exactly",
+      "observed": 4.440892098500626e-16,
+      "observed_success_count": 1,
+      "status": "pass",
+      "tolerance": 1e-12,
       "truth": 0.0,
       "unit": "1"
     },
     {
+      "expected_success_count": 1,
       "kind": "value",
-      "name": "quadratic_truth_inside[3]",
-      "reason": "the public entry point is not available yet",
-      "status": "pending_implementation",
+      "name": "no_M_conditional",
+      "note": "without the external curvature bound no interval may be published",
+      "observed": {
+        "conditional": true,
+        "interval_published": false
+      },
+      "observed_success_count": 1,
+      "status": "pass",
       "tolerance": 0.0,
-      "truth": 0.0,
+      "truth": "conditional without an interval",
+      "unit": "1"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "outside_domain",
+      "note": "a query outside the support must not be filled by a nearest neighbour",
+      "observed": {
+        "state": 0,
+        "value": null
+      },
+      "observed_success_count": 1,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": "state 0 and no value",
+      "unit": "1"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "c_infinity_bump",
+      "note": "the analytic counter-example of the truth: a product of sines that vanishes at every control point is unbounded between them",
+      "observed": {
+        "conditional": true,
+        "interval_published": false
+      },
+      "observed_success_count": 1,
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": "no finite interval may be certified without M",
       "unit": "1"
     }
   ],
-  "notes": "The independent truth is complete; the observed side is pending_implementation.",
-  "status": "pending_implementation",
+  "notes": "V01: the sparse actual-scene variance reconstruction against the barycentric truth with the Taylor remainder bound",
+  "status": "pass",
   "status_vocabulary": {
     "fail": "at least one functional is outside the frozen tolerance",
     "not_applicable": "the case does not exercise the requested functional",

@@ -1,24 +1,24 @@
 {
   "c_infinity_bump": {
     "control_values": [
-      0.9829629131445341,
-      0.6035533905932735,
-      -0.37940952255126054,
-      -0.9829629131445342,
-      0.6035533905932735,
-      0.37059047744873935,
-      -0.23296291314453418,
-      -0.6035533905932736,
-      -0.37940952255126054,
-      -0.23296291314453418,
-      0.14644660940672638,
-      0.3794095225512606,
-      -0.9829629131445342,
-      -0.6035533905932736,
-      0.3794095225512606,
-      0.9829629131445343
+      0.024855023876197833,
+      0.0220056025287875,
+      0.019148830406104097,
+      0.016285661787397772,
+      0.0220056025287875,
+      0.019482843591983535,
+      0.016953576585030727,
+      0.014418646387016081,
+      0.019148830406104097,
+      0.016953576585030727,
+      0.014752659572895522,
+      0.01254681456639804,
+      0.016285661787397772,
+      0.014418646387016081,
+      0.01254681456639804,
+      0.010670791594269839
     ],
-    "max_abs_control_value": 0.9829629131445343,
+    "max_abs_control_value": 0.024855023876197833,
     "note": "the product of sines vanishes at every control point and is unbounded in between; without an external curvature bound no finite interval can be certified, which is the required negative behaviour",
     "query": [
       0.05,
@@ -37,66 +37,66 @@
     "expected": "unavailable; a nearest neighbour fill must not be certified",
     "inside_support": false,
     "query": [
-      5.0,
-      5.0
+      0.08726646259971647,
+      0.08726646259971647
     ]
   },
   "plane": [
     {
       "curvature_bound": 0.0,
       "delta": 0.01,
-      "interpolated": 0.49999999999999994,
-      "interval_log_lower": 0.48999999999999994,
-      "interval_log_upper": 0.5099999999999999,
+      "interpolated": 0.35093414960113395,
+      "interval_log_lower": 0.34093414960113394,
+      "interval_log_upper": 0.36093414960113396,
       "query": [
-        -0.5,
-        -0.5
+        -0.008726646259971648,
+        -0.008726646259971648
       ],
       "remainder_bound": 0.0,
-      "truth": 0.49999999999999994,
+      "truth": 0.350934149601134,
       "truth_inside": true,
-      "truth_variance": 1.648721270700128,
+      "truth_variance": 1.420393789334944,
       "variance_interval": [
-        1.632316219955379,
-        1.6652911949458862
+        1.406260634989412,
+        1.4346689842430749
       ]
     },
     {
       "curvature_bound": 0.0,
       "delta": 0.01,
-      "interpolated": 0.6499999999999999,
-      "interval_log_lower": 0.6399999999999999,
-      "interval_log_upper": 0.6599999999999999,
+      "interpolated": 0.6127335374002834,
+      "interval_log_lower": 0.6027335374002833,
+      "interval_log_upper": 0.6227335374002834,
       "query": [
-        0.1,
-        0.2
+        0.0017453292519943296,
+        0.003490658503988659
       ],
       "remainder_bound": 0.0,
-      "truth": 0.6499999999999999,
+      "truth": 0.6127335374002835,
       "truth_inside": true,
-      "truth_variance": 1.915540829013896,
+      "truth_variance": 1.8454691691728058,
       "variance_interval": [
-        1.8964808793049512,
-        1.9347923344020315
+        1.8271064441287515,
+        1.864016442671673
       ]
     },
     {
       "curvature_bound": 0.0,
       "delta": 0.01,
-      "interpolated": 1.8200000000000003,
-      "interval_log_lower": 1.8100000000000003,
-      "interval_log_upper": 1.8300000000000003,
+      "interpolated": 2.6547687622336493,
+      "interval_log_lower": 2.6447687622336495,
+      "interval_log_upper": 2.664768762233649,
       "query": [
-        0.55,
-        -0.45
+        0.009599310885968814,
+        -0.007853981633974483
       ],
       "remainder_bound": 0.0,
-      "truth": 1.82,
+      "truth": 2.6547687622336493,
       "truth_inside": true,
-      "truth_variance": 6.171858449883554,
+      "truth_variance": 14.221697085609913,
       "variance_interval": [
-        6.110447432230612,
-        6.233886658524719
+        14.080188835239124,
+        14.364627517540715
       ]
     },
     {
@@ -123,60 +123,60 @@
     {
       "curvature_bound": 4.0,
       "delta": 0.01,
-      "interpolated": 0.752,
-      "interval_log_lower": 0.622,
-      "interval_log_upper": 0.882,
+      "interpolated": 0.3510109131909202,
+      "interval_log_lower": 0.3409743591005458,
+      "interval_log_upper": 0.3610474672812946,
       "query": [
-        -0.5,
-        -0.5
+        -0.008726646259971648,
+        -0.008726646259971648
       ],
-      "relative_error_over_bound": 0.20769230769230787,
-      "remainder_term": 0.12,
-      "truth": 0.725,
+      "relative_error_over_bound": 0.0008194715297819274,
+      "remainder_term": 3.655409037440502e-05,
+      "truth": 0.351002688520586,
       "truth_inside": true
     },
     {
       "curvature_bound": 4.0,
       "delta": 0.01,
-      "interpolated": 0.6859999999999999,
-      "interval_log_lower": 0.6159999999999999,
-      "interval_log_upper": 0.756,
+      "interpolated": 0.6127445036273959,
+      "interval_log_lower": 0.6027262265822086,
+      "interval_log_upper": 0.6227627806725831,
       "query": [
-        0.1,
-        0.2
+        0.0017453292519943296,
+        0.003490658503988659
       ],
-      "relative_error_over_bound": 0.857142857142857,
-      "remainder_term": 0.06000000000000008,
-      "truth": 0.6259999999999999,
+      "relative_error_over_bound": 0.0018243701092273774,
+      "remainder_term": 1.8277045187202543e-05,
+      "truth": 0.6127262265822087,
       "truth_inside": true
     },
     {
       "curvature_bound": 4.0,
       "delta": 0.01,
-      "interpolated": 2.1960000000000006,
-      "interval_log_lower": 2.0760000000000005,
-      "interval_log_upper": 2.3160000000000007,
+      "interpolated": 2.654883298383489,
+      "interval_log_lower": 2.6448497904673123,
+      "interval_log_upper": 2.6649168062996655,
       "query": [
-        0.55,
-        -0.45
+        0.009599310885968814,
+        -0.007853981633974483
       ],
-      "relative_error_over_bound": 0.05208333333333033,
-      "remainder_term": 0.1100000000000001,
-      "truth": 2.2022500000000003,
+      "relative_error_over_bound": 0.00018975007440764338,
+      "remainder_term": 3.350791617653796e-05,
+      "truth": 2.6548852022423626,
       "truth_inside": true
     },
     {
       "curvature_bound": 4.0,
       "delta": 0.01,
-      "interpolated": 0.736,
-      "interval_log_lower": 0.566,
-      "interval_log_upper": 0.906,
+      "interpolated": 0.7000109662271122,
+      "interval_log_lower": 0.6899622274399464,
+      "interval_log_upper": 0.7100597050142781,
       "query": [
         0.0,
         0.0
       ],
-      "relative_error_over_bound": 0.21176470588235305,
-      "remainder_term": 0.16000000000000006,
+      "relative_error_over_bound": 0.0010913038287233125,
+      "remainder_term": 4.873878716587338e-05,
       "truth": 0.7,
       "truth_inside": true
     }

@@ -1,0 +1,303 @@
+{
+  "artifacts": {},
+  "binary_identity": {
+    "path": "/workspace/Astro CS Database/validation/build/v01_driver",
+    "sha256": "eb44a63f0b0e19c712b1b7b8ccec44e4d971a2a14a9bba91d94f2bec1dd123d3",
+    "size_bytes": "1902480"
+  },
+  "command": [
+    "/workspace/Astro CS Database/validation/build/v01_driver",
+    "--output",
+    "/workspace/Astro CS Database/validation/v01/observed/native_v01.json"
+  ],
+  "exit_code": 0,
+  "missing_entry_points": [],
+  "peak_rss_bytes": 130031616,
+  "reason": "",
+  "response": {
+    "cases": [
+      {
+        "code": "ok",
+        "control_values_readable": 16.0,
+        "estimator_id": "v01:fixture",
+        "name": "plane",
+        "queries": [
+          {
+            "conditional": false,
+            "lower": 1.4062092313505832,
+            "observed_log_lower": 0.3408975955107596,
+            "observed_log_upper": 0.36097070369150847,
+            "observed_log_value": 0.350934149601134,
+            "query_chart_rad": [
+              -0.008726646259971648,
+              -0.008726646259971648
+            ],
+            "state": 1,
+            "truth_inside": true,
+            "truth_log_v": 0.350934149601134,
+            "upper": 1.4347214282212974,
+            "value": 1.420393789334944
+          },
+          {
+            "conditional": false,
+            "lower": 1.8270730503268813,
+            "observed_log_lower": 0.6027152603550961,
+            "observed_log_upper": 0.6227518144454706,
+            "observed_log_value": 0.6127335374002834,
+            "query_chart_rad": [
+              0.0017453292519943296,
+              0.003490658503988659
+            ],
+            "state": 1,
+            "truth_inside": true,
+            "truth_log_v": 0.6127335374002835,
+            "upper": 1.864050511695765,
+            "value": 1.8454691691728056
+          },
+          {
+            "conditional": false,
+            "lower": 14.079717045356277,
+            "observed_log_lower": 2.644735254317473,
+            "observed_log_upper": 2.6648022701498264,
+            "observed_log_value": 2.6547687622336498,
+            "query_chart_rad": [
+              0.009599310885968814,
+              -0.007853981633974483
+            ],
+            "state": 1,
+            "truth_inside": true,
+            "truth_log_v": 2.6547687622336493,
+            "upper": 14.365108854339741,
+            "value": 14.221697085609918
+          },
+          {
+            "conditional": false,
+            "lower": 1.9936183643340046,
+            "observed_log_lower": 0.689951261212834,
+            "observed_log_upper": 0.7100487387871658,
+            "observed_log_value": 0.6999999999999998,
+            "query_chart_rad": [
+              0.0,
+              0.0
+            ],
+            "state": 1,
+            "truth_inside": true,
+            "truth_log_v": 0.7,
+            "upper": 2.034090395329684,
+            "value": 2.013752707470476
+          },
+          {
+            "conditional": false,
+            "lower": null,
+            "observed_log_lower": 0.0,
+            "observed_log_upper": 0.0,
+            "observed_log_value": 0.0,
+            "query_chart_rad": [
+              0.08726646259971647,
+              0.08726646259971647
+            ],
+            "state": 0,
+            "truth_inside": false,
+            "truth_log_v": 4.190658503988658,
+            "upper": null,
+            "value": null
+          }
+        ],
+        "triangle_count": 18,
+        "triangulation_code": "ok",
+        "vertex_count": 16
+      },
+      {
+        "code": "ok",
+        "control_values_readable": 16.0,
+        "estimator_id": "v01:fixture",
+        "name": "quadratic",
+        "queries": [
+          {
+            "conditional": false,
+            "lower": 1.4063171811624267,
+            "observed_log_lower": 0.3409743591005458,
+            "observed_log_upper": 0.3610474672812946,
+            "observed_log_value": 0.3510109131909202,
+            "query_chart_rad": [
+              -0.008726646259971648,
+              -0.008726646259971648
+            ],
+            "state": 1,
+            "truth_inside": true,
+            "truth_log_v": 0.351002688520586,
+            "upper": 1.4348315668157336,
+            "value": 1.4205028280461713
+          },
+          {
+            "conditional": false,
+            "lower": 1.8270930865347628,
+            "observed_log_lower": 0.6027262265822086,
+            "observed_log_upper": 0.6227627806725831,
+            "observed_log_value": 0.6127445036273959,
+            "query_chart_rad": [
+              0.0017453292519943296,
+              0.003490658503988659
+            ],
+            "state": 1,
+            "truth_inside": true,
+            "truth_log_v": 0.6127262265822087,
+            "upper": 1.8640709534091096,
+            "value": 1.8454894071178105
+          },
+          {
+            "conditional": false,
+            "lower": 14.081329774293602,
+            "observed_log_lower": 2.6448497904673127,
+            "observed_log_upper": 2.664916806299666,
+            "observed_log_value": 2.6548832983834894,
+            "query_chart_rad": [
+              0.009599310885968814,
+              -0.007853981633974483
+            ],
+            "state": 1,
+            "truth_inside": true,
+            "truth_log_v": 2.6548852022423626,
+            "upper": 14.366754272828095,
+            "value": 14.223326077325728
+          },
+          {
+            "conditional": false,
+            "lower": 1.9936402269256381,
+            "observed_log_lower": 0.6899622274399463,
+            "observed_log_upper": 0.7100597050142778,
+            "observed_log_value": 0.7000109662271121,
+            "query_chart_rad": [
+              0.0,
+              0.0
+            ],
+            "state": 1,
+            "truth_inside": true,
+            "truth_log_v": 0.7,
+            "upper": 2.034112701749234,
+            "value": 2.0137747908611
+          },
+          {
+            "conditional": false,
+            "lower": null,
+            "observed_log_lower": 0.0,
+            "observed_log_upper": 0.0,
+            "observed_log_value": 0.0,
+            "query_chart_rad": [
+              0.08726646259971647,
+              0.08726646259971647
+            ],
+            "state": 0,
+            "truth_inside": false,
+            "truth_log_v": 4.197512395933859,
+            "upper": null,
+            "value": null
+          }
+        ],
+        "triangle_count": 18,
+        "triangulation_code": "ok",
+        "vertex_count": 16
+      },
+      {
+        "code": "ok",
+        "control_values_readable": 16.0,
+        "estimator_id": "v01:fixture",
+        "name": "quadratic_without_curvature",
+        "queries": [
+          {
+            "conditional": true,
+            "lower": null,
+            "observed_log_lower": 0.0,
+            "observed_log_upper": 0.0,
+            "observed_log_value": 0.3510109131909202,
+            "query_chart_rad": [
+              -0.008726646259971648,
+              -0.008726646259971648
+            ],
+            "state": 1,
+            "truth_inside": false,
+            "truth_log_v": 0.351002688520586,
+            "upper": null,
+            "value": 1.4205028280461713
+          },
+          {
+            "conditional": true,
+            "lower": null,
+            "observed_log_lower": 0.0,
+            "observed_log_upper": 0.0,
+            "observed_log_value": 0.6127445036273959,
+            "query_chart_rad": [
+              0.0017453292519943296,
+              0.003490658503988659
+            ],
+            "state": 1,
+            "truth_inside": false,
+            "truth_log_v": 0.6127262265822087,
+            "upper": null,
+            "value": 1.8454894071178105
+          },
+          {
+            "conditional": true,
+            "lower": null,
+            "observed_log_lower": 0.0,
+            "observed_log_upper": 0.0,
+            "observed_log_value": 2.6548832983834894,
+            "query_chart_rad": [
+              0.009599310885968814,
+              -0.007853981633974483
+            ],
+            "state": 1,
+            "truth_inside": false,
+            "truth_log_v": 2.6548852022423626,
+            "upper": null,
+            "value": 14.223326077325728
+          },
+          {
+            "conditional": true,
+            "lower": null,
+            "observed_log_lower": 0.0,
+            "observed_log_upper": 0.0,
+            "observed_log_value": 0.7000109662271121,
+            "query_chart_rad": [
+              0.0,
+              0.0
+            ],
+            "state": 1,
+            "truth_inside": false,
+            "truth_log_v": 0.7,
+            "upper": null,
+            "value": 2.0137747908611
+          },
+          {
+            "conditional": true,
+            "lower": null,
+            "observed_log_lower": 0.0,
+            "observed_log_upper": 0.0,
+            "observed_log_value": 0.0,
+            "query_chart_rad": [
+              0.08726646259971647,
+              0.08726646259971647
+            ],
+            "state": 0,
+            "truth_inside": false,
+            "truth_log_v": 4.197512395933859,
+            "upper": null,
+            "value": null
+          }
+        ],
+        "triangle_count": 18,
+        "triangulation_code": "ok",
+        "vertex_count": 16
+      }
+    ],
+    "driver": "v01_native",
+    "route": "in_memory_public_api"
+  },
+  "response_file": "v01/observed/native_v01.json",
+  "response_sha256": "58a4dfad0c9dc383676387dee19283abcc9c562df3886fae89e767531be05fcc",
+  "route": "native",
+  "status": "ok",
+  "stderr": "",
+  "stdout": "",
+  "wall_seconds": 0.3318820180138573
+}

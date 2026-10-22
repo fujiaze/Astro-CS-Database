@@ -39,6 +39,13 @@ inline std::size_t item_size(acsd::DType dtype) {
   }
 }
 
+inline std::string first_issue(const acsd::Assessment& assessment) {
+  if (assessment.issues.empty()) return "";
+  const acsd::Issue& issue = assessment.issues.front();
+  if (!issue.reason.empty()) return issue.reason;
+  return issue.origin;
+}
+
 inline std::string hash_hex(const std::string& payload) {
   std::size_t hash = 1469598103934665603ull;
   for (unsigned char character : payload) {

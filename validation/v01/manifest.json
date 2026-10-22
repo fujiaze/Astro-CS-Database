@@ -1,11 +1,11 @@
 {
   "artefacts": {
-    "input_model": "d2b40c406c1093e34b51bbb79c299b2ef06819f920a131554e56d5415a1a4e6c",
-    "truth": "ccc4eaf8265f58867e3fe701ef7f2348f4d4cd893103039007418074fb514a04"
+    "input_model": "55082b8ac8dbea044c0d6f9b20530d4ca522dbcdf1d812c3f79fa5ec3ccc0d70",
+    "truth": "5ac4fad87b59c2cea38b54fed162707290a4dd54d6394c6faa96dd1270d28786"
   },
   "case": "V01",
   "code_identity": {
-    "validation/v01/truth_v01.py": "1bc4334f6a63618535feb6d21e7634799b0e72461b10c1f6b84b4c8086968ebe"
+    "validation/v01/truth_v01.py": "7a015c2c6ac3b8a491b8e1a987e1dfd5cd79abc96f1160c74a19be3e90d73dd2"
   },
   "commands": {
     "truth": "python3 validation/v01/truth_v01.py"
@@ -34,7 +34,7 @@
   },
   "seeds": [],
   "trial_denominators": {
-    "queries": 4
+    "queries": 5
   },
   "truth_type": "analytic_exact + conditional_model"
 }

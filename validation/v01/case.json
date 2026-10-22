@@ -17,10 +17,12 @@
       "src/coordinates/healpix.cpp",
       "src/coordinates/tan_sip.cpp",
       "src/coordinates/wcs.cpp",
+      "src/geometry/containment.cpp",
       "src/geometry/drizzle.cpp",
       "src/geometry/exact_polygon.cpp",
       "src/geometry/kernel.cpp",
       "src/geometry/overlap.cpp",
+      "src/geometry/profile.cpp",
       "src/geometry/refine.cpp",
       "src/information/information.cpp",
       "src/information/internal.cpp",
@@ -32,6 +34,7 @@
       "src/numerics/interval.cpp",
       "src/numerics/linalg.cpp",
       "src/numerics/quadrature.cpp",
+      "src/observation/bind.cpp",
       "src/observation/calibrate.cpp",
       "src/observation/observation.cpp",
       "src/observation/regroup.cpp",
@@ -53,6 +56,8 @@
       "src/sources/astrometry_wcs.cpp",
       "src/sources/measure.cpp",
       "src/sources/psf.cpp",
+      "src/sources/psf_fit.cpp",
+      "src/sources/psf_model.cpp",
       "src/storage/local_storage.cpp",
       "src/uncertainty/api.cpp",
       "src/uncertainty/covariance.cpp",
@@ -86,7 +91,7 @@
     "note": "truth is produced before and independently of any observed run",
     "truth_code_imports_production": false
   },
-  "input_model_sha256": "d2b40c406c1093e34b51bbb79c299b2ef06819f920a131554e56d5415a1a4e6c",
+  "input_model_sha256": "55082b8ac8dbea044c0d6f9b20530d4ca522dbcdf1d812c3f79fa5ec3ccc0d70",
   "negative_expectations": [
     {
       "expectation": "a smooth field that vanishes at every control point but is large at the query must not be certified by smoothness",
@@ -121,7 +126,7 @@
     "cross_leaf_covariance": "no off-diagonal covariance may be produced",
     "interval_containment": "the truth must lie inside the reported interval"
   },
-  "truth_sha256": "ccc4eaf8265f58867e3fe701ef7f2348f4d4cd893103039007418074fb514a04",
+  "truth_sha256": "5ac4fad87b59c2cea38b54fed162707290a4dd54d6394c6faa96dd1270d28786",
   "truth_type": "analytic_exact + conditional_model",
   "unit": "log of a variance (dimensionless); the variance is in the unit of the controls"
 }

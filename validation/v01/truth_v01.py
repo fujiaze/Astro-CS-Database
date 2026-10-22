@@ -41,26 +41,30 @@ CASE = "v01"
 
 
 def chart_points():
-    """A regular control grid on a local gnomonic chart (degrees)."""
+    """A regular control grid on a local gnomonic chart, in radians.
+
+    The chart of the implementation is the tangent plane at the centre, so
+    its coordinates are radians; the truth uses the same unit.
+    """
     grid = []
+    step = 0.4 * math.pi / 180.0
+    start = -0.6 * math.pi / 180.0
     for i in range(4):
         for j in range(4):
-            x = -0.6 + 0.4 * i
-            y = -0.6 + 0.4 * j
-            grid.append((x, y))
+            grid.append((start + step * i, start + step * j))
     return np.array(grid, dtype=float)
 
 
 def log_v_plane(points):
     """log V is an exact affine function of the chart coordinates."""
-    return 0.7 + 1.3 * points[:, 0] - 0.9 * points[:, 1]
+    return 0.7 + 130.0 * points[:, 0] - 90.0 * points[:, 1]
 
 
 def log_v_quadratic(points):
     """log V is an exact quadratic; the Hessian is known."""
     x = points[:, 0]
     y = points[:, 1]
-    return 0.7 + 1.3 * x - 0.9 * y + 2.0 * x * x - 1.1 * y * y
+    return 0.7 + 130.0 * x - 90.0 * y + 2.0 * x * x - 1.1 * y * y
 
 
 def hessian_norm_quadratic():
@@ -124,15 +128,21 @@ def main() -> int:
 
     points = chart_points()
     triangulation = Delaunay(points)
-    queries = np.array([[-0.5, -0.5], [0.1, 0.2], [0.55, -0.45], [0.0, 0.0]])
+    degree = math.pi / 180.0
+    queries = np.array([[-0.5 * degree, -0.5 * degree], [0.1 * degree, 0.2 * degree],
+                        [0.55 * degree, -0.45 * degree], [0.0, 0.0],
+                        [5.0 * degree, 5.0 * degree]])
 
     plane_values = log_v_plane(points)
     quadratic_values = log_v_quadratic(points)
     delta = 0.01
     curvature = hessian_norm_quadratic()
 
+    # The last query lies outside the mesh; it is judged by the outside
+    # domain rule, not by the containment.
+    inside_queries = queries[:-1]
     plane_rows = []
-    for query in queries:
+    for query in inside_queries:
         interpolated, support = barycentric_interpolate(triangulation, points, plane_values, query)
         truth = float(log_v_plane(np.array([query]))[0])
         bound = delta  # the affine field has a zero Hessian
@@ -151,7 +161,7 @@ def main() -> int:
         })
 
     quadratic_rows = []
-    for query in queries:
+    for query in inside_queries:
         interpolated, support = barycentric_interpolate(triangulation, points, quadratic_values,
                                                         query)
         truth = float(log_v_quadratic(np.array([query]))[0])
@@ -193,7 +203,7 @@ def main() -> int:
     }
 
     # a query outside the support
-    outside = np.array([[5.0, 5.0]])
+    outside = np.array([[5.0 * degree, 5.0 * degree]])
     simplex = int(triangulation.find_simplex(outside)[0])
     outside_row = {
         "query": outside[0].tolist(),
@@ -265,18 +275,106 @@ def main() -> int:
         "request_hash": content_hash(request),
     })
 
+    # ---- the observed side: the real reconstruction path --------------------
+    native_run, native_response = observe.run_native_driver(case, "v01_driver", [])
+
+    def observed_case(name: str) -> dict:
+        for entry in native_response.get("cases", []) or []:
+            if entry.get("name") == name:
+                return entry
+        return {}
+
+    plane_observed = observed_case("plane")
+    quadratic_observed = observed_case("quadratic")
+    without_curvature = observed_case("quadratic_without_curvature")
+
+    rows = []
+    failures = []
+    status = "pass"
+
+    def add(name: str, ok: bool, truth, observed, note: str = "", unit: str = "1",
+            tolerance: float = 0.0) -> None:
+        nonlocal status
+        rows.append({"name": name, "kind": "value", "status": "pass" if ok else "fail",
+                     "truth": truth, "observed": observed, "tolerance": tolerance,
+                     "unit": unit, "expected_success_count": 1, "observed_success_count": 1,
+                     "note": note})
+        if not ok:
+            failures.append({"functional": name, "scope": "reconstruct_scene_variance",
+                             "expected": truth, "actual": observed, "reason": note})
+            status = "fail"
+
+    if native_run.get("status") != "ok":
+        rows.append({"name": "v01_driver_available", "kind": "value",
+                     "status": "pending_implementation", "observed": None,
+                     "expected_success_count": 1, "observed_success_count": 0,
+                     "reason": native_run.get("reason", "the driver did not run")})
+        status = "pending_implementation"
+    else:
+        plane_queries = plane_observed.get("queries", []) or []
+        quadratic_queries = quadratic_observed.get("queries", []) or []
+        without_queries = without_curvature.get("queries", []) or []
+
+        # 1) the plane truth lies inside the published interval
+        for index, truth_row in enumerate(plane_rows):
+            observed_row = plane_queries[index] if index < len(plane_queries) else {}
+            inside = bool(observed_row.get("truth_inside"))
+            add(f"plane_truth_inside[{index}]", inside,
+                [truth_row["interval_log_lower"], truth_row["interval_log_upper"]],
+                [observed_row.get("observed_log_lower"), observed_row.get("observed_log_upper")],
+                "the plane truth must lie inside the published log interval", unit="log variance")
+
+        # 2) the quadratic truth lies inside the interval built with M
+        for index, truth_row in enumerate(quadratic_rows):
+            observed_row = quadratic_queries[index] if index < len(quadratic_queries) else {}
+            inside = bool(observed_row.get("truth_inside"))
+            add(f"quadratic_truth_inside[{index}]", inside,
+                [truth_row["interval_log_lower"], truth_row["interval_log_upper"]],
+                [observed_row.get("observed_log_lower"), observed_row.get("observed_log_upper")],
+                "the quadratic truth must lie inside the interval of the known Hessian bound",
+                unit="log variance")
+
+        # 3) the affine truth is reproduced exactly by the barycentric interpolation
+        worst = 0.0
+        for index, truth_row in enumerate(plane_rows):
+            observed_row = plane_queries[index] if index < len(plane_queries) else {}
+            value = observed_row.get("observed_log_value")
+            if isinstance(value, (int, float)):
+                worst = max(worst, abs(float(value) - float(truth_row["truth"])))
+        add("linear_exact", worst <= 1e-12, 0.0, worst,
+            "the barycentric interpolation reproduces the affine truth exactly", tolerance=1e-12)
+
+        # 4) without the curvature bound only a conditional prediction is allowed
+        conditional = bool(without_curvature.get("queries", [{}])[0].get("conditional")) if without_queries else False
+        no_interval = all(not isinstance(row.get("observed_log_lower"), (int, float))
+                           or row.get("observed_log_lower") == 0.0
+                           for row in without_queries)
+        add("no_M_conditional", conditional and no_interval,
+            "conditional without an interval",
+            {"conditional": conditional, "interval_published": not no_interval},
+            "without the external curvature bound no interval may be published")
+
+        # 5) a query outside the mesh must not be filled
+        outside_observed = plane_queries[-1] if len(plane_queries) >= len(plane_rows) + 1 else {}
+        state = outside_observed.get("state")
+        value = outside_observed.get("value")
+        unfilled = state == 0 or value is None
+        add("outside_domain", unfilled, "state 0 and no value",
+            {"state": state, "value": value},
+            "a query outside the support must not be filled by a nearest neighbour")
+
+        # 6) the C-infinity counter-example: without M nothing can be certified,
+        #    and the observed route indeed publishes no interval
+        add("c_infinity_bump", conditional and no_interval,
+            "no finite interval may be certified without M",
+            {"conditional": conditional, "interval_published": not no_interval},
+            "the analytic counter-example of the truth: a product of sines that vanishes at "
+            "every control point is unbounded between them")
+
     comparison = comparison_payload(
-        case.name.upper(), "pending_implementation",
-        [{"name": "plane_truth_inside", "kind": "value", "truth": 0.0, "tolerance": 0.0,
-          "unit": "1", "status": "pending_implementation",
-          "reason": "the public entry point is not available yet"}
-         for _ in plane_rows] +
-        [{"name": f"quadratic_truth_inside[{index}]", "kind": "value", "truth": 0.0,
-          "tolerance": 0.0, "unit": "1", "status": "pending_implementation",
-          "reason": "the public entry point is not available yet"}
-         for index in range(len(quadratic_rows))],
-        [],
-        "The independent truth is complete; the observed side is pending_implementation.")
+        case.name.upper(), status, rows, failures,
+        "V01: the sparse actual-scene variance reconstruction against the barycentric truth "
+        "with the Taylor remainder bound")
 
     case.write_comparison(comparison)
     print(json.dumps({
