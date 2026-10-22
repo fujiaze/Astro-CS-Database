@@ -8,7 +8,7 @@
       "name": "w01_driver_available",
       "observed": null,
       "observed_success_count": 0,
-      "reason": "the native in-memory API driver is not built; build it with validation/lib/build_native.sh",
+      "reason": "driver exited with code -11",
       "status": "pending_implementation"
     }
   ],

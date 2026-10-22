@@ -1,21 +1,23 @@
 {
   "artifacts": {},
   "binary_identity": {
-    "path": "",
-    "sha256": "",
-    "size_bytes": "0"
+    "path": "/workspace/Astro CS Database/validation/build/w01_driver",
+    "sha256": "873926b905e7ed4046cd7361e93261cbf5b823b1f42f2aab96ee86c99ff76078",
+    "size_bytes": "1485824"
   },
-  "command": [],
-  "exit_code": null,
-  "missing_entry_points": [
-    "native-api-driver"
+  "command": [
+    "/workspace/Astro CS Database/validation/build/w01_driver",
+    "--output",
+    "/workspace/Astro CS Database/validation/w01/observed/native_w01.json"
   ],
-  "peak_rss_bytes": null,
-  "reason": "the native in-memory API driver is not built; build it with validation/lib/build_native.sh",
+  "exit_code": -11,
+  "missing_entry_points": [],
+  "peak_rss_bytes": 281210880,
+  "reason": "driver exited with code -11",
   "response": null,
   "route": "native",
-  "status": "pending_implementation",
-  "stderr": "",
+  "status": "error",
+  "stderr": "[w01] case blue start\n[w01] blue selection index size=2 ids_shape=4, dtype=2 values=0,0,0,4.94066e-324,\n[w01] case blue solving\n",
   "stdout": "",
-  "wall_seconds": 0.0
+  "wall_seconds": 0.003077071043662727
 }

@@ -72,7 +72,7 @@ bash validation/lib/build_native.sh u01_driver c01_driver   # 只编译原生驱
 | U01 | 同 R 矩阵、协方差、符号孔径方差、拆同源负例 | analytic_exact | **实跑 14/14 通过**（内存 API + 合同进程双路由） |
 | F01 | 像元积分测光、共享 latent、秩负例、尺度区间 | analytic_exact | 观察侧已实跑；PSF 形状拟合在我的夹具上判秩亏（见 comparison.json） |
 | S01 | 相对天光：KH=0、交叉项、nullspace | analytic_exact + MC | 真值就绪；观察侧待实现 |
-| W01 | BLUE / PSD / 非负 QP 与 100000 次全流程 MC | analytic_exact + MC | 真值就绪；观察侧待实现 |
+| W01 | BLUE / PSD / 非负 QP 与 100000 次全流程 MC | analytic_exact + MC | 真值就绪；观察侧驱动已写（公开 FramesProvider 夹具），但 solve_weights 在该夹具上段错误 ⇒ pending（已报 stats） |
 | V01 | 稀疏场景方差：δ/M 界、洞、C∞ bump 反例 | analytic_exact + conditional | **实跑通过 12/12**（仿射精确到 4.4e−16；无 M 时只给条件预测、不发布区间；域外不填） |
 | E01 | Export：支持均值/积分/外推、同叶合并、FITS 头 | analytic_exact | 真值就绪；观察侧待实现 |
 | P01 | 产品闭包：缺块、hash 冲突、重复曝光、未知 recipe | conditional_model | 真值就绪；观察侧待实现 |
