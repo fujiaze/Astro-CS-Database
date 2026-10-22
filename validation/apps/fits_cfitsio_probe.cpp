@@ -61,15 +61,19 @@ int main(int argc, char** argv) {
   file = nullptr;
   if (fits_open_file(&file, path.c_str(), READONLY, &status)) return fail("fits_open_file", status);
   int naxis = 0;
-  int axes[8] = {0};
-  if (fits_get_img_dim(file, &naxis, axes, &status)) return fail("fits_get_img_dim", status);
-  std::printf("header: naxis=%d axes=%d x %d\n", naxis, axes[0], axes[1]);
+  long axes[8] = {0};
+  if (fits_get_img_size(file, 8, axes, &status)) return fail("fits_get_img_size", status);
+  naxis = static_cast<int>(axes[0]);
+  std::printf("header: naxis=%d axes=%ld x %ld\n", naxis, axes[1], axes[2]);
   std::vector<double> read_back(static_cast<std::size_t>(width * height), 0.0);
   // The first element is a pointer to the value, not the value itself.
   long read_first = 1;
-  if (fits_read_pix(file, TDOUBLE, &read_first, static_cast<long long>(read_back.size()),
-                    read_back.data(), nullptr, &status)) {
-    return fail("fits_read_pix", status);
+  int any_null = 0;
+  // fits_read_pix is the binary table row reader; an image is read with
+  // fits_read_img, whose first element is given by value.
+  if (fits_read_img(file, TDOUBLE, 1, static_cast<long long>(read_back.size()), nullptr,
+                    read_back.data(), &any_null, &status)) {
+    return fail("fits_read_img", status);
   }
   if (fits_close_file(file, &status)) return fail("fits_close_file", status);
 
