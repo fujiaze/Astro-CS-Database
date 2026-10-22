@@ -1,0 +1,80 @@
+{
+  "algorithm_set": [
+    {
+      "name": "acsd-contract",
+      "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+      "version": "1"
+    },
+    {
+      "name": "to_fits",
+      "source_hash": "sha256:6148947cc869448e7d98551ac3dba854d758179bb0d05a76c44cdec415adf7eb",
+      "version": "1"
+    }
+  ],
+  "arithmetic": {
+    "allow_target_fallback": true,
+    "initial_bits": 64,
+    "max_bits": 256,
+    "mode": "outward"
+  },
+  "blocks": [],
+  "build": {
+    "compiler": "14.2.0",
+    "name": "acsd-contract",
+    "standard": "acsd.contract/1",
+    "version": "2.0.0"
+  },
+  "input_hashes": {},
+  "major": 1,
+  "objects": {},
+  "operation": "to_fits",
+  "output_root": "/workspace/Astro CS Database/examples/.work/origin-check",
+  "protocol": "acsd.contract.response",
+  "request_id": "origin-check-01",
+  "resolved_request_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "resources": {
+    "bytes": 1048576,
+    "peak_payload_bytes": 0,
+    "read_bytes": 0,
+    "spill_bytes": 0,
+    "threads": 1,
+    "work": 0,
+    "written_bytes": 0
+  },
+  "result": {
+    "assessment": {
+      "capability": "supported",
+      "complete": true,
+      "condition": {
+        "assumptions": [],
+        "estimator": "",
+        "fixed_objects": [],
+        "kind": ""
+      },
+      "execution": "complete",
+      "included": [],
+      "issues": [],
+      "noise": "unknown",
+      "omitted": [],
+      "science": "bounded",
+      "validity": "certified"
+    },
+    "code": "ok",
+    "dependencies": [],
+    "usage": {
+      "elapsed_seconds": 6.57e-07,
+      "peak_payload_bytes": 0,
+      "read_bytes": 0,
+      "spill_bytes": 0,
+      "work": 0,
+      "written_bytes": 0
+    },
+    "value": {
+      "data": {
+        "x": 1.25,
+        "y": 3.5
+      },
+      "type": "FitsPixel1"
+    }
+  }
+}

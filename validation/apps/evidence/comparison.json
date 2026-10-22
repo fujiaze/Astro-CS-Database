@@ -1,0 +1,72 @@
+{
+  "all_pass": true,
+  "cases": [
+    {
+      "actual_numeric_enclosure": null,
+      "actual_state": "known",
+      "actual_value": 4.328125,
+      "case": "u01",
+      "code": "ok",
+      "difference": 0.0,
+      "exact": true,
+      "expected_model_sha256": "sha256:e4829edfabf20d9277d68d7d993383eb14bd9a7de0f2d103b9391de0228a40e7",
+      "expected_numeric_enclosure": {
+        "lower": 4.328125,
+        "upper": 4.328125
+      },
+      "expected_state": "known",
+      "expected_value": 4.328125,
+      "pass": true,
+      "request_sha256": "sha256:526223e3619e828967686ed56191220a8b09813c8dd37eeae2403a3aaa18e79e",
+      "response_sha256": "sha256:1ca8c6651932792d2a858ef35122d6d21d7a03f0714a888dcbcd658b9b58f055",
+      "unit": {
+        "linear_power": 2,
+        "multiplier": 1.0,
+        "nm_power": 0,
+        "pixel_power": 0,
+        "scale": "fixture:L",
+        "sr_power": -2
+      }
+    },
+    {
+      "actual_values": [
+        3.0,
+        7.0
+      ],
+      "case": "external-array",
+      "code": "ok",
+      "difference": [
+        0.0,
+        0.0
+      ],
+      "expected_model_sha256": "sha256:48bbece046a596b12a12c9b923e3bdf3ae215655ad50430fc87e249bbdcb1a90",
+      "expected_values": [
+        3,
+        7
+      ],
+      "pass": true,
+      "request_sha256": "sha256:abe408b5625ec7bf63382da19a8b72492075688a59f1a205fab44ece14a8cbf6",
+      "response_sha256": "sha256:1916d3326b2fcf4b0e71dabfc1b452b9c1a9a1ea27c9c5584d00722b5f0dc36c"
+    },
+    {
+      "actual": {
+        "x": 1.25,
+        "y": 3.5
+      },
+      "case": "to-fits",
+      "code": "ok",
+      "difference": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "expected": {
+        "x": 1.25,
+        "y": 3.5
+      },
+      "expected_model_sha256": "sha256:39d8a36f8b601ca9e7f46942da14cb840130fbcb66c63ba42ac148bffa33253d",
+      "pass": true,
+      "request_sha256": "sha256:d1993cc3745df32953264e787e97b0643320e487b46a471df4998d5c5ae9a6c1",
+      "response_sha256": "sha256:6a04b2dd092413f8fa9a95816f075b32fe74e8d17387918518e27f17a3e312aa"
+    }
+  ]
+}
