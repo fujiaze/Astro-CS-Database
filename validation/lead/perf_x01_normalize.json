@@ -1,0 +1,156 @@
+{
+  "format": "acsd.performance",
+  "major": 1,
+  "minor": 0,
+  "label": "x01-normalize-8frames-128x128",
+  "machine": {
+    "platform": "Linux-6.12.107+deb13-amd64-x86_64-with-glibc2.41",
+    "machine": "x86_64",
+    "processor": "",
+    "python": "3.13.5",
+    "cpu_count": 16,
+    "cpu_model": "Genuine Intel(R) CPU 0000 @ 1.70GHz",
+    "mem_total": "22510328 kB"
+  },
+  "source": {
+    "revision": "",
+    "dirty": false
+  },
+  "config": "/workspace/Astro CS Database/validation/x01/input/cli/normalize.config.json",
+  "config_hash": "sha256:1f6afc36a0982b439231216d15d716f7599b1cb0f37f0051db4b97495a96e34d",
+  "inputs": [
+    {
+      "key": "x01-00",
+      "path": "/workspace/Astro CS Database/validation/x01/input/cli/frames/frame_00_A.fits",
+      "hash": "sha256:9f7bb23aeb7cf9115023ee19be0cae670bb96d77c3922441ae1ba1f8480fff75"
+    },
+    {
+      "key": "x01-01",
+      "path": "/workspace/Astro CS Database/validation/x01/input/cli/frames/frame_01_A.fits",
+      "hash": "sha256:1bcbeed379b228b29fd5f42aa69318a0225e20b477b1ea2d7efc0b5bb858e2ca"
+    },
+    {
+      "key": "x01-02",
+      "path": "/workspace/Astro CS Database/validation/x01/input/cli/frames/frame_02_A.fits",
+      "hash": "sha256:a5b6cbd90d00dd4413c1ac6c766608a2ac90518891bea7ebfcba23652855a4fe"
+    },
+    {
+      "key": "x01-03",
+      "path": "/workspace/Astro CS Database/validation/x01/input/cli/frames/frame_03_A.fits",
+      "hash": "sha256:861cf908c8a71f098250318aa6c325bdde98fc836a9eff11b3c55dcf50faa349"
+    },
+    {
+      "key": "x01-04",
+      "path": "/workspace/Astro CS Database/validation/x01/input/cli/frames/frame_04_B.fits",
+      "hash": "sha256:70fb1de890a174719b5e97c46f6601f3b5e9aa3930e325d7a74e889e6d60c2db"
+    },
+    {
+      "key": "x01-05",
+      "path": "/workspace/Astro CS Database/validation/x01/input/cli/frames/frame_05_B.fits",
+      "hash": "sha256:4ea5059444aa6021fe5503f12dff5eef967487b29be8dc0548f7e1279c913fa5"
+    },
+    {
+      "key": "x01-06",
+      "path": "/workspace/Astro CS Database/validation/x01/input/cli/frames/frame_06_B.fits",
+      "hash": "sha256:e3c6b7f375651344e4a059bc164e43d2a2d772d3c54a662ec75b5892111fb75c"
+    },
+    {
+      "key": "x01-07",
+      "path": "/workspace/Astro CS Database/validation/x01/input/cli/frames/frame_07_B.fits",
+      "hash": "sha256:d524a393c2fc3093d70b145c9a099a19d02318540743c6bd5e4b3e4baa1c3789"
+    }
+  ],
+  "input_tree_hash": "sha256:efc6a8c44d8dde6fd0224c56c9bccb04ad9c32f20cf982a3c752a6620953e412",
+  "run": {
+    "command": [
+      "/workspace/Astro CS Database/build/science/acsd",
+      "normalize",
+      "--json",
+      "/workspace/Astro CS Database/validation/x01/input/cli/normalize.config.json"
+    ],
+    "exit_code": 4,
+    "wall_seconds": 214.72710583999287,
+    "user_cpu_seconds": 213.014276,
+    "system_cpu_seconds": 0.191886,
+    "peak_rss_bytes": 22433792
+  },
+  "events": {
+    "event_count": 18,
+    "events_by_kind": {
+      "run_started": 1,
+      "frame_started": 8,
+      "frame_finished": 8,
+      "run_finished": 1
+    },
+    "terminal": {
+      "assessment": null,
+      "block": null,
+      "code": "failed",
+      "completed": 0,
+      "event": "run_finished",
+      "exit_code": 4,
+      "frame_id": null,
+      "message": "the run finished",
+      "protocol": "acsd.events/2",
+      "run_id": "run-be19c3f2f6e0dbf7",
+      "seq": 17,
+      "summary": {
+        "cancelled": 0,
+        "failed": 0,
+        "frames": [
+          {
+            "code": "failed",
+            "frame": "x01-00",
+            "status": "failed"
+          },
+          {
+            "code": "failed",
+            "frame": "x01-01",
+            "status": "failed"
+          },
+          {
+            "code": "failed",
+            "frame": "x01-02",
+            "status": "failed"
+          },
+          {
+            "code": "failed",
+            "frame": "x01-03",
+            "status": "failed"
+          },
+          {
+            "code": "unsolved",
+            "frame": "x01-04",
+            "status": "unsolved"
+          },
+          {
+            "code": "unsolved",
+            "frame": "x01-05",
+            "status": "unsolved"
+          },
+          {
+            "code": "unsolved",
+            "frame": "x01-06",
+            "status": "unsolved"
+          },
+          {
+            "code": "unsolved",
+            "frame": "x01-07",
+            "status": "unsolved"
+          }
+        ],
+        "inputs_total": 8,
+        "published": 0,
+        "unsolved": 8
+      },
+      "total": 0
+    },
+    "issues": [],
+    "published": []
+  },
+  "stdout_head": "{\"assessment\":null,\"block\":null,\"code\":\"ok\",\"completed\":0,\"event\":\"run_started\",\"frame_id\":null,\"message\":\"the normalize command started\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":0,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"ok\",\"completed\":0,\"event\":\"frame_started\",\"frame_id\":\"x01-00\",\"message\":\"the frame x01-00 started\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":1,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"ok\",\"completed\":0,\"event\":\"frame_started\",\"frame_id\":\"x01-01\",\"message\":\"the frame x01-01 started\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":2,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"ok\",\"completed\":0,\"event\":\"frame_started\",\"frame_id\":\"x01-02\",\"message\":\"the frame x01-02 started\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":3,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"ok\",\"completed\":0,\"event\":\"frame_started\",\"frame_id\":\"x01-03\",\"message\":\"the frame x01-03 started\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":4,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"ok\",\"completed\":0,\"event\":\"frame_started\",\"frame_id\":\"x01-04\",\"message\":\"the frame x01-04 started\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":5,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"ok\",\"completed\":0,\"event\":\"frame_started\",\"frame_id\":\"x01-05\",\"message\":\"the frame x01-05 started\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":6,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"ok\",\"completed\":0,\"event\":\"frame_started\",\"frame_id\":\"x01-06\",\"message\":\"the frame x01-06 started\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":7,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"ok\",\"completed\":0,\"event\":\"frame_started\",\"frame_id\":\"x01-07\",\"message\":\"the frame x01-07 started\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":8,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"failed\",\"completed\":0,\"event\":\"frame_finished\",\"frame_id\":\"x01-00\",\"message\":\"the pixel integral cannot be built\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":9,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"failed\",\"completed\":0,\"event\":\"frame_finished\",\"frame_id\":\"x01-01\",\"message\":\"the pixel integral cannot be built\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":10,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"failed\",\"completed\":0,\"event\":\"frame_finished\",\"frame_id\":\"x01-02\",\"message\":\"the pixel integral cannot be built\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":11,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"failed\",\"completed\":0,\"event\":\"frame_finished\",\"frame_id\":\"x01-03\",\"message\":\"the pixel integral cannot be built\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":12,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"failed\",\"completed\":0,\"event\":\"frame_finished\",\"frame_id\":\"x01-04\",\"message\":\"the search was exhausted at the hypothesis limit\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":13,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"failed\",\"completed\":0,\"event\":\"frame_finished\",\"frame_id\":\"x01-05\",\"message\":\"the search was exhausted at the hypothesis limit\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":14,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"failed\",\"completed\":0,\"event\":\"frame_finished\",\"frame_id\":\"x01-06\",\"message\":\"the search was exhausted at the hypothesis limit\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":15,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"failed\",\"completed\":0,\"event\":\"frame_finished\",\"frame_id\":\"x01-07\",\"message\":\"the search was exhausted at the hypothesis limit\",\"protocol\":\"acsd.events/2\",\"run_id\":\"run-be19c3f2f6e0dbf7\",\"seq\":16,\"total\":8}\n{\"assessment\":null,\"block\":null,\"code\":\"failed\",\"completed\":0,\"event\":\"run_finished\",\"exit_code\":4,\"frame_id\":null,\"message\":\"the",
+  "stderr_head": "",
+  "note": "Measured with tools/perf_measure.py on the frozen X01 input (8 frames of 128x128, 4 threads, 1 GiB byte budget).  The run does not complete: every frame is unsolved or failed, so the numbers describe the current failing state, not a delivered throughput. The VERIFICATION P-small / P-large readings cannot be given until the chain completes.",
+  "measurement_scope": "x01-normalize-8frames-128x128",
+  "verdict": "run_failed_exit_4"
+}

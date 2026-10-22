@@ -161,13 +161,22 @@ def main() -> int:
         "config_hash": file_sha256(config),
     }
     inputs = []
-    for key, value in (json.loads(config.read_text(encoding="utf-8")).get("inputs") or {}).items():
-        if isinstance(value, str) and Path(value).exists():
-            inputs.append({"key": key, "path": value, "hash": file_sha256(Path(value))})
-        elif isinstance(value, list):
-            for item in value:
-                if isinstance(item, str) and Path(item).exists():
-                    inputs.append({"key": key, "path": item, "hash": file_sha256(Path(item))})
+    declared = json.loads(config.read_text(encoding="utf-8")).get("inputs") or []
+    entries = []
+    if isinstance(declared, dict):
+        entries = [{"key": key, "path": value} for key, value in declared.items()]
+    else:
+        # The configuration schema declares the inputs as a list of objects
+        # with a path and a frame identifier.
+        for item in declared:
+            if isinstance(item, dict) and isinstance(item.get("path"), str):
+                entries.append({"key": item.get("frame_id", item["path"]), "path": item["path"]})
+    for entry in entries:
+        value = entry["path"]
+        if not Path(value).is_absolute():
+            value = str((config.parent / value).resolve())
+        if Path(value).exists():
+            inputs.append({"key": entry["key"], "path": value, "hash": file_sha256(Path(value))})
     result["inputs"] = inputs
     result["input_tree_hash"] = tree_sha256(config.parent)
 
