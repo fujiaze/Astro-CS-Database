@@ -54,6 +54,8 @@
       "src/sources/astrometry_wcs.cpp",
       "src/sources/measure.cpp",
       "src/sources/psf.cpp",
+      "src/sources/psf_fit.cpp",
+      "src/sources/psf_model.cpp",
       "src/storage/local_storage.cpp",
       "src/uncertainty/api.cpp",
       "src/uncertainty/covariance.cpp",
@@ -77,7 +79,7 @@
   "case": "C01",
   "condition": "fixed numeric WCS model; no astrometric parameter error",
   "estimand": "the ICRS unit vector of the forward map, the 0-based pixel of the inverse map, the 3x2 Jacobian dn/d(x,y) and the solid angle per pixel^2",
-  "fixtures_sha256": "fa23e1cf54410e1a69ced99e0b91a93d01cd2be86c50d979d1d96b326b456e97",
+  "fixtures_sha256": "52fce341276054bd763275c6f0d27e207b462e850c2a515dfc1937895013ed35",
   "goal": "Verify the absolute WCS model (forward, inverse, derivative and the solid angle per pixel) against an external complete WCS, and show that the named failure configurations fail by name.",
   "independence": {
     "external_standards": [
@@ -151,7 +153,7 @@
     ],
     "solid_angle_jacobian_relative": 1e-06
   },
-  "truth_sha256": "68d97485b9572f3f6c6cfeffb1ee55be3f67c86d80b819e958538305a4630b69",
+  "truth_sha256": "557778999eee569dd209cbb3fefe97403cde661d9bb527f3364ba6402d224aa3",
   "truth_type": "analytic_exact",
   "unit": "rad (angles), pixel (positions), sr/pixel^2 (solid angle)"
 }

@@ -994,6 +994,851 @@
       },
       "derivative_pixels": [
         [
+          8.5,
+          9.25
+        ],
+        [
+          4.0,
+          6.0
+        ]
+      ],
+      "detector_frame": "detector",
+      "domain": {
+        "lower": [
+          0.0,
+          0.0
+        ],
+        "upper": [
+          16.0,
+          16.0
+        ]
+      },
+      "forward_pixels": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          4.0,
+          6.0
+        ],
+        [
+          8.0,
+          2.0
+        ],
+        [
+          12.5,
+          14.25
+        ],
+        [
+          16.0,
+          16.0
+        ],
+        [
+          7.375,
+          9.125
+        ],
+        [
+          2.5,
+          11.0
+        ],
+        [
+          15.5,
+          3.25
+        ]
+      ],
+      "header": [
+        {
+          "key": "CTYPE1",
+          "value": "RA---TAN-SIP"
+        },
+        {
+          "key": "CTYPE2",
+          "value": "DEC--TAN-SIP"
+        },
+        {
+          "key": "CRPIX1",
+          "value": 8.5
+        },
+        {
+          "key": "CRPIX2",
+          "value": 9.25
+        },
+        {
+          "key": "CRVAL1",
+          "value": 34.0
+        },
+        {
+          "key": "CRVAL2",
+          "value": -12.0
+        },
+        {
+          "key": "CD1_1",
+          "value": 0.00014
+        },
+        {
+          "key": "CD1_2",
+          "value": 3e-05
+        },
+        {
+          "key": "CD2_1",
+          "value": -2e-05
+        },
+        {
+          "key": "CD2_2",
+          "value": 0.00013
+        },
+        {
+          "key": "RADESYS",
+          "value": "ICRS"
+        },
+        {
+          "key": "A_ORDER",
+          "value": 4
+        },
+        {
+          "key": "B_ORDER",
+          "value": 4
+        },
+        {
+          "key": "A_0_2",
+          "value": -0.0003
+        },
+        {
+          "key": "A_0_4",
+          "value": -0.00012212497455729696
+        },
+        {
+          "key": "A_1_1",
+          "value": 0.00016
+        },
+        {
+          "key": "A_2_0",
+          "value": 0.0004
+        },
+        {
+          "key": "A_4_0",
+          "value": 0.00012212497455729696
+        },
+        {
+          "key": "B_0_2",
+          "value": 0.00024
+        },
+        {
+          "key": "B_0_4",
+          "value": 0.00010991247710156727
+        },
+        {
+          "key": "B_1_1",
+          "value": 0.0002
+        },
+        {
+          "key": "B_2_0",
+          "value": -0.00036
+        },
+        {
+          "key": "B_4_0",
+          "value": -0.00010991247710156727
+        }
+      ],
+      "inverse_sky": [],
+      "name": "sip_order4",
+      "note": "order 4 SIP with a certified injectivity bound"
+    },
+    {
+      "astrometric_context": {
+        "epoch_julian_year": 2016.0,
+        "observation_jd_tdb": 2457600.5
+      },
+      "budget": {
+        "absolute": 1e-13,
+        "absolute_floor": 0.0,
+        "allow_target_fallback": false,
+        "initial_bits": 128,
+        "max_bits": 256,
+        "max_iterations": 128,
+        "outward": true,
+        "relative": 1e-13,
+        "unit_scale": "rad"
+      },
+      "derivative_pixels": [
+        [
+          8.5,
+          9.25
+        ],
+        [
+          4.0,
+          6.0
+        ]
+      ],
+      "detector_frame": "detector",
+      "domain": {
+        "lower": [
+          0.0,
+          0.0
+        ],
+        "upper": [
+          16.0,
+          16.0
+        ]
+      },
+      "forward_pixels": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          4.0,
+          6.0
+        ],
+        [
+          8.0,
+          2.0
+        ],
+        [
+          12.5,
+          14.25
+        ],
+        [
+          16.0,
+          16.0
+        ],
+        [
+          7.375,
+          9.125
+        ],
+        [
+          2.5,
+          11.0
+        ],
+        [
+          15.5,
+          3.25
+        ]
+      ],
+      "header": [
+        {
+          "key": "CTYPE1",
+          "value": "RA---TAN-SIP"
+        },
+        {
+          "key": "CTYPE2",
+          "value": "DEC--TAN-SIP"
+        },
+        {
+          "key": "CRPIX1",
+          "value": 8.5
+        },
+        {
+          "key": "CRPIX2",
+          "value": 9.25
+        },
+        {
+          "key": "CRVAL1",
+          "value": 35.0
+        },
+        {
+          "key": "CRVAL2",
+          "value": -12.0
+        },
+        {
+          "key": "CD1_1",
+          "value": 0.00014
+        },
+        {
+          "key": "CD1_2",
+          "value": 3e-05
+        },
+        {
+          "key": "CD2_1",
+          "value": -2e-05
+        },
+        {
+          "key": "CD2_2",
+          "value": 0.00013
+        },
+        {
+          "key": "RADESYS",
+          "value": "ICRS"
+        },
+        {
+          "key": "A_ORDER",
+          "value": 5
+        },
+        {
+          "key": "B_ORDER",
+          "value": 5
+        },
+        {
+          "key": "A_0_2",
+          "value": -0.0003
+        },
+        {
+          "key": "A_0_5",
+          "value": -1.1494115252451478e-05
+        },
+        {
+          "key": "A_1_1",
+          "value": 0.00016
+        },
+        {
+          "key": "A_2_0",
+          "value": 0.0004
+        },
+        {
+          "key": "A_5_0",
+          "value": 1.1494115252451478e-05
+        },
+        {
+          "key": "B_0_2",
+          "value": 0.00024
+        },
+        {
+          "key": "B_0_5",
+          "value": 1.0344703727206331e-05
+        },
+        {
+          "key": "B_1_1",
+          "value": 0.0002
+        },
+        {
+          "key": "B_2_0",
+          "value": -0.00036
+        },
+        {
+          "key": "B_5_0",
+          "value": -1.0344703727206331e-05
+        }
+      ],
+      "inverse_sky": [],
+      "name": "sip_order5",
+      "note": "order 5 SIP with a certified injectivity bound"
+    },
+    {
+      "astrometric_context": {
+        "epoch_julian_year": 2016.0,
+        "observation_jd_tdb": 2457600.5
+      },
+      "budget": {
+        "absolute": 1e-13,
+        "absolute_floor": 0.0,
+        "allow_target_fallback": false,
+        "initial_bits": 128,
+        "max_bits": 256,
+        "max_iterations": 128,
+        "outward": true,
+        "relative": 1e-13,
+        "unit_scale": "rad"
+      },
+      "derivative_pixels": [
+        [
+          8.5,
+          9.25
+        ],
+        [
+          4.0,
+          6.0
+        ]
+      ],
+      "detector_frame": "detector",
+      "domain": {
+        "lower": [
+          0.0,
+          0.0
+        ],
+        "upper": [
+          16.0,
+          16.0
+        ]
+      },
+      "forward_pixels": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          4.0,
+          6.0
+        ],
+        [
+          8.0,
+          2.0
+        ],
+        [
+          12.5,
+          14.25
+        ],
+        [
+          16.0,
+          16.0
+        ],
+        [
+          7.375,
+          9.125
+        ],
+        [
+          2.5,
+          11.0
+        ],
+        [
+          15.5,
+          3.25
+        ]
+      ],
+      "header": [
+        {
+          "key": "CTYPE1",
+          "value": "RA---TAN-SIP"
+        },
+        {
+          "key": "CTYPE2",
+          "value": "DEC--TAN-SIP"
+        },
+        {
+          "key": "CRPIX1",
+          "value": 8.5
+        },
+        {
+          "key": "CRPIX2",
+          "value": 9.25
+        },
+        {
+          "key": "CRVAL1",
+          "value": 36.0
+        },
+        {
+          "key": "CRVAL2",
+          "value": -12.0
+        },
+        {
+          "key": "CD1_1",
+          "value": 0.00014
+        },
+        {
+          "key": "CD1_2",
+          "value": 3e-05
+        },
+        {
+          "key": "CD2_1",
+          "value": -2e-05
+        },
+        {
+          "key": "CD2_2",
+          "value": 0.00013
+        },
+        {
+          "key": "RADESYS",
+          "value": "ICRS"
+        },
+        {
+          "key": "A_ORDER",
+          "value": 6
+        },
+        {
+          "key": "B_ORDER",
+          "value": 6
+        },
+        {
+          "key": "A_0_2",
+          "value": -0.0003
+        },
+        {
+          "key": "A_0_6",
+          "value": -1.1268740443579881e-06
+        },
+        {
+          "key": "A_1_1",
+          "value": 0.00016
+        },
+        {
+          "key": "A_2_0",
+          "value": 0.0004
+        },
+        {
+          "key": "A_6_0",
+          "value": 1.1268740443579881e-06
+        },
+        {
+          "key": "B_0_2",
+          "value": 0.00024
+        },
+        {
+          "key": "B_0_6",
+          "value": 1.0141866399221894e-06
+        },
+        {
+          "key": "B_1_1",
+          "value": 0.0002
+        },
+        {
+          "key": "B_2_0",
+          "value": -0.00036
+        },
+        {
+          "key": "B_6_0",
+          "value": -1.0141866399221894e-06
+        }
+      ],
+      "inverse_sky": [],
+      "name": "sip_order6",
+      "note": "order 6 SIP with a certified injectivity bound"
+    },
+    {
+      "astrometric_context": {
+        "epoch_julian_year": 2016.0,
+        "observation_jd_tdb": 2457600.5
+      },
+      "budget": {
+        "absolute": 1e-13,
+        "absolute_floor": 0.0,
+        "allow_target_fallback": false,
+        "initial_bits": 128,
+        "max_bits": 256,
+        "max_iterations": 128,
+        "outward": true,
+        "relative": 1e-13,
+        "unit_scale": "rad"
+      },
+      "derivative_pixels": [
+        [
+          8.5,
+          9.25
+        ],
+        [
+          4.0,
+          6.0
+        ]
+      ],
+      "detector_frame": "detector",
+      "domain": {
+        "lower": [
+          0.0,
+          0.0
+        ],
+        "upper": [
+          16.0,
+          16.0
+        ]
+      },
+      "forward_pixels": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          4.0,
+          6.0
+        ],
+        [
+          8.0,
+          2.0
+        ],
+        [
+          12.5,
+          14.25
+        ],
+        [
+          16.0,
+          16.0
+        ],
+        [
+          7.375,
+          9.125
+        ],
+        [
+          2.5,
+          11.0
+        ],
+        [
+          15.5,
+          3.25
+        ]
+      ],
+      "header": [
+        {
+          "key": "CTYPE1",
+          "value": "RA---TAN-SIP"
+        },
+        {
+          "key": "CTYPE2",
+          "value": "DEC--TAN-SIP"
+        },
+        {
+          "key": "CRPIX1",
+          "value": 8.5
+        },
+        {
+          "key": "CRPIX2",
+          "value": 9.25
+        },
+        {
+          "key": "CRVAL1",
+          "value": 37.0
+        },
+        {
+          "key": "CRVAL2",
+          "value": -12.0
+        },
+        {
+          "key": "CD1_1",
+          "value": 0.00014
+        },
+        {
+          "key": "CD1_2",
+          "value": 3e-05
+        },
+        {
+          "key": "CD2_1",
+          "value": -2e-05
+        },
+        {
+          "key": "CD2_2",
+          "value": 0.00013
+        },
+        {
+          "key": "RADESYS",
+          "value": "ICRS"
+        },
+        {
+          "key": "A_ORDER",
+          "value": 7
+        },
+        {
+          "key": "B_ORDER",
+          "value": 7
+        },
+        {
+          "key": "A_0_2",
+          "value": -0.0003
+        },
+        {
+          "key": "A_0_7",
+          "value": -1.1363435741425091e-07
+        },
+        {
+          "key": "A_1_1",
+          "value": 0.00016
+        },
+        {
+          "key": "A_2_0",
+          "value": 0.0004
+        },
+        {
+          "key": "A_7_0",
+          "value": 1.1363435741425091e-07
+        },
+        {
+          "key": "B_0_2",
+          "value": 0.00024
+        },
+        {
+          "key": "B_0_7",
+          "value": 1.0227092167282582e-07
+        },
+        {
+          "key": "B_1_1",
+          "value": 0.0002
+        },
+        {
+          "key": "B_2_0",
+          "value": -0.00036
+        },
+        {
+          "key": "B_7_0",
+          "value": -1.0227092167282582e-07
+        }
+      ],
+      "inverse_sky": [],
+      "name": "sip_order7",
+      "note": "order 7 SIP with a certified injectivity bound"
+    },
+    {
+      "astrometric_context": {
+        "epoch_julian_year": 2016.0,
+        "observation_jd_tdb": 2457600.5
+      },
+      "budget": {
+        "absolute": 1e-13,
+        "absolute_floor": 0.0,
+        "allow_target_fallback": false,
+        "initial_bits": 128,
+        "max_bits": 256,
+        "max_iterations": 128,
+        "outward": true,
+        "relative": 1e-13,
+        "unit_scale": "rad"
+      },
+      "derivative_pixels": [
+        [
+          8.5,
+          9.25
+        ],
+        [
+          4.0,
+          6.0
+        ]
+      ],
+      "detector_frame": "detector",
+      "domain": {
+        "lower": [
+          0.0,
+          0.0
+        ],
+        "upper": [
+          16.0,
+          16.0
+        ]
+      },
+      "forward_pixels": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          4.0,
+          6.0
+        ],
+        [
+          8.0,
+          2.0
+        ],
+        [
+          12.5,
+          14.25
+        ],
+        [
+          16.0,
+          16.0
+        ],
+        [
+          7.375,
+          9.125
+        ],
+        [
+          2.5,
+          11.0
+        ],
+        [
+          15.5,
+          3.25
+        ]
+      ],
+      "header": [
+        {
+          "key": "CTYPE1",
+          "value": "RA---TAN-SIP"
+        },
+        {
+          "key": "CTYPE2",
+          "value": "DEC--TAN-SIP"
+        },
+        {
+          "key": "CRPIX1",
+          "value": 8.5
+        },
+        {
+          "key": "CRPIX2",
+          "value": 9.25
+        },
+        {
+          "key": "CRVAL1",
+          "value": 38.0
+        },
+        {
+          "key": "CRVAL2",
+          "value": -12.0
+        },
+        {
+          "key": "CD1_1",
+          "value": 0.00014
+        },
+        {
+          "key": "CD1_2",
+          "value": 3e-05
+        },
+        {
+          "key": "CD2_1",
+          "value": -2e-05
+        },
+        {
+          "key": "CD2_2",
+          "value": 0.00013
+        },
+        {
+          "key": "RADESYS",
+          "value": "ICRS"
+        },
+        {
+          "key": "A_ORDER",
+          "value": 8
+        },
+        {
+          "key": "B_ORDER",
+          "value": 8
+        },
+        {
+          "key": "A_0_2",
+          "value": -0.0003
+        },
+        {
+          "key": "A_0_8",
+          "value": -1.16976544397023e-08
+        },
+        {
+          "key": "A_1_1",
+          "value": 0.00016
+        },
+        {
+          "key": "A_2_0",
+          "value": 0.0004
+        },
+        {
+          "key": "A_8_0",
+          "value": 1.16976544397023e-08
+        },
+        {
+          "key": "B_0_2",
+          "value": 0.00024
+        },
+        {
+          "key": "B_0_8",
+          "value": 1.052788899573207e-08
+        },
+        {
+          "key": "B_1_1",
+          "value": 0.0002
+        },
+        {
+          "key": "B_2_0",
+          "value": -0.00036
+        },
+        {
+          "key": "B_8_0",
+          "value": -1.052788899573207e-08
+        }
+      ],
+      "inverse_sky": [],
+      "name": "sip_order8",
+      "note": "order 8 SIP with a certified injectivity bound"
+    },
+    {
+      "astrometric_context": {
+        "epoch_julian_year": 2016.0,
+        "observation_jd_tdb": 2457600.5
+      },
+      "budget": {
+        "absolute": 1e-13,
+        "absolute_floor": 0.0,
+        "allow_target_fallback": false,
+        "initial_bits": 128,
+        "max_bits": 256,
+        "max_iterations": 128,
+        "outward": true,
+        "relative": 1e-13,
+        "unit_scale": "rad"
+      },
+      "derivative_pixels": [
+        [
           5.5,
           6.5
         ]

@@ -211,6 +211,96 @@
     },
     {
       "kind": "value",
+      "name": "sip_order4:forward_max_rad",
+      "observed": 3.5108334685767e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "sip_order4:derivative_relative",
+      "observed": 5.2989705040155194e-08,
+      "status": "pass",
+      "tolerance": 1e-06,
+      "truth": 0.0,
+      "unit": "1"
+    },
+    {
+      "kind": "value",
+      "name": "sip_order5:forward_max_rad",
+      "observed": 4.793364605007606e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "sip_order5:derivative_relative",
+      "observed": 6.214981600768146e-08,
+      "status": "pass",
+      "tolerance": 1e-06,
+      "truth": 0.0,
+      "unit": "1"
+    },
+    {
+      "kind": "value",
+      "name": "sip_order6:forward_max_rad",
+      "observed": 4.2480540932182583e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "sip_order6:derivative_relative",
+      "observed": 4.502653329257099e-08,
+      "status": "pass",
+      "tolerance": 1e-06,
+      "truth": 0.0,
+      "unit": "1"
+    },
+    {
+      "kind": "value",
+      "name": "sip_order7:forward_max_rad",
+      "observed": 5.149762648337518e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "sip_order7:derivative_relative",
+      "observed": 3.968979436496022e-08,
+      "status": "pass",
+      "tolerance": 1e-06,
+      "truth": 0.0,
+      "unit": "1"
+    },
+    {
+      "kind": "value",
+      "name": "sip_order8:forward_max_rad",
+      "observed": 4.1261629522333664e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "sip_order8:derivative_relative",
+      "observed": 5.255648033859169e-08,
+      "status": "pass",
+      "tolerance": 1e-06,
+      "truth": 0.0,
+      "unit": "1"
+    },
+    {
+      "kind": "value",
       "name": "ra_wrap:forward_max_rad",
       "observed": 6.438700539746239e-16,
       "status": "pass",

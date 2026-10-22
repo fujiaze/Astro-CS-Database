@@ -215,6 +215,26 @@ def build_fixtures():
         derivative_pixels=[(15.125, 25.375)],
         note="ninth order SIP with sparse coefficients"))
 
+    # The remaining SIP orders 4..8.  The high order coefficients are scaled
+    # so that the induced infinity norm of the gradient stays below one over
+    # the declared domain while the distortion stays well above the 1e-10 rad
+    # tolerance.
+    half_extent = 8.5
+    for order in (4, 5, 6, 7, 8):
+        scale = 0.3 / (order * (half_extent ** (order - 1)))
+        terms_a = {(2, 0): 4.0e-4, (0, 2): -3.0e-4, (1, 1): 1.6e-4,
+                   (order, 0): scale, (0, order): -scale}
+        terms_b = {(2, 0): -3.6e-4, (0, 2): 2.4e-4, (1, 1): 2.0e-4,
+                   (order, 0): -0.9 * scale, (0, order): 0.9 * scale}
+        cases.append(make_case(
+            f"sip_order{order}",
+            crpix=(8.5, 9.25), crval=(30.0 + order, -12.0),
+            cd=[[1.4e-4, 3.0e-5], [-2.0e-5, 1.3e-4]],
+            sip=sip_header(order, order, terms_a, terms_b),
+            forward_pixels=small_grid, domain=small_domain,
+            derivative_pixels=[(8.5, 9.25), (4.0, 6.0)],
+            note=f"order {order} SIP with a certified injectivity bound"))
+
     cases.append(make_case(
         "ra_wrap",
         crpix=(5.5, 6.5), crval=(359.95, 10.0),
