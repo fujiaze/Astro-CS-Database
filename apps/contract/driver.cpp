@@ -98,6 +98,8 @@ class Driver {
   json run_make_covariance();
   json run_make_wcs();
   json run_make_footprint_provider();
+  json run_integrate_response();
+  json run_control_covariance();
   json run_measure();
   json run_compute_overlap();
   json run_forward();
@@ -468,6 +470,95 @@ GeometryBudget decode_geometry_budget(const json& node) {
   budget.arithmetic = decode_arithmetic(node.contains("arithmetic") ? node.at("arithmetic")
                                                                      : json::object());
   return budget;
+}
+
+
+// The spectral prediction of a response against a basis.
+json Driver::run_integrate_response() {
+  Result<TypedObject> response_node = argument("response");
+  if (!ok(response_node)) {
+    return failure_body(response_node.code, "the response argument cannot be decoded",
+                        "contract.decode");
+  }
+  Result<TypedObject> basis_node = argument("basis");
+  if (!ok(basis_node)) {
+    return failure_body(basis_node.code, "the basis argument cannot be decoded", "contract.decode");
+  }
+  if (val(response_node).type != "Response" || val(basis_node).type != "SpectralBasis") {
+    return failure_body(Code::invalid_request, "the arguments have the wrong type",
+                        "contract.decode");
+  }
+  Ref<Response> response = std::static_pointer_cast<const Response>(val(response_node).value);
+  Ref<SpectralBasis> basis = std::static_pointer_cast<const SpectralBasis>(val(basis_node).value);
+  const NumericBudget budget = decode_numeric_budget(request_);
+  json body = envelope_header();
+  json result;
+  Result<Ref<SpectralPrediction>> prediction =
+      integrate_response(*context_, response, basis, budget);
+  if (!ok(prediction)) {
+    result["code"] = encode_code(prediction.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(prediction.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  const Id hash = model::sha256_hex("acsd.SpectralPrediction:" + response->identity.object_id);
+  result["code"] = encode_code(Code::ok);
+  result["value"] = encode_ref_value(hash);
+  result["assessment"] = encode_assessment(val(prediction)->assessment);
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
+  decoder_->publish("SpectralPrediction", hash, json{{"basis", json{{"$ref", basis->identity.object_id}}},
+                                                     {"response", json{{"$ref", response->identity.object_id}}},
+                                                     {"support_nm", json{{"lower", encode_f64(val(prediction)->support_nm.lower)},
+                                                                        {"upper", encode_f64(val(prediction)->support_nm.upper)}}}});
+  body["result"] = result;
+  return body;
+}
+
+// The control covariance of a covariance action under a transformation.
+json Driver::run_control_covariance() {
+  Result<TypedObject> covariance_node = argument("covariance");
+  if (!ok(covariance_node)) {
+    return failure_body(covariance_node.code, "the covariance argument cannot be decoded",
+                        "contract.decode");
+  }
+  Result<TypedObject> transform_node = argument("T");
+  if (!ok(transform_node)) {
+    return failure_body(transform_node.code, "the T argument cannot be decoded", "contract.decode");
+  }
+  if (val(covariance_node).type != "CovarianceAction" ||
+      val(transform_node).type != "LinearAction") {
+    return failure_body(Code::invalid_request, "the arguments have the wrong type",
+                        "contract.decode");
+  }
+  Ref<CovarianceAction> covariance =
+      std::static_pointer_cast<const CovarianceAction>(val(covariance_node).value);
+  Ref<LinearAction> transform = std::static_pointer_cast<const LinearAction>(val(transform_node).value);
+  json body = envelope_header();
+  json result;
+  Result<Ref<CovarianceAction>> control = control_covariance(*context_, covariance, transform);
+  if (!ok(control)) {
+    result["code"] = encode_code(control.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(control.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  const Id hash = model::sha256_hex("acsd.CovarianceAction:control:" +
+                                    covariance->identity.object_id);
+  result["code"] = encode_code(Code::ok);
+  result["value"] = encode_ref_value(hash);
+  result["assessment"] = encode_assessment(val(control)->assessment);
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
+  decoder_->publish("CovarianceAction", hash, json{{"model", json{{"$ref", covariance->identity.object_id}}}});
+  body["result"] = result;
+  return body;
 }
 
 json Driver::run_make_footprint_provider() {
@@ -974,6 +1065,8 @@ json Driver::dispatch() {
   if (operation_ == "make_covariance") return run_make_covariance();
   if (operation_ == "make_wcs") return run_make_wcs();
   if (operation_ == "make_footprint_provider") return run_make_footprint_provider();
+  if (operation_ == "integrate_response") return run_integrate_response();
+  if (operation_ == "control_covariance") return run_control_covariance();
   if (operation_ == "measure") return run_measure();
   if (operation_ == "compute_overlap") return run_compute_overlap();
   if (operation_ == "forward") return run_forward();
@@ -1140,6 +1233,8 @@ bool operation_supported(const std::string& operation) {
                                      "make_covariance",
                                      "make_wcs",
                                      "make_footprint_provider",
+                                     "integrate_response",
+                                     "control_covariance",
                                      "measure",
                                      "compute_overlap",
                                      "forward",

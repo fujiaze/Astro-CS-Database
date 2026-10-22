@@ -1,0 +1,34 @@
+{
+ "case": "apps-contract-dispatch",
+ "implemented": [
+  "to_fits",
+  "from_fits_center",
+  "from_fits_edge",
+  "apply",
+  "transpose_apply",
+  "quadratic_form",
+  "covariance_apply",
+  "make_covariance",
+  "make_wcs",
+  "make_footprint_provider",
+  "integrate_response",
+  "control_covariance",
+  "measure",
+  "compute_overlap",
+  "forward",
+  "inverse",
+  "derivative",
+  "solid_angle_jacobian",
+  "storage.copy",
+  "storage.read",
+  "storage.open"
+ ],
+ "count": 21,
+ "evidence": [
+  "validation/apps/evidence/contract/compute_overlap.request.json",
+  "validation/apps/evidence/contract/integrate_response.request.json",
+  "validation/apps/evidence/contract/make_footprint_provider.request.json",
+  "validation/apps/evidence/contract/make_wcs.request.json"
+ ],
+ "note": "每个已接入的操作都在 validation/apps/evidence/contract/ 下有请求、响应与退出码三件套；未接入的操作返回 unsupported（origin=contract.dispatch），不伪造结果。"
+}

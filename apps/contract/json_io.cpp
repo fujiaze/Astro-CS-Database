@@ -737,6 +737,23 @@ std::string dtype_name(DType dtype) {
   return "f64";
 }
 
+
+// Stores a list of numbers as a float64 array in the storage of the context.
+Result<ArrayRef> store_f64_values(Context& context, const json& values, const std::string& name,
+                                  const std::vector<U64>& shape = {}) {
+  if (!values.is_array()) {
+    return model::fail<ArrayRef>(Code::invalid_model, "the array is not a list", "contract.decode",
+                                  "the array cannot be stored");
+  }
+  std::vector<double> data;
+  data.reserve(values.size());
+  for (const json& item : values) data.push_back(decode_f64(item));
+  const std::vector<std::byte> bytes = model::encode_f64(data);
+  const std::vector<U64> extent =
+      shape.empty() ? std::vector<U64>{static_cast<U64>(data.size())} : shape;
+  return context.storage.copy(context, DType::f64, bytes, extent, model::unit_dimensionless(), name);
+}
+
 Identity identity_for(const std::string& schema_id, const json& payload) {
   // A payload that carries its identity keeps it: the object of a response
   // and the object of the next request are the same object.
@@ -1315,6 +1332,62 @@ Result<TypedObject> DecodeContext::decode_node(const json& node) {
     const Id hash = identity_for("acsd.FootprintProvider", payload).object_id;
     publish("FootprintProvider", hash, payload);
     return model::ok_result(TypedObject{"FootprintProvider", val(wcs_object).value, hash});
+  }
+
+  if (type == "SpectralBasis") {
+    SpectralBasis basis;
+    const json& knots = field(payload, "knots_nm");
+    const json& coefficients = field(payload, "basis_coefficients");
+    Result<ArrayRef> knot_array = store_f64_values(context_, knots, "acsd.basis.knots");
+    const U64 coefficient_count = u64_field(payload, "coefficient_count", 0);
+    const U64 row_count = coefficient_count > 0 ? static_cast<U64>(coefficients.size()) / coefficient_count
+                                                 : static_cast<U64>(coefficients.size());
+    Result<ArrayRef> coefficient_array =
+        store_f64_values(context_, coefficients, "acsd.basis.coefficients",
+                         std::vector<U64>{row_count, coefficient_count});
+    if (!ok(knot_array) || !ok(coefficient_array)) {
+      return model::fail<TypedObject>(Code::invalid_model, "the basis arrays cannot be stored",
+                                       "contract.decode", "the basis cannot be decoded");
+    }
+    basis.knots_nm = val(knot_array);
+    basis.basis_coefficients = val(coefficient_array);
+    basis.degree = static_cast<U32>(u64_field(payload, "degree", 0));
+    basis.coefficient_count = static_cast<U32>(u64_field(payload, "coefficient_count", 0));
+    basis.support_nm = decode_interval(field(payload, "support_nm"));
+    basis.identity = identity_for("acsd.SpectralBasis", payload);
+    basis.assessment = model::make_assessment(Code::ok);
+    basis.assessment.complete = true;
+    publish("SpectralBasis", basis.identity.object_id, payload);
+    return model::ok_result(TypedObject{"SpectralBasis",
+                                        std::make_shared<const SpectralBasis>(basis),
+                                        basis.identity.object_id});
+  }
+
+  if (type == "Response") {
+    Response response;
+    const std::string convention = string_field(payload, "convention", "photon_throughput");
+    response.convention = convention == "includes_photon_conversion"
+                              ? Response::Convention::includes_photon_conversion
+                              : Response::Convention::photon_throughput;
+    const json& wavelengths = field(payload, "wavelength_nm");
+    const json& throughput = field(payload, "throughput");
+    Result<ArrayRef> wavelength_array = store_f64_values(context_, wavelengths, "acsd.response.wavelength");
+    Result<ArrayRef> throughput_array = store_f64_values(context_, throughput, "acsd.response.throughput");
+    if (!ok(wavelength_array) || !ok(throughput_array)) {
+      return model::fail<TypedObject>(Code::invalid_model, "the response arrays cannot be stored",
+                                       "contract.decode", "the response cannot be decoded");
+    }
+    response.wavelength_nm = val(wavelength_array);
+    response.throughput = val(throughput_array);
+    response.support_nm = decode_interval(field(payload, "support_nm"));
+    response.provenance = string_field(payload, "provenance");
+    response.normalization = string_field(payload, "normalization");
+    response.identity = identity_for("acsd.Response", payload);
+    response.assessment = model::make_assessment(Code::ok);
+    response.assessment.complete = true;
+    publish("Response", response.identity.object_id, payload);
+    return model::ok_result(TypedObject{"Response", std::make_shared<const Response>(response),
+                                        response.identity.object_id});
   }
 
   if (type == "DetectorFootprint") {

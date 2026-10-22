@@ -1,0 +1,282 @@
+{
+ "algorithm_set": [
+  {
+   "name": "acsd-contract",
+   "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+   "version": "1"
+  },
+  {
+   "name": "integrate_response",
+   "source_hash": "sha256:81f716d9e2c77f7506300bede74c7df4653a738472a7bb6b05fc764f45f1254b",
+   "version": "1"
+  }
+ ],
+ "arithmetic": {
+  "allow_target_fallback": true,
+  "initial_bits": 64,
+  "max_bits": 256,
+  "mode": "outward"
+ },
+ "blocks": [],
+ "build": {
+  "compiler": "14.2.0",
+  "name": "acsd-contract",
+  "standard": "acsd.contract/1",
+  "version": "2.0.0"
+ },
+ "input_hashes": {
+  "b": "acsd.SpectralBasis:5c329eb5b76449bc6061cbbe0ccc74bda3b3ea9f7907a59b692851fe2a03a524",
+  "r": "acsd.Response:41678b6666661624415102964a61f52eb32f275c82b3424287770cf2d5645c55"
+ },
+ "major": 1,
+ "objects": {
+  "6594dc3bfe0a163e1f16cf3b57626d5d0c0023e859e6e6281aff2ce2735252a7": {
+   "data": {
+    "basis": {
+     "$ref": "acsd.SpectralBasis:5c329eb5b76449bc6061cbbe0ccc74bda3b3ea9f7907a59b692851fe2a03a524"
+    },
+    "response": {
+     "$ref": "acsd.Response:41678b6666661624415102964a61f52eb32f275c82b3424287770cf2d5645c55"
+    },
+    "support_nm": {
+     "lower": {
+      "f64": "0000000000007940"
+     },
+     "upper": {
+      "f64": "0000000000e08540"
+     }
+    }
+   },
+   "type": "SpectralPrediction"
+  },
+  "acsd.Response:41678b6666661624415102964a61f52eb32f275c82b3424287770cf2d5645c55": {
+   "data": {
+    "convention": "photon_throughput",
+    "normalization": "unity",
+    "provenance": "chain",
+    "support_nm": {
+     "lower": 400.0,
+     "upper": 700.0
+    },
+    "throughput": [
+     0.5,
+     0.5083333333333333,
+     0.5166666666666667,
+     0.525,
+     0.5333333333333333,
+     0.5416666666666666,
+     0.55,
+     0.5583333333333333,
+     0.5666666666666667,
+     0.575,
+     0.5833333333333334,
+     0.5916666666666667,
+     0.6,
+     0.6083333333333334,
+     0.6166666666666667,
+     0.625,
+     0.6333333333333333,
+     0.6416666666666666,
+     0.65,
+     0.6583333333333333,
+     0.6666666666666666,
+     0.675,
+     0.6833333333333333,
+     0.6916666666666667,
+     0.7,
+     0.7083333333333334,
+     0.7166666666666667,
+     0.725,
+     0.7333333333333334,
+     0.7416666666666667,
+     0.75,
+     0.7583333333333333,
+     0.7666666666666666,
+     0.775,
+     0.7833333333333333,
+     0.7916666666666667,
+     0.8,
+     0.8083333333333333,
+     0.8166666666666667,
+     0.825,
+     0.8333333333333333,
+     0.8416666666666667,
+     0.85,
+     0.8583333333333334,
+     0.8666666666666667,
+     0.875,
+     0.8833333333333333,
+     0.8916666666666666,
+     0.9,
+     0.9083333333333333,
+     0.9166666666666667,
+     0.925,
+     0.9333333333333333,
+     0.9416666666666667,
+     0.95,
+     0.9583333333333333,
+     0.9666666666666667,
+     0.975,
+     0.9833333333333334,
+     0.9916666666666667,
+     1.0
+    ],
+    "wavelength_nm": [
+     400.0,
+     405.0,
+     410.0,
+     415.0,
+     420.0,
+     425.0,
+     430.0,
+     435.0,
+     440.0,
+     445.0,
+     450.0,
+     455.0,
+     460.0,
+     465.0,
+     470.0,
+     475.0,
+     480.0,
+     485.0,
+     490.0,
+     495.0,
+     500.0,
+     505.0,
+     510.0,
+     515.0,
+     520.0,
+     525.0,
+     530.0,
+     535.0,
+     540.0,
+     545.0,
+     550.0,
+     555.0,
+     560.0,
+     565.0,
+     570.0,
+     575.0,
+     580.0,
+     585.0,
+     590.0,
+     595.0,
+     600.0,
+     605.0,
+     610.0,
+     615.0,
+     620.0,
+     625.0,
+     630.0,
+     635.0,
+     640.0,
+     645.0,
+     650.0,
+     655.0,
+     660.0,
+     665.0,
+     670.0,
+     675.0,
+     680.0,
+     685.0,
+     690.0,
+     695.0,
+     700.0
+    ]
+   },
+   "type": "Response"
+  },
+  "acsd.SpectralBasis:5c329eb5b76449bc6061cbbe0ccc74bda3b3ea9f7907a59b692851fe2a03a524": {
+   "data": {
+    "basis_coefficients": [
+     1.0,
+     0.0,
+     0.0,
+     1.0,
+     0.0,
+     0.0,
+     0.0,
+     1.0,
+     0.0,
+     0.0,
+     1.0,
+     0.0,
+     0.0,
+     0.0,
+     1.0,
+     0.0,
+     0.0,
+     1.0
+    ],
+    "coefficient_count": 3,
+    "degree": 2,
+    "knots_nm": [
+     400.0,
+     550.0,
+     700.0
+    ],
+    "support_nm": {
+     "lower": 400.0,
+     "upper": 700.0
+    }
+   },
+   "type": "SpectralBasis"
+  }
+ },
+ "operation": "integrate_response",
+ "output_root": "/tmp/tmpp7sw7nnc/.work/chain",
+ "protocol": "acsd.contract.response",
+ "request_id": "chain-integrate",
+ "resolved_request_hash": "sha256:39b36ac4a64194978b9ca26b47f78262324d82d8c465f2c0d14dccce2501084c",
+ "resources": {
+  "byte_budget": 8388608,
+  "bytes": 8388608,
+  "elapsed_seconds": 0.000325898,
+  "peak_payload_bytes": 0,
+  "read_bytes": 0,
+  "spill_bytes": 0,
+  "threads": 1,
+  "work": 63,
+  "work_budget": 100000,
+  "written_bytes": 0
+ },
+ "result": {
+  "assessment": {
+   "capability": "supported",
+   "complete": true,
+   "condition": {
+    "assumptions": [],
+    "estimator": "basis_integrals",
+    "fixed_objects": [],
+    "kind": "response_integration"
+   },
+   "execution": "complete",
+   "included": [
+    "segmented_gauss_kronrod_panels",
+    "floating_point_summation_bound"
+   ],
+   "issues": [],
+   "noise": "unknown",
+   "omitted": [
+    "xp_resolution_model_bias",
+    "response_shape_model_error"
+   ],
+   "science": "bounded",
+   "validity": "approximate"
+  },
+  "code": "ok",
+  "dependencies": [],
+  "usage": {
+   "elapsed_seconds": 2.76e-07,
+   "peak_payload_bytes": 0,
+   "read_bytes": 0,
+   "spill_bytes": 0,
+   "work": 63,
+   "written_bytes": 0
+  },
+  "value": {
+   "$ref": "6594dc3bfe0a163e1f16cf3b57626d5d0c0023e859e6e6281aff2ce2735252a7"
+  }
+ }
+}
