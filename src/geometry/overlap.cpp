@@ -728,7 +728,22 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   model::set_included(overlaps->assessment, "exact_rational_clipping");
   model::set_included(overlaps->assessment, "shared_constraints");
   if (containment.complete) {
-    model::set_included(overlaps->assessment, "target_domain_containment_fallback");
+    // The proof strength of the containment fallback is recorded: the number
+    // of boundary segments the adaptive refinement used, and how many target
+    // cells were decided or kept undecided.
+    model::set_included(
+        overlaps->assessment,
+        "target_domain_containment_fallback:boundary_segments=" +
+            std::to_string(containment.boundary_segments) + ":cells_decided=" +
+            std::to_string(containment.cells_decided) + ":cells_undecided=" +
+            std::to_string(containment.cells_undecided));
+    if (containment.cells_undecided > 0) {
+      model::add_issue(overlaps->assessment, Code::support_unresolved,
+                       "containment_cells_undecided", "compute_overlap:target_containment",
+                       "the target cells that the containment proof could not decide keep their "
+                       "whole cell mass as the error bound",
+                       "raise the geometry budget for a finer boundary refinement");
+    }
   }
   if (!containment.complete) {
     // The containment fallback could not prove the chart enclosure of the

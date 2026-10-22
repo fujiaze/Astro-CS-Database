@@ -34,6 +34,11 @@ struct ContainmentOutcome {
   // that the per leaf intervals are a valid enclosure of the overlap mass.
   bool complete = false;
   U64 work = 0;
+  // The adaptive refinement of the source boundary: the number of segments
+  // the boundary was split into and the number of cells that were decided.
+  U64 boundary_segments = 0;
+  U64 cells_decided = 0;
+  U64 cells_undecided = 0;
 };
 
 // The equal-area containment integral A over the detector rectangle.

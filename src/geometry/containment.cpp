@@ -68,27 +68,59 @@ struct Segment {
   double v1 = 0.0;
 };
 
-// The segments of the boundary of the detector rectangle.
-std::vector<Segment> boundary_segments(const Box& detector_rect) {
+// The number of segments one detector edge is split into.
+//
+// The separation test resolves a cell only when the chart enclosure of a
+// boundary segment stays below one target cell.  The edge is therefore split
+// adaptively: the number of segments follows the chart extent of the edge
+// (the curvature proxy of the boundary in the chart) and is bounded by the
+// geometry budget.  A tangency, where the boundary runs along a cell
+// boundary, gets the finest subdivision the budget allows.
+U64 segments_for_edge(const WcsModel& wcs, double u0, double u1, double v0, double v1, U32 order,
+                      U64 min_segments, U64 max_segments) {
+  ChartBox box;
+  if (!chart_enclosure(wcs, u0, u1, v0, v1, box)) return min_segments;
+  const double nside = static_cast<double>(1ull << order);
+  // The chart extent of the edge, widened by the residual of the affine chart
+  // model over that edge.  The residual is the curvature proxy: where the
+  // boundary runs tangentially the chart model is the least accurate, so the
+  // edge is refined the most.
+  const double span_s = (box.s_hi - box.s_lo + 2.0 * box.e_s) * nside;
+  const double span_t = (box.t_hi - box.t_lo + 2.0 * box.e_t) * nside;
+  const double cells = std::max(span_s, span_t);
+  if (!(cells > 1.0)) return min_segments;
+  const double wanted = std::ceil(cells);
+  const double limited = std::min(wanted, static_cast<double>(max_segments));
+  if (limited < static_cast<double>(min_segments)) return min_segments;
+  return static_cast<U64>(limited);
+}
+
+// The segments of the boundary of the detector rectangle, with the adaptive
+// number of segments per edge.
+std::vector<Segment> boundary_segments(const WcsModel& wcs, const Box& detector_rect, U32 order,
+                                       U64 min_segments, U64 max_segments, U64& total) {
   const double x0 = detector_rect.lower[0];
   const double x1 = detector_rect.upper[0];
   const double y0 = detector_rect.lower[1];
   const double y1 = detector_rect.upper[1];
-  const double dx = (x1 - x0) / static_cast<double>(kSegmentsPerEdge);
-  const double dy = (y1 - y0) / static_cast<double>(kSegmentsPerEdge);
   std::vector<Segment> segments;
-  for (U64 i = 0; i < kSegmentsPerEdge; ++i) {
+  const U64 horizontal = segments_for_edge(wcs, x0, x1, y0, y0, order, min_segments, max_segments);
+  const U64 vertical = segments_for_edge(wcs, x0, x0, y0, y1, order, min_segments, max_segments);
+  const double dx = (x1 - x0) / static_cast<double>(horizontal);
+  const double dy = (y1 - y0) / static_cast<double>(vertical);
+  for (U64 i = 0; i < horizontal; ++i) {
     const double a = x0 + dx * static_cast<double>(i);
     const double b = a + dx;
     segments.push_back(Segment{a, b, y0, y0});
     segments.push_back(Segment{a, b, y1, y1});
   }
-  for (U64 i = 0; i < kSegmentsPerEdge; ++i) {
+  for (U64 i = 0; i < vertical; ++i) {
     const double a = y0 + dy * static_cast<double>(i);
     const double b = a + dy;
     segments.push_back(Segment{x0, x0, a, b});
     segments.push_back(Segment{x1, x1, a, b});
   }
+  total = segments.size();
   return segments;
 }
 
@@ -176,11 +208,18 @@ ContainmentOutcome target_containment(Context& context, const WcsModel& wcs, Ref
   ChartBox box;
   if (!chart_enclosure(wcs, u0, u1, v0, v1, box)) return outcome;
 
-  // The chart enclosure of the boundary of the source region.
+  // The chart enclosure of the boundary of the source region.  The boundary is
+  // refined adaptively: the number of segments per edge follows the chart
+  // extent of that edge and is bounded by the geometry budget.
+  const U64 min_segments = kSegmentsPerEdge;
+  const U64 max_segments = std::max<U64>(min_segments, budget.max_work / 4096ull);
+  U64 segment_count = 0;
   std::vector<SegmentEnclosure> boundary;
-  for (const Segment& segment : boundary_segments(detector_rect)) {
+  for (const Segment& segment :
+       boundary_segments(wcs, detector_rect, order, min_segments, max_segments, segment_count)) {
     boundary.push_back(segment_enclosure(wcs, segment));
   }
+  outcome.boundary_segments = segment_count;
   const bool boundary_provable = std::all_of(boundary.begin(), boundary.end(),
                                               [](const SegmentEnclosure& s) { return s.valid; });
   if (!boundary_provable) {
@@ -252,6 +291,11 @@ ContainmentOutcome target_containment(Context& context, const WcsModel& wcs, Ref
         }
       }
 
+      if (decision == CellDecision::undecided) {
+        ++outcome.cells_undecided;
+      } else {
+        ++outcome.cells_decided;
+      }
       const HealpixLeaf leaf = coordinates::chart_leaf(order, box.face, static_cast<U64>(ix),
                                                         static_cast<U64>(iy));
       auto& entry = ledgers[{leaf.order, leaf.ipix}];
