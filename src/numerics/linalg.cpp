@@ -152,10 +152,20 @@ SvdResult jacobi_svd(const Matrix& a, double rank_relative) {
     for (std::size_t i = 0; i < m; ++i) u_sorted(i, k) = u(i, src);
     for (std::size_t i = 0; i < n; ++i) v_sorted(i, k) = v(i, src);
   }
-  u = u_sorted;
-  v = v_sorted;
+  // The decomposition was computed on the transposed matrix when the input is
+  // wider than it is tall.  The singular vectors of the original matrix are
+  // recovered directly: for a = U S V^T and a^T = V S U^T the left factors
+  // swap roles, so the left factor of a is the right factor of a^T and the
+  // right factor of a is the left factor of a^T.
+  if (transposed) {
+    out.u = v_sorted;   // m x m
+    out.v = u_sorted;   // n x m
+  } else {
+    out.u = u_sorted;   // m x k
+    out.v = v_sorted;   // k x n
+  }
 
-  // Orthogonality defects.
+  // Orthogonality defects of the returned factors.
   auto defect = [](const Matrix& q) {
     Matrix gram(q.cols, q.cols);
     for (std::size_t i = 0; i < q.cols; ++i)
@@ -167,17 +177,18 @@ SvdResult jacobi_svd(const Matrix& a, double rank_relative) {
     for (std::size_t i = 0; i < gram.cols; ++i) gram(i, i) -= 1.0;
     return frobenius_norm(gram);
   };
-  out.delta_u = defect(u);
-  out.delta_v = defect(v);
+  out.delta_u = defect(out.u);
+  out.delta_v = defect(out.v);
 
-  Matrix reconstructed(m, n);
-  for (std::size_t i = 0; i < m; ++i)
-    for (std::size_t j = 0; j < n; ++j) {
+  Matrix reconstructed(out.u.rows, out.v.rows);
+  for (std::size_t i = 0; i < reconstructed.rows; ++i)
+    for (std::size_t j = 0; j < reconstructed.cols; ++j) {
       double sum = 0.0;
-      for (std::size_t k = 0; k < n; ++k) sum += u(i, k) * out.singular_values[k] * v(j, k);
+      for (std::size_t k = 0; k < out.singular_values.size(); ++k)
+        sum += out.u(i, k) * out.singular_values[k] * out.v(j, k);
       reconstructed(i, j) = sum;
     }
-  out.residual = frobenius_norm_diff(work, reconstructed);
+  out.residual = frobenius_norm_diff(a, reconstructed);
   out.spectral_norm = out.singular_values.empty() ? 0.0 : out.singular_values[0];
 
   const double eU = out.delta_u >= 1.0 ? std::numeric_limits<double>::infinity()
@@ -193,11 +204,6 @@ SvdResult jacobi_svd(const Matrix& a, double rank_relative) {
     if (s > threshold) ++out.rank;
   }
   out.converged = converged;
-
-  if (transposed) {
-    out.u = transpose(v_sorted);
-    out.v = transpose(u_sorted);
-  }
   return out;
 }
 
