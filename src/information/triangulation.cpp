@@ -326,9 +326,26 @@ class BowyerWatson {
     return -1;
   }
 
+  // The triangle that contains a point.  The walk from the last created
+  // triangle is the fast path; when it does not reach the point, every alive
+  // triangle is examined, so that a degenerate configuration of the mesh does
+  // not stop the insertion.
+  int locate_anywhere(const Point& point) const {
+    for (std::size_t index = 0; index < triangles_.size(); ++index) {
+      const Triangle& triangle = triangles_[index];
+      if (!triangle.alive) continue;
+      const int s0 = orientation_sign(points_[triangle.a], points_[triangle.b], point);
+      const int s1 = orientation_sign(points_[triangle.b], points_[triangle.c], point);
+      const int s2 = orientation_sign(points_[triangle.c], points_[triangle.a], point);
+      if (s0 >= 0 && s1 >= 0 && s2 >= 0) return static_cast<int>(index);
+    }
+    return -1;
+  }
+
   bool insert(std::size_t index, int& current) {
     const Point point = points_[index];
-    const int located = locate(point, current);
+    int located = locate(point, current);
+    if (located < 0) located = locate_anywhere(point);
     if (located < 0) return false;
     // Expand the cavity over the adjacency.
     std::vector<int> cavity;
@@ -902,11 +919,38 @@ Result<Ref<SupportedTriangulation>> build_supported_triangulation(
                                                     "the mesh is not available");
   }
 
+  // The holes of the mesh are the leaves of the support map without observed
+  // support.  Their boundary is the outline of the leaf in the chart, so a
+  // query inside such a leaf is unavailable instead of being filled with the
+  // nearest control.
+  std::vector<Ring> holes;
+  if (support_model.has_states) {
+    for (std::size_t row = 0; row < support_model.states.size(); ++row) {
+      if (support_model.states[row] == 1) continue;
+      const U64 order = support_model.leaves[row].first;
+      const U64 ipix = support_model.leaves[row].second;
+      std::vector<SkyICRS> corners;
+      information::local_leaf_corners(static_cast<U32>(order), ipix, corners);
+      Ring ring;
+      ring.hole = true;
+      bool usable = true;
+      for (const SkyICRS& corner : corners) {
+        Vec2 point{0.0, 0.0};
+        if (!information::project_to_chart_unbounded(projection, corner, point)) {
+          usable = false;
+          break;
+        }
+        ring.vertices.push_back(PixelEdge0{point[0], point[1]});
+      }
+      if (usable && ring.vertices.size() >= 3) holes.push_back(std::move(ring));
+    }
+  }
+
   auto mesh_model = std::make_shared<SupportedTriangulation>();
   mesh_model->chart = chart;
   mesh_model->vertices = val(vertices);
   mesh_model->triangles = val(triangle_ref);
-  mesh_model->holes.clear();
+  mesh_model->holes = std::move(holes);
   mesh_model->identity = model::make_identity("acsd.SupportedTriangulation", 2, 0,
                                               model::hash_payload(DType::f64,
                                                                   {static_cast<U64>(vertex_count), 2},
@@ -923,6 +967,13 @@ Result<Ref<SupportedTriangulation>> build_supported_triangulation(
   model::set_included(out.assessment, "gnomonic_chart_projection");
   model::set_included(out.assessment, "exact_geometric_predicates");
   model::set_included(out.assessment, "support_containment_test");
+  model::set_included(out.assessment, "holes_from_the_leaves_without_observed_support");
+  model::set_included(out.assessment, "hole_count_" + std::to_string(mesh_model->holes.size()));
+  if (!mesh_model->holes.empty()) {
+    // The boundary of every hole is the outline of the leaf without observed
+    // support in the chart of the mesh.
+    model::set_included(out.assessment, "hole_boundary_is_the_outline_of_the_unsupported_leaf");
+  }
   return out;
 }
 

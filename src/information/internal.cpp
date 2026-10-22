@@ -383,6 +383,25 @@ bool make_chart_projection(const Chart& chart, ChartProjection& out) {
   return true;
 }
 
+// The projection of a direction into the tangent plane of the chart without
+// the limit of the declared radius.  The boundary of a hole is the outline of
+// a leaf, and it has to be published even when the leaf reaches beyond the
+// radius that the queries of the chart obey.
+bool project_to_chart_unbounded(const ChartProjection& projection, const SkyICRS& direction,
+                                 Vec2& out) {
+  const Vec3 v{direction.nx, direction.ny, direction.nz};
+  const double norm = std::sqrt(dot3(v, v));
+  if (!(norm > 0.0) || !std::isfinite(norm)) return false;
+  const Vec3 unit{v[0] / norm, v[1] / norm, v[2] / norm};
+  const double denominator = dot3(unit, to_vec3(projection.center));
+  if (!(denominator > 1e-9)) return false;
+  const double xi = dot3(unit, projection.east) / denominator;
+  const double eta = dot3(unit, projection.north) / denominator;
+  if (!std::isfinite(xi) || !std::isfinite(eta)) return false;
+  out = Vec2{xi, eta};
+  return true;
+}
+
 bool project_to_chart(const ChartProjection& projection, const SkyICRS& direction, Vec2& out) {
   const Vec3 v{direction.nx, direction.ny, direction.nz};
   const double norm = std::sqrt(dot3(v, v));
@@ -529,6 +548,26 @@ bool local_leaf_lookup(U32 order, const SkyICRS& direction, U64& ipix) {
   if (face >= 12) return false;
   ipix = face * nside * nside + local_face_index(order, ix, iy);
   return true;
+}
+
+// The four corners of a leaf, in the order of the face grid.
+void local_leaf_corners(U32 order, U64 ipix, std::vector<SkyICRS>& corners) {
+  const U64 nside = 1ull << order;
+  const U64 face = ipix / (nside * nside);
+  const U64 p = ipix % (nside * nside);
+  U64 ix = 0;
+  U64 iy = 0;
+  for (U32 i = 0; i < order; ++i) {
+    if ((p >> (2 * i)) & 1ull) ix |= (1ull << i);
+    if ((p >> (2 * i + 1)) & 1ull) iy |= (1ull << i);
+  }
+  corners.clear();
+  const double steps[4][2] = {{0.0, 0.0}, {1.0, 0.0}, {1.0, 1.0}, {0.0, 1.0}};
+  for (const auto& step : steps) {
+    const double s = (static_cast<double>(ix) + step[0]) / static_cast<double>(nside);
+    const double t = (static_cast<double>(iy) + step[1]) / static_cast<double>(nside);
+    corners.push_back(local_face_point(static_cast<U32>(face), s, t));
+  }
 }
 
 SkyICRS local_leaf_center(U32 order, U64 ipix) {

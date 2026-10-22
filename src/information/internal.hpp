@@ -100,6 +100,9 @@ bool make_chart_projection(const Chart& chart, ChartProjection& out);
 // Projects a direction into chart coordinates.  Returns false when the
 // direction is behind the tangent plane or outside the declared radius.
 bool project_to_chart(const ChartProjection& projection, const SkyICRS& direction, Vec2& out);
+// The projection without the limit of the declared radius.
+bool project_to_chart_unbounded(const ChartProjection& projection, const SkyICRS& direction,
+                                 Vec2& out);
 
 // Inverse projection: chart coordinates back to a unit direction.
 bool unproject_from_chart(const ChartProjection& projection, const Vec2& point, SkyICRS& out);
@@ -123,6 +126,8 @@ bool local_leaf_lookup(U32 order, const SkyICRS& direction, U64& ipix);
 
 // Centre direction of a leaf at the given order.
 SkyICRS local_leaf_center(U32 order, U64 ipix);
+// The four corners of a leaf, in the order of the face grid.
+void local_leaf_corners(U32 order, U64 ipix, std::vector<SkyICRS>& corners);
 
 // Direction of a point of an equal area face chart; s and t are in [0,1].
 SkyICRS local_face_point(U32 face, double s, double t);

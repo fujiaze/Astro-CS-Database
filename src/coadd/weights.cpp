@@ -116,16 +116,16 @@ BlueResult solve_blue(const Matrix& gamma, double rank_relative) {
     result.reason = "the block has an exact constraint that fixes the weights";
     return result;
   }
-  // The minimum norm solution of Gamma q = 1.
+  // The minimum norm solution of Gamma q = 1.  The pseudo inverse of the
+  // block comes from the base, so that the threshold of the singular values
+  // is the same everywhere.
+  const Matrix inverse = numerics::pseudo_inverse(svd, n, rank_relative);
   std::vector<double> q(n, 0.0);
   bool solvable = true;
-  for (std::size_t j = 0; j < rank; ++j) {
-    const double singular = svd.singular_values[j];
-    if (!(singular > 0.0)) continue;
+  for (std::size_t i = 0; i < n; ++i) {
     double sum = 0.0;
-    for (std::size_t i = 0; i < n; ++i) sum += svd.u(i, j);
-    const double scale = sum / singular;
-    for (std::size_t i = 0; i < n; ++i) q[i] += scale * svd.v(i, j);
+    for (std::size_t j = 0; j < n; ++j) sum += inverse(i, j);
+    q[i] = sum;
   }
   // Is 1 inside the range of the block?
   double residual = 0.0;

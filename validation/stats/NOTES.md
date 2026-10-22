@@ -8,9 +8,9 @@ header of `src/` and they never reuse a helper of the modules under test.
 
 The script builds the four cases against the science libraries of the build
 directory and runs them.  The real output of the last run is kept in
-`validation/stats/evidence/validation_run.txt`; its first line records the
-commit of the tree that produced it.  The last run has 156 checks and 0
-failures.
+`validation/stats/evidence/validation_run.txt`; its first lines record the
+commit of the tree that produced it and the result of the full build
+`cmake --build build/science`.  The last run has 173 checks and 0 failures.
 
 The leave one out case runs 184000 trials and needs about 40 seconds.  The
 trial count must not be reduced: a smaller number of trials weakens the
@@ -108,17 +108,30 @@ failed attempts are not overwritten.
 
 ## The holes of the triangulation
 
-The contract declares `SupportedTriangulation.holes` and the science note
-requires that a query inside a hole is unavailable instead of being filled
-with the nearest control.  The holes of the implementation are always empty:
-they are **not** implemented.  The Delaunay mesh of the controls covers the
-convex hull of the controls, so the regions without observed support are not
-part of the mesh at all; the support map of the frame states which leaves are
-observed, and the holes have to be derived from the leaves whose state is not
-one.  That derivation is the missing part and it needs the boundary of a leaf
-in the chart, which the module does not compute today.  The query outside the
-declared chart is covered (no value, no interval), the query inside a hole is
-not.
+The holes are implemented.  The leaves of the support map whose state is not
+one are holes of the mesh: their boundary is the outline of the leaf in the
+chart of the mesh, and the mesh publishes them in `SupportedTriangulation.holes`.
+The assessment of the mesh names the source of the holes and their number.
+A query inside a hole is unavailable: it has no value and no interval, and it
+is not filled with the nearest control.  The case of the test uses a support
+map whose first leaf has no observed support: the mesh carries the hole, the
+query at the centre of the hole has no value, no interval and the support
+state zero, while a query inside the chart at a control has a value and an
+interval.
+
+Two remarks on the geometry.  The outline of a leaf is published even when the
+leaf reaches beyond the radius that the queries of the chart obey, because the
+boundary of a hole has to exist in the chart of the mesh.  The support
+containment test drops every triangle whose neighbourhood touches a leaf
+without support, so the mesh around a hole is empty; a query inside a hole is
+therefore unavailable for the hole and for the missing coverage at the same
+time, and the two cannot be told apart from the state of the prediction.
+
+The insertion of the incremental triangulation fell back on a walk from the
+last created triangle, which failed for a regular grid of the control points
+in some charts.  The insertion now falls back on a scan of every alive
+triangle, so that a degenerate configuration of the mesh does not stop the
+insertion.
 
 ## The multi connected components of the sky
 
@@ -129,6 +142,45 @@ frames share only some of their patches therefore has no control at all
 (`no_support`), and the case is rejected before the components are computed.
 The multi component case therefore needs an explicit `T` and `H` in the
 request, which the contract allows.  That construction is not covered yet.
+
+## The rank of the free design
+
+The rank of the free design of the flux information was classified on the
+Gram matrix of the reduced Jacobian.  The singular values of the Gram matrix
+are the squares of the singular values of the Jacobian, so the relative
+threshold of `1e-12` on the Gram matrix cut every mode whose singular value
+was below `1e-6` and reported an estimable mode as not estimable.  The
+classification now happens on the reduced Jacobian itself, with the same
+relative threshold as `numerics::classify_rank`, and the variance is formed
+with the singular values of the Jacobian.
+
+The regression case of the test uses a design whose two columns are nearly
+parallel.  The singular value of the reduced Jacobian is about `2.5e-8`, which
+is above the threshold, so the mode is estimable and the flux keeps a finite
+variance.  The Gram matrix of the same design has a relative singular value
+of `5.55e-16`, which is below the threshold, so the classification on the Gram
+matrix drops the mode and reports the flux as having no finite variance.  The
+case was run against the old implementation as well: it fails there with one
+failure and passes with the classification on the Jacobian.
+
+## The pseudo inverse
+
+The sky module and the coadd module assembled their own pseudo inverse.  They
+call `numerics::pseudo_inverse` now, so that the threshold of the singular
+values is the same in every module.  The numbers of the cases did not change:
+the BLUE weights are still `(7/6, -1/6)`, the weights of the non negative
+quadratic programme are still `(1, 0)`, the equal weights are still
+`(1/2, 1/2)`, the components of the sky gauge are still `(0, 2)` for the
+reference frame and `(-1, +1)` for the weighted sum, and the scene variance
+of the native space is still `13`.
+
+## The basis of a request
+
+The contract gives the basis its default centre and scale, so an illegal
+value comes from the caller.  The sky module reports such a value by name
+instead of substituting a number: the controls and the fit of a basis whose
+scale is not a finite positive number fail with the reason "the scale of the
+basis is not a finite positive number".
 
 ## Defects of the base modules that the cases exposed
 
@@ -147,10 +199,9 @@ instead of being patched here.
    a base function.  It now checks the shapes of its arguments and reports a
    failure, and every product of the fit was re-checked with that guard.
 4. `Basis.center` and `Basis.scale` are `Vec2` without an initialiser, so a
-   default constructed basis carries indeterminate values.  The sky module now
-   uses the scale only when it is finite and positive, and the case sets the
-   centre and the scale explicitly.  The contract should give the two vectors
-   an initialiser or a default of one.
+   default constructed basis carries indeterminate values.  The Lead fixed the
+   contract in the commit `ec8a63a43`; the sky module reports an illegal
+   value by name instead of substituting one.
 
 The three base defects were fixed by the Lead in the commits 76f8d9f32 and
 f4a8ea89b.  The local workarounds of the sky module (the own composition

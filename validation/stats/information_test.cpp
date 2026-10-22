@@ -249,6 +249,62 @@ int main() {
     }
   }
 
+  // ---- a nearly parallel background is not a rank defect --------------------
+  // The design has two columns that are nearly parallel.  The singular value
+  // of the reduced Jacobian is about 2.5e-8 and stays above the relative
+  // threshold of 1e-12, so the mode is estimable.  The Gram matrix of the
+  // same design has a singular value of about 6e-16, which is below the
+  // threshold on the Gram matrix, so a classification of the rank on the Gram
+  // matrix would report the mode as not estimable and the flux as having no
+  // finite variance.
+  {
+    std::vector<std::vector<double>> factor{{1.0, 0.0}, {0.0, 1.0}};
+    std::vector<std::vector<double>> influence{{1.0, 0.0}, {0.0, 1.0}};
+    acsd::Result<acsd::Ref<acsd::CovarianceAction>> covariance =
+        make_covariance(context, factor, influence, "identity_near_parallel");
+    acsd::Result<acsd::ArrayRef> h =
+        store_f64(context, {0.5, 0.5}, {2}, "h_near_parallel", acsd::Unit{});
+    acsd::Result<acsd::Ref<acsd::LinearAction>> background =
+        background_action(context, {{0.5, 0.5 - 5e-8}}, "background_near_parallel");
+    check(is_ok(background), "the nearly parallel background can be built");
+    acsd::InformationRequest request;
+    request.h = value_of(h);
+    request.covariance = value_of(covariance);
+    request.background = value_of(background);
+    request.reference.id = "reference";
+    request.solve.rank_relative = 1e-12;
+    acsd::Result<acsd::Information> information = acsd::estimate_flux_information(context, request);
+    check(is_ok(information), "the nearly parallel design does not fail the call");
+    if (is_ok(information)) {
+      const acsd::Variance& variance = value_of(information).flux_variance;
+      check(variance.value.has_value(),
+            "a mode with a singular value above the threshold keeps a finite variance");
+      if (variance.value.has_value()) {
+        check(*variance.value > 0.0, "the variance of the nearly parallel design is positive");
+      }
+      check(value_of(information).rank.rank == 2,
+            "the two columns of the nearly parallel design are estimable");
+      // The Gram matrix of the design has a relative singular value below the
+      // threshold, so the classification on the Gram matrix would drop the
+      // mode.  The classification on the Jacobian keeps it.
+      const double g00 = 0.5 * 0.5 + 0.5 * 0.5;
+      const double g01 = 0.5 * 0.5 + 0.5 * (0.5 - 5e-8);
+      const double g11 = 0.5 * 0.5 + (0.5 - 5e-8) * (0.5 - 5e-8);
+      const double trace = g00 + g11;
+      const double determinant = g00 * g11 - g01 * g01;
+      const double discriminant = std::sqrt(std::max(0.0, trace * trace - 4.0 * determinant));
+      const double small = 0.5 * (trace - discriminant);
+      const double large = 0.5 * (trace + discriminant);
+      const double relative = small / large;
+      std::printf("       the Gram matrix of the design has the relative singular value %.3g\n",
+                  relative);
+      check(relative < 1e-12,
+            "the Gram matrix of the design would drop the mode at the relative threshold");
+      check(value_of(information).rank.rank == 2,
+            "the Jacobian of the design keeps the mode that the Gram matrix drops");
+    }
+  }
+
   // ---- the sparse actual scene reconstruction -----------------------------
   {
     // A log plane V(x, y) = exp(a + b x + c y) on a chart of five degrees.
@@ -289,9 +345,12 @@ int main() {
       acsd::Result<acsd::ArrayRef> id_array =
           store_u64(context, ids, {leaves.size(), 2}, "support:ids");
       const std::vector<U64> state_shape{static_cast<U64>(leaves.size())};
+      // The support state of every leaf; a state that is not one marks a leaf
+      // without observed support and therefore a hole of the mesh.
+      std::vector<std::uint8_t> support_states(leaves.size(), 1);
       acsd::Result<acsd::ArrayRef> state_array = context.storage.copy(
-          context, DType::u8, encode_u8(std::vector<std::uint8_t>(leaves.size(), 1)), state_shape,
-          acsd::Unit{}, "support:states");
+          context, DType::u8, encode_u8(support_states), state_shape, acsd::Unit{},
+          "support:states");
       if (!is_ok(id_array) || !is_ok(state_array)) {
         check(false, "the support cannot be stored");
       } else {
@@ -435,6 +494,137 @@ int main() {
     }
   }
 
+
+  // ---- a query inside a hole -----------------------------------------------
+  // The leaves of the support map without observed support are holes of the
+  // mesh.  A query inside such a hole is unavailable: it has no value and no
+  // interval, and it is not filled with the nearest control.
+  {
+    const std::size_t side = 5;
+    std::vector<double> positions;
+    std::vector<double> values;
+    std::vector<double> log_errors;
+    for (std::size_t i = 0; i < side; ++i) {
+      for (std::size_t j = 0; j < side; ++j) {
+        const double x = -0.02 + 0.01 * static_cast<double>(i);
+        const double y = -0.02 + 0.01 * static_cast<double>(j);
+        positions.push_back(x);
+        positions.push_back(y);
+        values.push_back(std::exp(0.5 + 0.3 * x - 0.2 * y));
+        log_errors.push_back(0.01);
+      }
+    }
+    acsd::Result<acsd::ArrayRef> position_array =
+        store_f64(context, positions, {side * side, 2}, "hole:positions", acsd::Unit{});
+    acsd::Result<acsd::ArrayRef> value_array =
+        store_f64(context, values, {side * side}, "hole:values", acsd::Unit{});
+    acsd::Result<acsd::ArrayRef> error_array =
+        store_f64(context, log_errors, {side * side}, "hole:log_errors", acsd::Unit{});
+    // The support covers every leaf of order three, but the four leaves at
+    // the centre of the first face have no observed support and are therefore
+    // holes of the mesh.
+    std::vector<acsd::HealpixLeaf> support_leaves;
+    for (U64 ipix = 0; ipix < 48; ++ipix) support_leaves.push_back(acsd::HealpixLeaf{1, ipix});
+    std::vector<U64> ids;
+    for (const acsd::HealpixLeaf& leaf : support_leaves) {
+      ids.push_back(leaf.order);
+      ids.push_back(leaf.ipix);
+    }
+    acsd::Result<acsd::ArrayRef> id_array =
+        store_u64(context, ids, {support_leaves.size(), 2}, "hole:ids");
+    std::vector<std::uint8_t> states(support_leaves.size(), 1);
+    states[0] = 0;
+    const std::vector<U64> state_shape{static_cast<U64>(support_leaves.size())};
+    acsd::Result<acsd::ArrayRef> state_array = context.storage.copy(
+        context, DType::u8, encode_u8(states), state_shape, acsd::Unit{}, "hole:states");
+    check(is_ok(position_array) && is_ok(value_array) && is_ok(error_array) &&
+              is_ok(id_array) && is_ok(state_array),
+          "the arrays of the hole case are stored");
+    auto support = std::make_shared<acsd::SupportMap>();
+    auto index = std::make_shared<acsd::Index>();
+    index->size = support_leaves.size();
+    index->kind = acsd::Index::Kind::leaf;
+    index->order = 1;
+    index->ids = value_of(id_array);
+    support->index = std::shared_ptr<const acsd::Index>(index);
+    support->states = value_of(state_array);
+    acsd::Ref<acsd::SupportMap> support_ref(support);
+
+    auto controls = std::make_shared<acsd::PrecisionControls>();
+    controls->kind = acsd::PrecisionControls::Kind::actual_scene;
+    controls->positions = value_of(position_array);
+    controls->values = value_of(value_array);
+    controls->log_errors = value_of(error_array);
+    controls->hessian_norm_upper = 0.0;
+    acsd::Ref<acsd::PrecisionControls> controls_ref(controls);
+
+    acsd::Chart chart;
+    chart.center = acsd::SkyICRS{0.6, 0.0, 0.8};
+    chart.maximum_radius_rad = 5.0 * M_PI / 180.0;
+    acsd::Result<acsd::Ref<acsd::SupportedTriangulation>> mesh =
+        acsd::build_supported_triangulation(context, controls_ref, chart, support_ref);
+    if (!is_ok(mesh)) {
+      std::printf("       the mesh of the hole case failed with code %d\n",
+                  static_cast<int>(mesh.code));
+      for (const acsd::Issue& issue : mesh.assessment.issues) {
+        std::printf("       issue: %s\n", issue.reason.c_str());
+      }
+    }
+    check(is_ok(mesh), "the mesh of the hole case is built");
+    if (is_ok(mesh)) {
+      check(!value_of(mesh)->holes.empty(), "the mesh carries the holes of the unsupported leaves");
+      if (!value_of(mesh)->holes.empty()) {
+        // The centre of the first hole is a query inside the hole.
+        double cx = 0.0;
+        double cy = 0.0;
+        for (const acsd::PixelEdge0& vertex : value_of(mesh)->holes.front().vertices) {
+          cx += vertex.x;
+          cy += vertex.y;
+        }
+        const double count = static_cast<double>(value_of(mesh)->holes.front().vertices.size());
+        cx /= count;
+        cy /= count;
+        // The chart of the mesh is the gnomonic chart of its centre, so the
+        // query is built with the same basis.
+        const double east[3] = {0.0, 1.0, 0.0};
+        const double north[3] = {-0.8, 0.0, 0.6};
+        const double centre[3] = {0.6, 0.0, 0.8};
+        const double raw[3] = {cx * east[0] + cy * north[0] + centre[0],
+                               cx * east[1] + cy * north[1] + centre[1],
+                               cx * east[2] + cy * north[2] + centre[2]};
+        const double length = std::sqrt(raw[0] * raw[0] + raw[1] * raw[1] + raw[2] * raw[2]);
+        acsd::SkyICRS inside;
+        inside.nx = raw[0] / length;
+        inside.ny = raw[1] / length;
+        inside.nz = raw[2] / length;
+        const std::vector<acsd::SkyICRS> queries{inside};
+        acsd::Result<acsd::VariancePrediction> prediction =
+            acsd::reconstruct_scene_variance(context, controls_ref, value_of(mesh), queries);
+        check(is_ok(prediction), "the reconstruction of a query inside a hole is available");
+        if (is_ok(prediction)) {
+          acsd::Result<acsd::ArrayView> value_read = context.storage.read(
+              context, value_of(prediction).values, acsd::BlockRequest{0, 1});
+          acsd::Result<acsd::ArrayView> lower_read = context.storage.read(
+              context, value_of(prediction).lower, acsd::BlockRequest{0, 1});
+          acsd::Result<acsd::ArrayView> upper_read = context.storage.read(
+              context, value_of(prediction).upper, acsd::BlockRequest{0, 1});
+          acsd::Result<acsd::ArrayView> state_read = context.storage.read(
+              context, value_of(prediction).support_states, acsd::BlockRequest{0, 1});
+          check(is_ok(value_read) && is_ok(lower_read) && is_ok(upper_read) && is_ok(state_read),
+                "the arrays of the query inside a hole can be read");
+          if (is_ok(value_read) && is_ok(lower_read) && is_ok(upper_read) && is_ok(state_read)) {
+            check(std::isnan(decode_f64(value_of(value_read).bytes)[0]),
+                  "a query inside a hole has no value");
+            check(std::isnan(decode_f64(value_of(lower_read).bytes)[0]) &&
+                      std::isnan(decode_f64(value_of(upper_read).bytes)[0]),
+                  "a query inside a hole has no interval");
+            check(decode_u8(value_of(state_read).bytes)[0] == 0,
+                  "a query inside a hole has the support state zero");
+          }
+        }
+      }
+    }
+  }
 
   // ---- the native space of the scene variance -------------------------------
   // The covariance of the frame acts on two native coordinates and the frame

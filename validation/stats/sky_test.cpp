@@ -419,6 +419,29 @@ int main() {
     }
   }
 
+
+  // ---- an illegal basis is reported by name --------------------------------
+  // The contract gives the basis its default centre and scale, so an illegal
+  // value comes from the caller and has to be reported instead of producing a
+  // correction that is not finite.
+  {
+    acsd::SkyRequest illegal = request;
+    illegal.basis.kind = acsd::Basis::Kind::plane;
+    illegal.basis.degree = 1;
+    illegal.basis.center = {0.0, 0.0};
+    illegal.basis.scale = {0.0, 1.0};
+    acsd::Result<acsd::Ref<acsd::SkyControls>> illegal_controls =
+        acsd::build_sky_controls(context, provider, illegal);
+    check(!is_ok(illegal_controls), "the controls of an illegal basis are not built");
+    if (!is_ok(illegal_controls)) {
+      std::printf("       the illegal basis failed with code %d\n",
+                  static_cast<int>(illegal_controls.code));
+    }
+    acsd::Result<acsd::Ref<acsd::SkyFit>> illegal_fit =
+        acsd::fit_relative_sky(context, value_of(controls), illegal);
+    check(!is_ok(illegal_fit), "the fit of an illegal basis does not succeed");
+  }
+
   std::printf("%d failure(s)\n", failures);
   return failures == 0 ? 0 : 1;
 }

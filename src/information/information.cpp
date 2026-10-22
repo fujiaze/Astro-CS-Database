@@ -347,23 +347,24 @@ Result<Information> estimate_flux_information(Context& context, const Informatio
       reduced(i, j) = sum;
     }
   }
-  Matrix gram(free.cols, free.cols, 0.0);
-  for (std::size_t i = 0; i < free.cols; ++i) {
-    for (std::size_t j = 0; j < free.cols; ++j) {
-      double sum = 0.0;
-      for (std::size_t k = 0; k < rank; ++k) sum += reduced(k, i) * reduced(k, j);
-      gram(i, j) = sum;
-    }
-  }
-  numerics::SvdResult gram_svd = numerics::jacobi_svd(gram, rank_relative);
+  // The rank of the free design is classified on the reduced Jacobian and not
+  // on its Gram matrix.  The singular values of the Gram matrix are the
+  // squares of the singular values of the Jacobian, so a relative threshold
+  // on the Gram matrix would cut the modes whose singular value is below the
+  // square root of the threshold and would report an estimable mode as not
+  // estimable.
+  numerics::SvdResult reduced_svd = numerics::jacobi_svd(reduced, rank_relative);
+  const numerics::RankReport reduced_rank =
+      numerics::classify_rank(reduced_svd, free.cols, rank_relative);
+  const std::size_t effective = reduced_rank.rank;
   double variance = 0.0;
-  if (gram_svd.u.cols > 0) {
+  if (effective > 0) {
     // The flux component has to lie in the range of the free design.
     std::vector<double> projected(free.cols, 0.0);
-    for (std::size_t j = 0; j < gram_svd.u.cols; ++j) {
+    for (std::size_t j = 0; j < effective; ++j) {
       double sum = 0.0;
-      for (std::size_t i = 0; i < free.cols; ++i) sum += gram_svd.u(i, j) * component[i];
-      for (std::size_t i = 0; i < free.cols; ++i) projected[i] += sum * gram_svd.u(i, j);
+      for (std::size_t i = 0; i < free.cols; ++i) sum += reduced_svd.v(i, j) * component[i];
+      for (std::size_t i = 0; i < free.cols; ++i) projected[i] += sum * reduced_svd.v(i, j);
     }
     double residual = 0.0;
     for (std::size_t i = 0; i < free.cols; ++i) {
@@ -389,13 +390,15 @@ Result<Information> estimate_flux_information(Context& context, const Informatio
       out.assessment.condition = request.reference.condition;
       return out;
     }
-    // The variance of the flux is c^T G^+ c.
+    // The variance of the flux is c^T (R^T R)^+ c, which is the sum of the
+    // squares of the projections on the right singular vectors of the
+    // reduced Jacobian, divided by their singular values.
     double norm = 0.0;
-    for (std::size_t j = 0; j < gram_svd.v.cols; ++j) {
-      const double singular = gram_svd.singular_values[j];
+    for (std::size_t j = 0; j < effective; ++j) {
+      const double singular = reduced_svd.singular_values[j];
       if (!(singular > 0.0)) continue;
       double sum = 0.0;
-      for (std::size_t i = 0; i < free.cols; ++i) sum += gram_svd.u(i, j) * component[i];
+      for (std::size_t i = 0; i < free.cols; ++i) sum += reduced_svd.v(i, j) * component[i];
       const double scale = sum / singular;
       norm += scale * scale;
     }

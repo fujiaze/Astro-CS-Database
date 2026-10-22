@@ -238,12 +238,8 @@ std::vector<double> evaluate_basis(const Basis& basis, const ChartProjection& pr
                                     const SkyICRS& position) {
   Vec2 chart_point{0.0, 0.0};
   if (!project_to_chart(projection, position, chart_point)) return {};
-  // The scale of the basis is only used when it is a finite positive number,
-  // so that a basis without an explicit normalisation stays well defined.
-  const double scale_x =
-      (std::isfinite(basis.scale[0]) && basis.scale[0] > 0.0) ? basis.scale[0] : 1.0;
-  const double scale_y =
-      (std::isfinite(basis.scale[1]) && basis.scale[1] > 0.0) ? basis.scale[1] : 1.0;
+  const double scale_x = basis.scale[0];
+  const double scale_y = basis.scale[1];
   const double u = (chart_point[0] - basis.center[0]) / scale_x;
   const double v = (chart_point[1] - basis.center[1]) / scale_y;
   std::vector<double> values;
@@ -557,6 +553,19 @@ Result<Matrix> dense_covariance_factor(Context& context, Ref<CovarianceAction> c
 
 namespace {
 
+bool basis_is_usable(const Basis& basis, std::string& reason) {
+  if (!std::isfinite(basis.center[0]) || !std::isfinite(basis.center[1])) {
+    reason = "the centre of the basis is not a finite number";
+    return false;
+  }
+  if (!std::isfinite(basis.scale[0]) || !std::isfinite(basis.scale[1]) ||
+      !(basis.scale[0] > 0.0) || !(basis.scale[1] > 0.0)) {
+    reason = "the scale of the basis is not a finite positive number";
+    return false;
+  }
+  return true;
+}
+
 Result<FrameBlock> read_frame(Context& context, const FramesProvider& frames, const Id& frame) {
   Result<Ref<FrameDescription>> described = frames.describe_frame(context, frame);
   if (!ok(described)) {
@@ -719,6 +728,13 @@ Result<Ref<NoiseModel>> build_joint_noise(Context& context, const std::vector<Fr
 
 Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvider& frames,
                                              const SkyRequest& request) {
+  {
+    std::string reason;
+    if (!basis_is_usable(request.basis, reason)) {
+      return model::fail<Ref<SkyControls>>(Code::invalid_model, reason, "build_sky_controls",
+                                           "no control can be built");
+    }
+  }
   if (request.groups.empty()) {
     return model::fail<Ref<SkyControls>>(Code::invalid_request, "no comparable group supplied",
                                          "build_sky_controls", "no control can be built");
@@ -1209,6 +1225,13 @@ Matrix transpose(const Matrix& a) {
 
 Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls,
                                       const SkyRequest& request) {
+  {
+    std::string reason;
+    if (!basis_is_usable(request.basis, reason)) {
+      return model::fail<Ref<SkyFit>>(Code::invalid_model, reason, "fit_relative_sky",
+                                      "the sky cannot be fitted");
+    }
+  }
   if (!controls) {
     return model::fail<Ref<SkyFit>>(Code::invalid_request, "no controls supplied",
                                     "fit_relative_sky", "the sky cannot be fitted");
@@ -1545,17 +1568,10 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
   for (std::size_t i = 0; i < complement_size; ++i) {
     projected_data[i] = val(whitened_data)(static_cast<std::size_t>(i), 0);
   }
-  Matrix pseudoinverse(static_cast<std::size_t>(gauge_size), static_cast<std::size_t>(complement_size), 0.0);
-  for (std::size_t j = 0; j < design_svd.v.cols; ++j) {
-    const double singular = design_svd.singular_values[j];
-    if (!(singular > 0.0)) continue;
-    for (std::size_t i = 0; i < gauge_size; ++i) {
-      for (std::size_t k = 0; k < complement_size; ++k) {
-        pseudoinverse(static_cast<std::size_t>(i), static_cast<std::size_t>(k)) +=
-            design_svd.v(static_cast<std::size_t>(i), j) * design_svd.u(static_cast<std::size_t>(k), j) / singular;
-      }
-    }
-  }
+  // The pseudo inverse of the projected design comes from the base, so that
+  // the threshold of the singular values is the same everywhere.
+  const Matrix pseudoinverse =
+      numerics::pseudo_inverse(design_svd, static_cast<std::size_t>(gauge_size), 1e-12);
   // K = G (Q_w W A G)^+ Q_w W.
   Result<Matrix> projector = multiply(qw_transpose, W);
   if (!ok(projector)) {
@@ -1910,5 +1926,6 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
   }
   return out;
 }
+
 
 }  // namespace acsd
