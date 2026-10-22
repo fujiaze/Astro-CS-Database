@@ -14197,6 +14197,30 @@
       "type": "object",
       "properties": {
         "operation": {
+          "const": "make_footprint_provider"
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "wcs": {
+              "$ref": "#/$defs/WcsModelRef"
+            }
+          },
+          "required": [
+            "wcs"
+          ]
+        },
+        "request": {
+          "type": "object",
+          "maxProperties": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "operation": {
           "const": "bind_wcs"
         },
         "arguments": {

@@ -68,7 +68,8 @@ class BigInt {
 // lowest terms.
 class Rational {
  public:
-  Rational() = default;                                  // zero
+  // The default value is the exact zero, whose denominator is one.
+  Rational();
   Rational(std::int64_t numerator, std::int64_t denominator = 1);
   static Rational from_bigint(BigInt numerator, BigInt denominator);
   static Rational from_double_exact(double value);        // binary64 is exactly a dyadic

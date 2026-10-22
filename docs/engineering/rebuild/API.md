@@ -32,7 +32,19 @@ LinearAction的实际方法仅apply、transpose_apply、dependency_blocks、seri
 
 FramesProvider的实际方法、参数及RefinableGeometryProvider/GeometryRevision字段只由声明拥有，特定合同见下表与OBJECTS。几何revision使同源全部叶、sky分量、权/选择和Export依赖失效，workflows按依赖重新计算；新闭包完成前旧闭包保持可读，不混R/K/权版本。细化共享本进程剩余预算，不能每次API重置配额。缺refine能力返回unsupported及科学未达标状态，不偷读未锁定源。
 
-## 实际公共接口、入口和结果规则
+## `FootprintProvider` 是抽象接口，公开声明必须给出唯一的构造入口，否则
+`footprint` / `measure` / `compute_overlap` 对外部消费者不可达（合同驱动、CLI 与独立验证
+都无法自行构造 provider）。唯一构造入口是
+
+```text
+make_footprint_provider(context, wcs) -> Ref<FootprintProvider>
+```
+
+它由 WCS 规范模型建立检测域的包含/测度能力，返回的 provider 持有 wcs 的身份与误差来源；
+不同 WCS 不得共用同一 provider 实例（provider 身份绑定 wcs 的 content hash）。
+provider 本身不新建面积实现：认证面积账本由 geometry 模块的单一实现给出。
+
+实际公共接口、入口和结果规则
 
 [contracts.hpp](../../../include/acsd/contracts.hpp) 是所有字段/签名的唯一可编译声明。本篇不授权实现者另造 Request 类型。C++20静态库是首期进程内 API，CLI与contract驱动均直接调用它。首期没有 C ABI 或异步科学 ABI；未来如有真实进程内外语消费者另作版本设计，不提前建设 opaque-handle/函数表包装。GUI及独立语言 oracle 使用下面JSON文件/子进程边界，已满足同步核心与异步集成。
 

@@ -443,6 +443,7 @@ Result<InverseResult> inverse(Context& context,Ref<WcsModel> wcs,SkyICRS sky,con
 Result<DerivativeResult> derivative(Context& context,Ref<WcsModel> wcs,PixelCenter0 point,const NumericBudget& request);
 Result<Interval> solid_angle_jacobian(Context& context,Ref<WcsModel> wcs,Box domain,const NumericBudget& request);
 Result<Ref<DetectorFootprint>> detector_footprint(Context& context,Ref<FootprintSet> footprints,U64 source_row);
+Result<Ref<FootprintProvider>> make_footprint_provider(Context& context,Ref<WcsModel> wcs);
 Result<Ref<NativeObservation>> bind_wcs(Context& context,Ref<NativeObservation> observation,Ref<WcsModel> wcs,Ref<AstrometricSolution> solution);
 Result<Ref<NativeObservation>> bind_observation_model(Context& context,Ref<NativeObservation> observation,Ref<EffectivePSF> kernel,Ref<Response> response);
 Result<Ref<CurvedBoundary>> footprint(Context& context,const FootprintProvider& provider,Ref<DetectorFootprint> source,double pixfrac,const GeometryBudget& request);

@@ -324,6 +324,8 @@ std::string BigInt::to_string() const {
   return negative_ ? ("-" + digits) : digits;
 }
 
+Rational::Rational() : num_(BigInt(0)), den_(BigInt(1)) {}
+
 Rational::Rational(std::int64_t numerator, std::int64_t denominator) {
   num_ = BigInt(numerator);
   den_ = BigInt(denominator);
@@ -342,7 +344,7 @@ Rational Rational::from_bigint(BigInt numerator, BigInt denominator) {
 
 Rational Rational::from_double_exact(double value) {
   if (!std::isfinite(value)) throw std::domain_error("Rational from non-finite double");
-  if (value == 0.0) return Rational();
+  if (value == 0.0) return Rational(0, 1);
   int exponent = 0;
   const double mantissa = std::frexp(value, &exponent);  // |mantissa| in [0.5,1)
   // value = mantissa * 2^exponent with mantissa having 53 significant bits.
