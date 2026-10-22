@@ -905,6 +905,8 @@ int main(int argc, char** argv) {
         geometry_budget.max_work = 100000;
         geometry_budget.max_depth = 24;
         geometry_budget.area_absolute_sr = 1e-12;
+        geometry_budget.arithmetic.initial_bits = 64;
+        geometry_budget.arithmetic.max_bits = 256;
         Result<acsd::SphericalAreaInterval> area =
             acsd::measure(context, provider, footprint, geometry_budget);
         coordinates.boolean("area_computed", good(area));
@@ -1172,6 +1174,8 @@ int main(int argc, char** argv) {
         geometry_budget.max_work = 200000;
         geometry_budget.max_depth = 24;
         geometry_budget.area_absolute_sr = 1e-12;
+        geometry_budget.arithmetic.initial_bits = 64;
+        geometry_budget.arithmetic.max_bits = 256;
         Result<Ref<acsd::Overlaps>> overlaps =
             acsd::compute_overlap(context, provider, footprint, 8, 1.0, geometry_budget);
         geometry.boolean("overlap_computed", good(overlaps));
@@ -1460,7 +1464,286 @@ int main(int argc, char** argv) {
                       acsd::Box{{0.0, 0.0}, {0.05, 1.0}});
   }
 
+    // 2d. The Drizzle weight matrix over two source rows: the columns are the
+  // source rows (never a hard coded zero), the row sums are the normalised
+  // weights and the per source row sum over the leaves is about one.
   {
+    const double cd_deg = 0.5;
+    acsd::HeaderFields header = make_header(false, cd_deg, 1.0, 1.0, 0.0, 0.0, "ICRS", false, 0.0,
+                                            false);
+    const Box domain{{-2.0, -2.0}, {2.0, 2.0}};
+    acsd::AstrometricContext astrometric;
+    Result<Ref<acsd::WcsModel>> model =
+        acsd::make_wcs(context, header, domain, astrometric, "detector-D", budget);
+    if (good(model)) {
+      const Ref<acsd::WcsModel>& wcs = value_of(model);
+      auto index = std::make_shared<acsd::Index>();
+      index->size = 2;
+      index->kind = acsd::Index::Kind::native;
+      index->namespace_id = "acsd.validation";
+      index->sources.push_back(
+          acsd::SourceIdentity{"validation", "exposure", "detector", "channel", 0});
+      index->sources.push_back(
+          acsd::SourceIdentity{"validation", "exposure", "detector", "channel", 1});
+      auto footprints = std::make_shared<acsd::FootprintSet>();
+      footprints->index = index;
+      footprints->width = 2;
+      footprints->height = 1;
+      footprints->detector_from_sample = acsd::Mat2{1.0, 0.0, 0.0, 1.0};
+      footprints->offset = acsd::Vec2{0.0, 0.0};
+      footprints->local_cell = Box{{-0.5, -0.5}, {0.5, 0.5}};
+      footprints->wcs = wcs;
+      footprints->detector_frame = "detector-D";
+      OracleProvider provider(wcs, Oracle{});
+      acsd::GeometryBudget geometry_budget;
+      geometry_budget.max_work = 200000;
+      geometry_budget.max_depth = 24;
+      geometry_budget.area_absolute_sr = 1e-12;
+
+      std::vector<Ref<acsd::Overlaps>> overlaps_per_row;
+      bool built = true;
+      for (acsd::U64 row = 0; row < 2; ++row) {
+        Result<Ref<acsd::DetectorFootprint>> footprint_result =
+            acsd::detector_footprint(context, footprints, row);
+        if (!good(footprint_result)) {
+          built = false;
+          break;
+        }
+        Result<Ref<acsd::Overlaps>> overlaps = acsd::compute_overlap(
+            context, provider, value_of(footprint_result), 8, 1.0, geometry_budget);
+        if (!good(overlaps)) {
+          built = false;
+          break;
+        }
+        {
+          const acsd::DetectorFootprint& footprint = *value_of(footprint_result);
+        }
+        overlaps_per_row.push_back(value_of(overlaps));
+      }
+      geometry.boolean("two_source_overlaps_built", built);
+      if (built) {
+        bool rows_distinct = overlaps_per_row.size() == 2;
+        if (rows_distinct) {
+          rows_distinct = !overlaps_per_row[0]->contributions.empty() &&
+                          !overlaps_per_row[1]->contributions.empty() &&
+                          overlaps_per_row[0]->contributions[0].source.sample == 0 &&
+                          overlaps_per_row[1]->contributions[0].source.sample == 1;
+        }
+        geometry.boolean("two_source_rows_distinct", rows_distinct);
+
+        auto merged = std::make_shared<acsd::Overlaps>();
+        merged->contributions = overlaps_per_row[0]->contributions;
+        for (const acsd::OverlapContribution& contribution : overlaps_per_row[1]->contributions) {
+          merged->contributions.push_back(contribution);
+        }
+        merged->recipe = overlaps_per_row[0]->recipe;
+        merged->primitives = overlaps_per_row[0]->primitives;
+        merged->constraints = overlaps_per_row[0]->constraints;
+        merged->status = overlaps_per_row[0]->status;
+        {
+          std::size_t zero_rows = 0;
+          std::size_t one_rows = 0;
+          for (const acsd::OverlapContribution& contribution : merged->contributions) {
+            if (contribution.source.sample == 0) ++zero_rows;
+            if (contribution.source.sample == 1) ++one_rows;
+          }
+        }
+
+        std::vector<std::byte> payload(2 * sizeof(double));
+        double values[2] = {1.0, 2.0};
+        std::memcpy(payload.data(), values, sizeof(values));
+        auto index_observation = std::make_shared<acsd::Index>();
+        index_observation->size = 2;
+        index_observation->kind = acsd::Index::Kind::native;
+        index_observation->namespace_id = "acsd.validation";
+        index_observation->sources.push_back(
+            acsd::SourceIdentity{"validation", "exposure", "detector", "channel", 0});
+        index_observation->sources.push_back(
+            acsd::SourceIdentity{"validation", "exposure", "detector", "channel", 1});
+        auto observation = std::make_shared<acsd::NativeObservation>();
+        observation->native_index = index_observation;
+        observation->footprints = footprints;
+        observation->unit = acsd::Unit{"L", 0, 0, 0, 1.0, 1};
+        observation->frame = "detector-D";
+        Result<acsd::ArrayRef> stored = context.storage.copy(
+            context, acsd::DType::f64, payload, std::span<const acsd::U64>({2}), acsd::Unit{"L", 0, 0, 0, 1.0, 1},
+            "acsd.validation.pixels");
+        if (good(stored)) {
+          observation->integrated_values = value_of(stored);
+          acsd::DrizzleRequest drizzle_request;
+          drizzle_request.order = 8;
+          drizzle_request.pixfrac = 1.0;
+          drizzle_request.budget = geometry_budget;
+          Result<acsd::DrizzleResult> drizzle =
+              acsd::build_drizzle(context, merged, observation, drizzle_request);
+          geometry.boolean("two_source_drizzle_built", good(drizzle));
+          if (good(drizzle)) {
+            const acsd::DrizzleResult& result = value_of(drizzle);
+            // The weight matrix is read back by applying the operator to the
+            // unit vectors of the source rows: the output of the leaf p is the
+            // weight w_{p,j} of that source row.
+            std::vector<std::vector<double>> weights;
+            for (acsd::U64 row = 0; row < 2; ++row) {
+              std::vector<std::byte> unit(2 * sizeof(double));
+              double probe[2] = {row == 0 ? 1.0 : 0.0, row == 1 ? 1.0 : 0.0};
+              std::memcpy(unit.data(), probe, sizeof(probe));
+              Result<acsd::ArrayRef> unit_array = context.storage.copy(
+                  context, acsd::DType::f64, unit, std::span<const acsd::U64>({2}),
+                  acsd::Unit{"L", 0, 0, 0, 1.0, 1}, "acsd.validation.probe");
+              if (!good(unit_array)) {
+                weights.clear();
+                break;
+              }
+              Result<acsd::ArrayRef> applied =
+                  result.op->rows->apply(context, value_of(unit_array));
+              if (!good(applied)) {
+                weights.clear();
+                break;
+              }
+              const acsd::ArrayRef& out = value_of(applied);
+              const std::size_t count = out->shape.empty() ? 0 : out->shape[0];
+              Result<acsd::ArrayView> view =
+                  context.storage.read(context, out, acsd::BlockRequest{0, count});
+              if (!good(view)) {
+                weights.clear();
+                break;
+              }
+              const std::span<const std::byte> bytes = value_of(view).bytes;
+              std::vector<double> row_weights;
+              for (std::size_t i = 0; i < count; ++i) {
+                double value = 0.0;
+                std::memcpy(&value, bytes.data() + i * sizeof(double), sizeof(double));
+                row_weights.push_back(value);
+              }
+              for (std::size_t i = 0; i < row_weights.size() && i < 6; ++i) {
+              }
+              weights.push_back(std::move(row_weights));
+            }
+            geometry.boolean("two_source_weights_readable", weights.size() == 2);
+            if (weights.size() == 2) {
+              bool distinct = false;
+              double sum_first = 0.0;
+              double sum_second = 0.0;
+              double max_difference = 0.0;
+              double square_difference = 0.0;
+              std::size_t compared = 0;
+              for (std::size_t leaf = 0; leaf < weights[0].size() && leaf < weights[1].size(); ++leaf) {
+                sum_first += weights[0][leaf];
+                sum_second += weights[1][leaf];
+                const double difference = weights[0][leaf] - weights[1][leaf];
+                if (std::fabs(difference) > 1.0e-12) distinct = true;
+                max_difference = std::max(max_difference, std::fabs(difference));
+                square_difference += difference * difference;
+                ++compared;
+              }
+              geometry.boolean("two_source_columns_distinct", distinct);
+              geometry.number("two_source_row_sum_first", sum_first);
+              geometry.number("two_source_row_sum_second", sum_second);
+              geometry.boolean("two_source_row_sums_normalised",
+                               std::fabs(sum_first - 1.0) <= 1.0e-4 &&
+                                   std::fabs(sum_second - 1.0) <= 1.0e-4);
+              geometry.number("two_source_max_column_difference", max_difference);
+              geometry.number("two_source_rms_column_difference",
+                               compared > 0 ? std::sqrt(square_difference /
+                                                       static_cast<double>(compared))
+                                            : 0.0);
+              checks.add("drizzle_columns_are_source_rows", distinct,
+                         "the weights of the two source rows differ, they do not share a column");
+              checks.add("drizzle_row_sums_normalised",
+                         std::fabs(sum_first - 1.0) <= 1.0e-4 &&
+                             std::fabs(sum_second - 1.0) <= 1.0e-4,
+                         "row sums " + std::to_string(sum_first) + " and " +
+                             std::to_string(sum_second));
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 2e. The budget red lines: a work budget of one unit and a precision budget
+  // of sixteen bits must both stop the geometry with a named termination and
+  // must not publish a certified bound.
+  {
+    const double cd_deg = 0.5;
+    acsd::HeaderFields header = make_header(false, cd_deg, 1.0, 1.0, 0.0, 0.0, "ICRS", false, 0.0,
+                                            false);
+    const Box domain{{-2.0, -2.0}, {2.0, 2.0}};
+    acsd::AstrometricContext astrometric;
+    Result<Ref<acsd::WcsModel>> model =
+        acsd::make_wcs(context, header, domain, astrometric, "detector-B", budget);
+    if (good(model)) {
+      const Ref<acsd::WcsModel>& wcs = value_of(model);
+      auto index = std::make_shared<acsd::Index>();
+      index->size = 1;
+      index->kind = acsd::Index::Kind::native;
+      index->namespace_id = "acsd.validation";
+      index->sources.push_back(
+          acsd::SourceIdentity{"validation", "exposure", "detector", "channel", 0});
+      auto footprints = std::make_shared<acsd::FootprintSet>();
+      footprints->index = index;
+      footprints->width = 1;
+      footprints->height = 1;
+      footprints->detector_from_sample = acsd::Mat2{1.0, 0.0, 0.0, 1.0};
+      footprints->offset = acsd::Vec2{0.0, 0.0};
+      footprints->local_cell = Box{{-0.5, -0.5}, {0.5, 0.5}};
+      footprints->wcs = wcs;
+      footprints->detector_frame = "detector-B";
+      Result<Ref<acsd::DetectorFootprint>> footprint_result =
+          acsd::detector_footprint(context, footprints, 0);
+      if (good(footprint_result)) {
+        const Ref<acsd::DetectorFootprint>& footprint = value_of(footprint_result);
+        OracleProvider provider(wcs, Oracle{});
+        auto run_budget = [&](U64 max_work, U32 max_bits) {
+          acsd::GeometryBudget geometry_budget;
+          geometry_budget.max_work = max_work;
+          geometry_budget.max_depth = 24;
+          geometry_budget.area_absolute_sr = 1e-12;
+          geometry_budget.arithmetic.initial_bits = 64;
+          geometry_budget.arithmetic.max_bits = max_bits;
+          return acsd::compute_overlap(context, provider, footprint, 8, 1.0, geometry_budget);
+        };
+        Result<Ref<acsd::Overlaps>> work_limited = run_budget(1, 256);
+        geometry.boolean("work_budget_overlap_returned", good(work_limited));
+        if (good(work_limited)) {
+          const Ref<acsd::Overlaps>& value = value_of(work_limited);
+          const bool named_work = value->status.termination == acsd::Termination::work;
+          const bool not_certified = value->status.bound_validity != acsd::Validity::certified;
+          geometry.text("work_budget_termination",
+                        named_work ? "work" : (value->status.termination ==
+                                                       acsd::Termination::tolerance_met
+                                                   ? "tolerance_met"
+                                                   : "other"));
+          geometry.boolean("work_budget_not_certified", not_certified);
+          checks.add("work_budget_terminates_with_work", named_work,
+                     "termination=" + std::to_string(static_cast<int>(value->status.termination)));
+          checks.add("work_budget_publishes_no_certified_bound", not_certified,
+                     "bound_validity=" +
+                         std::to_string(static_cast<int>(value->status.bound_validity)));
+        }
+        Result<Ref<acsd::Overlaps>> precision_limited = run_budget(200000, 16);
+        geometry.boolean("precision_budget_overlap_returned", good(precision_limited));
+        if (good(precision_limited)) {
+          const Ref<acsd::Overlaps>& value = value_of(precision_limited);
+          const bool named_precision = value->status.termination == acsd::Termination::precision;
+          const bool not_certified = value->status.bound_validity != acsd::Validity::certified;
+          geometry.text("precision_budget_termination",
+                        named_precision ? "precision" : (value->status.termination ==
+                                                              acsd::Termination::tolerance_met
+                                                          ? "tolerance_met"
+                                                          : "other"));
+          geometry.boolean("precision_budget_not_certified", not_certified);
+          checks.add("precision_budget_terminates_with_precision", named_precision,
+                     "termination=" + std::to_string(static_cast<int>(value->status.termination)));
+          checks.add("precision_budget_publishes_no_certified_bound", not_certified,
+                     "bound_validity=" +
+                         std::to_string(static_cast<int>(value->status.bound_validity)));
+        }
+      }
+    }
+  }
+
+{
     geometry.raw("checks", checks.str());
     geometry.integer("check_failures", checks.failures());
     std::ofstream out(directory + "/geo_geometry.json");

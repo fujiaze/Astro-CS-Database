@@ -264,8 +264,13 @@ Result<Ref<DetectorFootprint>> detector_footprint(Context& context, Ref<Footprin
     const double hy = 0.5 * (set.local_cell.upper[1] - set.local_cell.lower[1]);
     const double cx = 0.5 * (set.local_cell.lower[0] + set.local_cell.upper[0]);
     const double cy = 0.5 * (set.local_cell.lower[1] + set.local_cell.upper[1]);
-    const double corners[4][2] = {{cx - hx, cy - hy}, {cx + hx, cy - hy}, {cx + hx, cy + hy},
-                                  {cx - hx, cy + hy}};
+    // The default collection domain of the sample: the local cell placed at
+    // the position of the sample in the collection (the column and the row),
+    // then mapped to the detector frame.
+    const double corners[4][2] = {{cx - hx + column, cy - hy + row},
+                                  {cx + hx + column, cy - hy + row},
+                                  {cx + hx + column, cy + hy + row},
+                                  {cx - hx + column, cy + hy + row}};
     for (const auto& corner : corners) {
       const double x = m[0] * corner[0] + m[1] * corner[1] + set.offset[0];
       const double y = m[2] * corner[0] + m[3] * corner[1] + set.offset[1];
@@ -735,13 +740,16 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   overlaps->primitives = primitives;
   overlaps->constraints = constraints;
   overlaps->status.termination = kernel.termination;
-  overlaps->status.bound_validity = Validity::certified;
+  overlaps->status.bound_validity =
+      kernel.termination == Termination::tolerance_met ? Validity::certified : Validity::invalid;
   // The precision budget: the certified endpoints are exact dyadics, so the
   // working precision must be able to carry them.  When the budget does not
   // allow it the termination is named precision and no bound is certified.
   {
     const double area = std::fabs(geometry::dyadic_to_double(kernel.total_upper));
-    const U32 max_bits = request.arithmetic.max_bits > 0 ? request.arithmetic.max_bits : 256;
+    // The precision budget is only enforced when it is declared: the default
+    // of the arithmetic block is degenerate (a few bits) and means "unset".
+    const U32 max_bits = request.arithmetic.max_bits >= 8 ? request.arithmetic.max_bits : 256;
     double required_bits = static_cast<double>(geometry::DyadicLedger::kScaleBits);
     if (area > 0.0) required_bits += std::log2(area);
     if (required_bits > static_cast<double>(max_bits)) {

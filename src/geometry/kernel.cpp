@@ -475,15 +475,17 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
     queue.pop_front();
     ++outcome.work;
 
-    // The shared work ledger: one unit for the block and one unit for every
-    // candidate cell of the previous block.  The science budget and the
-    // shared ledger are the same limit, so a caller never sees one exhausted
-    // while the other still reports budget.
+    // The shared work ledger: one unit for the block before it is processed
+    // and one unit for every candidate cell after it.  The science budget and
+    // the shared ledger are the same limit, so a caller never sees one
+    // exhausted while the other still reports budget.
     {
-      const U64 units = 1 + cells_pending;
+      const Result<U64> charged = context.resources.consume_work(1 + cells_pending);
       cells_pending = 0;
-      const Result<U64> charged = context.resources.consume_work(units);
-      if (charged.code != Code::ok) {
+      if (charged.code != Code::ok || outcome.work > max_work) {
+        // The remaining blocks stay undecided and keep their mass.
+        for (const Block& pending : queue) keep_unresolved(pending);
+        queue.clear();
         outcome.termination = Termination::work;
         outcome.reason = "shared_work_budget_exhausted";
         break;
@@ -571,11 +573,29 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
         }
         ++cells_visited;
         ++cells_pending;
+        ++outcome.work;
         LeafLedger& ledger = ledgers[{leaf.order, leaf.ipix}];
         ledger.lower.add(inner_lower, false);
         ledger.upper.add(outer_upper, true);
         total_lower.add(inner_lower, false);
         total_upper.add(outer_upper, true);
+      }
+    }
+
+    // The candidate cells of the block are charged to the shared ledger after
+    // they are processed; an exhausted ledger stops the kernel with a named
+    // work termination and the undecided mass of the remaining blocks is kept.
+    {
+      const Result<U64> charged = context.resources.consume_work(cells_pending);
+      cells_pending = 0;
+      if (charged.code != Code::ok || outcome.work > max_work) {
+        // The work budget is exhausted: the remaining blocks stay undecided
+        // and keep their mass, and no bound is certified.
+        for (const Block& pending : queue) keep_unresolved(pending);
+        queue.clear();
+        outcome.termination = Termination::work;
+        outcome.reason = "shared_work_budget_exhausted";
+        break;
       }
     }
   }
