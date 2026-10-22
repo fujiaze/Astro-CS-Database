@@ -1,0 +1,39 @@
+{
+  "arguments": {},
+  "input_objects": {},
+  "major": 1,
+  "operation": "solve_weights",
+  "output_root": ".work/w01",
+  "protocol": "acsd.contract",
+  "request": {
+    "mixed_observation": false,
+    "quantities": [],
+    "rejection": {
+      "alpha": 0.001,
+      "kind": "single_max_loo"
+    },
+    "solve": {},
+    "target": {
+      "condition": {
+        "assumptions": [],
+        "estimator": "fixture-w01",
+        "fixed_objects": [],
+        "kind": "common_mean"
+      },
+      "id": "fixture-w01",
+      "quantity": "brightness",
+      "unit": "1"
+    },
+    "weights": "blue"
+  },
+  "request_id": "val-w01-blue-weights",
+  "resources": {
+    "bytes": 8388608,
+    "max_depth": 32,
+    "max_precision_bits": 128,
+    "scratch_directory": ".work",
+    "spill_bytes": 0,
+    "threads": 1,
+    "work": 100000
+  }
+}

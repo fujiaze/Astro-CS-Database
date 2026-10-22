@@ -1,0 +1,61 @@
+{
+  "case": "P01",
+  "expectations": {
+    "closure_checks": {
+      "block_hash_mismatch": {
+        "expected_code": "hash_mismatch"
+      },
+      "duplicate_exposure": {
+        "expected_code": "duplicate_source"
+      },
+      "incomplete_manifest": {
+        "expected_code": "corrupt_product"
+      },
+      "missing_block": {
+        "expected_code": "missing_dependency"
+      },
+      "missing_manifest": {
+        "expected_code": "missing_dependency"
+      },
+      "missing_object": {
+        "expected_code": "missing_dependency"
+      },
+      "object_hash_mismatch": {
+        "expected_code": "hash_mismatch"
+      },
+      "unknown_recipe": {
+        "expected_code": "unsupported"
+      }
+    },
+    "profiles": {
+      "full": {
+        "capabilities": [
+          "mosaic",
+          "export",
+          "refine",
+          "noise",
+          "response"
+        ],
+        "external_inputs": false
+      },
+      "signal_only": {
+        "capabilities": [
+          "mosaic",
+          "export"
+        ],
+        "external_inputs": false,
+        "noise": "unknown",
+        "weights": "equal"
+      }
+    },
+    "shared_root": {
+      "note": "the same shared root and the same sky must be used across tiles; a new R must not be mixed with an old sky"
+    }
+  },
+  "methods": {
+    "closure": "an independent manifest / object / block verification",
+    "corruptions": "named deterministic negative configurations"
+  },
+  "note": "the verdict is conditional on a published product; the case is pending until the product writer is available",
+  "truth_type": "conditional_model"
+}

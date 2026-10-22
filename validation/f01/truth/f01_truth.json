@@ -1,0 +1,117 @@
+{
+  "case": "F01",
+  "methods": {
+    "flux": "separable Gaussian error function integral over the aperture",
+    "rank": "singular values of the joint design matrix",
+    "shared_latent": "explicit 2x2 joint normal equations"
+  },
+  "rank_negative": {
+    "columns": 3,
+    "expected": "not_identifiable with a nullspace when colour is a function of position",
+    "independent_case_rank": 3,
+    "n_stars": 15,
+    "nullspace_dimension": 1,
+    "rank": 2,
+    "singular_values": [
+      5.542465211870211,
+      3.7686214915585574,
+      5.5813648034363035e-16
+    ]
+  },
+  "scale_interval": {
+    "counts_exact_100": [
+      1.0,
+      1.0
+    ],
+    "counts_interval_99_101": [
+      0.99,
+      1.01
+    ],
+    "exact_case_must_be_a_single_point": [
+      1.0,
+      1.0
+    ],
+    "note": "the exact measurement must not produce a finite radius; the interval measurement must keep the difference",
+    "required_containment": [
+      0.9900990099009901,
+      1.0101010101010102
+    ]
+  },
+  "shared_floor": {
+    "correct_variance_if_shared": 0.05,
+    "floor_variance": 0.05,
+    "frames": [
+      1,
+      2,
+      5,
+      10,
+      100
+    ],
+    "note": "the shared term does not decrease with the number of frames",
+    "wrong_variance_if_independent": {
+      "1": 0.05,
+      "2": 0.025,
+      "5": 0.01,
+      "10": 0.005,
+      "100": 0.0005
+    }
+  },
+  "shared_latent": {
+    "covariance": [
+      [
+        4.0,
+        0.8
+      ],
+      [
+        0.8,
+        1.0
+      ]
+    ],
+    "note": "the shared latent creates the off-diagonal term; treating the two rows as independent would give the wrong variance",
+    "scale_sigma": 0.1673320053068151,
+    "scale_variance": 0.028,
+    "weights": [
+      10.0,
+      5.0
+    ]
+  },
+  "single_source": {
+    "aperture_flux": 354.433571118904,
+    "fraction_of_total": 0.354433571118904,
+    "note": "a finite window does not renormalise the flux"
+  },
+  "truth_type": "analytic_exact",
+  "two_sources": {
+    "aperture": [
+      [
+        -4.0,
+        4.0
+      ],
+      [
+        -4.0,
+        4.0
+      ]
+    ],
+    "aperture_flux": 157.07599904756592,
+    "per_source_flux": [
+      98.0545137989372,
+      59.02148524862871
+    ],
+    "sources": [
+      {
+        "amplitude": 100.0,
+        "x": -1.5,
+        "y": 0.0
+      },
+      {
+        "amplitude": 60.0,
+        "x": 1.4,
+        "y": 0.3
+      }
+    ]
+  },
+  "unknown_gain": {
+    "expected_state": "unknown",
+    "note": "without a gain no electron variance can be derived; the signal stays valid and the variance state must stay unknown"
+  }
+}

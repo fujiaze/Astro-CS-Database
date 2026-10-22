@@ -1,0 +1,63 @@
+{
+  "assumptions": [
+    "the native covariance is exactly C (L^2) and the row operator is exactly R (sr^-1)",
+    "the aperture functional is the signed vector t = [1, -1/2] on the leaf domain",
+    "the leaf covariance is R C R^T, computed by the same single R that acts on the signal",
+    "the shared latent is one random variable; splitting it changes the covariance"
+  ],
+  "case": "U01",
+  "condition": "fixed linear model, one shared Gaussian latent, no model bias",
+  "estimand": "leaf covariance matrix R C R^T and the signed aperture variance t^T (R C R^T) t",
+  "goal": "Exercise the public matrix path: storage.copy / make_action / make_covariance / apply / transpose_apply / covariance_apply / quadratic_form on an explicit rational matrix, and falsify the 'split a shared source into independent pieces' shortcut.",
+  "independence": {
+    "external_standards": [
+      "astropy",
+      "wcslib",
+      "astropy-healpix",
+      "healpy",
+      "scipy",
+      "numpy"
+    ],
+    "note": "truth is produced before and independently of any observed run",
+    "truth_code_imports_production": false
+  },
+  "input_model_sha256": "1bfeee0b2cdfbc621a513beeff86ad940d16badc544bca03d43a43a13f706df5",
+  "negative_expectations": [
+    {
+      "expectation": "treating the shared latent as independent must NOT reproduce the truth; the false value must differ by more than the tolerance",
+      "id": "split_shared_source"
+    },
+    {
+      "expectation": "an output array must not decode to zeros",
+      "id": "no_zero_fill"
+    }
+  ],
+  "observed_route": [
+    "in_memory_public_api (validation/native/u01_driver.cpp)",
+    "acsd-contract process driver"
+  ],
+  "positive_expectations": [
+    {
+      "expectation": "R C R^T equals [[15/4, 2], [2, 165/16]]",
+      "id": "leaf_covariance"
+    },
+    {
+      "expectation": "t^T R C R^T t equals 277/64",
+      "id": "aperture_variance"
+    },
+    {
+      "expectation": "quadratic_form(C_native, R^T t) equals the leaf-domain value",
+      "id": "native_route_agreement"
+    }
+  ],
+  "request_sha256": "6be4bcf92ad8c38582714c65f9e263b98bc8b2932be034dda009a08e5cc8c210",
+  "tolerance": {
+    "aperture_variance_absolute": "1e-12 (L^2 sr^-2)",
+    "false_independence_separation_relative": 0.01,
+    "leaf_covariance_absolute": "1e-12 (L^2 sr^-2)",
+    "shared_latent_variance_absolute": "1e-12"
+  },
+  "truth_sha256": "b81c1960626d5e57159e0a785dfeeb1b1667301d796ca40317c0bf4346f61278",
+  "truth_type": "analytic_exact",
+  "unit": "leaf variance (L^2 sr^-2); aperture variance (L^2 sr^-2)"
+}

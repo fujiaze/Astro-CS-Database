@@ -1,0 +1,21 @@
+{
+  "artifacts": {},
+  "binary_identity": {
+    "path": "",
+    "sha256": "",
+    "size_bytes": "0"
+  },
+  "command": [],
+  "exit_code": null,
+  "missing_entry_points": [
+    "acsd-contract"
+  ],
+  "peak_rss_bytes": null,
+  "reason": "the acsd-contract driver executable is not built in this checkout; the contract protocol is declared in docs/engineering/rebuild/API.md but the driver source apps/contract/ does not exist yet",
+  "response": null,
+  "route": "contract",
+  "status": "pending_implementation",
+  "stderr": "",
+  "stdout": "",
+  "wall_seconds": 0.0
+}

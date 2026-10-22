@@ -1,0 +1,11 @@
+{
+  "actual": "the public encoder emitted 16 bytes per element (bytes=32 for 2 elements); storage.copy rejected the payload with invalid_request",
+  "attempt": 1,
+  "date": "before commit bb90d6663 (encoder byte count)",
+  "evidence": "validation/native/u01_driver.cpp encoder payload probe",
+  "expected": "an output array of N f64 carries N*8 bytes",
+  "fixed_in": "bb90d6663",
+  "reported_to": "lead",
+  "scope": "public API storage.copy / write_f64 payload size",
+  "status": "fail"
+}

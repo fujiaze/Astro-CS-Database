@@ -1,0 +1,129 @@
+{
+  "case": "E01",
+  "fits_round_trip": {
+    "bunit": "L/sr",
+    "cd": [
+      [
+        -0.003,
+        0.001
+      ],
+      [
+        0.0012,
+        -0.0026
+      ]
+    ],
+    "cd_error": 0.0,
+    "crpix": [
+      1.37,
+      1.12
+    ],
+    "crpix_error": 0.0,
+    "crval": [
+      359.95,
+      0.5
+    ]
+  },
+  "leaf_values": {
+    "20401348798": 0.0,
+    "20401348799": 3.0,
+    "20401349192": -2.0
+  },
+  "methods": {
+    "fits": "the header is written and read back with astropy",
+    "quantities": "the supported mean, the supported integral and the extrapolation are formed separately",
+    "support": "independent detector domain integration of the solid angle element with a Gauss-Legendre rule and an external HEALPix membership"
+  },
+  "pixels": [
+    {
+      "extrapolated_full_flux": -4.0209499411845615e-09,
+      "full_pixel_area_sr": 2.0104749705922808e-09,
+      "pixel": [
+        0,
+        0
+      ],
+      "support_area_per_leaf_sr": {
+        "20401349192": 6.565959720409657e-11
+      },
+      "supported_area_sr": 6.565959720409657e-11,
+      "supported_fraction": 0.032658748884972895,
+      "supported_integral": -1.3131919440819314e-10,
+      "supported_mean": -2.0,
+      "wrong_full_pixel_mean": -2.0
+    },
+    {
+      "extrapolated_full_flux": -4.0209499411845615e-09,
+      "full_pixel_area_sr": 2.0104749705922808e-09,
+      "pixel": [
+        1,
+        0
+      ],
+      "support_area_per_leaf_sr": {
+        "20401349192": 1.9276953557725915e-10
+      },
+      "supported_area_sr": 1.9276953557725915e-10,
+      "supported_fraction": 0.09588258416391512,
+      "supported_integral": -3.855390711545183e-10,
+      "supported_mean": -2.0,
+      "wrong_full_pixel_mean": -2.0
+    },
+    {
+      "extrapolated_full_flux": 6.031424911776842e-09,
+      "full_pixel_area_sr": 2.0104749705922808e-09,
+      "pixel": [
+        0,
+        1
+      ],
+      "support_area_per_leaf_sr": {
+        "20401348799": 2.007687077020803e-10
+      },
+      "supported_area_sr": 2.007687077020803e-10,
+      "supported_fraction": 0.09986133159515752,
+      "supported_integral": 6.023061231062409e-10,
+      "supported_mean": 3.0,
+      "wrong_full_pixel_mean": 3.0
+    },
+    {
+      "extrapolated_full_flux": 1.0245923853152334e-09,
+      "full_pixel_area_sr": 2.0104749705922808e-09,
+      "pixel": [
+        1,
+        1
+      ],
+      "support_area_per_leaf_sr": {
+        "20401348798": 2.5619513681241336e-10,
+        "20401348799": 5.2427474844720256e-11
+      },
+      "supported_area_sr": 3.0862261165713363e-10,
+      "supported_fraction": 0.15350731353109767,
+      "supported_integral": 1.5728242453416077e-10,
+      "supported_mean": 0.5096270285888668,
+      "wrong_full_pixel_mean": 1.5
+    }
+  ],
+  "target": {
+    "cd": [
+      [
+        -0.003,
+        0.001
+      ],
+      [
+        0.0012,
+        -0.0026
+      ]
+    ],
+    "crpix": [
+      1.37,
+      1.12
+    ],
+    "crval": [
+      359.95,
+      0.5
+    ],
+    "order": 16,
+    "size": [
+      2,
+      2
+    ]
+  },
+  "truth_type": "analytic_exact"
+}

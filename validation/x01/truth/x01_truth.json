@@ -1,0 +1,165 @@
+{
+  "case": "X01",
+  "frames": [
+    {
+      "dark_level_electrons": 12.0,
+      "frame": 0,
+      "gain_e_per_adu": 2.5,
+      "group": "A",
+      "psf_sigma_pixel": 1.35,
+      "read_rms_e": 3.0,
+      "sky_level_electrons": 40.0,
+      "source_centre_pixel": [
+        63.5,
+        64.5
+      ],
+      "total_electrons": 85222290.21243897
+    },
+    {
+      "dark_level_electrons": 12.0,
+      "frame": 1,
+      "gain_e_per_adu": 2.5,
+      "group": "A",
+      "psf_sigma_pixel": 1.35,
+      "read_rms_e": 3.0,
+      "sky_level_electrons": 45.0,
+      "source_centre_pixel": [
+        63.5,
+        64.5
+      ],
+      "total_electrons": 93414290.21243897
+    },
+    {
+      "dark_level_electrons": 12.0,
+      "frame": 2,
+      "gain_e_per_adu": 2.5,
+      "group": "A",
+      "psf_sigma_pixel": 1.35,
+      "read_rms_e": 3.0,
+      "sky_level_electrons": 50.0,
+      "source_centre_pixel": [
+        63.5,
+        64.5
+      ],
+      "total_electrons": 101606290.21243897
+    },
+    {
+      "dark_level_electrons": 12.0,
+      "frame": 3,
+      "gain_e_per_adu": 2.5,
+      "group": "A",
+      "psf_sigma_pixel": 1.35,
+      "read_rms_e": 3.0,
+      "sky_level_electrons": 55.0,
+      "source_centre_pixel": [
+        63.5,
+        64.5
+      ],
+      "total_electrons": 109798290.21243896
+    },
+    {
+      "dark_level_electrons": 12.0,
+      "frame": 4,
+      "gain_e_per_adu": 2.5,
+      "group": "B",
+      "psf_sigma_pixel": 1.35,
+      "read_rms_e": 3.0,
+      "sky_level_electrons": 60.0,
+      "source_centre_pixel": null,
+      "total_electrons": 117980098.35350421
+    },
+    {
+      "dark_level_electrons": 12.0,
+      "frame": 5,
+      "gain_e_per_adu": 2.5,
+      "group": "B",
+      "psf_sigma_pixel": 1.35,
+      "read_rms_e": 3.0,
+      "sky_level_electrons": 65.0,
+      "source_centre_pixel": null,
+      "total_electrons": 126172098.35350421
+    },
+    {
+      "dark_level_electrons": 12.0,
+      "frame": 6,
+      "gain_e_per_adu": 2.5,
+      "group": "B",
+      "psf_sigma_pixel": 1.35,
+      "read_rms_e": 3.0,
+      "sky_level_electrons": 70.0,
+      "source_centre_pixel": null,
+      "total_electrons": 134364098.3535042
+    },
+    {
+      "dark_level_electrons": 12.0,
+      "frame": 7,
+      "gain_e_per_adu": 2.5,
+      "group": "B",
+      "psf_sigma_pixel": 1.35,
+      "read_rms_e": 3.0,
+      "sky_level_electrons": 75.0,
+      "source_centre_pixel": null,
+      "total_electrons": 142556098.3535042
+    }
+  ],
+  "groups": {
+    "A": {
+      "frames": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "throughput": "group A",
+      "wcs": true
+    },
+    "B": {
+      "frames": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "note": "the B group carries no WCS and must be blind solved",
+      "throughput": "group B",
+      "wcs": false
+    }
+  },
+  "methods": {
+    "noise": "independent Poisson photons plus an independent Gaussian read noise",
+    "photon_rate": "int f R lambda/(hc) dlambda with a trapezoid rule on the sampled SED",
+    "pixel_integration": "the exact separable error function integral of a Gaussian"
+  },
+  "seed": 20261029,
+  "sky_frames": [
+    {
+      "path": "x01/input/frames/sky_00.fits",
+      "sha256": "d955b8a0f919a155a820d3d2b059d950941a4c66d05b547d18aa78a3d50e879b",
+      "sky_level_electrons": 55.0
+    },
+    {
+      "path": "x01/input/frames/sky_01.fits",
+      "sha256": "abaef3f5baf5a668ea003467e0510213cc22925976a27ecc8be63c900c178f71",
+      "sky_level_electrons": 58.0
+    },
+    {
+      "path": "x01/input/frames/sky_02.fits",
+      "sha256": "2b99f626ad7e2016e766d7c496d7fba098fd6d7b5aa1700233998966e47a8f34",
+      "sky_level_electrons": 61.0
+    }
+  ],
+  "spectral_model": {
+    "continuum_amplitude_w_m2_nm": 1e-18,
+    "line_amplitude_w_m2_nm": 6.7e-18,
+    "line_centre_nm": 656.3,
+    "line_width_nm": 1.5,
+    "photon_rate_group_a_s_m2": 254.9021243896135,
+    "photon_rate_group_b_s_m2": 152.9835350420725,
+    "wavelength_nm_max": 700.0,
+    "wavelength_nm_min": 400.0
+  },
+  "truth_types": [
+    "empirical",
+    "analytic_exact"
+  ]
+}

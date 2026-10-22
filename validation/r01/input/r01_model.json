@@ -1,0 +1,79 @@
+{
+  "case": "R01",
+  "run_matrix": [
+    {
+      "cache": true,
+      "cancel": false,
+      "completion_order": "sequential",
+      "memory_bytes": 268435456,
+      "name": "threads_1",
+      "threads": 1,
+      "write_failure": false
+    },
+    {
+      "cache": true,
+      "cancel": false,
+      "completion_order": "sequential",
+      "memory_bytes": 268435456,
+      "name": "threads_4",
+      "threads": 4,
+      "write_failure": false
+    },
+    {
+      "cache": true,
+      "cancel": false,
+      "completion_order": "sequential",
+      "memory_bytes": 33554432,
+      "name": "memory_32MiB",
+      "threads": 1,
+      "write_failure": false
+    },
+    {
+      "cache": false,
+      "cancel": false,
+      "completion_order": "sequential",
+      "memory_bytes": 268435456,
+      "name": "cache_off",
+      "threads": 1,
+      "write_failure": false
+    },
+    {
+      "cache": true,
+      "cancel": false,
+      "completion_order": "sequential",
+      "memory_bytes": 268435456,
+      "name": "write_failure",
+      "threads": 1,
+      "write_failure": true
+    },
+    {
+      "cache": true,
+      "cancel": true,
+      "completion_order": "sequential",
+      "memory_bytes": 268435456,
+      "name": "cancelled",
+      "threads": 1,
+      "write_failure": false
+    },
+    {
+      "cache": true,
+      "cancel": false,
+      "completion_order": "frames_reversed",
+      "memory_bytes": 268435456,
+      "name": "out_of_order_frames",
+      "threads": 4,
+      "write_failure": false
+    },
+    {
+      "cache": true,
+      "cancel": false,
+      "completion_order": "targets_reversed",
+      "memory_bytes": 268435456,
+      "name": "out_of_order_targets",
+      "threads": 4,
+      "write_failure": false
+    }
+  ],
+  "science_input": "the U01 fixture, run through the full pipeline",
+  "scratch_directory": ".work/r01"
+}

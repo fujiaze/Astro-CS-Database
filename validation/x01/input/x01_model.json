@@ -1,0 +1,108 @@
+{
+  "case": "X01",
+  "frames": [
+    {
+      "group": "A",
+      "path": "x01/input/frames/frame_00_A.fits",
+      "sha256": "26929e021114eef7c71df399581865f417e7b120d900e5fc4c4cde0e8d5ae115",
+      "sky_level_electrons": 40.0
+    },
+    {
+      "group": "A",
+      "path": "x01/input/frames/frame_01_A.fits",
+      "sha256": "8d89456eacb990566c04e74c5ce8a3ef8dc482094049ebee20a0b9fc58e40bcf",
+      "sky_level_electrons": 45.0
+    },
+    {
+      "group": "A",
+      "path": "x01/input/frames/frame_02_A.fits",
+      "sha256": "0df7cab25bdcccbac21e99244ca1dad53510d6956b71745cf6f9bf78222dfa79",
+      "sky_level_electrons": 50.0
+    },
+    {
+      "group": "A",
+      "path": "x01/input/frames/frame_03_A.fits",
+      "sha256": "8e8cf6ee1b524893e89526e0716f5088752837a792394f906fc5338a934a6a0b",
+      "sky_level_electrons": 55.0
+    },
+    {
+      "group": "B",
+      "path": "x01/input/frames/frame_04_B.fits",
+      "sha256": "7bc0b27c7144b677f74469f6bb14f3e474c81b8a9348ae68edd12f6997199257",
+      "sky_level_electrons": 60.0
+    },
+    {
+      "group": "B",
+      "path": "x01/input/frames/frame_05_B.fits",
+      "sha256": "89628de7af5fd7d375d56adc1d09159d24d5f07d2070f5f2bd75cc496d519e2f",
+      "sky_level_electrons": 65.0
+    },
+    {
+      "group": "B",
+      "path": "x01/input/frames/frame_06_B.fits",
+      "sha256": "7025edd12f61fe3b0574640696db6a5042c64c7389166f1f882df427e60ae3e8",
+      "sky_level_electrons": 70.0
+    },
+    {
+      "group": "B",
+      "path": "x01/input/frames/frame_07_B.fits",
+      "sha256": "758b1f496e236485030f8a4481afc36af1a009428f11fa5e62336804a9274b1e",
+      "sky_level_electrons": 75.0
+    }
+  ],
+  "groups": {
+    "A": {
+      "frames": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "throughput": "group A",
+      "wcs": true
+    },
+    "B": {
+      "frames": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "note": "the B group carries no WCS and must be blind solved",
+      "throughput": "group B",
+      "wcs": false
+    }
+  },
+  "seed": 20261029,
+  "size": [
+    128,
+    128
+  ],
+  "sky_frames": [
+    {
+      "path": "x01/input/frames/sky_00.fits",
+      "sha256": "d955b8a0f919a155a820d3d2b059d950941a4c66d05b547d18aa78a3d50e879b",
+      "sky_level_electrons": 55.0
+    },
+    {
+      "path": "x01/input/frames/sky_01.fits",
+      "sha256": "abaef3f5baf5a668ea003467e0510213cc22925976a27ecc8be63c900c178f71",
+      "sky_level_electrons": 58.0
+    },
+    {
+      "path": "x01/input/frames/sky_02.fits",
+      "sha256": "2b99f626ad7e2016e766d7c496d7fba098fd6d7b5aa1700233998966e47a8f34",
+      "sky_level_electrons": 61.0
+    }
+  ],
+  "spectral_model": {
+    "continuum_amplitude_w_m2_nm": 1e-18,
+    "line_amplitude_w_m2_nm": 6.7e-18,
+    "line_centre_nm": 656.3,
+    "line_width_nm": 1.5,
+    "photon_rate_group_a_s_m2": 254.9021243896135,
+    "photon_rate_group_b_s_m2": 152.9835350420725,
+    "wavelength_nm_max": 700.0,
+    "wavelength_nm_min": 400.0
+  }
+}

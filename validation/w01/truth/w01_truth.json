@@ -1,0 +1,1628 @@
+{
+  "alpha": 0.001,
+  "analytic_weights": {
+    "N1": {
+      "blue_variance": {
+        "decimal": "4",
+        "denominator": "1",
+        "numerator": "4"
+      },
+      "blue_weights": [
+        {
+          "decimal": "1",
+          "denominator": "1",
+          "numerator": "1"
+        }
+      ],
+      "gamma": [
+        [
+          {
+            "decimal": "4",
+            "denominator": "1",
+            "numerator": "4"
+          }
+        ]
+      ],
+      "qp_variance": {
+        "decimal": "4",
+        "denominator": "1",
+        "numerator": "4"
+      },
+      "qp_weights": [
+        {
+          "decimal": "1",
+          "denominator": "1",
+          "numerator": "1"
+        }
+      ]
+    },
+    "N2": {
+      "blue_variance": {
+        "decimal": "5/6",
+        "denominator": "6",
+        "numerator": "5"
+      },
+      "blue_weights": [
+        {
+          "decimal": "7/6",
+          "denominator": "6",
+          "numerator": "7"
+        },
+        {
+          "decimal": "-1/6",
+          "denominator": "6",
+          "numerator": "-1"
+        }
+      ],
+      "gamma": [
+        [
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "2",
+            "denominator": "1",
+            "numerator": "2"
+          }
+        ],
+        [
+          {
+            "decimal": "2",
+            "denominator": "1",
+            "numerator": "2"
+          },
+          {
+            "decimal": "9",
+            "denominator": "1",
+            "numerator": "9"
+          }
+        ]
+      ],
+      "qp_variance": {
+        "decimal": "1",
+        "denominator": "1",
+        "numerator": "1"
+      },
+      "qp_weights": [
+        {
+          "decimal": "1",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0",
+          "denominator": "1",
+          "numerator": "0"
+        }
+      ]
+    },
+    "N3": {
+      "blue_variance": {
+        "decimal": "2/3",
+        "denominator": "3",
+        "numerator": "2"
+      },
+      "blue_weights": [
+        {
+          "decimal": "1/3",
+          "denominator": "3",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/3",
+          "denominator": "3",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/3",
+          "denominator": "3",
+          "numerator": "1"
+        }
+      ],
+      "gamma": [
+        [
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          }
+        ]
+      ],
+      "qp_variance": {
+        "decimal": "2/3",
+        "denominator": "3",
+        "numerator": "2"
+      },
+      "qp_weights": [
+        {
+          "decimal": "1/3",
+          "denominator": "3",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/3",
+          "denominator": "3",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/3",
+          "denominator": "3",
+          "numerator": "1"
+        }
+      ]
+    },
+    "N4": {
+      "blue_variance": {
+        "decimal": "0.625",
+        "denominator": "8",
+        "numerator": "5"
+      },
+      "blue_weights": [
+        {
+          "decimal": "0.25",
+          "denominator": "4",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.25",
+          "denominator": "4",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.25",
+          "denominator": "4",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.25",
+          "denominator": "4",
+          "numerator": "1"
+        }
+      ],
+      "gamma": [
+        [
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          }
+        ]
+      ],
+      "qp_variance": {
+        "decimal": "0.625",
+        "denominator": "8",
+        "numerator": "5"
+      },
+      "qp_weights": [
+        {
+          "decimal": "0.25",
+          "denominator": "4",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.25",
+          "denominator": "4",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.25",
+          "denominator": "4",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.25",
+          "denominator": "4",
+          "numerator": "1"
+        }
+      ]
+    },
+    "N5": {
+      "blue_variance": {
+        "decimal": "0.6",
+        "denominator": "5",
+        "numerator": "3"
+      },
+      "blue_weights": [
+        {
+          "decimal": "0.2",
+          "denominator": "5",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.2",
+          "denominator": "5",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.2",
+          "denominator": "5",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.2",
+          "denominator": "5",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.2",
+          "denominator": "5",
+          "numerator": "1"
+        }
+      ],
+      "gamma": [
+        [
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          }
+        ]
+      ],
+      "qp_variance": {
+        "decimal": "0.6",
+        "denominator": "5",
+        "numerator": "3"
+      },
+      "qp_weights": [
+        {
+          "decimal": "0.2",
+          "denominator": "5",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.2",
+          "denominator": "5",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.2",
+          "denominator": "5",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.2",
+          "denominator": "5",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.2",
+          "denominator": "5",
+          "numerator": "1"
+        }
+      ]
+    },
+    "N6": {
+      "blue_variance": {
+        "decimal": "7/12",
+        "denominator": "12",
+        "numerator": "7"
+      },
+      "blue_weights": [
+        {
+          "decimal": "1/6",
+          "denominator": "6",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/6",
+          "denominator": "6",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/6",
+          "denominator": "6",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/6",
+          "denominator": "6",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/6",
+          "denominator": "6",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/6",
+          "denominator": "6",
+          "numerator": "1"
+        }
+      ],
+      "gamma": [
+        [
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          }
+        ]
+      ],
+      "qp_variance": {
+        "decimal": "7/12",
+        "denominator": "12",
+        "numerator": "7"
+      },
+      "qp_weights": [
+        {
+          "decimal": "1/6",
+          "denominator": "6",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/6",
+          "denominator": "6",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/6",
+          "denominator": "6",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/6",
+          "denominator": "6",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/6",
+          "denominator": "6",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/6",
+          "denominator": "6",
+          "numerator": "1"
+        }
+      ]
+    },
+    "N7": {
+      "blue_variance": {
+        "decimal": "4/7",
+        "denominator": "7",
+        "numerator": "4"
+      },
+      "blue_weights": [
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        }
+      ],
+      "gamma": [
+        [
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          }
+        ],
+        [
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0.5",
+            "denominator": "2",
+            "numerator": "1"
+          },
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          }
+        ]
+      ],
+      "qp_variance": {
+        "decimal": "4/7",
+        "denominator": "7",
+        "numerator": "4"
+      },
+      "qp_weights": [
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        },
+        {
+          "decimal": "1/7",
+          "denominator": "7",
+          "numerator": "1"
+        }
+      ]
+    }
+  },
+  "case": "W01",
+  "monte_carlo": [
+    {
+      "contaminated": false,
+      "coverage_68": 0.68185,
+      "coverage_68_ci95": [
+        0.6789530115551592,
+        0.6847364378289194
+      ],
+      "coverage_95": 0.95016,
+      "coverage_95_ci95": [
+        0.9487931237261036,
+        0.9515006906852767
+      ],
+      "false_rejection_ci95": [
+        0.0,
+        3.6888114157924206e-05
+      ],
+      "false_rejection_rate": 0.0,
+      "n": 1,
+      "rejections": 0,
+      "rms_error": 1.9993252719541732,
+      "seed": 20262025,
+      "trials": 100000
+    },
+    {
+      "contaminated": true,
+      "coverage_68": 0.0,
+      "coverage_68_ci95": [
+        0.0,
+        3.6888114157924206e-05
+      ],
+      "coverage_95": 0.0,
+      "coverage_95_ci95": [
+        0.0,
+        3.6888114157924206e-05
+      ],
+      "false_rejection_ci95": [
+        0.0,
+        3.6888114157924206e-05
+      ],
+      "false_rejection_rate": 0.0,
+      "n": 1,
+      "rejections": 0,
+      "rms_error": 24.092638252304972,
+      "seed": 20262029,
+      "trials": 100000
+    },
+    {
+      "contaminated": false,
+      "coverage_68": 0.68152,
+      "coverage_68_ci95": [
+        0.6786222234134962,
+        0.6844072451232556
+      ],
+      "coverage_95": 0.95002,
+      "coverage_95_ci95": [
+        0.9486513344854052,
+        0.9513624882392069
+      ],
+      "false_rejection_ci95": [
+        0.0,
+        3.6888114157924206e-05
+      ],
+      "false_rejection_rate": 0.0,
+      "n": 2,
+      "rejections": 0,
+      "rms_error": 0.9126842748906204,
+      "seed": 20263025,
+      "trials": 100000
+    },
+    {
+      "contaminated": true,
+      "coverage_68": 0.0,
+      "coverage_68_ci95": [
+        0.0,
+        3.6888114157924206e-05
+      ],
+      "coverage_95": 0.0,
+      "coverage_95_ci95": [
+        0.0,
+        3.6888114157924206e-05
+      ],
+      "false_rejection_ci95": [
+        0.0,
+        3.6888114157924206e-05
+      ],
+      "false_rejection_rate": 0.0,
+      "n": 2,
+      "rejections": 0,
+      "rms_error": 6.064109800363701,
+      "seed": 20263029,
+      "trials": 100000
+    },
+    {
+      "contaminated": false,
+      "coverage_68": 0.68479,
+      "coverage_68_ci95": [
+        0.6819001070580573,
+        0.6876691716912073
+      ],
+      "coverage_95": 0.95047,
+      "coverage_95_ci95": [
+        0.9491070961180837,
+        0.9518066998824417
+      ],
+      "false_rejection_ci95": [
+        0.0,
+        3.6888114157924206e-05
+      ],
+      "false_rejection_rate": 0.0,
+      "n": 3,
+      "rejections": 0,
+      "rms_error": 0.8137411653141812,
+      "seed": 20264025,
+      "trials": 100000
+    },
+    {
+      "contaminated": true,
+      "coverage_68": 7e-05,
+      "coverage_68_ci95": [
+        2.8144078805036797e-05,
+        0.00014422140092234864
+      ],
+      "coverage_95": 0.00156,
+      "coverage_95_ci95": [
+        0.0013249544735934662,
+        0.0018246711082752975
+      ],
+      "false_rejection_ci95": [
+        0.0,
+        3.6888114157924206e-05
+      ],
+      "false_rejection_rate": 0.0,
+      "n": 3,
+      "rejections": 0,
+      "rms_error": 4.080893743045892,
+      "seed": 20264029,
+      "trials": 100000
+    },
+    {
+      "contaminated": false,
+      "coverage_68": 0.68215,
+      "coverage_68_ci95": [
+        0.6792537294967156,
+        0.6850357024757989
+      ],
+      "coverage_95": 0.94875,
+      "coverage_95_ci95": [
+        0.9473652361570666,
+        0.9501086619432064
+      ],
+      "false_rejection_ci95": [
+        0.0007148021563209018,
+        0.0010951091858706458
+      ],
+      "false_rejection_rate": 0.00089,
+      "n": 4,
+      "rejections": 89,
+      "rms_error": 0.7924229664688287,
+      "seed": 20265025,
+      "trials": 100000
+    },
+    {
+      "contaminated": true,
+      "coverage_68": 0.68186,
+      "coverage_68_ci95": [
+        0.6789630354643005,
+        0.6847464133393888
+      ],
+      "coverage_95": 0.94964,
+      "coverage_95_ci95": [
+        0.9482664927340415,
+        0.9509873525508895
+      ],
+      "false_rejection_ci95": [
+        0.9999631118858421,
+        1.0
+      ],
+      "false_rejection_rate": 1.0,
+      "n": 4,
+      "rejections": 100000,
+      "rms_error": 0.8185292706767877,
+      "seed": 20265029,
+      "trials": 100000
+    },
+    {
+      "contaminated": false,
+      "coverage_68": 0.68358,
+      "coverage_68_ci95": [
+        0.6806871706861011,
+        0.686462178290826
+      ],
+      "coverage_95": 0.9495,
+      "coverage_95_ci95": [
+        0.9481247143347059,
+        0.9508491392604028
+      ],
+      "false_rejection_ci95": [
+        0.0007776701307338576,
+        0.0011721998333845335
+      ],
+      "false_rejection_rate": 0.00096,
+      "n": 5,
+      "rejections": 96,
+      "rms_error": 0.775215611985347,
+      "seed": 20266025,
+      "trials": 100000
+    },
+    {
+      "contaminated": true,
+      "coverage_68": 0.68519,
+      "coverage_68_ci95": [
+        0.6823010827310612,
+        0.6880681728023202
+      ],
+      "coverage_95": 0.95075,
+      "coverage_95_ci95": [
+        0.9493906966086156,
+        0.9520830827591747
+      ],
+      "false_rejection_ci95": [
+        0.9999631118858421,
+        1.0
+      ],
+      "false_rejection_rate": 1.0,
+      "n": 5,
+      "rejections": 100000,
+      "rms_error": 0.7886951354449265,
+      "seed": 20266029,
+      "trials": 100000
+    },
+    {
+      "contaminated": false,
+      "coverage_68": 0.68381,
+      "coverage_68_ci95": [
+        0.6809177271014619,
+        0.6866916085264496
+      ],
+      "coverage_95": 0.94983,
+      "coverage_95_ci95": [
+        0.9484589109217552,
+        0.9511749230837742
+      ],
+      "false_rejection_ci95": [
+        0.0008227345559258711,
+        0.0012271082301393127
+      ],
+      "false_rejection_rate": 0.00101,
+      "n": 6,
+      "rejections": 101,
+      "rms_error": 0.7631690707567583,
+      "seed": 20267025,
+      "trials": 100000
+    },
+    {
+      "contaminated": true,
+      "coverage_68": 0.68133,
+      "coverage_68_ci95": [
+        0.6784317703919863,
+        0.6842177091720527
+      ],
+      "coverage_95": 0.94944,
+      "coverage_95_ci95": [
+        0.9480639530494497,
+        0.9507899041069157
+      ],
+      "false_rejection_ci95": [
+        0.9999631118858421,
+        1.0
+      ],
+      "false_rejection_rate": 1.0,
+      "n": 6,
+      "rejections": 100000,
+      "rms_error": 0.7763633581388695,
+      "seed": 20267029,
+      "trials": 100000
+    },
+    {
+      "contaminated": false,
+      "coverage_68": 0.68273,
+      "coverage_68_ci95": [
+        0.6798351214344864,
+        0.6856142768755793
+      ],
+      "coverage_95": 0.95064,
+      "coverage_95_ci95": [
+        0.9492792807060481,
+        0.9519745051964394
+      ],
+      "false_rejection_ci95": [
+        0.000768672617496985,
+        0.0011612030076373387
+      ],
+      "false_rejection_rate": 0.00095,
+      "n": 7,
+      "rejections": 95,
+      "rms_error": 0.7553786988233627,
+      "seed": 20268025,
+      "trials": 100000
+    },
+    {
+      "contaminated": true,
+      "coverage_68": 0.68122,
+      "coverage_68_ci95": [
+        0.6783215083690916,
+        0.6841079775791516
+      ],
+      "coverage_95": 0.94886,
+      "coverage_95_ci95": [
+        0.9474766211632832,
+        0.9502172704109866
+      ],
+      "false_rejection_ci95": [
+        0.9999631118858421,
+        1.0
+      ],
+      "false_rejection_rate": 1.0,
+      "n": 7,
+      "rejections": 100000,
+      "rms_error": 0.7660942274869909,
+      "seed": 20268029,
+      "trials": 100000
+    }
+  ],
+  "note": "the Monte-Carlo is the reference for the *specified* procedure; it is not a claim about any implementation and it is not extrapolated beyond N = 7",
+  "psd_fixtures": {
+    "range_case": {
+      "gamma": [
+        [
+          {
+            "decimal": "2",
+            "denominator": "1",
+            "numerator": "2"
+          },
+          {
+            "decimal": "2",
+            "denominator": "1",
+            "numerator": "2"
+          }
+        ],
+        [
+          {
+            "decimal": "2",
+            "denominator": "1",
+            "numerator": "2"
+          },
+          {
+            "decimal": "2",
+            "denominator": "1",
+            "numerator": "2"
+          }
+        ]
+      ],
+      "note": "1^T v == 0 so the zero space carries no normalised solution",
+      "null_space_vector": [
+        {
+          "decimal": "1",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        {
+          "decimal": "-1",
+          "denominator": "1",
+          "numerator": "-1"
+        }
+      ],
+      "solution_in_range": [
+        {
+          "decimal": "0.5",
+          "denominator": "2",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.5",
+          "denominator": "2",
+          "numerator": "1"
+        }
+      ],
+      "sum_of_null_vector": {
+        "decimal": "0",
+        "denominator": "1",
+        "numerator": "0"
+      },
+      "variance": {
+        "decimal": "2",
+        "denominator": "1",
+        "numerator": "2"
+      }
+    },
+    "zero_variance_case": {
+      "gamma": [
+        [
+          {
+            "decimal": "1",
+            "denominator": "1",
+            "numerator": "1"
+          },
+          {
+            "decimal": "0",
+            "denominator": "1",
+            "numerator": "0"
+          }
+        ],
+        [
+          {
+            "decimal": "0",
+            "denominator": "1",
+            "numerator": "0"
+          },
+          {
+            "decimal": "0",
+            "denominator": "1",
+            "numerator": "0"
+          }
+        ]
+      ],
+      "normalised_zero_variance_solution": [
+        {
+          "decimal": "0",
+          "denominator": "1",
+          "numerator": "0"
+        },
+        {
+          "decimal": "1",
+          "denominator": "1",
+          "numerator": "1"
+        }
+      ],
+      "note": "1^T v != 0 so a zero variance normalised solution exists",
+      "null_space_vector": [
+        {
+          "decimal": "0",
+          "denominator": "1",
+          "numerator": "0"
+        },
+        {
+          "decimal": "1",
+          "denominator": "1",
+          "numerator": "1"
+        }
+      ],
+      "sum_of_null_vector": {
+        "decimal": "1",
+        "denominator": "1",
+        "numerator": "1"
+      },
+      "variance": {
+        "decimal": "0",
+        "denominator": "1",
+        "numerator": "0"
+      }
+    }
+  },
+  "seed": 20261022,
+  "seed_rule": "SEED + 1000 * N + 3 (clean) or + 7 (contaminated)",
+  "trials_per_configuration": 100000,
+  "truth_types": {
+    "monte_carlo": "stochastic_confidence",
+    "weights": "analytic_exact"
+  }
+}

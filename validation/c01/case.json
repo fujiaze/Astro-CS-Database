@@ -1,0 +1,157 @@
+{
+  "assumptions": [
+    "the reference frame is ICRS and the projection is TAN",
+    "the SIP distortion is applied before the CD matrix",
+    "the detector domain is a closed rectangle that contains the requested pixels",
+    "the external truth is astropy/WCSLIB; the second truth is an independent implementation of the foundation tangent-plane formulae"
+  ],
+  "availability": {
+    "checked_sources": [
+      "src/catalogue/columns.cpp",
+      "src/catalogue/index.cpp",
+      "src/catalogue/provider.cpp",
+      "src/catalogue/sky_geometry.cpp",
+      "src/coadd/coadd.cpp",
+      "src/coadd/weights.cpp",
+      "src/coordinates/chart.cpp",
+      "src/coordinates/footprint_provider.cpp",
+      "src/coordinates/healpix.cpp",
+      "src/coordinates/tan_sip.cpp",
+      "src/coordinates/wcs.cpp",
+      "src/geometry/drizzle.cpp",
+      "src/geometry/exact_polygon.cpp",
+      "src/geometry/kernel.cpp",
+      "src/geometry/overlap.cpp",
+      "src/geometry/refine.cpp",
+      "src/information/information.cpp",
+      "src/information/internal.cpp",
+      "src/information/triangulation.cpp",
+      "src/model/array.cpp",
+      "src/model/exact.cpp",
+      "src/model/hash.cpp",
+      "src/model/units.cpp",
+      "src/numerics/interval.cpp",
+      "src/numerics/linalg.cpp",
+      "src/numerics/quadrature.cpp",
+      "src/observation/calibrate.cpp",
+      "src/observation/observation.cpp",
+      "src/observation/regroup.cpp",
+      "src/operators/api.cpp",
+      "src/operators/linear_action.cpp",
+      "src/photometry/api.cpp",
+      "src/photometry/apply_scale.cpp",
+      "src/photometry/joint_fit.cpp",
+      "src/photometry/spatial_basis.cpp",
+      "src/projection/export_projection.cpp",
+      "src/resources/cpu_resources.cpp",
+      "src/response/api.cpp",
+      "src/response/spectral.cpp",
+      "src/sky/sky.cpp",
+      "src/sources/astrometry.cpp",
+      "src/sources/astrometry_detection.cpp",
+      "src/sources/astrometry_fit.cpp",
+      "src/sources/astrometry_match.cpp",
+      "src/sources/astrometry_wcs.cpp",
+      "src/sources/measure.cpp",
+      "src/sources/psf.cpp",
+      "src/storage/local_storage.cpp",
+      "src/uncertainty/api.cpp",
+      "src/uncertainty/covariance.cpp",
+      "src/workflows/export_workflow.cpp",
+      "src/workflows/fits_writer.cpp",
+      "src/workflows/frames_provider.cpp",
+      "src/workflows/mosaic.cpp",
+      "src/workflows/normalize.cpp",
+      "src/workflows/product.cpp",
+      "src/workflows/product_io.cpp"
+    ],
+    "entry_points": {
+      "derivative": true,
+      "forward": true,
+      "inverse": true,
+      "make_wcs": true,
+      "solid_angle_jacobian": true
+    },
+    "missing": []
+  },
+  "case": "C01",
+  "condition": "fixed numeric WCS model; no astrometric parameter error",
+  "estimand": "the ICRS unit vector of the forward map, the 0-based pixel of the inverse map, the 3x2 Jacobian dn/d(x,y) and the solid angle per pixel^2",
+  "fixtures_sha256": "0066c81d187a741cb4f481516a801295b53568ea26203d5e8b660b90d7e4f20c",
+  "goal": "Verify the absolute WCS model (forward, inverse, derivative and the solid angle per pixel) against an external complete WCS, and show that the named failure configurations fail by name.",
+  "independence": {
+    "external_standards": [
+      "astropy",
+      "wcslib",
+      "astropy-healpix",
+      "healpy",
+      "scipy",
+      "numpy"
+    ],
+    "note": "truth is produced before and independently of any observed run",
+    "truth_code_imports_production": false
+  },
+  "negative_expectations": [
+    {
+      "expectation": "the inverse behind the tangent point must fail by name",
+      "id": "back_hemisphere"
+    },
+    {
+      "expectation": "a non-ICRS reference frame must fail by name",
+      "id": "non_icrs"
+    },
+    {
+      "expectation": "a PV distortion must fail by name",
+      "id": "extra_distortion"
+    },
+    {
+      "expectation": "an uncertifiable SIP must fail by name",
+      "id": "injectivity"
+    }
+  ],
+  "positive_expectations": [
+    {
+      "expectation": "the forward map matches the external standard within 1e-10 rad",
+      "id": "forward_absolute"
+    },
+    {
+      "expectation": "the inverse map matches within 1e-7 pixel",
+      "id": "inverse_absolute"
+    },
+    {
+      "expectation": "the analytic Jacobian matches the external finite difference within 1e-6 relative",
+      "id": "derivative"
+    },
+    {
+      "expectation": "the reported g interval contains the truth",
+      "id": "solid_angle"
+    },
+    {
+      "expectation": "the forward map must differ from the +1 and +0.5 pixel origin controls by more than the tolerance",
+      "id": "origin_control"
+    },
+    {
+      "expectation": "the forward map must differ from the CD-only-change control by more than the tolerance",
+      "id": "cd_only_control"
+    }
+  ],
+  "tolerance": {
+    "derivative_relative": 1e-06,
+    "forward_rad": 1e-10,
+    "inverse_pixel": 1e-07,
+    "named_failure_codes": [
+      "unsupported",
+      "unavailable",
+      "invalid_request",
+      "domain",
+      "unsolved",
+      "not_identifiable",
+      "invalid_model",
+      "projection_unresolved"
+    ],
+    "solid_angle_jacobian_relative": 1e-06
+  },
+  "truth_sha256": "31f650cd8023a440b3ae91c1659d23213fb6e2090779e58c85e5961fa7120852",
+  "truth_type": "analytic_exact",
+  "unit": "rad (angles), pixel (positions), sr/pixel^2 (solid angle)"
+}

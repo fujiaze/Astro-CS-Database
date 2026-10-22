@@ -1,0 +1,134 @@
+{
+  "assumptions": [
+    "the frame covariance is an externally fixed Gamma (not estimated from the data)",
+    "the frames share a common mean and the data are Gaussian for the clean scenario",
+    "the single-step maximum leave-one-out rule is applied once and rejects at most one frame, and only for N >= 4",
+    "the contamination is a single specified frame shifted by 12 sigma"
+  ],
+  "availability": {
+    "checked_sources": [
+      "src/catalogue/columns.cpp",
+      "src/catalogue/index.cpp",
+      "src/catalogue/provider.cpp",
+      "src/catalogue/sky_geometry.cpp",
+      "src/coadd/coadd.cpp",
+      "src/coadd/weights.cpp",
+      "src/coordinates/chart.cpp",
+      "src/coordinates/footprint_provider.cpp",
+      "src/coordinates/healpix.cpp",
+      "src/coordinates/tan_sip.cpp",
+      "src/coordinates/wcs.cpp",
+      "src/geometry/drizzle.cpp",
+      "src/geometry/exact_polygon.cpp",
+      "src/geometry/kernel.cpp",
+      "src/geometry/overlap.cpp",
+      "src/geometry/refine.cpp",
+      "src/information/information.cpp",
+      "src/information/internal.cpp",
+      "src/information/triangulation.cpp",
+      "src/model/array.cpp",
+      "src/model/exact.cpp",
+      "src/model/hash.cpp",
+      "src/model/units.cpp",
+      "src/numerics/interval.cpp",
+      "src/numerics/linalg.cpp",
+      "src/numerics/quadrature.cpp",
+      "src/observation/calibrate.cpp",
+      "src/observation/observation.cpp",
+      "src/observation/regroup.cpp",
+      "src/operators/api.cpp",
+      "src/operators/linear_action.cpp",
+      "src/photometry/api.cpp",
+      "src/photometry/apply_scale.cpp",
+      "src/photometry/joint_fit.cpp",
+      "src/photometry/spatial_basis.cpp",
+      "src/projection/export_projection.cpp",
+      "src/resources/cpu_resources.cpp",
+      "src/response/api.cpp",
+      "src/response/spectral.cpp",
+      "src/sky/sky.cpp",
+      "src/sources/astrometry.cpp",
+      "src/sources/astrometry_detection.cpp",
+      "src/sources/astrometry_fit.cpp",
+      "src/sources/astrometry_match.cpp",
+      "src/sources/astrometry_wcs.cpp",
+      "src/sources/measure.cpp",
+      "src/sources/psf.cpp",
+      "src/storage/local_storage.cpp",
+      "src/uncertainty/api.cpp",
+      "src/uncertainty/covariance.cpp",
+      "src/workflows/export_workflow.cpp",
+      "src/workflows/fits_writer.cpp",
+      "src/workflows/frames_provider.cpp",
+      "src/workflows/mosaic.cpp",
+      "src/workflows/normalize.cpp",
+      "src/workflows/product.cpp",
+      "src/workflows/product_io.cpp"
+    ],
+    "entry_points": {
+      "coadd": true,
+      "select_samples": true,
+      "solve_weights": true
+    },
+    "missing": []
+  },
+  "case": "W01",
+  "condition": "clean Gaussian data with a fixed external Gamma; one single contaminated frame",
+  "estimand": "the weight vector t, the estimator variance t^T Gamma t, the family false rejection rate and the 68/95% coverage of the common mean",
+  "goal": "Verify the coaddition weights (BLUE, PSD and the non-negative QP) against exact rational truth and the selection statistics against a full-pipeline Monte-Carlo reference with an exact binomial confidence interval.",
+  "independence": {
+    "external_standards": [
+      "astropy",
+      "wcslib",
+      "astropy-healpix",
+      "healpy",
+      "scipy",
+      "numpy"
+    ],
+    "note": "truth is produced before and independently of any observed run",
+    "truth_code_imports_production": false
+  },
+  "input_model_sha256": "766332012f244a709f283f9ff0c2b2a490d02abac7892c20f43170a75891c9d3",
+  "negative_expectations": [
+    {
+      "expectation": "a negative weight must be reported as such and must not be presented as a physical band",
+      "id": "negative_blue_is_not_physical"
+    },
+    {
+      "expectation": "N < 4 must not reject a frame",
+      "id": "small_n_no_guessing"
+    },
+    {
+      "expectation": "the contaminated coverage must be reported and must not be presented as a general guarantee",
+      "id": "contaminated_coverage"
+    }
+  ],
+  "positive_expectations": [
+    {
+      "expectation": "the unconstrained BLUE weights are [7/6, -1/6] for Gamma = [[1,2],[2,9]]",
+      "id": "blue_weights"
+    },
+    {
+      "expectation": "the non-negative QP weights are [1, 0]",
+      "id": "qp_weights"
+    },
+    {
+      "expectation": "a Gamma whose null space contains a vector with a non-zero sum has a zero variance normalised solution",
+      "id": "psd_zero_variance"
+    },
+    {
+      "expectation": "the clean family false rejection rate is inside the exact binomial interval of the reference Monte-Carlo",
+      "id": "clean_false_rejection"
+    }
+  ],
+  "request_sha256": "7197bceb5f0b8b922062511b4b19673852273dca7187ad0bfa70175c3ec1d4e3",
+  "tolerance": {
+    "blue_weights_absolute": 1e-12,
+    "coverage_absolute": 0.01,
+    "false_rejection_vs_reference": "the reported rate must be inside the exact binomial interval of the reference",
+    "qp_weights_absolute": 1e-12
+  },
+  "truth_sha256": "bd1bc925227a70173dd660deae4931c8ff15ed47afa84c0cd6f1cec392309635",
+  "truth_type": "analytic_exact + stochastic_confidence",
+  "unit": "dimensionless weights; variance in the unit of the measurements"
+}

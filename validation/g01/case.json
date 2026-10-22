@@ -1,0 +1,136 @@
+{
+  "assumptions": [
+    "the target grid is ICRS HEALPix NESTED",
+    "the detector cell is a rectangle in the detector plane and the drop is the contraction by the pixfrac inside the detector domain",
+    "the leaf area is exactly pi / (3 N^2) sr",
+    "a zero area hit is not evidence of no support"
+  ],
+  "availability": {
+    "checked_sources": [
+      "src/catalogue/columns.cpp",
+      "src/catalogue/index.cpp",
+      "src/catalogue/provider.cpp",
+      "src/catalogue/sky_geometry.cpp",
+      "src/coadd/coadd.cpp",
+      "src/coadd/weights.cpp",
+      "src/coordinates/chart.cpp",
+      "src/coordinates/footprint_provider.cpp",
+      "src/coordinates/healpix.cpp",
+      "src/coordinates/tan_sip.cpp",
+      "src/coordinates/wcs.cpp",
+      "src/geometry/drizzle.cpp",
+      "src/geometry/exact_polygon.cpp",
+      "src/geometry/kernel.cpp",
+      "src/geometry/overlap.cpp",
+      "src/geometry/refine.cpp",
+      "src/information/information.cpp",
+      "src/information/internal.cpp",
+      "src/information/triangulation.cpp",
+      "src/model/array.cpp",
+      "src/model/exact.cpp",
+      "src/model/hash.cpp",
+      "src/model/units.cpp",
+      "src/numerics/interval.cpp",
+      "src/numerics/linalg.cpp",
+      "src/numerics/quadrature.cpp",
+      "src/observation/calibrate.cpp",
+      "src/observation/observation.cpp",
+      "src/observation/regroup.cpp",
+      "src/operators/api.cpp",
+      "src/operators/linear_action.cpp",
+      "src/photometry/api.cpp",
+      "src/photometry/apply_scale.cpp",
+      "src/photometry/joint_fit.cpp",
+      "src/photometry/spatial_basis.cpp",
+      "src/projection/export_projection.cpp",
+      "src/resources/cpu_resources.cpp",
+      "src/response/api.cpp",
+      "src/response/spectral.cpp",
+      "src/sky/sky.cpp",
+      "src/sources/astrometry.cpp",
+      "src/sources/astrometry_detection.cpp",
+      "src/sources/astrometry_fit.cpp",
+      "src/sources/astrometry_match.cpp",
+      "src/sources/astrometry_wcs.cpp",
+      "src/sources/measure.cpp",
+      "src/sources/psf.cpp",
+      "src/storage/local_storage.cpp",
+      "src/uncertainty/api.cpp",
+      "src/uncertainty/covariance.cpp",
+      "src/workflows/export_workflow.cpp",
+      "src/workflows/fits_writer.cpp",
+      "src/workflows/frames_provider.cpp",
+      "src/workflows/mosaic.cpp",
+      "src/workflows/normalize.cpp",
+      "src/workflows/product.cpp",
+      "src/workflows/product_io.cpp"
+    ],
+    "entry_points": {
+      "build_drizzle": true,
+      "compute_overlap": true,
+      "footprint": true,
+      "measure": true,
+      "refine_geometry": true
+    },
+    "missing": []
+  },
+  "case": "G01",
+  "condition": "fixed TAN geometry, no astrometric parameter error",
+  "estimand": "the drop area A, the per-leaf overlap areas a_p and the total solid angle of the detector footprint",
+  "fixtures_sha256": "1c3b29a921ab4e5f7496513a7d5f3d84a29d5982b4c69459b45932fe715f4807",
+  "goal": "Verify the real spherical areas and the overlap candidates: the total area must close on the exact solid angle, the per-leaf areas must be enclosed, the 12 face equal-area structure and the polar apex must be reproduced, and a positive support may only be claimed with a lower bound.",
+  "independence": {
+    "external_standards": [
+      "astropy",
+      "wcslib",
+      "astropy-healpix",
+      "healpy",
+      "scipy",
+      "numpy"
+    ],
+    "note": "truth is produced before and independently of any observed run",
+    "truth_code_imports_production": false
+  },
+  "negative_expectations": [
+    {
+      "expectation": "a zero-hit cell must not be reported as a zero area",
+      "id": "zero_hit_not_zero_area"
+    },
+    {
+      "expectation": "a positive support must not be published without a reliable lower bound",
+      "id": "positive_support_needs_lower_bound"
+    },
+    {
+      "expectation": "work=1 or maxprecision=64 must not be reported as a satisfied tolerance",
+      "id": "budget_is_not_tolerance"
+    }
+  ],
+  "positive_expectations": [
+    {
+      "expectation": "the drop area equals the exact spherical excess",
+      "id": "total_area"
+    },
+    {
+      "expectation": "every reported leaf interval contains the independent enclosure",
+      "id": "leaf_containment"
+    },
+    {
+      "expectation": "the equal-area face structure is reproduced",
+      "id": "twelve_faces"
+    },
+    {
+      "expectation": "the polar apex wedge reproduces 2/3 of a leaf",
+      "id": "apex"
+    }
+  ],
+  "request_sha256": "a9f1f1a67d0c95e655a652ae75f1859c07d40d0db3f6593e293b07979ccf4025",
+  "tolerance": {
+    "leaf_area_containment": "the reported interval must contain the truth",
+    "science_B_absolute": 0.01,
+    "total_area_closure": "sum of the leaf areas must match the exact drop area",
+    "total_area_relative": 1e-09
+  },
+  "truth_sha256": "4b93a134dce39273359d79ebd03df91ed41bbb4a8006f61adb130ce67fa4dd01",
+  "truth_type": "analytic_exact + deterministic_enclosure + stochastic_confidence",
+  "unit": "sr"
+}

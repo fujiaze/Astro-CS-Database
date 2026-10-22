@@ -1,0 +1,19 @@
+{
+  "arguments": {},
+  "input_objects": {},
+  "major": 1,
+  "operation": "normalize",
+  "output_root": ".work/x01",
+  "protocol": "acsd.contract",
+  "request": {},
+  "request_id": "val-x01-normalize",
+  "resources": {
+    "bytes": 268435456,
+    "max_depth": 64,
+    "max_precision_bits": 256,
+    "scratch_directory": ".work/x01",
+    "spill_bytes": 8589934592,
+    "threads": 4,
+    "work": 10000000
+  }
+}

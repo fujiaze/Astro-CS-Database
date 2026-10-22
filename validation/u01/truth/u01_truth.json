@@ -1,0 +1,293 @@
+{
+  "case": "U01",
+  "factor_check": {
+    "gram_equals_C": true,
+    "gram_matrix": [
+      [
+        4,
+        1,
+        0
+      ],
+      [
+        1,
+        9,
+        2
+      ],
+      [
+        0,
+        2,
+        16
+      ]
+    ],
+    "indices": [
+      0,
+      2,
+      3,
+      4,
+      0,
+      1,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      1,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "latent_columns": 24,
+    "offsets": [
+      0,
+      4,
+      13,
+      26
+    ],
+    "values": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "input_model": {
+    "C_l2": [
+      [
+        {
+          "decimal": "4",
+          "denominator": "1",
+          "numerator": "4"
+        },
+        {
+          "decimal": "1",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0",
+          "denominator": "1",
+          "numerator": "0"
+        }
+      ],
+      [
+        {
+          "decimal": "1",
+          "denominator": "1",
+          "numerator": "1"
+        },
+        {
+          "decimal": "9",
+          "denominator": "1",
+          "numerator": "9"
+        },
+        {
+          "decimal": "2",
+          "denominator": "1",
+          "numerator": "2"
+        }
+      ],
+      [
+        {
+          "decimal": "0",
+          "denominator": "1",
+          "numerator": "0"
+        },
+        {
+          "decimal": "2",
+          "denominator": "1",
+          "numerator": "2"
+        },
+        {
+          "decimal": "16",
+          "denominator": "1",
+          "numerator": "16"
+        }
+      ]
+    ],
+    "R_sr_inv": [
+      [
+        {
+          "decimal": "0.5",
+          "denominator": "2",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.5",
+          "denominator": "2",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0",
+          "denominator": "1",
+          "numerator": "0"
+        }
+      ],
+      [
+        {
+          "decimal": "0",
+          "denominator": "1",
+          "numerator": "0"
+        },
+        {
+          "decimal": "0.25",
+          "denominator": "4",
+          "numerator": "1"
+        },
+        {
+          "decimal": "0.75",
+          "denominator": "4",
+          "numerator": "3"
+        }
+      ]
+    ],
+    "R_transpose_times_t": [
+      {
+        "decimal": "0.5",
+        "denominator": "2",
+        "numerator": "1"
+      },
+      {
+        "decimal": "0.375",
+        "denominator": "8",
+        "numerator": "3"
+      },
+      {
+        "decimal": "-0.375",
+        "denominator": "8",
+        "numerator": "-3"
+      }
+    ],
+    "t": [
+      {
+        "decimal": "1",
+        "denominator": "1",
+        "numerator": "1"
+      },
+      {
+        "decimal": "-0.5",
+        "denominator": "2",
+        "numerator": "-1"
+      }
+    ]
+  },
+  "method": "exact rational arithmetic (fractions.Fraction); every product is recomputed here from the re-entered input matrices",
+  "results": {
+    "aperture_variance_native_route": {
+      "decimal": "4.328125",
+      "denominator": "64",
+      "numerator": "277"
+    },
+    "aperture_variance_t_RCRt_t": {
+      "decimal": "4.328125",
+      "denominator": "64",
+      "numerator": "277"
+    },
+    "false_independence_leaf_variance": {
+      "decimal": "6.328125",
+      "denominator": "64",
+      "numerator": "405"
+    },
+    "false_independence_native_variance": {
+      "decimal": "4.515625",
+      "denominator": "64",
+      "numerator": "289"
+    },
+    "leaf_covariance_RCRt": [
+      [
+        {
+          "decimal": "3.75",
+          "denominator": "4",
+          "numerator": "15"
+        },
+        {
+          "decimal": "2",
+          "denominator": "1",
+          "numerator": "2"
+        }
+      ],
+      [
+        {
+          "decimal": "2",
+          "denominator": "1",
+          "numerator": "2"
+        },
+        {
+          "decimal": "10.3125",
+          "denominator": "16",
+          "numerator": "165"
+        }
+      ]
+    ],
+    "shared_latent_false_independence_variance": {
+      "decimal": "8",
+      "denominator": "1",
+      "numerator": "8"
+    },
+    "shared_latent_true_variance": {
+      "decimal": "0",
+      "denominator": "1",
+      "numerator": "0"
+    },
+    "shared_latent_variance": {
+      "decimal": "4",
+      "denominator": "1",
+      "numerator": "4"
+    }
+  },
+  "separation": {
+    "leaf_false_minus_true": {
+      "decimal": "2",
+      "denominator": "1",
+      "numerator": "2"
+    },
+    "native_false_minus_true": {
+      "decimal": "0.1875",
+      "denominator": "16",
+      "numerator": "3"
+    },
+    "shared_false_minus_true": {
+      "decimal": "8",
+      "denominator": "1",
+      "numerator": "8"
+    }
+  },
+  "specification_consistency": {
+    "aperture_variance_matches": true,
+    "leaf_covariance_matches": true,
+    "note": "the quoted values are only compared after the independent recomputation; they are never an input to it"
+  },
+  "truth_type": "analytic_exact"
+}

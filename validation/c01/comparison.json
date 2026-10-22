@@ -1,0 +1,342 @@
+{
+  "case": "C01",
+  "failures": [
+    {
+      "actual": "domain",
+      "expected": "ok",
+      "functional": "sip_order9:wcs_built",
+      "reason": "injectivity_unresolved",
+      "scope": "make_wcs"
+    }
+  ],
+  "functionals": [
+    {
+      "kind": "value",
+      "name": "tan_sip3_mirror:forward_max_rad",
+      "observed": 2.237726045655905e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "tan_sip3_mirror:inverse_max_pixel",
+      "observed": 0.0,
+      "status": "pass",
+      "tolerance": 1e-07,
+      "truth": 0.0,
+      "unit": "pixel"
+    },
+    {
+      "kind": "value",
+      "name": "tan_sip3_mirror:derivative_relative",
+      "observed": 1.7081419673331335e-08,
+      "status": "pass",
+      "tolerance": 1e-06,
+      "truth": 0.0,
+      "unit": "1"
+    },
+    {
+      "kind": "value",
+      "name": "tan_sip3_mirror:solid_angle_contains",
+      "observed": [
+        5.158095796200628e-12,
+        9.95426864631965e-12
+      ],
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": [
+        6.0614417516736876e-12,
+        8.295137292111993e-12
+      ],
+      "unit": "sr/pixel^2"
+    },
+    {
+      "kind": "value",
+      "name": "pc_cdelt:forward_max_rad",
+      "observed": 5.715222817774258e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "pc_cdelt:inverse_max_pixel",
+      "observed": 0.0,
+      "status": "pass",
+      "tolerance": 1e-07,
+      "truth": 0.0,
+      "unit": "pixel"
+    },
+    {
+      "kind": "value",
+      "name": "pc_cdelt:derivative_relative",
+      "observed": 5.504186143467526e-08,
+      "status": "pass",
+      "tolerance": 1e-06,
+      "truth": 0.0,
+      "unit": "1"
+    },
+    {
+      "kind": "value",
+      "name": "pc_cdelt:solid_angle_contains",
+      "observed": [
+        3.006665316411008e-12,
+        3.0066653200300294e-12
+      ],
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": [
+        3.0066653173342926e-12,
+        3.006665318520664e-12
+      ],
+      "unit": "sr/pixel^2"
+    },
+    {
+      "kind": "value",
+      "name": "north_pole_default_lonpole:forward_max_rad",
+      "observed": 2.6629004911028695e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "north_pole_default_lonpole:inverse_max_pixel",
+      "observed": 0.0,
+      "status": "pass",
+      "tolerance": 1e-07,
+      "truth": 0.0,
+      "unit": "pixel"
+    },
+    {
+      "kind": "value",
+      "name": "north_pole_default_lonpole:derivative_relative",
+      "observed": 1.783534889041678e-08,
+      "status": "pass",
+      "tolerance": 1e-06,
+      "truth": 0.0,
+      "unit": "1"
+    },
+    {
+      "kind": "value",
+      "name": "south_pole_default_lonpole:forward_max_rad",
+      "observed": 2.6625855467219893e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "south_pole_default_lonpole:inverse_max_pixel",
+      "observed": 0.0,
+      "status": "pass",
+      "tolerance": 1e-07,
+      "truth": 0.0,
+      "unit": "pixel"
+    },
+    {
+      "kind": "value",
+      "name": "south_pole_default_lonpole:derivative_relative",
+      "observed": 1.7835348718832326e-08,
+      "status": "pass",
+      "tolerance": 1e-06,
+      "truth": 0.0,
+      "unit": "1"
+    },
+    {
+      "kind": "value",
+      "name": "lonpole_107:forward_max_rad",
+      "observed": 2.618455766672135e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "lonpole_107:inverse_max_pixel",
+      "observed": 0.0,
+      "status": "pass",
+      "tolerance": 1e-07,
+      "truth": 0.0,
+      "unit": "pixel"
+    },
+    {
+      "kind": "value",
+      "name": "lonpole_107:derivative_relative",
+      "observed": 5.301946047777924e-08,
+      "status": "pass",
+      "tolerance": 1e-06,
+      "truth": 0.0,
+      "unit": "1"
+    },
+    {
+      "kind": "value",
+      "name": "lonpole_107:solid_angle_contains",
+      "observed": [
+        6.4034313291351674e-12,
+        6.520004440507678e-12
+      ],
+      "status": "pass",
+      "tolerance": 0.0,
+      "truth": [
+        6.4035139925043505e-12,
+        6.519772273617582e-12
+      ],
+      "unit": "sr/pixel^2"
+    },
+    {
+      "kind": "value",
+      "name": "sip_order9:wcs_built",
+      "observed": null,
+      "reason": "make_wcs failed with domain: injectivity_unresolved",
+      "status": "fail"
+    },
+    {
+      "kind": "value",
+      "name": "ra_wrap:forward_max_rad",
+      "observed": 6.438700539746239e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "ra_wrap:inverse_max_pixel",
+      "observed": 0.0,
+      "status": "pass",
+      "tolerance": 1e-07,
+      "truth": 0.0,
+      "unit": "pixel"
+    },
+    {
+      "kind": "value",
+      "name": "ra_wrap:derivative_relative",
+      "observed": 2.6690562614983585e-07,
+      "status": "pass",
+      "tolerance": 1e-06,
+      "truth": 0.0,
+      "unit": "1"
+    },
+    {
+      "kind": "value",
+      "name": "negative_origin_plus_one:forward_max_rad",
+      "observed": 4.540073262603193e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "negative_origin_plus_half:forward_max_rad",
+      "observed": 4.590695853185804e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "negative_cd_only_change:forward_max_rad",
+      "observed": 4.0035674044735105e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "expected_codes": [
+        "domain",
+        "unsupported",
+        "unavailable",
+        "invalid_request",
+        "unsolved",
+        "not_identifiable"
+      ],
+      "kind": "code",
+      "name": "negative_back_hemisphere:named_failure",
+      "observed_code": "domain",
+      "reason": "injectivity_unresolved",
+      "status": "pass"
+    },
+    {
+      "expected_codes": [
+        "unsupported",
+        "unavailable",
+        "invalid_request",
+        "invalid_model"
+      ],
+      "kind": "code",
+      "name": "negative_non_icrs:named_failure",
+      "observed_code": "unsupported",
+      "reason": "reference_frame_not_icrs",
+      "status": "pass"
+    },
+    {
+      "kind": "value",
+      "name": "negative_extra_distortion:forward_max_rad",
+      "observed": 1.1464934308770756e-16,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": 0.0,
+      "unit": "rad"
+    },
+    {
+      "expected_codes": [
+        "unsupported",
+        "unavailable",
+        "invalid_request",
+        "invalid_model",
+        "not_identifiable",
+        "domain"
+      ],
+      "kind": "code",
+      "name": "negative_injectivity_unresolved:named_failure",
+      "observed_code": "domain",
+      "reason": "injectivity_unresolved",
+      "status": "pass"
+    },
+    {
+      "kind": "value",
+      "name": "control:+1 pixel origin",
+      "observed": 4.6867036887643805e-06,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": "> 1e-10 rad separation",
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "control:+0.5 pixel origin",
+      "observed": 2.3348702499947143e-06,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": "> 1e-10 rad separation",
+      "unit": "rad"
+    },
+    {
+      "kind": "value",
+      "name": "control:CD only change",
+      "observed": 9.433957876096447e-06,
+      "status": "pass",
+      "tolerance": 1e-10,
+      "truth": "> 1e-10 rad separation",
+      "unit": "rad"
+    }
+  ],
+  "notes": "C01 comparison: external astropy truth and an independent closed form tangent-plane model",
+  "status": "fail",
+  "status_vocabulary": {
+    "fail": "at least one functional is outside the frozen tolerance",
+    "not_applicable": "the case does not exercise the requested functional",
+    "pass": "every requested functional is inside the frozen tolerance",
+    "pending_implementation": "the public entry point under test is not implemented yet"
+  }
+}

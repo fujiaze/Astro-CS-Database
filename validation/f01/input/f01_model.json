@@ -1,0 +1,45 @@
+{
+  "aperture": [
+    [
+      -4.0,
+      4.0
+    ],
+    [
+      -4.0,
+      4.0
+    ]
+  ],
+  "case": "F01",
+  "counts": 100,
+  "counts_interval": [
+    99,
+    101
+  ],
+  "gaia": {
+    "shared_covariance": 0.8,
+    "variance": 1.0
+  },
+  "psf": {
+    "family": "gaussian",
+    "sigma_x": 1.2,
+    "sigma_y": 1.2
+  },
+  "rank_fixture": {
+    "colour_slope": 2.0,
+    "n": 15
+  },
+  "sky_constant": 5.0,
+  "sources": [
+    {
+      "amplitude": 100.0,
+      "x": -1.5,
+      "y": 0.0
+    },
+    {
+      "amplitude": 60.0,
+      "x": 1.4,
+      "y": 0.3
+    }
+  ],
+  "truth_flux": 100.0
+}

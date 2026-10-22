@@ -1,0 +1,127 @@
+{
+  "assumptions": [
+    "the controls are actual-scene variance controls of the same estimator",
+    "the chart is a local gnomonic chart and the query lies inside a support triangle",
+    "delta_i and the curvature bound M are external information, not fitted from the same sparse points"
+  ],
+  "availability": {
+    "checked_sources": [
+      "src/catalogue/columns.cpp",
+      "src/catalogue/index.cpp",
+      "src/catalogue/provider.cpp",
+      "src/catalogue/sky_geometry.cpp",
+      "src/coadd/coadd.cpp",
+      "src/coadd/weights.cpp",
+      "src/coordinates/chart.cpp",
+      "src/coordinates/footprint_provider.cpp",
+      "src/coordinates/healpix.cpp",
+      "src/coordinates/tan_sip.cpp",
+      "src/coordinates/wcs.cpp",
+      "src/geometry/drizzle.cpp",
+      "src/geometry/exact_polygon.cpp",
+      "src/geometry/kernel.cpp",
+      "src/geometry/overlap.cpp",
+      "src/geometry/refine.cpp",
+      "src/information/information.cpp",
+      "src/information/internal.cpp",
+      "src/information/triangulation.cpp",
+      "src/model/array.cpp",
+      "src/model/exact.cpp",
+      "src/model/hash.cpp",
+      "src/model/units.cpp",
+      "src/numerics/interval.cpp",
+      "src/numerics/linalg.cpp",
+      "src/numerics/quadrature.cpp",
+      "src/observation/calibrate.cpp",
+      "src/observation/observation.cpp",
+      "src/observation/regroup.cpp",
+      "src/operators/api.cpp",
+      "src/operators/linear_action.cpp",
+      "src/photometry/api.cpp",
+      "src/photometry/apply_scale.cpp",
+      "src/photometry/joint_fit.cpp",
+      "src/photometry/spatial_basis.cpp",
+      "src/projection/export_projection.cpp",
+      "src/resources/cpu_resources.cpp",
+      "src/response/api.cpp",
+      "src/response/spectral.cpp",
+      "src/sky/sky.cpp",
+      "src/sources/astrometry.cpp",
+      "src/sources/astrometry_detection.cpp",
+      "src/sources/astrometry_fit.cpp",
+      "src/sources/astrometry_match.cpp",
+      "src/sources/astrometry_wcs.cpp",
+      "src/sources/measure.cpp",
+      "src/sources/psf.cpp",
+      "src/storage/local_storage.cpp",
+      "src/uncertainty/api.cpp",
+      "src/uncertainty/covariance.cpp",
+      "src/workflows/export_workflow.cpp",
+      "src/workflows/fits_writer.cpp",
+      "src/workflows/frames_provider.cpp",
+      "src/workflows/mosaic.cpp",
+      "src/workflows/normalize.cpp",
+      "src/workflows/product.cpp",
+      "src/workflows/product_io.cpp"
+    ],
+    "entry_points": {
+      "build_supported_triangulation": true,
+      "reconstruct_scene_variance": true
+    },
+    "missing": []
+  },
+  "case": "V01",
+  "condition": "actual scene, same estimator and response",
+  "estimand": "log V at the query point and the variance interval [exp(u-Delta), exp(u+Delta)]",
+  "goal": "Verify the sparse actual-scene variance reconstruction: with an external delta and a known curvature bound the truth must lie inside the reported interval, without a curvature bound only a conditional prediction is allowed, and no cross-leaf covariance may be manufactured.",
+  "independence": {
+    "external_standards": [
+      "astropy",
+      "wcslib",
+      "astropy-healpix",
+      "healpy",
+      "scipy",
+      "numpy"
+    ],
+    "note": "truth is produced before and independently of any observed run",
+    "truth_code_imports_production": false
+  },
+  "input_model_sha256": "d2b40c406c1093e34b51bbb79c299b2ef06819f920a131554e56d5415a1a4e6c",
+  "negative_expectations": [
+    {
+      "expectation": "a smooth field that vanishes at every control point but is large at the query must not be certified by smoothness",
+      "id": "c_infinity_bump"
+    },
+    {
+      "expectation": "without M only a conditional prediction is allowed",
+      "id": "no_M_conditional"
+    },
+    {
+      "expectation": "a query outside the support must not be filled by nearest neighbour",
+      "id": "outside_domain"
+    }
+  ],
+  "positive_expectations": [
+    {
+      "expectation": "the plane truth lies inside the interval",
+      "id": "plane_contained"
+    },
+    {
+      "expectation": "the quadratic truth lies inside the interval built with the known Hessian bound",
+      "id": "quadratic_contained"
+    },
+    {
+      "expectation": "the affine truth is reproduced exactly by the barycentric interpolation",
+      "id": "linear_exact"
+    }
+  ],
+  "request_sha256": "1674643f62a6ac6f4002b686e9087946ee1df26a447fb0f5e6ccbfb0cb60bc04",
+  "tolerance": {
+    "conditional_without_M": "no interval may be published without M",
+    "cross_leaf_covariance": "no off-diagonal covariance may be produced",
+    "interval_containment": "the truth must lie inside the reported interval"
+  },
+  "truth_sha256": "ccc4eaf8265f58867e3fe701ef7f2348f4d4cd893103039007418074fb514a04",
+  "truth_type": "analytic_exact + conditional_model",
+  "unit": "log of a variance (dimensionless); the variance is in the unit of the controls"
+}

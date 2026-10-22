@@ -1,0 +1,130 @@
+{
+  "assumptions": [
+    "the same build, the same arithmetic and the same configuration are used",
+    "progress, timing, memory and the run identifier are not part of the science content hash",
+    "a write failure and a cancellation must not publish a completion identity",
+    "a new geometry revision must not be mixed with an old sky"
+  ],
+  "availability": {
+    "checked_sources": [
+      "src/catalogue/columns.cpp",
+      "src/catalogue/index.cpp",
+      "src/catalogue/provider.cpp",
+      "src/catalogue/sky_geometry.cpp",
+      "src/coadd/coadd.cpp",
+      "src/coadd/weights.cpp",
+      "src/coordinates/chart.cpp",
+      "src/coordinates/footprint_provider.cpp",
+      "src/coordinates/healpix.cpp",
+      "src/coordinates/tan_sip.cpp",
+      "src/coordinates/wcs.cpp",
+      "src/geometry/drizzle.cpp",
+      "src/geometry/exact_polygon.cpp",
+      "src/geometry/kernel.cpp",
+      "src/geometry/overlap.cpp",
+      "src/geometry/refine.cpp",
+      "src/information/information.cpp",
+      "src/information/internal.cpp",
+      "src/information/triangulation.cpp",
+      "src/model/array.cpp",
+      "src/model/exact.cpp",
+      "src/model/hash.cpp",
+      "src/model/units.cpp",
+      "src/numerics/interval.cpp",
+      "src/numerics/linalg.cpp",
+      "src/numerics/quadrature.cpp",
+      "src/observation/calibrate.cpp",
+      "src/observation/observation.cpp",
+      "src/observation/regroup.cpp",
+      "src/operators/api.cpp",
+      "src/operators/linear_action.cpp",
+      "src/photometry/api.cpp",
+      "src/photometry/apply_scale.cpp",
+      "src/photometry/joint_fit.cpp",
+      "src/photometry/spatial_basis.cpp",
+      "src/projection/export_projection.cpp",
+      "src/resources/cpu_resources.cpp",
+      "src/response/api.cpp",
+      "src/response/spectral.cpp",
+      "src/sky/sky.cpp",
+      "src/sources/astrometry.cpp",
+      "src/sources/astrometry_detection.cpp",
+      "src/sources/astrometry_fit.cpp",
+      "src/sources/astrometry_match.cpp",
+      "src/sources/astrometry_wcs.cpp",
+      "src/sources/measure.cpp",
+      "src/sources/psf.cpp",
+      "src/storage/local_storage.cpp",
+      "src/uncertainty/api.cpp",
+      "src/uncertainty/covariance.cpp",
+      "src/workflows/export_workflow.cpp",
+      "src/workflows/fits_writer.cpp",
+      "src/workflows/frames_provider.cpp",
+      "src/workflows/mosaic.cpp",
+      "src/workflows/normalize.cpp",
+      "src/workflows/product.cpp",
+      "src/workflows/product_io.cpp"
+    ],
+    "entry_points": {
+      "export_image": true,
+      "mosaic": true,
+      "normalize": true
+    },
+    "missing": []
+  },
+  "case": "R01",
+  "condition": "the same scientific input with different execution resources",
+  "estimand": "the science content hash, the error and support states, the numerical bounds and the peak resource usage",
+  "goal": "Verify that the scientific result does not depend on the execution resources and that the resource ledger is honest: the same science input must give the same content hash for one and four threads, for a 32 MiB and a 256 MiB budget, with the cache on and off and with the frame and target blocks completing in a different order.",
+  "independence": {
+    "external_standards": [
+      "astropy",
+      "wcslib",
+      "astropy-healpix",
+      "healpy",
+      "scipy",
+      "numpy"
+    ],
+    "note": "truth is produced before and independently of any observed run",
+    "truth_code_imports_production": false
+  },
+  "input_model_sha256": "27f0548c2da490627073527456ea8d0033260e80ec5b061543e1527d027bb831",
+  "negative_expectations": [
+    {
+      "expectation": "a cancelled run publishes nothing",
+      "id": "cancel_no_publication"
+    },
+    {
+      "expectation": "a failed write publishes nothing",
+      "id": "write_failure_no_publication"
+    },
+    {
+      "expectation": "the reported peak usage does not exceed the measured peak",
+      "id": "ledger_honest"
+    }
+  ],
+  "positive_expectations": [
+    {
+      "expectation": "the content hash is identical over the whole run matrix",
+      "id": "content_hash_stable"
+    },
+    {
+      "expectation": "with 32 MiB the run either spills inside the declared budget or fails with resource_exhausted",
+      "id": "spill_or_fail"
+    },
+    {
+      "expectation": "a new R is never combined with an old sky",
+      "id": "no_mixed_versions"
+    }
+  ],
+  "request_sha256": "cf4ee83d74daeae3e92113f408b519b1a9ec9061a9f92aabe4f5aa39aa45cbc3",
+  "tolerance": {
+    "content_hash": "identical",
+    "error_and_support": "identical states",
+    "numerical_bounds": "identical intervals",
+    "peak_payload": "must not exceed the declared budget"
+  },
+  "truth_sha256": "7ccf1576880d2115308a1a28b2fc7ef99991fe0d916e51b5adebb6c25284941c",
+  "truth_type": "conditional_model + empirical",
+  "unit": "hash identity; bytes and seconds for the resource ledger"
+}

@@ -1,0 +1,39 @@
+{
+  "artefacts": {
+    "input_model": "27f0548c2da490627073527456ea8d0033260e80ec5b061543e1527d027bb831",
+    "truth": "7ccf1576880d2115308a1a28b2fc7ef99991fe0d916e51b5adebb6c25284941c"
+  },
+  "case": "R01",
+  "code_identity": {
+    "validation/r01/truth_r01.py": "78d9f4a2923b551f07fce07d9d983d6418a86ff063b26cca9662f3c572af0ec2"
+  },
+  "commands": {
+    "truth": "python3 validation/r01/truth_r01.py"
+  },
+  "environment": {
+    "astropy": "7.0.1",
+    "astropy_healpix": "2.0.1",
+    "compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+    "healpy": "1.20.1",
+    "machine": "x86_64",
+    "numpy": "2.2.4",
+    "platform": "Linux-6.12.107+deb13-amd64-x86_64-with-glibc2.41",
+    "processor": "unknown",
+    "python": "3.13.5",
+    "python_implementation": "CPython",
+    "scipy": "1.15.3",
+    "wcslib": "astropy-7.0.1-bundled-wcslib"
+  },
+  "library_identity": {
+    "python": "3.13.5"
+  },
+  "request_hash": "sha256:cf4ee83d74daeae3e92113f408b519b1a9ec9061a9f92aabe4f5aa39aa45cbc3",
+  "requests": {
+    "request.json": "6bd856954c476f1a68fbcd8b928f03dffa786d9a5e25344765aee3b6aabc8ba4"
+  },
+  "seeds": [],
+  "trial_denominators": {
+    "runs": 8
+  },
+  "truth_type": "conditional_model + empirical"
+}

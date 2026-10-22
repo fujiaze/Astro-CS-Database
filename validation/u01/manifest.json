@@ -1,0 +1,41 @@
+{
+  "artefacts": {
+    "input_model": "8a5630a0cf20ce7244626a4a116474d96d70431fd1af7a06381ee115cab1eeba",
+    "request": "1bfbfca440b12a2b7d63acd9a8fd2f926a94c481c545fcb7debbb5ab701421e9",
+    "truth": "ebbb4a1747c4e78fab405e7c4650580bf1c1e69b7cec67ad8ce40c13f0c03664"
+  },
+  "case": "U01",
+  "code_identity": {
+    "validation/u01/truth_u01.py": "edce7868f993e1594bcace558bdd3b3cd1e23c8c949f3fa3181fe09862fc0d41"
+  },
+  "commands": {
+    "contract_driver": "acsd-contract --request validation/u01/request.json --response validation/u01/observed/contract_u01.json",
+    "native_driver": "bash validation/lib/build_native.sh u01_driver && validation/build/u01_driver --output validation/u01/observed/native_u01.json",
+    "truth": "python3 validation/u01/truth_u01.py"
+  },
+  "dependencies": {
+    "native_driver": "validation/native/u01_driver.cpp (includes only <acsd/contracts.hpp>)",
+    "production_library": "src/model, src/numerics, src/operators, src/uncertainty",
+    "python": "fractions (standard library) only; no production module is imported"
+  },
+  "library_identity": {
+    "astropy": "7.0.1",
+    "astropy_healpix": "2.0.1",
+    "compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+    "healpy": "1.20.1",
+    "machine": "x86_64",
+    "numpy": "2.2.4",
+    "platform": "Linux-6.12.107+deb13-amd64-x86_64-with-glibc2.41",
+    "processor": "unknown",
+    "python": "3.13.5",
+    "python_implementation": "CPython",
+    "scipy": "1.15.3",
+    "wcslib": "astropy-7.0.1-bundled-wcslib"
+  },
+  "request_hash": "sha256:6be4bcf92ad8c38582714c65f9e263b98bc8b2932be034dda009a08e5cc8c210",
+  "seeds": [],
+  "trial_denominators": {
+    "mc_trials": 0
+  },
+  "truth_type": "analytic_exact"
+}

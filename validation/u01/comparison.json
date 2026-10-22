@@ -1,0 +1,155 @@
+{
+  "case": "U01",
+  "failures": [],
+  "functionals": [
+    {
+      "absolute_difference": 0.0,
+      "kind": "value",
+      "name": "apply_R_ones",
+      "observed": 1.0,
+      "relative_difference": 0.0,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": 1.0,
+      "unit": "L/sr"
+    },
+    {
+      "absolute_difference": 0.0,
+      "kind": "value",
+      "name": "apply_R_ones_second",
+      "observed": 1.0,
+      "relative_difference": 0.0,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": 1.0,
+      "unit": "L/sr"
+    },
+    {
+      "absolute_difference": 0.0,
+      "kind": "value",
+      "name": "transpose_R_t_0",
+      "observed": 0.5,
+      "relative_difference": 0.0,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": 0.5,
+      "unit": "L"
+    },
+    {
+      "absolute_difference": 0.0,
+      "kind": "value",
+      "name": "transpose_R_t_1",
+      "observed": 0.375,
+      "relative_difference": 0.0,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": 0.375,
+      "unit": "L"
+    },
+    {
+      "absolute_difference": 0.0,
+      "kind": "value",
+      "name": "transpose_R_t_2",
+      "observed": -0.375,
+      "relative_difference": 0.0,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": -0.375,
+      "unit": "L"
+    },
+    {
+      "absolute_difference": 0.0,
+      "kind": "value",
+      "name": "leaf_quadratic_form",
+      "observed": 4.328125,
+      "relative_difference": 0.0,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": 4.328125,
+      "unit": "L^2 sr^-2"
+    },
+    {
+      "absolute_difference": 0.0,
+      "kind": "value",
+      "name": "native_quadratic_form",
+      "observed": 4.328125,
+      "relative_difference": 0.0,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": 4.328125,
+      "unit": "L^2"
+    },
+    {
+      "absolute_difference": 0.0,
+      "kind": "value",
+      "name": "false_independence_quadratic_form",
+      "observed": 4.515625,
+      "relative_difference": 0.0,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": 4.515625,
+      "unit": "L^2"
+    },
+    {
+      "absolute_difference": 0.0,
+      "kind": "value",
+      "name": "covariance_column_1_0",
+      "observed": 3.75,
+      "relative_difference": 0.0,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": 3.75,
+      "unit": "L^2 sr^-2"
+    },
+    {
+      "absolute_difference": 0.0,
+      "kind": "value",
+      "name": "covariance_column_1_1",
+      "observed": 2.0,
+      "relative_difference": 0.0,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": 2.0,
+      "unit": "L^2 sr^-2"
+    },
+    {
+      "absolute_difference": 0.0,
+      "kind": "value",
+      "name": "covariance_column_2_0",
+      "observed": 2.0,
+      "relative_difference": 0.0,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": 2.0,
+      "unit": "L^2 sr^-2"
+    },
+    {
+      "absolute_difference": 0.0,
+      "kind": "value",
+      "name": "covariance_column_2_1",
+      "observed": 10.3125,
+      "relative_difference": 0.0,
+      "status": "pass",
+      "tolerance": 1e-12,
+      "truth": 10.3125,
+      "unit": "L^2 sr^-2"
+    },
+    {
+      "difference": 0.1875,
+      "expected": "difference > 1e-06",
+      "kind": "differ",
+      "name": "split_shared_source",
+      "status": "pass",
+      "tolerance": 1e-06,
+      "unit": ""
+    }
+  ],
+  "notes": "U01: the leaf route, the native route and the false-independence control are compared with the independent exact rational truth",
+  "status": "pass",
+  "status_vocabulary": {
+    "fail": "at least one functional is outside the frozen tolerance",
+    "not_applicable": "the case does not exercise the requested functional",
+    "pass": "every requested functional is inside the frozen tolerance",
+    "pending_implementation": "the public entry point under test is not implemented yet"
+  }
+}

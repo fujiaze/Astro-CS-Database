@@ -1,0 +1,116 @@
+{
+  "case": "R01",
+  "comparison_keys": [
+    "science_content_hash",
+    "error_record_state",
+    "support_state",
+    "numerical_bounds"
+  ],
+  "expectations": {
+    "identical_across": [
+      "threads_1",
+      "threads_4",
+      "memory_32MiB",
+      "cache_off",
+      "out_of_order_frames",
+      "out_of_order_targets"
+    ],
+    "must_fail_or_spill": [
+      "memory_32MiB"
+    ],
+    "must_not_publish": [
+      "write_failure",
+      "cancelled"
+    ]
+  },
+  "ledger": {
+    "fields": [
+      "wall_seconds",
+      "peak_rss_bytes",
+      "peak_payload_bytes",
+      "spill_bytes",
+      "work_units",
+      "read_bytes",
+      "written_bytes"
+    ],
+    "note": "the measured peak is the reference; the reported ledger must not exceed it by more than the declared runtime margin"
+  },
+  "run_matrix": [
+    {
+      "cache": true,
+      "cancel": false,
+      "completion_order": "sequential",
+      "memory_bytes": 268435456,
+      "name": "threads_1",
+      "threads": 1,
+      "write_failure": false
+    },
+    {
+      "cache": true,
+      "cancel": false,
+      "completion_order": "sequential",
+      "memory_bytes": 268435456,
+      "name": "threads_4",
+      "threads": 4,
+      "write_failure": false
+    },
+    {
+      "cache": true,
+      "cancel": false,
+      "completion_order": "sequential",
+      "memory_bytes": 33554432,
+      "name": "memory_32MiB",
+      "threads": 1,
+      "write_failure": false
+    },
+    {
+      "cache": false,
+      "cancel": false,
+      "completion_order": "sequential",
+      "memory_bytes": 268435456,
+      "name": "cache_off",
+      "threads": 1,
+      "write_failure": false
+    },
+    {
+      "cache": true,
+      "cancel": false,
+      "completion_order": "sequential",
+      "memory_bytes": 268435456,
+      "name": "write_failure",
+      "threads": 1,
+      "write_failure": true
+    },
+    {
+      "cache": true,
+      "cancel": true,
+      "completion_order": "sequential",
+      "memory_bytes": 268435456,
+      "name": "cancelled",
+      "threads": 1,
+      "write_failure": false
+    },
+    {
+      "cache": true,
+      "cancel": false,
+      "completion_order": "frames_reversed",
+      "memory_bytes": 268435456,
+      "name": "out_of_order_frames",
+      "threads": 4,
+      "write_failure": false
+    },
+    {
+      "cache": true,
+      "cancel": false,
+      "completion_order": "targets_reversed",
+      "memory_bytes": 268435456,
+      "name": "out_of_order_targets",
+      "threads": 4,
+      "write_failure": false
+    }
+  ],
+  "truth_types": [
+    "conditional_model",
+    "empirical"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "arguments": {},
+  "input_objects": {},
+  "major": 1,
+  "operation": "open_product",
+  "output_root": ".work/p01",
+  "protocol": "acsd.contract",
+  "request": {},
+  "request_id": "val-p01-publish-open",
+  "resources": {
+    "bytes": 8388608,
+    "max_depth": 32,
+    "max_precision_bits": 128,
+    "scratch_directory": ".work",
+    "spill_bytes": 0,
+    "threads": 1,
+    "work": 100000
+  }
+}

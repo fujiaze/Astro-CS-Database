@@ -1,0 +1,19 @@
+{
+  "arguments": {},
+  "input_objects": {},
+  "major": 1,
+  "operation": "compute_overlap",
+  "output_root": ".work/g01",
+  "protocol": "acsd.contract",
+  "request": {},
+  "request_id": "val-g01-compute-overlap",
+  "resources": {
+    "bytes": 16777216,
+    "max_depth": 32,
+    "max_precision_bits": 256,
+    "scratch_directory": ".work",
+    "spill_bytes": 0,
+    "threads": 1,
+    "work": 1000000
+  }
+}

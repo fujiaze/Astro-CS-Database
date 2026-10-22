@@ -1,0 +1,42 @@
+{
+  "artefacts": {
+    "fixtures": "ae0e645ff65c2ff15849c10157d268c26d82b83df159edcfc9c7874dfc3d7a77",
+    "truth": "a68c6336c90235acc23ddc0ac63b9e991f94cb1abb1f37f3c335d784cc07faf1"
+  },
+  "case": "C01",
+  "code_identity": {
+    "validation/c01/truth_c01.py": "72220a9b19540a3e43ba6294ce6d0183b075c67a2451d542bd1a1bfeaf0cfcf7"
+  },
+  "commands": {
+    "contract": "acsd-contract --request validation/c01/request.json",
+    "native": "bash validation/lib/build_native.sh c01_driver && validation/build/c01_driver --fixtures validation/c01/input/c01_fixtures.json",
+    "truth": "python3 validation/c01/truth_c01.py"
+  },
+  "environment": {
+    "astropy": "7.0.1",
+    "astropy_healpix": "2.0.1",
+    "compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+    "healpy": "1.20.1",
+    "machine": "x86_64",
+    "numpy": "2.2.4",
+    "platform": "Linux-6.12.107+deb13-amd64-x86_64-with-glibc2.41",
+    "processor": "unknown",
+    "python": "3.13.5",
+    "python_implementation": "CPython",
+    "scipy": "1.15.3",
+    "wcslib": "astropy-7.0.1-bundled-wcslib"
+  },
+  "external_library_identity": {
+    "astropy": "7.0.1",
+    "wcslib": "astropy-7.0.1-bundled-wcslib"
+  },
+  "native_driver": "validation/native/c01_driver.cpp",
+  "requests": {
+    "request.json": ""
+  },
+  "seeds": [],
+  "trial_denominators": {
+    "mc_trials": 0
+  },
+  "truth_type": "analytic_exact"
+}

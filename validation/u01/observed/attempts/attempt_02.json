@@ -1,0 +1,11 @@
+{
+  "actual": "invalid_request: the helper read the action output with the input length, so a dimension changing action overran or truncated",
+  "attempt": 2,
+  "date": "before commit 17d6258fe (covariance linear helper)",
+  "evidence": "validation/native/u01_driver.cpp leaf route probe",
+  "expected": "quadratic_form on the leaf covariance returns 277/64",
+  "fixed_in": "17d6258fe",
+  "reported_to": "lead",
+  "scope": "uncertainty::apply_linear / apply_linear_transposed read back",
+  "status": "fail"
+}

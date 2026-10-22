@@ -1,0 +1,188 @@
+{
+  "c_infinity_bump": {
+    "control_values": [
+      0.9829629131445341,
+      0.6035533905932735,
+      -0.37940952255126054,
+      -0.9829629131445342,
+      0.6035533905932735,
+      0.37059047744873935,
+      -0.23296291314453418,
+      -0.6035533905932736,
+      -0.37940952255126054,
+      -0.23296291314453418,
+      0.14644660940672638,
+      0.3794095225512606,
+      -0.9829629131445342,
+      -0.6035533905932736,
+      0.3794095225512606,
+      0.9829629131445343
+    ],
+    "max_abs_control_value": 0.9829629131445343,
+    "note": "the product of sines vanishes at every control point and is unbounded in between; without an external curvature bound no finite interval can be certified, which is the required negative behaviour",
+    "query": [
+      0.05,
+      0.05
+    ]
+  },
+  "case": "V01",
+  "curvature_bound_M": 4.0,
+  "delta": 0.01,
+  "methods": {
+    "bound": "Delta = sum_i lambda_i delta_i + (M/2) sum_i lambda_i |x_i - x|^2",
+    "counter_example": "a product of sines that vanishes at every control point",
+    "interpolation": "non-negative barycentric weights on a scipy Delaunay triangulation"
+  },
+  "outside_domain": {
+    "expected": "unavailable; a nearest neighbour fill must not be certified",
+    "inside_support": false,
+    "query": [
+      5.0,
+      5.0
+    ]
+  },
+  "plane": [
+    {
+      "curvature_bound": 0.0,
+      "delta": 0.01,
+      "interpolated": 0.49999999999999994,
+      "interval_log_lower": 0.48999999999999994,
+      "interval_log_upper": 0.5099999999999999,
+      "query": [
+        -0.5,
+        -0.5
+      ],
+      "remainder_bound": 0.0,
+      "truth": 0.49999999999999994,
+      "truth_inside": true,
+      "truth_variance": 1.648721270700128,
+      "variance_interval": [
+        1.632316219955379,
+        1.6652911949458862
+      ]
+    },
+    {
+      "curvature_bound": 0.0,
+      "delta": 0.01,
+      "interpolated": 0.6499999999999999,
+      "interval_log_lower": 0.6399999999999999,
+      "interval_log_upper": 0.6599999999999999,
+      "query": [
+        0.1,
+        0.2
+      ],
+      "remainder_bound": 0.0,
+      "truth": 0.6499999999999999,
+      "truth_inside": true,
+      "truth_variance": 1.915540829013896,
+      "variance_interval": [
+        1.8964808793049512,
+        1.9347923344020315
+      ]
+    },
+    {
+      "curvature_bound": 0.0,
+      "delta": 0.01,
+      "interpolated": 1.8200000000000003,
+      "interval_log_lower": 1.8100000000000003,
+      "interval_log_upper": 1.8300000000000003,
+      "query": [
+        0.55,
+        -0.45
+      ],
+      "remainder_bound": 0.0,
+      "truth": 1.82,
+      "truth_inside": true,
+      "truth_variance": 6.171858449883554,
+      "variance_interval": [
+        6.110447432230612,
+        6.233886658524719
+      ]
+    },
+    {
+      "curvature_bound": 0.0,
+      "delta": 0.01,
+      "interpolated": 0.7,
+      "interval_log_lower": 0.69,
+      "interval_log_upper": 0.71,
+      "query": [
+        0.0,
+        0.0
+      ],
+      "remainder_bound": 0.0,
+      "truth": 0.7,
+      "truth_inside": true,
+      "truth_variance": 2.0137527074704766,
+      "variance_interval": [
+        1.9937155332430823,
+        2.0339912586467506
+      ]
+    }
+  ],
+  "quadratic": [
+    {
+      "curvature_bound": 4.0,
+      "delta": 0.01,
+      "interpolated": 0.752,
+      "interval_log_lower": 0.622,
+      "interval_log_upper": 0.882,
+      "query": [
+        -0.5,
+        -0.5
+      ],
+      "relative_error_over_bound": 0.20769230769230787,
+      "remainder_term": 0.12,
+      "truth": 0.725,
+      "truth_inside": true
+    },
+    {
+      "curvature_bound": 4.0,
+      "delta": 0.01,
+      "interpolated": 0.6859999999999999,
+      "interval_log_lower": 0.6159999999999999,
+      "interval_log_upper": 0.756,
+      "query": [
+        0.1,
+        0.2
+      ],
+      "relative_error_over_bound": 0.857142857142857,
+      "remainder_term": 0.06000000000000008,
+      "truth": 0.6259999999999999,
+      "truth_inside": true
+    },
+    {
+      "curvature_bound": 4.0,
+      "delta": 0.01,
+      "interpolated": 2.1960000000000006,
+      "interval_log_lower": 2.0760000000000005,
+      "interval_log_upper": 2.3160000000000007,
+      "query": [
+        0.55,
+        -0.45
+      ],
+      "relative_error_over_bound": 0.05208333333333033,
+      "remainder_term": 0.1100000000000001,
+      "truth": 2.2022500000000003,
+      "truth_inside": true
+    },
+    {
+      "curvature_bound": 4.0,
+      "delta": 0.01,
+      "interpolated": 0.736,
+      "interval_log_lower": 0.566,
+      "interval_log_upper": 0.906,
+      "query": [
+        0.0,
+        0.0
+      ],
+      "relative_error_over_bound": 0.21176470588235305,
+      "remainder_term": 0.16000000000000006,
+      "truth": 0.7,
+      "truth_inside": true
+    }
+  ],
+  "truth_types": [
+    "analytic_exact",
+    "conditional_model"
+  ]
+}

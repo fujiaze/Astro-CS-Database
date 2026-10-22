@@ -1,0 +1,22 @@
+{
+  "case": "P01",
+  "corruptions": [
+    "missing_block",
+    "hash_conflict",
+    "duplicate_exposure",
+    "unknown_recipe"
+  ],
+  "exposures": [
+    "exp-1",
+    "exp-2"
+  ],
+  "profiles": [
+    "full",
+    "signal_only"
+  ],
+  "source": "the U01 fixture extended to a cross tile shared root and sky",
+  "tiles": [
+    "tile-a",
+    "tile-b"
+  ]
+}

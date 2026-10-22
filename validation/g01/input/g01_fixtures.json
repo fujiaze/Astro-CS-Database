@@ -1,0 +1,184 @@
+{
+  "cases": [
+    {
+      "cd": [
+        [
+          0.001,
+          0.0
+        ],
+        [
+          0.0,
+          0.001
+        ]
+      ],
+      "corners": [
+        [
+          23.0,
+          23.0
+        ],
+        [
+          39.0,
+          39.0
+        ]
+      ],
+      "crpix": [
+        32.0,
+        32.0
+      ],
+      "crval": [
+        0.0,
+        0.0
+      ],
+      "name": "tan_centered_square",
+      "note": "a detector square centred on the tangent point",
+      "order": 5,
+      "pixfrac": 1.0,
+      "seed": 20261023,
+      "trials": 200000
+    },
+    {
+      "cd": [
+        [
+          -0.00012,
+          6e-05
+        ],
+        [
+          7e-05,
+          0.00014
+        ]
+      ],
+      "corners": [
+        [
+          8.0,
+          12.0
+        ],
+        [
+          24.0,
+          28.0
+        ]
+      ],
+      "crpix": [
+        17.293,
+        41.617
+      ],
+      "crval": [
+        10.0,
+        20.0
+      ],
+      "name": "tan_offset_square",
+      "note": "an off-centre square, the image is not symmetric",
+      "order": 6,
+      "pixfrac": 1.0,
+      "seed": 20261024,
+      "trials": 200000
+    },
+    {
+      "cd": [
+        [
+          0.0002,
+          0.0
+        ],
+        [
+          0.0,
+          0.0002
+        ]
+      ],
+      "corners": [
+        [
+          24.0,
+          24.0
+        ],
+        [
+          40.0,
+          40.0
+        ]
+      ],
+      "crpix": [
+        32.0,
+        32.0
+      ],
+      "crval": [
+        45.0,
+        89.9995
+      ],
+      "name": "north_polar",
+      "note": "a detector square close to the north pole",
+      "order": 6,
+      "pixfrac": 1.0,
+      "seed": 20261025,
+      "trials": 200000
+    },
+    {
+      "cd": [
+        [
+          1e-06,
+          0.0
+        ],
+        [
+          0.0,
+          1e-06
+        ]
+      ],
+      "corners": [
+        [
+          31.5,
+          31.5
+        ],
+        [
+          32.5,
+          32.5
+        ]
+      ],
+      "crpix": [
+        32.0,
+        32.0
+      ],
+      "crval": [
+        0.0,
+        0.0
+      ],
+      "name": "order29_subleaf",
+      "note": "order 29 target grid with a sub-leaf detector square",
+      "order": 29,
+      "pixfrac": 1.0,
+      "seed": 20261026,
+      "trials": 50000
+    },
+    {
+      "cd": [
+        [
+          0.001,
+          0.0
+        ],
+        [
+          0.0,
+          0.001
+        ]
+      ],
+      "corners": [
+        [
+          16.0,
+          8.0
+        ],
+        [
+          24.0,
+          16.0
+        ]
+      ],
+      "crpix": [
+        16.0,
+        16.0
+      ],
+      "crval": [
+        0.0,
+        0.0
+      ],
+      "name": "touching_edge",
+      "note": "a square whose edge touches a leaf boundary (tangency)",
+      "order": 7,
+      "pixfrac": 1.0,
+      "seed": 20261027,
+      "trials": 100000
+    }
+  ]
+}

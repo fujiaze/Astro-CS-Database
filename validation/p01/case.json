@@ -1,0 +1,137 @@
+{
+  "assumptions": [
+    "the product format is acsd.product major 2",
+    "the manifest is published last and is the only completion identity",
+    "the full profile is self contained and the signal_only profile declares the missing capabilities"
+  ],
+  "availability": {
+    "checked_sources": [
+      "src/catalogue/columns.cpp",
+      "src/catalogue/index.cpp",
+      "src/catalogue/provider.cpp",
+      "src/catalogue/sky_geometry.cpp",
+      "src/coadd/coadd.cpp",
+      "src/coadd/weights.cpp",
+      "src/coordinates/chart.cpp",
+      "src/coordinates/footprint_provider.cpp",
+      "src/coordinates/healpix.cpp",
+      "src/coordinates/tan_sip.cpp",
+      "src/coordinates/wcs.cpp",
+      "src/geometry/drizzle.cpp",
+      "src/geometry/exact_polygon.cpp",
+      "src/geometry/kernel.cpp",
+      "src/geometry/overlap.cpp",
+      "src/geometry/refine.cpp",
+      "src/information/information.cpp",
+      "src/information/internal.cpp",
+      "src/information/triangulation.cpp",
+      "src/model/array.cpp",
+      "src/model/exact.cpp",
+      "src/model/hash.cpp",
+      "src/model/units.cpp",
+      "src/numerics/interval.cpp",
+      "src/numerics/linalg.cpp",
+      "src/numerics/quadrature.cpp",
+      "src/observation/calibrate.cpp",
+      "src/observation/observation.cpp",
+      "src/observation/regroup.cpp",
+      "src/operators/api.cpp",
+      "src/operators/linear_action.cpp",
+      "src/photometry/api.cpp",
+      "src/photometry/apply_scale.cpp",
+      "src/photometry/joint_fit.cpp",
+      "src/photometry/spatial_basis.cpp",
+      "src/projection/export_projection.cpp",
+      "src/resources/cpu_resources.cpp",
+      "src/response/api.cpp",
+      "src/response/spectral.cpp",
+      "src/sky/sky.cpp",
+      "src/sources/astrometry.cpp",
+      "src/sources/astrometry_detection.cpp",
+      "src/sources/astrometry_fit.cpp",
+      "src/sources/astrometry_match.cpp",
+      "src/sources/astrometry_wcs.cpp",
+      "src/sources/measure.cpp",
+      "src/sources/psf.cpp",
+      "src/storage/local_storage.cpp",
+      "src/uncertainty/api.cpp",
+      "src/uncertainty/covariance.cpp",
+      "src/workflows/export_workflow.cpp",
+      "src/workflows/fits_writer.cpp",
+      "src/workflows/frames_provider.cpp",
+      "src/workflows/mosaic.cpp",
+      "src/workflows/normalize.cpp",
+      "src/workflows/product.cpp",
+      "src/workflows/product_io.cpp"
+    ],
+    "entry_points": {
+      "build_export": true,
+      "export_image": true,
+      "mosaic": true,
+      "open_product": true,
+      "publish_product": true
+    },
+    "missing": []
+  },
+  "case": "P01",
+  "condition": "the published product directory",
+  "estimand": "the product closure verdict, the declared capability set and the science content hash",
+  "goal": "Verify the product closure: a full profile product must be re-openable without the original FITS, a signal-only product must report an unknown error and equal weights, and a corrupt closure (missing block, hash conflict, duplicate exposure, unknown recipe) must not be published.",
+  "independence": {
+    "external_standards": [
+      "astropy",
+      "wcslib",
+      "astropy-healpix",
+      "healpy",
+      "scipy",
+      "numpy"
+    ],
+    "note": "truth is produced before and independently of any observed run",
+    "truth_code_imports_production": false
+  },
+  "input_model_sha256": "e4a5b16419b3e473c61841d81d798dbd9076babc1c67203503a5941c1bde2cc4",
+  "negative_expectations": [
+    {
+      "expectation": "a missing block must give missing_dependency and must not publish",
+      "id": "missing_block"
+    },
+    {
+      "expectation": "a hash conflict must give hash_mismatch",
+      "id": "hash_conflict"
+    },
+    {
+      "expectation": "a repeated exposure must give duplicate_source and must not be read twice",
+      "id": "duplicate_exposure"
+    },
+    {
+      "expectation": "an unknown action recipe must give unsupported while the signal stays readable",
+      "id": "unknown_recipe"
+    },
+    {
+      "expectation": "a cancelled or failed run must not publish a completion manifest",
+      "id": "no_partial_publication"
+    }
+  ],
+  "positive_expectations": [
+    {
+      "expectation": "the full product can be opened and refined without the original FITS",
+      "id": "full_reopen"
+    },
+    {
+      "expectation": "the signal_only product uses equal weights and reports an unknown error",
+      "id": "signal_only_equal"
+    },
+    {
+      "expectation": "a hash conflict is detected",
+      "id": "mismatch_detected"
+    }
+  ],
+  "request_sha256": "7396efcba9be572369976d8a225750ecff6550d214655ca1ea9abc406d056e14",
+  "tolerance": {
+    "closure": "no missing or mismatching object and no missing block",
+    "content_hash": "identical across the resource variants"
+  },
+  "truth_sha256": "71a1a281a42fe58702b7f50c598f10fc4ec1979b14551c3de502f3051eeb0d69",
+  "truth_type": "conditional_model",
+  "unit": "verdict and capability set; the content hash is a sha256 identity"
+}

@@ -1,0 +1,19 @@
+{
+  "arguments": {},
+  "input_objects": {},
+  "major": 1,
+  "operation": "normalize",
+  "output_root": ".work/r01",
+  "protocol": "acsd.contract",
+  "request": {},
+  "request_id": "val-r01-resource-matrix",
+  "resources": {
+    "bytes": 268435456,
+    "max_depth": 64,
+    "max_precision_bits": 256,
+    "scratch_directory": ".work/r01",
+    "spill_bytes": 8589934592,
+    "threads": 4,
+    "work": 10000000
+  }
+}

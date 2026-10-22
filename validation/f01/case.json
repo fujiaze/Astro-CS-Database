@@ -1,0 +1,142 @@
+{
+  "assumptions": [
+    "the PSF is a normalised Gaussian in the detector plane",
+    "the aperture is an axis aligned rectangle and the flux is not renormalised inside it",
+    "the counts and the Gaia measurement of one source share one spectral latent",
+    "the sky is a constant background over the aperture"
+  ],
+  "availability": {
+    "checked_sources": [
+      "src/catalogue/columns.cpp",
+      "src/catalogue/index.cpp",
+      "src/catalogue/provider.cpp",
+      "src/catalogue/sky_geometry.cpp",
+      "src/coadd/coadd.cpp",
+      "src/coadd/weights.cpp",
+      "src/coordinates/chart.cpp",
+      "src/coordinates/footprint_provider.cpp",
+      "src/coordinates/healpix.cpp",
+      "src/coordinates/tan_sip.cpp",
+      "src/coordinates/wcs.cpp",
+      "src/geometry/drizzle.cpp",
+      "src/geometry/exact_polygon.cpp",
+      "src/geometry/kernel.cpp",
+      "src/geometry/overlap.cpp",
+      "src/geometry/refine.cpp",
+      "src/information/information.cpp",
+      "src/information/internal.cpp",
+      "src/information/triangulation.cpp",
+      "src/model/array.cpp",
+      "src/model/exact.cpp",
+      "src/model/hash.cpp",
+      "src/model/units.cpp",
+      "src/numerics/interval.cpp",
+      "src/numerics/linalg.cpp",
+      "src/numerics/quadrature.cpp",
+      "src/observation/calibrate.cpp",
+      "src/observation/observation.cpp",
+      "src/observation/regroup.cpp",
+      "src/operators/api.cpp",
+      "src/operators/linear_action.cpp",
+      "src/photometry/api.cpp",
+      "src/photometry/apply_scale.cpp",
+      "src/photometry/joint_fit.cpp",
+      "src/photometry/spatial_basis.cpp",
+      "src/projection/export_projection.cpp",
+      "src/resources/cpu_resources.cpp",
+      "src/response/api.cpp",
+      "src/response/spectral.cpp",
+      "src/sky/sky.cpp",
+      "src/sources/astrometry.cpp",
+      "src/sources/astrometry_detection.cpp",
+      "src/sources/astrometry_fit.cpp",
+      "src/sources/astrometry_match.cpp",
+      "src/sources/astrometry_wcs.cpp",
+      "src/sources/measure.cpp",
+      "src/sources/psf.cpp",
+      "src/storage/local_storage.cpp",
+      "src/uncertainty/api.cpp",
+      "src/uncertainty/covariance.cpp",
+      "src/workflows/export_workflow.cpp",
+      "src/workflows/fits_writer.cpp",
+      "src/workflows/frames_provider.cpp",
+      "src/workflows/mosaic.cpp",
+      "src/workflows/normalize.cpp",
+      "src/workflows/product.cpp",
+      "src/workflows/product_io.cpp"
+    ],
+    "entry_points": {
+      "apply_scale": true,
+      "fit_photometry": true,
+      "fit_psf": false,
+      "integrate_response": true,
+      "measure_science_sources": false
+    },
+    "missing": [
+      "fit_psf",
+      "measure_science_sources"
+    ]
+  },
+  "case": "F01",
+  "condition": "high signal Gaussian regime; the Poisson regime is out of scope",
+  "estimand": "the aperture flux, the aperture variance and the scale parameter with its interval",
+  "goal": "Verify the pixel integrated photometry: the Gaussian flux inside the aperture, the two adjacent sources, the shared latent between the counts and the Gaia measurement, the parameter rank and the scale interval counter-examples.",
+  "independence": {
+    "external_standards": [
+      "astropy",
+      "wcslib",
+      "astropy-healpix",
+      "healpy",
+      "scipy",
+      "numpy"
+    ],
+    "note": "truth is produced before and independently of any observed run",
+    "truth_code_imports_production": false
+  },
+  "input_model_sha256": "d3d05937d2d90c07dd7c14266796a365c5d28a1d56ab01d2d1a395061165c758",
+  "negative_expectations": [
+    {
+      "expectation": "the flux inside a finite window must not be renormalised to the total flux",
+      "id": "finite_window_not_renormalised"
+    },
+    {
+      "expectation": "a shared floor must not decrease like 1/K over K frames",
+      "id": "shared_floor_not_independent"
+    },
+    {
+      "expectation": "a colour that is a function of the position must be reported as not identifiable",
+      "id": "colour_position_rank"
+    },
+    {
+      "expectation": "an unknown gain must not produce a fabricated electron variance",
+      "id": "unknown_gain"
+    },
+    {
+      "expectation": "counts = 100 must pin the scale to 1 while [99, 101] must allow a in [1/1.01, 1/0.99]",
+      "id": "counts_scale_interval"
+    }
+  ],
+  "positive_expectations": [
+    {
+      "expectation": "the aperture flux equals the analytic erf integral",
+      "id": "single_source_flux"
+    },
+    {
+      "expectation": "the aperture flux of two adjacent sources is the sum of the analytic integrals",
+      "id": "two_source_flux"
+    },
+    {
+      "expectation": "the joint scale variance keeps the shared term",
+      "id": "shared_latent"
+    }
+  ],
+  "request_sha256": "21b3354b135e294afb68ecdb992687bd48163a8182db2b2da1c8418a8d32bd76",
+  "tolerance": {
+    "flux_relative": 1e-12,
+    "scale_interval": "the reported interval must contain the analytic interval",
+    "variance_relative": 1e-12
+  },
+  "truth_sha256": "ff3d827ac05b4893c14392470f9e54b1ef453c866a2f429cb3b076ccb3c20abb",
+  "truth_type": "analytic_exact",
+  "unit": "ADU (native) for the flux; ADU^2 for the variance"
+}

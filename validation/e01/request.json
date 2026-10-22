@@ -1,0 +1,19 @@
+{
+  "arguments": {},
+  "input_objects": {},
+  "major": 1,
+  "operation": "build_export",
+  "output_root": ".work/e01",
+  "protocol": "acsd.contract",
+  "request": {},
+  "request_id": "val-e01-build-export",
+  "resources": {
+    "bytes": 8388608,
+    "max_depth": 32,
+    "max_precision_bits": 256,
+    "scratch_directory": ".work",
+    "spill_bytes": 0,
+    "threads": 1,
+    "work": 100000
+  }
+}

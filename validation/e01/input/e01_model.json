@@ -1,0 +1,35 @@
+{
+  "assume_uniform_uncovered": false,
+  "case": "E01",
+  "leaf_values": {
+    "20401348798": 0.0,
+    "20401348799": 3.0,
+    "20401349192": -2.0
+  },
+  "order": 16,
+  "pixfrac": 1.0,
+  "quantity": "supported_mean",
+  "support_policy": "primitives",
+  "target": {
+    "cd": [
+      [
+        -0.003,
+        0.001
+      ],
+      [
+        0.0012,
+        -0.0026
+      ]
+    ],
+    "crpix": [
+      1.37,
+      1.12
+    ],
+    "crval": [
+      359.95,
+      0.5
+    ],
+    "height": 2,
+    "width": 2
+  }
+}

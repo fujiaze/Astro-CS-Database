@@ -1,0 +1,126 @@
+{
+  "assumptions": [
+    "the detector is linear and unsaturated",
+    "the PSF is a normalised Gaussian in the detector plane",
+    "the noise is Poisson photon noise plus an independent Gaussian read noise",
+    "one of the two response groups has no WCS header and must be blind solved"
+  ],
+  "availability": {
+    "checked_sources": [
+      "src/catalogue/columns.cpp",
+      "src/catalogue/index.cpp",
+      "src/catalogue/provider.cpp",
+      "src/catalogue/sky_geometry.cpp",
+      "src/coadd/coadd.cpp",
+      "src/coadd/weights.cpp",
+      "src/coordinates/chart.cpp",
+      "src/coordinates/footprint_provider.cpp",
+      "src/coordinates/healpix.cpp",
+      "src/coordinates/tan_sip.cpp",
+      "src/coordinates/wcs.cpp",
+      "src/geometry/drizzle.cpp",
+      "src/geometry/exact_polygon.cpp",
+      "src/geometry/kernel.cpp",
+      "src/geometry/overlap.cpp",
+      "src/geometry/refine.cpp",
+      "src/information/information.cpp",
+      "src/information/internal.cpp",
+      "src/information/triangulation.cpp",
+      "src/model/array.cpp",
+      "src/model/exact.cpp",
+      "src/model/hash.cpp",
+      "src/model/units.cpp",
+      "src/numerics/interval.cpp",
+      "src/numerics/linalg.cpp",
+      "src/numerics/quadrature.cpp",
+      "src/observation/calibrate.cpp",
+      "src/observation/observation.cpp",
+      "src/observation/regroup.cpp",
+      "src/operators/api.cpp",
+      "src/operators/linear_action.cpp",
+      "src/photometry/api.cpp",
+      "src/photometry/apply_scale.cpp",
+      "src/photometry/joint_fit.cpp",
+      "src/photometry/spatial_basis.cpp",
+      "src/projection/export_projection.cpp",
+      "src/resources/cpu_resources.cpp",
+      "src/response/api.cpp",
+      "src/response/spectral.cpp",
+      "src/sky/sky.cpp",
+      "src/sources/astrometry.cpp",
+      "src/sources/astrometry_detection.cpp",
+      "src/sources/astrometry_fit.cpp",
+      "src/sources/astrometry_match.cpp",
+      "src/sources/astrometry_wcs.cpp",
+      "src/sources/measure.cpp",
+      "src/sources/psf.cpp",
+      "src/storage/local_storage.cpp",
+      "src/uncertainty/api.cpp",
+      "src/uncertainty/covariance.cpp",
+      "src/workflows/export_workflow.cpp",
+      "src/workflows/fits_writer.cpp",
+      "src/workflows/frames_provider.cpp",
+      "src/workflows/mosaic.cpp",
+      "src/workflows/normalize.cpp",
+      "src/workflows/product.cpp",
+      "src/workflows/product_io.cpp"
+    ],
+    "entry_points": {
+      "export_image": true,
+      "mosaic": true,
+      "normalize": true,
+      "solve_astrometry": true
+    },
+    "missing": []
+  },
+  "case": "X01",
+  "condition": "the synthetic observation described by the input files",
+  "estimand": "the exported signal, the per frame calibration and the blind astrometric solution of the group without a WCS",
+  "goal": "Run the full chain on a synthetic observation whose construction is known: the raw ADU frames must be reduced to a per frame signal HiPS, mosaicked and exported, and the group without a WCS must actually be blind solved.",
+  "independence": {
+    "external_standards": [
+      "astropy",
+      "wcslib",
+      "astropy-healpix",
+      "healpy",
+      "scipy",
+      "numpy"
+    ],
+    "note": "truth is produced before and independently of any observed run",
+    "truth_code_imports_production": false
+  },
+  "input_model_sha256": "a633bdf1fcdc3b0f08fc6e48647ee9528d9ba2d1de58aebb5ff00137d30168ec",
+  "negative_expectations": [
+    {
+      "expectation": "the GUI is only a protocol smoke test and never a substitute for the science path",
+      "id": "gui_is_only_smoke"
+    },
+    {
+      "expectation": "a failed blind solve must report unsolved and publish nothing",
+      "id": "no_fabricated_solution"
+    }
+  ],
+  "positive_expectations": [
+    {
+      "expectation": "normalize, mosaic and export all run on the disk product",
+      "id": "three_commands"
+    },
+    {
+      "expectation": "the group without a WCS is blind solved and the residual is reported",
+      "id": "blind_solve"
+    },
+    {
+      "expectation": "the point source is recovered near its injected position",
+      "id": "source_recovered"
+    }
+  ],
+  "request_sha256": "dd78bc470e748010a5c48661a8da00f766eece937f40c0a4b0fe110fd7bda9f3",
+  "tolerance": {
+    "astrometry_rms_pixel": 0.5,
+    "blind_solve": "the group without a WCS must produce a solution",
+    "signal_relative": 0.05
+  },
+  "truth_sha256": "26d8f1aa33a181e53b7801c42cbf325b036832d3c12d0f1d8ca95a0599553182",
+  "truth_type": "empirical + analytic_exact",
+  "unit": "ADU in the raw frames; L/sr in the products"
+}

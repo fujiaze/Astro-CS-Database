@@ -1,0 +1,47 @@
+{
+  "arguments": {},
+  "input_objects": {},
+  "major": 1,
+  "operation": "fit_photometry",
+  "output_root": ".work/f01",
+  "protocol": "acsd.contract",
+  "request": {
+    "application_id": "val-f01",
+    "basis": {
+      "kind": "constant"
+    },
+    "frames": [
+      "f1"
+    ],
+    "gradient_tolerance": 1e-08,
+    "likelihood": {
+      "assumptions": [],
+      "estimator": "fixture-f01",
+      "fixed_objects": [],
+      "kind": "joint_flux_gaussian"
+    },
+    "max_outer_iterations": 100,
+    "reference": null,
+    "responses": [],
+    "solve": {
+      "absolute_residual": 1e-12,
+      "dense_max_bytes": 1048576,
+      "huber": false,
+      "huber_delta": 1.345,
+      "max_iterations": 100,
+      "rank_relative": 1e-12,
+      "relative_residual": 1e-10
+    },
+    "step_tolerance": 1e-10
+  },
+  "request_id": "val-f01-photometry",
+  "resources": {
+    "bytes": 8388608,
+    "max_depth": 32,
+    "max_precision_bits": 128,
+    "scratch_directory": ".work",
+    "spill_bytes": 0,
+    "threads": 1,
+    "work": 100000
+  }
+}

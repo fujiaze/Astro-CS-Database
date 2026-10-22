@@ -1,0 +1,135 @@
+{
+  "assumptions": [
+    "the target output is a 2x2 even sized image whose CRPIX is (1.37, 1.12)",
+    "the CD matrix is mirrored and non diagonal and the field wraps in right ascension",
+    "the leaf values are piecewise constant over the declared support",
+    "the supported mean is the support weighted mean, not the full pixel mean"
+  ],
+  "availability": {
+    "checked_sources": [
+      "src/catalogue/columns.cpp",
+      "src/catalogue/index.cpp",
+      "src/catalogue/provider.cpp",
+      "src/catalogue/sky_geometry.cpp",
+      "src/coadd/coadd.cpp",
+      "src/coadd/weights.cpp",
+      "src/coordinates/chart.cpp",
+      "src/coordinates/footprint_provider.cpp",
+      "src/coordinates/healpix.cpp",
+      "src/coordinates/tan_sip.cpp",
+      "src/coordinates/wcs.cpp",
+      "src/geometry/drizzle.cpp",
+      "src/geometry/exact_polygon.cpp",
+      "src/geometry/kernel.cpp",
+      "src/geometry/overlap.cpp",
+      "src/geometry/refine.cpp",
+      "src/information/information.cpp",
+      "src/information/internal.cpp",
+      "src/information/triangulation.cpp",
+      "src/model/array.cpp",
+      "src/model/exact.cpp",
+      "src/model/hash.cpp",
+      "src/model/units.cpp",
+      "src/numerics/interval.cpp",
+      "src/numerics/linalg.cpp",
+      "src/numerics/quadrature.cpp",
+      "src/observation/calibrate.cpp",
+      "src/observation/observation.cpp",
+      "src/observation/regroup.cpp",
+      "src/operators/api.cpp",
+      "src/operators/linear_action.cpp",
+      "src/photometry/api.cpp",
+      "src/photometry/apply_scale.cpp",
+      "src/photometry/joint_fit.cpp",
+      "src/photometry/spatial_basis.cpp",
+      "src/projection/export_projection.cpp",
+      "src/resources/cpu_resources.cpp",
+      "src/response/api.cpp",
+      "src/response/spectral.cpp",
+      "src/sky/sky.cpp",
+      "src/sources/astrometry.cpp",
+      "src/sources/astrometry_detection.cpp",
+      "src/sources/astrometry_fit.cpp",
+      "src/sources/astrometry_match.cpp",
+      "src/sources/astrometry_wcs.cpp",
+      "src/sources/measure.cpp",
+      "src/sources/psf.cpp",
+      "src/storage/local_storage.cpp",
+      "src/uncertainty/api.cpp",
+      "src/uncertainty/covariance.cpp",
+      "src/workflows/export_workflow.cpp",
+      "src/workflows/fits_writer.cpp",
+      "src/workflows/frames_provider.cpp",
+      "src/workflows/mosaic.cpp",
+      "src/workflows/normalize.cpp",
+      "src/workflows/product.cpp",
+      "src/workflows/product_io.cpp"
+    ],
+    "entry_points": {
+      "build_export": true,
+      "export_signal": true,
+      "open_product": true,
+      "publish_product": true
+    },
+    "missing": []
+  },
+  "case": "E01",
+  "condition": "fixed support and fixed leaf values",
+  "estimand": "the support area per target pixel, the supported mean, the supported integral and the extrapolated full flux",
+  "goal": "Verify the export closure: the supported mean, the supported integral and the extrapolated full flux must be separate quantities, the pieces of one leaf must be merged before the covariance is propagated, no second pixfrac shrink may be applied and the FITS header round trip must stay inside the tolerance.",
+  "independence": {
+    "external_standards": [
+      "astropy",
+      "wcslib",
+      "astropy-healpix",
+      "healpy",
+      "scipy",
+      "numpy"
+    ],
+    "note": "truth is produced before and independently of any observed run",
+    "truth_code_imports_production": false
+  },
+  "input_model_sha256": "692ffc3ce9b3ef02a4a363239b3fdafd2db5021f9440c0a801dfecbdf1f55afc",
+  "negative_expectations": [
+    {
+      "expectation": "the supported mean must not use the full pixel area as denominator",
+      "id": "no_full_pixel_denominator"
+    },
+    {
+      "expectation": "no second drop shrink may be applied",
+      "id": "no_second_pixfrac"
+    },
+    {
+      "expectation": "the extrapolated full flux must require the explicit uniform assumption",
+      "id": "extrapolation_separate"
+    },
+    {
+      "expectation": "the FITS header round trip must not change the model beyond the declared tolerance",
+      "id": "fits_quantisation"
+    }
+  ],
+  "positive_expectations": [
+    {
+      "expectation": "the supported mean equals the support weighted mean of the leaf values",
+      "id": "supported_mean"
+    },
+    {
+      "expectation": "the supported integral equals the support weighted sum",
+      "id": "supported_integral"
+    },
+    {
+      "expectation": "the pieces of one leaf are merged before the variance is propagated",
+      "id": "same_leaf_merge"
+    }
+  ],
+  "request_sha256": "2d252465269688c16aca7205f1203f0ff5bfa7961bce5c648bac186518d89e73",
+  "tolerance": {
+    "fits_header_quantisation": "the read back header must reproduce the model",
+    "support_area_relative": 1e-06,
+    "supported_integral_relative": 1e-09,
+    "supported_mean_relative": 1e-09
+  },
+  "truth_sha256": "f74bfd743b56f703c8e77f2956ac002bff8d16926d69eb4236aa1e8182004d00",
+  "truth_type": "analytic_exact",
+  "unit": "sr for the areas; L/sr for the mean; L for the integral"
+}
