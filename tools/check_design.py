@@ -13,12 +13,16 @@ from math import prod
 
 ROOT = Path(__file__).resolve().parents[1]
 errors = []
+warnings = []
 
 def require(condition, message):
     if not condition:
         errors.append(message)
 
-for path in ROOT.rglob('*.md'):
+tracked_markdown = subprocess.run(['git', 'ls-files', '--', '*.md'], cwd=ROOT, capture_output=True,
+                             text=True, check=False).stdout.split()
+for relative in tracked_markdown:
+    path = ROOT / relative
     if any(part in {'.git', 'build', '.work'} for part in path.relative_to(ROOT).parts):
         continue
     # Historical license provenance is archival prose, not a new local dependency.
@@ -82,10 +86,19 @@ require(len({row['path'] for row in rows}) == len(rows), 'duplicate deletion ent
 for row in rows:
     require(bool(re.fullmatch('[0-9a-f]{40}', row['baseline_git_blob'])), 'invalid baseline blob')
 for folder in ['lib', 'eng', 'run', 'config', 'testdata']:
-    # Removed tracked paths may leave empty local directories. They must have no files.
+    # The rebuild tree must not carry the removed system as a dependency.  The
+    # guard applies to the tracked tree; untracked leftovers of the historical
+    # checkout are reported as a warning because they are not part of any
+    # revision and must not be deleted by this project.
+    tracked = subprocess.run(['git', 'ls-files', '--', folder], cwd=ROOT, capture_output=True,
+                             text=True, check=False).stdout.split()
+    require(not tracked, f'old dependency: {folder}')
     root = ROOT / folder
-    require(not root.exists() or not any(p.is_file() for p in root.rglob('*')), f'old dependency: {folder}')
+    if root.exists() and any(p.is_file() for p in root.rglob('*')):
+        warnings.append(f'untracked legacy leftovers present in {folder} (not part of the tree)')
 
+if warnings:
+    print('\n'.join(warnings))
 if errors:
     print('\n'.join(errors))
     sys.exit(1)

@@ -9,18 +9,51 @@
         "CMAKE_BUILD_TYPE": "Release",
         "ACSD_BUILD_SCIENCE": "OFF"
       }
+    },
+    {
+      "name": "science",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/science",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ACSD_BUILD_SCIENCE": "ON"
+      }
+    },
+    {
+      "name": "science-debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/science-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ACSD_BUILD_SCIENCE": "ON"
+      }
     }
   ],
   "buildPresets": [
     {
       "name": "design",
       "configurePreset": "design"
+    },
+    {
+      "name": "science",
+      "configurePreset": "science"
+    },
+    {
+      "name": "science-debug",
+      "configurePreset": "science-debug"
     }
   ],
   "testPresets": [
     {
       "name": "design",
       "configurePreset": "design",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "science",
+      "configurePreset": "science",
       "output": {
         "outputOnFailure": true
       }

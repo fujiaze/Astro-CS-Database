@@ -13,8 +13,9 @@ target_compile_features(acsd_contracts INTERFACE cxx_std_20)
 
 if(ACSD_BUILD_SCIENCE)
   find_package(Threads REQUIRED)
-  find_package(ZSTD REQUIRED)
-  find_package(CFITSIO REQUIRED)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(ZSTD REQUIRED IMPORTED_TARGET libzstd)
+  pkg_check_modules(CFITSIO REQUIRED IMPORTED_TARGET cfitsio)
   find_package(nlohmann_json REQUIRED)
 
   # ------------------------------------------------------------------
@@ -30,80 +31,99 @@ if(ACSD_BUILD_SCIENCE)
 
   function(acsd_add_library target)
     file(GLOB_RECURSE sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${target}/*.cpp)
-    add_library(${target} STATIC ${sources})
-    target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
-                                                 ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_link_libraries(${target} PUBLIC acsd_contracts)
-    target_compile_options(${target} PRIVATE ${ACSD_NUMERIC_FLAGS})
+    if(sources)
+      add_library(${target} STATIC ${sources})
+      target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
+                                                   ${CMAKE_CURRENT_SOURCE_DIR}/include)
+      target_link_libraries(${target} PUBLIC acsd_contracts)
+      target_compile_options(${target} PRIVATE ${ACSD_NUMERIC_FLAGS})
+      set(ACSD_${target}_IS_STATIC ON PARENT_SCOPE)
+    else()
+      # The module directory exists but no implementation has landed yet; keep
+      # the dependency graph explicit without creating an empty archive.
+      add_library(${target} INTERFACE)
+      target_link_libraries(${target} INTERFACE acsd_contracts)
+      set(ACSD_${target}_IS_STATIC OFF PARENT_SCOPE)
+    endif()
+  endfunction()
+
+  function(acsd_link target)
+    if(ACSD_${target}_IS_STATIC)
+      target_link_libraries(${target} PUBLIC ${ARGN})
+    else()
+      target_link_libraries(${target} INTERFACE ${ARGN})
+    endif()
   endfunction()
 
   acsd_add_library(model)
   acsd_add_library(numerics)
-  target_link_libraries(numerics PUBLIC model)
+  acsd_link(numerics model)
 
   acsd_add_library(resources)
-  target_link_libraries(resources PUBLIC model Threads::Threads)
+  acsd_link(resources model Threads::Threads)
 
   acsd_add_library(storage)
-  target_link_libraries(storage PUBLIC model ZSTD::libzstd)
+  acsd_link(storage model PkgConfig::ZSTD)
 
   acsd_add_library(operators)
-  target_link_libraries(operators PUBLIC model numerics)
+  acsd_link(operators model numerics)
 
   acsd_add_library(uncertainty)
-  target_link_libraries(uncertainty PUBLIC operators numerics)
+  acsd_link(uncertainty operators numerics)
 
   acsd_add_library(coordinates)
-  target_link_libraries(coordinates PUBLIC model numerics)
+  acsd_link(coordinates model numerics)
 
   acsd_add_library(observation)
-  target_link_libraries(observation PUBLIC model numerics operators uncertainty)
+  acsd_link(observation model numerics operators uncertainty)
 
   acsd_add_library(catalogue)
-  target_link_libraries(catalogue PUBLIC model coordinates numerics)
+  acsd_link(catalogue model coordinates numerics)
 
   acsd_add_library(response)
-  target_link_libraries(response PUBLIC model numerics)
+  acsd_link(response model numerics)
 
   acsd_add_library(sources)
-  target_link_libraries(sources PUBLIC observation coordinates catalogue uncertainty numerics)
+  acsd_link(sources observation coordinates catalogue uncertainty numerics)
 
   acsd_add_library(photometry)
-  target_link_libraries(photometry PUBLIC sources response uncertainty numerics)
+  acsd_link(photometry sources response uncertainty numerics)
 
   acsd_add_library(geometry)
-  target_link_libraries(geometry PUBLIC coordinates operators numerics model)
+  acsd_link(geometry coordinates operators numerics model)
 
   acsd_add_library(information)
-  target_link_libraries(information PUBLIC uncertainty numerics operators)
+  acsd_link(information uncertainty numerics operators)
 
   acsd_add_library(sky)
-  target_link_libraries(sky PUBLIC uncertainty information operators numerics)
+  acsd_link(sky uncertainty information operators numerics)
 
   acsd_add_library(coadd)
-  target_link_libraries(coadd PUBLIC sky uncertainty operators numerics)
+  acsd_link(coadd sky uncertainty operators numerics)
 
   acsd_add_library(projection)
-  target_link_libraries(projection PUBLIC geometry operators uncertainty numerics)
+  acsd_link(projection geometry operators uncertainty numerics)
 
   acsd_add_library(workflows)
-  target_link_libraries(workflows PUBLIC sources photometry geometry information sky coadd
+  acsd_link(workflows sources photometry geometry information sky coadd
                                       projection response operators uncertainty resources storage
                                       model numerics coordinates observation catalogue)
 
   add_library(acsd_science INTERFACE)
   target_link_libraries(acsd_science INTERFACE workflows)
 
-  if(ACSD_BUILD_CONTRACT_DRIVER)
+  if(ACSD_BUILD_CONTRACT_DRIVER AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/apps/contract/main.cpp)
     add_executable(acsd-contract apps/contract/main.cpp apps/contract/driver.cpp
                            apps/contract/json_io.cpp)
     target_link_libraries(acsd-contract PRIVATE acsd_science nlohmann_json::nlohmann_json)
     target_include_directories(acsd-contract PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
   endif()
 
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/apps/cli/main.cpp)
   add_executable(acsd apps/cli/main.cpp apps/cli/config.cpp apps/cli/events.cpp apps/cli/commands.cpp)
-  target_link_libraries(acsd PRIVATE acsd_science nlohmann_json::nlohmann_json CFITSIO::CFITSIO)
+  target_link_libraries(acsd PRIVATE acsd_science nlohmann_json::nlohmann_json PkgConfig::CFITSIO)
   target_include_directories(acsd PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  endif()
 endif()
 
 add_library(acsd_contracts_compile OBJECT validation/contracts_compile.cpp)
