@@ -1,0 +1,191 @@
+{
+ "case": "apps-negative",
+ "cases": {
+  "config_missing_keys": {
+   "exit_code": 2,
+   "events": [
+    {
+     "assessment": null,
+     "block": null,
+     "code": "invalid_request",
+     "completed": 0,
+     "event": "issue",
+     "frame_id": null,
+     "message": "the configuration is invalid: [json.exception.out_of_range.403] key 'inputs' not found",
+     "protocol": "acsd.events/2",
+     "run_id": "run-704ba3bb03147689",
+     "seq": 0,
+     "total": 0
+    },
+    {
+     "assessment": null,
+     "block": null,
+     "code": "failed",
+     "completed": 0,
+     "event": "run_finished",
+     "exit_code": 2,
+     "frame_id": null,
+     "message": "the run finished",
+     "protocol": "acsd.events/2",
+     "run_id": "run-704ba3bb03147689",
+     "seq": 1,
+     "summary": {
+      "cancelled": 0,
+      "failed": 0,
+      "frames": [],
+      "inputs_total": 0,
+      "published": 0,
+      "unsolved": 0
+     },
+     "total": 0
+    }
+   ]
+  },
+  "product_missing_block": {
+   "exit_code": 4,
+   "events": [
+    {
+     "assessment": null,
+     "block": null,
+     "code": "ok",
+     "completed": 0,
+     "event": "run_started",
+     "frame_id": null,
+     "message": "the export command started",
+     "protocol": "acsd.events/2",
+     "run_id": "run-32da00a77f3a8e8d",
+     "seq": 0,
+     "total": 1
+    },
+    {
+     "assessment": null,
+     "block": null,
+     "code": "ok",
+     "completed": 0,
+     "event": "frame_started",
+     "frame_id": "export",
+     "message": "the frame export started",
+     "protocol": "acsd.events/2",
+     "run_id": "run-32da00a77f3a8e8d",
+     "seq": 1,
+     "total": 1
+    },
+    {
+     "assessment": null,
+     "block": null,
+     "code": "missing_dependency",
+     "completed": 0,
+     "event": "frame_finished",
+     "frame_id": "export",
+     "message": "the signal cannot be reopened: the support cannot be reopened: the support index cannot be reopened",
+     "protocol": "acsd.events/2",
+     "run_id": "run-32da00a77f3a8e8d",
+     "seq": 2,
+     "total": 1
+    },
+    {
+     "assessment": null,
+     "block": null,
+     "code": "failed",
+     "completed": 0,
+     "event": "run_finished",
+     "exit_code": 4,
+     "frame_id": null,
+     "message": "the run finished",
+     "protocol": "acsd.events/2",
+     "run_id": "run-32da00a77f3a8e8d",
+     "seq": 3,
+     "summary": {
+      "cancelled": 0,
+      "failed": 1,
+      "frames": [
+       {
+        "code": "failed",
+        "frame": "export",
+        "reason": "the signal cannot be reopened: the support cannot be reopened: the support index cannot be reopened",
+        "status": "failed"
+       }
+      ],
+      "inputs_total": 1,
+      "published": 0,
+      "unsolved": 0
+     },
+     "total": 0
+    }
+   ]
+  },
+  "product_corrupt_block": {
+   "exit_code": 4,
+   "events": [
+    {
+     "assessment": null,
+     "block": null,
+     "code": "ok",
+     "completed": 0,
+     "event": "run_started",
+     "frame_id": null,
+     "message": "the export command started",
+     "protocol": "acsd.events/2",
+     "run_id": "run-8aeb971e576701b5",
+     "seq": 0,
+     "total": 1
+    },
+    {
+     "assessment": null,
+     "block": null,
+     "code": "ok",
+     "completed": 0,
+     "event": "frame_started",
+     "frame_id": "export",
+     "message": "the frame export started",
+     "protocol": "acsd.events/2",
+     "run_id": "run-8aeb971e576701b5",
+     "seq": 1,
+     "total": 1
+    },
+    {
+     "assessment": null,
+     "block": null,
+     "code": "hash_mismatch",
+     "completed": 0,
+     "event": "frame_finished",
+     "frame_id": "export",
+     "message": "the signal cannot be reopened: the support cannot be reopened: the support index cannot be reopened",
+     "protocol": "acsd.events/2",
+     "run_id": "run-8aeb971e576701b5",
+     "seq": 2,
+     "total": 1
+    },
+    {
+     "assessment": null,
+     "block": null,
+     "code": "failed",
+     "completed": 0,
+     "event": "run_finished",
+     "exit_code": 4,
+     "frame_id": null,
+     "message": "the run finished",
+     "protocol": "acsd.events/2",
+     "run_id": "run-8aeb971e576701b5",
+     "seq": 3,
+     "summary": {
+      "cancelled": 0,
+      "failed": 1,
+      "frames": [
+       {
+        "code": "failed",
+        "frame": "export",
+        "reason": "the signal cannot be reopened: the support cannot be reopened: the support index cannot be reopened",
+        "status": "failed"
+       }
+      ],
+      "inputs_total": 1,
+      "published": 0,
+      "unsolved": 0
+     },
+     "total": 0
+    }
+   ]
+  }
+ }
+}

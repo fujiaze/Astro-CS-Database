@@ -59,7 +59,18 @@ int main(int argc, char** argv) {
   if (command == "--version") {
     acsd::cli::EventWriter events(std::cout, make_run_id());
     events.run_started(0, "acsd 2.0.0");
-    events.run_finished(0, acsd::cli::json{{"version", "2.0.0"}});
+    // The summary of a diagnostic command carries the same fields as the
+    // summary of a scientific run; the counts are zero because the command
+    // processes no input.
+    acsd::cli::json summary;
+    summary["inputs_total"] = 0;
+    summary["published"] = 0;
+    summary["unsolved"] = 0;
+    summary["failed"] = 0;
+    summary["cancelled"] = 0;
+    summary["frames"] = acsd::cli::json::array();
+    summary["version"] = "2.0.0";
+    events.run_finished(0, summary);
     return 0;
   }
 
@@ -105,7 +116,8 @@ int main(int argc, char** argv) {
     events.run_finished(acsd::cli::kInvalidInput,
                         acsd::cli::json{{"inputs_total", 0}, {"published", 0}, {"unsolved", 0},
                                         {"failed", 0}, {"cancelled", 0}, {"frames", acsd::cli::json::array()}});
-    if (control.joinable()) control.detach();
+    acsd::cli::stop_control_stream();
+    if (control.joinable()) control.join();
     return acsd::cli::kInvalidInput;
   }
   config = acsd::val(loaded);
@@ -114,19 +126,22 @@ int main(int argc, char** argv) {
     events.run_finished(acsd::cli::kInvalidInput,
                         acsd::cli::json{{"inputs_total", 0}, {"published", 0}, {"unsolved", 0},
                                         {"failed", 0}, {"cancelled", 0}, {"frames", acsd::cli::json::array()}});
-    if (control.joinable()) control.detach();
+    acsd::cli::stop_control_stream();
+    if (control.joinable()) control.join();
     return acsd::cli::kInvalidInput;
   }
 
   events.run_started(config.inputs.size(), "the " + command + " command started");
   int code = acsd::cli::kInvalidInput;
   if (command == "normalize") {
-    code = acsd::cli::run_normalize(config, events);
+    code = acsd::cli::run_normalize(config, events, cancellation);
   } else if (command == "mosaic") {
-    code = acsd::cli::run_mosaic(config, events);
+    code = acsd::cli::run_mosaic(config, events, cancellation);
   } else {
-    code = acsd::cli::run_export(config, events);
+    code = acsd::cli::run_export(config, events, cancellation);
   }
-  if (control.joinable()) control.detach();
+  // The control thread ends with the run: the standard input may stay open.
+  acsd::cli::stop_control_stream();
+  if (control.joinable()) control.join();
   return code;
 }

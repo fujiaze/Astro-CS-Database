@@ -196,6 +196,10 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
 
   // The geometry: the target pixel against the leaves of the product order.
   const U32 order = leaf_index->order;
+  if (context.cancellation.requested()) {
+    return fail<ExportResult>(Code::cancelled, "the export was cancelled", "build_export",
+                              "the export cannot be built");
+  }
   Result<Ref<FootprintProvider>> provider =
       make_footprint_provider(context, request.target.model);
   if (!ok(provider)) {

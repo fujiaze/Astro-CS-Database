@@ -32,6 +32,12 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   // The inputs are opened before anything is computed.
   std::vector<Ref<ProductProvider>> products;
   for (const ProductLocation& location : request.inputs) {
+    // The cancellation is checked at the frame boundary: the mosaic opens
+    // every input and then publishes one product.
+    if (context.cancellation.requested()) {
+      return fail<ProductLocation>(Code::cancelled, "the mosaic was cancelled", "mosaic",
+                                   "no product was published");
+    }
     Result<Ref<ProductProvider>> product = open_product(context, location);
     if (!ok(product)) {
       return fail<ProductLocation>(product.code,

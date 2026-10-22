@@ -14,6 +14,7 @@
 // frame publishes no product.
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <map>
 #include <memory>
 #include <set>
@@ -523,7 +524,14 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     // source row against a leaf is what the exact kernel computes.  The block
     // size bounds the cost; the number of source rows and the block size are
     // written into the assessment.
-    const U64 block_size = 16;
+    // The size of the source block: the tunable that bounds the cost of the
+    // exact kernel.  The environment variable overrides the default so that
+    // the precision and the cost can be traded without a schema change.
+    U64 block_size = 16;
+    if (const char* override_size = std::getenv("ACSD_DRIZZLE_BLOCK")) {
+      const long parsed = std::atol(override_size);
+      if (parsed > 0 && parsed <= 1024) block_size = static_cast<U64>(parsed);
+    }
     Ref<Overlaps> merged;
     std::map<std::pair<U32, U64>, double> leaf_areas;
     std::vector<HealpixLeaf> leaves;

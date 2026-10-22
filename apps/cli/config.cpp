@@ -48,6 +48,9 @@ std::string read_text(const std::filesystem::path& path, std::string& error) {
 }  // namespace
 
 Result<Config> load_config(const std::filesystem::path& path) {
+  // A missing key, a wrong type or a surplus key is a named failure: the
+  // configuration never aborts the process with an exception.
+  try {
   std::error_code ec;
   if (!std::filesystem::exists(path, ec)) {
     return fail<Config>(Code::invalid_request, "the configuration file does not exist: " + path.string(),
@@ -157,9 +160,21 @@ Result<Config> load_config(const std::filesystem::path& path) {
     }
   }
   return ok_result(config);
-}
+
+  } catch (const json::exception& failure) {
+    return fail<Config>(Code::invalid_request,
+                       std::string("the configuration is invalid: ") + failure.what(),
+                       "cli.config", "the command cannot run");
+  } catch (const std::exception& failure) {
+    return fail<Config>(Code::invalid_request,
+                       std::string("the configuration cannot be read: ") + failure.what(),
+                       "cli.config", "the command cannot run");
+  }}
 
 Result<ScientificFile> load_scientific(const Config& config) {
+  // A missing key, a wrong type or a surplus key is a named failure: the
+  // configuration never aborts the process with an exception.
+  try {
   const std::filesystem::path path = config.base / config.scientific;
   std::string error;
   const std::string text = read_text(path, error);
@@ -217,6 +232,15 @@ Result<ScientificFile> load_scientific(const Config& config) {
     }
   }
   return ok_result(scientific);
-}
+
+  } catch (const json::exception& failure) {
+    return fail<ScientificFile>(Code::invalid_request,
+                       std::string("the configuration is invalid: ") + failure.what(),
+                       "cli.config", "the command cannot run");
+  } catch (const std::exception& failure) {
+    return fail<ScientificFile>(Code::invalid_request,
+                       std::string("the configuration cannot be read: ") + failure.what(),
+                       "cli.config", "the command cannot run");
+  }}
 
 }  // namespace acsd::cli

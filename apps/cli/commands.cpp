@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstring>
 #include <cstdlib>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -239,6 +240,39 @@ ExportRequest decode_export_request(const json& node) {
 }
 
 // The exit code of a failed call.
+
+// The stable lowercase name of a code: the event stream carries the specific
+// code, not only "failed".
+std::string code_name(Code code) {
+  switch (code) {
+    case Code::ok: return "ok";
+    case Code::invalid_request: return "invalid_request";
+    case Code::invalid_model: return "invalid_model";
+    case Code::domain: return "domain";
+    case Code::unsupported: return "unsupported";
+    case Code::unavailable: return "unavailable";
+    case Code::unsolved: return "unsolved";
+    case Code::not_identifiable: return "not_identifiable";
+    case Code::invalid_covariance: return "invalid_covariance";
+    case Code::duplicate_source: return "duplicate_source";
+    case Code::identity_conflict: return "identity_conflict";
+    case Code::hash_mismatch: return "hash_mismatch";
+    case Code::corrupt_product: return "corrupt_product";
+    case Code::missing_dependency: return "missing_dependency";
+    case Code::no_support: return "no_support";
+    case Code::support_unresolved: return "support_unresolved";
+    case Code::geometry_solve_unresolved: return "geometry_solve_unresolved";
+    case Code::selection_unresolved: return "selection_unresolved";
+    case Code::nonconverged: return "nonconverged";
+    case Code::precision_exhausted: return "precision_exhausted";
+    case Code::resource_exhausted: return "resource_exhausted";
+    case Code::io_error: return "io_error";
+    case Code::cancelled: return "cancelled";
+    case Code::internal: return "internal";
+  }
+  return "internal";
+}
+
 int exit_code_of(Code code) {
   switch (code) {
     case Code::ok: return kSuccess;
@@ -868,7 +902,10 @@ Result<Ref<CatalogueProvider>> load_catalogue(Context& context, const std::files
 // export
 // ---------------------------------------------------------------------------
 
-int run_export(Config& config, EventWriter& events) {
+int run_export(Config& config, EventWriter& events, CancellationSource& cancellation) {
+  // A missing key or a wrong type in the scientific file is a named failure:
+  // the command answers invalid_request and writes the event stream.
+  try {
   Result<ScientificFile> scientific = load_scientific(config);
   if (!ok(scientific)) {
     events.issue("invalid_request", scientific.assessment.issues.front().reason);
@@ -885,7 +922,6 @@ int run_export(Config& config, EventWriter& events) {
 
   resources::CpuResources resources(config.resources);
   storage::LocalStorage storage;
-  CancellationSource cancellation;
   Context context{resources, cancellation, storage};
 
   PublishRequest publish;
@@ -907,7 +943,7 @@ int run_export(Config& config, EventWriter& events) {
     const std::string reason = location.assessment.issues.empty()
                                    ? "the export failed"
                                    : location.assessment.issues.front().reason;
-    events.frame_finished("export", "failed", 0, 1, reason);
+    events.frame_finished("export", code_name(location.code), 0, 1, reason);
     json frames = json::array();
     frames.push_back(frame_status("export", "failed", reason));
     events.run_finished(exit_code_of(location.code), make_summary(1, 0, 0, 1, 0, frames));
@@ -919,13 +955,24 @@ int run_export(Config& config, EventWriter& events) {
   frames.push_back(frame_status("export", "published", "the export was published"));
   events.run_finished(kSuccess, make_summary(1, 1, 0, 0, 0, frames));
   return kSuccess;
-}
+
+  } catch (const json::exception& failure) {
+    events.issue("invalid_request",
+                 std::string("the scientific file is invalid: ") + failure.what());
+    events.run_finished(kInvalidInput,
+                        make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                    json::array()));
+    return kInvalidInput;
+  }}
 
 // ---------------------------------------------------------------------------
 // normalize
 // ---------------------------------------------------------------------------
 
-int run_normalize(Config& config, EventWriter& events) {
+int run_normalize(Config& config, EventWriter& events, CancellationSource& cancellation) {
+  // A missing key or a wrong type in the scientific file is a named failure:
+  // the command answers invalid_request and writes the event stream.
+  try {
   Result<ScientificFile> scientific = load_scientific(config);
   if (!ok(scientific)) {
     events.issue("invalid_request", scientific.assessment.issues.front().reason);
@@ -958,7 +1005,6 @@ int run_normalize(Config& config, EventWriter& events) {
 
   resources::CpuResources resources(config.resources);
   storage::LocalStorage storage;
-  CancellationSource cancellation;
   Context context{resources, cancellation, storage};
 
   // The catalogue of the run.
@@ -1079,7 +1125,7 @@ int run_normalize(Config& config, EventWriter& events) {
     const std::string reason = result.assessment.issues.empty()
                                    ? "the normalize command failed"
                                    : result.assessment.issues.front().reason;
-    events.issue("failed", reason);
+    events.issue(code_name(result.code), reason);
     events.run_finished(exit_code_of(result.code),
                         make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0, frames));
     return exit_code_of(result.code);
@@ -1126,13 +1172,24 @@ int run_normalize(Config& config, EventWriter& events) {
   events.run_finished(code, make_summary(config.inputs.size(), published, unsolved, failed, cancelled,
                                          frames));
   return code;
-}
+
+  } catch (const json::exception& failure) {
+    events.issue("invalid_request",
+                 std::string("the scientific file is invalid: ") + failure.what());
+    events.run_finished(kInvalidInput,
+                        make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                    json::array()));
+    return kInvalidInput;
+  }}
 
 // ---------------------------------------------------------------------------
 // mosaic
 // ---------------------------------------------------------------------------
 
-int run_mosaic(Config& config, EventWriter& events) {
+int run_mosaic(Config& config, EventWriter& events, CancellationSource& cancellation) {
+  // A missing key or a wrong type in the scientific file is a named failure:
+  // the command answers invalid_request and writes the event stream.
+  try {
   Result<ScientificFile> scientific = load_scientific(config);
   if (!ok(scientific)) {
     events.issue("invalid_request", scientific.assessment.issues.front().reason);
@@ -1142,7 +1199,6 @@ int run_mosaic(Config& config, EventWriter& events) {
   }
   resources::CpuResources resources(config.resources);
   storage::LocalStorage storage;
-  CancellationSource cancellation;
   Context context{resources, cancellation, storage};
 
   PublishRequest publish;
@@ -1167,7 +1223,7 @@ int run_mosaic(Config& config, EventWriter& events) {
     const std::string reason = location.assessment.issues.empty()
                                    ? "the mosaic failed"
                                    : location.assessment.issues.front().reason;
-    events.frame_finished("mosaic", "failed", 0, config.inputs.size(), reason);
+    events.frame_finished("mosaic", code_name(location.code), 0, config.inputs.size(), reason);
     json frames = json::array();
     frames.push_back(frame_status("mosaic", "failed", reason));
     events.run_finished(exit_code_of(location.code),
@@ -1181,7 +1237,15 @@ int run_mosaic(Config& config, EventWriter& events) {
   frames.push_back(frame_status("mosaic", "published", "the mosaic was published"));
   events.run_finished(kSuccess, make_summary(config.inputs.size(), 1, 0, 0, 0, frames));
   return kSuccess;
-}
+
+  } catch (const json::exception& failure) {
+    events.issue("invalid_request",
+                 std::string("the scientific file is invalid: ") + failure.what());
+    events.run_finished(kInvalidInput,
+                        make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                    json::array()));
+    return kInvalidInput;
+  }}
 
 // ---------------------------------------------------------------------------
 // doctor and templates
@@ -1201,7 +1265,10 @@ int run_doctor(const Config* config, EventWriter& events) {
     report["inputs"] = config->inputs.size();
     report["product_profile"] = config->product_profile;
   }
-  std::cout << report.dump(2) << "\n";
+  // The diagnostics are one JSON object per line: the stream stays JSONL and
+  // a reader that parses line by line never fails.
+  std::cout << report.dump() << "\n";
+  std::cout.flush();
   events.run_finished(kSuccess, make_summary(config ? config->inputs.size() : 0, 0, 0, 0, 0, json::array()));
   return kSuccess;
 }

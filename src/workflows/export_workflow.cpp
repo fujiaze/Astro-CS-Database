@@ -34,6 +34,12 @@ Result<ProductLocation> export_signal(Context& context, const ExportResult& imag
 }
 
 Result<ProductLocation> export_image(Context& context, const ExportWorkflowRequest& request) {
+  // The cancellation is checked before the product is opened and before it
+  // is published: a cancelled export leaves no product behind.
+  if (context.cancellation.requested()) {
+    return fail<ProductLocation>(Code::cancelled, "the export was cancelled", "export_image",
+                                 "no product was published");
+  }
   Result<Ref<ProductProvider>> product = open_product(context, request.input);
   if (!ok(product)) {
     return fail<ProductLocation>(product.code, product.assessment.issues.empty()

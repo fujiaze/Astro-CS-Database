@@ -108,11 +108,16 @@ class CancellationSource final : public Cancellation {
 // {"protocol":"acsd.control/2","command":"cancel","run_id":...} cancels the
 // run.
 void watch_control_stream(CancellationSource& source, const std::string& run_id);
+// Stops the control thread (the run is over).
+void stop_control_stream();
+// Reads one line of the control stream with a timeout; false at the end.
+bool read_control_line(std::string& line);
 
-// The three commands.
-int run_normalize(Config& config, EventWriter& events);
-int run_mosaic(Config& config, EventWriter& events);
-int run_export(Config& config, EventWriter& events);
+// The three commands.  The cancellation source is the one of the run: the
+// control stream and the signal handler request the cancellation there.
+int run_normalize(Config& config, EventWriter& events, CancellationSource& cancellation);
+int run_mosaic(Config& config, EventWriter& events, CancellationSource& cancellation);
+int run_export(Config& config, EventWriter& events, CancellationSource& cancellation);
 
 // The diagnostics and the static templates.
 int run_doctor(const Config* config, EventWriter& events);

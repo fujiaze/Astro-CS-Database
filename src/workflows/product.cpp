@@ -325,6 +325,17 @@ class ProductReader {
                               "product.read", "the product cannot be reopened");
       }
     }
+    // A block that is not on the disk is an incomplete closure, not a disk
+    // failure: the caller distinguishes the two.
+    for (const BlockDescriptor& block : descriptors) {
+      const std::filesystem::path path = root_ / block.path;
+      std::error_code missing;
+      if (!std::filesystem::exists(path, missing)) {
+        return fail<ArrayRef>(Code::missing_dependency,
+                              "the block " + block.path + " is missing from the product",
+                              "product.read", "the product cannot be reopened");
+      }
+    }
     Result<ArrayRef> opened =
         context_.storage.open(context_, root_.string(), description, descriptors);
     if (!ok(opened)) {
