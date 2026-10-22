@@ -43,6 +43,20 @@ modules_for_driver() {
 
 MODULE_OBJECTS=()
 
+# The objects of the production modules are shared between the drivers.  When
+# a public header changes, the old objects no longer match its ABI: a failing
+# public call then crashes instead of returning its named failure, which looks
+# like a production defect but is an artefact of the stale build.  The guard
+# below wipes the object directory whenever the headers changed.
+header_stamp_file="${obj_dir}/headers.stamp"
+header_stamp="$(find "${repo_root}/include" "${repo_root}/src" -name '*.hpp' -type f \
+    -exec sha256sum {} + 2>/dev/null | sort | sha256sum | cut -d' ' -f1)"
+if [[ -f "${header_stamp_file}" && "$(cat "${header_stamp_file}")" != "${header_stamp}" ]]; then
+  echo "  the public headers changed: the stale objects are discarded"
+  rm -f "${obj_dir}"/*.o "${obj_dir}"/*.o.log
+fi
+echo "${header_stamp}" > "${header_stamp_file}"
+
 compile_module() {
   local module="$1"
   local failed=0
