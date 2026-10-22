@@ -201,13 +201,54 @@ def main() -> int:
         "request_hash": content_hash(request),
     })
 
+    # ---- the observed side: the named negative cases over a published product
+    import sys as _sys
+
+    _sys.path.insert(0, str(case.root / ""))
+    import negative_closure
+
+    product_root = (case.root.parent / "apps" / "evidence" / "export" / "products" / "export")
+    rows = []
+    failures = []
+    status = "pass"
+    if not product_root.is_dir():
+        rows.append({"name": "product_present", "kind": "value",
+                     "status": "pending_implementation", "observed": None,
+                     "expected_success_count": 1, "observed_success_count": 0,
+                     "reason": "no published product is available in this checkout"})
+        status = "pending_implementation"
+    else:
+        import closure_check
+
+        baseline = closure_check.check_product(product_root)
+        results = [negative_closure.run_case(product_root, entry, baseline)
+                   for entry in negative_closure.CASES]
+        for entry in results:
+            if entry["status"] == "deferred":
+                rows.append({"name": f"negative:{entry['id']}", "kind": "value",
+                             "status": "pending_implementation", "observed": None,
+                             "expected_success_count": 1, "observed_success_count": 0,
+                             "reason": f"deferred to {entry.get('deferred_to')}"})
+                status = "pending_implementation" if status == "pass" else status
+                continue
+            rows.append({"name": f"negative:{entry['id']}", "kind": "value",
+                         "status": "pass" if entry["status"] == "pass" else "fail",
+                         "truth": "the tampered product is rejected",
+                         "observed": entry["detected_by"],
+                         "expected_success_count": 1, "observed_success_count": 1,
+                         "expectation": entry["expectation"]})
+            if entry["status"] != "pass":
+                failures.append({"functional": f"negative:{entry['id']}",
+                                 "scope": "product_closure",
+                                 "expected": entry["expectation"],
+                                 "actual": entry["detected_by"],
+                                 "reason": "the tampered product was not detected"})
+                status = "fail"
+
     comparison = comparison_payload(
-        case.name.upper(), "pending_implementation",
-        [{"name": "closure_verdict", "kind": "value", "truth": "ok", "tolerance": 0.0,
-          "unit": "verdict", "status": "pending_implementation",
-          "reason": "no published product exists yet; the product writer is not available"}],
-        [],
-        "The independent closure checker is ready; the observed side is pending_implementation.")
+        case.name.upper(), status, rows, failures,
+        "P01: the named negative cases over a published product, judged by the independent "
+        "closure checker (the rejections must be attributable to the tampering)")
 
     case.write_comparison(comparison)
     print(json.dumps({"case": "P01", "expectations": list(expectations["closure_checks"])},

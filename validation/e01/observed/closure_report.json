@@ -33,7 +33,7 @@
   },
   {
    "name": "fits_round_trip",
-   "pass": false,
+   "pass": true,
    "detail": {
     "present": true,
     "shape": [
@@ -63,8 +63,19 @@
     ],
     "min": -2.0,
     "max": -2.0,
-    "error": "VerifyError: \nVerification reported errors:\nHDU 0:\n    Card 10:\n        Card 'CRVAL1' is not FITS standard (invalid value string: '4.921875000000e+01').\n    Card 11:\n        Card 'CRVAL2' is not FITS standard (invalid value string: '8.989299345163e+00').\n    Card 12:\n        Card 'CRPIX1' is not FITS standard (invalid value string: '8.500000000000e+00').\n    Card 13:\n        Card 'CRPIX2' is not FITS standard (invalid value string: '8.500000000000e+00').\n    Card 14:\n        Card 'CD1_1' is not FITS standard (invalid value string: '-1.000000000000e-02').\n    Card 17:\n        Card 'CD2_2' is not FITS standard (invalid value string: '1.000000000000e-02').\nNote: astropy.io.fits uses zero-based indexing.\n"
+    "header_round_trip": true,
+    "data_round_trip": true
    }
+  },
+  {
+   "name": "inputs_unique",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "name": "algorithms_declared",
+   "pass": true,
+   "detail": []
   },
   {
    "name": "manifest_complete",
@@ -72,42 +83,7 @@
    "detail": true
   }
  ],
- "failures": [
-  {
-   "check": "fits_round_trip",
-   "detail": {
-    "present": true,
-    "shape": [
-     16,
-     16
-    ],
-    "header_keys": [
-     "BITPIX",
-     "BUNIT",
-     "CD1_1",
-     "CD1_2",
-     "CD2_1",
-     "CD2_2",
-     "CRPIX1",
-     "CRPIX2",
-     "CRVAL1",
-     "CRVAL2",
-     "CTYPE1",
-     "CTYPE2",
-     "CUNIT1",
-     "CUNIT2",
-     "NAXIS",
-     "NAXIS1",
-     "NAXIS2",
-     "RADESYS",
-     "SIMPLE"
-    ],
-    "min": -2.0,
-    "max": -2.0,
-    "error": "VerifyError: \nVerification reported errors:\nHDU 0:\n    Card 10:\n        Card 'CRVAL1' is not FITS standard (invalid value string: '4.921875000000e+01').\n    Card 11:\n        Card 'CRVAL2' is not FITS standard (invalid value string: '8.989299345163e+00').\n    Card 12:\n        Card 'CRPIX1' is not FITS standard (invalid value string: '8.500000000000e+00').\n    Card 13:\n        Card 'CRPIX2' is not FITS standard (invalid value string: '8.500000000000e+00').\n    Card 14:\n        Card 'CD1_1' is not FITS standard (invalid value string: '-1.000000000000e-02').\n    Card 17:\n        Card 'CD2_2' is not FITS standard (invalid value string: '1.000000000000e-02').\nNote: astropy.io.fits uses zero-based indexing.\n"
-   }
-  }
- ],
+ "failures": [],
  "fits": {
   "present": true,
   "shape": [
@@ -137,9 +113,10 @@
   ],
   "min": -2.0,
   "max": -2.0,
-  "error": "VerifyError: \nVerification reported errors:\nHDU 0:\n    Card 10:\n        Card 'CRVAL1' is not FITS standard (invalid value string: '4.921875000000e+01').\n    Card 11:\n        Card 'CRVAL2' is not FITS standard (invalid value string: '8.989299345163e+00').\n    Card 12:\n        Card 'CRPIX1' is not FITS standard (invalid value string: '8.500000000000e+00').\n    Card 13:\n        Card 'CRPIX2' is not FITS standard (invalid value string: '8.500000000000e+00').\n    Card 14:\n        Card 'CD1_1' is not FITS standard (invalid value string: '-1.000000000000e-02').\n    Card 17:\n        Card 'CD2_2' is not FITS standard (invalid value string: '1.000000000000e-02').\nNote: astropy.io.fits uses zero-based indexing.\n"
+  "header_round_trip": true,
+  "data_round_trip": true
  },
- "status": "fail",
+ "status": "pass",
  "manifest_stage": "export_image",
  "manifest_profile": "full",
  "manifest_inputs": []

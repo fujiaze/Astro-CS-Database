@@ -138,7 +138,20 @@ def check_product(root: Path) -> Dict[str, Any]:
         check("fits_round_trip", False, fits_report)
     report["fits"] = fits_report
 
-    # 5) the manifest claims a complete product
+    # 5) the declared inputs are unique: a repeated exposure must not be
+    # published twice
+    inputs = manifest.get("inputs", []) or []
+    duplicates = [value for value in set(inputs) if list(inputs).count(value) > 1]
+    check("inputs_unique", not duplicates, duplicates)
+
+    # 6) every algorithm of the set is declared with its name, version and
+    # source hash: an algorithm that a reader cannot identify is not usable
+    incomplete_algorithms = [entry for entry in (manifest.get("algorithm_set", []) or [])
+                             if not entry.get("name") or not entry.get("version")
+                             or not entry.get("source_hash")]
+    check("algorithms_declared", not incomplete_algorithms, incomplete_algorithms)
+
+    # 7) the manifest claims a complete product
     check("manifest_complete", bool(manifest.get("complete")), manifest.get("complete"))
     report["status"] = "pass" if not report["failures"] else "fail"
     report["manifest_stage"] = manifest.get("stage")

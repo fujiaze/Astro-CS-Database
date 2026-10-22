@@ -3,16 +3,88 @@
   "failures": [],
   "functionals": [
     {
+      "expectation": "a missing block must not pass the closure",
+      "expected_success_count": 1,
       "kind": "value",
-      "name": "closure_verdict",
-      "reason": "no published product exists yet; the product writer is not available",
-      "status": "pending_implementation",
-      "tolerance": 0.0,
-      "truth": "ok",
-      "unit": "verdict"
+      "name": "negative:missing_block",
+      "observed": [
+        "blocks_present"
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": "the tampered product is rejected"
+    },
+    {
+      "expectation": "a block whose bytes no longer match the manifest hash must not pass the closure",
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "negative:hash_conflict_block",
+      "observed": [
+        "block_hashes"
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": "the tampered product is rejected"
+    },
+    {
+      "expectation": "a manifest hash that no object has must not pass the closure",
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "negative:hash_conflict_manifest",
+      "observed": [
+        "references_resolve"
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": "the tampered product is rejected"
+    },
+    {
+      "expectation": "a repeated exposure must not pass the closure",
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "negative:duplicate_exposure",
+      "observed": [
+        "inputs_unique"
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": "the tampered product is rejected"
+    },
+    {
+      "expectation": "a missing object must not pass the closure",
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "negative:missing_object",
+      "observed": [
+        "objects_present"
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": "the tampered product is rejected"
+    },
+    {
+      "expectation": "a manifest that declares itself incomplete must not pass as a published product",
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "negative:incomplete_manifest",
+      "observed": [
+        "manifest_complete"
+      ],
+      "observed_success_count": 1,
+      "status": "pass",
+      "truth": "the tampered product is rejected"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "negative:unknown_recipe",
+      "observed": null,
+      "observed_success_count": 0,
+      "reason": "deferred to the contract route (unsupported while the signal stays readable)",
+      "status": "pending_implementation"
     }
   ],
-  "notes": "The independent closure checker is ready; the observed side is pending_implementation.",
+  "notes": "P01: the named negative cases over a published product, judged by the independent closure checker (the rejections must be attributable to the tampering)",
   "status": "pending_implementation",
   "status_vocabulary": {
     "fail": "at least one functional is outside the frozen tolerance",
