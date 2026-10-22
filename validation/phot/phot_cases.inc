@@ -335,6 +335,12 @@ Result<BuiltCase> build_case(Fixture& fixture, const CaseSpec& spec) {
                                 std::to_string(spec.stars);
   built.request.solve.rank_relative = 1e-12;
   built.request.solve.max_iterations = 100;
+  // Every field of the solve request is set: an unset field would be read as
+  // an arbitrary number, and a denormal robust threshold would delete the
+  // rows of the design matrix.
+  built.request.solve.dense_max_bytes = 16u * 1024u * 1024u;
+  built.request.solve.huber = false;
+  built.request.solve.huber_delta = 1.345;
   built.request.gradient_tolerance = 1e-8;
   built.request.step_tolerance = 1e-10;
   built.request.max_outer_iterations = 100;
@@ -607,9 +613,28 @@ void case_photometry_shared_latent(Fixture& fixture, Report& report) {
   std::ostringstream correlation_message;
   correlation_message << "cov(log a_0, log a_1) = " << std::setprecision(17) << cross
                       << ", var(log a_0) = " << diagonal << ", correlation = " << correlation;
-  // The shared latent couples the two frame scales: the correlation is non
+  // The shared latent couples the two frame scales: the correlation is not
   // zero and stays a valid correlation coefficient.
-  const bool correlated = std::fabs(correlation) > 1e-6 && std::fabs(correlation) <= 1.0 + 1e-9;
+  bool correlated = std::fabs(correlation) > 1e-6 && std::fabs(correlation) <= 1.0 + 1e-9;
+  // Regression assertion (the configuration in which the initial solution is
+  // already the truth): the correlation has the analytic value of the design
+  // and the convergence rests on a non degenerate profile.
+  const double expected_correlation = 0.4999996;
+  const bool correlation_is_the_design_value =
+      std::fabs(correlation - expected_correlation) < 1e-6;
+  // The assessment must record that the profiled design is a normal number.
+  bool non_degenerate_profile = false;
+  if (good(solution)) {
+    for (const std::string& item : get(solution)->assessment.included) {
+      if (item == "non_degenerate_profile_reduction") {
+        non_degenerate_profile = true;
+      }
+    }
+  }
+  correlation_message << " | the analytic value is " << expected_correlation
+                      << " | the non degenerate profile is recorded: "
+                      << (non_degenerate_profile ? "yes" : "no");
+  correlated = correlated && correlation_is_the_design_value && non_degenerate_profile;
   report.record("P1_photometry_cross_frame_correlation", correlated, correlation_message.str());
 }
 

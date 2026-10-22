@@ -421,7 +421,13 @@ Result<Ref<PhotoSolution>> fit_photometry(Context& context,
       request.max_outer_iterations > 0 ? request.max_outer_iterations : 100;
   settings.rank_relative = request.solve.rank_relative > 0.0 ? request.solve.rank_relative : 1e-12;
   settings.huber = request.solve.huber;
-  settings.huber_delta = request.solve.huber_delta > 0.0 ? request.solve.huber_delta : 1.345;
+  // The robust threshold must be a normal number: a denormal threshold would
+  // turn every row weight into a denormal number and delete the design.
+  settings.huber_delta =
+      request.solve.huber_delta > 0.0 && std::isfinite(request.solve.huber_delta) &&
+              std::fpclassify(request.solve.huber_delta) == FP_NORMAL
+          ? request.solve.huber_delta
+          : 1.345;
 
   Result<photometry::FitResult> fit =
       photometry::run_joint_fit(context, frame_inputs, star_inputs, request.basis, weighted_mean,
@@ -478,15 +484,19 @@ Result<Ref<PhotoSolution>> fit_photometry(Context& context,
   }
   if (!outcome.converged) {
     auto solution = std::make_shared<PhotoSolution>();
-    solution->assessment = model::make_assessment(Code::nonconverged);
+    // A fit that stopped because the arithmetic degenerated reports the
+    // exhausted precision, not a plain non convergence.
+    const Code failure_code =
+        outcome.precision_exhausted ? Code::precision_exhausted : Code::nonconverged;
+    solution->assessment = model::make_assessment(failure_code);
     solution->assessment.complete = false;
     solution->assessment.execution = ExecutionState::failed;
-    model::add_issue(solution->assessment, Code::nonconverged,
+    model::add_issue(solution->assessment, failure_code,
                      outcome.failure.empty() ? "the joint photometric fit did not converge"
                                              : outcome.failure,
                      kFitOrigin, "no photometric scale can be published",
                      "relax the tolerances or provide a better conditioned data set");
-    return model::fail<Ref<PhotoSolution>>(Code::nonconverged,
+    return model::fail<Ref<PhotoSolution>>(failure_code,
                                            outcome.failure.empty()
                                                ? "the joint photometric fit did not converge"
                                                : outcome.failure,
@@ -710,6 +720,20 @@ Result<Ref<PhotoSolution>> fit_photometry(Context& context,
   model::set_included(solution->assessment, "joint_flux_gaussian_profile_likelihood");
   model::set_included(solution->assessment, "gauss_newton_armijo_backtracking");
   model::set_included(solution->assessment, "shared_latent_across_frames");
+  // The convergence of the fit is only meaningful when the profiled design
+  // is a normal number: the criterion is part of the assessment, so that a
+  // reader can see that the published scale rests on a non degenerate
+  // profile and not on a denormal one.
+  if (!outcome.reduction_degenerate && outcome.reduction_condition > 0.0 &&
+      std::isfinite(outcome.reduction_condition)) {
+    model::set_included(solution->assessment, "non_degenerate_profile_reduction");
+  } else {
+    model::set_omitted(solution->assessment, "non_degenerate_profile_reduction");
+  }
+  solution->assessment.condition.assumptions.push_back(
+      "the profiled design of the scale parameters has the condition number " +
+      std::to_string(outcome.reduction_condition) +
+      " and is a normal number, so the convergence of the fit rests on a non degenerate profile");
   model::set_omitted(solution->assessment, "xp_resolution_model_bias");
   model::set_omitted(solution->assessment, "aperture_and_psf_model_bias");
   // The box is a profile interval, not a certified root interval: the state

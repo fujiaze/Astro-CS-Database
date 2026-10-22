@@ -43,20 +43,47 @@ validation/phot/run_validation.sh            # 默认使用 build/dev
   测量通量数值包围内的最大参数偏移，上下界分别求解（非对称）。
 * 未知测量方差不做等权以外的任何假设：等权回退 + 记录未知项 + 结果 conditional。
 
-## 已知失败（根因待裁决）
+## 已修复的失败（根因已定位）
 
-`P1_photometry_cross_frame_correlation`：帧尺度协方差为 0（期望 corr≈0.4999996）。
-用本模块的已提交版本（6d6d6a348）重编后同样失败，故**不是后续改动引入的**。
+`P1_photometry_cross_frame_correlation` 曾经是：帧尺度协方差为 0（期望 corr≈0.4999996）。
+用本模块的已提交版本（6d6d6a348）重编后同样失败，故不是后续改动引入的。
 
-已排除的假设：底座的因子作用没有多算。`validation/phot/covariance_probe.cpp`
+**根因（两处，都在数值构造上）**：
+1. **稳健权把设计矩阵删掉了**：验证夹具没有给 `SolveRequest` 的 `huber`/`huber_delta`
+   赋值 ⇒ 读到的阈值是随机值（实测 denormal 3.5e-322）⇒ Huber 行权 = √(δ/|r|)
+   ≈ 1e-161 ⇒ **白化后的 Jacobian 整体变成 denormal** ⇒ 剖面约化后的 Jacobian
+   ~1e-159 ⇒ 参数协方差塌成 0 ⇒ 帧尺度相关系数 = 0。同时残差 ~0 使 χ² ~1e-321
+   （denormal），梯度判据立刻判「收敛」⇒ 拟合停在初始值（所以尺度恢复误差 0
+   其实是没动）。
+2. **剖面约化用了显式相减**：`J_θ − J_c(J_cᵀJ_c)⁻¹J_cᵀJ_θ` 把潜变量块的条件数平方，
+   相减发生灾难性抵消。
+
+**修法**：
+- 剖面约化改为**用底座最小二乘（Householder QR）的残差**构造，即 J_θ 在 J_c 零空间上的
+  正交补分量（口径不变，构造稳定）；
+- 收敛判据显式排除 denormal/非有限：χ²、score 或剖面设计的最大奇异值是 denormal 或
+  非有限 ⇒ 报 `precision_exhausted`，**不得**判 converged；
+- 稳健权必须是正规数（不是 denormal），否则拒绝该权并记录；
+- API 侧：请求里的 `huber_delta` 不是正规数 ⇒ 用默认 1.345；
+- 验证夹具：`SolveRequest` 的每个字段都显式赋值。
+
+**修复前后的数字**：
+| | 修复前 | 修复后 |
+|---|---|---|
+| 帧尺度相关系数 | 0 | **0.49999959655265813**（解析值 0.4999996） |
+| 剖面（Schur 约化）Jacobian | ~1e-159（denormal） | 正常量级（条件数记录在 assessment） |
+| 白化 Jacobian | ~1e-154（denormal） | 1e5 |
+| apply_scale 逐像元因子末位 | …1460594（1e-16 偏差） | …1460347（与 6d6d6a348 一致） |
+
+**回归断言**：`P1_photometry_cross_frame_correlation` 现在断言相关系数等于设计的解析值
+0.4999996（|Δ|<1e-6），且断言 assessment 记录了 `non_degenerate_profile_reduction`
+（收敛必须伴随一个非退化的约化 Jacobian）。
+
+**已排除的假设**：底座的因子作用没有多算。`validation/phot/covariance_probe.cpp`
 （只用公开合同、自写 Storage/Resources/Cancellation）对角根 F=diag(1e-5)、
 根的 influence 为恒等、协方差动作自身的 influence 为空，实测
 `covariance_apply(v=(1,0)) = 1e-10` = 合同写的 C = F·Fᵀ（此前一次 1e-15 的测量是
 探针自身把因子数组误当作输入向量所致，结论作废）。
-
-已测得的事实：两帧用例的初始量都正常（抽出的 XP 协方差 1e-10、白化子 1e5、
-初始 log a −36.7414、counts 9442），但首迭代的**剖面（Schur 约化）Jacobian**
-量级退化到 ~1e-159，即约化里的相减发生了灾难性抵消。根因待 Lead 裁决。
 
 ## 独立探针
 

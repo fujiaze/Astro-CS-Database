@@ -224,6 +224,13 @@ Result<numerics::Matrix> dense_covariance(Context& context, Ref<CovarianceAction
   return model::ok_result(std::move(out));
 }
 
+// A normal number is finite and above the smallest normal double: a denormal
+// value carries almost no significant digits and must never be used as a
+// threshold, a weight or a scale.
+bool is_normal(double value) {
+  return std::isfinite(value) && (value == 0.0 || std::fpclassify(value) == FP_NORMAL);
+}
+
 double median_of(std::vector<double> values) {
   if (values.empty()) {
     return 0.0;
@@ -277,6 +284,7 @@ struct Evaluation {
   std::vector<double> residual;   // whitened residual
   numerics::Matrix jacobian;      // whitened jacobian (optional)
   double chi_square = 0.0;
+  bool robustification_refused = false;  // a robust weight was refused
 };
 
 // Solves the profiled latent coefficients for a given theta.
@@ -515,12 +523,21 @@ Result<Evaluation> evaluate(const Problem& problem, const std::vector<double>& t
   // applied to the jacobian row, so that the iteration is a genuine
   // iteratively reweighted least squares step.
   std::vector<double> row_weight(out.residual.size(), 1.0);
-  if (settings.huber && settings.huber_delta > 0.0) {
+  if (settings.huber && settings.huber_delta > 0.0 && is_normal(settings.huber_delta)) {
     for (std::size_t i = 0; i < out.residual.size(); ++i) {
       const double magnitude = std::fabs(out.residual[i]);
       if (magnitude > settings.huber_delta) {
-        row_weight[i] = std::sqrt(settings.huber_delta / magnitude);
-        out.residual[i] *= row_weight[i];
+        const double weight = std::sqrt(settings.huber_delta / magnitude);
+        // A weight that is not a normal number, or that is so small that it
+        // deletes the row instead of robustifying it, would destroy the
+        // design matrix: such a weight is refused, the row keeps its weight
+        // and the refusal is reported.
+        if (std::isfinite(weight) && weight > 0.0 && is_normal(weight)) {
+          row_weight[i] = weight;
+          out.residual[i] *= weight;
+        } else {
+          out.robustification_refused = true;
+        }
       }
     }
   }
@@ -602,54 +619,32 @@ numerics::Matrix reduced_jacobian(const numerics::Matrix& jacobian, std::size_t 
     }
     return reduced;
   }
-  // Normal matrix of the latent block and the mixed block.
-  numerics::Matrix latent_normal(n_latent, n_latent);
-  numerics::Matrix mixed(n_latent, n_theta);
-  for (std::size_t i = 0; i < n_latent; ++i) {
-    for (std::size_t j = 0; j < n_latent; ++j) {
-      double sum = 0.0;
-      for (std::size_t r = 0; r < rows; ++r) {
-        sum += jacobian(r, n_theta + i) * jacobian(r, n_theta + j);
-      }
-      latent_normal(i, j) = sum;
-    }
-    for (std::size_t j = 0; j < n_theta; ++j) {
-      double sum = 0.0;
-      for (std::size_t r = 0; r < rows; ++r) {
-        sum += jacobian(r, n_theta + i) * jacobian(r, j);
-      }
-      mixed(i, j) = sum;
-    }
-  }
-  // Solve (J_c^T J_c) x = J_c^T J_theta by a symmetric solve.
-  std::vector<double> flat(n_latent * n_theta, 0.0);
-  for (std::size_t i = 0; i < n_latent; ++i) {
-    for (std::size_t j = 0; j < n_theta; ++j) {
-      flat[i * n_theta + j] = mixed(i, j);
-    }
-  }
-  std::vector<std::vector<double>> columns(n_theta);
-  for (std::size_t j = 0; j < n_theta; ++j) {
-    std::vector<double> rhs(n_latent, 0.0);
-    for (std::size_t i = 0; i < n_latent; ++i) {
-      rhs[i] = flat[i * n_theta + j];
-    }
-    Result<std::vector<double>> solution = solve_symmetric(latent_normal, rhs, rank_relative);
-    if (!ok(solution)) {
-      // A singular latent block means the latent is not identifiable; the
-      // caller reports the rank deficiency through the rank of the reduced
-      // jacobian, which stays zero here.
-      return numerics::Matrix(n_theta, n_theta);
-    }
-    columns[j] = val(solution);
-  }
+  // The reduced jacobian is the part of J_theta that the latent block cannot
+  // explain: the projection of every column of J_theta onto the orthogonal
+  // complement of the columns of J_c.  It is computed as the residual of the
+  // least squares problem, which the base solves with a QR: the explicit
+  // Schur complement J_theta - J_c (J_c^T J_c)^{-1} J_c^T J_theta squares the
+  // condition number of the latent block and cancels catastrophically when the
+  // latent block is much stronger than the scale columns.  The mathematical
+  // object is the same, the construction is stable.
+  numerics::Matrix latent(rows, n_latent);
   for (std::size_t row = 0; row < rows; ++row) {
-    for (std::size_t j = 0; j < n_theta; ++j) {
-      double sum = jacobian(row, j);
+    for (std::size_t l = 0; l < n_latent; ++l) {
+      latent(row, l) = jacobian(row, n_theta + l);
+    }
+  }
+  for (std::size_t j = 0; j < n_theta; ++j) {
+    std::vector<double> column(rows, 0.0);
+    for (std::size_t row = 0; row < rows; ++row) {
+      column[row] = jacobian(row, j);
+    }
+    numerics::LeastSquaresResult solution = numerics::least_squares(latent, column, rank_relative);
+    for (std::size_t row = 0; row < rows; ++row) {
+      double projected = 0.0;
       for (std::size_t l = 0; l < n_latent; ++l) {
-        sum -= jacobian(row, n_theta + l) * columns[j][l];
+        projected += latent(row, l) * solution.solution[l];
       }
-      reduced(row, j) = sum;
+      reduced(row, j) = column[row] - projected;
     }
   }
   return reduced;
@@ -894,6 +889,10 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
       return model::ok_result(std::move(result));
     }
     current = val(evaluated);
+    if (current.robustification_refused) {
+      result.notes.push_back(
+          "a robust weight was refused because it would have deleted a row of the design matrix");
+    }
   }
 
   bool converged = false;
@@ -931,6 +930,32 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
                                settings.rank_relative);
     numerics::SvdResult svd = numerics::jacobi_svd(reduced, settings.rank_relative);
     numerics::RankReport rank = numerics::classify_rank(svd, problem.n_theta, settings.rank_relative);
+    // The design of the profile must be a normal number: a denormal or a
+    // non finite design carries no information, and the fit must not report
+    // a converged scale from it.
+    const double largest = svd.singular_values.empty() ? 0.0 : svd.singular_values.front();
+    result.reduction_condition = 0.0;
+    if (largest > 0.0 && rank.rank > 0) {
+      const double smallest = svd.singular_values[rank.rank - 1];
+      result.reduction_condition = smallest > 0.0 ? largest / smallest : INFINITY;
+    }
+    if (!std::isfinite(current.chi_square) ||
+        (!std::isfinite(largest) || largest == 0.0 || !is_normal(largest))) {
+      result.reduction_degenerate = true;
+      result.precision_exhausted = true;
+      failure = "the profiled design of the scale parameters is degenerate; the precision is exhausted";
+      break;
+    }
+    for (double value : score) {
+      if (!std::isfinite(value)) {
+        result.precision_exhausted = true;
+        failure = "the score of the scale parameters is not finite; the precision is exhausted";
+        break;
+      }
+    }
+    if (result.precision_exhausted) {
+      break;
+    }
     if (rank.rank < problem.n_theta) {
       result.identifiable = false;
       result.rank = rank;
@@ -966,6 +991,25 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
     for (std::size_t j = 0; j < problem.n_theta; ++j) {
       scaled_gradient = std::max(scaled_gradient, std::fabs(score[j] * column_scale[j]));
       scaled_step = std::max(scaled_step, std::fabs(step[j] * column_scale[j]));
+    }
+    // A denormal objective or score is not a convergence: it means that the
+    // arithmetic has lost the significant digits of the design.  The fit
+    // reports the exhausted precision instead.
+    const bool objective_is_normal =
+        is_normal(current.chi_square) || current.chi_square == 0.0;
+    const bool score_is_normal = [&] {
+      for (double value : score) {
+        if (!is_normal(value) && value != 0.0) {
+          return false;
+        }
+      }
+      return true;
+    }();
+    if (!objective_is_normal || !score_is_normal) {
+      result.precision_exhausted = true;
+      failure =
+          "the objective or the score of the scale parameters is denormal; the precision is exhausted";
+      break;
     }
     if (scaled_gradient <= settings.gradient_tolerance && scaled_step <= settings.step_tolerance) {
       converged = true;

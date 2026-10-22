@@ -82,6 +82,11 @@ struct FitResult {
   std::vector<double> latent;           // stars * latent_dim
   double chi_square = 0.0;
   int iterations = 0;
+  // The condition number of the profiled design and the degenerate flags: a
+  // scale is published only when the profile is a normal number.
+  double reduction_condition = 0.0;
+  bool reduction_degenerate = false;
+  bool precision_exhausted = false;
   std::string failure;
   std::vector<std::string> notes;
   std::vector<std::string> unknown_terms;
