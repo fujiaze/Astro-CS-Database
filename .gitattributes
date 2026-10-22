@@ -24,3 +24,5 @@
 *.pdb binary
 *.zip binary
 *.bundle binary
+
+*.bin binary

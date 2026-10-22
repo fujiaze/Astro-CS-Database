@@ -222,3 +222,23 @@ Assessment.execution记录调用是否complete/cancelled/failed，capability为s
 ErrorRecord.requested/achieved按同序小型泛函集合（≤4096）；对整图B请求，achieved记该domain最坏误差半径，逐叶真实数值包围保存在SignalEstimate.numerical_lower/upper分块数组，不在ErrorRecord复制全图对象。finite_model_bias按相同泛函顺序，未知项列unknown_model_terms；stochastic_noise是完整C或null。ActionRecipe.error_record和SignalEstimate.error为有寿命强引用，闭包不依赖全局ID查找误差对象。
 
 非native、非leaf的Index.ids=null表示namespace_id内的0..size−1固定序号，不是缺失身份；native规则来自partitions；leaf必须有实际叶ID。所有输入typed对象的局部名按依赖DAG解析，Array.index_id和recipe.arrays/children中的局部名会在解码时解析到实际content_hash再校验，不将用户别名写为产品身份。未解析别名missing_dependency，循环corrupt_product/invalid_model。字符串Id普通业务值不自动全局替换，只有声明的index_id/recipe依赖字段这样解析。
+
+## 独立块输入与专用PSF结果的实际字段
+
+BlockDescriptor是产品manifest与独立驱动共用唯一类型：id,path,dtype,shape,index_id,unit,begin,count,codec,raw_bytes,stored_bytes,raw_sha256。shape是所属整Array的shape，begin/count为flatten元素范围。id为规范科学descriptor（dtype/shape/index_id/unit/begin/count/raw_sha256）的SHA256，不含path/压缩选择；raw_sha256校验未压缩bytes。同一raw块可在不同索引/单位descriptor中复用，不能让相同raw bytes强迫不同科学域同ID。
+
+Storage.open(root,description,blocks)验证块覆盖、尺寸、dtype/单位/index一致及raw/hash后返回有寿命Array，元数据可先校验、bytes按访问惰性hash，但未经校验的bytes不能用于计算。raw/zstd与产品相同little-endian合同，解压上限raw_bytes并先资源预留。dyadic raw payload为UTF8规范Dyadic对象数组（signed_integer,exponent2），个数=count，无NaN/Inf，不当固定itemsize；整数指数和字符串语法逐项查。copy/read/open同一Storage后台，不引入第二份数组系统。
+
+PsfEvaluation.psf保原模型和实际transfer；source_positions≤4096每次，values及lower/upper三数组同shape/index，native_tail_upper绑定source_index；error为强引用。template数值区间和原生尾损失分别持久化。它们是跨sources/information/photometry对象，只有这一份正式定义，裸Array不被假定携带隐含ErrorRecord。普通矩阵数组仍是轻量数值数组。
+
+PhotoSolution.parameter_lower/upper同theta[K,P]，error强引用实际数值证书；不能把covariance当参数数值求解误差。未有有限参数包围时两数组为null且error明确conditional/unconverged，apply_scale不能据此给无条件数值认证。Native数值包围同样为显式字段；上游界缺失不能用0替代。sources的模板ErrorRecord与response.absolute_errors均进入该数值账本。FrameDescription.noise/PSF/response/native_to_leaf在signal_only能力缺失时允许空且逐项issue；full则保存所有实际可用模型和来源，不把缺失能力伪造为available。
+
+Ref可空的穷尽例外再明确：FootprintSet.astrometry、exceptions、sample_response_gain及pre-WCS.wcs；EffectivePSF.source_scale在未标度阶段、缺数值证书的parameter_lower/upper；PhotoSolution缺数值证书的parameter_lower/upper；InformationRequest.template_evaluation在精确显式h分支。这些空值均有上述专门语义。其它未列的必需Ref缺失为invalid_model，不授权任意用null逃避能力。
+
+PsfEvaluation.values的笛卡尔索引和output_index/source_index保同序；InformationRequest.template_column必须在source_index范围，template_evaluation为空时必须0。提取h列是标准selection action并显式重新标为output_index，不能靠shape相同混入别的叶序。Native.context/frame及FootprintSet.astrometry都进full产品闭包，后续操作不得用run_id、exposure字符串或当前时钟猜它们。
+
+## SourceMeasurements 数值载体（唯一字段语义）
+
+flux_numerical_lower/upper 为 f64 [stars.size()]，与 stars 严格同序，index_id=joint_noise.input_output.domain 的源通量索引，单位与 StarFlux.integrated_flux 一致（标度前 ADU，即本观测计数单位；不把它误记为最终参考 L）。两数组必须同时存在，包含名义 integrated_flux，保存实际源测量求解的确定数值包围；确实无法认证时二者同为 null，error 明确 numerical_flux_uncertified，结果 conditional/unconverged，不能按零半径消费。stars 的 Variance/joint_noise 仅表示随机误差，不替代此包围。
+
+error 为强引用，保该次实际 PSF 模板积分/参数盒、Native 数值区间、窗口线性求解或局部根验证的误差账本及 included/omitted。实际模板求值证书的影响归并进通量区间与 error；其 ErrorRecord 依赖须强引用可重开，不必保一份完整 NxS 模板矩阵。observation 强引用被测 Native（保 frame/context、数值输入及 noise），而非隐式当前会话。full 产品沿这些字段保存闭包；StarFlux 中名义值不再另有第二套区间正本。

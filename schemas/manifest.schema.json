@@ -1,0 +1,5 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acsd.invalid/schema/product-manifest/2",
+  "$ref": "https://acsd.invalid/schema/science-input/2#/$defs/ProductManifest"
+}

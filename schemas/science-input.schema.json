@@ -931,6 +931,86 @@
         "block_ids"
       ]
     },
+    "BlockDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "dtype": {
+          "enum": [
+            "f64",
+            "f32",
+            "u64",
+            "u32",
+            "u16",
+            "u8",
+            "dyadic"
+          ]
+        },
+        "shape": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 18446744073709551615
+          }
+        },
+        "index_id": {
+          "type": "string"
+        },
+        "unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "begin": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "codec": {
+          "enum": [
+            "raw",
+            "zstd"
+          ]
+        },
+        "raw_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "stored_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "raw_sha256": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "dtype",
+        "shape",
+        "index_id",
+        "unit",
+        "begin",
+        "count",
+        "codec",
+        "raw_bytes",
+        "stored_bytes",
+        "raw_sha256"
+      ]
+    },
     "SourcePartition": {
       "type": "object",
       "additionalProperties": false,
@@ -2199,6 +2279,12 @@
         },
         "detector_frame": {
           "type": "string"
+        },
+        "astrometry": {
+          "$ref": "#/$defs/AstrometricSolutionRef"
+        },
+        "sample_response_gain": {
+          "$ref": "#/$defs/ArrayRef"
         }
       },
       "required": [
@@ -2212,7 +2298,9 @@
         "pixel_response",
         "exceptions",
         "inline_footprints",
-        "detector_frame"
+        "detector_frame",
+        "astrometry",
+        "sample_response_gain"
       ]
     },
     "CurvedEdge": {
@@ -3820,6 +3908,9 @@
         },
         "footprints": {
           "$ref": "#/$defs/FootprintSetRef"
+        },
+        "frame": {
+          "type": "string"
         }
       },
       "required": [
@@ -3829,7 +3920,8 @@
         "height",
         "context",
         "source_index",
-        "footprints"
+        "footprints",
+        "frame"
       ]
     },
     "NativeObservation": {
@@ -3880,6 +3972,21 @@
         },
         "physical_collection": {
           "type": "boolean"
+        },
+        "context": {
+          "$ref": "#/$defs/AstrometricContext"
+        },
+        "frame": {
+          "type": "string"
+        },
+        "numerical_lower": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "numerical_upper": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "error": {
+          "$ref": "#/$defs/ErrorRecordRef"
         }
       },
       "required": [
@@ -3894,7 +4001,12 @@
         "response",
         "kernel",
         "native_parent",
-        "physical_collection"
+        "physical_collection",
+        "context",
+        "frame",
+        "numerical_lower",
+        "numerical_upper",
+        "error"
       ]
     },
     "RegroupRequest": {
@@ -5276,6 +5388,21 @@
         },
         "influence": {
           "$ref": "#/$defs/FitInfluence"
+        },
+        "parameter_lower": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "parameter_upper": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "error": {
+          "$ref": "#/$defs/ErrorRecordRef"
+        },
+        "source_scale": {
+          "$ref": "#/$defs/PhotoSolutionRef"
+        },
+        "frame": {
+          "type": "string"
         }
       },
       "required": [
@@ -5288,7 +5415,12 @@
         "achromatic",
         "detector_samples",
         "regroup_scale_project",
-        "influence"
+        "influence",
+        "parameter_lower",
+        "parameter_upper",
+        "error",
+        "source_scale",
+        "frame"
       ]
     },
     "PsfEvaluationRequest": {
@@ -5303,11 +5435,73 @@
         },
         "budget": {
           "$ref": "#/$defs/NumericBudget"
+        },
+        "output_rows": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 18446744073709551615
+          }
         }
       },
       "required": [
         "source_positions",
-        "budget"
+        "budget",
+        "output_rows"
+      ]
+    },
+    "PsfEvaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/Identity"
+        },
+        "assessment": {
+          "$ref": "#/$defs/Assessment"
+        },
+        "psf": {
+          "$ref": "#/$defs/EffectivePSFRef"
+        },
+        "source_positions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PixelCenter0"
+          }
+        },
+        "values": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "numerical_lower": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "numerical_upper": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "native_tail_upper": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "error": {
+          "$ref": "#/$defs/ErrorRecordRef"
+        },
+        "output_index": {
+          "$ref": "#/$defs/IndexRef"
+        },
+        "source_index": {
+          "$ref": "#/$defs/IndexRef"
+        }
+      },
+      "required": [
+        "psf",
+        "source_positions",
+        "values",
+        "numerical_lower",
+        "numerical_upper",
+        "native_tail_upper",
+        "error",
+        "output_index",
+        "source_index"
       ]
     },
     "StarFlux": {
@@ -5392,6 +5586,18 @@
         },
         "training_pixel_ids": {
           "$ref": "#/$defs/ArrayRef"
+        },
+        "flux_numerical_lower": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "flux_numerical_upper": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "error": {
+          "$ref": "#/$defs/ErrorRecordRef"
+        },
+        "observation": {
+          "$ref": "#/$defs/NativeObservationRef"
         }
       },
       "required": [
@@ -5399,7 +5605,11 @@
         "stars",
         "psf",
         "joint_noise",
-        "training_pixel_ids"
+        "training_pixel_ids",
+        "flux_numerical_lower",
+        "flux_numerical_upper",
+        "error",
+        "observation"
       ]
     },
     "RankReport": {
@@ -5590,6 +5800,15 @@
         },
         "application_id": {
           "type": "string"
+        },
+        "parameter_lower": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "parameter_upper": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "error": {
+          "$ref": "#/$defs/ErrorRecordRef"
         }
       },
       "required": [
@@ -5602,7 +5821,10 @@
         "rank",
         "influence",
         "frames",
-        "application_id"
+        "application_id",
+        "parameter_lower",
+        "parameter_upper",
+        "error"
       ]
     },
     "DrizzleRequest": {
@@ -5853,6 +6075,14 @@
         },
         "solve": {
           "$ref": "#/$defs/SolvePolicy"
+        },
+        "template_evaluation": {
+          "$ref": "#/$defs/PsfEvaluationRef"
+        },
+        "template_column": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
         }
       },
       "required": [
@@ -5860,7 +6090,9 @@
         "background",
         "covariance",
         "reference",
-        "solve"
+        "solve",
+        "template_evaluation",
+        "template_column"
       ]
     },
     "Information": {
@@ -6710,6 +6942,159 @@
         "closure",
         "inputs",
         "profile"
+      ]
+    },
+    "ObjectEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hash": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "major": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "minor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      },
+      "required": [
+        "hash",
+        "path",
+        "type",
+        "major",
+        "minor"
+      ]
+    },
+    "AlgorithmIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "source_hash": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "source_hash"
+      ]
+    },
+    "ProductManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "type": "string"
+        },
+        "major": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "minor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "stage": {
+          "enum": [
+            "normalize",
+            "mosaic",
+            "export_image"
+          ]
+        },
+        "product_id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "root_object": {
+          "type": "string"
+        },
+        "profile": {
+          "type": "string"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "objects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObjectEntry"
+          }
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BlockDescriptor"
+          }
+        },
+        "configuration_hash": {
+          "type": "string"
+        },
+        "algorithm_set": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AlgorithmIdentity"
+          }
+        },
+        "arithmetic": {
+          "$ref": "#/$defs/Arithmetic"
+        },
+        "assessment": {
+          "$ref": "#/$defs/Assessment"
+        },
+        "complete": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "format",
+        "major",
+        "minor",
+        "stage",
+        "product_id",
+        "revision",
+        "root_object",
+        "profile",
+        "capabilities",
+        "inputs",
+        "objects",
+        "blocks",
+        "configuration_hash",
+        "algorithm_set",
+        "arithmetic",
+        "assessment",
+        "complete"
       ]
     },
     "ProductLocation": {
@@ -8227,6 +8612,22 @@
               ],
               "properties": {
                 "type": {
+                  "const": "PsfEvaluation"
+                },
+                "data": {
+                  "$ref": "#/$defs/PsfEvaluation"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
                   "const": "SourceMeasurements"
                 },
                 "data": {
@@ -8508,11 +8909,51 @@
               "type": "array",
               "maxItems": 65536,
               "items": {
-                "type": [
-                  "number",
-                  "integer"
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "$ref": "#/$defs/Dyadic"
+                  }
                 ]
               }
+            }
+          }
+        }
+      ]
+    },
+    "BlockDescriptorRef": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "$ref"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "$ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "data"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "BlockDescriptor"
+            },
+            "data": {
+              "$ref": "#/$defs/BlockDescriptor"
             }
           }
         }
@@ -11412,6 +11853,42 @@
         }
       ]
     },
+    "PsfEvaluationRef": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "$ref"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "$ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "data"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "PsfEvaluation"
+            },
+            "data": {
+              "$ref": "#/$defs/PsfEvaluation"
+            }
+          }
+        }
+      ]
+    },
     "StarFluxRef": {
       "anyOf": [
         {
@@ -12708,6 +13185,114 @@
         }
       ]
     },
+    "ObjectEntryRef": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "$ref"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "$ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "data"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "ObjectEntry"
+            },
+            "data": {
+              "$ref": "#/$defs/ObjectEntry"
+            }
+          }
+        }
+      ]
+    },
+    "AlgorithmIdentityRef": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "$ref"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "$ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "data"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "AlgorithmIdentity"
+            },
+            "data": {
+              "$ref": "#/$defs/AlgorithmIdentity"
+            }
+          }
+        }
+      ]
+    },
+    "ProductManifestRef": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "$ref"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "$ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "data"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "ProductManifest"
+            },
+            "data": {
+              "$ref": "#/$defs/ProductManifest"
+            }
+          }
+        }
+      ]
+    },
     "ProductLocationRef": {
       "anyOf": [
         {
@@ -13623,11 +14208,15 @@
             },
             "wcs": {
               "$ref": "#/$defs/WcsModelRef"
+            },
+            "solution": {
+              "$ref": "#/$defs/AstrometricSolutionRef"
             }
           },
           "required": [
             "observation",
-            "wcs"
+            "wcs",
+            "solution"
           ]
         },
         "request": {
@@ -15249,6 +15838,159 @@
           "$ref": "#/$defs/GeometryBudget"
         }
       }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "const": "storage.copy"
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "dtype": {
+              "enum": [
+                "f64",
+                "f32",
+                "u64",
+                "u32",
+                "u16",
+                "u8",
+                "dyadic"
+              ]
+            },
+            "bytes": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 255
+              }
+            },
+            "shape": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              }
+            },
+            "unit": {
+              "$ref": "#/$defs/Unit"
+            },
+            "index": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "dtype",
+            "bytes",
+            "shape",
+            "unit",
+            "index"
+          ]
+        },
+        "request": {
+          "type": "object",
+          "maxProperties": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "const": "storage.read"
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "array": {
+              "$ref": "#/$defs/ArrayRef"
+            },
+            "range": {
+              "$ref": "#/$defs/BlockRequest"
+            }
+          },
+          "required": [
+            "array",
+            "range"
+          ]
+        },
+        "request": {
+          "type": "object",
+          "maxProperties": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "const": "storage.open"
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "root": {
+              "type": "string"
+            },
+            "description": {
+              "$ref": "#/$defs/Array"
+            },
+            "blocks": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/BlockDescriptor"
+              }
+            }
+          },
+          "required": [
+            "root",
+            "description",
+            "blocks"
+          ]
+        },
+        "request": {
+          "type": "object",
+          "maxProperties": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "operation": {
+          "const": "product.read_array"
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "$ref": "#/$defs/ProductProviderRef"
+            },
+            "array": {
+              "$ref": "#/$defs/ArrayRef"
+            },
+            "range": {
+              "$ref": "#/$defs/BlockRequest"
+            }
+          },
+          "required": [
+            "provider",
+            "array",
+            "range"
+          ]
+        },
+        "request": {
+          "type": "object",
+          "maxProperties": 0
+        }
+      }
     }
   ],
   "properties": {
@@ -15318,6 +16060,9 @@
           },
           {
             "$ref": "#/$defs/ArrayRef"
+          },
+          {
+            "$ref": "#/$defs/BlockDescriptorRef"
           },
           {
             "$ref": "#/$defs/SourcePartitionRef"
@@ -15560,6 +16305,9 @@
             "$ref": "#/$defs/PsfEvaluationRequestRef"
           },
           {
+            "$ref": "#/$defs/PsfEvaluationRef"
+          },
+          {
             "$ref": "#/$defs/StarFluxRef"
           },
           {
@@ -15666,6 +16414,15 @@
           },
           {
             "$ref": "#/$defs/ProductGraphRef"
+          },
+          {
+            "$ref": "#/$defs/ObjectEntryRef"
+          },
+          {
+            "$ref": "#/$defs/AlgorithmIdentityRef"
+          },
+          {
+            "$ref": "#/$defs/ProductManifestRef"
           },
           {
             "$ref": "#/$defs/ProductLocationRef"

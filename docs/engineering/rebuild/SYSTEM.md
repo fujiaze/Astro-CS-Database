@@ -189,7 +189,7 @@ Gaussian：Σ=[[σx²,ρσxσy],[ρσxσy,σy²]]，m²=ΔᵀΣ⁻¹Δ，p_det=e
 
 parameters shape=[family参数数,多项式项数] f64，Basis按OBJECTS项序；空间degree≤2，center为detector域中心、scale为半宽，Basis实际值随对象持久化。Gaussian/Moffat形状矩阵保证SPD，非有限或极端无法积分给失败。PSF有限窗口内先按真实PRF分段，所有源/背景共窗拟合，窗口外质量不重归一。PixelResponse为独立空间PRF对象，不和谱Response混用；cells矩形在local photosite坐标，gains[波长bin,cell]非负，relative_mean_one时每波段在完整收光域面积平均=1；绝对概率模式各gain≤1。空cells是显式uniform假设，未知PRF误差仍unknown。
 
-evaluate_psf是唯一像元积分实现，fit/measure/information/sky均复用。EffectivePSF.detector_samples锁原生FootprintSet；regroup_scale_project从原生样本到当前输出（初始I，随后G、α、R、P、weights、Q按实际链组合），参数密度不再另含这些action。evaluate_psf返回[当前输出样本,请求源位置]的积分模板，有限模板bank不是对continuum隐式稠密矩阵。误差与尾界随输出Array的ErrorRecord引用；请求可分源位置块，禁止消费者各写一份PSF积分。局部模型外插只conditional，不以满矩形归一域冒称实测支持。
+evaluate_psf是唯一像元积分实现，fit/measure/information/sky均复用。EffectivePSF.detector_samples锁原生FootprintSet；regroup_scale_project从原生样本到当前输出（初始I，随后G、α、R、P、weights、Q按实际链组合），参数密度不再另含这些action。evaluate_psf返回PsfEvaluation中的[当前输出样本,请求源位置]积分模板，有限模板bank不是对continuum隐式稠密矩阵。误差与尾界随PsfEvaluation的实际字段和ErrorRecord强引用；请求可分源位置块，禁止消费者各写一份PSF积分。局部模型外插只conditional，不以满矩形归一域冒称实测支持。
 
 ### 稀疏actual-scene三角网构建和参考信息请求
 
@@ -206,3 +206,25 @@ Native.linear_view不能进入Normalize物理Drizzle；若NormalizeFrame.regroup
 首期Normalize输入仅二维FITS主图或显式指定image HDU，BITPIX=8/16/32/64/−32/−64，按BSCALE/BZERO转FP64；BLANK/非有限标missing并保NaN。BUNIT须ADU或显式单位映射，electron图不能当ADU混入。DQ扩展若有须整数同shape，位按N1；明确SATURATE头或配置给出的阈值可标饱和，否则输入携带linear_unsaturated_assumed条件，不虚构线性/饱和边界已测。header冲突或第三轴不猜slice。time/exposure需明确单位和time scale，UTC→TDB用ERFA及观测者条件，缺输入误差单列。除显式supplied_wcs外，缺WCS头仍实际盲解；输入WCS参考系/投影按foundation准入。products/Raw构造由storage+CLI共享reader完成，driver可直接用公开RawObservation/Array而不需FITS。
 
 HiPS发布允许tile_log2_width=6..9（64/128/256/512，默认512）；leaf_order≥tile_log2_width，tile_order=leaf_order−tile_log2_width，低阶模型可选较小合法tile或FITS导出，不伪造索引。标准依据为[HiPS 1.0](https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf)与[HiPS原始论文](https://doi.org/10.1051/0004-6361/201526075)的可变tile宽定义，未采用HiPS2.0草案新增能力。
+
+## 最终复核补齐的跨模块误差与输入合同
+
+calibrate_observation将RawObservation.context和frame逐字段保留到NativeObservation；regroup、bind_wcs、bind_observation_model、apply_scale不得丢失或改写。NormalizeFrame.frame必须等raw.frame，measure_science_sources输出frame=observation.frame。solve_astrometry从observation.context读取历元/TDB/observer，Gaia query按该历元传播；已知WCS与科学源也须与同context相容。相同像元的2016/2026两帧不会因值相同变同一观测，SourceIdentity.exposure和context均参与依赖。
+
+bind_wcs另接solution：solver成功传AstrometricSolution，supplied WCS可显式null；非null时solution.wcs必须同输入wcs，保存到FootprintSet.astrometry，GeometryRecipe及full闭包因此保留参数covariance、influence和included/omitted。它不是另一套WCS。首期几何/模板数值包含默认条件于该固定WCS；若非零天测参数误差尚无有效joint Jacobian/同根传播能力，输出ErrorRecord必须列astrometric_parameter_propagation_omitted，noise不能称无条件known，V_F/V_B及合成条件也保留fixed_wcs。不给外部solution时真实天测误差unknown；纯数值synthetic固定WCS请求可显式condition=fixed_numeric_model。保存误差来源不等于已完成一般拓扑参数传播，不能静默丢已提供模型后称物理误差完整。
+
+evaluate_psf返回PsfEvaluation而非裸Array。values/numerical_lower/numerical_upper shape=[输出样本数,source_positions数]，同一template笛卡尔索引；output_index/source_index明确各轴，索引命名为cartesian:<output_hash>:<source_hash>:row_major。native_tail_upper[source数]只报告原生正PSF模型在窗口/域外的质量，不能把signed transfer后的结果称概率。区间先在每个原生收光域积分，再经同一transfer：若原生误差e、transfer名义T0及逐元界ET，则输出确定半径≤|T0|e+ET(|h0|+e)+归约舍入；signed P等必须用绝对系数界，不用T0e抵消。缺absolute能力只可conditional/unavailable，不伪造有界。ErrorRecord强引用区分求积误差、模型尾损失和unknown物理项；partial结果保实际区间，work耗尽不只保请求tolerance。
+
+fit_psf、measure、photometry和information必须消费PsfEvaluation实际包围。InformationRequest.template_evaluation可空仅表示caller直接指定精确矩阵h（以所解析数字为定义）；非空时template_column指对应列，h必须为该列按output_index重新索引的名义值，lower/upper及error用于求解扰动/秩稳定性。Normalize内部构造这种绑定，不把PSF积分误差遗忘在临时结果。区间不足使信息量误差未达标时继续求积/升级，或unconverged/conditional，不仅传播随机covariance。
+
+NativeObservation.numerical_lower/upper随integrated_values同index；calibrate为(d−b−t dark)/flat用向外区间传播实际浮点/模型数值误差，regroup按signed G传，apply_scale用PhotoSolution.parameter_lower/upper和exp区间传，再建G Dα链。真实母版/fit随机误差仍在NoiseModel，不加到数值半径。原始输入已解析的数组数字定义数值模型，有限外部确定误差若给出必须进区间，未知物理项进ErrorRecord。build_drizzle使用这些x区间，绝不把scaled FP64值默认为零数值误差。
+
+PSF模板幅值与来源也固定：fit_psf返回的density为校准前置已完成、最原生physical samples中的单位总ADU源模板，source_scale=null；detector_samples为该parent，regroup_scale_project初始为到当前样本的G（原生I）。FootprintSet.sample_response_gain[N]（null表示1）保已知样本乘性响应，校准更新为raw gain/flat；PRF积分乘此系数，物理bin仍在parent积分后用G，不能以bin中心flat代替成员。
+
+apply_scale创建新的EffectivePSF：source_scale引用PhotoSolution、frame绑定观测；查询源位置时源端幅值a(source)=exp(h(source)^Tθ)是native ADU/L，生成a(source)*P_native，再经同实际G Dα/R/P等transfer，得到每单位已校准L的模板。这里source端a和detector端α(u_j)分开，不用星心α替代全PSF，也不把未乘a的αP误称L单位的归一模板。source_scale指向fit使用的原PSF/测量依赖，新PSF为后续revision，依赖图无环。跨response的reference c仍由ReferenceSED/response处理，不重复吸收。raw模板与校准模板的unit/reference身份明确，information按其目标L使用相同版本。
+
+EffectivePSF.parameter_lower/upper/error记录PSF拟合的数值证书，验证同EXECUTION的score根方法；evaluate_psf将这些参数盒与求积误差一起包围。参数证书缺失时只可条件于已解析固定PSF数值模型，不能伪称涵盖理想重新拟合的确定误差；unknown真实PSF/PRF偏差仍另列，不由训练Hessian自证。template_evaluation、PhotoSolution和Native的ErrorRecord均是实际强引用，生产实现不得另建误差正本。
+
+measure_science_sources 必须实际构造 SourceMeasurements.flux_numerical_lower/upper：固定模板的线性幅值/背景拟合，将 Native 输入区间与 PsfEvaluation 模板区间送入同一设计矩阵的验证求解，使用 EXECUTION 的矩阵逆扰动界及残差包围；自由位置/混叠参数按该处 score 根盒验证再投影到通量坐标。PSF 拟合数值参数盒也参与模板区间。支持不足、秩未证实或包围无法认证时保留名义值但明示 conditional/unconverged 与缺失区间，不能将随机方差当确定误差。实际模板证书归并到 SourceMeasurements.error 并保可重开依赖。fit_photometry 对每个源直接消费这些通量区间来包围 score，与 prediction 区间共同生成 PhotoSolution 参数盒；缺失通量界绝不按零处理。
+
+PsfEvaluationRequest.output_rows 空表示整个 transfer 输出；非空为该输出的严格递增、无重复零基行号，越界 invalid_request。返回 output_index 为精确子索引，values shape=[所选行数,源数]，source_index 不变。积分仅请求 transfer.dependency_blocks 所需原生样本，按工作预算分批；源拟合使用实际窗口行，information 按其查询子索引调用，禁止为了小窗口强制物化全帧×所有源矩阵。省略的输出行不重归一 PSF；native_tail_upper 仍只报告原生积分/截断域的质量，不拿未查询输出代替尾界。

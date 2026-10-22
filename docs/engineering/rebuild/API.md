@@ -148,7 +148,7 @@ GUI管理配置、输入分组、运行/取消、事件显示与产品浏览；�
 - bind_wcs(observation,wcs)：校验完整域并创建immutable revision，原生数组共享；无WCS校准合法。
 - bind_observation_model(observation,kernel,response)：将fit结果及响应绑定同观测新revision，校验frame/source index和实际G；不应用α、不改数值，已scale改变response拒绝identity_conflict。
 - build_catalogue_index(request)/make_catalogue_provider(index)：公开列式输入构建有界离线quad索引/只读provider，不藏路径；metadata与页面/XP basis见SYSTEM及声明。
-- evaluate_psf(psf,request)：单一PSF积分及实际transfer链，输出[output sample,source position]模板。预算失败保有效包围和原因，不能另以整数采样替代。
+- evaluate_psf(psf,request)：单一PSF积分及实际transfer链，输出PsfEvaluation，含[output sample,source position]模板和实际数值包围。预算失败保有效包围和原因，不能另以整数采样替代。
 这些操作是CLI/driver与科学模块实际消费者的接口，不引入插件或注册会话。
 
 PhotometryRequest.frames给唯一明确顺序K，与responses/predictions及measurements长度相同；measurements[k].frame=frames[k]。每帧同Gaia source_id通过CatalogueStar release/calibration共享latent；star数据是各测量源ID的并集且唯一。prediction[k].basis必须是这些星的共同xp_basis，responses[k]同prediction response。PhotoSolution.frames/theta/response顺序沿用请求；theta shape[K,P]。Gaia绝对latent测量固定光度尺度，不额外固定任一帧a=1；空间项均值零是唯一标量/空间分离约束。旧reference_frames字段已删除，不授权编码Agent自创参考帧光度gauge。allow_relative_uncalibrated只在完整拟合不可用时保原生具名相对信号，不伪造绝对尺度。
@@ -178,3 +178,15 @@ u64必须由保留64位整数的parser读取；C++/Python可直接用十进制JS
 CLI初始化一个CpuResources实现、一个Storage实现和取消源，按Limits创建Context；独立C++调用者可实现这三份公开接口或复用services实现。实现中Resources原子准入、Storage内存/磁盘backend及immutable arrays均遵循EXECUTION，无注册会话、无科学全局配置。所有大数组以Storage.copy/读取构造；发布前对象可由caller独占builder组装，consumer集中校验，publish后Ref<const>不可写。
 
 校验顺序固定：协议/字段/类型→尺寸与溢出、单位/index/identity→科学域/能力与资源准入→算法→逐泛函误差/状态→序列化量化→发布闭包。无效模型在消费边界一次拒绝，内部已验证块不逐元素重复防御或记录日志。未知能力只限制对应操作，不能把合法负值/零删掉。
+
+## 独立驱动块入口、返回与存储操作
+
+contract信封增加可选input_root（默认request文件所在目录）和blocks[]（默认空），blocks逐项为BlockDescriptor。descriptor.path相对input_root解析，显式root之外不相对进程cwd猜文件。输入可用id局部别名，decoder解析index_id后计算真正descriptor hash，再将Array.block_ids别名替换；已有sha256身份必须匹配。Array的typed data形式含block_ids，decoder调用Storage.open，不要求先建立正式product。小型Array.values也支持dtype=dyadic的Dyadic对象，不能用整数float替代高精度端点。
+
+storage.copy参数为dtype,bytes（u8序列）,shape,unit,index，按公开C++参数名；storage.read为array,range；storage.open为root,description,blocks；product.read_array为provider,array,range。Context/Storage注入，不从输入装载对象代码。对应所有操作已进入唯一生成schema；其request必须{}。其它资源对象方法只供同步C++调用，不作为用户可扩配脚本。
+
+Result<T>在response.result中按字段序列化：by-value struct为普通字段对象，vector为数组，optional为空则null，Ref<T>为{$ref:hash}；response.objects[hash]给type/data（实际闭包），response.blocks[]给所有输出descriptor，output_root给其路径根。to-fits.expected-model的data对应result.value；make_wcs等Ref返回则须从objects取typed对象。新请求必须将所需typed对象及其依赖加入input_objects，将blocks带入并input_root指前次输出根；单独抄一个hash不能跨进程查隐藏会话。response文件路径由--response显式指定，模型块在output_root，二者不混作path根。
+
+U01已补四个辅助Index（CSR offsets/nnz各一个），所有Array.index_id均可在公开输入对象图解析。examples/external-array.request.json使用真实24byte little-endian块、SHA256和相同R，期望[3,7]；不需旧产品目录。形状检查之外的别名/块覆盖/hash校验先于任何科学算法。
+
+measure_science_sources 的结果除名义 StarFlux 与随机 joint_noise，必须含 OBJECTS 定义的通量数值界、强引用 error 和 observation。fit_photometry 的公开 measurements 参数即为此账本入口，独立进程无需另查隐含 Native；缺证书传播 conditional 而不补零。evaluate_psf 的 output_rows 提供窗口/分块查询，行号、返回子索引与错误规则见 SYSTEM；同步调用和预算/借用规则同其余科学 API。

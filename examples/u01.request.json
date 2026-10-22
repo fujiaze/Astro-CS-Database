@@ -83,7 +83,7 @@
         "nm_power": 0,
         "multiplier": 1
       },
-      "index_id": "F:csrrow",
+      "index_id": "F_csrrow",
       "values": [
         0,
         4,
@@ -105,7 +105,7 @@
         "nm_power": 0,
         "multiplier": 1
       },
-      "index_id": "F:csrnnz",
+      "index_id": "F_csrnnz",
       "values": [
         0,
         2,
@@ -149,7 +149,7 @@
         "nm_power": 0,
         "multiplier": 1
       },
-      "index_id": "F:csrnnz",
+      "index_id": "F_csrnnz",
       "values": [
         1,
         1,
@@ -247,7 +247,7 @@
         "nm_power": 0,
         "multiplier": 1
       },
-      "index_id": "R:csrrow",
+      "index_id": "R_csrrow",
       "values": [
         0,
         2,
@@ -268,7 +268,7 @@
         "nm_power": 0,
         "multiplier": 1
       },
-      "index_id": "R:csrnnz",
+      "index_id": "R_csrnnz",
       "values": [
         0,
         1,
@@ -290,7 +290,7 @@
         "nm_power": 0,
         "multiplier": 1
       },
-      "index_id": "R:csrnnz",
+      "index_id": "R_csrnnz",
       "values": [
         0.5,
         0.5,
@@ -508,6 +508,54 @@
         1,
         -0.5
       ]
+    },
+    "F_csrrow": {
+      "type": "Index",
+      "data": {
+        "size": 4,
+        "kind": "parameter",
+        "ids": null,
+        "sources": [],
+        "order": 0,
+        "partitions": [],
+        "namespace_id": "fixture:F_csrrow"
+      }
+    },
+    "F_csrnnz": {
+      "type": "Index",
+      "data": {
+        "size": 26,
+        "kind": "parameter",
+        "ids": null,
+        "sources": [],
+        "order": 0,
+        "partitions": [],
+        "namespace_id": "fixture:F_csrnnz"
+      }
+    },
+    "R_csrrow": {
+      "type": "Index",
+      "data": {
+        "size": 3,
+        "kind": "parameter",
+        "ids": null,
+        "sources": [],
+        "order": 0,
+        "partitions": [],
+        "namespace_id": "fixture:R_csrrow"
+      }
+    },
+    "R_csrnnz": {
+      "type": "Index",
+      "data": {
+        "size": 4,
+        "kind": "parameter",
+        "ids": null,
+        "sources": [],
+        "order": 0,
+        "partitions": [],
+        "namespace_id": "fixture:R_csrnnz"
+      }
     }
   },
   "arguments": {

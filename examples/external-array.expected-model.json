@@ -1,0 +1,15 @@
+{
+  "type": "Array",
+  "values": [
+    3,
+    7
+  ],
+  "unit": {
+    "scale": "fixture:L",
+    "linear_power": 1,
+    "sr_power": -1,
+    "pixel_power": 0,
+    "nm_power": 0,
+    "multiplier": 1
+  }
+}

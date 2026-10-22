@@ -140,7 +140,8 @@ definitions['ArrayRef']['anyOf'].append({'type': 'object', 'additionalProperties
     'required': ['type', 'dtype', 'shape', 'unit', 'index_id', 'values'],
     'properties': {'type': {'const': 'Array'}, 'dtype': type_schema('DType'),
         'shape': type_schema('std::vector<U64>'), 'unit': type_schema('Unit'),
-        'index_id': {'type': 'string'}, 'values': {'type': 'array', 'maxItems': 65536, 'items': {'type': ['number', 'integer']}}}})
+        'index_id': {'type': 'string'}, 'values': {'type': 'array', 'maxItems': 65536,
+            'items': {'anyOf': [{'type': 'number'}, type_schema('Dyadic')]}}}})
 definitions['LinearActionRef']['anyOf'].append({'type': 'object', 'additionalProperties': False,
     'required': ['type', 'recipe', 'children', 'arrays'], 'properties': {
         'type': {'const': 'LinearAction'}, 'recipe': type_schema('ActionRecipe'),
@@ -205,6 +206,15 @@ for operation, (provider, args, request) in methods.items():
     operations.append({'type': 'object', 'properties': {'operation': {'const': operation},
         'arguments': {'type': 'object', 'additionalProperties': False, 'properties': properties, 'required': list(properties)},
         'request': type_schema(request) if request else {'type': 'object', 'maxProperties': 0}}})
+for operation, args in {
+    'storage.copy': {'dtype': 'DType', 'bytes': 'std::vector<std::byte>', 'shape': 'std::vector<U64>', 'unit': 'Unit', 'index': 'Id'},
+    'storage.read': {'array': 'ArrayRef', 'range': 'BlockRequest'},
+    'storage.open': {'root': 'std::string', 'description': 'Array', 'blocks': 'std::vector<BlockDescriptor>'},
+    'product.read_array': {'provider': 'Ref<ProductProvider>', 'array': 'ArrayRef', 'range': 'BlockRequest'}}.items():
+    properties = {name: type_schema(cpp) for name, cpp in args.items()}
+    operations.append({'type': 'object', 'properties': {'operation': {'const': operation},
+        'arguments': {'type': 'object', 'additionalProperties': False, 'properties': properties, 'required': list(properties)},
+        'request': {'type': 'object', 'maxProperties': 0}}})
 
 schema = {'$schema': 'https://json-schema.org/draft/2020-12/schema',
     '$id': 'https://acsd.invalid/schema/science-input/2',
@@ -255,4 +265,13 @@ if '--check' in sys.argv:
         raise SystemExit('Generated CLI science schema is stale')
 else:
     cli_path.write_text(cli_output, encoding='utf-8')
+manifest_schema = {'$schema': schema['$schema'], '$id': 'https://acsd.invalid/schema/product-manifest/2',
+    '$ref': schema['$id'] + '#/$defs/ProductManifest'}
+manifest_path = ROOT / 'schemas/manifest.schema.json'
+manifest_output = json.dumps(manifest_schema, indent=2) + '\n'
+if '--check' in sys.argv:
+    if not manifest_path.exists() or manifest_path.read_text(encoding='utf-8') != manifest_output:
+        raise SystemExit('Generated manifest schema is stale')
+else:
+    manifest_path.write_text(manifest_output, encoding='utf-8')
 print(f'Public shape schema: {len(definitions)} definitions, {len(operations)} operation variants')

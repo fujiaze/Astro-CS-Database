@@ -63,6 +63,9 @@ enum class DType { f64, f32, u64, u32, u16, u8, dyadic };
 struct Array : Model { DType dtype; std::vector<U64> shape; Unit unit;
   Id index_id; std::vector<Id> block_ids; }; // immutable storage metadata; provider owns bytes
 using ArrayRef = Ref<Array>;
+struct BlockDescriptor { Id id; std::string path; DType dtype; std::vector<U64> shape;
+  Id index_id; Unit unit; U64 begin,count; enum class Codec { raw,zstd } codec;
+  U64 raw_bytes,stored_bytes; Id raw_sha256; };
 struct SourcePartition { Id dataset,exposure,detector,channel;
   U64 index_begin,count,first_sample,sample_stride; };
 struct Index : Model { U64 size; enum class Kind { native,leaf,parameter,control,pixel,latent } kind;
@@ -82,9 +85,11 @@ struct Resources { virtual Result<Reservation> reserve(U64 bytes,U32 threads)=0;
   virtual ~Resources()=default; };
 struct Storage;
 struct Context { Resources& resources; const Cancellation& cancellation; Storage& storage; };
-struct Storage { virtual Result<ArrayRef> copy(Context&,DType,std::span<const std::byte>,
-  std::span<const U64> shape,const Unit&,Id index)=0;
-  virtual Result<ArrayView> read(Context&,ArrayRef,BlockRequest) const=0;
+struct Storage { virtual Result<ArrayRef> copy(Context& context,DType dtype,std::span<const std::byte> bytes,
+  std::span<const U64> shape,const Unit& unit,Id index)=0;
+  virtual Result<ArrayView> read(Context& context,ArrayRef array,BlockRequest range) const=0;
+  virtual Result<ArrayRef> open(Context& context,std::string root,const Array& description,
+    std::span<const BlockDescriptor> blocks)=0;
   virtual ~Storage()=default; };
 struct Arithmetic { enum class Mode { outward,approximate } mode;
   U32 initial_bits,max_bits; bool allow_target_fallback; };
@@ -116,6 +121,8 @@ struct PixelResponse;
 struct NoiseModel;
 struct LinearAction;
 struct ErrorRecord;
+struct AstrometricSolution;
+struct PhotoSolution;
 struct DetectorFootprint : Model { Ref<WcsModel> wcs; std::vector<Ring> detector_rings;
   Ref<PixelResponse> pixel_response; SourceIdentity source; PixelCenter0 contraction_center; };
 struct PixelResponse : Model { std::vector<Box> cells; ArrayRef gains;
@@ -127,7 +134,8 @@ struct FootprintSet : Model { Ref<Index> index; U64 width,height;
   Mat2 detector_from_sample; Vec2 offset; Box local_cell;
   Ref<WcsModel> wcs; Ref<PixelResponse> pixel_response;
   Ref<FootprintExceptions> exceptions;
-  std::vector<Ref<DetectorFootprint>> inline_footprints; Id detector_frame; }; // optional small-case alternative
+  std::vector<Ref<DetectorFootprint>> inline_footprints; Id detector_frame;
+  Ref<AstrometricSolution> astrometry; ArrayRef sample_response_gain; };
 struct CurvedEdge { std::vector<std::array<ExactInterval,2>> bernstein;
   Interval parameter; bool reversed; Id common_edge; };
 struct CurvedBoundary : Model { std::vector<std::vector<CurvedEdge>> rings; };
@@ -220,12 +228,14 @@ struct Calibration { ArrayRef bias,dark,flat; bool dark_contains_bias;
   std::optional<double> gain_e_per_adu,read_rms_e;
   Ref<NoiseModel> raw_noise,master_noise; }; // absent maps use 0,0,1 by explicit configuration
 struct RawObservation : Model { ArrayRef adu,dq; U64 width,height;
-  AstrometricContext context; Ref<Index> source_index; Ref<FootprintSet> footprints; };
+  AstrometricContext context; Ref<Index> source_index; Ref<FootprintSet> footprints; Id frame; };
 struct NativeObservation : Model { ArrayRef integrated_values,dq; Ref<Index> native_index;
   Ref<FootprintSet> footprints; Ref<LinearAction> regrouping;
   std::vector<Id> scale_applications; Ref<NoiseModel> noise; Unit unit;
   Ref<Response> response; Ref<EffectivePSF> kernel;
-  Ref<NativeObservation> native_parent; bool physical_collection; };
+  Ref<NativeObservation> native_parent; bool physical_collection;
+  AstrometricContext context; Id frame;
+  ArrayRef numerical_lower,numerical_upper; Ref<ErrorRecord> error; };
 struct RegroupRequest { Ref<LinearAction> G; Ref<FootprintSet> output_footprints;
   Mat2 old_from_new; Vec2 offset; bool input_is_mean; U32 mean_member_count;
   enum class Mode { physical_sum,physical_mean,linear_view } mode; };
@@ -287,13 +297,19 @@ struct EffectivePSF : Model { PsfRequest::Family family; ArrayRef parameters;
   Box spatial_domain; Interval wavelength_nm; double tail_mass_upper;
   Basis spatial_basis; bool achromatic; Ref<FootprintSet> detector_samples;
   Ref<LinearAction> regroup_scale_project;
-  FitInfluence influence; }; // untruncated normalized family; window does not renormalize
+  FitInfluence influence; ArrayRef parameter_lower,parameter_upper; Ref<ErrorRecord> error;
+  Ref<PhotoSolution> source_scale; Id frame; }; // source_scale null before photometric application
 using ObservationKernel = EffectivePSF;
-struct PsfEvaluationRequest { std::vector<PixelCenter0> source_positions; NumericBudget budget; };
+struct PsfEvaluationRequest { std::vector<PixelCenter0> source_positions; NumericBudget budget; std::vector<U64> output_rows; };
+struct PsfEvaluation : Model { Ref<EffectivePSF> psf; std::vector<PixelCenter0> source_positions;
+  ArrayRef values,numerical_lower,numerical_upper,native_tail_upper; Ref<ErrorRecord> error;
+  Ref<Index> output_index,source_index; };
 struct StarFlux { U64 gaia_source_id; PixelCenter0 position; double integrated_flux;
   Variance variance; std::string definition; Box window; FitInfluence influence; };
 struct SourceMeasurements : Model { Id frame; std::vector<StarFlux> stars; Ref<EffectivePSF> psf;
-  Ref<CovarianceAction> joint_noise; ArrayRef training_pixel_ids; };
+  Ref<CovarianceAction> joint_noise; ArrayRef training_pixel_ids;
+  ArrayRef flux_numerical_lower,flux_numerical_upper; Ref<ErrorRecord> error;
+  Ref<NativeObservation> observation; };
 struct RankReport { U64 columns,rank; ArrayRef singular_values,nullspace;
   double singular_error_bound; bool certified; };
 struct PhotometryRequest { std::vector<Ref<Response>> responses; Ref<ReferenceSED> reference;
@@ -303,7 +319,8 @@ struct PhotometryRequest { std::vector<Ref<Response>> responses; Ref<ReferenceSE
 struct PhotoSolution : Model { ArrayRef theta; Ref<CovarianceAction> covariance;
   Basis spatial_basis; Box support; std::vector<Ref<Response>> responses;
   Ref<ReferenceSED> reference; RankReport rank; FitInfluence influence;
-  std::vector<Id> frames; Id application_id; };
+  std::vector<Id> frames; Id application_id;
+  ArrayRef parameter_lower,parameter_upper; Ref<ErrorRecord> error; };
 struct DrizzleRequest { U32 order; double pixfrac; GeometryBudget budget; };
 struct DrizzleOperator : Model { Ref<LinearAction> rows; Ref<Index> source_index;
   Ref<Overlaps> bounds; ArrayRef normalizer_sr; Ref<SupportMap> support; GeometryStatus status; };
@@ -322,7 +339,8 @@ struct RefinableGeometryProvider { virtual Result<Ref<GeometrySnapshot>> open(Co
   virtual Result<Ref<GeometryRevision>> refine(Context&,Ref<GeometrySnapshot>,const GeometryBudget&) const=0;
   virtual ~RefinableGeometryProvider()=default; };
 struct InformationRequest { ArrayRef h; Ref<LinearAction> background;
-  Ref<CovarianceAction> covariance; Estimator reference; SolvePolicy solve; };
+  Ref<CovarianceAction> covariance; Estimator reference; SolvePolicy solve;
+  Ref<PsfEvaluation> template_evaluation; U64 template_column; }; // optional for exact matrix h
 struct Information { Variance flux_variance; RankReport rank; };
 struct PrecisionControls : Model { enum class Kind { reference_flux,actual_scene,control_statistic } kind;
   ArrayRef positions,values,log_errors; Estimator estimator; Condition condition;
@@ -383,6 +401,14 @@ struct ExportResult { Ref<LinearAction> Q; Ref<SignalEstimate> estimate; OutputW
 struct ProductGraph : Model { enum class Stage { normalize,mosaic,export_image } stage;
   Ref<SignalEstimate> signal; std::vector<Ref<Model>> closure;
   std::vector<Id> inputs; std::string profile; };
+struct ObjectEntry { Id hash; std::string path,type; U32 major,minor; };
+struct AlgorithmIdentity { std::string name,version; Id source_hash; };
+struct ProductManifest { std::string format; U32 major,minor; ProductGraph::Stage stage;
+  Id product_id; U64 revision; Id root_object; std::string profile;
+  std::vector<std::string> capabilities; std::vector<Id> inputs;
+  std::vector<ObjectEntry> objects; std::vector<BlockDescriptor> blocks;
+  Id configuration_hash; std::vector<AlgorithmIdentity> algorithm_set;
+  Arithmetic arithmetic; Assessment assessment; bool complete; };
 struct ProductLocation { std::string directory; Id manifest_hash; };
 struct ProductProvider : FramesProvider { virtual Ref<ProductGraph> graph() const=0;
   virtual Result<ArrayView> read_array(Context&,ArrayRef,BlockRequest) const=0; };
@@ -417,7 +443,7 @@ Result<InverseResult> inverse(Context& context,Ref<WcsModel> wcs,SkyICRS sky,con
 Result<DerivativeResult> derivative(Context& context,Ref<WcsModel> wcs,PixelCenter0 point,const NumericBudget& request);
 Result<Interval> solid_angle_jacobian(Context& context,Ref<WcsModel> wcs,Box domain,const NumericBudget& request);
 Result<Ref<DetectorFootprint>> detector_footprint(Context& context,Ref<FootprintSet> footprints,U64 source_row);
-Result<Ref<NativeObservation>> bind_wcs(Context& context,Ref<NativeObservation> observation,Ref<WcsModel> wcs);
+Result<Ref<NativeObservation>> bind_wcs(Context& context,Ref<NativeObservation> observation,Ref<WcsModel> wcs,Ref<AstrometricSolution> solution);
 Result<Ref<NativeObservation>> bind_observation_model(Context& context,Ref<NativeObservation> observation,Ref<EffectivePSF> kernel,Ref<Response> response);
 Result<Ref<CurvedBoundary>> footprint(Context& context,const FootprintProvider& provider,Ref<DetectorFootprint> source,double pixfrac,const GeometryBudget& request);
 Result<SphericalAreaInterval> measure(Context& context,const FootprintProvider& provider,Ref<DetectorFootprint> source,const GeometryBudget& request);
@@ -428,7 +454,7 @@ Result<Ref<CatalogueIndex>> build_catalogue_index(Context& context,const Catalog
 Result<Ref<CatalogueProvider>> make_catalogue_provider(Context& context,Ref<CatalogueIndex> index);
 Result<Ref<AstrometricSolution>> solve_astrometry(Context& context,Ref<NativeObservation> observation,const CatalogueProvider& catalogue,const SolverRequest& request);
 Result<Ref<EffectivePSF>> fit_psf(Context& context,Ref<NativeObservation> observation,Ref<WcsModel> wcs,std::span<const CatalogueStar> stars,const PsfRequest& request);
-Result<ArrayRef> evaluate_psf(Context& context,Ref<EffectivePSF> psf,const PsfEvaluationRequest& request);
+Result<Ref<PsfEvaluation>> evaluate_psf(Context& context,Ref<EffectivePSF> psf,const PsfEvaluationRequest& request);
 Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,Ref<NativeObservation> observation,Ref<WcsModel> wcs,std::span<const CatalogueStar> stars,Ref<EffectivePSF> psf,const PsfRequest& request);
 Result<Ref<SpectralPrediction>> integrate_response(Context& context,Ref<Response> response,Ref<SpectralBasis> basis,const NumericBudget& request);
 Result<Ref<PhotoSolution>> fit_photometry(Context& context,std::span<const Ref<SourceMeasurements>> measurements,std::span<const CatalogueStar> stars,std::span<const Ref<SpectralPrediction>> predictions,const PhotometryRequest& request);

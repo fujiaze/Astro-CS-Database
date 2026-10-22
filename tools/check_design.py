@@ -8,6 +8,8 @@ from urllib.parse import unquote
 import jsonschema
 from referencing import Registry, Resource
 import subprocess
+import hashlib
+from math import prod
 
 ROOT = Path(__file__).resolve().parents[1]
 errors = []
@@ -39,6 +41,34 @@ for path in (ROOT / 'examples').glob('*.request.json'):
     request = json.loads(path.read_text(encoding='utf-8'))
     for error in jsonschema.Draft202012Validator(schema, registry=registry).iter_errors(request):
         errors.append(f'{path.name}: {error.message}')
+    objects = request['input_objects']
+    blocks = {block['id']: block for block in request.get('blocks', [])}
+    def walk(value):
+        if isinstance(value, dict):
+            if '$ref' in value:
+                require(value['$ref'] in objects, f'{path.name}: unresolved object {value["$ref"]}')
+            if value.get('type') == 'Array':
+                array = value.get('data', value)
+                index = array['index_id']
+                require(index in objects and objects[index].get('type') == 'Index', f'{path.name}: unresolved index {index}')
+                if 'values' in array:
+                    require(prod(array['shape']) == len(array['values']), f'{path.name}: array shape mismatch')
+                for block in array.get('block_ids', []):
+                    require(block in blocks, f'{path.name}: unresolved block {block}')
+            for child in value.values():
+                walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+    walk(request)
+    for descriptor in blocks.values():
+        require(descriptor['index_id'] in objects, f'{path.name}: block has missing index')
+        file = (path.parent / request.get('input_root', '.') / descriptor['path']).resolve()
+        require(file.is_file(), f'{path.name}: missing external block')
+        if file.is_file() and descriptor['codec'] == 'raw':
+            raw = file.read_bytes()
+            require(len(raw) == descriptor['raw_bytes'] == descriptor['stored_bytes'], f'{path.name}: block byte mismatch')
+            require('sha256:' + hashlib.sha256(raw).hexdigest() == descriptor['raw_sha256'], f'{path.name}: block hash mismatch')
 
 header = (ROOT / 'include/acsd/contracts.hpp').read_text(encoding='utf-8')
 require('Result<NormalizeResult> normalize(' in header, 'missing public normalize workflow')

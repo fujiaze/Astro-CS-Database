@@ -90,6 +90,16 @@
     "output_root": {
       "type": "string",
       "minLength": 1
+    },
+    "input_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "$ref": "https://acsd.invalid/schema/science-input/2#/$defs/BlockDescriptor"
+      }
     }
   },
   "allOf": [

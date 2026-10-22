@@ -127,3 +127,9 @@ publish_product只有required quantities均达标、所有必需closed graph存�
 ## 可计算的SVD/eigen误差证书
 
 对数值SVD A≈UΣVᵀ，先向外求δU=||UᵀU−I||F、δV=||VᵀV−I||F及eR=||A−UΣVᵀ||F，δU/δV必须<1。极分解正交因子的距离界取eU=δU/(1+sqrt(1−δU))、eV同式，则奇异值绝对误差可取eR+eU||Σ||2 sqrt(1+δV)+eV||Σ||2，加输入矩阵区间的Frobenius半径与全部舍入界。所有范数、sqrt、乘加向外。δ≥1或界跨rank阈值则升级/未决，不省略正交缺陷。对称eigen A≈UΛUᵀ同理用δU及重建残差，给λ区间并区分显著负/零未决；精确零约束仍须结构来源。大系统无法给证书时只conditional数值秩，不升级为certified。
+
+## 拟合及模板数值误差不跨模块遗失
+
+PhotoSolution数值参数包围使用可估空间的score根验证：在候选盒X内有向求score g(θ0)和Hessian H(X)，取QR/SVD近似逆G，K=θ0−Gg(θ0)+(I−GH(X))(X−θ0)。K严格在X内部且||I−GH(X)||∞<1时给局部唯一驻点包围；Hessian正下界证明局部极小。GN/IRLS声明的条件模型使用其实际score，不以步长或随机covariance替代数值证书。exp/多项式/像元积分导数用同一解析模型的区间AD，Gaussian/Moffat可解析微分，Airy的J0/J1用MPFR有向值和Bessel导数递推，0附近用幂级数及下一项余界避免0/0。latent分块可先按给定θ盒用带误差线性解消元，再验证全局score；资源不足或不能证明正秩/盒内唯一则保conditional/unconverged，不擅自给零半径。
+
+谱v误差、PSF积分区间、counts数值包围均进入score区间；根盒再经α=exp(−hθ)和校准/重组原生区间传至x，R分子使用带符号x区间。template经signed transfer的绝对误差action在PSF结果中保存，information/sky/coadd同理消费；缺必须的绝对系数能力就返回未决/条件状态。这个数值账本与ξ根随机传播分开。所有局部验证只证明声明模型的局部解，不伪称非凸全局最优或真实物理模型已知。
