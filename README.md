@@ -3,6 +3,7 @@
 从[唯一架构入口](docs/engineering/rebuild/README.md)开始。基线 c5fee09fe；分支 rebuild/acsd-v2。不兼容旧系统；科学算法尚未实现。
 
 ```text
+python -m pip install -r validation/requirements.txt
 cmake --preset design
 cmake --build --preset design
 ctest --preset design

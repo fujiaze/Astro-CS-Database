@@ -120,6 +120,31 @@
         "signal_only",
         "external_inputs"
       ]
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signal_dtype",
+        "tile_log2_width",
+        "durable"
+      ],
+      "properties": {
+        "signal_dtype": {
+          "enum": [
+            "f32",
+            "f64"
+          ]
+        },
+        "tile_log2_width": {
+          "type": "integer",
+          "minimum": 6,
+          "maximum": 9
+        },
+        "durable": {
+          "type": "boolean"
+        }
+      }
     }
   },
   "allOf": [

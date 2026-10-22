@@ -1,0 +1,532 @@
+{
+  "protocol": "acsd.contract",
+  "major": 1,
+  "request_id": "u01-signed-aperture",
+  "operation": "quadratic_form",
+  "input_objects": {
+    "input": {
+      "type": "Index",
+      "data": {
+        "size": 3,
+        "kind": "native",
+        "ids": null,
+        "sources": [],
+        "order": 0,
+        "partitions": [
+          {
+            "dataset": "fixture",
+            "exposure": "exposure1",
+            "detector": "det1",
+            "channel": "L",
+            "index_begin": 0,
+            "count": 3,
+            "first_sample": 0,
+            "sample_stride": 1
+          }
+        ],
+        "namespace_id": "fixture:native"
+      }
+    },
+    "latent": {
+      "type": "Index",
+      "data": {
+        "size": 24,
+        "kind": "latent",
+        "ids": null,
+        "sources": [],
+        "order": 0,
+        "partitions": [],
+        "namespace_id": "fixture:latent24"
+      }
+    },
+    "output": {
+      "type": "Index",
+      "data": {
+        "size": 2,
+        "kind": "parameter",
+        "ids": null,
+        "sources": [],
+        "order": 0,
+        "partitions": [],
+        "namespace_id": "fixture:output2"
+      }
+    },
+    "numeric_error": {
+      "type": "ErrorRecord",
+      "data": {
+        "requested": [],
+        "achieved": [],
+        "stochastic_noise": null,
+        "finite_model_bias": [],
+        "unknown_model_terms": [],
+        "linearization_selection": {
+          "estimator": "fixture-U01",
+          "kind": "fixed_geometry",
+          "fixed_objects": [],
+          "assumptions": [
+            "independent standard normal latent"
+          ]
+        }
+      }
+    },
+    "F_offsets": {
+      "type": "Array",
+      "dtype": "u64",
+      "shape": [
+        4
+      ],
+      "unit": {
+        "scale": "1",
+        "linear_power": 0,
+        "sr_power": 0,
+        "pixel_power": 0,
+        "nm_power": 0,
+        "multiplier": 1
+      },
+      "index_id": "F:csrrow",
+      "values": [
+        0,
+        4,
+        13,
+        26
+      ]
+    },
+    "F_indices": {
+      "type": "Array",
+      "dtype": "u64",
+      "shape": [
+        26
+      ],
+      "unit": {
+        "scale": "1",
+        "linear_power": 0,
+        "sr_power": 0,
+        "pixel_power": 0,
+        "nm_power": 0,
+        "multiplier": 1
+      },
+      "index_id": "F:csrnnz",
+      "values": [
+        0,
+        2,
+        3,
+        4,
+        0,
+        1,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        1,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ]
+    },
+    "F_values": {
+      "type": "Array",
+      "dtype": "f64",
+      "shape": [
+        26
+      ],
+      "unit": {
+        "scale": "fixture:L",
+        "linear_power": 1,
+        "sr_power": 0,
+        "pixel_power": 0,
+        "nm_power": 0,
+        "multiplier": 1
+      },
+      "index_id": "F:csrnnz",
+      "values": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    "F": {
+      "type": "LinearAction",
+      "recipe": {
+        "kind": "csr",
+        "children": [],
+        "arrays": [
+          "F_offsets",
+          "F_indices",
+          "F_values"
+        ],
+        "algorithm": "csr_v1",
+        "version": 1,
+        "spaces": {
+          "domain": {
+            "$ref": "latent"
+          },
+          "codomain": {
+            "$ref": "input"
+          },
+          "input": {
+            "scale": "1",
+            "linear_power": 0,
+            "sr_power": 0,
+            "pixel_power": 0,
+            "nm_power": 0,
+            "multiplier": 1
+          },
+          "output": {
+            "scale": "fixture:L",
+            "linear_power": 1,
+            "sr_power": 0,
+            "pixel_power": 0,
+            "nm_power": 0,
+            "multiplier": 1
+          }
+        },
+        "error_record": {
+          "$ref": "numeric_error"
+        },
+        "solve": null
+      },
+      "children": [],
+      "arrays": [
+        {
+          "$ref": "F_offsets"
+        },
+        {
+          "$ref": "F_indices"
+        },
+        {
+          "$ref": "F_values"
+        }
+      ]
+    },
+    "R_offsets": {
+      "type": "Array",
+      "dtype": "u64",
+      "shape": [
+        3
+      ],
+      "unit": {
+        "scale": "1",
+        "linear_power": 0,
+        "sr_power": 0,
+        "pixel_power": 0,
+        "nm_power": 0,
+        "multiplier": 1
+      },
+      "index_id": "R:csrrow",
+      "values": [
+        0,
+        2,
+        4
+      ]
+    },
+    "R_indices": {
+      "type": "Array",
+      "dtype": "u64",
+      "shape": [
+        4
+      ],
+      "unit": {
+        "scale": "1",
+        "linear_power": 0,
+        "sr_power": 0,
+        "pixel_power": 0,
+        "nm_power": 0,
+        "multiplier": 1
+      },
+      "index_id": "R:csrnnz",
+      "values": [
+        0,
+        1,
+        1,
+        2
+      ]
+    },
+    "R_values": {
+      "type": "Array",
+      "dtype": "f64",
+      "shape": [
+        4
+      ],
+      "unit": {
+        "scale": "1",
+        "linear_power": 0,
+        "sr_power": -1,
+        "pixel_power": 0,
+        "nm_power": 0,
+        "multiplier": 1
+      },
+      "index_id": "R:csrnnz",
+      "values": [
+        0.5,
+        0.5,
+        0.25,
+        0.75
+      ]
+    },
+    "R": {
+      "type": "LinearAction",
+      "recipe": {
+        "kind": "csr",
+        "children": [],
+        "arrays": [
+          "R_offsets",
+          "R_indices",
+          "R_values"
+        ],
+        "algorithm": "csr_v1",
+        "version": 1,
+        "spaces": {
+          "domain": {
+            "$ref": "input"
+          },
+          "codomain": {
+            "$ref": "output"
+          },
+          "input": {
+            "scale": "fixture:L",
+            "linear_power": 1,
+            "sr_power": 0,
+            "pixel_power": 0,
+            "nm_power": 0,
+            "multiplier": 1
+          },
+          "output": {
+            "scale": "fixture:L",
+            "linear_power": 1,
+            "sr_power": -1,
+            "pixel_power": 0,
+            "nm_power": 0,
+            "multiplier": 1
+          }
+        },
+        "error_record": {
+          "$ref": "numeric_error"
+        },
+        "solve": null
+      },
+      "children": [],
+      "arrays": [
+        {
+          "$ref": "R_offsets"
+        },
+        {
+          "$ref": "R_indices"
+        },
+        {
+          "$ref": "R_values"
+        }
+      ]
+    },
+    "root": {
+      "type": "NoiseRoot",
+      "data": {
+        "shared_id": {
+          "external_namespace": "fixture",
+          "entity": "independent-root",
+          "model_revision": "1",
+          "component": "all"
+        },
+        "coordinates": {
+          "$ref": "input"
+        },
+        "unit": {
+          "scale": "fixture:L",
+          "linear_power": 1,
+          "sr_power": 0,
+          "pixel_power": 0,
+          "nm_power": 0,
+          "multiplier": 1
+        },
+        "factor": {
+          "$ref": "F"
+        }
+      }
+    },
+    "noise": {
+      "type": "NoiseModel",
+      "data": {
+        "variance_unit": {
+          "scale": "fixture:L",
+          "linear_power": 2,
+          "sr_power": -2,
+          "pixel_power": 0,
+          "nm_power": 0,
+          "multiplier": 1
+        },
+        "condition": {
+          "estimator": "fixture-U01",
+          "kind": "fixed_geometry",
+          "fixed_objects": [],
+          "assumptions": [
+            "independent standard normal latent"
+          ]
+        },
+        "innovations": [
+          {
+            "$ref": "root"
+          }
+        ],
+        "shared_factors": [],
+        "influence": [
+          {
+            "$ref": "R"
+          }
+        ],
+        "unknown_terms": [],
+        "state": "known"
+      }
+    },
+    "I": {
+      "type": "LinearAction",
+      "recipe": {
+        "kind": "identity",
+        "children": [],
+        "arrays": [],
+        "algorithm": "identity_v1",
+        "version": 1,
+        "spaces": {
+          "domain": {
+            "$ref": "output"
+          },
+          "codomain": {
+            "$ref": "output"
+          },
+          "input": {
+            "scale": "fixture:L",
+            "linear_power": 1,
+            "sr_power": -1,
+            "pixel_power": 0,
+            "nm_power": 0,
+            "multiplier": 1
+          },
+          "output": {
+            "scale": "fixture:L",
+            "linear_power": 1,
+            "sr_power": -1,
+            "pixel_power": 0,
+            "nm_power": 0,
+            "multiplier": 1
+          }
+        },
+        "error_record": {
+          "$ref": "numeric_error"
+        },
+        "solve": null
+      },
+      "children": [],
+      "arrays": []
+    },
+    "C": {
+      "type": "CovarianceAction",
+      "data": {
+        "model": {
+          "$ref": "noise"
+        },
+        "influence": {
+          "$ref": "I"
+        },
+        "input_output": {
+          "domain": {
+            "$ref": "output"
+          },
+          "codomain": {
+            "$ref": "output"
+          },
+          "input": {
+            "scale": "1",
+            "linear_power": 0,
+            "sr_power": 0,
+            "pixel_power": 0,
+            "nm_power": 0,
+            "multiplier": 1
+          },
+          "output": {
+            "scale": "fixture:L",
+            "linear_power": 2,
+            "sr_power": -2,
+            "pixel_power": 0,
+            "nm_power": 0,
+            "multiplier": 1
+          }
+        },
+        "absolute_factor_bound": null,
+        "operator_norm_upper": null,
+        "omitted_action_norm": null
+      }
+    },
+    "t": {
+      "type": "Array",
+      "dtype": "f64",
+      "shape": [
+        2
+      ],
+      "unit": {
+        "scale": "1",
+        "linear_power": 0,
+        "sr_power": 0,
+        "pixel_power": 0,
+        "nm_power": 0,
+        "multiplier": 1
+      },
+      "index_id": "output",
+      "values": [
+        1,
+        -0.5
+      ]
+    }
+  },
+  "arguments": {
+    "covariance": {
+      "$ref": "C"
+    },
+    "functional": {
+      "$ref": "t"
+    }
+  },
+  "request": {},
+  "resources": {
+    "bytes": 8388608,
+    "work": 100000,
+    "spill_bytes": 0,
+    "threads": 1,
+    "max_depth": 32,
+    "max_precision_bits": 128,
+    "scratch_directory": ".work"
+  },
+  "output_root": ".work/u01"
+}

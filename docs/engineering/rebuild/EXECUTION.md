@@ -100,7 +100,7 @@ SPD模型优先因子白化：C=F Fᵀ小系统Cholesky，病态用对称eigen�
 
 大系统首选 sparse QR；内存不能承受时LSMR，停止同时满足缩放残差 ||Dᵀr||∞≤abs_res+rel_res||D||1||r||∞ 和已要求的输出泛函残差界，且迭代数未超。默认 rel_res=1e−10、abs_res=1e−12（输入白化无量纲空间），它们不能代替科学 tolerance；未给有限下游误差证书仅conditional。仅covariance action时KKT+MINRES，内层求解的残差/作用误差纳外层证书。预条件器不得加ridge改变目标，可以只作迭代加速。没有验证大系统nullspace能力时返回not_identifiable/geometry_solve_unresolved，不用LSMR收敛自动证明唯一性。
 
-非线性PSF/photometry：每步按SYSTEM求GN/真实score导数，Armijo参数1e−4，回溯≤32次，改变量在精确likelihood下降且step norm与gradient都低于请求阈值才converged；默认step=1e−10、gradient=1e−8、outer≤100。目标不下降/overflow回溯失败nonconverged，不裁参数到任意物理值。covariance/influence只条件于报告的线性化模型，未知模型偏差不由Hessian变已知。
+非线性PSF/photometry：每步按SYSTEM求GN/真实score导数，Armijo参数1e−4，回溯≤32次，先检查当前驻点，小步/梯度与输出误差满足则converged；非驻点更新必须likelihood下降；默认step=1e−10、gradient=1e−8、outer≤100。非驻点且目标不下降/overflow回溯失败nonconverged，不裁参数到任意物理值。covariance/influence只条件于报告的线性化模型，未知模型偏差不由Hessian变已知。
 
 ### BLUE、PSD和非负QP
 
@@ -119,3 +119,11 @@ LOO只计算一次所有候选q，从最大|q|超过Φ⁻¹(1−α/(2N))者拒�
 GeometryRevision使Ω/A共同源相关、全部目标叶、全sky分量、selection/weight及Export依赖失效；有新闭包之前旧闭包完整可消费，不混版本。峰值旧+新闭包预留不足时按可验证checkpoint/spill串行，不提前销毁仍有Lease的数组。科学方向的反馈不在模块DAG建循环：workflows迭代控制调用geometry与下游纯函数，所有版本依赖仍无环。
 
 publish_product只有required quantities均达标、所有必需closed graph存在时产生complete=true；明确conditional信号可发布但capability/condition必须匹配用户接受的目标。资源耗尽的面积/diagnostics可写run目录，不能偷标正式complete产品。FP32失败→FP64；FP64量化仍超预算则publication nonconverged，不自动降低请求或无依据允许高精度FITS dtype（FITS signal首期仅float32/64）。高精度primitive及模型端点仍可持久化供后续计算。
+
+## 驻点、舍入停滞和非线性失败
+
+非线性每次迭代在线搜索前检查当前有限有效likelihood、可估空间的缩放score、参数/输出泛函误差；score与预测步均达请求阈值时允许零步收敛，likelihood不需再下降。无噪声初始化已经精确拟合的情形必须成功。仅对尚未满足停止条件的非零更新要求Armijo下降；步被舍入为零但score仍大是precision_exhausted/升级，不是收敛。非驻点且所有回溯失败才nonconverged。此规则替代前文对“目标不下降”不区分驻点的表述。
+
+## 可计算的SVD/eigen误差证书
+
+对数值SVD A≈UΣVᵀ，先向外求δU=||UᵀU−I||F、δV=||VᵀV−I||F及eR=||A−UΣVᵀ||F，δU/δV必须<1。极分解正交因子的距离界取eU=δU/(1+sqrt(1−δU))、eV同式，则奇异值绝对误差可取eR+eU||Σ||2 sqrt(1+δV)+eV||Σ||2，加输入矩阵区间的Frobenius半径与全部舍入界。所有范数、sqrt、乘加向外。δ≥1或界跨rank阈值则升级/未决，不省略正交缺陷。对称eigen A≈UΛUᵀ同理用δU及重建残差，给λ区间并区分显著负/零未决；精确零约束仍须结构来源。大系统无法给证书时只conditional数值秩，不升级为certified。

@@ -80,12 +80,12 @@ flowchart TD
 | acsd_model / src/model | C++20；身份、单位、数组索引及 action recipe 数据，不含 I/O |
 | acsd_numerics / src/numerics | model、Eigen、MPFR/GMP；区间、求积、QR/SVD/LSMR、PSD/QP |
 | acsd_coordinates / src/coordinates | model、numerics、WCSLIB、ERFA；规范 WCS、历元、曲边 |
-| acsd_observation / src/observation | model、numerics；校准和 G |
+| acsd_observation / src/observation | model、operators、uncertainty、numerics；校准和G |
 | acsd_catalogue / src/catalogue | model、coordinates；只读本地索引，Gaia/XP 解码 |
-| acsd_sources / src/sources | observation、coordinates、catalogue、numerics；盲解、PSF、科学源 |
+| acsd_sources / src/sources | observation、coordinates、catalogue、uncertainty、numerics；盲解、PSF、科学源 |
 | acsd_response / src/response | model、numerics；响应基积分 |
-| acsd_photometry / src/photometry | sources、response、numerics；联合尺度及影响 |
-| acsd_geometry / src/geometry | coordinates、numerics；唯一生产交叠与支持 Boolean |
+| acsd_photometry / src/photometry | sources、response、uncertainty、numerics；联合尺度及影响 |
+| acsd_geometry / src/geometry | coordinates、operators、numerics；唯一生产交叠与支持 Boolean |
 | acsd_operators / src/operators | model、numerics；CSR、组合、transpose；消费几何数据，不调用 geometry |
 | acsd_uncertainty / src/uncertainty | operators、numerics；根图、协方差、PSD 解 |
 | acsd_information / src/information | uncertainty、numerics；V_F/V_B/controls 及三角重建 |
@@ -106,7 +106,7 @@ flowchart TD
 1. 以 u16 DQ 保存 bad=1、saturated=2、nonlinear=4、missing=8、repaired=16；前四位默认不合格，repaired 必须附 G/influence 才可使用。NaN 的值与有效位冲突为 invalid_model。
 2. 原始二维 ADU 读入 FP64。dark 若含 bias，用 dark-bias 后再按曝光比缩放；不含 bias 则直接缩放。x=(d-b-t d_rate)/flat。flat 已按明确 normalization 标准化；flat≤0、溢出或饱和不做数值修复，保留 DQ。
 3. 输入 raw_noise 可指定完整 electron expectation 与读出因子。没有非负 electron expectation 时，gain/read 元数据本身不足以精确恢复 shot variance；默认 noise unknown；用户显式 Poisson plug-in 可用 max(d-b,0) 的电子期望并标 approximate。母版的噪声根按 shared_id 并入 Jacobian，而非每帧重建。
-4. sum/mean/crop/Bayer/flip/transpose 用显式 G、M、b。mean 恢复积分时乘成员数，noise 平方同变；有缺孔时成员及 footprint 必须对应，不用固定 bin 面积替代。signed G 的严格 Drizzle 路径在原生 photosite 上生成 R，再组合 R G 对观测核/噪声应用；不将 G 输出伪装成独立物理像元。
+4. sum/mean/crop/Bayer/flip/transpose 用显式 G、M、b。mean 恢复积分时乘成员数，noise 平方同变；有缺孔时成员及 footprint 必须对应，不用固定 bin 面积替代。G的严格维度及signed linear_view限制见下文；仅物理重组使用R_out G，原生路径只用R_native。
 5. 首期无自动非线性修复或去马赛克。API 收到无 influence 的数据依赖 G 返回 unsupported；合法未修复像元继续处理。
 
 ## N2 无 WCS 盲解（可实现的有界基线）
@@ -123,9 +123,9 @@ flowchart TD
 
 ## N3 PSF、源通量与联合标度
 
-科学源从 WCS 后 Gaia 预测独立选取；solver candidates 不转作测光源。以饱和/邻源/窗口掩码选择身份冻结后拟合。Gaussian 参数为 logσx、logσy、atanhρ；Moffat 为 logαx、logαy、atanhρ、log(β−1)；Airy 为 log angular_radius，圆对称。每源同时拟合连续位置、总 flux、常量/平面背景；flux 允许负，宽度/β 正参数用上述变换。空间 PSF 参数按归一 detector 的 degree≤2 多项式拟合，缺秩返回不可估，用户可重新请求常量，不暗中降阶。
+科学源从 WCS 后 Gaia 预测独立选取；solver candidates 不转作测光源。以饱和/邻源/窗口掩码选择身份冻结后拟合。Gaussian 参数为 logσx、logσy、atanhρ；Moffat 为 logαx、logαy、atanhρ、log(β−1)；Airy 为 log first_zero_radius_pixel，圆对称。每源同时拟合连续位置、总 flux、常量/平面背景；flux 允许负，宽度/β 正参数用上述变换。空间 PSF 参数按归一 detector 的 degree≤2 多项式拟合，缺秩返回不可估，用户可重新请求常量，不暗中降阶。
 
-Gaussian 无相关时 erf 可分离积分，相关时二维自适应积分；Moffat/Airy 对真实 footprint 分块求积。用解析尾质量界选择窗口（Gaussian erfc；Moffat (1+r²/α²)^(1−β)；Airy encircled-energy Bessel 恒等式），不把窗内归一为1。PRF 可用显式分段常量 photosite 响应；空间/谱变化只接受声明的分段多项式核，未给色相关参数时记录条件于 achromatic 模型。integral+tail 数值预算不满足则拒绝该测量能力，不以采样 PSF 替代。源间混叠以共同窗口联合线性 flux+background 求解；窗口巨大超预算可拒绝源，不裁掉邻源却声称总 flux。
+Gaussian 无相关时 erf 可分离积分，相关时二维自适应积分；Moffat/Airy 对真实 footprint 分块求积。用解析尾质量界选择窗口（Gaussian erfc；Moffat (1+r²/α²)^(1−β)；Airy encircled-energy Bessel 恒等式），不把窗内归一为1。PRF首期为单波段分段常量photosite响应；只支持下文明确的achromatic模型，色相关项记录unknown/conditional。integral+tail 数值预算不满足则拒绝该测量能力，不以采样 PSF 替代。源间混叠以共同窗口联合线性 flux+background 求解；窗口巨大超预算可拒绝源，不裁掉邻源却声称总 flux。
 
 PSF 非线性形参用 GN+Armijo 回溯（初始步1，减半，最多32步），每步 QR/SVD；迭代次数、参数梯度和步容差显式。拟合 influence 为 -(∂score/∂θ)^−1∂score/∂data，在可估空间计算，保留像元根、同星与 PSF 共用训练依赖。仅 GN 近似 Hessian 时标 conditional；不收敛返回 nonconverged。
 
@@ -153,7 +153,7 @@ photometry 采用科学分册 flux-domain joint Gaussian latent。θ=[log a,空�
 
 build_export 对目标 WCS 整像元 footprint 计算真叶和 support 的交集 b；可用 N4 target dyadic Boolean 表示复合支持，按目标像元积分行。均值行 b/Σb，支持积分行 b，外推行 Ω(E)b/Σb。same leaf 的多个片先合并 b；所有下游模型使用同一 Q。没有支持形状且 exact 请求则 unavailable；显式 full_leaf_approx 才使用完整 leaf。层级向下只对已知支持的四子叶按支持面积归约并保存独立 Q 与误差；没有完整支持用具名近似。不得把层级图作为同阶新观测供 Mosaic。
 
-HiPS tile width 首期512，必须叶 order≥9；低于9的严格模型仍可经合同驱动计算或 FITS Export，HiPS 发布返回 unsupported（不发非标准 tile）。最低可显示 order 为 tile order0，对应 leaf order9。每层唯一 signal FITS；properties 指明 hips_frame=equatorial、hips_order、hips_tile_width、hips_tile_format=fits、dataproduct_type=image。NorderK/DirD/NpixP.fits，D=floor(P/10000)*10000。Allsky.fits 按 HiPS 标准生成，PNG/JPEG 仅可选浏览派生且不成为第二科学图。
+HiPS默认tile宽512，可显式64/128/256，必须leaf_order≥log2(tile_width)，完整映射见下文。每层唯一 signal FITS；properties 指明 hips_frame=equatorial、hips_order、hips_tile_width、hips_tile_format=fits、dataproduct_type=image。NorderK/DirD/NpixP.fits，D=floor(P/10000)*10000。Allsky.fits 按 HiPS 标准生成，PNG/JPEG 仅可选浏览派生且不成为第二科学图。
 
 ## 依赖与双平台构建策略
 
@@ -162,3 +162,47 @@ HiPS tile width 首期512，必须叶 order≥9；低于9的严格模型仍可�
 Windows 科学 CLI 优先 MSYS2 UCRT64 GCC14+，MPFR/GMP 与库使用同一 CRT/ABI；Linux GCC14+/Clang18+、glibc，Ninja+系统依赖。GUI Qt6/MSVC独立，不跨 CRT 传 C++ 对象。AVX2/FMA 单独翻译单元运行时检测，baseline x86-64 无可选指令；认证区间禁 fast-math，FP contraction off，SIMD 结果需有向包含证据。库默认串行数值后端，由 Context 租线程。
 
 当前 CMake 的 design preset 只验证文档、schema、声明，不链接生产依赖。未来实现开关 ACSD_BUILD_SCIENCE=ON 才启用所需 find_package；缺依赖 configure 失败，禁止自动回旧目录。安装 CLI、contract、schema、VERSION、licenses；GUI 自己的 install 不进根目标。Linux tar.gz 与 Windows zip/安装包可由新打包实现生成，构建必须按 manifest 提供运行库及 LGPL 替换/重链接要求，许可证选择不凭空给整个项目添加许可。
+
+## 审核后冻结的连接细节
+
+### 盲解 catalogue/XP 公开能力与索引
+
+CatalogueProvider.describe给release/calibration、统一XP basis、quad角尺度覆盖和索引完备状态；query/quad-query均分页，page_size≤4096，cursor锁dataset hash和完整请求，空cursor起始、空next结束；不同查询复用cursor为invalid_request。query按source_id返回指定SkySearchRegion中传播历元后的星，brightness_mag及XP basis随记录可用。lookup按请求ID顺序返回，缺失给逐ID issue而不挤掉位置。query_quads按source四元组排序返回descriptor各分量区间及baseline范围内的所有已登记quad；regions空表示全索引，非空为明确center+radius并集。算法不downcast provider或读隐藏路径。
+
+本地索引构建入口build_catalogue_index使用CatalogueColumns：source_ids[N] u64，astrometry[N,8] f64，列为ra_rad,dec_rad,epoch_year,pmra_cosdec_rad_year,pmdec_rad_year,parallax_rad,RV_m_s,RV_present(0/1)；无RV数值位填0且present=0。brightness_mag[N]，xp_coefficients[N,d]与共同SpectralBasis绑定，noise按同source根保留。Gaia原生BP/RP的外定标和表示转换由GaiaXPy官方外定标模型离线解码为该统一分段多项式basis；保存release/模型/数值转换误差，不能把sampled插值当无损基函数。若用户只有sampled谱，必须输入其已知表示和协方差，物理模型状态conditional。所有帧使用provider.describe.xp_basis调用integrate_response；不从star coefficient长度猜basis。
+
+构建步骤：按order6分片，每片选最亮64星（brightness、source_id tie），每anchor取该片及相邻片中最近12个候选，每anchor最多16个由三邻点组成的quad（按最小三角面积递减、source tuple tie，排共线）。按基线角域筛选，去重source四元组，保两种镜像规范描述符。KD树以最大spread轴、坐标中位数递归，平手用source tuple；kd_left/right u64[Nq]（无子节点UINT64_MAX），kd_axis u8[Nq]、kd_split f64[Nq]、kd_bounds f64[Nq,4,2]。quad_source_ids[Nq,4]、quad_descriptors[Nq,4]、quad_baselines[Nq]rad、quad_centers[Nq,3]。排序/树构建可外存，配额不足返回resource_exhausted且index_complete=false，production不得悄悄用未完成索引当完整搜索。index_complete只针对此生成规则，不保证任何视场可解。
+
+quad不变式：最长基线端点A,B（长度平手按ID）；e=(B−A)/|B−A|，e_perp逆时针90°；其余C,D的坐标为 ((C−A)·e/|AB|,(C−A)·e_perp/|AB|)，对A/B交换、C/D交换和镜像枚举取字典最小四维向量并保实际置换。catalogue坐标用quad中心TAN平面，观测用detector连续中心；真实投影非仿射差由quad_descriptor_tolerance明确容纳，默认0.01（只作搜索heuristic，不作几何证书）。catalogue基线角范围等于观测最长边pixel×SolverRequest.scale_rad_pixel区间外包。regions取代旧centers，范围缺失不自行猜半径。搜索穷尽只证明该索引/阈值内未求解，不证明天空无解。query和lookup内存每页预算，source measurements可多遍按source分块。
+
+### 无WCS初态、模型绑定和G的维度
+
+Raw/校准Native始终拥有detector-only FootprintSet，但其wcs允许null；它们只定义真实收光域、身份和PRF。calibrate无需WCS/PSF/response，physical_collection=true，native_parent=null，regrouping=I，kernel/response可缺并记录能力。solve_astrometry消费该detector数据；解后bind_wcs创建新Native revision，绑定同Wcs到FootprintSet，校验整收光域，share数组不复制N个对象。fit_psf→measure源表后bind_observation_model把kernel与NormalizeFrame.response绑定新revision，保所有influence/输入依赖；apply_scale组合其transfer action，build_drizzle只能消费此后版本。绑相同模型可幂等返回同revision，绑定不同模型必须新revision，已scale状态不可换response而假装仍同单位。
+
+对G: n原生→m重组，只有physical_sum/physical_mean（非负、对应互不重复photosite的真实收光并集、系数分别1或1/成员数）产生可用物理重组样本；mean严格Drizzle前恢复sum。此时R_out是从m个重组收光域构造的leaf×m算子，总链为R_out G（leaf×n），不再写R_native G。一般signed/线性去马赛克为linear_view，可得到Gx及GCGᵀ作测量/诊断，但physical_collection=false且不伪造Ω/新物理footprint；直接build_drizzle返回unsupported。Normalize严格主路径保留native_parent，在原生CFA通道上使用R_native x，G派生不进入此signal链。未来若要signed输出重建须另定义估计量，当前不授权编码Agent自创。crop/flip/Bayer为物理选取，bin为物理并集，均支持。重复观测判重回溯original roots/source_index，不能用新channel名逃避同曝光重复。
+
+### 首期PSF唯一数学参数化
+
+首期只achromatic（wavelength_nm记录有效适用域，无谱插值PSF）；请求色相关分段核unsupported并记录未建色相关物理项。PSF先在原始detector平面给归一密度p_det[1/pixel²]，世界密度为p_det/g，在有效域条件下实现观测分册的积分；畸变不靠中心尺度代替换元。源位置偏移Δ以PixelCenter0为准。
+
+Gaussian：Σ=[[σx²,ρσxσy],[ρσxσy,σy²]]，m²=ΔᵀΣ⁻¹Δ，p_det=exp(−m²/2)/(2πsqrt(detΣ))。参数行依次logσx、logσy、atanhρ，σ单位pixel。Moffat同Σ但σ换α，p_det=(β−1)(1+m²)^−β/(πsqrt(detΣ))；参数行logαx、logαy、atanhρ、log(β−1)。Airy圆对称，参数行log r0，r0为第一暗环半径pixel；k=j_1,1/r0，j_1,1是J1第一正根（用有界根求解，不以截断常数当精确），p_det=k²/(4π)*[2J1(kr)/(kr)]²，r=0取极限。Gaussian/Moffat椭圆m>R尾分别exp(−R²/2)、(1+R²)^(1−β)；Airy圆r>R尾=J0(kR)²+J1(kR)²。
+
+parameters shape=[family参数数,多项式项数] f64，Basis按OBJECTS项序；空间degree≤2，center为detector域中心、scale为半宽，Basis实际值随对象持久化。Gaussian/Moffat形状矩阵保证SPD，非有限或极端无法积分给失败。PSF有限窗口内先按真实PRF分段，所有源/背景共窗拟合，窗口外质量不重归一。PixelResponse为独立空间PRF对象，不和谱Response混用；cells矩形在local photosite坐标，gains[波长bin,cell]非负，relative_mean_one时每波段在完整收光域面积平均=1；绝对概率模式各gain≤1。空cells是显式uniform假设，未知PRF误差仍unknown。
+
+evaluate_psf是唯一像元积分实现，fit/measure/information/sky均复用。EffectivePSF.detector_samples锁原生FootprintSet；regroup_scale_project从原生样本到当前输出（初始I，随后G、α、R、P、weights、Q按实际链组合），参数密度不再另含这些action。evaluate_psf返回[当前输出样本,请求源位置]的积分模板，有限模板bank不是对continuum隐式稠密矩阵。误差与尾界随输出Array的ErrorRecord引用；请求可分源位置块，禁止消费者各写一份PSF积分。局部模型外插只conditional，不以满矩形归一域冒称实测支持。
+
+### 稀疏actual-scene三角网构建和参考信息请求
+
+build_supported_triangulation是information模块的唯一2D Delaunay实现：控点投影到给定gnomonic Chart，要求点在chart定义域且距中心≤maximum_radius_rad（首期≤5°）；用Bowyer–Watson增量插入，初始超三角覆盖全部点，按输入hash固定排列，邻接walk定位与局部cavity更新。orientation/incircle用binary64过滤+GMP精确有理谓词；cocircular tie按控点ID，不加随机joggle；去掉超三角关联项。triangle只有完全在support中且不跨hole/不兼容response才保留，边界无法判包含则不可用/待细化，不能用顶点都在支持内代替整三角包含。共线返回unavailable，重合点同身份同值合并，冲突值invalid_model。算法典型O(M log M)、最坏O(M²)，全部实际work计费，未完成网不作为已观测支持。SupportedTriangulation.vertices[M,2]保存chart坐标，triangles[T,3]u64索引，查询barycentric与curvature误差复用该唯一basis。
+
+Normalize.information使用ReferenceInformationRequest，不要求用户预先知道尚未生成的R/h/C。positions非空按指定ICRS位置，空时流式枚举control_order叶中心且在该帧足迹支持内；control_order≤drizzle.order。工作流将位置逆到detector，用evaluate_psf生成原生模板、实际同R投影h，background Basis在同原生样本积分后经同R得到Z，再调用estimate_flux_information。reference.condition=actual_scene且native_noise为空时使用该帧真实noise图；named_reference/blank_background必须提供同native index的native_noise和明确条件（可用已知物理均值/电子gain/读出等构造），无模型则precision unavailable，不把actual photon variance改名为参考variance。提供的NoiseModel完整经G/α/R影响一次，C仍unknown时V_F unavailable，signal不受影响。用户若只需直接矩阵科学调用，InformationRequest仍接受显式h/Z/C，两个请求角色不混淆。
+
+所有观测点坐标属于FootprintSet.detector_frame；make_wcs显式接detector_frame并持久化，bind必须相同。盲解在图像采样格检测后先按FootprintSet.detector_from_sample与offset转到该detector坐标再拟合，match_radius_pixel/scale_rad_pixel及PSF宽度均以该detector单位解释；不得把Bayer采样间距误当真实photosite宽度。用户显式变换Wcs到新detector坐标系时，必须同时变换FootprintSet并给新detector_frame。
+
+Native.linear_view不能进入Normalize物理Drizzle；若NormalizeFrame.regroup=linear_view，配置预检返回unsupported，用户可在独立API使用该视图；原生通道Normalize由不请求该regroup明确表达，不能默默忽略请求。physical_sum/mean保持raw parent，空间α必须先在最原始physical parent逐样本应用再按G归并，不能把一个bin中心α代替各成员；apply_scale负责沿parent/action链确定次序，当前值与template/noise共用G Dα链。
+
+### 外部输入和FITS边界
+
+首期Normalize输入仅二维FITS主图或显式指定image HDU，BITPIX=8/16/32/64/−32/−64，按BSCALE/BZERO转FP64；BLANK/非有限标missing并保NaN。BUNIT须ADU或显式单位映射，electron图不能当ADU混入。DQ扩展若有须整数同shape，位按N1；明确SATURATE头或配置给出的阈值可标饱和，否则输入携带linear_unsaturated_assumed条件，不虚构线性/饱和边界已测。header冲突或第三轴不猜slice。time/exposure需明确单位和time scale，UTC→TDB用ERFA及观测者条件，缺输入误差单列。除显式supplied_wcs外，缺WCS头仍实际盲解；输入WCS参考系/投影按foundation准入。products/Raw构造由storage+CLI共享reader完成，driver可直接用公开RawObservation/Array而不需FITS。
+
+HiPS发布允许tile_log2_width=6..9（64/128/256/512，默认512）；leaf_order≥tile_log2_width，tile_order=leaf_order−tile_log2_width，低阶模型可选较小合法tile或FITS导出，不伪造索引。标准依据为[HiPS 1.0](https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf)与[HiPS原始论文](https://doi.org/10.1051/0004-6361/201526075)的可变tile宽定义，未采用HiPS2.0草案新增能力。

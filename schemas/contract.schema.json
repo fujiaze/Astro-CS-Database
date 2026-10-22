@@ -91,5 +91,10 @@
       "type": "string",
       "minLength": 1
     }
-  }
+  },
+  "allOf": [
+    {
+      "$ref": "https://acsd.invalid/schema/science-input/2"
+    }
+  ]
 }

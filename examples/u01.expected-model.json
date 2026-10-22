@@ -1,0 +1,20 @@
+{
+  "type": "Variance",
+  "data": {
+    "value": 4.328125,
+    "unit": {
+      "scale": "fixture:L",
+      "linear_power": 2,
+      "sr_power": -2,
+      "pixel_power": 0,
+      "nm_power": 0,
+      "multiplier": 1
+    },
+    "state": "known",
+    "numeric_enclosure": {
+      "lower": 4.328125,
+      "upper": 4.328125
+    },
+    "unknown_terms": []
+  }
+}

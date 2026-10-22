@@ -1,0 +1,19 @@
+{
+  "docs/engineering/rebuild/API.md": "0f1ac2e60465728e70b3015eb48a2d1b5cd8051fc354e5def283032bce3facc0",
+  "docs/engineering/rebuild/EXECUTION.md": "5a102e15d02812aa371ff732439b2dab10749cf44883f7e9e493af93b0d83057",
+  "docs/engineering/rebuild/OBJECTS.md": "e9b4b7afac9962dfbe0a58ad726796d22eb55405e67fee9a4863cb1ab5f7cfe2",
+  "docs/engineering/rebuild/README.md": "7b00c361f9f3df4b2eada99b910304214b18d45b80ffcebc9c6fb8db7c82f334",
+  "docs/engineering/rebuild/SYSTEM.md": "dec3381256601c472f02f682ff1154d2d9393b1af9c27907127aa2665f543993",
+  "docs/engineering/rebuild/VERIFICATION.md": "8fda2ea7fb1e72ad92ee0b7b6546a98dfb5040713767a80608dd89538d2bd388",
+  "include/acsd/contracts.hpp": "f2cea4680d21cd68a0621aca9ba646e6db45ad51f00827aaef8209f6eab1981b",
+  "schemas/cli-science.schema.json": "301eb13a80bee6a75cfe1c42c4ea664a647bf82f2075f71dd8081ac18a70242e",
+  "schemas/config.schema.json": "1268ff926c6b6356d8c46ff3db32cc758a94c083a3dcd68fe48f44ece4e67077",
+  "schemas/contract.schema.json": "41a46dd046e4d9fc6b81ac848deda52fb41c3c59707c86337ca5ee08424c8f61",
+  "schemas/events.schema.json": "c385a53b37826c0ed4b71efaeaf8550b11447f421f5e811819144e33f2a52c30",
+  "schemas/science-input.schema.json": "222878fb888e055a74074ea93ef6a04a5db281ff90a5dbe678ec1dff269d5699",
+  "examples/to-fits.expected-model.json": "539d400f3f69c6aa75be22fa11ba5cac50a06dfff673a457ac7ca1f1574627b1",
+  "examples/to-fits.request.json": "58a3f3358830e9d8a1634cbbbe1e4a2f59d22b5b98f04cce12c54efec0820bd9",
+  "examples/u01.expected-model.json": "4d5e73f7842bab8a7b3a2a475fe2a0e6dca65be9e64e4efbaf0a3f3bedfe5579",
+  "examples/u01.request.json": "e01ddc36d187b5c63df98c010567438f5cd9316082dd0c3b3355591fe079032f",
+  "examples/wcs.request.json": "1d96bbca72acc7778bba4bc2c8de1d55948722c002e4ab4ceb87e2a161e6811f"
+}

@@ -6,6 +6,8 @@ import re
 import sys
 from urllib.parse import unquote
 import jsonschema
+from referencing import Registry, Resource
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 errors = []
@@ -30,9 +32,12 @@ for path in ROOT.rglob('*.md'):
 for path in (ROOT / 'schemas').glob('*.json'):
     jsonschema.Draft202012Validator.check_schema(json.loads(path.read_text(encoding='utf-8')))
 schema = json.loads((ROOT / 'schemas/contract.schema.json').read_text(encoding='utf-8'))
+science_schema = json.loads((ROOT / 'schemas/science-input.schema.json').read_text(encoding='utf-8'))
+registry = Registry().with_resource(science_schema['$id'], Resource.from_contents(science_schema))
+subprocess.run([sys.executable, str(ROOT / 'tools/generate_contract_schema.py'), '--check'], check=True)
 for path in (ROOT / 'examples').glob('*.request.json'):
     request = json.loads(path.read_text(encoding='utf-8'))
-    for error in jsonschema.Draft202012Validator(schema).iter_errors(request):
+    for error in jsonschema.Draft202012Validator(schema, registry=registry).iter_errors(request):
         errors.append(f'{path.name}: {error.message}')
 
 header = (ROOT / 'include/acsd/contracts.hpp').read_text(encoding='utf-8')

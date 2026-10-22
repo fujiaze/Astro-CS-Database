@@ -9,35 +9,35 @@
       {
         "key": "CTYPE1",
         "value": {
-          "alternative": "string",
+          "alternative": "std::string",
           "value": "RA---TAN"
         }
       },
       {
         "key": "CTYPE2",
         "value": {
-          "alternative": "string",
+          "alternative": "std::string",
           "value": "DEC--TAN"
         }
       },
       {
         "key": "CUNIT1",
         "value": {
-          "alternative": "string",
+          "alternative": "std::string",
           "value": "deg"
         }
       },
       {
         "key": "CUNIT2",
         "value": {
-          "alternative": "string",
+          "alternative": "std::string",
           "value": "deg"
         }
       },
       {
         "key": "RADESYS",
         "value": {
-          "alternative": "string",
+          "alternative": "std::string",
           "value": "ICRS"
         }
       },
@@ -118,7 +118,8 @@
         "DCR"
       ],
       "omitted_position_bound_rad": null
-    }
+    },
+    "detector_frame": "fixture-detector"
   },
   "request": {
     "tolerance": {
@@ -130,7 +131,8 @@
         "sr_power": 0,
         "pixel_power": 0,
         "nm_power": 0,
-        "multiplier": 1
+        "multiplier": 1,
+        "linear_power": 0
       }
     },
     "max_iterations": 200,

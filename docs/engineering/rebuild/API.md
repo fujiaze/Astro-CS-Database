@@ -96,7 +96,7 @@ Result.code=ok 表示调用被完整处理且必要目标达标；partial value�
 | solve_astrometry | SolverRequest含搜索域/尺度/候选和假设限额、detect阈值、min_matches、SIP和budget；返回AstrometricSolution，未解返回unsolved及detector诊断，产品无Wcs；至少min_matches>参数秩，输入Wcs旁路由normalize显式选择且记录来源 |
 | fit_psf / measure_science_sources | fit_psf输出实际像元积分核，measure用该核和Gaia预测位置输出StarFlux及完整joint_noise/influence。max_outer取budget.max_iterations；源窗口无支持unavailable，非收敛源逐项记；可用源不足整体unavailable，不退回solver_detections |
 | integrate_response | Response/SpectralBasis/budget，输出v[d]、absolute_errors[d]及支持域；积分界不掩盖谱分辨率未知bias，缺尾界complete=false。相同响应和basis hash可按算术预算缓存 |
-| fit_photometry | measurements按PhotometryRequest.frames顺序（frames由reference_frames之外的measurement依赖frame_id建立），CatalogueStar按source_id与测量join，prediction按response一一对应；未观测latent不造数据。rank缺失返回not_identifiable带nullspace；GN失败nonconverged，不应用任意scale |
+| fit_photometry | measurements按PhotometryRequest.frames显式顺序，CatalogueStar按source_id与测量join，prediction按response一一对应；未观测latent不造数据。rank缺失返回not_identifiable带nullspace；GN失败nonconverged，不应用任意scale |
 | apply_scale | solution显式含frame，application_id不重复，原单位与模型匹配；输出新NativeObservation，α空间逐像元；下游PSF/noise/signal只取新revision |
 | build_drizzle | overlaps source全匹配NativeObservation、order/f同overlap身份；构造同R的signal/noise/support/response。no_support或未证明正支持不构造归一行。DrizzleRequest.requested_functionals必须反映最终量，area-only只能证明area |
 | RefinableGeometryProvider.open/refine、refine_geometry | open锁hash与闭包，refine依GeometryBudget生成immutable revision；base不存在missing_dependency；不能refine unsupported。GeometryRevision.next成功后事务替换依赖，前文失效协议适用 |
@@ -121,9 +121,9 @@ Result.code=ok 表示调用被完整处理且必要目标达标；partial value�
 
 [contract.schema.json](../../../schemas/contract.schema.json)定义envelope，类型字段由声明合同逐字段解码：struct对象字段名与声明一致，enum用枚举名小写，optional=null，vector为数组，std::array精确长度，pair为二元素数组，variant用 {"alternative":"类型名","value":...}。Ref<T>可 {"$ref":"局部object名或content hash"} 或 {"type":"T","data":{...}}；读取后生成有identity的immutable对象。用户输入可省Model.identity/assessment，由decoder生成（默认不假定任何科学保证，assessment按操作校验）；产品序列化不允许省。非Model struct内联。
 
-Array输入特例 {"type":"Array","dtype":"f64","shape":[...],"unit":{...},"index_id":"...","values":[...]} 仅合同驱动小例≤65536元素，驱动用Storage.copy，数值必须有限；较大输入用OBJECTS block descriptors和hash。抽象LinearAction wire为 {"type":"LinearAction","recipe":...,"children":[refs],"arrays":[refs]}，CovarianceAction由NoiseModel decode+make_covariance；FramesProvider wire为descriptions/signals/dq后调用make_frames_provider；FootprintProvider只能canonical_tan_sip带WcsRef；Refinable/Product provider必须open公开产品。无需独立Agent继承内部生产类。
+Array输入特例 {"type":"Array","dtype":"f64","shape":[...],"unit":{...},"index_id":"...","values":[...]} 仅合同驱动小例≤65536元素，驱动用Storage.copy，数值必须有限；较大输入用OBJECTS block descriptors和hash。抽象LinearAction wire为 {"type":"LinearAction","recipe":...,"children":[refs],"arrays":[refs]}，CovarianceAction由NoiseModel decode+make_covariance；FramesProvider wire为descriptions/signals/dq后调用make_frames_provider；FootprintProvider的typed data为{wcs:WcsRef}，只构造canonical_tan_sip实现；Refinable/Product provider必须open公开产品。无需独立Agent继承内部生产类。
 
-驱动operation白名单等于头文件free函数名称，重载forward/to_fits用 input字段point.type明确，Storage.copy/read和provider方法用 operation="storage.copy"/"frames.read_leaf_block"等限定名，输入字段对应参数名，Context从resources构造。input_objects是局部名→typed对象，arguments是函数参数名→ref/值，request字段是最后一个请求参数（无请求则{}）；多个Ref参数都在arguments。shape/type/未知字段是硬校验，拒绝对象循环/forward引用；input_objects按依赖拓扑解码后调用同一API，无科学预计算。输入对象hash由响应返回；driver不得对期望结果调容差。
+驱动operation白名单等于头文件free函数名称，重载forward/to_fits用 input字段point.type明确，Storage.copy/read和provider方法用 operation="storage.copy"/"frames.read_leaf_block"等限定名，输入字段对应参数名，Context从resources构造。input_objects是局部名→typed对象，arguments是函数参数名→ref/值，request字段是最后一个请求参数（无请求则{}）；多个Ref参数都在arguments。shape/type/未知字段是硬校验，拒绝对象循环/缺失引用；input_objects按依赖拓扑解码后调用同一API，无科学预计算。输入对象hash由响应返回；driver不得对期望结果调容差。
 
 result.json字段：protocol,major,request_id,operation,input_hashes,resolved_request_hash,build,algorithm_set,arithmetic,result（对应Result<T>），objects（所有输出typed对象），resources。科学nonconverged也写正常JSON并exit0，读者必须看result.code/assessment及每行状态；语法/解码/文件读取失败exit2并写同envelope的result.code。没有实现的operation返回unsupported，不能伪造示例response。stdout为JSONL事件，科学数据只入result文件。
 
@@ -138,3 +138,43 @@ Normalize每项input含frame_id、FITS path、可选calibration与response对象
 JSONL每行UTF8单对象：protocol=acsd.events/2，run_id，seq（从0严格递增），event（run_started/frame_started/block_progress/frame_finished/product_published/issue/run_finished），frame_id/block可null，code，assessment可null，completed,total（同kind单位），message。单写者归并事件序列，stderr仅常规人类日志，输出背压队列有限、合并进度事件但不能丢issue/terminal。每run恰一个run_finished，含exit_code及summary；意外崩溃可能缺terminal，GUI必须标失败，不能推断成功。取消：GUI向stdin写 {"protocol":"acsd.control/2","command":"cancel","run_id":...} 换行，CLI控制线程发token；Ctrl-C/SIGTERM同效果。取消先等安全边界清理，无自动kill超时后冒称完整结束。GUI必要时用户主动终止标aborted。
 
 GUI管理配置、输入分组、运行/取消、事件显示与产品浏览；不解析内部C++对象、不做science运算、不依赖旧ABI。Qt6独立进程启动可与Windows UCRT科学CLI组合；GUI版本探测config/event major，不兼容拒绝启动并给原因。
+
+## 首轮审核修订后的新增操作与排序
+
+声明中的全部free函数参数已有名字。驱动的arguments只含非context、非request参数，最后名为request的参数放envelope.request；没有该参数则request必须{}。原始wire名单以已命名声明为准，禁止按未命名类型猜key。to_fits/forward重载仍由point.type判别。
+
+新增操作：
+- detector_footprint(footprints,source_row)：流式解析一条detector足迹，不需要WCS；绑定后才可几何。
+- bind_wcs(observation,wcs)：校验完整域并创建immutable revision，原生数组共享；无WCS校准合法。
+- bind_observation_model(observation,kernel,response)：将fit结果及响应绑定同观测新revision，校验frame/source index和实际G；不应用α、不改数值，已scale改变response拒绝identity_conflict。
+- build_catalogue_index(request)/make_catalogue_provider(index)：公开列式输入构建有界离线quad索引/只读provider，不藏路径；metadata与页面/XP basis见SYSTEM及声明。
+- evaluate_psf(psf,request)：单一PSF积分及实际transfer链，输出[output sample,source position]模板。预算失败保有效包围和原因，不能另以整数采样替代。
+这些操作是CLI/driver与科学模块实际消费者的接口，不引入插件或注册会话。
+
+PhotometryRequest.frames给唯一明确顺序K，与responses/predictions及measurements长度相同；measurements[k].frame=frames[k]。每帧同Gaia source_id通过CatalogueStar release/calibration共享latent；star数据是各测量源ID的并集且唯一。prediction[k].basis必须是这些星的共同xp_basis，responses[k]同prediction response。PhotoSolution.frames/theta/response顺序沿用请求；theta shape[K,P]。Gaia绝对latent测量固定光度尺度，不额外固定任一帧a=1；空间项均值零是唯一标量/空间分离约束。旧reference_frames字段已删除，不授权编码Agent自创参考帧光度gauge。allow_relative_uncalibrated只在完整拟合不可用时保原生具名相对信号，不伪造绝对尺度。
+
+Normalize调用顺序确定为calibrate→可选物理regroup→solve/supplied WCS→bind_wcs→fit_psf/measure→bind_observation_model→integrate_response/fit_photometry→apply_scale→geometry/build_drizzle→information→publish。一般linear_view不是严格Drizzle输入，Normalize回原生parent投影须在运行配置中显式记录此路径；不得无提示以Gx代替原生。
+
+所有provider methods在驱动用固定字段表：catalogue.query的request=CatalogueQuery，catalogue.query_quads的request=QuadQuery，catalogue.lookup的arguments.source_ids，frames.read_leaf_block的request=FrameReadRequest，footprint.forward_interval的arguments.domain、boundary_interval的arguments.curve/parameter、refinable.open的arguments.snapshot。其余methods在声明里命名；schema decoder不得允许任意私有方法。
+
+Unit增加linear_power：信号L为1，variance为2，纯面积/功能系数为0；scale锁同一个L身份，sr/pixel/nm指数按代数传播。CovarianceAction作为数值C映射：输入functional单位U，输出单位(signal_unit²)*U；quadratic_form单位(signal_unit²)*U²。C的index恒为signal index；输入系数可为无量纲或带sr的孔径，不能误要求functional具有signal单位。默认DomainUnits记录C对无量纲输入时的variance输出；带单位functional由调用显式乘积校验。
+
+### 可机检的科学输入与CLI科学文件
+
+[science-input.schema.json](../../../schemas/science-input.schema.json)由唯一声明导出每种struct实际字段、数组维数类型、enum、Ref及全部operation参数；contract.schema直接引用它。本机验证器注册本地schema，不访问占位域名acsd.invalid。运行tools/generate_contract_schema.py再check_design --同步检查；生成物不能反向修改科学。Schema只检形状；单位/index/支持/PSD/原语能力等语义仍须在集中边界校验，合法JSON不等于科学有效。
+
+CLI的scientific文件按[cli-science.schema.json](../../../schemas/cli-science.schema.json)，形状为{command,request,frame_options?}，command必须等config.command。request是对应workflow类型去掉I/O注入字段：Normalize去frames/outputs，Mosaic去inputs/output，Export去input/output。Normalize.frame_options是{frame,supplied_wcs,regroup}列表（可省为空），按frame ID join config.inputs，不得有重复/未知frame；缺项默认null/null。frames的raw/Calibration/Response由input文件构建，calibration缺省是显式无母版/噪声unknown，不从目录搜索。Mosaic/Export input从manifest锁hash构造。Normalize.outputs为config.output下按frame ID的SHA256十六进制目录，避免路径注入；publication默认FP64/tile512/durable，与展开请求一起记录。若用户要求不同dtype/tilesize/durability，在科学文件之外用config.publication显式覆盖并展开，Export与projection.output_dtype必须一致，否则invalid_request。
+
+ReferenceInformationRequest的noise可空只有actual_scene分支；named_reference/blank_background缺noise返回precision unavailable，不能填零，也不取消合法signal。build_supported_triangulation(controls,chart,support)输出可恢复的有限观测三角网，失败/资源未完成不提供可用网；全部插值只在其支持内。输入物理组件没有给出时，接口不授权Agent推导未知shot variance。
+
+C++参数名是唯一wire key；variant标签严格用声明的std::string/double/std::int64_t。JSON数字可为有限decimal；规范持久化f64位编码另由产品decoder读取，调用输入也允许{f64:16hex}保精度，并先拒绝其NaN/Inf位模式。所有Array.values按dtype范围与shape检查；Array小例index_id别名必须解析后再校验。输入对象DAG不按JSON key顺序绑定。
+
+同一schema可以实际校验[U01矩阵请求](../../../examples/u01.request.json)：包含完整索引、CSR R、整数F、共享根及C对象、signed aperture和运行资源，无伪造identity/hash。期望方差4.328125L²/sr²；输入、调用及输出真值模型在examples说明，未宣称驱动已运行。
+
+### JSON整数、初始化与验证顺序
+
+u64必须由保留64位整数的parser读取；C++/Python可直接用十进制JSON整数，JavaScript客户端必须采用无损整数解析，不能先JSON.parse成double再声称相同输入。大型index/ids在u64二进制块中传递，GUI事件与产品浏览不要求它自行重算NESTED。外部f64位模式先检查有限，decimal容差取不宽于请求的保守解析值并保原lexeme身份。
+
+CLI初始化一个CpuResources实现、一个Storage实现和取消源，按Limits创建Context；独立C++调用者可实现这三份公开接口或复用services实现。实现中Resources原子准入、Storage内存/磁盘backend及immutable arrays均遵循EXECUTION，无注册会话、无科学全局配置。所有大数组以Storage.copy/读取构造；发布前对象可由caller独占builder组装，consumer集中校验，publish后Ref<const>不可写。
+
+校验顺序固定：协议/字段/类型→尺寸与溢出、单位/index/identity→科学域/能力与资源准入→算法→逐泛函误差/状态→序列化量化→发布闭包。无效模型在消费边界一次拒绝，内部已验证块不逐元素重复防御或记录日志。未知能力只限制对应操作，不能把合法负值/零删掉。

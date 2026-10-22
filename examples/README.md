@@ -11,3 +11,5 @@ acsd-contract --request examples/to-fits.request.json --response result.json
 [WCS示例](wcs.request.json)完整调用make_wcs，返回crpix=[1.25,2.5]、degree转rad的镜像CD与完整单射/域证书。将结果Wcs typed对象提供给forward，point=PixelCenter0(.25,1.5)须返回[1,0,0]方向及数值误差。输出不能预填零归一误差。无旧产品依赖。
 
 配置遵循schemas/config.schema.json，scientific引用typed请求文件。科学tolerance、响应、历元和尺度搜索域必须填，无全仪器零配置。
+
+U01完整矩阵调用：acsd-contract --request examples/u01.request.json --response result.json。输入24列整数F精确给FFᵀ=C，经R与signed t得到方差真值4.328125，见u01.expected-model.json；实际返回数值包围只需包含真值，不要求宽度为0。该夹具及schema已验证，科学驱动尚未实现。

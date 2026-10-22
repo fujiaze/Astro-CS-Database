@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acsd.invalid/schema/cli-science/2",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "normalize"
+        },
+        "request": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "astrometry": {
+              "$ref": "https://acsd.invalid/schema/science-input/2#/$defs/SolverRequest"
+            },
+            "psf": {
+              "$ref": "https://acsd.invalid/schema/science-input/2#/$defs/PsfRequest"
+            },
+            "photometry": {
+              "$ref": "https://acsd.invalid/schema/science-input/2#/$defs/PhotometryRequest"
+            },
+            "drizzle": {
+              "$ref": "https://acsd.invalid/schema/science-input/2#/$defs/DrizzleRequest"
+            },
+            "information": {
+              "type": "array",
+              "items": {
+                "$ref": "https://acsd.invalid/schema/science-input/2#/$defs/ReferenceInformationRequest"
+              }
+            },
+            "allow_relative_uncalibrated": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "astrometry",
+            "psf",
+            "photometry",
+            "drizzle",
+            "information",
+            "allow_relative_uncalibrated"
+          ]
+        },
+        "frame_options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "frame",
+              "supplied_wcs",
+              "regroup"
+            ],
+            "properties": {
+              "frame": {
+                "type": "string"
+              },
+              "supplied_wcs": {
+                "$ref": "https://acsd.invalid/schema/science-input/2#/$defs/WcsModelRef"
+              },
+              "regroup": {
+                "anyOf": [
+                  {
+                    "$ref": "https://acsd.invalid/schema/science-input/2#/$defs/RegroupRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "command",
+        "request"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "mosaic"
+        },
+        "request": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sky": {
+              "$ref": "https://acsd.invalid/schema/science-input/2#/$defs/SkyRequest"
+            },
+            "coaddition": {
+              "$ref": "https://acsd.invalid/schema/science-input/2#/$defs/CoaddRequest"
+            }
+          },
+          "required": [
+            "sky",
+            "coaddition"
+          ]
+        }
+      },
+      "required": [
+        "command",
+        "request"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "export"
+        },
+        "request": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "projection": {
+              "$ref": "https://acsd.invalid/schema/science-input/2#/$defs/ExportRequest"
+            }
+          },
+          "required": [
+            "projection"
+          ]
+        }
+      },
+      "required": [
+        "command",
+        "request"
+      ]
+    }
+  ]
+}
