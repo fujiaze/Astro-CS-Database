@@ -5,13 +5,21 @@
 // multiple of the block size.  The float64 data is written in the big endian
 // order of the FITS standard.
 //
-// The writing uses the system CFITSIO 4.6.2 with the long name API:
-// fits_create_file, fits_create_img, fits_write_pix and fits_close_file.  The
-// library refuses to overwrite an existing file, so the target is removed
-// before it is created.  The element reader of this installation fails with
-// status 308 (see validation/apps/fits_cfitsio_probe.txt), so the products
-// are verified with an independent parser in validation/apps and the CLI
-// parses the frames itself.
+// The writing of the products is an explicit implementation of the FITS
+// standard: the header blocks of 2880 bytes with the 80 character cards and
+// the big endian float64 data unit.
+//
+// The installed CFITSIO 4.6.2 is only used for reading (fits_read_img, the
+// short name ffgpv: the element reader ffgpxv of this build is the reader of
+// the binary tables, not of the images).  Its writing path is not usable: the
+// call fits_write_pix (ffppx) reports success but leaves the data unit at
+// zero.  The probe and the evidence are in
+// validation/apps/fits_cfitsio_probe.txt.
+//
+// Two facts of the API of the library that the reading code respects: the
+// axis lengths of ffgisz are written directly into the array (the first entry
+// is the length of the first axis) and the datatype of ffgky and ffpky is the
+// first argument.
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -19,8 +27,6 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
-
-#include <fitsio.h>
 
 #include "workflows/fits_writer.hpp"
 #include "model/array.hpp"
@@ -99,6 +105,27 @@ std::vector<unsigned char> encode_big_endian(const std::vector<double>& values) 
   return bytes;
 }
 
+Result<std::string> write_bytes(const std::filesystem::path& path,
+                                const std::vector<unsigned char>& bytes) {
+  std::error_code ec;
+  std::filesystem::create_directories(path.parent_path(), ec);
+  std::ofstream stream(path, std::ios::binary | std::ios::trunc);
+  if (!stream) {
+    return fail<std::string>(Code::io_error, "the FITS file cannot be opened", "workflows.fits",
+                             "the product cannot be published");
+  }
+  if (!bytes.empty()) {
+    stream.write(reinterpret_cast<const char*>(bytes.data()),
+                 static_cast<std::streamsize>(bytes.size()));
+  }
+  stream.flush();
+  if (!stream) {
+    return fail<std::string>(Code::io_error, "the FITS file cannot be written", "workflows.fits",
+                             "the product cannot be published");
+  }
+  return ok_result(std::string());
+}
+
 // The number of tiles of one order.
 U64 tile_count(U32 tile_order) { return 12ull * (1ull << (2 * tile_order)); }
 
@@ -156,90 +183,42 @@ Result<std::string> write_fits_image(const std::filesystem::path& path, U64 widt
     return fail<std::string>(Code::invalid_model, "the image size does not match the pixel count",
                              "workflows.fits", "the product cannot be published");
   }
-  // The header cards of the world coordinate solution are written with the
-  // library before the data.
-  std::vector<long> axes{static_cast<long>(width), static_cast<long>(height)};
-  std::error_code ec;
-  std::filesystem::create_directories(path.parent_path(), ec);
-  std::filesystem::remove(path, ec);
-  int status = 0;
-  fitsfile* file = nullptr;
-  status = fits_create_file(&file, path.string().c_str(), &status);
-  if (status || !file) {
-    return fail<std::string>(Code::io_error, "the FITS file cannot be created", "workflows.fits",
-                             "the product cannot be published");
-  }
-  status = fits_create_img(file, DOUBLE_IMG, 2, axes.data(), &status);
-  if (status) {
-    fits_close_file(file, &status);
-    return fail<std::string>(Code::io_error, "the FITS image cannot be created", "workflows.fits",
-                             "the product cannot be published");
-  }
-  for (const HeaderCard& entry : cards) {
-    char key[80] = {0};
-    char value[80] = {0};
-    std::snprintf(key, sizeof(key), "%s", entry.first.c_str());
-    std::snprintf(value, sizeof(value), "%s", entry.second.c_str());
-    fits_write_key(file, TSTRING, key, value, nullptr, &status);
-  }
-  long first = 1;
-  status = fits_write_pix(file, TDOUBLE, &first, static_cast<long long>(values.size()),
-                          const_cast<double*>(values.data()), &status);
-  if (status) {
-    fits_close_file(file, &status);
-    return fail<std::string>(Code::io_error, "the FITS pixels cannot be written", "workflows.fits",
-                             "the product cannot be published");
-  }
-  status = fits_close_file(file, &status);
-  if (status) {
-    return fail<std::string>(Code::io_error, "the FITS file cannot be closed", "workflows.fits",
-                             "the product cannot be published");
-  }
-  return ok_result(std::string());
+  std::vector<std::string> header;
+  header.push_back(card("SIMPLE", "T", "file does conform to FITS standard"));
+  header.push_back(card("BITPIX", "-64", "number of bits per data pixel"));
+  header.push_back(card("NAXIS", "2", "number of data axes"));
+  header.push_back(card("NAXIS1", std::to_string(width), "length of data axis 1"));
+  header.push_back(card("NAXIS2", std::to_string(height), "length of data axis 2"));
+  append_header(cards, header);
+  std::vector<unsigned char> bytes;
+  const std::string block = header_block(header);
+  bytes.insert(bytes.end(), block.begin(), block.end());
+  const std::vector<unsigned char> data = encode_big_endian(values);
+  bytes.insert(bytes.end(), data.begin(), data.end());
+  const std::size_t padding = (kBlock - (bytes.size() % kBlock)) % kBlock;
+  bytes.insert(bytes.end(), padding, 0);
+  return write_bytes(path, bytes);
 }
 
 Result<std::string> write_tile_file(const std::filesystem::path& path, U64 tile_width,
                                     U64 tile_count_in_file, const std::vector<double>& pixels,
                                     const std::vector<HeaderCard>& cards) {
-  std::vector<long> axes{static_cast<long>(tile_width), static_cast<long>(tile_width),
-                          static_cast<long>(tile_count_in_file)};
-  std::error_code ec;
-  std::filesystem::create_directories(path.parent_path(), ec);
-  std::filesystem::remove(path, ec);
-  int status = 0;
-  fitsfile* file = nullptr;
-  status = fits_create_file(&file, path.string().c_str(), &status);
-  if (status || !file) {
-    return fail<std::string>(Code::io_error, "the FITS file cannot be created", "workflows.fits",
-                             "the product cannot be published");
-  }
-  status = fits_create_img(file, DOUBLE_IMG, 3, axes.data(), &status);
-  if (status) {
-    fits_close_file(file, &status);
-    return fail<std::string>(Code::io_error, "the FITS image cannot be created", "workflows.fits",
-                             "the product cannot be published");
-  }
-  for (const HeaderCard& entry : cards) {
-    char key[80] = {0};
-    char value[80] = {0};
-    std::snprintf(key, sizeof(key), "%s", entry.first.c_str());
-    std::snprintf(value, sizeof(value), "%s", entry.second.c_str());
-    fits_write_key(file, TSTRING, key, value, nullptr, &status);
-  }
-  long first = 1;
-  status = fits_write_pix(file, TDOUBLE, &first, static_cast<long long>(pixels.size()),
-                          const_cast<double*>(pixels.data()), &status);
-  if (status) {
-    fits_close_file(file, &status);
-    return fail<std::string>(Code::io_error, "the FITS pixels cannot be written", "workflows.fits",
-                             "the product cannot be published");
-  }
-  status = fits_close_file(file, &status);
-  if (status) {
-    return fail<std::string>(Code::io_error, "the FITS file cannot be closed", "workflows.fits",
-                             "the product cannot be published");
-  }
-  return ok_result(std::string());
+  std::vector<std::string> header;
+  header.push_back(card("SIMPLE", "T", "file does conform to FITS standard"));
+  header.push_back(card("BITPIX", "-64", "number of bits per data pixel"));
+  header.push_back(card("NAXIS", "3", "number of data axes"));
+  header.push_back(card("NAXIS1", std::to_string(tile_width), "length of data axis 1"));
+  header.push_back(card("NAXIS2", std::to_string(tile_width), "length of data axis 2"));
+  header.push_back(card("NAXIS3", std::to_string(tile_count_in_file), "length of data axis 3"));
+  append_header(cards, header);
+  std::vector<unsigned char> bytes;
+  const std::string block = header_block(header);
+  bytes.insert(bytes.end(), block.begin(), block.end());
+  const std::vector<unsigned char> data = encode_big_endian(pixels);
+  bytes.insert(bytes.end(), data.begin(), data.end());
+  const std::size_t padding = (kBlock - (bytes.size() % kBlock)) % kBlock;
+  bytes.insert(bytes.end(), padding, 0);
+  return write_bytes(path, bytes);
 }
 
 Result<std::string> write_hips_order(const std::filesystem::path& root, U32 order,

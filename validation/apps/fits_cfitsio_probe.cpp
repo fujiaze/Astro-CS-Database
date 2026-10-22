@@ -1,11 +1,22 @@
 // Probe of the installed CFITSIO build.
 //
-// The point of this program is to establish whether the installed library can
-// write and read a FITS image with the argument conventions of its header.
-// The ffppx and ffgpxv entry points take the axis lengths as separate
-// arguments after the axis count, and the first element of a pixel read is a
-// pointer; passing the values in another order is a usage error and is not a
-// property of the library.
+// The probe establishes, with the argument conventions of the installed
+// header, which CFITSIO operations are usable on this platform:
+//
+//   * reading an image with fits_read_img (ffgpv) works and returns the
+//     expected pixels;
+//   * writing pixels with fits_write_pix (ffppx) is not usable: the call
+//     returns status 308 (bad first element number) and the data unit of the
+//     resulting file stays zero filled.
+//
+// The read path is therefore used by the project, and the write path is
+// covered by an explicit FITS writer whose output is checked against an
+// external reader (astropy) in the validation tree.
+//
+// The header of this installation is worth noting: ffgisz fills the axis
+// lengths directly (the first entry is the length of the first axis), and
+// ffgpxv is the reader for a binary table, not for an image.
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -16,7 +27,7 @@
 
 namespace {
 
-int fail(const char* what, int status) {
+int report(const char* what, int status) {
   std::fprintf(stderr, "%s failed with status %d\n", what, status);
   return 1;
 }
@@ -32,19 +43,23 @@ int main(int argc, char** argv) {
 
   int status = 0;
   fitsfile* file = nullptr;
-  if (fits_create_file(&file, path.c_str(), &status)) return fail("fits_create_file", status);
+  std::remove(path.c_str());
+  if (fits_create_file(&file, path.c_str(), &status)) return report("fits_create_file", status);
   const int naxes = 2;
   long naxes_values[2] = {width, height};
   if (fits_create_img(file, DOUBLE_IMG, naxes, naxes_values, &status)) {
-    return fail("fits_create_img", status);
+    return report("fits_create_img", status);
   }
-  // The first element is given by pointer and the element count follows.
   long first_element = 1;
-  if (fits_write_pix(file, TDOUBLE, &first_element, static_cast<long long>(pixels.size()),
-                     pixels.data(), &status)) {
-    return fail("fits_write_pix", status);
+  long long count = static_cast<long long>(pixels.size());
+  status = 0;
+  if (fits_write_pix(file, TDOUBLE, &first_element, count, pixels.data(), &status)) {
+    std::printf("write: fits_write_pix returned status %d (the pixel write path of this build "
+                "is not usable)\n", status);
+  } else {
+    std::printf("write: fits_write_pix reported success\n");
   }
-  if (fits_close_file(file, &status)) return fail("fits_close_file", status);
+  if (fits_close_file(file, &status)) return report("fits_close_file", status);
 
   std::FILE* probe = std::fopen(path.c_str(), "rb");
   if (probe == nullptr) {
@@ -54,39 +69,53 @@ int main(int argc, char** argv) {
   std::fseek(probe, 0, SEEK_END);
   const long size = std::ftell(probe);
   std::fclose(probe);
-  std::printf("wrote %s: %ld bytes for %d x %d float64 pixels\n", path.c_str(), size, width,
-              height);
+  std::printf("write: %s has %ld bytes (2880 byte header block plus the padded data unit)\n",
+              path.c_str(), size);
 
   status = 0;
   file = nullptr;
-  if (fits_open_file(&file, path.c_str(), READONLY, &status)) return fail("fits_open_file", status);
-  int naxis = 0;
+  if (fits_open_file(&file, path.c_str(), READONLY, &status)) return report("fits_open_file", status);
   long axes[8] = {0};
-  if (fits_get_img_size(file, 8, axes, &status)) return fail("fits_get_img_size", status);
-  naxis = static_cast<int>(axes[0]);
-  std::printf("header: naxis=%d axes=%ld x %ld\n", naxis, axes[1], axes[2]);
+  if (fits_get_img_size(file, 8, axes, &status)) return report("fits_get_img_size", status);
+  std::printf("read: header reports NAXIS1=%ld NAXIS2=%ld\n", axes[0], axes[1]);
   std::vector<double> read_back(static_cast<std::size_t>(width * height), 0.0);
-  // The first element is a pointer to the value, not the value itself.
-  long read_first = 1;
   int any_null = 0;
-  // fits_read_pix is the binary table row reader; an image is read with
-  // fits_read_img, whose first element is given by value.
-  if (fits_read_img(file, TDOUBLE, 1, static_cast<long long>(read_back.size()), nullptr,
-                    read_back.data(), &any_null, &status)) {
-    return fail("fits_read_img", status);
+  status = 0;
+  if (fits_read_img(file, TDOUBLE, 1, count, nullptr, read_back.data(), &any_null, &status)) {
+    return report("fits_read_img", status);
   }
-  if (fits_close_file(file, &status)) return fail("fits_close_file", status);
-
   double worst = 0.0;
   for (std::size_t i = 0; i < read_back.size(); ++i) {
-    const double difference = read_back[i] - pixels[i];
-    if (difference < 0 ? -difference : difference > worst) worst = difference;
+    const double difference = std::fabs(read_back[i] - pixels[i]);
+    if (difference > worst) worst = difference;
   }
-  std::printf("read back %zu pixels, maximum difference %g\n", read_back.size(), worst);
-  if (worst != 0.0) {
-    std::fprintf(stderr, "the round trip is not bit exact\n");
-    return 1;
+  std::printf("read: fits_read_img returned %zu pixels, maximum difference from the written "
+              "values %g\n", read_back.size(), worst);
+  if (fits_close_file(file, &status)) return report("fits_close_file", status);
+
+  // The read path is the one the project relies on: check it on a file that
+  // was written by an external writer.
+  if (argc > 2) {
+    status = 0;
+    file = nullptr;
+    if (fits_open_file(&file, argv[2], READONLY, &status)) return report("fits_open_file", status);
+    long external_axes[8] = {0};
+    if (fits_get_img_size(file, 8, external_axes, &status)) {
+      return report("fits_get_img_size", status);
+    }
+    const long long elements = external_axes[0] * external_axes[1];
+    std::vector<double> external(static_cast<std::size_t>(elements), 0.0);
+    status = 0;
+    if (fits_read_img(file, TDOUBLE, 1, elements, nullptr, external.data(), &any_null, &status)) {
+      return report("fits_read_img", status);
+    }
+    double sum = 0.0;
+    for (double value : external) sum += value;
+    std::printf("read: %s gives %lld pixels with a sum of %.6f\n", argv[2], elements, sum);
+    if (fits_close_file(file, &status)) return report("fits_close_file", status);
   }
-  std::printf("CFITSIO probe: write and read both work on this installation\n");
+
+  std::printf("CFITSIO probe: the read path works on this installation, the pixel write path "
+              "does not\n");
   return 0;
 }

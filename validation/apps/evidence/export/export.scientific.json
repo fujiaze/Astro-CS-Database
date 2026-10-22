@@ -1,0 +1,60 @@
+{
+ "command": "export",
+ "request": {
+  "projection": {
+   "target": {
+    "model": {
+     "crpix_fits1": [
+      8.5,
+      8.5
+     ],
+     "cd_rad_per_pixel": [
+      -0.00017453292519943296,
+      0.0,
+      0.0,
+      0.00017453292519943296
+     ],
+     "c": [
+      0.6451502731994485,
+      0.7479084586302502,
+      0.15625
+     ],
+     "e": [
+      -0.7572088465064845,
+      0.6531728429537768,
+      0.0
+     ],
+     "north": [
+      -0.10205825671152761,
+      -0.11831388226663819,
+      0.9877175393299442
+     ],
+     "domain": {
+      "lower": [
+       -0.5,
+       -0.5
+      ],
+      "upper": [
+       15.5,
+       15.5
+      ]
+     },
+     "detector_frame": "acsd.export.target"
+    },
+    "width": 16,
+    "height": 16
+   },
+   "quantity": "supported_mean",
+   "support_policy": "full_leaf_approx",
+   "assume_uniform_uncovered": false,
+   "output_dtype": "f64",
+   "budget": {
+    "area_absolute_sr": 1e-12,
+    "normalizer_min_sr": 1e-15,
+    "max_work": 2000000,
+    "max_bytes": 268435456,
+    "max_depth": 64
+   }
+  }
+ }
+}

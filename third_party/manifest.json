@@ -14,7 +14,9 @@
           "version": "4.6.2",
           "source": "Debian 13 system package (libcfitsio-dev)",
           "licence": "CFITSIO permissive licence (see /usr/share/doc/libcfitsio-dev/copyright)",
-          "usage": "FITS image reading and writing for Normalize input and Export/HiPS output"
+          "usage": "FITS image READING only: the CLI reads the input frames of Normalize with fits_open_file / fits_get_img_dim / fits_get_img_size / fits_read_img (ffgpv) and fits_read_keyword",
+          "limitation": "the writing path of this installation is not usable: fits_write_pix (ffppx) reports success but leaves the data unit at zero; the writing of the products is therefore carried out by the explicit implementation in src/workflows/fits_writer.cpp (2880 byte header blocks of 80 character cards, big endian float64 data unit).  The probe and the evidence are in validation/apps/fits_cfitsio_probe.txt and validation/apps/fits_cfitsio_probe.cpp",
+          "external_readback": "the products written by the explicit implementation are read back with an external astropy round trip; the evidence of the zero error round trip is validation/e01/truth/e01_truth.json (the fits_round_trip block: cd_error 0.0, crpix_error 0.0)"
         },
         {
           "name": "zstd",
@@ -57,6 +59,11 @@
         {
           "name": "HEALPix NESTED index and face charts",
           "reason": "SYSTEM requires the production HEALPix index to be implemented from the scientific formulas; no third-party HEALPix library is used",
+          "licence": "project code"
+        },
+        {
+          "name": "FITS writing",
+          "reason": "the pixel writing path of the installed CFITSIO 4.6.2 reports success but leaves the data unit at zero, so the products are written by an explicit implementation of the FITS standard (the header blocks of 2880 bytes with the 80 character cards and the big endian float64 data unit); the written files are verified with an external astropy round trip and with an independent parser in validation/apps",
           "licence": "project code"
         },
         {

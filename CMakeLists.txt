@@ -109,6 +109,28 @@ if(ACSD_BUILD_SCIENCE)
                                       projection response operators uncertainty resources storage
                                       model numerics coordinates observation catalogue)
 
+  # The observation module binds the world coordinate solution and the
+  # observation model to the observation.  The capability is detected from the
+  # sources of the module: while an entry point is missing the normalize
+  # workflow answers with the declared code (unsupported) instead of the build
+  # failing with an undefined symbol.
+  set(ACSD_OBSERVATION_BINDING OFF)
+  file(GLOB ACSD_OBSERVATION_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/observation/*.cpp)
+  foreach(ACSD_OBSERVATION_SOURCE ${ACSD_OBSERVATION_SOURCES})
+    file(READ ${ACSD_OBSERVATION_SOURCE} ACSD_OBSERVATION_CONTENT)
+    if(ACSD_OBSERVATION_CONTENT MATCHES "bind_wcs[ \\t]*\\(" AND
+       ACSD_OBSERVATION_CONTENT MATCHES "bind_observation_model[ \\t]*\\(")
+      set(ACSD_OBSERVATION_BINDING ON)
+    endif()
+  endforeach()
+  if(ACSD_OBSERVATION_BINDING)
+    target_compile_definitions(workflows PRIVATE ACSD_HAVE_OBSERVATION_BINDING=1)
+    message(STATUS "the observation binding of the world coordinate solution is available")
+  else()
+    message(STATUS "the observation binding of the world coordinate solution is missing: "
+                   "the normalize workflow answers unsupported")
+  endif()
+
   add_library(acsd_science INTERFACE)
   target_link_libraries(acsd_science INTERFACE workflows)
 

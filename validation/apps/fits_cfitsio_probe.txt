@@ -1,29 +1,6 @@
-CFITSIO 4.6.2 of this installation: what works and what does not
-==============================================================
-library : /usr/lib/x86_64-linux-gnu/libcfitsio.so.10.0.0 (libcfitsio-dev 4.6.2-2)
-header  : /usr/include/fitsio.h + longnam.h (the long names map onto the short ones)
-
-Working (verified with validation/apps/fits_cfitsio_probe.cpp and by the
-products of the apps module):
-  * writing: fits_create_file (the target must not exist), fits_create_img with
-    DOUBLE_IMG, fits_write_pix(file, TDOUBLE, &first, nelem, data, &status),
-    fits_close_file.  A 4x3 float64 image gives 5760 bytes and the products of
-    validation/apps/evidence/product_roundtrip.json are read back correctly.
-  * the header: fits_get_img_dim(file, &naxis, &status) and
-    fits_get_img_size(file, nlen, naxes, &status) with the axis count as a
-    separate argument.
-
-Not working in this installation:
-  * the element reader ffgpxv (the long name fits_read_pix) returns status 308
-    "bad first element number" for the frames of validation/x01 and for the
-    files written by the library itself.  Calling it with the first element by
-    value instead of by pointer segfaults, so the pointer convention of the
-    header is the right one: the defect is in the element access of this build.
-    The apps module therefore parses the FITS frames itself in the CLI and
-    verifies the published tiles with an independent parser
-    (validation/apps/check_product_roundtrip.py).
-
-The earlier note of the apps agent (an unbounded file of 63 GB) was caused by
-the call fits_get_img_size(file, &bitpix, &naxis, naxes, &status): the axis
-count is a separate argument, so the call wrote over the stack.  The writing
-path of the library is used again by src/workflows/fits_writer.cpp.
+write: fits_write_pix reported success
+write: /tmp/cfitsio_probe.fits has 5760 bytes (2880 byte header block plus the padded data unit)
+read: header reports NAXIS1=4 NAXIS2=3
+read: fits_read_img returned 12 pixels, maximum difference from the written values 3
+read: validation/x01/input/frames/frame_00_A.fits gives 16384 pixels with a sum of 34094952.741114
+CFITSIO probe: the read path works on this installation, the pixel write path does not

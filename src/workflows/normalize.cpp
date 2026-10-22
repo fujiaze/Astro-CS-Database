@@ -27,27 +27,6 @@
 #include "workflows/product_internal.hpp"
 
 
-// The observation module owns the world coordinate binding, the point spread
-// function, the source measurement and the observation model.  The
-// declarations below are weak so that the workflow can be built and can
-// report the missing capability while the module is still in flight; a
-// strong definition of the same symbol replaces the weak one.
-namespace acsd {
-extern Result<Ref<NativeObservation>> bind_wcs(Context& context, Ref<NativeObservation> observation,
-                                               Ref<WcsModel> wcs,
-                                               Ref<AstrometricSolution> solution) __attribute__((weak));
-extern Result<Ref<NativeObservation>> bind_observation_model(
-    Context& context, Ref<NativeObservation> observation, Ref<EffectivePSF> kernel,
-    Ref<Response> response) __attribute__((weak));
-extern Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> observation,
-                                          Ref<WcsModel> wcs, std::span<const CatalogueStar> stars,
-                                          const PsfRequest& request) __attribute__((weak));
-extern Result<Ref<SourceMeasurements>> measure_science_sources(
-    Context& context, Ref<NativeObservation> observation, Ref<WcsModel> wcs,
-    std::span<const CatalogueStar> stars, Ref<EffectivePSF> psf,
-    const PsfRequest& request) __attribute__((weak));
-}  // namespace acsd
-
 namespace acsd {
 namespace {
 
@@ -143,12 +122,17 @@ Result<Ref<SupportMap>> build_support(Context& context, const std::vector<Healpi
 Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& catalogue,
                                    const NormalizeRequest& request) {
   NormalizeResult result;
-  if (!bind_wcs || !bind_observation_model || !fit_psf || !measure_science_sources) {
-    return fail<NormalizeResult>(Code::unsupported,
-                                 "the observation module does not provide the world coordinate "
-                                 "binding, the point spread function and the source measurement",
-                                 "normalize", "no frame was processed");
-  }
+#if !ACSD_HAVE_OBSERVATION_BINDING
+  // The observation module does not bind the world coordinate solution and the
+  // observation model yet.  The capability is declared as unsupported instead
+  // of being a link error: the marker is set by the build from the sources of
+  // the module.
+  return fail<NormalizeResult>(
+      Code::unsupported,
+      "the observation module does not provide the binding of the world coordinate solution and "
+      "of the observation model",
+      "normalize", "no frame was processed");
+#endif
   if (request.frames.size() != request.outputs.size()) {
     return fail<NormalizeResult>(Code::invalid_request,
                                   "the frames and the outputs must have the same length",
@@ -230,6 +214,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       solution = val(solved);
       wcs = val(solved)->wcs;
     }
+#if ACSD_HAVE_OBSERVATION_BINDING
     Result<Ref<NativeObservation>> bound = bind_wcs(context, observation, wcs, solution);
     if (!ok(bound)) {
       outcome.failed = true;
@@ -241,6 +226,14 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       continue;
     }
     observation = val(bound);
+#else
+    outcome.failed = true;
+    outcome.code = Code::unsupported;
+    outcome.reason =
+        "the observation module does not bind the world coordinate solution to the observation";
+    result.frames.emplace_back(outcome.frame, outcome.assessment);
+    continue;
+#endif
     // The catalogue stars of the field: the candidates of the region are
     // taken from the catalogue and used for the point spread function and
     // for the source measurement.
@@ -290,6 +283,24 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       outcome.assessment = measured.assessment;
       continue;
     }
+#if ACSD_HAVE_OBSERVATION_BINDING
+    // The point spread function and the response are bound to the
+    // observation: the stochastic roots and the influence of the model are
+    // kept.
+    Result<Ref<NativeObservation>> modelled =
+        bind_observation_model(context, observation, val(psf), frame.response);
+    if (!ok(modelled)) {
+      outcome.failed = true;
+      outcome.code = modelled.code;
+      outcome.reason = modelled.assessment.issues.empty()
+                           ? "the observation model cannot be bound"
+                           : modelled.assessment.issues.front().reason;
+      outcome.assessment = modelled.assessment;
+      result.frames.emplace_back(outcome.frame, outcome.assessment);
+      continue;
+    }
+    observation = val(modelled);
+#endif
     observations.push_back(observation);
     measurements.push_back(val(measured));
     if (frame.response) responses.push_back(frame.response);

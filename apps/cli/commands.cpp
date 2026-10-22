@@ -416,82 +416,67 @@ std::string fits_message(int status) {
 // unit.  The library reader of the installed CFITSIO 4.6.2 rejects the
 // elements of the frames of the validation set with "bad first element
 // number"; the probe is recorded in validation/apps/fits_cfitsio_probe.txt.
-std::string trim(const std::string& text) {
-  const std::size_t first = text.find_first_not_of(" \t\r\n");
-  if (first == std::string::npos) return {};
-  const std::size_t last = text.find_last_not_of(" \t\r\n");
-  return text.substr(first, last - first + 1);
-}
-
+// Reads the primary image of a FITS file and its header cards.
+//
+// The reading uses the system CFITSIO 4.6.2: fits_open_file, fits_get_img_dim,
+// fits_get_img_size, fits_read_img (the short name ffgpv) and
+// fits_read_keyword.  Two facts of the API of the library are respected here:
+// the axis lengths of ffgisz are written directly into the array (the first
+// entry is the length of the first axis) and the element reader of the
+// images is ffgpv, not ffgpxv (which reads the rows of a binary table).
+// The writing path of the library is not usable (the data unit stays at
+// zero), so the products are written by the explicit writer of the workflows
+// module; see validation/apps/fits_cfitsio_probe.txt.
 Result<FitsImage> read_fits_image(const std::filesystem::path& path) {
-  std::ifstream stream(path, std::ios::binary);
-  if (!stream) {
-    return fail<FitsImage>(Code::invalid_request, "the FITS file cannot be read: " + path.string(),
-                           "cli.fits", "the frame cannot be processed");
+  int status = 0;
+  fitsfile* file = nullptr;
+  status = fits_open_file(&file, path.string().c_str(), READONLY, &status);
+  if (status || !file) {
+    return fail<FitsImage>(Code::invalid_request,
+                           "the FITS file cannot be read: " + fits_message(status), "cli.fits",
+                           "the frame cannot be processed");
   }
   FitsImage image;
-  bool header_done = false;
-  long naxis1 = 0;
-  long naxis2 = 0;
-  long bitpix = 0;
-  std::string header_text;
-  while (!header_done) {
-    char block[2880];
-    stream.read(block, sizeof(block));
-    if (stream.gcount() != static_cast<std::streamsize>(sizeof(block))) {
-      return fail<FitsImage>(Code::invalid_request, "the FITS header is truncated", "cli.fits",
-                             "the frame cannot be processed");
-    }
-    for (std::size_t start = 0; start < sizeof(block); start += 80) {
-      const std::string card(block + start, 80);
-      const std::string key = trim(card.substr(0, 8));
-      if (key == "END") {
-        header_done = true;
-        break;
-      }
-      if (key.empty() || key == "COMMENT" || key == "HISTORY") continue;
-      const std::string value = card.substr(10, card.size() > 10 ? card.size() - 10 : 0);
-      const std::size_t comment = value.find("/");
-      std::string raw = trim(comment == std::string::npos ? value : value.substr(0, comment));
-      if (raw.size() >= 2 && raw.front() == '\'' && raw.back() == '\'') {
-        raw = trim(raw.substr(1, raw.size() - 2));
-      }
-      if (key == "BITPIX") {
-        bitpix = std::atol(raw.c_str());
-      } else if (key == "NAXIS1") {
-        naxis1 = std::atol(raw.c_str());
-      } else if (key == "NAXIS2") {
-        naxis2 = std::atol(raw.c_str());
-      }
-      HeaderField field;
-      field.key = key;
-      field.value = raw;
-      image.header.push_back(field);
-    }
-  }
-  if (bitpix != -64 || naxis1 <= 0 || naxis2 <= 0) {
+  int naxis = 0;
+  status = fits_get_img_dim(file, &naxis, &status);
+  long naxes[4] = {1, 1, 1, 1};
+  if (!status) status = fits_get_img_size(file, 4, naxes, &status);
+  if (status || naxis < 2) {
+    fits_close_file(file, &status);
     return fail<FitsImage>(Code::invalid_request,
-                           "the FITS file is not a float64 two dimensional image", "cli.fits",
-                           "the frame cannot be processed");
+                           "the FITS file has no two dimensional image: " + fits_message(status),
+                           "cli.fits", "the frame cannot be processed");
   }
-  image.width = static_cast<U64>(naxis1);
-  image.height = static_cast<U64>(naxis2);
+  image.width = static_cast<U64>(naxes[0]);
+  image.height = static_cast<U64>(naxes[1]);
   const U64 count = image.width * image.height;
-  std::vector<unsigned char> raw(count * 8);
-  stream.read(reinterpret_cast<char*>(raw.data()), static_cast<std::streamsize>(raw.size()));
-  if (stream.gcount() != static_cast<std::streamsize>(raw.size())) {
-    return fail<FitsImage>(Code::invalid_request, "the FITS data unit is truncated", "cli.fits",
+  image.values.assign(count, 0.0);
+  image.dq.assign(count, 0);
+  int any_null = 0;
+  status = fits_read_img(file, TDOUBLE, 1, static_cast<long long>(count), nullptr,
+                         image.values.data(), &any_null, &status);
+  if (status) {
+    fits_close_file(file, &status);
+    return fail<FitsImage>(Code::invalid_request,
+                           "the FITS pixels cannot be read: " + fits_message(status), "cli.fits",
                            "the frame cannot be processed");
   }
-  image.values.assign(count, 0.0);
-  for (U64 i = 0; i < count; ++i) {
-    std::uint64_t bits = 0;
-    for (int byte = 0; byte < 8; ++byte) {
-      bits |= static_cast<std::uint64_t>(raw[i * 8 + byte]) << (8 * (7 - byte));
-    }
-    std::memcpy(&image.values[i], &bits, sizeof(double));
+  // The header cards of the world coordinate solution and of the exposure.
+  static const char* kKeys[] = {"CTYPE1", "CTYPE2", "CUNIT1", "CUNIT2", "CRPIX1", "CRPIX2",
+                                "CRVAL1", "CRVAL2", "CD1_1",  "CD1_2",  "CD2_1",  "CD2_2",
+                                "RADESYS", "MJD-OBS", "DATE-OBS", "EXPTIME", "BUNIT"};
+  for (const char* key : kKeys) {
+    char value[80] = {0};
+    char comment[80] = {0};
+    int read_status = 0;
+    status = fits_read_keyword(file, key, value, comment, &read_status);
+    if (status || read_status) continue;
+    HeaderField field;
+    field.key = key;
+    field.value = std::string(value);
+    image.header.push_back(field);
   }
-  image.dq.assign(count, 0);
+  fits_close_file(file, &status);
   return ok_result(image);
 }
 

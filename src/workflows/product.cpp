@@ -15,6 +15,7 @@
 // directory on the same file system, verified, flushed and then renamed.
 #include <algorithm>
 #include <filesystem>
+#include <cstdio>
 #include <fstream>
 #include <map>
 #include <memory>
@@ -225,6 +226,15 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
     if (support.index) {
       store_object(builder, support.index->identity.object_id, "acsd.Index",
                    workflows::encode_index(*support.index));
+      // The identifiers of the leaf index are part of the closure of the
+      // product: the export reads the leaves from them.
+      if (support.index->ids) {
+        Result<Id> stored = persist_array(context, builder, support.index->ids);
+        if (!ok(stored)) {
+          return fail<std::string>(stored.code, "the leaf identifiers cannot be stored",
+                                   "product.write", "the product cannot be published");
+        }
+      }
     }
     for (const ArrayRef& array : {support.states, support.area_lower_sr, support.area_upper_sr,
                                   support.normalization_states, support.observational_states}) {
@@ -332,7 +342,11 @@ class ProductReader {
                              "the product cannot be reopened");
     }
     Index index = workflows::decode_index(val(payload));
-    const Id ids = index.ids ? index.ids->identity.object_id : Id();
+    // The identifiers of a leaf index are reopened: the export reads the
+    // (order, ipix) pairs of the leaves from them.
+    const Id ids = workflows::decode_ref(val(payload).contains("ids")
+                                             ? val(payload).at("ids")
+                                             : json(nullptr));
     if (!ids.empty()) {
       Result<ArrayRef> array = this->array(ids);
       if (!ok(array)) {
@@ -352,7 +366,11 @@ class ProductReader {
                                    "product.read", "the product cannot be reopened");
     }
     SupportMap support = workflows::decode_support_map(val(payload));
-    const Id index = support.index ? support.index->identity.object_id : Id();
+    // The leaf index of the support is reopened: the export resolves the
+    // leaves of the product through it.
+    const Id index = workflows::decode_ref(val(payload).contains("index")
+                                               ? val(payload).at("index")
+                                               : json(nullptr));
     if (!index.empty()) {
       Result<Ref<Index>> resolved = this->index(index);
       if (!ok(resolved)) {
@@ -419,7 +437,10 @@ class ProductReader {
                                        "product.read", "the product cannot be reopened");
     }
     SignalEstimate estimate = workflows::decode_signal_estimate(val(payload));
-    const Id signal = estimate.signal ? estimate.signal->identity.object_id : Id();
+    // The array of the signal is reopened.
+    const Id signal = workflows::decode_ref(val(payload).contains("signal")
+                                                ? val(payload).at("signal")
+                                                : json(nullptr));
     if (!signal.empty()) {
       Result<ArrayRef> array = this->array(signal);
       if (!ok(array)) {
@@ -427,6 +448,23 @@ class ProductReader {
                                         "the product cannot be reopened");
       }
       estimate.signal = val(array);
+    }
+    // The support map of the estimate is reopened as well: the export needs
+    // the support of every leaf.
+    const Id support_ref = workflows::decode_ref(val(payload).contains("support")
+                                                      ? val(payload).at("support")
+                                                      : json(nullptr));
+    if (!support_ref.empty()) {
+      Result<Ref<SupportMap>> resolved = this->support(support_ref);
+      if (!ok(resolved)) {
+        return fail<Ref<SignalEstimate>>(
+            resolved.code,
+            resolved.assessment.issues.empty()
+                ? "the support cannot be reopened"
+                : "the support cannot be reopened: " + resolved.assessment.issues.front().reason,
+            "product.read", "the product cannot be reopened");
+      }
+      estimate.support = val(resolved);
     }
     for (ArrayRef* target : {&estimate.numerical_lower, &estimate.numerical_upper}) {
       const Id hash_of_array = (*target) ? (*target)->identity.object_id : Id();
@@ -442,8 +480,12 @@ class ProductReader {
     if (!support.empty()) {
       Result<Ref<SupportMap>> resolved = this->support(support);
       if (!ok(resolved)) {
-        return fail<Ref<SignalEstimate>>(resolved.code, "the support cannot be reopened",
-                                         "product.read", "the product cannot be reopened");
+        return fail<Ref<SignalEstimate>>(
+            resolved.code,
+            resolved.assessment.issues.empty()
+                ? "the support cannot be reopened"
+                : "the support cannot be reopened: " + resolved.assessment.issues.front().reason,
+            "product.read", "the product cannot be reopened");
       }
       estimate.support = val(resolved);
     }
@@ -483,8 +525,12 @@ class ProductReader {
     if (!signal.empty()) {
       Result<Ref<SignalEstimate>> resolved = this->estimate(signal);
       if (!ok(resolved)) {
-        return fail<Ref<ProductGraph>>(resolved.code, "the signal cannot be reopened", "product.read",
-                                       "the product cannot be reopened");
+        return fail<Ref<ProductGraph>>(
+            resolved.code,
+            resolved.assessment.issues.empty()
+                ? "the signal cannot be reopened"
+                : "the signal cannot be reopened: " + resolved.assessment.issues.front().reason,
+            "product.read", "the product cannot be reopened");
       }
       graph.signal = val(resolved);
     }
