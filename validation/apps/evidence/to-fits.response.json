@@ -35,7 +35,7 @@
   "resources": {
     "byte_budget": 1048576,
     "bytes": 1048576,
-    "elapsed_seconds": 3.147e-05,
+    "elapsed_seconds": 4.7203e-05,
     "peak_payload_bytes": 0,
     "read_bytes": 0,
     "spill_bytes": 0,
@@ -65,7 +65,7 @@
     "code": "ok",
     "dependencies": [],
     "usage": {
-      "elapsed_seconds": 5.16e-07,
+      "elapsed_seconds": 6.65e-07,
       "peak_payload_bytes": 0,
       "read_bytes": 0,
       "spill_bytes": 0,

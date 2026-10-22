@@ -178,14 +178,14 @@
   }
  },
  "operation": "make_footprint_provider",
- "output_root": "/tmp/tmpzyyllon0",
+ "output_root": "/tmp/tmpv1a1unlz",
  "protocol": "acsd.contract.response",
  "request_id": "chain-2-provider",
  "resolved_request_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
  "resources": {
   "byte_budget": 8388608,
   "bytes": 8388608,
-  "elapsed_seconds": 0.000162688,
+  "elapsed_seconds": 0.000175612,
   "peak_payload_bytes": 0,
   "read_bytes": 0,
   "spill_bytes": 0,
@@ -215,7 +215,7 @@
   "code": "ok",
   "dependencies": [],
   "usage": {
-   "elapsed_seconds": 6.09e-07,
+   "elapsed_seconds": 6.91e-07,
    "peak_payload_bytes": 0,
    "read_bytes": 0,
    "spill_bytes": 0,

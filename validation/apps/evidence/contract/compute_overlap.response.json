@@ -267,19 +267,19 @@
   }
  },
  "operation": "compute_overlap",
- "output_root": "/tmp/tmpzyyllon0",
+ "output_root": "/tmp/tmpv1a1unlz",
  "protocol": "acsd.contract.response",
  "request_id": "chain-3-overlap",
  "resolved_request_hash": "sha256:519c0bb1fb704614b8efa822eb616b6a53e382eb0ce60e1c7db9f0f35564ab97",
  "resources": {
   "byte_budget": 8388608,
   "bytes": 8388608,
-  "elapsed_seconds": 0.000466929,
+  "elapsed_seconds": 0.000446687,
   "peak_payload_bytes": 0,
   "read_bytes": 0,
   "spill_bytes": 0,
   "threads": 1,
-  "work": 4,
+  "work": 39,
   "work_budget": 100000,
   "written_bytes": 0
  },
@@ -296,6 +296,7 @@
    "execution": "complete",
    "included": [
     "affine_strip_cut_cell",
+    "source_rows_covered=1:source_rows_total=1:source_row=0",
     "exact_rational_clipping",
     "shared_constraints",
     "target_domain_containment_fallback:boundary_segments=32:cells_decided=0:cells_undecided=1"
@@ -319,11 +320,11 @@
   "code": "ok",
   "dependencies": [],
   "usage": {
-   "elapsed_seconds": 1.144e-06,
+   "elapsed_seconds": 9.18e-07,
    "peak_payload_bytes": 0,
    "read_bytes": 0,
    "spill_bytes": 0,
-   "work": 4,
+   "work": 39,
    "written_bytes": 0
   },
   "value": {

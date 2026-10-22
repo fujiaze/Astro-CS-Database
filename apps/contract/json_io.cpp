@@ -721,6 +721,20 @@ json encode_support_map(const SupportMap& support) {
   node["kind"] = json(kind);
   node["primitives"] = support.primitives;
   node["geometry_snapshot"] = support.geometry_snapshot;
+  // The arrays and the index of the support travel with the payload: the next
+  // request decodes the same support.
+  node["index"] = json{{"$ref", support.index ? support.index->identity.object_id : Id()}};
+  node["states"] = json{{"$ref", support.states ? support.states->identity.object_id : Id()}};
+  node["area_lower_sr"] =
+      json{{"$ref", support.area_lower_sr ? support.area_lower_sr->identity.object_id : Id()}};
+  node["area_upper_sr"] =
+      json{{"$ref", support.area_upper_sr ? support.area_upper_sr->identity.object_id : Id()}};
+  node["normalization_states"] = json{
+      {"$ref", support.normalization_states ? support.normalization_states->identity.object_id
+                                           : Id()}};
+  node["observational_states"] = json{
+      {"$ref", support.observational_states ? support.observational_states->identity.object_id
+                                            : Id()}};
   return node;
 }
 
