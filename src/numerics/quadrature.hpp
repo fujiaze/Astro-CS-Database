@@ -26,6 +26,14 @@ QuadratureResult adaptive_integrate(const std::function<double(double)>& integra
                                     double absolute_tolerance, double relative_tolerance,
                                     int max_panels = 200);
 
+// Adaptive integration with a Gauss-Legendre panel of the requested order.
+// The error estimate is the difference between the requested order and half
+// of it, which converges faster than the Kronrod/Gauss difference for the
+// smooth integrands used by the response integration.
+QuadratureResult adaptive_integrate_gauss(const std::function<double(double)>& integrand, double a,
+                                          double b, int order, double absolute_tolerance,
+                                          double relative_tolerance, int max_panels = 200);
+
 // Adaptive integration of an interval valued integrand; the returned interval
 // is the hull of all panel values.
 struct IntervalQuadratureResult {

@@ -126,6 +126,12 @@ if(ACSD_BUILD_SCIENCE)
   endif()
 endif()
 
+if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/numerics_selftest.cpp)
+  add_executable(acsd_numerics_selftest validation/lead/numerics_selftest.cpp)
+  target_link_libraries(acsd_numerics_selftest PRIVATE numerics)
+  add_test(NAME numerics_selftest COMMAND acsd_numerics_selftest)
+endif()
+
 add_library(acsd_contracts_compile OBJECT validation/contracts_compile.cpp)
 target_link_libraries(acsd_contracts_compile PRIVATE acsd_contracts)
 find_package(Python3 3.12 REQUIRED COMPONENTS Interpreter)

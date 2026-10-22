@@ -15,10 +15,11 @@ constexpr double kKronrodWeights[8] = {0.02293532201052922, 0.06309209262997855,
                                        0.10479001032225018, 0.14065325971552591,
                                        0.16900472663926790, 0.19035057806478541,
                                        0.20443294007529889, 0.20948214108472783};
-constexpr double kGaussWeights[4] = {0.1294849667378699, 0.2797053914892766, 0.3818300505051189,
-                                     0.4179591836734694};
-constexpr double kGaussNodesGauss[4] = {0.9491079123427585, 0.7415311855993944, 0.4058451513773972,
-                                         0.0};
+// The 7 point Gauss rule is generated with the same Newton iteration as the
+// high order panel so that the two rules stay mutually consistent: the
+// constant weights of the classical table are truncated to fewer digits than
+// the Kronrod weights and do not sum to exactly two, which would put a
+// systematic 1e-8 bias into the error estimate.
 
 double kronrod_value(const std::function<double(double)>& f, double a, double b) {
   const double centre = 0.5 * (a + b);
@@ -26,19 +27,35 @@ double kronrod_value(const std::function<double(double)>& f, double a, double b)
   double sum = 0.0;
   for (int i = 0; i < 8; ++i) {
     const double offset = kKronrodNodes[i] * half;
-    const double value = f(centre - offset) + f(centre + offset);
-    sum += (i == 7) ? value * kKronrodWeights[7] : value * kKronrodWeights[i] * half;
+    if (i == 7) {
+      // The centre node of the 15 point Kronrod rule is sampled once and
+      // carries the same half-width Jacobian factor as the paired nodes.
+      sum += f(centre) * kKronrodWeights[7] * half;
+    } else {
+      sum += (f(centre - offset) + f(centre + offset)) * kKronrodWeights[i] * half;
+    }
   }
   return sum;
 }
 
 double gauss_value(const std::function<double(double)>& f, double a, double b) {
+  static const std::vector<double> nodes = [] {
+    std::vector<double> n, w;
+    gauss_legendre(7, n, w);
+    return n;
+  }();
+  static const std::vector<double> weights = [] {
+    std::vector<double> n, w;
+    gauss_legendre(7, n, w);
+    return w;
+  }();
+  // The generated node list already contains the positive and the negative
+  // abscissa of the rule, so every node is evaluated once.
   const double centre = 0.5 * (a + b);
   const double half = 0.5 * (b - a);
   double sum = 0.0;
-  for (int i = 0; i < 4; ++i) {
-    const double offset = kGaussNodesGauss[i] * half;
-    sum += (f(centre - offset) + f(centre + offset)) * kGaussWeights[i] * half;
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
+    sum += f(centre + nodes[i] * half) * weights[i] * half;
   }
   return sum;
 }
@@ -119,6 +136,69 @@ QuadratureResult adaptive_integrate(const std::function<double(double)>& integra
     Panel left{worst->a, mid, 0.0, 0.0}, right{mid, worst->b, 0.0, 0.0};
     evaluate(left);
     evaluate(right);
+    total += left.value + right.value - worst->value;
+    total_error += left.error + right.error - worst->error;
+    panels.erase(worst);
+    panels.push_back(left);
+    panels.push_back(right);
+  }
+  result.value = total;
+  result.absolute_error = total_error;
+  result.panels = static_cast<int>(panels.size());
+  const double tolerance = std::max(absolute_tolerance, relative_tolerance * std::fabs(total));
+  result.converged = total_error <= tolerance;
+  return result;
+}
+
+QuadratureResult adaptive_integrate_gauss(const std::function<double(double)>& integrand, double a,
+                                          double b, int order, double absolute_tolerance,
+                                          double relative_tolerance, int max_panels) {
+  QuadratureResult result;
+  if (!(b > a)) {
+    result.value = 0.0;
+    result.converged = true;
+    return result;
+  }
+  const int high = std::max(2, order);
+  const int low = std::max(1, high / 2);
+  std::vector<double> high_nodes, high_weights, low_nodes, low_weights;
+  gauss_legendre(high, high_nodes, high_weights);
+  gauss_legendre(low, low_nodes, low_weights);
+  auto panel_value = [&](const std::vector<double>& nodes, const std::vector<double>& weights,
+                         double lo, double hi) {
+    // The node list already contains both the positive and the negative
+    // abscissa, so every node is evaluated once and mapped onto the panel.
+    const double centre = 0.5 * (lo + hi);
+    const double half = 0.5 * (hi - lo);
+    double sum = 0.0;
+    for (std::size_t i = 0; i < nodes.size(); ++i) {
+      sum += integrand(centre + nodes[i] * half) * weights[i] * half;
+    }
+    return sum;
+  };
+  struct Panel {
+    double a, b, value, error;
+  };
+  std::vector<Panel> panels;
+  {
+    Panel p{a, b, 0.0, 0.0};
+    p.value = panel_value(high_nodes, high_weights, p.a, p.b);
+    p.error = std::fabs(p.value - panel_value(low_nodes, low_weights, p.a, p.b));
+    panels.push_back(p);
+  }
+  double total = panels[0].value, total_error = panels[0].error;
+  while (static_cast<int>(panels.size()) < max_panels) {
+    const double tolerance = std::max(absolute_tolerance, relative_tolerance * std::fabs(total));
+    if (total_error <= tolerance) break;
+    auto worst = std::max_element(panels.begin(), panels.end(),
+                                   [](const Panel& x, const Panel& y) { return x.error < y.error; });
+    const double mid = 0.5 * (worst->a + worst->b);
+    if (!(mid > worst->a && mid < worst->b)) break;
+    Panel left{worst->a, mid, 0.0, 0.0}, right{mid, worst->b, 0.0, 0.0};
+    left.value = panel_value(high_nodes, high_weights, left.a, left.b);
+    right.value = panel_value(high_nodes, high_weights, right.a, right.b);
+    left.error = std::fabs(left.value - panel_value(low_nodes, low_weights, left.a, left.b));
+    right.error = std::fabs(right.value - panel_value(low_nodes, low_weights, right.a, right.b));
     total += left.value + right.value - worst->value;
     total_error += left.error + right.error - worst->error;
     panels.erase(worst);
