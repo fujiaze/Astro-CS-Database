@@ -154,6 +154,13 @@ if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/num
   add_test(NAME numerics_selftest COMMAND acsd_numerics_selftest)
 endif()
 
+if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/operators_selftest.cpp)
+  add_executable(acsd_operators_selftest validation/lead/operators_selftest.cpp)
+  target_link_libraries(acsd_operators_selftest PRIVATE operators resources storage model)
+  add_test(NAME operators_selftest COMMAND acsd_operators_selftest)
+endif()
+
+
 if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/healpix_dump.cpp)
   add_executable(acsd_healpix_dump validation/lead/healpix_dump.cpp)
   target_link_libraries(acsd_healpix_dump PRIVATE coordinates)

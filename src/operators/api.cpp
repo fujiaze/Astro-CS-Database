@@ -19,6 +19,18 @@ std::vector<U64> flatten_shape(std::span<const U64> shape) {
   return std::vector<U64>(shape.begin(), shape.end());
 }
 
+// The identity of a child action: the domain it maps onto carries the
+// identity of the modelled domain, otherwise the identity of the action
+// itself, otherwise a stable role name.
+Id child_identity(const Ref<LinearAction>& child, const char* role) {
+  if (!child) return Id(role);
+  if (child->spaces.domain && !child->spaces.domain->identity.object_id.empty()) {
+    return child->spaces.domain->identity.object_id;
+  }
+  if (!child->identity.object_id.empty()) return child->identity.object_id;
+  return Id(role);
+}
+
 }  // namespace
 
 Result<Ref<LinearAction>> make_action(Context& context, const ActionRecipe& recipe,
@@ -209,6 +221,9 @@ Result<Ref<LinearAction>> compose(Context& context, Ref<LinearAction> outer, Ref
                                           "compose", "the composition cannot be built");
   }
   recipe.spaces = val(outer_recipe).spaces;
+  // The recipe must declare its dependencies: make_action requires the child
+  // list of the recipe to match the supplied children one for one.
+  recipe.children = {child_identity(outer, "outer"), child_identity(inner, "inner")};
   const std::vector<Ref<LinearAction>> children{outer, inner};
   return make_action(context, recipe, children, std::span<const ArrayRef>{});
 }
