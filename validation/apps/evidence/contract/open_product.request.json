@@ -1,0 +1,24 @@
+{
+ "protocol": "acsd.contract",
+ "major": 1,
+ "request_id": "product-1-open",
+ "operation": "open_product",
+ "arguments": {
+  "location": {
+   "directory": "/workspace/Astro CS Database/.work/product-roundtrip/frame",
+   "manifest_hash": "sha256:1791f9805e32b0b30f1445e49dd0472719f4cb8e88f7ea93ff0aa7fe8139a9bd"
+  }
+ },
+ "request": {},
+ "input_objects": {},
+ "output_root": "/tmp/tmpn0ta2i2b",
+ "resources": {
+  "bytes": 8388608,
+  "work": 100000,
+  "spill_bytes": 0,
+  "threads": 1,
+  "max_depth": 32,
+  "max_precision_bits": 128,
+  "scratch_directory": ".work"
+ }
+}

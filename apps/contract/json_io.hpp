@@ -88,6 +88,10 @@ json encode_array(const Array& array, const std::vector<double>& values);
 json encode_variance(const Variance& variance);
 json encode_header_fields(const HeaderFields& fields);
 json encode_support_map(const SupportMap& support);
+// The typed payload of a signal estimate.
+json encode_signal_estimate(const SignalEstimate& estimate);
+// The typed payload of the recipe of an action.
+json encode_action_recipe(const ActionRecipe& recipe);
 
 // Decoders for the plain (non model) contract types.
 Interval decode_interval(const json& node);
@@ -100,6 +104,9 @@ SkyICRS decode_sky(const json& node);
 HealpixLeaf decode_leaf(const json& node);
 Tolerance decode_tolerance(const json& node);
 Arithmetic decode_arithmetic(const json& node);
+// The estimator of a signal: the identifier, the quantity, the unit and the
+// condition.
+
 json encode_arithmetic(const Arithmetic& arithmetic);
 NumericBudget decode_numeric_budget(const json& node);
 SolvePolicy decode_solve_policy(const json& node);

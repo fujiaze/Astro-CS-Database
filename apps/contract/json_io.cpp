@@ -509,6 +509,59 @@ json encode_assessment(const Assessment& assessment) {
   return node;
 }
 
+
+json encode_signal_estimate(const SignalEstimate& estimate) {
+  json node;
+  node["identity"] = encode_identity(estimate.identity);
+  node["assessment"] = encode_assessment(estimate.assessment);
+  node["signal"] = json{{"$ref", estimate.signal ? estimate.signal->identity.object_id : Id()}};
+  node["unit"] = encode_unit(estimate.unit);
+  json estimator_node;
+  estimator_node["id"] = estimate.estimator.id;
+  estimator_node["quantity"] = estimate.estimator.quantity;
+  estimator_node["unit"] = encode_unit(estimate.estimator.unit);
+  estimator_node["reference_sed"] =
+      estimate.estimator.reference_sed ? json(*estimate.estimator.reference_sed) : json(nullptr);
+  node["estimator"] = estimator_node;
+  node["numerical_lower"] =
+      json{{"$ref", estimate.numerical_lower ? estimate.numerical_lower->identity.object_id : Id()}};
+  node["numerical_upper"] =
+      json{{"$ref", estimate.numerical_upper ? estimate.numerical_upper->identity.object_id : Id()}};
+  node["support"] =
+      json{{"$ref", estimate.support ? estimate.support->identity.object_id : Id()}};
+  node["effective_response"] = json{
+      {"$ref", estimate.effective_response ? estimate.effective_response->identity.object_id : Id()}};
+  node["noise"] = json{{"$ref", estimate.noise ? estimate.noise->identity.object_id : Id()}};
+  node["error"] = json{{"$ref", estimate.error ? estimate.error->identity.object_id : Id()}};
+  return node;
+}
+
+json encode_action_recipe(const ActionRecipe& recipe) {
+  json node;
+  const char* kind = "identity";
+  switch (recipe.kind) {
+    case ActionRecipe::Kind::identity: kind = "identity"; break;
+    case ActionRecipe::Kind::diagonal: kind = "diagonal"; break;
+    case ActionRecipe::Kind::csr: kind = "csr"; break;
+    case ActionRecipe::Kind::compose: kind = "compose"; break;
+    case ActionRecipe::Kind::sum: kind = "sum"; break;
+    case ActionRecipe::Kind::transpose: kind = "transpose"; break;
+    case ActionRecipe::Kind::factor_covariance: kind = "factor_covariance"; break;
+    case ActionRecipe::Kind::solve: kind = "solve"; break;
+    case ActionRecipe::Kind::sky: kind = "sky"; break;
+    case ActionRecipe::Kind::selection: kind = "selection"; break;
+    case ActionRecipe::Kind::leaf_merge: kind = "leaf_merge"; break;
+  }
+  node["kind"] = kind;
+  node["algorithm"] = recipe.algorithm;
+  node["version"] = recipe.version;
+  node["children"] = recipe.children;
+  node["arrays"] = recipe.arrays;
+  node["spaces"] = json{{"input", encode_unit(recipe.spaces.input)},
+                        {"output", encode_unit(recipe.spaces.output)}};
+  return node;
+}
+
 json encode_footprint_provider(const WcsModel& wcs) {
   json node;
   node["wcs"] = json{{"$ref", wcs.identity.object_id}};
@@ -737,6 +790,68 @@ std::string dtype_name(DType dtype) {
   return "f64";
 }
 
+
+
+// The estimator of a signal.
+Estimator decode_estimator(const json& node) {
+  Estimator estimator;
+  estimator.id = string_field(node, "id");
+  estimator.quantity = string_field(node, "quantity");
+  estimator.unit = decode_unit(field(node, "unit"));
+  estimator.reference_sed = string_field(node, "reference_sed");
+  return estimator;
+}
+
+// The identifiers of a list field.
+std::vector<Id> id_list(const json& node, const char* key) {
+  std::vector<Id> identifiers;
+  const json& list = field(node, key);
+  if (!list.is_array()) return identifiers;
+  for (const json& item : list) {
+    if (item.is_string()) identifiers.push_back(item.get<std::string>());
+  }
+  return identifiers;
+}
+
+// The geometry budget of a request.
+GeometryBudget decode_geometry_budget(const json& node) {
+  GeometryBudget budget;
+  const json& functionals = node.contains("requested_functionals") ? node.at("requested_functionals")
+                                                                   : json::array();
+  if (functionals.is_array()) {
+    for (const json& item : functionals) {
+      if (!item.is_string()) continue;
+      QuantityRequest functional;
+      functional.id = item.get<std::string>();
+      functional.kind = QuantityRequest::Kind::area;
+      budget.requested_functionals.push_back(functional);
+    }
+  }
+  const json& per_leaf = node.contains("per_leaf_absolute_area") ? node.at("per_leaf_absolute_area")
+                                                                 : json::array();
+  if (per_leaf.is_array()) {
+    for (const json& item : per_leaf) {
+      LeafAreaLimit limit;
+      limit.absolute_sr = decode_f64(item);
+      budget.per_leaf_absolute_area.push_back(limit);
+    }
+  }
+  budget.area_absolute_sr = node.contains("area_absolute_sr") ? decode_f64(node.at("area_absolute_sr"))
+                                                              : 0.0;
+  budget.normalizer_min_sr = node.contains("normalizer_min_sr")
+                                 ? decode_f64(node.at("normalizer_min_sr"))
+                                 : 0.0;
+  budget.max_work = node.contains("max_work") ? static_cast<U64>(node.at("max_work").get<U64>())
+                                               : 1000000ull;
+  budget.max_bytes = node.contains("max_bytes") ? static_cast<U64>(node.at("max_bytes").get<U64>())
+                                                 : 268435456ull;
+  budget.max_depth = node.contains("max_depth")
+                         ? static_cast<U32>(node.at("max_depth").get<U32>())
+                         : 64u;
+  budget.arithmetic = decode_arithmetic(node.contains("arithmetic") ? node.at("arithmetic")
+                                                                     : json::object());
+  return budget;
+}
 
 // Stores a list of numbers as a float64 array in the storage of the context.
 Result<ArrayRef> store_f64_values(Context& context, const json& values, const std::string& name,
@@ -1388,6 +1503,140 @@ Result<TypedObject> DecodeContext::decode_node(const json& node) {
     publish("Response", response.identity.object_id, payload);
     return model::ok_result(TypedObject{"Response", std::make_shared<const Response>(response),
                                         response.identity.object_id});
+  }
+
+  if (type == "SupportMap") {
+    SupportMap support;
+    const std::string kind = string_field(payload, "kind", "primitives");
+    if (kind == "dyadic_cells") {
+      support.kind = SupportMap::Kind::dyadic_cells;
+    } else if (kind == "full_leaf_approx") {
+      support.kind = SupportMap::Kind::full_leaf_approx;
+    } else if (kind == "effective_area_approx") {
+      support.kind = SupportMap::Kind::effective_area_approx;
+    } else {
+      support.kind = SupportMap::Kind::primitives;
+    }
+    support.primitives = id_list(payload, "primitives");
+    support.geometry_snapshot = string_field(payload, "geometry_snapshot");
+    support.identity = identity_for("acsd.SupportMap", payload);
+    support.assessment = model::make_assessment(Code::ok);
+    support.assessment.complete = true;
+    publish("SupportMap", support.identity.object_id, payload);
+    return model::ok_result(TypedObject{"SupportMap", std::make_shared<const SupportMap>(support),
+                                        support.identity.object_id});
+  }
+
+  if (type == "SignalEstimate") {
+    SignalEstimate estimate;
+    estimate.identity = identity_for("acsd.SignalEstimate", payload);
+    estimate.assessment = model::make_assessment(Code::ok);
+    estimate.assessment.complete = true;
+    estimate.unit = decode_unit(field(payload, "unit"));
+    estimate.estimator = decode_estimator(field(payload, "estimator"));
+    // The arrays of the estimate.
+    const char* const arrays[3] = {"signal", "numerical_lower", "numerical_upper"};
+    ArrayRef* const targets[3] = {&estimate.signal, &estimate.numerical_lower,
+                                  &estimate.numerical_upper};
+    for (int index = 0; index < 3; ++index) {
+      const json& node = field(payload, arrays[index]);
+      if (!node.is_object() || !node.contains("$ref")) continue;
+      Result<TypedObject> referenced = resolve_reference(node.at("$ref").get<std::string>());
+      if (!ok(referenced)) {
+        return model::fail<TypedObject>(referenced.code,
+                                        std::string("the estimate references the unknown object ") +
+                                            node.at("$ref").get<std::string>(),
+                                        "contract.decode", "the estimate cannot be decoded");
+      }
+      if (val(referenced).type != "Array") {
+        return model::fail<TypedObject>(Code::invalid_request,
+                                        "the estimate references an object that is not an array",
+                                        "contract.decode", "the estimate cannot be decoded");
+      }
+      *targets[index] = std::static_pointer_cast<const Array>(val(referenced).value);
+    }
+    // The support map of the estimate.
+    const json& support_node = field(payload, "support");
+    if (support_node.is_object() && support_node.contains("$ref")) {
+      Result<TypedObject> referenced = resolve_reference(support_node.at("$ref").get<std::string>());
+      if (!ok(referenced)) {
+        return model::fail<TypedObject>(referenced.code,
+                                        "the support map of the estimate is missing",
+                                        "contract.decode", "the estimate cannot be decoded");
+      }
+      if (val(referenced).type != "SupportMap") {
+        return model::fail<TypedObject>(Code::invalid_request,
+                                        "the support of the estimate is not a support map",
+                                        "contract.decode", "the estimate cannot be decoded");
+      }
+      estimate.support = std::static_pointer_cast<const SupportMap>(val(referenced).value);
+    }
+    publish("SignalEstimate", estimate.identity.object_id, payload);
+    return model::ok_result(TypedObject{"SignalEstimate",
+                                        std::make_shared<const SignalEstimate>(estimate),
+                                        estimate.identity.object_id});
+  }
+
+  if (type == "ExportRequest") {
+    ExportRequest request;
+    const json& target = field(payload, "target");
+    const json& model_node = field(target, "model");
+    Result<TypedObject> wcs_object = resolve_reference(
+        model_node.is_object() && model_node.contains("$ref")
+            ? model_node.at("$ref").get<std::string>()
+            : std::string());
+    if (!ok(wcs_object)) {
+      return model::fail<TypedObject>(wcs_object.code,
+                                       "the export target has no world coordinate model",
+                                       "contract.decode", "the request cannot be decoded");
+    }
+    request.target.model = std::static_pointer_cast<const WcsModel>(val(wcs_object).value);
+    request.target.width = u64_field(target, "width", 0);
+    request.target.height = u64_field(target, "height", 0);
+    const std::string quantity = string_field(payload, "quantity", "supported_mean");
+    if (quantity == "supported_flux") {
+      request.quantity = ExportRequest::Quantity::supported_flux;
+    } else if (quantity == "extrapolated_full_flux") {
+      request.quantity = ExportRequest::Quantity::extrapolated_full_flux;
+    } else {
+      request.quantity = ExportRequest::Quantity::supported_mean;
+    }
+    const std::string policy = string_field(payload, "support_policy", "dyadic_cells");
+    if (policy == "primitives") {
+      request.support_policy = SupportMap::Kind::primitives;
+    } else if (policy == "full_leaf_approx") {
+      request.support_policy = SupportMap::Kind::full_leaf_approx;
+    } else if (policy == "effective_area_approx") {
+      request.support_policy = SupportMap::Kind::effective_area_approx;
+    } else {
+      request.support_policy = SupportMap::Kind::dyadic_cells;
+    }
+    request.assume_uniform_uncovered = payload.contains("assume_uniform_uncovered") &&
+                                       payload.at("assume_uniform_uncovered").is_boolean() &&
+                                       payload.at("assume_uniform_uncovered").get<bool>();
+    const std::string dtype = string_field(payload, "output_dtype", "f64");
+    request.output_dtype = dtype == "f32" ? DType::f32 : DType::f64;
+    request.budget = decode_geometry_budget(field(payload, "budget"));
+    publish("ExportRequest", "acsd.ExportRequest", payload);
+    return model::ok_result(TypedObject{"ExportRequest",
+                                        std::make_shared<const ExportRequest>(request),
+                                        "acsd.ExportRequest"});
+  }
+
+  if (type == "PublishRequest") {
+    PublishRequest request;
+    request.destination = string_field(payload, "destination");
+    const std::string dtype = string_field(payload, "signal_dtype", "f64");
+    request.signal_dtype = dtype == "f32" ? DType::f32 : DType::f64;
+    request.profile = string_field(payload, "profile", "full");
+    request.tile_log2_width = static_cast<U32>(u64_field(payload, "tile_log2_width", 6));
+    request.durable = !payload.contains("durable") || payload.at("durable").is_boolean() == false
+                          ? true
+                          : payload.at("durable").get<bool>();
+    publish("PublishRequest", "acsd.PublishRequest", payload);
+    return model::ok_result(TypedObject{"PublishRequest",
+                                        std::make_shared<const PublishRequest>(request),
+                                        "acsd.PublishRequest"});
   }
 
   if (type == "DetectorFootprint") {

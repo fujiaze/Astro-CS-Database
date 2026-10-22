@@ -1,0 +1,250 @@
+{
+ "algorithm_set": [
+  {
+   "name": "acsd-contract",
+   "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+   "version": "1"
+  },
+  {
+   "name": "build_export",
+   "source_hash": "sha256:3734f339af3c6aefba48f8eeb15f531ca2c9613a7db09dd6465a7a43afcdc7b4",
+   "version": "1"
+  }
+ ],
+ "arithmetic": {
+  "allow_target_fallback": true,
+  "initial_bits": 64,
+  "max_bits": 256,
+  "mode": "outward"
+ },
+ "blocks": [],
+ "build": {
+  "compiler": "14.2.0",
+  "name": "acsd-contract",
+  "standard": "acsd.contract/1",
+  "version": "2.0.0"
+ },
+ "input_hashes": {
+  "export_request": "acsd.ExportRequest",
+  "wcs": "acsd.WcsModel:f522e082832d81bb3406ce7bfd3d17d74df13548bb888440fdc369394db29a1e"
+ },
+ "major": 1,
+ "objects": {
+  "acsd.ExportRequest": {
+   "data": {
+    "assume_uniform_uncovered": false,
+    "budget": {
+     "area_absolute_sr": 1e-12,
+     "max_bytes": 268435456,
+     "max_depth": 64,
+     "max_work": 2000000,
+     "normalizer_min_sr": 1e-15
+    },
+    "output_dtype": "f64",
+    "quantity": "supported_mean",
+    "support_policy": "full_leaf_approx",
+    "target": {
+     "height": 16,
+     "model": {
+      "$ref": "wcs"
+     },
+     "width": 16
+    }
+   },
+   "type": "ExportRequest"
+  },
+  "acsd.SignalEstimate:745d38c55645424be8dc97710b8e3d809bb3b17eee6c32c1b2e62136e2299b36": {
+   "data": {
+    "assessment": {
+     "capability": "supported",
+     "complete": true,
+     "condition": {
+      "assumptions": [],
+      "estimator": "",
+      "fixed_objects": [],
+      "kind": ""
+     },
+     "execution": "complete",
+     "included": [
+      "support_approximation"
+     ],
+     "issues": [
+      {
+       "code": "ok",
+       "impact": "the sub leaf support shape is approximated",
+       "origin": "build_export",
+       "reason": "the requested support policy uses a named approximation",
+       "retry_condition": "request the primitives or dyadic_cells policy for the exact shape"
+      }
+     ],
+     "noise": "unknown",
+     "omitted": [],
+     "science": "bounded",
+     "validity": "approximate"
+    },
+    "effective_response": {
+     "$ref": ""
+    },
+    "error": {
+     "$ref": ""
+    },
+    "estimator": {
+     "id": "test-frame",
+     "quantity": "brightness",
+     "reference_sed": null,
+     "unit": {
+      "linear_power": 1,
+      "multiplier": 2.97744e-319,
+      "nm_power": 2,
+      "pixel_power": 0,
+      "scale": "fixture:L",
+      "sr_power": -1
+     }
+    },
+    "identity": {
+     "content_hash": "sha256:745d38c55645424be8dc97710b8e3d809bb3b17eee6c32c1b2e62136e2299b36",
+     "object_id": "acsd.SignalEstimate:745d38c55645424be8dc97710b8e3d809bb3b17eee6c32c1b2e62136e2299b36",
+     "revision": 1,
+     "run_id": "acsd",
+     "schema_id": "acsd.SignalEstimate",
+     "schema_major": 2,
+     "schema_minor": 0
+    },
+    "noise": {
+     "$ref": ""
+    },
+    "numerical_lower": {
+     "$ref": ""
+    },
+    "numerical_upper": {
+     "$ref": ""
+    },
+    "signal": {
+     "$ref": "acsd.Array:7800330211484e06779701caab8663630bc6d584cc4c9b4573a7a0755f6c6cb4"
+    },
+    "support": {
+     "$ref": "acsd.SupportMap:test"
+    },
+    "unit": {
+     "linear_power": 1,
+     "multiplier": 1.0,
+     "nm_power": 0,
+     "pixel_power": 0,
+     "scale": "fixture:L",
+     "sr_power": -1
+    }
+   },
+   "type": "SignalEstimate"
+  },
+  "acsd.SupportMap:test": {
+   "data": {
+    "geometry_snapshot": "",
+    "kind": "primitives",
+    "primitives": []
+   },
+   "type": "SupportMap"
+  },
+  "acsd.WcsModel:f522e082832d81bb3406ce7bfd3d17d74df13548bb888440fdc369394db29a1e": {
+   "data": {
+    "c": [
+     0.6451502731994482,
+     0.7479084586302499,
+     0.1562500000000033
+    ],
+    "cd_rad_per_pixel": [
+     -0.00017453292519943296,
+     0.0,
+     0.0,
+     0.00017453292519943296
+    ],
+    "crpix_fits1": [
+     8.5,
+     8.5
+    ],
+    "detector_frame": "acsd.export.target",
+    "domain": {
+     "lower": [
+      -0.5,
+      -0.5
+     ],
+     "upper": [
+      15.5,
+      15.5
+     ]
+    },
+    "e": [
+     -0.7572088465064845,
+     0.6531728429537768,
+     0.0
+    ],
+    "north": [
+     -0.10205825671152978,
+     -0.11831388226664069,
+     0.9877175393299438
+    ]
+   },
+   "type": "WcsModel"
+  }
+ },
+ "operation": "build_export",
+ "output_root": "/tmp/tmpn0ta2i2b",
+ "protocol": "acsd.contract.response",
+ "request_id": "product-2-build",
+ "resolved_request_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+ "resources": {
+  "byte_budget": 8388608,
+  "bytes": 8388608,
+  "elapsed_seconds": 0.000370392,
+  "peak_payload_bytes": 0,
+  "read_bytes": 0,
+  "spill_bytes": 0,
+  "threads": 1,
+  "work": 8707,
+  "work_budget": 100000,
+  "written_bytes": 0
+ },
+ "result": {
+  "assessment": {
+   "capability": "supported",
+   "complete": true,
+   "condition": {
+    "assumptions": [],
+    "estimator": "",
+    "fixed_objects": [],
+    "kind": ""
+   },
+   "execution": "complete",
+   "included": [
+    "support_approximation"
+   ],
+   "issues": [
+    {
+     "code": "ok",
+     "impact": "the sub leaf support shape is approximated",
+     "origin": "build_export",
+     "reason": "the requested support policy uses a named approximation",
+     "retry_condition": "request the primitives or dyadic_cells policy for the exact shape"
+    }
+   ],
+   "noise": "unknown",
+   "omitted": [],
+   "science": "bounded",
+   "validity": "approximate"
+  },
+  "code": "ok",
+  "dependencies": [],
+  "usage": {
+   "elapsed_seconds": 1.28e-07,
+   "peak_payload_bytes": 0,
+   "read_bytes": 0,
+   "spill_bytes": 0,
+   "work": 8707,
+   "written_bytes": 0
+  },
+  "value": {
+   "height": 16,
+   "quantity": "supported_mean",
+   "width": 16
+  }
+ }
+}

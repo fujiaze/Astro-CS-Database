@@ -98,6 +98,9 @@ class Driver {
   json run_make_covariance();
   json run_make_wcs();
   json run_make_footprint_provider();
+  json run_open_product();
+  json run_build_export();
+  json run_export_signal();
   json run_integrate_response();
   json run_control_covariance();
   json run_measure();
@@ -432,45 +435,6 @@ Ref<WcsModel> provider_wcs(const TypedObject& provider) {
   return std::static_pointer_cast<const WcsModel>(provider.value);
 }
 
-// The geometry budget of a request.
-GeometryBudget decode_geometry_budget(const json& node) {
-  GeometryBudget budget;
-  const json& functionals = node.contains("requested_functionals") ? node.at("requested_functionals")
-                                                                   : json::array();
-  if (functionals.is_array()) {
-    for (const json& item : functionals) {
-      if (!item.is_string()) continue;
-      QuantityRequest functional;
-      functional.id = item.get<std::string>();
-      functional.kind = QuantityRequest::Kind::area;
-      budget.requested_functionals.push_back(functional);
-    }
-  }
-  const json& per_leaf = node.contains("per_leaf_absolute_area") ? node.at("per_leaf_absolute_area")
-                                                                 : json::array();
-  if (per_leaf.is_array()) {
-    for (const json& item : per_leaf) {
-      LeafAreaLimit limit;
-      limit.absolute_sr = decode_f64(item);
-      budget.per_leaf_absolute_area.push_back(limit);
-    }
-  }
-  budget.area_absolute_sr = node.contains("area_absolute_sr") ? decode_f64(node.at("area_absolute_sr"))
-                                                              : 0.0;
-  budget.normalizer_min_sr = node.contains("normalizer_min_sr")
-                                 ? decode_f64(node.at("normalizer_min_sr"))
-                                 : 0.0;
-  budget.max_work = node.contains("max_work") ? static_cast<U64>(node.at("max_work").get<U64>())
-                                               : 1000000ull;
-  budget.max_bytes = node.contains("max_bytes") ? static_cast<U64>(node.at("max_bytes").get<U64>())
-                                                 : 268435456ull;
-  budget.max_depth = node.contains("max_depth")
-                         ? static_cast<U32>(node.at("max_depth").get<U32>())
-                         : 64u;
-  budget.arithmetic = decode_arithmetic(node.contains("arithmetic") ? node.at("arithmetic")
-                                                                     : json::object());
-  return budget;
-}
 
 
 // The spectral prediction of a response against a basis.
@@ -557,6 +521,226 @@ json Driver::run_control_covariance() {
   result["usage"] = encode_usage(resources_->usage());
   result["dependencies"] = json::array();
   decoder_->publish("CovarianceAction", hash, json{{"model", json{{"$ref", covariance->identity.object_id}}}});
+  body["result"] = result;
+  return body;
+}
+
+
+// The geometry budget of a request.
+GeometryBudget decode_geometry_budget(const json& node) {
+  GeometryBudget budget;
+  const json& functionals = node.contains("requested_functionals") ? node.at("requested_functionals")
+                                                                   : json::array();
+  if (functionals.is_array()) {
+    for (const json& item : functionals) {
+      if (!item.is_string()) continue;
+      QuantityRequest functional;
+      functional.id = item.get<std::string>();
+      functional.kind = QuantityRequest::Kind::area;
+      budget.requested_functionals.push_back(functional);
+    }
+  }
+  const json& per_leaf = node.contains("per_leaf_absolute_area") ? node.at("per_leaf_absolute_area")
+                                                                 : json::array();
+  if (per_leaf.is_array()) {
+    for (const json& item : per_leaf) {
+      LeafAreaLimit limit;
+      limit.absolute_sr = decode_f64(item);
+      budget.per_leaf_absolute_area.push_back(limit);
+    }
+  }
+  budget.area_absolute_sr = node.contains("area_absolute_sr") ? decode_f64(node.at("area_absolute_sr"))
+                                                              : 0.0;
+  budget.normalizer_min_sr = node.contains("normalizer_min_sr")
+                                 ? decode_f64(node.at("normalizer_min_sr"))
+                                 : 0.0;
+  budget.max_work = node.contains("max_work") ? static_cast<U64>(node.at("max_work").get<U64>())
+                                               : 1000000ull;
+  budget.max_bytes = node.contains("max_bytes") ? static_cast<U64>(node.at("max_bytes").get<U64>())
+                                                 : 268435456ull;
+  budget.max_depth = node.contains("max_depth")
+                         ? static_cast<U32>(node.at("max_depth").get<U32>())
+                         : 64u;
+  budget.arithmetic = decode_arithmetic(node.contains("arithmetic") ? node.at("arithmetic")
+                                                                     : json::object());
+  return budget;
+}
+
+
+// The location of a product: the directory and the manifest hash.
+ProductLocation decode_location(const json& node) {
+  ProductLocation location;
+  if (node.is_object()) {
+    if (node.contains("directory") && node.at("directory").is_string()) {
+      location.directory = node.at("directory").get<std::string>();
+    }
+    if (node.contains("manifest_hash") && node.at("manifest_hash").is_string()) {
+      location.manifest_hash = node.at("manifest_hash").get<std::string>();
+    }
+  }
+  return location;
+}
+
+// Opens a published product.
+json Driver::run_open_product() {
+  const json& node = arguments_.contains("location") ? arguments_.at("location") : json::object();
+  ProductLocation location = decode_location(node);
+  json body = envelope_header();
+  json result;
+  Result<Ref<ProductProvider>> product = open_product(*context_, location);
+  if (!ok(product)) {
+    result["code"] = encode_code(product.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(product.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  Ref<ProductGraph> graph = val(product)->graph();
+  result["code"] = encode_code(Code::ok);
+  result["value"] = json{{"directory", location.directory},
+                          {"manifest_hash", location.manifest_hash}};
+  result["assessment"] = encode_assessment(graph ? graph->assessment : model::make_assessment(Code::ok));
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
+  // The graph and its signal are published: the next request takes them as
+  // the input objects.
+  if (graph) {
+    decoder_->publish("ProductGraph", graph->identity.object_id,
+                      json{{"stage", graph->stage == ProductGraph::Stage::normalize ? "normalize"
+                                                  : graph->stage == ProductGraph::Stage::mosaic
+                                                      ? "mosaic"
+                                                      : "export_image"},
+                           {"profile", graph->profile},
+                           {"inputs", graph->inputs}});
+    if (graph->signal) {
+      decoder_->publish("SignalEstimate", graph->signal->identity.object_id,
+                        encode_signal_estimate(*graph->signal));
+      if (graph->signal->support) {
+        decoder_->publish("SupportMap", graph->signal->support->identity.object_id,
+                          encode_support_map(*graph->signal->support));
+      }
+    }
+  }
+  body["result"] = result;
+  return body;
+}
+
+// Builds the projection of a product onto a target.
+json Driver::run_build_export() {
+  const json& location_node = arguments_.contains("product") ? arguments_.at("product")
+                                                              : json::object();
+  ProductLocation location = decode_location(location_node);
+  Result<TypedObject> request_node = argument("request");
+  if (!ok(request_node)) {
+    return failure_body(request_node.code, "the export request cannot be decoded",
+                        "contract.decode");
+  }
+  if (val(request_node).type != "ExportRequest") {
+    return failure_body(Code::invalid_request, "the argument request is not an ExportRequest",
+                        "contract.decode");
+  }
+  Ref<ExportRequest> request = std::static_pointer_cast<const ExportRequest>(val(request_node).value);
+  json body = envelope_header();
+  json result;
+  Result<Ref<ProductProvider>> product = open_product(*context_, location);
+  if (!ok(product)) {
+    result["code"] = encode_code(product.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(product.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  Result<ExportResult> export_result = build_export(*context_, *val(product), *request);
+  if (!ok(export_result)) {
+    result["code"] = encode_code(export_result.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(export_result.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  const ExportResult& image = val(export_result);
+  result["code"] = encode_code(Code::ok);
+  result["value"] = json{{"quantity", request->quantity == ExportRequest::Quantity::supported_mean
+                                          ? "supported_mean"
+                                          : request->quantity == ExportRequest::Quantity::supported_flux
+                                              ? "supported_flux"
+                                              : "extrapolated_full_flux"},
+                          {"width", request->target.width},
+                          {"height", request->target.height}};
+  result["assessment"] = encode_assessment(image.estimate ? image.estimate->assessment
+                                                          : model::make_assessment(Code::ok));
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
+  // The row operator and the estimate are published: the next request
+  // serialises them without reprojecting.
+  if (image.Q) {
+    Result<ActionRecipe> recipe = image.Q->serialize_recipe();
+    if (ok(recipe)) {
+      decoder_->publish("LinearAction", image.Q->identity.object_id,
+                        json{{"recipe", encode_action_recipe(val(recipe))}});
+    }
+  }
+  if (image.estimate) {
+    decoder_->publish("SignalEstimate", image.estimate->identity.object_id,
+                      encode_signal_estimate(*image.estimate));
+    if (image.estimate->support) {
+      decoder_->publish("SupportMap", image.estimate->support->identity.object_id,
+                        encode_support_map(*image.estimate->support));
+    }
+  }
+  body["result"] = result;
+  return body;
+}
+
+// Publishes a projected image as a product.
+json Driver::run_export_signal() {
+  Result<TypedObject> estimate_node = argument("estimate");
+  if (!ok(estimate_node)) {
+    return failure_body(estimate_node.code, "the estimate cannot be decoded", "contract.decode");
+  }
+  if (val(estimate_node).type != "SignalEstimate") {
+    return failure_body(Code::invalid_request, "the argument estimate is not a SignalEstimate",
+                        "contract.decode");
+  }
+  Ref<SignalEstimate> estimate =
+      std::static_pointer_cast<const SignalEstimate>(val(estimate_node).value);
+  Result<TypedObject> publish_node = argument("publish");
+  if (!ok(publish_node)) {
+    return failure_body(publish_node.code, "the publish request cannot be decoded",
+                        "contract.decode");
+  }
+  if (val(publish_node).type != "PublishRequest") {
+    return failure_body(Code::invalid_request, "the argument publish is not a PublishRequest",
+                        "contract.decode");
+  }
+  Ref<PublishRequest> publish =
+      std::static_pointer_cast<const PublishRequest>(val(publish_node).value);
+  ExportResult image;
+  image.estimate = estimate;
+  json body = envelope_header();
+  json result;
+  Result<ProductLocation> location = export_signal(*context_, image, *publish);
+  if (!ok(location)) {
+    result["code"] = encode_code(location.code);
+    result["value"] = nullptr;
+    result["assessment"] = encode_assessment(location.assessment);
+    result["usage"] = encode_usage(resources_->usage());
+    result["dependencies"] = json::array();
+    body["result"] = result;
+    return body;
+  }
+  result["code"] = encode_code(Code::ok);
+  result["value"] = json{{"directory", val(location).directory},
+                          {"manifest_hash", val(location).manifest_hash}};
+  result["assessment"] = encode_assessment(model::make_assessment(Code::ok));
+  result["usage"] = encode_usage(resources_->usage());
+  result["dependencies"] = json::array();
   body["result"] = result;
   return body;
 }
@@ -1065,6 +1249,9 @@ json Driver::dispatch() {
   if (operation_ == "make_covariance") return run_make_covariance();
   if (operation_ == "make_wcs") return run_make_wcs();
   if (operation_ == "make_footprint_provider") return run_make_footprint_provider();
+  if (operation_ == "open_product") return run_open_product();
+  if (operation_ == "build_export") return run_build_export();
+  if (operation_ == "export_signal") return run_export_signal();
   if (operation_ == "integrate_response") return run_integrate_response();
   if (operation_ == "control_covariance") return run_control_covariance();
   if (operation_ == "measure") return run_measure();
@@ -1233,6 +1420,9 @@ bool operation_supported(const std::string& operation) {
                                      "make_covariance",
                                      "make_wcs",
                                      "make_footprint_provider",
+                                     "open_product",
+                                     "build_export",
+                                     "export_signal",
                                      "integrate_response",
                                      "control_covariance",
                                      "measure",

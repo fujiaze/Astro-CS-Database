@@ -33,6 +33,56 @@ namespace {
 // The footprint of the whole detector: the rectangular collection domain of
 // the frame in the detector frame.  The geometry module intersects it with
 // the leaves of the requested order.
+
+// The footprint of one block of the detector.
+//
+// The source rows of the geometry are the blocks of the detector: the
+// foundation form a_jp = Omega(D_j cap H_p) needs one area per source row and
+// per leaf, so the detector is partitioned into blocks of `block` by `block`
+// pixels.  The block is the rectangular collection domain of one source row.
+Result<Ref<DetectorFootprint>> block_footprint(Context& context, Ref<FootprintSet> set, U64 block,
+                                                U64 block_size, U64 source_row) {
+  using model::fail;
+  using model::ok_result;
+  if (!set) {
+    return fail<Ref<DetectorFootprint>>(Code::invalid_model, "the frame has no footprint set",
+                                        "normalize", "the geometry cannot be computed");
+  }
+  const U64 blocks_per_row = (set->width + block_size - 1) / block_size;
+  const U64 first_x = (block % blocks_per_row) * block_size;
+  const U64 first_y = (block / blocks_per_row) * block_size;
+  const U64 last_x = std::min(first_x + block_size, set->width);
+  const U64 last_y = std::min(first_y + block_size, set->height);
+  DetectorFootprint footprint;
+  footprint.wcs = set->wcs;
+  footprint.pixel_response = set->pixel_response;
+  footprint.source = model::source_at(*set->index, source_row);
+  footprint.source.sample = block;
+  footprint.identity = model::make_identity("acsd.DetectorFootprint", 2, 0,
+                                            model::sha256_hex("acsd.normalize.block:" +
+                                                              std::to_string(block)),
+                                            "acsd");
+  footprint.assessment = model::make_assessment(Code::ok);
+  footprint.assessment.complete = true;
+  const double x0 = static_cast<double>(first_x) - 0.5;
+  const double y0 = static_cast<double>(first_y) - 0.5;
+  const double x1 = static_cast<double>(last_x) - 0.5;
+  const double y1 = static_cast<double>(last_y) - 0.5;
+  footprint.contraction_center = PixelCenter0{0.5 * (x0 + x1), 0.5 * (y0 + y1)};
+  Ring ring;
+  ring.hole = false;
+  const double corners[4][2] = {{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1}};
+  for (const auto& corner : corners) {
+    PixelEdge0 edge;
+    edge.x = corner[0];
+    edge.y = corner[1];
+    ring.vertices.push_back(edge);
+  }
+  footprint.detector_rings.push_back(ring);
+  return ok_result(std::shared_ptr<const DetectorFootprint>(
+      std::make_shared<DetectorFootprint>(footprint)));
+}
+
 Result<Ref<DetectorFootprint>> frame_footprint(Context& context, Ref<FootprintSet> set) {
   using model::fail;
   using model::ok_result;
@@ -468,50 +518,82 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       result.frames.emplace_back(outcome.frame, outcome.assessment);
       continue;
     }
+    // The source rows of the geometry are the blocks of the detector: the
+    // weight matrix of the drizzle is (leaf x source row) and the area of a
+    // source row against a leaf is what the exact kernel computes.  The block
+    // size bounds the cost; the number of source rows and the block size are
+    // written into the assessment.
+    const U64 block_size = 16;
     Ref<Overlaps> merged;
     std::map<std::pair<U32, U64>, double> leaf_areas;
     std::vector<HealpixLeaf> leaves;
-    // The collection domain of the frame is the whole detector: one
-    // rectangular footprint whose overlap with the leaves gives the support
-    // of every leaf.  The geometry module computes the overlap of the
-    // collection domain against the leaves of the requested order; the
-    // pieces of one leaf are merged by the operator.
-    Result<Ref<DetectorFootprint>> footprint =
-        frame_footprint(context, observation->footprints);
-    if (!ok(footprint)) {
-      outcome.failed = true;
-      outcome.code = footprint.code;
-      outcome.reason = footprint.assessment.issues.empty()
-                           ? "the detector footprint cannot be built"
-                           : footprint.assessment.issues.front().reason;
-      outcome.assessment = footprint.assessment;
-      result.frames.emplace_back(outcome.frame, outcome.assessment);
-      continue;
-    }
-    Result<Ref<Overlaps>> overlaps = compute_overlap(context, *val(provider), val(footprint),
-                                                      request.drizzle.order, request.drizzle.pixfrac,
-                                                      request.drizzle.budget);
-    if (!ok(overlaps)) {
-      outcome.failed = true;
-      outcome.code = overlaps.code;
-      outcome.reason = overlaps.assessment.issues.empty()
-                           ? "the overlap cannot be computed"
-                           : overlaps.assessment.issues.front().reason;
-      outcome.assessment = overlaps.assessment;
-      result.frames.emplace_back(outcome.frame, outcome.assessment);
-      continue;
-    }
-    merged = val(overlaps);
-    for (const OverlapContribution& contribution : val(overlaps)->contributions) {
-      const auto key = std::make_pair(contribution.leaf.order, contribution.leaf.ipix);
-      auto it = leaf_areas.find(key);
-      if (it == leaf_areas.end()) {
-        leaf_areas[key] = contribution.overlap_area.lower_sr;
-        leaves.push_back(contribution.leaf);
-      } else {
-        it->second += contribution.overlap_area.lower_sr;
+    std::vector<OverlapContribution> contributions;
+    U64 source_rows = 0;
+    if (observation->footprints && observation->footprints->width > 0 &&
+        observation->footprints->height > 0) {
+      const U64 width = observation->footprints->width;
+      const U64 height = observation->footprints->height;
+      const U64 blocks_per_row = (width + block_size - 1) / block_size;
+      const U64 block_count = blocks_per_row * ((height + block_size - 1) / block_size);
+      for (U64 block = 0; block < block_count; ++block) {
+        if (context.cancellation.requested()) {
+          outcome.failed = true;
+          outcome.code = Code::cancelled;
+          outcome.reason = "the export was cancelled";
+          result.frames.emplace_back(outcome.frame, outcome.assessment);
+          break;
+        }
+        Result<Ref<DetectorFootprint>> footprint =
+            block_footprint(context, observation->footprints, block, block_size, block);
+        if (!ok(footprint)) {
+          outcome.failed = true;
+          outcome.code = footprint.code;
+          outcome.reason = footprint.assessment.issues.empty()
+                               ? "the detector footprint cannot be built"
+                               : footprint.assessment.issues.front().reason;
+          outcome.assessment = footprint.assessment;
+          break;
+        }
+        Result<Ref<Overlaps>> overlaps = compute_overlap(context, *val(provider), val(footprint),
+                                                          request.drizzle.order,
+                                                          request.drizzle.pixfrac,
+                                                          request.drizzle.budget);
+        if (!ok(overlaps)) {
+          outcome.failed = true;
+          outcome.code = overlaps.code;
+          outcome.reason = overlaps.assessment.issues.empty()
+                               ? "the overlap cannot be computed"
+                               : overlaps.assessment.issues.front().reason;
+          outcome.assessment = overlaps.assessment;
+          break;
+        }
+        for (const OverlapContribution& contribution : val(overlaps)->contributions) {
+          const auto key = std::make_pair(contribution.leaf.order, contribution.leaf.ipix);
+          auto it = leaf_areas.find(key);
+          if (it == leaf_areas.end()) {
+            leaf_areas[key] = contribution.overlap_area.lower_sr;
+            leaves.push_back(contribution.leaf);
+          } else {
+            it->second += contribution.overlap_area.lower_sr;
+          }
+          contributions.push_back(contribution);
+        }
+        ++source_rows;
       }
     }
+    // The merged overlaps carry one contribution per source row and leaf.
+    auto merged_overlaps = std::make_shared<Overlaps>();
+    merged_overlaps->contributions = contributions;
+    merged_overlaps->identity = model::make_identity("acsd.Overlaps", 2, 0,
+                                                      model::sha256_hex("acsd.normalize.overlaps"),
+                                                      "acsd");
+    merged_overlaps->assessment = model::make_assessment(Code::ok);
+    merged_overlaps->assessment.complete = true;
+    merged_overlaps->assessment.included.push_back(
+        "the source rows are the blocks of the detector: " + std::to_string(source_rows) +
+        " blocks of " + std::to_string(block_size) + " by " + std::to_string(block_size) +
+        " pixels");
+    merged = merged_overlaps;
     if (outcome.failed) {
       result.frames.emplace_back(outcome.frame, outcome.assessment);
       continue;
