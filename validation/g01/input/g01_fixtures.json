@@ -1,6 +1,37 @@
 {
   "cases": [
     {
+      "astrometric_context": {
+        "epoch_julian_year": 2016.0,
+        "observation_jd_tdb": 2457600.5
+      },
+      "budget": {
+        "allow_target_fallback": false,
+        "area_absolute_sr": 1e-12,
+        "initial_bits": 64,
+        "max_bits": 256,
+        "max_bytes": 16777216,
+        "max_depth": 32,
+        "max_work": 1000000,
+        "negative_variants": [
+          {
+            "max_work": 1,
+            "name": "work_1"
+          },
+          {
+            "initial_bits": 64,
+            "max_bits": 64,
+            "name": "maxprecision_64"
+          },
+          {
+            "initial_bits": 16,
+            "max_bits": 16,
+            "name": "maxprecision_16"
+          }
+        ],
+        "normalizer_min_sr": 0.0,
+        "outward": true
+      },
       "cd": [
         [
           0.001,
@@ -29,6 +60,7 @@
         0.0,
         0.0
       ],
+      "detector_frame": "detector",
       "name": "tan_centered_square",
       "note": "a detector square centred on the tangent point",
       "order": 5,
@@ -37,6 +69,37 @@
       "trials": 200000
     },
     {
+      "astrometric_context": {
+        "epoch_julian_year": 2016.0,
+        "observation_jd_tdb": 2457600.5
+      },
+      "budget": {
+        "allow_target_fallback": false,
+        "area_absolute_sr": 1e-12,
+        "initial_bits": 64,
+        "max_bits": 256,
+        "max_bytes": 16777216,
+        "max_depth": 32,
+        "max_work": 1000000,
+        "negative_variants": [
+          {
+            "max_work": 1,
+            "name": "work_1"
+          },
+          {
+            "initial_bits": 64,
+            "max_bits": 64,
+            "name": "maxprecision_64"
+          },
+          {
+            "initial_bits": 16,
+            "max_bits": 16,
+            "name": "maxprecision_16"
+          }
+        ],
+        "normalizer_min_sr": 0.0,
+        "outward": true
+      },
       "cd": [
         [
           -0.00012,
@@ -65,6 +128,7 @@
         10.0,
         20.0
       ],
+      "detector_frame": "detector",
       "name": "tan_offset_square",
       "note": "an off-centre square, the image is not symmetric",
       "order": 6,
@@ -73,6 +137,37 @@
       "trials": 200000
     },
     {
+      "astrometric_context": {
+        "epoch_julian_year": 2016.0,
+        "observation_jd_tdb": 2457600.5
+      },
+      "budget": {
+        "allow_target_fallback": false,
+        "area_absolute_sr": 1e-12,
+        "initial_bits": 64,
+        "max_bits": 256,
+        "max_bytes": 16777216,
+        "max_depth": 32,
+        "max_work": 1000000,
+        "negative_variants": [
+          {
+            "max_work": 1,
+            "name": "work_1"
+          },
+          {
+            "initial_bits": 64,
+            "max_bits": 64,
+            "name": "maxprecision_64"
+          },
+          {
+            "initial_bits": 16,
+            "max_bits": 16,
+            "name": "maxprecision_16"
+          }
+        ],
+        "normalizer_min_sr": 0.0,
+        "outward": true
+      },
       "cd": [
         [
           0.0002,
@@ -101,6 +196,7 @@
         45.0,
         89.9995
       ],
+      "detector_frame": "detector",
       "name": "north_polar",
       "note": "a detector square close to the north pole",
       "order": 6,
@@ -109,6 +205,105 @@
       "trials": 200000
     },
     {
+      "astrometric_context": {
+        "epoch_julian_year": 2016.0,
+        "observation_jd_tdb": 2457600.5
+      },
+      "budget": {
+        "allow_target_fallback": false,
+        "area_absolute_sr": 1e-12,
+        "initial_bits": 64,
+        "max_bits": 256,
+        "max_bytes": 16777216,
+        "max_depth": 32,
+        "max_work": 1000000,
+        "negative_variants": [
+          {
+            "max_work": 1,
+            "name": "work_1"
+          },
+          {
+            "initial_bits": 64,
+            "max_bits": 64,
+            "name": "maxprecision_64"
+          },
+          {
+            "initial_bits": 16,
+            "max_bits": 16,
+            "name": "maxprecision_16"
+          }
+        ],
+        "normalizer_min_sr": 0.0,
+        "outward": true
+      },
+      "cd": [
+        [
+          0.0002,
+          0.0
+        ],
+        [
+          0.0,
+          0.0002
+        ]
+      ],
+      "corners": [
+        [
+          24.0,
+          24.0
+        ],
+        [
+          40.0,
+          40.0
+        ]
+      ],
+      "crpix": [
+        32.0,
+        32.0
+      ],
+      "crval": [
+        0.0,
+        85.0
+      ],
+      "detector_frame": "detector",
+      "name": "polar_extreme",
+      "note": "a detector square near the pole, the cut cell kernel must subdivide",
+      "order": 6,
+      "pixfrac": 1.0,
+      "seed": 20261027,
+      "trials": 200000
+    },
+    {
+      "astrometric_context": {
+        "epoch_julian_year": 2016.0,
+        "observation_jd_tdb": 2457600.5
+      },
+      "budget": {
+        "allow_target_fallback": false,
+        "area_absolute_sr": 1e-12,
+        "initial_bits": 64,
+        "max_bits": 256,
+        "max_bytes": 16777216,
+        "max_depth": 32,
+        "max_work": 1000000,
+        "negative_variants": [
+          {
+            "max_work": 1,
+            "name": "work_1"
+          },
+          {
+            "initial_bits": 64,
+            "max_bits": 64,
+            "name": "maxprecision_64"
+          },
+          {
+            "initial_bits": 16,
+            "max_bits": 16,
+            "name": "maxprecision_16"
+          }
+        ],
+        "normalizer_min_sr": 0.0,
+        "outward": true
+      },
       "cd": [
         [
           1e-06,
@@ -137,6 +332,7 @@
         0.0,
         0.0
       ],
+      "detector_frame": "detector",
       "name": "order29_subleaf",
       "note": "order 29 target grid with a sub-leaf detector square",
       "order": 29,
@@ -145,6 +341,37 @@
       "trials": 50000
     },
     {
+      "astrometric_context": {
+        "epoch_julian_year": 2016.0,
+        "observation_jd_tdb": 2457600.5
+      },
+      "budget": {
+        "allow_target_fallback": false,
+        "area_absolute_sr": 1e-12,
+        "initial_bits": 64,
+        "max_bits": 256,
+        "max_bytes": 16777216,
+        "max_depth": 32,
+        "max_work": 1000000,
+        "negative_variants": [
+          {
+            "max_work": 1,
+            "name": "work_1"
+          },
+          {
+            "initial_bits": 64,
+            "max_bits": 64,
+            "name": "maxprecision_64"
+          },
+          {
+            "initial_bits": 16,
+            "max_bits": 16,
+            "name": "maxprecision_16"
+          }
+        ],
+        "normalizer_min_sr": 0.0,
+        "outward": true
+      },
       "cd": [
         [
           0.001,
@@ -173,6 +400,7 @@
         0.0,
         0.0
       ],
+      "detector_frame": "detector",
       "name": "touching_edge",
       "note": "a square whose edge touches a leaf boundary (tangency)",
       "order": 7,

@@ -5,7 +5,7 @@
   },
   "case": "C01",
   "code_identity": {
-    "validation/c01/truth_c01.py": "e3230c21b6f3a7115563a41e68c747559da422bdbd3e962bc499a9f4f1cda58c"
+    "validation/c01/truth_c01.py": "2ffa59c40f677a3af5410169a0a2e29ae402ea52566dfdf2414292806ac81587"
   },
   "commands": {
     "contract": "acsd-contract --request validation/c01/request.json",

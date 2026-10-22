@@ -18,6 +18,7 @@
       "src/coordinates/healpix.cpp",
       "src/coordinates/tan_sip.cpp",
       "src/coordinates/wcs.cpp",
+      "src/geometry/containment.cpp",
       "src/geometry/drizzle.cpp",
       "src/geometry/exact_polygon.cpp",
       "src/geometry/kernel.cpp",
@@ -33,6 +34,7 @@
       "src/numerics/interval.cpp",
       "src/numerics/linalg.cpp",
       "src/numerics/quadrature.cpp",
+      "src/observation/bind.cpp",
       "src/observation/calibrate.cpp",
       "src/observation/observation.cpp",
       "src/observation/regroup.cpp",
@@ -153,7 +155,7 @@
     ],
     "solid_angle_jacobian_relative": 1e-06
   },
-  "truth_sha256": "557778999eee569dd209cbb3fefe97403cde661d9bb527f3364ba6402d224aa3",
+  "truth_sha256": "1df7a41c1a36ea16ab7159f6f9aaaad45c2a1636745e717e5f3e368d3ddb327d",
   "truth_type": "analytic_exact",
   "unit": "rad (angles), pixel (positions), sr/pixel^2 (solid angle)"
 }

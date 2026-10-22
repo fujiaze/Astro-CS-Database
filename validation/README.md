@@ -17,6 +17,24 @@
   `conditional_model`。
 * 被测入口尚未实现时记 `pending_implementation` 并写明原因，**不伪造结果**。
 
+### 比较器红线（比较器本身必须可证伪）
+
+1. **每个泛函都要记成功计数**：写明 `expected_success_count` 与
+   `observed_success_count`。成功数为 0 而期望数 > 0 → 判 fail 并写明
+   `expected_success_count>0, observed_success_count=0`。
+2. **禁止「无样本即 0」**：任何「取成功样本的最大值」的写法在成功集为空时必须判
+   fail，绝不能用 0.0 之类的默认值充当 observed（这是 2026-10 一次真实漏判：
+   C01 的 inverse 全部失败却被判 pass）。
+3. **必须有 case 级覆盖检查**：每个 case 至少有一个真值样本被成功比较；
+   否则该 case 判 fail，不得因为「无样本」而静默通过。
+4. **失败直方图**：每个量测族记录 attempts / successes / 具名失败直方图
+   （code + reason 计数），失败不得被丢弃或折叠成一个 0。
+5. **域内/域外必须区分**：目标落在声明域外时，期望是「具名失败」；域内目标必须
+   成功。判定用独立于被测实现的方式（外部参考或自写闭式模型），不得用被测实现
+   自己的输出来决定期望。
+6. **反例不得伪 PASS**：预算耗尽（work/precision/depth）时若仍报
+   `termination=tolerance_met` 且 `bound_validity=certified`，判 fail。
+
 ## 目录
 
 ```

@@ -410,6 +410,90 @@ def solid_angle_jacobian(crval_deg, cd_deg, lonpole_deg, a_terms, b_terms, crpix
 # astropy helpers
 # --------------------------------------------------------------------------
 
+def signed_angle_at(a, b, c):
+    """The signed angle at b between the great circles (a, b) and (b, c)."""
+    normal_ab = np.cross(a, b)
+    normal_bc = np.cross(b, c)
+    norm_ab = float(np.linalg.norm(normal_ab))
+    norm_bc = float(np.linalg.norm(normal_bc))
+    if norm_ab == 0.0 or norm_bc == 0.0:
+        return 0.0
+    cosine = float(np.dot(normal_ab, normal_bc) / (norm_ab * norm_bc))
+    sine = float(np.dot(np.cross(normal_ab, normal_bc), b) / (norm_ab * norm_bc))
+    return math.atan2(sine, cosine)
+
+
+def spherical_polygon_signed_area(points):
+    """The signed spherical excess of a polygon of unit vectors."""
+    count = len(points)
+    total = 0.0
+    for index in range(count):
+        total += signed_angle_at(points[(index - 1) % count], points[index],
+                                 points[(index + 1) % count])
+    return total - (count - 2) * math.pi
+
+
+def sky_in_domain(corners_sky, target):
+    """Is the sky vector inside the spherical quadrilateral of the corners?
+
+    The test uses only the forward model, so it does not depend on any
+    inverse, not even on the external reference.
+    """
+    area = spherical_polygon_signed_area(corners_sky)
+    if area == 0.0:
+        return False
+    for index in range(len(corners_sky)):
+        triangle = [corners_sky[index], corners_sky[(index + 1) % len(corners_sky)], target]
+        if spherical_polygon_signed_area(triangle) * area <= 0.0:
+            return False
+    return True
+
+
+def independent_inverse_tan(crval, cd_deg, lonpole, a_terms, b_terms, crpix, sky, start):
+    """The inverse of the independent forward model, by a Newton solve.
+
+    The residual is the three dimensional difference of the unit vectors and
+    the step is the least squares solution, so the degenerate direction at a
+    pole does not break the iteration.
+    """
+    target = np.asarray(sky, dtype=float)
+    target = target / np.linalg.norm(target)
+    pixel = np.array(start, dtype=float)
+    for _ in range(120):
+        value = forward_tan(crval, cd_deg, lonpole, a_terms, b_terms, crpix, pixel)
+        residual = value - target
+        if float(np.linalg.norm(residual)) < 1e-15:
+            break
+        jacobian = np.zeros((3, 2))
+        step = 1.0e-6
+        for axis in range(2):
+            probe = pixel.copy()
+            probe[axis] += step
+            jacobian[:, axis] = (forward_tan(crval, cd_deg, lonpole, a_terms, b_terms, crpix,
+                                             probe) - value) / step
+        delta, *_ = np.linalg.lstsq(jacobian, -residual, rcond=None)
+        pixel = pixel + delta
+    return pixel
+
+
+def best_start_in_domain(crval, cd_deg, lonpole, a_terms, b_terms, crpix, sky, domain,
+                         grid=25):
+    """The domain pixel whose forward image is closest to the target sky."""
+    target = np.asarray(sky, dtype=float)
+    best = None
+    best_distance = None
+    for i in range(grid):
+        x = domain["lower"][0] + (domain["upper"][0] - domain["lower"][0]) * i / (grid - 1)
+        for j in range(grid):
+            y = domain["lower"][1] + (domain["upper"][1] - domain["lower"][1]) * j / (grid - 1)
+            value = forward_tan(crval, cd_deg, lonpole, a_terms, b_terms, crpix, (x, y))
+            distance = float(np.linalg.norm(value - target))
+            if best_distance is None or distance < best_distance:
+                best_distance = distance
+                best = (x, y)
+    return best
+
+
 def astropy_wcs(case):
     header = fits.Header()
     for item in case["header"]:
@@ -739,10 +823,40 @@ def build_comparison(case, fixtures, truths, native_run, native_response, contra
         case.write_comparison(payload)
         return payload
 
+    def in_domain(domain, x, y):
+        """Is the 0-based pixel inside the declared detector domain?"""
+        return (domain["lower"][0] <= x <= domain["upper"][0]
+                and domain["lower"][1] <= y <= domain["upper"][1])
+
+    def target_in_domain(fixture, sky, reference):
+        """Is the sky target inside the sky image of the declared domain?
+
+        The pixel of the target is taken from the external reference when it
+        converged, and from an independent Newton solve on the independent
+        forward model otherwise.  The production is never used for this
+        decision.
+        """
+        domain = fixture["domain"]
+        if reference.get("astropy_converged", True):
+            pixel = (reference["astropy_x"], reference["astropy_y"])
+        else:
+            crpix, crval, cd_deg, lonpole = model_parameters(fixture)
+            lonpole_value = lonpole if lonpole is not None else default_lonpole(crval)
+            a_terms = parse_terms(fixture, "A")
+            b_terms = parse_terms(fixture, "B")
+            start = best_start_in_domain(crval, cd_deg, lonpole_value, a_terms, b_terms,
+                                          crpix, sky, domain)
+            pixel = independent_inverse_tan(crval, cd_deg, lonpole_value, a_terms, b_terms,
+                                            crpix, sky, start)
+            reference["independent_x"] = float(pixel[0])
+            reference["independent_y"] = float(pixel[1])
+        return in_domain(domain, pixel[0], pixel[1])
+
     for fixture in fixtures:
         name = fixture["name"]
         entry = observed_by_name.get(name)
         truth = truth_by_name[name]
+        domain = fixture["domain"]
         if entry is None:
             add_row(f"{name}:present", "value", status="pending_implementation",
                     observed=None, reason="the driver did not report this fixture")
@@ -763,78 +877,219 @@ def build_comparison(case, fixtures, truths, native_run, native_response, contra
                     status = "fail"
             else:
                 add_row(f"{name}:wcs_built", "value", status="fail", observed=None,
-                        reason=f"make_wcs failed with {code}: {entry.get('reason','')}")
+                        reason=f"make_wcs failed with {code}: {entry.get('reason','')}",
+                        expected_success_count=1, observed_success_count=0)
                 failures.append({"functional": f"{name}:wcs_built", "scope": "make_wcs",
                                  "expected": "ok", "actual": code,
                                  "reason": entry.get("reason", "")})
                 status = "fail"
             continue
 
-        # forward
-        worst = 0.0
+        # ---- forward -------------------------------------------------------
+        # Every functional records the expected and the observed number of
+        # successful calls.  An empty success set is a failure, never a zero.
+        expected = 0
+        observed = 0
+        worst = None
         for index, item in enumerate(entry.get("forward", [])):
+            pixel = fixture["forward_pixels"][index]
+            inside = in_domain(domain, pixel[0], pixel[1])
+            if inside:
+                expected += 1
+                if item.get("code") != "ok":
+                    add_row(f"{name}:forward[{index}]", "value", status="fail",
+                            observed=None, reason=item.get("reason", ""),
+                            expected="ok", observed_code=item.get("code"))
+                    failures.append({"functional": f"{name}:forward[{index}]", "scope": "forward",
+                                     "expected": "ok", "actual": item.get("code"),
+                                     "reason": item.get("reason", "")})
+                    status = "fail"
+                    continue
+                observed += 1
+            elif item.get("code") != "ok":
+                add_row(f"{name}:forward_out_of_domain[{index}]", "code", status="pass",
+                        expected_codes="a named failure outside the declared domain",
+                        observed_code=item.get("code"),
+                        reason="the pixel is outside the declared detector domain")
+                continue
+            else:
+                observed += 1
+            separation = angular_separation([item["nx"], item["ny"], item["nz"]],
+                                             truth["forward"][index]["astropy_vector"])
+            worst = separation if worst is None else max(worst, separation)
+        if expected:
+            accepted = (observed == expected and worst is not None and worst <= 1e-10)
+            add_row(f"{name}:forward_max_rad", "value", status="pass" if accepted else "fail",
+                    truth=0.0, observed=worst, tolerance=1e-10, unit="rad",
+                    expected_success_count=expected, observed_success_count=observed)
+            if not accepted:
+                failures.append({"functional": f"{name}:forward", "scope": "forward",
+                                 "expected": f"<= 1e-10 rad over {expected} successful calls",
+                                 "actual": {"worst_rad": worst,
+                                            "observed_success_count": observed,
+                                            "expected_success_count": expected},
+                                 "reason": "the forward agreement or the success count is "
+                                           "outside the expectation"})
+                status = "fail"
+
+        # ---- inverse --------------------------------------------------------
+        # A target whose true pixel lies outside the declared detector domain
+        # is a named failure; a target inside the domain must be solved.
+        expected = 0
+        observed = 0
+        worst_inverse = None
+        worst_angular = None
+        for index, item in enumerate(entry.get("inverse", [])):
+            reference = truth["inverse"][index]
+            inside = target_in_domain(fixture, reference["sky"], reference)
+            if not inside:
+                # The target is outside the declared domain: a named failure is
+                # the expected outcome, and a success is not a defect but is
+                # still checked by the round trip below.
+                add_row(f"{name}:inverse_out_of_domain[{index}]", "code",
+                        status="pass" if item.get("code") != "ok" else "info",
+                        expected_codes="a named failure outside the declared domain",
+                        observed_code=item.get("code"),
+                        reason=f"the target is outside the sky image of the declared "
+                               f"domain [{domain['lower'][0]}, {domain['upper'][0]}] x "
+                               f"[{domain['lower'][1]}, {domain['upper'][1]}]"
+                               + ("" if reference.get("astropy_converged", True)
+                                  else "; the external reference did not converge either"))
+                if item.get("code") != "ok":
+                    continue
+                observed += 1
+            else:
+                expected += 1
             if item.get("code") != "ok":
-                add_row(f"{name}:forward[{index}]", "value", status="fail",
-                        observed=None, reason=item.get("reason", ""))
-                failures.append({"functional": f"{name}:forward[{index}]", "scope": "forward",
+                add_row(f"{name}:inverse[{index}]", "value", status="fail", observed=None,
+                        reason=item.get("reason", ""), expected="ok",
+                        observed_code=item.get("code"),
+                        expected_success_count=1, observed_success_count=0)
+                failures.append({"functional": f"{name}:inverse[{index}]", "scope": "inverse",
                                  "expected": "ok", "actual": item.get("code"),
                                  "reason": item.get("reason", "")})
                 status = "fail"
                 continue
-            separation = angular_separation([item["nx"], item["ny"], item["nz"]],
-                                             truth["forward"][index]["astropy_vector"])
-            worst = max(worst, separation)
-        add_row(f"{name}:forward_max_rad", "value", status="pass" if worst <= 1e-10 else "fail",
-                truth=0.0, observed=worst, tolerance=1e-10, unit="rad")
-        if worst > 1e-10:
-            failures.append({"functional": f"{name}:forward", "scope": "forward",
-                             "expected": "<= 1e-10 rad", "actual": worst,
-                             "reason": "the absolute forward position is outside the tolerance"})
-            status = "fail"
-
-        # inverse
-        worst_inverse = 0.0
-        for index, item in enumerate(entry.get("inverse", [])):
-            if item.get("code") != "ok":
-                continue
-            reference = truth["inverse"][index]
-            if not reference.get("astropy_converged", True):
-                continue
-            worst_inverse = max(worst_inverse,
-                                math.hypot(item["x"] - reference["astropy_x"],
-                                           item["y"] - reference["astropy_y"]))
-        if truth["inverse"]:
-            add_row(f"{name}:inverse_max_pixel", "value",
-                    status="pass" if worst_inverse <= 1e-7 else "fail",
-                    truth=0.0, observed=worst_inverse, tolerance=1e-7, unit="pixel")
-            if worst_inverse > 1e-7:
-                failures.append({"functional": f"{name}:inverse", "scope": "inverse",
-                                 "expected": "<= 1e-7 pixel", "actual": worst_inverse,
-                                 "reason": "the inverse position is outside the tolerance"})
+            observed += 1
+            # The primary criterion is the round trip: the returned pixel is
+            # forwarded with the independent model and must reproduce the
+            # target sky vector.  This is free of the pixel convention and of
+            # the conditioning of the inverse near the pole, where a rounding
+            # of the target angle is amplified by the projection.
+            crpix, crval, cd_deg, lonpole = model_parameters(fixture)
+            lonpole_value = lonpole if lonpole is not None else default_lonpole(crval)
+            rebuilt = forward_tan(crval, cd_deg, lonpole_value,
+                                  parse_terms(fixture, "A"), parse_terms(fixture, "B"),
+                                  crpix, (item["x"], item["y"]))
+            angular_error = angular_separation(rebuilt, reference["sky"])
+            worst_angular = (angular_error if worst_angular is None
+                             else max(worst_angular, angular_error))
+            pixel_error = math.hypot(item["x"] - reference["astropy_x"],
+                                     item["y"] - reference["astropy_y"])
+            worst_inverse = pixel_error if worst_inverse is None else max(worst_inverse,
+                                                                          pixel_error)
+            add_row(f"{name}:inverse[{index}]_round_trip", "value",
+                    status="pass" if angular_error <= 1e-11 else "fail",
+                    truth=0.0, observed=angular_error, tolerance=1e-11, unit="rad",
+                    pixel_difference=pixel_error,
+                    expected_success_count=1, observed_success_count=1)
+            if angular_error > 1e-11:
+                failures.append({"functional": f"{name}:inverse[{index}]_round_trip",
+                                 "scope": "inverse",
+                                 "expected": "<= 1e-11 rad",
+                                 "actual": angular_error,
+                                 "reason": "the returned pixel does not reproduce the target sky"})
                 status = "fail"
+        if entry.get("inverse"):
+            # A fixture whose inverse targets are all outside the declared
+            # domain has no pixel truth; the named failures are then the whole
+            # expectation and the row is informative.  A fixture with an
+            # in-domain target must solve it.
+            if expected > 0:
+                accepted = (observed == expected and worst_angular is not None
+                            and worst_angular <= 1e-11)
+            else:
+                accepted = worst_angular is None or worst_angular <= 1e-11
+            add_row(f"{name}:inverse_max_rad", "value",
+                    status="pass" if accepted else "fail",
+                    truth=0.0, observed=worst_angular, tolerance=1e-11, unit="rad",
+                    expected_success_count=expected, observed_success_count=observed,
+                    pixel_difference=worst_inverse)
+            if not accepted:
+                failures.append({"functional": f"{name}:inverse", "scope": "inverse",
+                                 "expected": f"<= 1e-11 rad over {expected} successful calls "
+                                            f"(at least one in-domain target is required)",
+                                 "actual": {"worst_rad": worst_angular,
+                                            "observed_success_count": observed,
+                                            "expected_success_count": expected},
+                                 "reason": "the inverse agreement or the success count is "
+                                           "outside the expectation"})
+                status = "fail"
+            # The pixel difference against the external reference is reported
+            # as information; near the pole it is amplified by the projection
+            # of the inverse, so it is not a verdict on its own.
+            if worst_inverse is not None:
+                add_row(f"{name}:inverse_pixel_difference", "value",
+                        status="pass" if worst_inverse <= 1e-7 else "info",
+                        truth=0.0, observed=worst_inverse, tolerance=1e-7, unit="pixel",
+                        expected_success_count=expected, observed_success_count=observed,
+                        reason="the pixel difference against astropy; the verdict is the "
+                               "round trip, the pixel difference is amplified near the pole")
 
-        # derivative
-        worst_derivative = 0.0
+        # ---- derivative -----------------------------------------------------
+        expected = 0
+        observed = 0
+        worst_derivative = None
         for index, item in enumerate(entry.get("derivative", [])):
-            if item.get("code") != "ok":
+            pixel = fixture["derivative_pixels"][index]
+            inside = in_domain(domain, pixel[0], pixel[1])
+            if inside:
+                expected += 1
+                if item.get("code") != "ok":
+                    add_row(f"{name}:derivative[{index}]", "value", status="fail",
+                            observed=None, reason=item.get("reason", ""),
+                            expected="ok", observed_code=item.get("code"),
+                            expected_success_count=1, observed_success_count=0)
+                    failures.append({"functional": f"{name}:derivative[{index}]",
+                                     "scope": "derivative",
+                                     "expected": "ok", "actual": item.get("code"),
+                                     "reason": item.get("reason", "")})
+                    status = "fail"
+                    continue
+                observed += 1
+            elif item.get("code") != "ok":
+                add_row(f"{name}:derivative_out_of_domain[{index}]", "code", status="pass",
+                        expected_codes="a named failure outside the declared domain",
+                        observed_code=item.get("code"),
+                        reason="the pixel is outside the declared detector domain")
                 continue
+            else:
+                observed += 1
             reference = np.array(truth["derivative"][index]["jacobian_numerical"])
             observed_matrix = np.array(item["jacobian"]).reshape(3, 2)
             scale = np.max(np.abs(reference))
             if scale > 0:
-                worst_derivative = max(worst_derivative,
-                                       float(np.max(np.abs(observed_matrix - reference))) / scale)
-        if truth["derivative"]:
+                error = float(np.max(np.abs(observed_matrix - reference))) / scale
+                worst_derivative = error if worst_derivative is None else max(worst_derivative,
+                                                                               error)
+        if expected:
+            accepted = (observed == expected and worst_derivative is not None
+                        and worst_derivative <= 1e-6)
             add_row(f"{name}:derivative_relative", "value",
-                    status="pass" if worst_derivative <= 1e-6 else "fail",
-                    truth=0.0, observed=worst_derivative, tolerance=1e-6, unit="1")
-            if worst_derivative > 1e-6:
+                    status="pass" if accepted else "fail",
+                    truth=0.0, observed=worst_derivative, tolerance=1e-6, unit="1",
+                    expected_success_count=expected, observed_success_count=observed)
+            if not accepted:
                 failures.append({"functional": f"{name}:derivative", "scope": "derivative",
-                                 "expected": "<= 1e-6 relative", "actual": worst_derivative,
-                                 "reason": "the Jacobian is outside the tolerance"})
+                                 "expected": f"<= 1e-6 relative over {expected} successful calls",
+                                 "actual": {"worst_relative": worst_derivative,
+                                            "observed_success_count": observed,
+                                            "expected_success_count": expected},
+                                 "reason": "the Jacobian or the success count is outside the "
+                                           "expectation"})
                 status = "fail"
 
-        # solid angle interval
+        # ---- solid angle interval -------------------------------------------
         if truth.get("solid_angle_jacobian_range") and "solid_angle_jacobian" in entry:
             solid = entry["solid_angle_jacobian"]
             reference = truth["solid_angle_jacobian_range"]
@@ -844,7 +1099,7 @@ def build_comparison(case, fixtures, truths, native_run, native_response, contra
                         status="pass" if inside else "fail",
                         truth=[reference["min"], reference["max"]],
                         observed=[solid["lower"], solid["upper"]], tolerance=0.0,
-                        unit="sr/pixel^2")
+                        unit="sr/pixel^2", expected_success_count=1, observed_success_count=1)
                 if not inside:
                     failures.append({"functional": f"{name}:solid_angle", "scope": "solid_angle_jacobian",
                                      "expected": [reference["min"], reference["max"]],
@@ -853,11 +1108,34 @@ def build_comparison(case, fixtures, truths, native_run, native_response, contra
                     status = "fail"
             else:
                 add_row(f"{name}:solid_angle_contains", "value", status="fail",
-                        observed=None, reason=solid.get("reason", ""))
+                        observed=None, reason=solid.get("reason", ""),
+                        expected_success_count=1, observed_success_count=0)
                 failures.append({"functional": f"{name}:solid_angle", "scope": "solid_angle_jacobian",
                                  "expected": "ok", "actual": solid.get("code"),
                                  "reason": solid.get("reason", "")})
                 status = "fail"
+
+    # ---- case level coverage of the inverse --------------------------------
+    in_domain_targets = 0
+    in_domain_solved = 0
+    for row in rows:
+        if row["name"].endswith(":inverse_max_rad"):
+            in_domain_targets += row.get("expected_success_count", 0) or 0
+            in_domain_solved += row.get("observed_success_count", 0) or 0
+    covered = in_domain_targets > 0 and in_domain_solved == in_domain_targets
+    add_row("C01:inverse_coverage", "value", status="pass" if covered else "fail",
+            truth="every in-domain inverse target is solved",
+            observed={"in_domain_targets": in_domain_targets,
+                      "in_domain_solved": in_domain_solved},
+            tolerance=0.0, unit="count",
+            expected_success_count=in_domain_targets, observed_success_count=in_domain_solved)
+    if not covered:
+        failures.append({"functional": "C01:inverse_coverage", "scope": "inverse",
+                         "expected": "at least one in-domain inverse target, all solved",
+                         "actual": {"in_domain_targets": in_domain_targets,
+                                    "in_domain_solved": in_domain_solved},
+                         "reason": "the case does not verify the inverse on an in-domain target"})
+        status = "fail"
 
     # ---- origin and CD-only controls -------------------------------------
     base = observed_by_name.get("tan_sip3_mirror")
@@ -870,28 +1148,37 @@ def build_comparison(case, fixtures, truths, native_run, native_response, contra
                     reason="the control fixture was not available")
             status = "pending_implementation" if status == "pass" else status
             continue
-        separation = 0.0
+        expected = 0
+        observed = 0
+        separation = None
         for index, item in enumerate(base.get("forward", [])):
             if item.get("code") != "ok":
                 continue
             other = control_entry.get("forward", [])[index]
             if other.get("code") != "ok":
                 continue
-            separation = max(separation,
-                             angular_separation([item["nx"], item["ny"], item["nz"]],
-                                                [other["nx"], other["ny"], other["nz"]]))
-        add_row(f"control:{label}", "value", status="pass" if separation > 1e-10 else "fail",
-                truth="> 1e-10 rad separation", observed=separation, tolerance=1e-10, unit="rad")
-        if separation <= 1e-10:
+            expected += 1
+            observed += 1
+            value = angular_separation([item["nx"], item["ny"], item["nz"]],
+                                        [other["nx"], other["ny"], other["nz"]])
+            separation = value if separation is None else max(separation, value)
+        accepted = expected > 0 and observed == expected and separation is not None             and separation > 1e-10
+        add_row(f"control:{label}", "value", status="pass" if accepted else "fail",
+                truth="> 1e-10 rad separation", observed=separation, tolerance=1e-10, unit="rad",
+                expected_success_count=expected, observed_success_count=observed)
+        if not accepted:
             failures.append({"functional": f"control:{label}", "scope": "forward",
                              "expected": "> 1e-10 rad separation from the control",
-                             "actual": separation,
+                             "actual": {"separation_rad": separation,
+                                        "observed_success_count": observed,
+                                        "expected_success_count": expected},
                              "reason": "the implementation does not separate the control model"})
             status = "fail"
 
     payload = comparison_payload(case.name.upper(), status, rows, failures,
                                  "C01 comparison: external astropy truth and an independent "
-                                 "closed form tangent-plane model")
+                                 "closed form tangent-plane model; every functional records the "
+                                 "expected and the observed number of successful calls")
     case.write_comparison(payload)
     return payload
 

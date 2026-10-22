@@ -1,11 +1,11 @@
 {
   "artefacts": {
-    "fixtures": "1c3b29a921ab4e5f7496513a7d5f3d84a29d5982b4c69459b45932fe715f4807",
-    "truth": "4b93a134dce39273359d79ebd03df91ed41bbb4a8006f61adb130ce67fa4dd01"
+    "fixtures": "d215815c706447669b4f1dba8dfbc50ee9cc6e5e3c5b908cc22d62b69c60c60b",
+    "truth": "fa287fb92feb55b6cf20cf09ab2b3478f2ac1158f097821cf38c1aed3e621cd3"
   },
   "case": "G01",
   "code_identity": {
-    "validation/g01/truth_g01.py": "2384aa6f8adda3ca81959ef7168e596163d2ecc07cff9145e9f06974bd44773f"
+    "validation/g01/truth_g01.py": "41e43c6f3baf75a3de6ef7721f1997e1161d651b561d9402df8b1f66e6ecd05a"
   },
   "commands": {
     "native": "bash validation/lib/build_native.sh g01_driver",
@@ -37,6 +37,7 @@
   "seeds": {
     "north_polar": 20261025,
     "order29_subleaf": 20261026,
+    "polar_extreme": 20261027,
     "tan_centered_square": 20261023,
     "tan_offset_square": 20261024,
     "touching_edge": 20261027
@@ -44,6 +45,7 @@
   "trial_denominators": {
     "north_polar": 200000,
     "order29_subleaf": 50000,
+    "polar_extreme": 200000,
     "tan_centered_square": 200000,
     "tan_offset_square": 200000,
     "touching_edge": 100000

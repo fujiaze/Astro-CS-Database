@@ -18,6 +18,7 @@
       "src/coordinates/healpix.cpp",
       "src/coordinates/tan_sip.cpp",
       "src/coordinates/wcs.cpp",
+      "src/geometry/containment.cpp",
       "src/geometry/drizzle.cpp",
       "src/geometry/exact_polygon.cpp",
       "src/geometry/kernel.cpp",
@@ -33,6 +34,7 @@
       "src/numerics/interval.cpp",
       "src/numerics/linalg.cpp",
       "src/numerics/quadrature.cpp",
+      "src/observation/bind.cpp",
       "src/observation/calibrate.cpp",
       "src/observation/observation.cpp",
       "src/observation/regroup.cpp",
@@ -54,6 +56,8 @@
       "src/sources/astrometry_wcs.cpp",
       "src/sources/measure.cpp",
       "src/sources/psf.cpp",
+      "src/sources/psf_fit.cpp",
+      "src/sources/psf_model.cpp",
       "src/storage/local_storage.cpp",
       "src/uncertainty/api.cpp",
       "src/uncertainty/covariance.cpp",
@@ -77,7 +81,7 @@
   "case": "G01",
   "condition": "fixed TAN geometry, no astrometric parameter error",
   "estimand": "the drop area A, the per-leaf overlap areas a_p and the total solid angle of the detector footprint",
-  "fixtures_sha256": "1c3b29a921ab4e5f7496513a7d5f3d84a29d5982b4c69459b45932fe715f4807",
+  "fixtures_sha256": "d215815c706447669b4f1dba8dfbc50ee9cc6e5e3c5b908cc22d62b69c60c60b",
   "goal": "Verify the real spherical areas and the overlap candidates: the total area must close on the exact solid angle, the per-leaf areas must be enclosed, the 12 face equal-area structure and the polar apex must be reproduced, and a positive support may only be claimed with a lower bound.",
   "independence": {
     "external_standards": [
@@ -130,7 +134,7 @@
     "total_area_closure": "sum of the leaf areas must match the exact drop area",
     "total_area_relative": 1e-09
   },
-  "truth_sha256": "4b93a134dce39273359d79ebd03df91ed41bbb4a8006f61adb130ce67fa4dd01",
+  "truth_sha256": "fa287fb92feb55b6cf20cf09ab2b3478f2ac1158f097821cf38c1aed3e621cd3",
   "truth_type": "analytic_exact + deterministic_enclosure + stochastic_confidence",
   "unit": "sr"
 }

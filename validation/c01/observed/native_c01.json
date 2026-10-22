@@ -406,13 +406,26 @@
    ],
    "inverse": [
     {
-     "code": "domain",
-     "reason": "inverse_domain_boundary_unresolved",
+     "code": "ok",
+     "polynomial_residual_lower": 0.0,
+     "polynomial_residual_upper": 1e-15,
+     "root_box_lower": [
+      32.499999999982634,
+      11.24999999996916
+     ],
+     "root_box_upper": [
+      32.499999999982634,
+      11.249999999969164
+     ],
      "sky": [
       -0.4330127018922192,
       0.7500000000000001,
       -0.49999999999999994
-     ]
+     ],
+     "sky_residual_lower": 0.0,
+     "sky_residual_upper": 1.0620633538932452e-15,
+     "x": 32.499999999982634,
+     "y": 11.249999999969162
     },
     {
      "code": "domain",
@@ -549,22 +562,48 @@
    ],
    "inverse": [
     {
-     "code": "domain",
-     "reason": "inverse_domain_boundary_unresolved",
+     "code": "ok",
+     "polynomial_residual_lower": 0.0,
+     "polynomial_residual_upper": 1e-15,
+     "root_box_lower": [
+      9.499999999999998,
+      19.75
+     ],
+     "root_box_upper": [
+      9.500000000000002,
+      19.75
+     ],
      "sky": [
       4.329780281177467e-17,
       4.329780281177466e-17,
       1.0
-     ]
+     ],
+     "sky_residual_lower": 0.0,
+     "sky_residual_upper": 1e-15,
+     "x": 9.5,
+     "y": 19.75
     },
     {
-     "code": "domain",
-     "reason": "inverse_domain_boundary_unresolved",
+     "code": "ok",
+     "polynomial_residual_lower": 0.0,
+     "polynomial_residual_upper": 1e-15,
+     "root_box_lower": [
+      9.587262032195355,
+      24.74923847627654
+     ],
+     "root_box_upper": [
+      9.587262032195358,
+      24.74923847627654
+     ],
      "sky": [
       1.2554847955922e-05,
       1.2124075740443413e-05,
       0.9999999998476913
-     ]
+     ],
+     "sky_residual_lower": 0.0,
+     "sky_residual_upper": 1.000004791541932e-15,
+     "x": 9.587262032195357,
+     "y": 24.74923847627654
     }
    ],
    "name": "north_pole_default_lonpole",
@@ -677,22 +716,48 @@
    ],
    "inverse": [
     {
-     "code": "domain",
-     "reason": "inverse_domain_boundary_unresolved",
+     "code": "ok",
+     "polynomial_residual_lower": 0.0,
+     "polynomial_residual_upper": 1e-15,
+     "root_box_lower": [
+      9.499999999999998,
+      19.75
+     ],
+     "root_box_upper": [
+      9.500000000000002,
+      19.75
+     ],
      "sky": [
       4.329780281177467e-17,
       4.329780281177466e-17,
       -1.0
-     ]
+     ],
+     "sky_residual_lower": 0.0,
+     "sky_residual_upper": 1e-15,
+     "x": 9.5,
+     "y": 19.75
     },
     {
-     "code": "domain",
-     "reason": "inverse_domain_boundary_unresolved",
+     "code": "ok",
+     "polynomial_residual_lower": 0.0,
+     "polynomial_residual_upper": 1e-15,
+     "root_box_lower": [
+      9.412737967804642,
+      24.74923847627654
+     ],
+     "root_box_upper": [
+      9.412737967804645,
+      24.74923847627654
+     ],
      "sky": [
       1.2554847955922e-05,
       1.2124075740443413e-05,
       -0.9999999998476913
-     ]
+     ],
+     "sky_residual_lower": 0.0,
+     "sky_residual_upper": 1.000004791541932e-15,
+     "x": 9.412737967804643,
+     "y": 24.74923847627654
     }
    ],
    "name": "south_pole_default_lonpole",
@@ -896,13 +961,26 @@
    ],
    "inverse": [
     {
-     "code": "domain",
-     "reason": "inverse_domain_boundary_unresolved",
+     "code": "ok",
+     "polynomial_residual_lower": 0.0,
+     "polynomial_residual_upper": 1.00000000016479e-15,
+     "root_box_lower": [
+      7.1250000000186136,
+      8.874999999982924
+     ],
+     "root_box_upper": [
+      7.125000000018615,
+      8.874999999982927
+     ],
      "sky": [
       0.8365163037378079,
       0.4829629131445341,
       -0.25881904510252074
-     ]
+     ],
+     "sky_residual_lower": 0.0,
+     "sky_residual_upper": 1.0572195850387476e-15,
+     "x": 7.125000000018614,
+     "y": 8.874999999982926
     },
     {
      "code": "domain",
@@ -1046,13 +1124,26 @@
    ],
    "inverse": [
     {
-     "code": "domain",
-     "reason": "inverse_domain_boundary_unresolved",
+     "code": "ok",
+     "polynomial_residual_lower": 0.0,
+     "polynomial_residual_upper": 1.000000000129247e-15,
+     "root_box_lower": [
+      14.12499999995745,
+      7.000000000134294
+     ],
+     "root_box_upper": [
+      14.124999999957453,
+      7.000000000134298
+     ],
      "sky": [
       -0.6644630243886748,
       -0.24184476264797522,
       0.7071067811865475
-     ]
+     ],
+     "sky_residual_lower": 0.0,
+     "sky_residual_upper": 1.2865639760668924e-15,
+     "x": 14.124999999957451,
+     "y": 7.000000000134296
     },
     {
      "code": "nonconverged",
@@ -2174,13 +2265,26 @@
    ],
    "inverse": [
     {
-     "code": "domain",
-     "reason": "inverse_domain_boundary_unresolved",
+     "code": "ok",
+     "polynomial_residual_lower": 0.0,
+     "polynomial_residual_upper": 1e-15,
+     "root_box_lower": [
+      4.499999999999999,
+      5.500000000015902
+     ],
+     "root_box_upper": [
+      4.500000000000001,
+      5.500000000015904
+     ],
      "sky": [
       0.9848073780252359,
       -0.0008594067803824031,
       0.17364817766693033
-     ]
+     ],
+     "sky_residual_lower": 0.0,
+     "sky_residual_upper": 1.138777891340787e-15,
+     "x": 4.5,
+     "y": 5.500000000015903
     },
     {
      "code": "domain",

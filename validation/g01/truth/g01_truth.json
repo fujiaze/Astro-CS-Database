@@ -156,6 +156,51 @@
       "tangent_plane_analytic_area_sr": null
     },
     {
+      "cross_check_relative_difference": 4.586093906542351e-09,
+      "enclosure": {
+        "g_max_sr_per_pixel2": 1.218469679146834e-11,
+        "g_min_sr_per_pixel2": 1.21846967553909e-11,
+        "inside_area_per_leaf_sr": {
+          "16343": [
+            1.363162949509357e-09,
+            1.3631629535455205e-09
+          ],
+          "4075": [
+            1.7545963327762896e-09,
+            1.754596337971441e-09
+          ]
+        },
+        "inside_pixel_mass_per_leaf": {
+          "16343": 111.875,
+          "4075": 144.0
+        },
+        "lower_total_sr": 3.1177592822856463e-09,
+        "undecided_area_sr": [
+          1.5230870944238625e-12,
+          1.5230870989335425e-12
+        ],
+        "undecided_pixel_mass": 0.125,
+        "upper_total_sr": 3.119282378615895e-09
+      },
+      "exact_drop_area_sr": 3.1192823760693906e-09,
+      "leaf_area_sr": 0.00025566346464760684,
+      "lhuilier_cross_check_sr": 3.1192823903747125e-09,
+      "monte_carlo": {
+        "estimate_per_leaf": {
+          "16343": 111.76576,
+          "4075": 144.23424
+        },
+        "hoeffding_bound_sr": 2.2442667874270377e-11,
+        "note": "a confidence cross-check only, never an enclosure",
+        "seed": 20261027,
+        "trials": 200000
+      },
+      "name": "polar_extreme",
+      "order": 6,
+      "relative_agreement": null,
+      "tangent_plane_analytic_area_sr": null
+    },
+    {
       "cross_check_relative_difference": 0.5178584952507216,
       "enclosure": {
         "g_max_sr_per_pixel2": 3.04617419786708e-16,

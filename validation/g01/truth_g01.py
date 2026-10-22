@@ -309,6 +309,17 @@ def build_fixtures():
         "seed": 20261025,
     })
     fixtures.append({
+        "name": "polar_extreme",
+        "note": "a detector square near the pole, the cut cell kernel must subdivide",
+        "crpix": (32.0, 32.0),
+        "crval": (0.0, 85.0),
+        "cd": [[2.0e-4, 0.0], [0.0, 2.0e-4]],
+        "corners": [(24.0, 24.0), (40.0, 40.0)],
+        "order": 6,
+        "trials": 200000,
+        "seed": 20261027,
+    })
+    fixtures.append({
         "name": "order29_subleaf",
         "note": "order 29 target grid with a sub-leaf detector square",
         "crpix": (32.0, 32.0),
@@ -331,6 +342,184 @@ def build_fixtures():
         "seed": 20261027,
     })
     return fixtures
+
+
+def build_comparison(case, truth_cases, native_run, native_response):
+    """Compare the observed geometry against the independent truth."""
+    truth_by_name = {entry["name"]: entry for entry in truth_cases}
+    observed = native_response.get("cases", []) if isinstance(native_response, dict) else []
+    observed_by_name = {entry.get("name"): entry for entry in observed}
+
+    rows = []
+    failures = []
+    status = "pass"
+
+    if native_run.get("status") != "ok":
+        payload = comparison_payload(
+            case.name.upper(), "pending_implementation",
+            [{"name": f"{entry['name']}:drop_area", "kind": "value",
+              "truth": entry["exact_drop_area_sr"],
+              "tolerance": 1e-9 * entry["exact_drop_area_sr"], "unit": "sr",
+              "status": "pending_implementation",
+              "reason": native_run.get("reason", "the public entry point is not available yet")}
+             for entry in truth_cases],
+            [], "the observed side is pending_implementation")
+        case.write_comparison(payload)
+        return payload
+
+    for entry in truth_cases:
+        name = entry["name"]
+        observed_entry = observed_by_name.get(name)
+        if observed_entry is None:
+            rows.append({"name": f"{name}:present", "kind": "value",
+                         "status": "pending_implementation", "observed": None,
+                         "reason": "the driver did not report this fixture"})
+            status = "pending_implementation"
+            continue
+
+        # ---- the drop area must contain the exact solid angle -------------
+        measure = observed_entry.get("measure")
+        exact = entry["exact_drop_area_sr"]
+        if not measure or measure.get("code") != "ok":
+            rows.append({"name": f"{name}:drop_area", "kind": "value", "status": "fail",
+                         "truth": exact, "observed": None,
+                         "expected_success_count": 1, "observed_success_count": 0,
+                         "reason": (measure or {}).get("reason", "the measure call failed")})
+            failures.append({"functional": f"{name}:drop_area", "scope": "measure",
+                             "expected": exact, "actual": (measure or {}).get("code"),
+                             "reason": "the drop area was not produced"})
+            status = "fail"
+        else:
+            lower = measure["lower_sr"]
+            upper = measure["upper_sr"]
+            inside = lower <= exact <= upper
+            rows.append({"name": f"{name}:drop_area", "kind": "value",
+                         "status": "pass" if inside else "fail",
+                         "truth": exact, "observed": [lower, upper],
+                         "expected_success_count": 1, "observed_success_count": 1,
+                         "tolerance": 0.0, "unit": "sr"})
+            if not inside:
+                failures.append({"functional": f"{name}:drop_area", "scope": "measure",
+                                 "expected": f"the interval contains {exact}",
+                                 "actual": [lower, upper],
+                                 "reason": "the reported area does not contain the truth"})
+                status = "fail"
+
+        # ---- the per-leaf overlap areas must contain the enclosure ---------
+        overlaps = observed_entry.get("overlaps")
+        if overlaps and overlaps.get("code") == "ok":
+            enclosure = entry["enclosure"]["inside_area_per_leaf_sr"]
+            contributions = overlaps.get("contributions", [])
+            # The number of reported leaves must be positive: an empty leaf
+            # set is a failure, never a silent pass.
+            rows.append({"name": f"{name}:leaf_count", "kind": "value",
+                         "status": "pass" if len(contributions) > 0 else "fail",
+                         "truth": "> 0", "observed": len(contributions),
+                         "expected_success_count": 1, "observed_success_count": len(contributions),
+                         "tolerance": 0.0, "unit": "count"})
+            if not contributions:
+                failures.append({"functional": f"{name}:leaf_count", "scope": "compute_overlap",
+                                 "expected": "> 0 leaf contributions",
+                                 "actual": 0,
+                                 "reason": "the overlap call reported no leaf"})
+                status = "fail"
+            reported = set()
+            for contribution in contributions:
+                key = str(contribution["ipix"])
+                if key not in enclosure:
+                    continue
+                reported.add(key)
+                low, high = enclosure[key]
+                inside = (contribution["overlap_area_lower"] <= high
+                          and contribution["overlap_area_upper"] >= low)
+                rows.append({"name": f"{name}:leaf_{key}", "kind": "value",
+                             "status": "pass" if inside else "fail",
+                             "truth": [low, high],
+                             "observed": [contribution["overlap_area_lower"],
+                                         contribution["overlap_area_upper"]],
+                             "tolerance": 0.0, "unit": "sr"})
+                if not inside:
+                    failures.append({"functional": f"{name}:leaf_{key}",
+                                     "scope": "compute_overlap",
+                                     "expected": [low, high],
+                                     "actual": [contribution["overlap_area_lower"],
+                                                contribution["overlap_area_upper"]],
+                                     "reason": "the leaf interval does not contain the enclosure"})
+                    status = "fail"
+            rows.append({"name": f"{name}:overlap_status", "kind": "text",
+                         "status": "pass",
+                         "text_key": "termination",
+                         "observed_text": overlaps.get("termination", ""),
+                         "expected_success_count": 1, "observed_success_count": 1})
+            missing = [key for key in enclosure if key not in reported]
+            rows.append({"name": f"{name}:leaf_coverage", "kind": "value",
+                         "status": "pass" if not missing else "fail",
+                         "truth": "every enclosed leaf is reported",
+                         "observed": {"enclosed": len(enclosure), "reported": len(reported),
+                                      "missing": missing},
+                         "expected_success_count": len(enclosure),
+                         "observed_success_count": len(reported),
+                         "tolerance": 0.0, "unit": "count"})
+            if missing:
+                failures.append({"functional": f"{name}:leaf_coverage",
+                                 "scope": "compute_overlap",
+                                 "expected": sorted(enclosure),
+                                 "actual": sorted(reported),
+                                 "reason": "the overlap call did not report every enclosed leaf"})
+                status = "fail"
+        elif overlaps:
+            rows.append({"name": f"{name}:overlaps", "kind": "value", "status": "fail",
+                         "observed": overlaps.get("code"),
+                         "expected_success_count": 1, "observed_success_count": 0,
+                         "reason": overlaps.get("reason", "compute_overlap failed")})
+            failures.append({"functional": f"{name}:overlaps", "scope": "compute_overlap",
+                             "expected": "ok", "actual": overlaps.get("code"),
+                             "reason": overlaps.get("reason", "")})
+            status = "fail"
+
+        # ---- the starved budgets must not fake a pass ----------------------
+        for negative in observed_entry.get("negatives", []):
+            fake = bool(negative.get("fake_pass"))
+            rows.append({"name": f"{name}:negative_{negative['name']}", "kind": "value",
+                         "status": "fail" if fake else "pass",
+                         "truth": "not a certified pass",
+                         "observed": {"termination": negative.get("termination"),
+                                      "bound_validity": negative.get("bound_validity"),
+                                      "code": negative.get("code"),
+                                      "work_units": negative.get("work_units"),
+                                      "budget_max_work": negative.get("budget_max_work")},
+                         "expected_success_count": 1, "observed_success_count": 1,
+                         "tolerance": 0.0, "unit": "verdict"})
+            if fake:
+                failures.append({"functional": f"{name}:negative_{negative['name']}",
+                                 "scope": "compute_overlap",
+                                 "expected": "termination work/precision and no certified bound",
+                                 "actual": negative.get("termination"),
+                                 "reason": "a starved budget was reported as a satisfied tolerance"})
+                status = "fail"
+
+        # ---- the drizzle and refine closure --------------------------------
+        for key in ("drizzle", "refine"):
+            block = observed_entry.get(key)
+            if block is None:
+                continue
+            rows.append({"name": f"{name}:{key}", "kind": "value",
+                         "status": "pass" if block.get("code") == "ok" else "fail",
+                         "observed": block.get("code"), "truth": "ok", "tolerance": 0.0,
+                         "unit": "verdict",
+                         "expected_success_count": 1,
+                         "observed_success_count": 1 if block.get("code") == "ok" else 0})
+            if block.get("code") != "ok":
+                failures.append({"functional": f"{name}:{key}", "scope": key,
+                                 "expected": "ok", "actual": block.get("code"),
+                                 "reason": block.get("reason", "")})
+                status = "fail"
+
+    payload = comparison_payload(case.name.upper(), status, rows, failures,
+                                 "G01: the drop area, the leaf enclosure, the starved budgets and "
+                                 "the drizzle/refine closure")
+    case.write_comparison(payload)
+    return payload
 
 
 def main() -> int:
@@ -382,6 +571,24 @@ def main() -> int:
         "cd": f["cd"], "corners": [list(f["corners"][0]), list(f["corners"][1])],
         "order": f["order"], "trials": f["trials"], "seed": f["seed"],
         "pixfrac": 1.0,
+        "astrometric_context": {"epoch_julian_year": 2016.0, "observation_jd_tdb": 2457600.5},
+        "detector_frame": "detector",
+        "budget": {
+            "area_absolute_sr": 1e-12,
+            "normalizer_min_sr": 0.0,
+            "max_work": 1000000,
+            "max_bytes": 16777216,
+            "max_depth": 32,
+            "initial_bits": 64,
+            "max_bits": 256,
+            "outward": True,
+            "allow_target_fallback": False,
+            "negative_variants": [
+                {"name": "work_1", "max_work": 1},
+                {"name": "maxprecision_64", "max_bits": 64, "initial_bits": 64},
+                {"name": "maxprecision_16", "max_bits": 16, "initial_bits": 16},
+            ],
+        },
     } for f in fixtures]}
     fixture_file = case.root / "input" / "g01_fixtures.json"
     fixture_hash = case.write_input("g01_fixtures.json", fixture_payload)
@@ -488,19 +695,11 @@ def main() -> int:
                                        "measure", "footprint"]),
     })
 
-    native_run, native_response = observe.run_native_driver(case, "g01_driver")
+    native_run, native_response = observe.run_native_driver(
+        case, "g01_driver", ["--fixtures", str(fixture_file)])
     contract_run, contract_response = observe.run_contract_driver(case)
 
-    comparison = comparison_payload(
-        case.name.upper(), "pending_implementation",
-        [{"name": f"{entry['name']}:drop_area", "kind": "value",
-          "truth": entry["exact_drop_area_sr"], "tolerance": 1e-9 * entry["exact_drop_area_sr"],
-          "unit": "sr", "status": "pending_implementation",
-          "reason": "the observed side of G01 is pending_implementation"}
-         for entry in truth_cases],
-        [],
-        "The independent truth is complete; the observed side waits for the production geometry "
-        "entry point to be available and for the case to be re-run.")
+    comparison = build_comparison(case, truth_cases, native_run, native_response)
 
     case.write_comparison(comparison)
 
