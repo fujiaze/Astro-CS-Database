@@ -28,7 +28,7 @@
             30.5
           ],
           "kind": "star",
-          "weight": 0.35
+          "weight": 0.8
         },
         {
           "centre_pixel": [
@@ -36,7 +36,7 @@
             22.5
           ],
           "kind": "star",
-          "weight": 0.42
+          "weight": 0.9
         },
         {
           "centre_pixel": [
@@ -44,7 +44,7 @@
             100.5
           ],
           "kind": "star",
-          "weight": 0.28
+          "weight": 0.7
         },
         {
           "centre_pixel": [
@@ -52,7 +52,7 @@
             98.5
           ],
           "kind": "star",
-          "weight": 0.5
+          "weight": 1.0
         },
         {
           "centre_pixel": [
@@ -60,7 +60,7 @@
             72.5
           ],
           "kind": "star",
-          "weight": 0.31
+          "weight": 0.75
         },
         {
           "centre_pixel": [
@@ -68,10 +68,10 @@
             66.5
           ],
           "kind": "star",
-          "weight": 0.46
+          "weight": 0.85
         }
       ],
-      "total_electrons": 85280548.79217304
+      "total_electrons": 85347847.49634862
     },
     {
       "dark_level_electrons": 12.0,
@@ -100,7 +100,7 @@
             30.5
           ],
           "kind": "star",
-          "weight": 0.35
+          "weight": 0.8
         },
         {
           "centre_pixel": [
@@ -108,7 +108,7 @@
             22.5
           ],
           "kind": "star",
-          "weight": 0.42
+          "weight": 0.9
         },
         {
           "centre_pixel": [
@@ -116,7 +116,7 @@
             100.5
           ],
           "kind": "star",
-          "weight": 0.28
+          "weight": 0.7
         },
         {
           "centre_pixel": [
@@ -124,7 +124,7 @@
             98.5
           ],
           "kind": "star",
-          "weight": 0.5
+          "weight": 1.0
         },
         {
           "centre_pixel": [
@@ -132,7 +132,7 @@
             72.5
           ],
           "kind": "star",
-          "weight": 0.31
+          "weight": 0.75
         },
         {
           "centre_pixel": [
@@ -140,10 +140,10 @@
             66.5
           ],
           "kind": "star",
-          "weight": 0.46
+          "weight": 0.85
         }
       ],
-      "total_electrons": 93472548.79217304
+      "total_electrons": 93539847.49634862
     },
     {
       "dark_level_electrons": 12.0,
@@ -172,7 +172,7 @@
             30.5
           ],
           "kind": "star",
-          "weight": 0.35
+          "weight": 0.8
         },
         {
           "centre_pixel": [
@@ -180,7 +180,7 @@
             22.5
           ],
           "kind": "star",
-          "weight": 0.42
+          "weight": 0.9
         },
         {
           "centre_pixel": [
@@ -188,7 +188,7 @@
             100.5
           ],
           "kind": "star",
-          "weight": 0.28
+          "weight": 0.7
         },
         {
           "centre_pixel": [
@@ -196,7 +196,7 @@
             98.5
           ],
           "kind": "star",
-          "weight": 0.5
+          "weight": 1.0
         },
         {
           "centre_pixel": [
@@ -204,7 +204,7 @@
             72.5
           ],
           "kind": "star",
-          "weight": 0.31
+          "weight": 0.75
         },
         {
           "centre_pixel": [
@@ -212,10 +212,10 @@
             66.5
           ],
           "kind": "star",
-          "weight": 0.46
+          "weight": 0.85
         }
       ],
-      "total_electrons": 101664548.79217304
+      "total_electrons": 101731847.49634862
     },
     {
       "dark_level_electrons": 12.0,
@@ -244,7 +244,7 @@
             30.5
           ],
           "kind": "star",
-          "weight": 0.35
+          "weight": 0.8
         },
         {
           "centre_pixel": [
@@ -252,7 +252,7 @@
             22.5
           ],
           "kind": "star",
-          "weight": 0.42
+          "weight": 0.9
         },
         {
           "centre_pixel": [
@@ -260,7 +260,7 @@
             100.5
           ],
           "kind": "star",
-          "weight": 0.28
+          "weight": 0.7
         },
         {
           "centre_pixel": [
@@ -268,7 +268,7 @@
             98.5
           ],
           "kind": "star",
-          "weight": 0.5
+          "weight": 1.0
         },
         {
           "centre_pixel": [
@@ -276,7 +276,7 @@
             72.5
           ],
           "kind": "star",
-          "weight": 0.31
+          "weight": 0.75
         },
         {
           "centre_pixel": [
@@ -284,10 +284,10 @@
             66.5
           ],
           "kind": "star",
-          "weight": 0.46
+          "weight": 0.85
         }
       ],
-      "total_electrons": 109856548.79217304
+      "total_electrons": 109923847.49634862
     },
     {
       "dark_level_electrons": 12.0,
@@ -313,7 +313,7 @@
             30.5
           ],
           "kind": "star",
-          "weight": 0.35
+          "weight": 0.8
         },
         {
           "centre_pixel": [
@@ -321,7 +321,7 @@
             22.5
           ],
           "kind": "star",
-          "weight": 0.42
+          "weight": 0.9
         },
         {
           "centre_pixel": [
@@ -329,7 +329,7 @@
             100.5
           ],
           "kind": "star",
-          "weight": 0.28
+          "weight": 0.7
         },
         {
           "centre_pixel": [
@@ -337,7 +337,7 @@
             98.5
           ],
           "kind": "star",
-          "weight": 0.5
+          "weight": 1.0
         },
         {
           "centre_pixel": [
@@ -345,7 +345,7 @@
             72.5
           ],
           "kind": "star",
-          "weight": 0.31
+          "weight": 0.75
         },
         {
           "centre_pixel": [
@@ -353,10 +353,10 @@
             66.5
           ],
           "kind": "star",
-          "weight": 0.46
+          "weight": 0.85
         }
       ],
-      "total_electrons": 118010472.68540576
+      "total_electrons": 118045560.27570581
     },
     {
       "dark_level_electrons": 12.0,
@@ -382,7 +382,7 @@
             30.5
           ],
           "kind": "star",
-          "weight": 0.35
+          "weight": 0.8
         },
         {
           "centre_pixel": [
@@ -390,7 +390,7 @@
             22.5
           ],
           "kind": "star",
-          "weight": 0.42
+          "weight": 0.9
         },
         {
           "centre_pixel": [
@@ -398,7 +398,7 @@
             100.5
           ],
           "kind": "star",
-          "weight": 0.28
+          "weight": 0.7
         },
         {
           "centre_pixel": [
@@ -406,7 +406,7 @@
             98.5
           ],
           "kind": "star",
-          "weight": 0.5
+          "weight": 1.0
         },
         {
           "centre_pixel": [
@@ -414,7 +414,7 @@
             72.5
           ],
           "kind": "star",
-          "weight": 0.31
+          "weight": 0.75
         },
         {
           "centre_pixel": [
@@ -422,10 +422,10 @@
             66.5
           ],
           "kind": "star",
-          "weight": 0.46
+          "weight": 0.85
         }
       ],
-      "total_electrons": 126202472.68540576
+      "total_electrons": 126237560.27570581
     },
     {
       "dark_level_electrons": 12.0,
@@ -451,7 +451,7 @@
             30.5
           ],
           "kind": "star",
-          "weight": 0.35
+          "weight": 0.8
         },
         {
           "centre_pixel": [
@@ -459,7 +459,7 @@
             22.5
           ],
           "kind": "star",
-          "weight": 0.42
+          "weight": 0.9
         },
         {
           "centre_pixel": [
@@ -467,7 +467,7 @@
             100.5
           ],
           "kind": "star",
-          "weight": 0.28
+          "weight": 0.7
         },
         {
           "centre_pixel": [
@@ -475,7 +475,7 @@
             98.5
           ],
           "kind": "star",
-          "weight": 0.5
+          "weight": 1.0
         },
         {
           "centre_pixel": [
@@ -483,7 +483,7 @@
             72.5
           ],
           "kind": "star",
-          "weight": 0.31
+          "weight": 0.75
         },
         {
           "centre_pixel": [
@@ -491,10 +491,10 @@
             66.5
           ],
           "kind": "star",
-          "weight": 0.46
+          "weight": 0.85
         }
       ],
-      "total_electrons": 134394472.68540576
+      "total_electrons": 134429560.2757058
     },
     {
       "dark_level_electrons": 12.0,
@@ -520,7 +520,7 @@
             30.5
           ],
           "kind": "star",
-          "weight": 0.35
+          "weight": 0.8
         },
         {
           "centre_pixel": [
@@ -528,7 +528,7 @@
             22.5
           ],
           "kind": "star",
-          "weight": 0.42
+          "weight": 0.9
         },
         {
           "centre_pixel": [
@@ -536,7 +536,7 @@
             100.5
           ],
           "kind": "star",
-          "weight": 0.28
+          "weight": 0.7
         },
         {
           "centre_pixel": [
@@ -544,7 +544,7 @@
             98.5
           ],
           "kind": "star",
-          "weight": 0.5
+          "weight": 1.0
         },
         {
           "centre_pixel": [
@@ -552,7 +552,7 @@
             72.5
           ],
           "kind": "star",
-          "weight": 0.31
+          "weight": 0.75
         },
         {
           "centre_pixel": [
@@ -560,10 +560,10 @@
             66.5
           ],
           "kind": "star",
-          "weight": 0.46
+          "weight": 0.85
         }
       ],
-      "total_electrons": 142586472.68540576
+      "total_electrons": 142621560.2757058
     }
   ],
   "groups": {
@@ -625,5 +625,24 @@
   "truth_types": [
     "empirical",
     "analytic_exact"
-  ]
+  ],
+  "wcs_consistency": {
+    "c": [
+      0.10714019848480942,
+      0.9897947532827971,
+      -0.09395384102037764
+    ],
+    "criterion": "the supplied WCS reproduces the frame header",
+    "e": [
+      -0.9941925097222705,
+      0.10761623303262886,
+      0.0
+    ],
+    "max_angle_difference_rad": 2.1228933251263786e-16,
+    "north": [
+      0.010110958449559525,
+      0.09340820500209646,
+      0.9955765544434629
+    ]
+  }
 }

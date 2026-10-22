@@ -1,21 +1,112 @@
 {
-  "artifacts": {},
-  "binary_identity": {
-    "path": "",
-    "sha256": "",
-    "size_bytes": "0"
+  "artifacts": {
+    "response_file": "/workspace/Astro CS Database/validation/g01/observed/contract_g01.json",
+    "response_sha256": "573f89fee844aa426fd823fd9f44dcdbccaee121107ddf06d2bbd76e551a5cf7"
   },
-  "command": [],
-  "exit_code": null,
-  "missing_entry_points": [
-    "acsd-contract"
+  "binary_identity": {
+    "path": "/workspace/Astro CS Database/build/science/acsd-contract",
+    "sha256": "667ff91ddc5fdcd110fd8a6a685821c35bc14cde4908d62dd10cb1f4242374b4",
+    "size_bytes": "3267680"
+  },
+  "command": [
+    "/workspace/Astro CS Database/build/science/acsd-contract",
+    "--request",
+    "/workspace/Astro CS Database/validation/g01/request.json",
+    "--response",
+    "/workspace/Astro CS Database/validation/g01/observed/contract_g01.json"
   ],
-  "peak_rss_bytes": null,
-  "reason": "the acsd-contract driver executable is not built in this checkout; the contract protocol is declared in docs/engineering/rebuild/API.md but the driver source apps/contract/ does not exist yet",
-  "response": null,
+  "exit_code": 2,
+  "missing_entry_points": [],
+  "peak_rss_bytes": 174485504,
+  "reason": "",
+  "response": {
+    "algorithm_set": [
+      {
+        "name": "acsd-contract",
+        "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+        "version": "1"
+      },
+      {
+        "name": "compute_overlap",
+        "source_hash": "sha256:81e966df40463f4687eda15e916c1248809c4e93119c9b0db5e0da8724c3f91c",
+        "version": "1"
+      }
+    ],
+    "arithmetic": {
+      "allow_target_fallback": true,
+      "initial_bits": 64,
+      "max_bits": 256,
+      "mode": "outward"
+    },
+    "blocks": [],
+    "build": {
+      "compiler": "14.2.0",
+      "name": "acsd-contract",
+      "standard": "acsd.contract/1",
+      "version": "2.0.0"
+    },
+    "input_hashes": {},
+    "major": 1,
+    "objects": {},
+    "operation": "compute_overlap",
+    "output_root": "/workspace/Astro CS Database/validation/g01/.work/g01",
+    "protocol": "acsd.contract.response",
+    "request_id": "val-g01-compute-overlap",
+    "resolved_request_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "resources": {
+      "byte_budget": 16777216,
+      "bytes": 16777216,
+      "elapsed_seconds": 1.5709e-05,
+      "peak_payload_bytes": 0,
+      "read_bytes": 0,
+      "spill_bytes": 0,
+      "threads": 1,
+      "work": 0,
+      "work_budget": 1000000,
+      "written_bytes": 0
+    },
+    "result": {
+      "assessment": {
+        "capability": "supported",
+        "complete": false,
+        "condition": {
+          "assumptions": [],
+          "estimator": "",
+          "fixed_objects": [],
+          "kind": ""
+        },
+        "execution": "failed",
+        "included": [],
+        "issues": [
+          {
+            "code": "invalid_request",
+            "impact": "the request cannot be served",
+            "origin": "contract.decode",
+            "reason": "the provider argument cannot be decoded",
+            "retry_condition": ""
+          }
+        ],
+        "noise": "unknown",
+        "omitted": [],
+        "science": "bounded",
+        "validity": "certified"
+      },
+      "code": "invalid_request",
+      "dependencies": [],
+      "usage": {
+        "elapsed_seconds": 0.0,
+        "peak_payload_bytes": 0,
+        "read_bytes": 0,
+        "spill_bytes": 0,
+        "work": 0,
+        "written_bytes": 0
+      },
+      "value": null
+    }
+  },
   "route": "contract",
-  "status": "pending_implementation",
-  "stderr": "",
+  "status": "ok",
+  "stderr": "acsd-contract: the request could not be served\n",
   "stdout": "",
-  "wall_seconds": 0.0
+  "wall_seconds": 0.005222367006354034
 }

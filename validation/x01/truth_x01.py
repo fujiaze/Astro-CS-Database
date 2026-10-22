@@ -165,9 +165,9 @@ def main() -> int:
     # than one source; the positions are frozen here and reused by the
     # catalogue of the end-to-end run.
     field = [("bright", 63.5, 64.5, 1.0)]
-    for centre_x, centre_y, weight in ((24.5, 30.5, 0.35), (96.5, 22.5, 0.42),
-                                       (30.5, 100.5, 0.28), (92.5, 98.5, 0.5),
-                                       (14.5, 72.5, 0.31), (110.5, 66.5, 0.46)):
+    for centre_x, centre_y, weight in ((24.5, 30.5, 0.80), (96.5, 22.5, 0.90),
+                                       (30.5, 100.5, 0.70), (92.5, 98.5, 1.00),
+                                       (14.5, 72.5, 0.75), (110.5, 66.5, 0.85)):
         field.append(("star", centre_x, centre_y, weight))
     sources = [(entry[1], entry[2], entry[0], entry[3]) for entry in field]
 
@@ -235,6 +235,50 @@ def main() -> int:
                           "sha256": sha256_file(path),
                           "sky_level_electrons": sky_electrons})
 
+    # The consistency of the supplied WCS with the frame header: the tangent
+    # basis that the end-to-end run writes into the CLI request is compared
+    # with the external astropy forward of the same pixels.  This is the
+    # check that the earlier fixture (a tangent basis built at RA = 0) failed.
+    wcs_consistency = None
+    try:
+        import cli_inputs  # the same directory
+        with fits.open(frames_dir / "frame_00_A.fits") as handle:
+            header = handle[0].header
+            data = handle[0].data
+        from astropy.wcs import WCS as AstropyWCS
+        reference = AstropyWCS(header)
+        crval = (float(header["CRVAL1"]), float(header["CRVAL2"]))
+        cd_deg = [[float(header["CD1_1"]), float(header["CD1_2"])],
+                  [float(header["CD2_1"]), float(header["CD2_2"])]]
+        lonpole = 180.0
+        cd = cli_inputs.canonical_cd(cd_deg, crval[1], lonpole)
+        centre, east, north = cli_inputs.tangent_basis(crval, lonpole)
+        radians = math.pi / 180.0
+        cd_rad = [[cd[0][0] * radians, cd[0][1] * radians],
+                  [cd[1][0] * radians, cd[1][1] * radians]]
+        crpix = (float(header["CRPIX1"]), float(header["CRPIX2"]))
+        worst = 0.0
+        for pixel in ((10.0, 12.0), (64.0, 64.0), (120.0, 118.0)):
+            u = pixel[0] + 1.0 - crpix[0]
+            v = pixel[1] + 1.0 - crpix[1]
+            q = [cd_rad[0][0] * u + cd_rad[0][1] * v, cd_rad[1][0] * u + cd_rad[1][1] * v]
+            vector = np.array([centre[0] + q[0] * east[0] + q[1] * north[0],
+                               centre[1] + q[0] * east[1] + q[1] * north[1],
+                               centre[2] + q[0] * east[2] + q[1] * north[2]])
+            vector = vector / np.linalg.norm(vector)
+            ra, dec = reference.all_pix2world(pixel[0], pixel[1], 0)
+            other = np.array([math.cos(math.radians(dec)) * math.cos(math.radians(ra)),
+                              math.cos(math.radians(dec)) * math.sin(math.radians(ra)),
+                              math.sin(math.radians(dec))])
+            worst = max(worst, float(np.linalg.norm(vector - other)))
+        wcs_consistency = {"max_angle_difference_rad": worst,
+                           "c": [float(value) for value in centre],
+                           "e": [float(value) for value in east],
+                           "north": [float(value) for value in north],
+                           "criterion": "the supplied WCS reproduces the frame header"}
+    except Exception as exc:  # pragma: no cover - a diagnostic only
+        wcs_consistency = {"error": f"{type(exc).__name__}: {exc}"}
+
     sed_truth = {
         "wavelength_nm_min": 400.0,
         "wavelength_nm_max": 700.0,
@@ -255,6 +299,7 @@ def main() -> int:
     truth = {
         "case": "X01",
         "truth_types": ["empirical", "analytic_exact"],
+        "wcs_consistency": wcs_consistency,
         "methods": {
             "photon_rate": "int f R lambda/(hc) dlambda with a trapezoid rule on the sampled SED",
             "pixel_integration": "the exact separable error function integral of a Gaussian",

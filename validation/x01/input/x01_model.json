@@ -4,49 +4,49 @@
     {
       "group": "A",
       "path": "x01/input/frames/frame_00_A.fits",
-      "sha256": "4f7f4c47eccc4287e698910fc82cd8d56d15cab6743d50f43a53634ca5b29d2d",
+      "sha256": "9f7bb23aeb7cf9115023ee19be0cae670bb96d77c3922441ae1ba1f8480fff75",
       "sky_level_electrons": 40.0
     },
     {
       "group": "A",
       "path": "x01/input/frames/frame_01_A.fits",
-      "sha256": "87d86fa41a47be533a280b3d6ddda99b6e9717485a31c02d9e75fb0b1d37b17c",
+      "sha256": "1bcbeed379b228b29fd5f42aa69318a0225e20b477b1ea2d7efc0b5bb858e2ca",
       "sky_level_electrons": 45.0
     },
     {
       "group": "A",
       "path": "x01/input/frames/frame_02_A.fits",
-      "sha256": "821b96989c735a54df6babedf38087b808dcb72c52ddb4ac5d8a85d0e3de0e43",
+      "sha256": "a5b6cbd90d00dd4413c1ac6c766608a2ac90518891bea7ebfcba23652855a4fe",
       "sky_level_electrons": 50.0
     },
     {
       "group": "A",
       "path": "x01/input/frames/frame_03_A.fits",
-      "sha256": "8430f8bca20bda5ef84e4513d4b9c700bacfe660020f2a6bf09c664efad1407a",
+      "sha256": "861cf908c8a71f098250318aa6c325bdde98fc836a9eff11b3c55dcf50faa349",
       "sky_level_electrons": 55.0
     },
     {
       "group": "B",
       "path": "x01/input/frames/frame_04_B.fits",
-      "sha256": "483e5c4c10e8d89ef08468cf2757a3ac391651a6feb4a0494527c034e745dd09",
+      "sha256": "70fb1de890a174719b5e97c46f6601f3b5e9aa3930e325d7a74e889e6d60c2db",
       "sky_level_electrons": 60.0
     },
     {
       "group": "B",
       "path": "x01/input/frames/frame_05_B.fits",
-      "sha256": "06b7928cd36b952584ba43546670515df94396f49c4729e428c88250a59ef485",
+      "sha256": "4ea5059444aa6021fe5503f12dff5eef967487b29be8dc0548f7e1279c913fa5",
       "sky_level_electrons": 65.0
     },
     {
       "group": "B",
       "path": "x01/input/frames/frame_06_B.fits",
-      "sha256": "961518e8e57eb28823da7c55a911b7e34810df308fd9e648da76c60ce83d2a4b",
+      "sha256": "e3c6b7f375651344e4a059bc164e43d2a2d772d3c54a662ec75b5892111fb75c",
       "sky_level_electrons": 70.0
     },
     {
       "group": "B",
       "path": "x01/input/frames/frame_07_B.fits",
-      "sha256": "1b9f779ace9fbac88bcb6f00e0bb9842e5aed028b8f412502ef6a8d56736e73d",
+      "sha256": "d524a393c2fc3093d70b145c9a099a19d02318540743c6bd5e4b3e4baa1c3789",
       "sky_level_electrons": 75.0
     }
   ],

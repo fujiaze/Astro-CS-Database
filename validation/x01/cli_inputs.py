@@ -37,9 +37,9 @@ def throughput_of(group: str, wavelength: np.ndarray) -> np.ndarray:
 def source_field() -> List[Dict[str, Any]]:
     """The frozen source field of the case (the same one the frames use)."""
     field = [{"kind": "bright", "centre_pixel": [63.5, 64.5], "weight": 1.0}]
-    for centre_x, centre_y, weight in ((24.5, 30.5, 0.35), (96.5, 22.5, 0.42),
-                                       (30.5, 100.5, 0.28), (92.5, 98.5, 0.5),
-                                       (14.5, 72.5, 0.31), (110.5, 66.5, 0.46)):
+    for centre_x, centre_y, weight in ((24.5, 30.5, 0.80), (96.5, 22.5, 0.90),
+                                       (30.5, 100.5, 0.70), (92.5, 98.5, 1.00),
+                                       (14.5, 72.5, 0.75), (110.5, 66.5, 0.85)):
         field.append({"kind": "star", "centre_pixel": [centre_x, centre_y], "weight": weight})
     return field
 
@@ -230,16 +230,25 @@ def information_request() -> List[Dict[str, Any]]:
     return []
 
 
-def tangent_basis(crval_deg: float, lonpole_deg: float):
-    """The tangent point basis (c, e, north) of the foundation equation (3)."""
-    alpha0 = math.radians(crval_deg)
-    zeta = math.radians(lonpole_deg)
-    pole = np.array([math.cos(alpha0) * math.cos(zeta), math.cos(alpha0) * math.sin(zeta),
-                     math.sin(alpha0)])
-    centre = np.array([math.cos(alpha0), 0.0, math.sin(alpha0)])
-    north = pole - np.dot(pole, centre) * centre
-    north = north / np.linalg.norm(north)
-    east = np.cross(north, centre)
+def tangent_basis(crval_deg, lonpole_deg: float):
+    """The canonical tangent basis (c, e, north) of the foundation equation (3).
+
+    c is the tangent point, east is the equatorial tangent at the tangent
+    point and north is the meridian direction at the tangent point:
+
+        c    = (cos d cos a, cos d sin a, sin d)
+        e    = (-sin a, cos a, 0)
+        north = (-sin d cos a, -sin d sin a, cos d)
+    """
+    alpha0 = math.radians(crval_deg[0])
+    delta0 = math.radians(crval_deg[1])
+    centre = np.array([math.cos(delta0) * math.cos(alpha0),
+                       math.cos(delta0) * math.sin(alpha0),
+                       math.sin(delta0)])
+    east = np.array([-math.sin(alpha0), math.cos(alpha0), 0.0])
+    north = np.array([-math.sin(delta0) * math.cos(alpha0),
+                      -math.sin(delta0) * math.sin(alpha0),
+                      math.cos(delta0)])
     return centre, east, north
 
 
@@ -263,7 +272,7 @@ def wcs_model_data(detector_frame: str = "detector") -> Dict[str, Any]:
               [float(header["CD2_1"]), float(header["CD2_2"])]]
     lonpole = 180.0
     cd = canonical_cd(cd_deg, crval[1], lonpole)
-    centre, east, north = tangent_basis(crval[1], lonpole)
+    centre, east, north = tangent_basis(crval, lonpole)
     radians = math.pi / 180.0
     cd_rad = [[cd[0][0] * radians, cd[0][1] * radians],
               [cd[1][0] * radians, cd[1][1] * radians]]

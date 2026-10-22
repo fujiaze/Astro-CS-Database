@@ -93,7 +93,7 @@
     "note": "truth is produced before and independently of any observed run",
     "truth_code_imports_production": false
   },
-  "input_model_sha256": "1f9f4198cd61821d18f60d6ab6002b35177d95dc2d690f8aa99a55afa2a85d61",
+  "input_model_sha256": "9f93bfe3035069c71c10f5dcc28fd5b5dca9c3ada141bbc7ae65b1174b097c30",
   "negative_expectations": [
     {
       "expectation": "the GUI is only a protocol smoke test and never a substitute for the science path",
@@ -124,7 +124,7 @@
     "blind_solve": "the group without a WCS must produce a solution",
     "signal_relative": 0.05
   },
-  "truth_sha256": "57825e37df3091589bbc28b412b69f92fa7ecb17b3177e2fa4e645b4eeffdf3e",
+  "truth_sha256": "f0b351102e23a78e6e3ecbe9a7b7fb55b9b12b0deb37022441ee905b0803dd17",
   "truth_type": "empirical + analytic_exact",
   "unit": "ADU in the raw frames; L/sr in the products"
 }

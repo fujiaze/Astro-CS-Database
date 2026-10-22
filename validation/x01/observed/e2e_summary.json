@@ -27,7 +27,7 @@
    "first_failure": {
     "frame_id": "x01-00",
     "code": "failed",
-    "message": "no catalogue star supplied"
+    "message": "the pixel integral cannot be built"
    }
   },
   {

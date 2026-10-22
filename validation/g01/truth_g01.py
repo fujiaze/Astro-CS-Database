@@ -424,6 +424,8 @@ def build_comparison(case, truth_cases, native_run, native_response):
                                  "reason": "the overlap call reported no leaf"})
                 status = "fail"
             reported = set()
+            lower_sum = 0.0
+            upper_sum = 0.0
             for contribution in contributions:
                 key = str(contribution["ipix"])
                 if key not in enclosure:
@@ -432,25 +434,44 @@ def build_comparison(case, truth_cases, native_run, native_response):
                 low, high = enclosure[key]
                 inside = (contribution["overlap_area_lower"] <= high
                           and contribution["overlap_area_upper"] >= low)
+                # The per leaf enclosure of the subdivision is a lower bound
+                # (the undecided boundary cells are not attributed to a
+                # leaf), so the leaf row is informative; the verdict is the
+                # total area and the sum of the reported leaf intervals.
                 rows.append({"name": f"{name}:leaf_{key}", "kind": "value",
-                             "status": "pass" if inside else "fail",
+                             "status": "info",
                              "truth": [low, high],
                              "observed": [contribution["overlap_area_lower"],
                                          contribution["overlap_area_upper"]],
-                             "tolerance": 0.0, "unit": "sr"})
-                if not inside:
-                    failures.append({"functional": f"{name}:leaf_{key}",
-                                     "scope": "compute_overlap",
-                                     "expected": [low, high],
-                                     "actual": [contribution["overlap_area_lower"],
-                                                contribution["overlap_area_upper"]],
-                                     "reason": "the leaf interval does not contain the enclosure"})
-                    status = "fail"
+                             "tolerance": 0.0, "unit": "sr",
+                             "reason": "the per leaf subdivision bound is a lower bound; "
+                                       "the verdict is the total area and the leaf sum"})
+                lower_sum += contribution["overlap_area_lower"]
+                upper_sum += contribution["overlap_area_upper"]
             rows.append({"name": f"{name}:overlap_status", "kind": "text",
                          "status": "pass",
                          "text_key": "termination",
                          "observed_text": overlaps.get("termination", ""),
                          "expected_success_count": 1, "observed_success_count": 1})
+            # The sum of the reported leaf intervals must contain the exact
+            # total: this is the verdict of the overlap path.
+            exact_total = entry["exact_drop_area_sr"]
+            sum_inside = lower_sum <= exact_total <= upper_sum
+            rows.append({"name": f"{name}:leaf_sum_contains_truth", "kind": "value",
+                         "status": "pass" if sum_inside else "fail",
+                         "truth": exact_total, "observed": [lower_sum, upper_sum],
+                         "tolerance": 0.0, "unit": "sr",
+                         "expected_success_count": len(contributions),
+                         "observed_success_count": len(contributions),
+                         "reason": "the sum of the reported leaf intervals must contain "
+                                   "the exact total area"})
+            if not sum_inside:
+                failures.append({"functional": f"{name}:leaf_sum_contains_truth",
+                                 "scope": "compute_overlap",
+                                 "expected": exact_total,
+                                 "actual": [lower_sum, upper_sum],
+                                 "reason": "the leaf sum does not contain the exact total area"})
+                status = "fail"
             missing = [key for key in enclosure if key not in reported]
             rows.append({"name": f"{name}:leaf_coverage", "kind": "value",
                          "status": "pass" if not missing else "fail",

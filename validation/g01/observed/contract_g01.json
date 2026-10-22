@@ -1,0 +1,85 @@
+{
+  "algorithm_set": [
+    {
+      "name": "acsd-contract",
+      "source_hash": "sha256:44e4786591732de6b2e8fcf0e391423929a8d8cc433414a018535f5183a0ea58",
+      "version": "1"
+    },
+    {
+      "name": "compute_overlap",
+      "source_hash": "sha256:81e966df40463f4687eda15e916c1248809c4e93119c9b0db5e0da8724c3f91c",
+      "version": "1"
+    }
+  ],
+  "arithmetic": {
+    "allow_target_fallback": true,
+    "initial_bits": 64,
+    "max_bits": 256,
+    "mode": "outward"
+  },
+  "blocks": [],
+  "build": {
+    "compiler": "14.2.0",
+    "name": "acsd-contract",
+    "standard": "acsd.contract/1",
+    "version": "2.0.0"
+  },
+  "input_hashes": {},
+  "major": 1,
+  "objects": {},
+  "operation": "compute_overlap",
+  "output_root": "/workspace/Astro CS Database/validation/g01/.work/g01",
+  "protocol": "acsd.contract.response",
+  "request_id": "val-g01-compute-overlap",
+  "resolved_request_hash": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "resources": {
+    "byte_budget": 16777216,
+    "bytes": 16777216,
+    "elapsed_seconds": 1.5709e-05,
+    "peak_payload_bytes": 0,
+    "read_bytes": 0,
+    "spill_bytes": 0,
+    "threads": 1,
+    "work": 0,
+    "work_budget": 1000000,
+    "written_bytes": 0
+  },
+  "result": {
+    "assessment": {
+      "capability": "supported",
+      "complete": false,
+      "condition": {
+        "assumptions": [],
+        "estimator": "",
+        "fixed_objects": [],
+        "kind": ""
+      },
+      "execution": "failed",
+      "included": [],
+      "issues": [
+        {
+          "code": "invalid_request",
+          "impact": "the request cannot be served",
+          "origin": "contract.decode",
+          "reason": "the provider argument cannot be decoded",
+          "retry_condition": ""
+        }
+      ],
+      "noise": "unknown",
+      "omitted": [],
+      "science": "bounded",
+      "validity": "certified"
+    },
+    "code": "invalid_request",
+    "dependencies": [],
+    "usage": {
+      "elapsed_seconds": 0.0,
+      "peak_payload_bytes": 0,
+      "read_bytes": 0,
+      "spill_bytes": 0,
+      "work": 0,
+      "written_bytes": 0
+    },
+    "value": null
+  }
+}
