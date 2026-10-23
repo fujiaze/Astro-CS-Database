@@ -482,8 +482,8 @@ grep -rn 'Task<.*> read_async\|class ProcessHost' include/acsd/runtime/*.hpp
 | M2 Task/池/Pipe | 完成（S-FLOOR/FORK/ORDER/BARRIER/MULTI/PIPE01） | `src/runtime/{task,pool,pipe}.cpp`；`floor01` 17/17、`fork01`、`barrier01` 20/20、`multi01` 12/12；取消排空 `18 cancelled + 2 ok` |
 | M3 异步 Storage/诊断 | 完成（B01/H01/D01/ASYNC01/S-IO） | `src/runtime/{storage,diagnostics}.cpp`；`b01` 24/24、`io01` 14/14、`d01_off` 3/3；DEV_MODE=1 独立构建 `/tmp/acsd-build-dev` 可跑 ON 语义 |
 | M4 首个科学 process | 完成（C-CAL 全链） | `33804ef6a`；kernel 36/36、Host chain 25/25、旧/新逐位一致、Host identity 与同步入口相同；C-CAL-ROOT 共享根保持 |
-| M5 其余 21 process | **未完成** | 57 operation 的 plan/run 仍有 56 个具名 `unsupported`（M4 之外的模块尚未接资源计划与 science Context 桥）；coadd.integrate 为 `blocked_refactor`。逐项证据不存在，不能按 M0 登记通过计为 M5 |
-| M6 工作流/双平台 | **未完成** | Normalize→Mosaic→Export 尚未改接 rt Host；Windows 无工具链；真实 HST/M42 无输入 |
+| M5 其余 21 process | **部分完成（注册/计划/小例已接，验收未关闭）** | `6753f822f`、`5b64e5cb0`：22/22 process 由模块自有 typed 注册接管，57/57 operation 全部登记、一次唯一种子；`acsd_typed_smoke` 1255 checks、`registry_negative` 112 checks、manifest 22/57 + coverage PASS；process driver 全部进 ctest（19/19）。真实正例：coordinates 7/7、catalogue 4 op、sources measure、response、geometry 11/11（含 footprint 正例）、operators 7/7、uncertainty 5/5（quadratic_form 5.0）、drizzle/export、photometry/information/sky/coadd 计划与负例。**未关闭**：coadd.integrate 仍具名 unsupported；fit_psf 无噪单高斯 `nonconverged`、astrometry 缺同源正例；每模块取消/重开与 probe 采样证据未齐；多数 R/F/W 仍是声明保守值而非 allocator 实测 |
+| M6 工作流/双平台 | **未开始** | Normalize→Mosaic→Export 尚未改接 typed Host；CLI/contract 仍直接调旧 workflow 入口；Windows 无工具链；真实 HST/M42 无输入 |
 
 ### 已知规格/文档缝隙（保留为后续修订入口）
 
@@ -493,3 +493,25 @@ grep -rn 'Task<.*> read_async\|class ProcessHost' include/acsd/runtime/*.hpp
 4. process 文档的 probe 声明只给 id，kind/边界/载荷仍由 PROBES.md 拥有；TEMPLATE 的“kind”要求未逐篇补齐，属文档待补项。
 5. bounds：57 个 operation 中 41 个为显式 provisional 1..65536，16 个以文档候选/page 锚点 1..4096；它们都不是经 allocator 实测的 W_module 上界，M5 逐模块替换前不得称为资源验收通过。
 6. pipe 的 `max_queued_bytes` 必须 ≥ 实际 payload；验证 fixture 曾用 16 B 窗口装 40 B Item，导致合法的“无法获得 credit”状态。实现现在对超窗口 payload 立即具名 `resource_exhausted`，fixture 需按 payload 调整。
+
+
+## 附录 B：独立审核与修复状态（2026-10-24 追记）
+
+独立审核者（未参与实现）以 `d404c99f7` 为锚给出 **REJECT**（M2/M3/M4），报告见 [review-m0m4.md](review-m0m4.md)。修复提交与状态：
+
+| 审核项 | 状态 | 证据 |
+|---|---|---|
+| when_all 非法/被移动子任务伪造成功 | 已修 | `c546657e0`；非法子任务记 failure，无值不聚合，全 ok 才返回聚合值 |
+| `work_upper=0` 绕过 `max_work`；预算耗尽永久等待 | 已修 | `c546657e0`/`6fe0c8aac`；显式 0 为硬上限，`work+units>max_work` 立即具名 `resource_exhausted` |
+| 无 2P ready 窗口 / control 绕过 ceiling | 已修 | `c546657e0`；P=1 提交 100000 → 10 接受、99990 具名拒绝；control max_active=1 |
+| seal/abort 竞争、spill UAF、sealed 数组永久 pin | 已修 | `c546657e0`；ASan 无堆错误、abort 后 seal=cancelled、最后 ArrayRef 释放容量归零、stored-byte 账本 |
+| ordered pipe 不能跨 cohort | 合同闭合（执行器声明） | `pipe_expect` + 头注释；计划删除未使用 edge 并降级诚实串行（window=1） |
+| 同步/Host 校验分歧 | 已修 | `6753f822f`；唯一 `validate_calibration_input`，`cal_equivalence` 8/8、cal_host 33/33 |
+| M4 plan work/R/F 漏计 | 已修（声明上界，非逐分配实测） | `6753f822f`；N=3 140≤460、N=200000 201906≤268580，R 含 92N 保守项；W 仍非 allocator 实测 |
+| C-CAL-WRITE/CLEAN 未跑 | 已跑 | `5b64e5cb0`；16/16（短写 io_error、seal 失败 io_error、写后取消 cancelled+deferred abort ok、spool 归零） |
+| cal01 判据被放宽 | 已恢复并自然通过 | `d4ccc8fa6`；严格 required 37/37、usage.work=140 ∈ [3,524]、真实共享 NoiseModel 根 |
+| 空 process/共享 document 可 freeze | 已修 | `c546657e0`；registry_negative 112 checks |
+| S-MULTI 1:2 未兑现 | 已修 + 正确测量 | `b015fff92` deficit RR；P=2 完整轮 fixture 100:200（complete-round 0.9977），15/15 pass |
+| 证据与标题矛盾 | 已修 | 严格判据 + manifest 15/15、失败 attempt 保留；旧 7 pass/4 pending baseline 未改写 |
+
+仍未关闭：M5 的 coadd.integrate、fit_psf 收敛、astrometry 同源正例、逐模块取消/重开与 probe 采样、W_module allocator 实测；M6 全部；Windows；真实 HST/M42；GPU 仅合同。
