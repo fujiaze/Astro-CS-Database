@@ -449,7 +449,9 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
                                     "no frame was published");
     }
     std::vector<Ref<SpectralPrediction>> predictions;
-    const SpectralBasis* basis = val(stars).empty() ? nullptr : val(stars).front().xp_basis.get();
+    // The basis is owned by the catalogue star: a second owning shared_ptr
+    // built from the raw pointer would free the same control block twice.
+    const Ref<SpectralBasis> basis = val(stars).empty() ? nullptr : val(stars).front().xp_basis;
     for (const Ref<Response>& response : responses) {
       if (!basis) break;
       NumericBudget budget;
@@ -459,7 +461,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       budget.max_iterations = 200;
       budget.arithmetic = Arithmetic{Arithmetic::Mode::outward, 64, 256, true};
       Result<Ref<SpectralPrediction>> prediction =
-          integrate_response(context, response, std::shared_ptr<const SpectralBasis>(basis), budget);
+          integrate_response(context, response, basis, budget);
       if (!ok(prediction)) {
         for (FrameOutcome& outcome : outcomes) {
           if (outcome.failed || outcome.unsolved || outcome.cancelled) continue;

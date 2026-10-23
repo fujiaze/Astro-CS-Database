@@ -868,15 +868,14 @@ Result<Ref<CatalogueProvider>> load_catalogue(Context& context, const std::files
   columns.astrometry = val(astrometry_array);
   columns.brightness_mag = val(magnitude_array);
   columns.xp_coefficients = val(coefficient_array);
-  columns.xp_basis = std::shared_ptr<const SpectralBasis>(spectral);
+  columns.xp_basis = spectral;
   columns.identity = model::make_identity("acsd.CatalogueColumns", 2, 0,
                                           model::sha256_hex("acsd.cli.catalogue.columns"), "acsd");
   columns.assessment = model::make_assessment(Code::ok);
 
   const json& build = document.contains("build") ? document.at("build") : json::object();
   CatalogueBuildRequest request;
-  auto column_object = std::make_shared<CatalogueColumns>(columns);
-  request.columns = std::shared_ptr<const CatalogueColumns>(column_object);
+  request.columns = std::make_shared<const CatalogueColumns>(columns);
   request.sky_order = static_cast<U32>(u64_field(build, "sky_order", 3));
   request.max_stars_per_cell = static_cast<U32>(u64_field(build, "max_stars_per_cell", 64));
   request.neighbors_per_anchor = static_cast<U32>(u64_field(build, "neighbors_per_anchor", 12));
