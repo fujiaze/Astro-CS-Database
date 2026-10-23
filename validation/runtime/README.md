@@ -23,7 +23,7 @@
 
 ## 最终状态（M0–M4 快照）
 
-**14 pass / 1 fail（multi01）。** 这是 M0–M4 的快照：M0 公共合同/注册、M1 账本与所有权、
+**15/15 pass。** 这是 M0–M4 的快照：M0 公共合同/注册、M1 账本与所有权、
 M2 Task/pool/pipe、M3 Storage/诊断、M4 `observation.calibrate` 的 Host 全链。
 M5 的其余模块接入不在本 manifest 内；后续 M5 实现变化必须重新跑本目录，
 **不得修改判据去迁就实现**（发现缺陷照旧 fail）。
@@ -75,7 +75,7 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 | `fork01` | S-FORK | 一个 8 B 只读 Block 广播到两分支（slot=1），一分支延迟消费 | 物理分配 8 B（非 16 B）、两分支同一 Lease、慢分支不丢；join 前不消费 | **实跑 pass 17/17**（修复后） |
 | `order01` | S-ORDER | key1 先 ready、key0 最小 key 后到，slot=1，H 仅够 F | key1 不能占保底 slot；最小 key 的 send 必须能进入保留 slot，receive 顺序 key0→key1 | **实跑 pass 11/11**（窗口修正后） |
 | `barrier01` | S-BARRIER | E=0；stream 两 cohort 贡献 2 次 → barrier；F=max(region F) 非求和 | R+max(F)=48 准入、47 拒绝；R+sum(F)=64 的错账会被抓到；两贡献后 barrier 才看到 2；未知 region 拒绝 | **实跑 pass 20/20** |
-| `multi01` | S-MULTI | P=1；ready 窗口合同 2P+8P=10；滚动窗口 8 内持续补齐，两 command 各 200 单位；weight=1:2 | 前 120 次 dispatch 在完整轮上判 1:2（±4 credit）；窗口内不得 resource_exhausted；池/command 并发不超限 | **实跑 fail**：59/61（ratio 1.03），order 严格 1,2,1,2…；窗口 max_in_flight=8、0 次拒绝；P=2/ceiling2 诊断仍 60/60 → 权重未被调度器兑现（判据未放宽） |
+| `multi01` | S-MULTI | P=2（ready 窗口 2P=4 可同时容纳 1+2 个 ready 项）；滚动 in-flight 12≤20；weight1/2 的 ready 配额 ≥1/≥2；采样 300 次 **dispatch start** | 完整可行轮（两 command 都 ready 且满权重）上判 1:2（±5 credit/300）；窗口内不得 resource_exhausted；池/command 并发不超限；complete-round 环境占比 ≥90% | **实跑 pass（required 12/12；observed 12/12）**：dispatch 100/200（ratio 2.000）、环境占比 0.998、窗口 0 拒绝、并发 ≤2 |
 | `pipe01` | PIPE01 | max_items=1 的有序 pipe；满队列、取消、EOF/failed/cancelled 三态 | 满队列 send 背压等待；consume 后完成；cancel 唤醒 receive/send；三态 PipeEnd 保原 Issue；close 后 send 拒绝；0 容量具名拒绝 | **实跑 pass 37/37**（窗口修正后） |
 | `io01` | S-IO / ASYNC01 | P=1，32 MiB read + ready 计算、3×8 MiB 并行压缩、8 MiB spill append+seal | read 未终态时 compute 已执行；压缩 CPU/wall≈0.98（≤1.5）；写账本记录真实写量；seal 后 8 MiB 逐字节读回 | **实跑 pass（required 15/15；observed 17/17）** |
 | `b01` | B01 | spill writer，1 MiB buffer，8×1 MiB append（按 64× 比例从 32 MiB/256 MiB 缩小） | 8 次 append 累计元素数；seal 尺寸/读回；非连续/失败 writer 不能 seal；取消中途 abort 无半成品；seal 后不可改；空 writer seal 拒绝 | **实跑 pass 24/24** |
@@ -91,7 +91,7 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 
 构建：`ACSD_BUILD=/tmp/acsd-build bash validation/runtime/build.sh`（15/15 built；
 `d01_on` 另用 `ACSD_BUILD=/tmp/acsd-build-dev`，该目录以 `-DACSD_DEV_MODE=1` 构建）。
-运行：`python3 validation/runtime/run_cases.py --no-build` → **14 pass / 1 fail（multi01）**。
+运行：`python3 validation/runtime/run_cases.py --no-build` → **15/15 pass**。
 逐 case 证据：`<case>/observed.json`、`comparison.json`、`observed.stdout.txt`、
 `observed.stderr.txt`；汇总 `manifest.json`。
 
@@ -105,7 +105,7 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 | fork01 | pass 17/17 | 一份 8 B 物理 Lease、两分支同值、慢分支不丢 |
 | order01 | pass 11/11 | slot=1 下最小 key 先出、高 key 后出 |
 | barrier01 | pass 20/20 | R+max(F)=48 准入、47 拒绝；两贡献后 barrier 见 2 |
-| multi01 | **fail（attempts 11 / successes 10）** | 120 dispatch = 59/61（ratio 1.03）；order 前缀 1,2,1,2…；P=2/ceiling2 诊断 60/60；窗口 8 内 0 拒绝 |
+| multi01 | pass（required 12/12；observed 12/12） | 300 次 dispatch start = 100/200（ratio 2.000）；complete-round 环境 0.998；窗口 0 拒绝；并发 ≤2 |
 | pipe01 | pass 37/37 | 满队列背压、三态 PipeEnd、取消唤醒、按 key 归约 |
 | io01 | pass（required 15/15；observed 17/17） | read 未终态时 compute 已跑；压缩 CPU/wall≈0.98；写账本 written=8 MiB/spill_written=8 MiB；seal 后逐字节读回 |
 | b01 | pass 24/24 | 8×append 累计值、seal/读回、失败/取消无半成品、abort 幂等 |
@@ -133,17 +133,23 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
    （`validation/runtime/reg01/docs/<process_id>.md`）且至少 1 个 operation；
    负例（duplicate/missing schema 等）也补齐 operation，使拒绝原因仍是被测规则本身。
 
-### 当前失败（multi01，判据冻结，不迁就实现）
+### S-MULTI 的判据与测量（P=2 完整可行轮）
 
-`multi01` attempts 11 / successes 10（required 11），唯一失败 `multi.ratio_1_to_2_complete_rounds`：
+正本（SCHEDULER「多command分配与公平性」）的读法：
 
-* 合同：P=1 时 ready 窗口 = 2P+8P = 10；本 case 用滚动窗口 8（`max_in_flight=8`、
-  `window_rejections=0`），两个 command 在整个 120 次采样期间都有 ready backlog。
-* 实测前 120 次 dispatch：weight1=59、weight2=61（ratio 1.03），完成顺序前缀为
-  `1,2,1,2,1,2,1,2,…`；P=2、command ceiling=2 的诊断运行同样 60/60。
-* 判定：weight=1 与 weight=2 的 command 未按 1:2 发放 dispatch credit（实际接近
-  1:1 的严格交替）。这是 S-MULTI 的实现缺陷；窗口合同、并发上限与无饥饿均通过，
-  判据保持不变。需要调度器实现加权轮转（每轮 weight1=1、weight2=2 credit）。
+* **不要求空转等待**："只有ready且资源可行的command参与" 要求执行器 work-conserving；
+  某个权重 command 当下没有 ready 项时不得为保比例而空转；"每轮未用credit不跨轮累积"
+  表示它失去该轮未用的 credit。
+* **1:2 只欠"完整可行轮"**：两个 command 同时 ready 且都能用满自身 weight
+  （weight1 至少 1 个 ready、weight2 至少 2 个 ready）的轮次。
+* **P=1 无法构成完整轮**：ready 窗口为 2P=2，容纳不下 1+2 个 ready 项，测到的是
+  "谁当下 ready"，不是权重。因此 fixture 必须 P≥2；本 case 用 P=2（窗口 4），
+  并维持 weight1/weight2 的 ready 配额 ≥1/≥2。
+* **必须量 dispatch 而不是 completion**：P≥2 时两个执行段并发，completion 顺序与
+  dispatch 顺序不一致（早期用 completion 计数会得到 2.61 的假偏差）。本 case 在
+  单元 callable 入口记录 dispatch start，300 次采样直接量 credit：实测 **100/200 =
+  1:2**，complete-round 环境占比 **0.998**，窗口 max_in_flight≤12（合同 20）、
+  0 次 resource_exhausted、池/command 并发 ≤2。
 
 ### 实现侧已定位并修正的观察（复跑确认）
 

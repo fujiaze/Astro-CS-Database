@@ -1,0 +1,141 @@
+{
+  "case": "multi01",
+  "title": "weighted round robin: weight 1:2 dispatch ratio, no pool/command oversubscription, no starvation",
+  "milestone": "M2",
+  "contract_refs": [
+    "SCHEDULER.md S-MULTI",
+    "SCHEDULER.md#多command分配与公平性"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/multi01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/multi01",
+    "log": "validation/runtime/build/multi01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/multi01",
+  "status": "fail",
+  "reason": "required checks failed: multi.ratio_1_to_2_complete_rounds; harness reports failures: [\"multi.ratio_1_to_2_complete_rounds\"]",
+  "exit_code": 0,
+  "attempts": 12,
+  "successes": 11,
+  "expected_success_count": 12,
+  "observed_success_count": 11,
+  "required_checks": 12,
+  "missing_checks": [],
+  "failed_checks": [
+    "multi.ratio_1_to_2_complete_rounds"
+  ],
+  "failures": [
+    {
+      "check": "multi.ratio_1_to_2_complete_rounds",
+      "expected": "2*count1-5 <= count2 <= 2*count1+5 over 300 completed segments",
+      "actual": "161 <= 217 <= 171 (ratio=2.614)",
+      "detail": "tolerance is +/-5 credits on 300 bounded execution segments; the complete-round environment is checked above"
+    }
+  ],
+  "kernel_status": "fail",
+  "checks": [
+    {
+      "check": "multi.open_weight1_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.open_weight2_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.sample_reached",
+      "pass": true,
+      "expected": "300 completed segments within 60 s",
+      "actual": "300 completed",
+      "detail": ""
+    },
+    {
+      "check": "multi.complete_round_environment",
+      "pass": true,
+      "expected": ">=90% of samples have weight1 ready>=1 and weight2 ready>=2",
+      "actual": "0.9976",
+      "detail": "a P=1 / 2P=2 ready window cannot hold 1+2 ready items; this fixture uses P=2 and keeps both commands at their full weight"
+    },
+    {
+      "check": "multi.window_contract_respected",
+      "pass": true,
+      "expected": "no resource_exhausted and in-flight <= 12 (ready+deferred=20)",
+      "actual": "max_in_flight=8 rejections=0",
+      "detail": ""
+    },
+    {
+      "check": "multi.all_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.no_starvation",
+      "pass": true,
+      "expected": "both commands dispatched in the sample",
+      "actual": "83/217",
+      "detail": ""
+    },
+    {
+      "check": "multi.ratio_1_to_2_complete_rounds",
+      "pass": false,
+      "expected": "2*count1-5 <= count2 <= 2*count1+5 over 300 completed segments",
+      "actual": "161 <= 217 <= 171 (ratio=2.614)",
+      "detail": "tolerance is +/-5 credits on 300 bounded execution segments; the complete-round environment is checked above"
+    },
+    {
+      "check": "multi.pool_concurrency_within_threads",
+      "pass": true,
+      "expected": "<= 2",
+      "actual": "2",
+      "detail": ""
+    },
+    {
+      "check": "multi.command_concurrency_within_ceiling",
+      "pass": true,
+      "expected": "each <= 2",
+      "actual": "1/2",
+      "detail": ""
+    },
+    {
+      "check": "multi.close_weight1_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.close_weight2_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "multi.environment_samples": 1275,
+    "multi.complete_round_samples": 1272,
+    "multi.complete_round_fraction": 0.9976470588235294,
+    "multi.order_prefix": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
+    "multi.sample_count_weight1": 83,
+    "multi.sample_count_weight2": 217,
+    "multi.sample_ratio": 2.6144578313253013,
+    "multi.window": 12,
+    "multi.window_rejections": 0,
+    "multi.max_in_flight": 8
+  },
+  "resources": {
+    "multi.max_running_pool": 2,
+    "multi.max_running_weight1": 1,
+    "multi.max_running_weight2": 2
+  }
+}

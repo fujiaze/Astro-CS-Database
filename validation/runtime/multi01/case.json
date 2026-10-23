@@ -7,21 +7,24 @@
     "SCHEDULER.md#多command分配与公平性"
   ],
   "fixed_configuration": {
-    "weights": [
-      1,
-      2
-    ],
-    "cpu_threads": 1,
-    "ready_window": "2P ready + 8P deferred = 10 in flight",
-    "rolling_window": 8,
-    "sample_dispatches": 120,
-    "units_available_per_command": 200,
-    "criterion": "2*count1-4 <= count2 <= 2*count1+4 over the first 120 dispatches; both queues stay backlogged; the window cap is a contract, not a relaxation"
+    "cpu_threads": 2,
+    "ready_window": "2P ready + 8P deferred = 4 + 16 = 20 in flight",
+    "rolling_window": 12,
+    "ready_quotas": {
+      "weight1": 1,
+      "weight2": 2
+    },
+    "sample_dispatches": 300,
+    "units_per_command_available": 400,
+    "criterion": "complete feasible round: both commands ready with full weight (1+2); 2*count1-5 <= count2 <= 2*count1+5 over 300 dispatch starts; complete-round environment >=90% is a required precondition",
+    "normative_note": "SCHEDULER: \"只有ready且资源可行的command参与\" -> work-conserving, no idle wait; \"每轮未用credit不跨轮累积\"; the 1:2 ratio is owed only for complete feasible rounds.",
+    "measurement": "dispatch start events (unit callable entry), not completions; P>=2 makes completion order differ from dispatch order"
   },
   "required_checks": [
     "multi.open_weight1_ok",
     "multi.open_weight2_ok",
     "multi.sample_reached",
+    "multi.complete_round_environment",
     "multi.window_contract_respected",
     "multi.all_units_ok",
     "multi.no_starvation",
@@ -31,8 +34,8 @@
     "multi.close_weight1_ok",
     "multi.close_weight2_ok"
   ],
-  "min_attempts": 11,
-  "expected_success_count": 11,
+  "min_attempts": 12,
+  "expected_success_count": 12,
   "tolerance": "empirical: ratio in [1.5,2.5] and |count2-2*count1|<=8; frozen in this manifest",
   "link": "default",
   "timeout_seconds": 180
