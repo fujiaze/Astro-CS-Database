@@ -1,8 +1,12 @@
-# ACSD v2 设计与重构
+# ACSD v2：固定基建与科学process
 
-从[唯一架构入口](docs/engineering/rebuild/README.md)开始。分支rebuild/acsd-v2，设计基线9073a656b；远端截至04c8231d已加入122个后续提交，包含科学库、CLI/合同驱动、GUI及部分验证。实现存在不等于设计全部完成或生产验收通过；阶段记录见[现有实现交付](https://github.com/fujiaze/Astro-CS-Database/blob/04c8231d2f7888319a51fa4095265fc1285dc00d/validation/audit/issue-comment-112.md)。
+从[设计入口](docs/engineering/rebuild/README.md)开始：[一份基建骨架](docs/engineering/rebuild/SYSTEM.md)维护注册、生命周期、调度和服务；[各科学process](docs/engineering/rebuild/processes/README.md)独立维护算法与模块边界；公共API/对象/执行/验收标准统一复用。
 
-本次仅补全文档，保留远端实现、声明、schema、构建和全部历史。资源子域、流式封存、开发探针、CPU/GPU执行等新增合同是下一轮实施目标，具体迁移次序/未接入状态见[API迁移清单](docs/engineering/rebuild/API.md#本次工程目标与声明迁移清单)。不能因文档出现目标方法或配置就认为现有程序已支持。
+基建以VirtualComputePool统一CPU/内存/I/O资源，提供Task、有界内存管道和异步I/O；算法通过[封装好的计算模块](docs/engineering/rebuild/standards/COMPUTE_MODULES.md)与强类型函数组合，实现逐模块维护和后续接入。
+
+内部开发只维护一套当前格式，允许破坏式重构，不兼容v1或早期v2产品/接口，也不实现旧产品转换。Git历史及原始科学证据保留。GPU只设计KernelExecutor/ArrayBacking/Completion扩展，本期CPU，不实现GPU后端。
+
+本轮只改文档。分支已含部分科学实现，新的标准注册和基建仍待接线，不能把设计当运行能力。新增/修改算法按模块process文档与唯一typed descriptor推进，不需要向框架加入算法分支。
 
 ```text
 python -m pip install -r validation/requirements.txt
@@ -12,6 +16,4 @@ ctest --preset design
 python tools/check_design.py
 ```
 
-上述为现有设计检查入口，不证明新增目标已实施；实际科学构建与验证按现有CMakePresets、VERIFICATION和阶段报告。首期仍为Windows/Linux amd64 CPU；GPU只冻结扩展边界，不承诺已提供或已测加速。
-
-[工程补全及定向复核](docs/audit/engineering-completeness.md)记录本次范围、发现、处理和验证边界。[历史清理](docs/audit/CLEANUP.md)保留旧树追溯。不改main、不强推、不重置分支、不创建PR。
+上述是现有设计检查入口，实际科学构建/运行状态依CMakePresets与冻结验证记录。[本次更正与复核](docs/audit/process-framework.md)记录文档范围和验证边界。继续在rebuild/acsd-v2追加提交，完整保留已有历史。

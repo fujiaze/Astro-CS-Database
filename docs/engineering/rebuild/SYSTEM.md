@@ -1,68 +1,143 @@
-# 系统边界与算法调用
+# 固定基建框架
 
-依据及状态见[架构入口](README.md)。模块按观测形成、几何变换、误差传播和估计量求解划分。资源服务执行已经声明的因果关系，不能通过历史节点或缓存形状选择科学模型。
+本篇唯一拥有v2程序骨架：模块注册、typed调用边界、生命周期、调度、基建服务、扩展规则和构建装配。科学算法步骤由[各process](processes/README.md)各自拥有，固定命令的数据流在[WORKFLOWS](standards/WORKFLOWS.md)。本轮只改文档；下面ProcessDescriptor/InvocationPlan/ProcessContext等是待实施角色，当前头文件和程序尚未据此改造。
 
-## 模块与依赖
+内部开发允许直接破坏式重构。只维护一套当前接口/对象/产品/配置格式，旧v1及早期v2产物无兼容或转换义务；格式不匹配具名拒绝并由原始输入重新生成。Git提交历史和原始科学证据保留；保存历史不要求保留旧运行接口。
+
+## 结构与职责
 
 ```mermaid
 flowchart TD
-    CLI[CLI / 外挂 GUI] --> WF[阶段工作流]
-    WF --> SCI[公开科学 API]
-    SCI --> O[观测校准 / 坐标 / PSF]
-    SCI --> P[响应积分 / 联合光度]
-    SCI --> G[真实曲边 / Drizzle / Export]
-    SCI --> S[随机变量 / 信息 / sky / 合成]
-    WF --> RT[预算调度 / 对象存储 / 取消]
-    RT --> IO[统一 I/O 与事务发布]
-    SCI --> C[公共对象 / 线性 action / 数值原语]
+    U[CLI / GUI子进程 / 合同驱动 / C++调用] --> W[固定工作流或单process调用]
+    W --> F[ProcessHost: registry / validate / plan / run / finalize]
+    F --> P[模块本地typed adapter与科学算法]
+    F --> V[VirtualComputePool: 计算 / 内存 / I/O虚拟资源]
+    V --> R[资源账本 / 唯一CPU池 / 取消]
+    V --> S[Storage / 有界异步I/O / 事务发布]
+    F --> D[日志 / 事件 / 可编译关闭的诊断]
+    P --> M[可复用计算模块 / 强类型函数组合]
+    M --> V
+    M --> K[数值与action批次接口]
+    K --> C[当前CPU实现]
+    K -. 未来扩展 .-> G[GPU后端: 本期不实现]
 ```
 
-模块名称、目录、责任及完整直接依赖统一由下文“实际源码与无环依赖”表定义，本图只展示概念数据流。
+Process是可独立维护和调用的科学步骤，一个模块可登记一个或多个内聚operation。科学模块拥有数学及局部状态；框架拥有资源与执行；工作流拥有显式数据边/屏障。纯标量原语、数组read、type构造不强制变成调度节点。一个算法一份实现；CLI、GUI、driver不能另写算法。
 
-这是逻辑模块图，不要求每个模块成为一个 DLL 或一个调度节点。首期科学库静态链接到 CLI 与独立合同驱动器；跨语言通过独立进程协议。可替换 provider 必须实现同一数学合同；不建设依赖旧 descriptor/IR 的插件加载框架。
+### 基建提供的固定服务
 
-## Normalize 的因果图
+| 服务 | 固定责任与约束 | 详细标准 |
+|---|---|---|
+| Registry / ProcessHost | 装配已编译模块、查找typed binding、校验状态机、统一异常/结果/观测边界 | 本篇、API |
+| Resources / CpuExecutor | 进程/command/invocation共享账本，原子准入、唯一CPU池、有界工作队列和归约 | EXECUTION |
+| Storage / ArrayBuilder | 输入/输出块、容量转交、不可变对象、spill/cache、原子封存与发布 | OBJECTS、API |
+| Cancellation | 停止新任务、在途安全点、清理后返回；不提前释放借用/设备事件 | EXECUTION |
+| Diagnostics | 默认invocation性能包围、模块中间数据probe、有界附加D与独立输出 | API、EXECUTION |
+| KernelExecutor | 统一批次布局/误差/驻留/完成语义；本期CPU，GPU仅预留合同 | EXECUTION |
 
-1. 读取观测、校准输入、响应与时间上下文；建立源身份、单位和校准随机根。校准/修复输出新观测版本，显式保留 G 或非线性条件。
-2. 校准像元 → solver 候选 → 本地 Gaia 匹配 → 完整 WCS；输入合法 WCS 是具名的另一来源。无头 WCS 必须实际求解；unsolved 帧进入运行清单，不能发布伪球面帧。
-3. 完整 WCS + 校准观测 → 独立 science_sources → 像元积分 PSF 与 counts 测量。Gaia 历元传播、DCR 假设及源选择随结果保留。
-4. 实际响应 + XP 表示 → 分段积分；counts + XP 共享 latent → 联合 photometry；对原生每像元应用 α(u) 一次。application_id 与输入/输出单位验证重复应用；空间 α 同样作用于模板，不用星心标量替代全 PSF。
-5. 校准/标度后的观测、实际场景噪声根和拟合影响构成统一 NativeObservation。纯初始噪声统计、响应基积分及已知 WCS 的几何准备可并行；最终噪声模型必须绑定实际应用版本。
-6. footprint + WCS + 网格 + science budget → Ω/A/a → R；R 同时变换 signal、PSF、噪声根和背景基。先请求粗界、按 B/F/Cov 等目标反馈细化，直至达标或资源耗尽。feedback 是同一次操作的受控求解，不是下游改写上游对象。
-7. information 按同一次 R 计算参考 V_F、actual-scene V_B 及需要的 controls，各自带 condition。writer 发布单帧产品闭包；噪声未知仍可有合法 signal，数值未达标不能当认证结果。
+基建只见公开模型/服务接口，不调用某个具体天文模块来猜数据单位、权或停止条件。科学模块通过ProcessContext借用上述接口，不链接其具体实现，不新建池/写文件/用可变全局“当前解”。具体context/binding声明后续统一写进公开头；不为每个模块再造一套资源或事件接口。
 
-跨帧共享 Gaia 星、母版和响应参数不被帧边界截断。首期支持多帧 photometry 的按 source 分块联合求解；独立 normalize 调用也必须保留相同外部 latent 身份、源测量依赖和影响 action，供后续恢复交叉 covariance。若联合输入依赖不完整，降为具名 conditional/unknown，不能只存每帧参数协方差后声称相互独立。
+## 虚拟计算池与硬件抽象
 
-## Mosaic 的计算屏障
+底层采用VirtualComputePool，把硬件能力和额度抽象为虚拟资源。它是现有Resources/CPU executor/Storage I/O队列的统一调度入口，不再创建另一套线程池或重复内存账本。ProcessContext向模块提供compute/arrays/pipes的强类型facade；模块声明需要什么能力和资源，不自己选择OS线程、磁盘队列或设备stream。类似操作系统的资源管理思想用于用户态基建，不实现内核、通用进程隔离或任意代码运行环境。
 
-1. 从完整发布 manifest 打开用户选定产品；统一 ICRS/NESTED、同 leaf order、可解释单位。混 order 明确拒绝；不同仪器/滤镜名不是拒绝条件。缺失参考 SED 转换时要求显式混合目标，不伪造相同物理量。
-2. provider 暴露逐帧 signal、邻域、support、PSF/response、noise 和原生到叶 action。重复产品/source 身份核对，重复读取不能制造新观测。actual-scene 方差优先直接 action；仅有稀疏控点时按其条件、有限支持及外部曲率界重建。
-3. 对响应和有效空间观测可比较的帧构造控制 T、共同天空 H 与 A；需要 PSF 匹配时只使用可实现的共同较宽核。不同响应不建伪差模边；无可比控制的帧保留零修正规范及“未测相对背景”状态。
-4. 逐真实连通分量拟合相对 sky，保存全部共同常量/斜坡及其它不可辨识模式、gauge、秩、K/T/E。控制足迹外的修正带预测状态。背景拟合形成全局屏障，不能边写最终 tile 边改变 β。
-5. 应用 P=I−EKT；逐目标块确定资格和可选排异，再按 policy 求权及归约。Γ 必须含 shared_id 和 sky 同数据项。需要几何依赖的 K/权/选择精度时，反馈至可持久恢复的 primitive；不可恢复则报未决，不冻结中心解冒充无条件界。
-6. 写入唯一 signal HiPS。有效核、支持/选择、规范、数值界与可选 covariance 模型作为模型元数据/辅助块保存，不发布第二个 variance/weight/sky 科学图像通道。
+| 虚拟资源 | 底层绑定与分配标准 |
+|---|---|
+| compute lane | 当前CPU核心/线程份额与算术能力，按实际运行的work unit租token；任务等待I/O/依赖/pipe时不占CPU token |
+| memory domain | 当前host；未来pinned/device仍通过同一allocation/arena/lease，不允许算法私自分配另一份未计费buffer |
+| I/O lane | Storage异步读/写的有界请求与字节额度；后端可用原生异步或固定少量阻塞I/O worker实现，不能阻塞科学worker。解压/压缩/hash/host复制的CPU阶段提交同一compute lane并取得CPU token，不由I/O worker绕开计算配额 |
+| transfer lane | 当前host块借用/复制/流式spill；未来host↔device传输及事件依赖。传输是可计费任务，不藏在kernel耗时外 |
+| cancellation / completion | 统一停止新提交、传播失败、等待实际完成后释放；取消一个future不等于底层传输已停 |
 
-共同均值且 Γ 完整才称 BLUE；要求非负响应时用非负 QP。异 PSF/通带按实际 t 与 c 保存 K_eff 的空间、光谱耦合，不能总分离为一条有效滤镜曲线。unknown noise 默认具名 equal且不标 full_IVAR；首期无自定义经验权或启发式排异入口。小 N 默认无时间排异；启用单步 LOO 基线须 N≥4、共同可比较估计量/均值和外部固定可信 Γ，只拒一个最大 LOO，不并行拒所有超阈样本。异 PSF/响应的真实均值差、时变源不能直接送入共同均值 LOO；无足够可比性证据时跳过统计排异，保留合法混合 signal。由同数据估计的 Γ 或非Gaussian场景不满足首期single_max_loo前置时必须skip，保留条件估计/原因，不附清洁Gaussian基线的family误拒保证。启发式排异只属未来科学扩展讨论，当前不可请求。未来 SACoadd 可替换合成器，但本阶段不设计其数学算法。
+pool只在已声明的数学/精度合同下优化块大小、并发、驻留与传输。可探测CPU能力/内存余量/I/O吞吐用于调度，不自动换科学模型、容差、rank、mask或归约。实际capability必须由可用后端报告；没有GPU时设备资源为0，不能因为有扩展文档就注册可用设备。
 
-## Export
+### Task、异步I/O与就绪调度
 
-目标 WCS 使用同一 coordinates/provider 模型域。支持均值 Q_ip=b_ip/Σb 与支持积分 Q_ip=b_ip 是两个独立请求，默认输出支持面亮度均值；整像元通量外推需显式选择。b=Ω(E_i∩H_p∩U_p)，不做第二次 drop 收缩。只有 full-leaf 近似支持时标明近似，不用一个比例恢复子叶形状。Q 对 signal、可用 noise 和 response 同步作用；只有最终 signal 时 noise=unknown。无支持为 NaN，负值与零保留。HiPS 层级派生也保存自身算子/支持近似，不能把低阶层伪装成重新 Normalize 的同阶独立观测。
+统一Task<T>表示拥有结果/失败与完成依赖的强类型计算；名称为目标角色，后续在公开声明实现。模块用then/when_all/map_blocks/reduce等固定组合器连接，输入类型不匹配编译/装配失败。不是字符串脚本解释器，也不要求把每个scalar helper变成调度节点。进程内/CLI最外层可同步等待最终Result；Host内部run可返回待完成Task，running状态直到所有必需任务/I/O完成才进入finalize，不能把“已提交”当“已完成”。
 
-## 实施边界、代码与交付
+调度状态为waiting_dependencies→ready→admitted→running→completed；等待配额/pipe的任务停在有界队列，CPU token仅在running持有。就绪任务先联合准入本单元剩余input/output/scratch与计算资源；已存在输入lease计一次。异步read_async/append_async返回Task并强持实际buffer/容量claim到完成，只有读取和hash校验成功才调度消费者。异步写等待期间不占科学worker，finalize必须等其成功才seal。OS无原生异步时也由固定I/O lane履行相同合同，不每个请求建线程。
 
-新增算法只在唯一所属模块实现；CLI/GUI/driver不得复制求解或误差传播。对外错误使用Code/Issue；捕获第三方异常/std::bad_alloc后按安全边界转换为internal/resource_exhausted，不能把半写对象标有效。析构、lease释放和诊断接口noexcept；错误不能穿透清理路径覆盖首个科学故障。边界集中查尺寸/溢出/单位/index/身份/能力，已验证内部块不每像元重复查验/打印。
+Task不是占住worker的函数栈。遇到依赖/I/O/pipe等待时，当前执行段结束并释放CPU token，转为suspended；完成回调仅唤醒一个有界continuation，使其回到ready并重新准入，不能在I/O线程上直接运行科学计算。资源等待同样回到waiting_resources，不持CPU token；保留的allocation/arena仍计H。每个Task有success/failed/cancelled终态，但用户停止等待或请求cancel不释放在途operation的buffer；清理依赖强持实际I/O/设备事件直到完成。所有依赖到安全终态后才允许Host最终回收。
 
-所有可变scratch/迭代状态为调用独占；共享cache只容纳不可变已验证对象，key含模型/域/算法/算术/后端，锁不跨I/O或kernel。数据版本更新按新对象发布，跨GeometryRevision失效闭包按原合同，不用可变单例“当前解”。注释解释单位、不变量、失败与算法来源，不能只重复代码；格式按.clang-format/.editorconfig，模块README只导航到所属正本，不另定义接口。
+异步组合只捕获有寿命的Ref/Block/lease或按值小元数据，不捕获会在调用返回后失效的裸span/栈地址；同步helper可按借用至返回规则使用span。ProcessContext及服务根所有者须活到其所有Task与清理continuation真正结束。I/O计算段申请CPU token失败就入ready队列，不持CPU token等待I/O信用；阻塞磁盘syscall阶段只占I/O信用。输入/输出buffer额度在提交前联合准入，token/信用的转换不持资源锁等待另一类资源。
 
-发布目标必须由干净checkout双平台构建；固定依赖锁与license、运行库、命令/schema/VERSION匹配，提供--version/doctor机器可读能力。安装后在无开发源码的干净目录执行三命令与重开验证；根构建不偷偷打包GUI。OFF包核对不含开发writer/环境触发；ON开发包同优化选项比较、带显式dev标记。本次只修改文档；已有实现的生产包/覆盖程度仍须按其真实证据报告。
+计算与预取/写回可以重叠，但预取bytes、在途请求与写缓冲均有上限并计H/磁盘；同一块只在版本/hash匹配时复用。CPU cache/NUMA/向量化属于后端优化候选，首期不要求NUMA实现；不把重排归约或改变科学选择当线程优化。反压时暂停上游提交，释放CPU token；不能忙等、持锁等待I/O或由所有worker阻塞等待同一池。
 
-## 可复用边界
+### 内存管道与背压
 
-复用候选为完整标准 WCS 解码、成熟 QR/SVD/稀疏求解、XP 谱表示、经审计的匹配思想和正确 w/F/N 代数。每项须给许可证、单位/原点、输入域、错误/线程及独立反例验证记录；在新接口内通过验证后才接纳。旧四角交叠、外部 cone 完备性假设、SNR 直接充当场景权、比例排异和异 basis sky 路线不进入新核心。旧实现行为不是回归真值。
+Pipe<Block<T>>是有界的强类型块通道，携dtype/shape/索引范围/单位/模型版本、数据ready依赖及强lease。每条pipe声明max_items/max_queued_bytes和一读多读策略；顺序语义按固定work-unit key，消费者不得按到达顺序决定科学归约。广播共享只读块，改变数据需新builder。零复制是转交/共享既有lease，不等于不计内存。
 
-## 实际源码与无环依赖（规范）
+pipe的queued_bytes是逻辑背压信用，不是第二份物理内存reserve；物理allocation仍在唯一Resources账本计一次。同一块两次投递各占队列信用，但物理字节不重复计费。消费者被准入并接收后队列信用释放，输入lease移至消费者，仍占H直到最后引用释放；活跃消费者数量和任务元数据也受池上限约束，不能借pop绕过内存限额。
 
-本节是唯一目标源码目录和模块依赖规范；新增E01—E07为待迁移合同，不能把目标职责当成当前实现已全部符合。目录已建立职责入口，模块README保留职责导航；远端已加入实际实现，不能由README仍称设计阶段推断源码不存在。全部头合同在 include/acsd/contracts.hpp，内部头不得成为独立消费者的前置。
+生产者先取得目标pipe空位和本工作单元output/scratch准入，才能产出；消费者只在其剩余output/scratch可行时取走输入，不能取完输入占满H后等输出。plan给每段最小工作集及管道在途上限，Host为至少一个从输入到sink的可推进frontier保留容量arena；其保留额度也计H，不是额外免费内存。若预算无法容纳该最小进展路径，先减少在途/块/并发或spill，仍不可行则在启动前resource_exhausted；不等到闭锁再无限等待。数据依赖扩展也必须保持该进展不变量。
+
+frontier同时保内存与发布信用。要求有序消费的pipe按next_required_key分配发布权：items=1时只有该key能取得slot，高key即使先ready也不能占唯一slot；items>1可在有界重排窗口并行，但始终为最低未完成必需key保留至少一个slot/输出容量。重排缓冲与任务结果计H和队列信用，不能放到无界旁路。消费者按key读取，不按到达顺序归约；低key失败/取消必须交付具名终态并终止或显式处理partial，不永久等待一个不会生产的key。自适应新增key按确定依赖顺序登记，不由完成时序发号。其它独立pipe/command仍可并行，不因某个有序流等待而占住整个pool。
+
+pipe关闭有正常EOF、失败、取消三种显式状态；仅EOF可结束完整流。某段失败沿依赖传播原Issue，停止上游新生产并清理未提交块；允许的科学partial按Host finalize规则封存。异步任务、pipe队列和写者持buffer直到实际完成，不能消费者取消后提前回收。背压不会改变科学分母、丢样或自动降精度。
+
+## 可复用计算模块与函数组合
+
+框架分四层：虚拟计算池/存储/数值基建 → 可复用typed计算模块 → 标准登记的科学process → 固定命令/GUI工作流。每层只调用下层明确接口。可复用模块是普通库函数或typed Task函数，按所属模块维护，消费同一ProcessContext/预算/数据类型；科学process通过它们拼出算法步骤和误差链，而不是每个process重新实现数组变换、CSR、求解、PSF积分和I/O。
+
+公共模块清单及组合标准见[COMPUTE_MODULES](standards/COMPUTE_MODULES.md)。元数据和科学观测登记在process本地descriptor；细小函数不逐个建立运行时registry/对象系统。共享函数可直接调用，只有对外invoke才建立独立process生命周期；内部函数的工作与错误仍归当前invocation。模块依赖无环，函数组合必须显式保留单位/index、噪声根、数值包围和取消依赖，不能只拼名义像素数组。
+
+新模块接入以完整模板包为单位：process文档、typed公共声明、本地descriptor、CPU组合实现、独立反例和构建依赖。目标脚手架可一次生成这些文件并登记构建清单，再由编译生成registry/schema/能力目录；该工具本轮不实现，也不冒充已有命令。独立复制时必须携明确依赖/许可证和公共合同；不能复制某个函数文件就隐含依赖全局Host/旧会话。
+
+## 一次登记与typed绑定
+
+每个模块在自己的编译单元声明唯一只读ProcessDescriptor。构建装配显式列出模块并调用其登记函数，生成或汇总不可变registry；不依赖静态初始化顺序、反射、运行时扫描目录或按字符串加载代码。新增模块只增加本模块声明、构建源清单和文档/验证，不修改ProcessHost算法分支。目录[processes](processes/README.md)是可读索引；以后由登记生成机器schema/能力表，禁止再手工维护第二份运行时registry。
+
+| descriptor项 | 必须声明的语义 |
+|---|---|
+| process_id、module、semantic_revision | 当前构建内唯一的小写点分ID、所属源码、科学语义身份；revision用于复现，不承诺旧版可执行 |
+| operations | 每项唯一operation_id及Request/Response的type_id、输入/输出schema引用、typed binding；重载按公开参数类型区分 |
+| data_contract | 单位、index/shape、必需模型能力、输入借用/输出所有权及partial允许范围，科学校验由模块实现 |
+| execution_contract | work-unit key/分块轴/halo/归约/屏障、可重入性、最小单元资源上界、可用CPU批次与后端能力 |
+| hooks | typed validate、plan、run、finalize；不得在descriptor保存可变scratch或当前run指针 |
+| dependencies | 静态模块/服务依赖及输入模型类型；不从process_id推断运行数据边，不创建跨模块单例 |
+| probes、documentation、verification | 模块probe声明、唯一process文档路径、独立case/证据入口；默认invocation span不逐模块重复实现 |
+
+一个operation_id精确绑定一个Request/Response类型组合；适配器只负责解码、统一校验、调用现有唯一算法和编码。进程内typed入口与JSON driver走同一binding及资源/状态边界，底层科学函数保强类型并可被helper复用。框架内部若擦除类型，必须带已验证type_id和析构/所有权，不能把未经检查的void指针交给算法。新注册入口是后续重构目标，不意味着现有free函数/CLI已经改造成registry调用；没有维持它们旧签名或wire别名的要求。
+
+registry的键是(process_id,operation_id)，operation_id只在本process内唯一。重载输入类型必须具名为不同operation_id，例如forward.center0与forward.edge0，不能靠运行时猜缺失字段。装配时对重复process或同process重复operation、缺binding/schema/文档、静态依赖环、未知服务、probe ID冲突和不支持的后端声明直接失败；不允许“后登记覆盖前登记”。能力报告由实际链接的registry给出，不因有文档就报告implemented。
+
+## 统一生命周期
+
+| 阶段 | 输入/副作用/保证 |
+|---|---|
+| resolve | 查找process/operation及CPU能力，分配run/command/invocation身份；未知ID返回unsupported |
+| validate | 公共形状/单位/index/版本检查后执行模块科学校验；不产生可发布结果，不更改输入 |
+| plan | 给只读InvocationPlan：依赖hash、分块/halo/固定key、资源上界函数和最小可行单元、输出方式；只读已在手元数据，plan自身scratch也计费；不运行PSF/几何等科学预计算 |
+| admit | 在进程账本原子预留本单元input/output/scratch/线程/存储；不足缩块/降并发/cache逐出/spill，再无可行最小单元则resource_exhausted；不改变科学目标 |
+| run | 在唯一executor上产生私有输出；数据依赖细化按固定key扩展有界任务并计总work，不需plan预知所有细分；模块不阻塞等待自己占满的同一池 |
+| finalize | 以Task/continuation等待必要I/O/事件及后续flush/seal，等待时释放CPU token；完成模块元素数/误差/闭包验证，封存immutable输出及Assessment后原子交付，partial按有效域标记 |
+| cleanup | 成功/失败/取消均执行noexcept回收；可异步等待在途安全完成，等待不持CPU token。未提交输出撤销，已提交Ref保实际租约；清理故障不覆盖原科学code |
+
+合法状态为created→validated→planned→running→finalized→completed；validate/plan/admit/run/finalize任一步无可验证输出的框架硬失败可到failed，取消到cancelling→cancelled，终态不能再run/finalize。admit与run可按有界单元循环；规划失败也必须有终态和usage。科学code与执行状态分开：nonconverged/precision_exhausted/resource_exhausted若已产生API允许消费的有效partial，属于run结束，必须进入finalize→completed并保原code/未达标Assessment；后续单元admit失败同样可结束已有有效partial。仅无可验证partial或API禁止提供value的hard failure直接failed→cleanup。finalize只能保留/降低可用域，不能把原非ok改成ok；其自身失败则不提交value。取消遵API，不提交可发布value。科学迭代在本invocation内完成；跨阶段几何反馈由工作流提交新invocation，绝不重置祖先work。
+
+ProcessContext只借用resources/storage/cancellation/executor/diagnostics和本次身份，生命周期覆盖所有在途任务。模块内部同步helper继承调用scope，不自动重复生成顶层结果统计。跨process独立invoke创建子scope；父usage聚合后代，报表不再相加。科学模型必须Ref<const T>或严格只读借用；可变scratch、迭代和writer仅本invocation拥有。同一个process允许并发invocation，不能共用临时工作区。
+
+科学执行结束不代表所有目标达标：框架记录执行终态，模块在Assessment标bounded/conditional/unconverged/unknown等实际科学状态。partial不能被工作流自动publish成complete。正式产品commit只由Storage事务服务在整个必需闭包验证后执行；普通process finalize只提交其immutable输出，不强迫每步落盘。
+
+## 调度、多线程与未来后端
+
+框架只按已经声明的数据边、屏障和资源资格安排任务；并行粒度由process给工作单元，CPU线程由唯一池租出。相同semantic key的输入/归约顺序固定，执行块大小、线程数量不改科学量或选择策略。第三方BLAS/OpenMP默认单线程；显式获租约才可内部并行，框架不得嵌套超售。
+
+顶层invoke同步对外返回；内部以Task组合异步执行并由唯一pool推进。内部parallel_for/reduce支持协作执行或调用线程内联；不能让所有worker持租约后阻塞等待同池子任务。资源锁/registry锁不跨kernel或I/O。跨invocation的共享cache只存不可变已验证对象，输入hash/算法/算术/后端入key；逐出只影响性能。
+
+GPU扩展点在批次executor与ArrayBacking，不在每个process继承CUDA类。descriptor声明哪些操作/布局/精度/归约可交给后端；选择由显式ExecutionPolicy与能力决定，无认证包围能力就返回unsupported或按显式许可走CPU。host/pinned/device计费、传输、驻留、完成事件和取消释放合同见EXECUTION。本期不实现GPU backend、不新增CUDA/ROCm依赖、不报告GPU可用或加速。
+
+## 内部开发观测
+
+唯一目标编译开关ACSD_DEV_MODE，默认OFF，独立于优化等级。OFF宏参数零求值，关闭详细writer/计时/策略文件读取；正常日志、科学issue/事件/取消仍工作。ON由ProcessHost统一记录每invocation的validate/plan/run/finalize历时、工作量、分域高水位及I/O；模块只登记科学观测点，不复制计时框架。
+
+所有probe携带process_id、operation_id、invocation_id、span_id、parent_span_id、科学边界tag。默认Host probe采用稳定ID framework.invocation.phase / framework.invocation.usage，phase与invocation是tag；各模块额外probe只观察已有数据。probe名称不按线程或输入动态生成。初始probe登记见[PROBES](standards/PROBES.md)，阶段前缀是语义标签，registry绑定其生产process。
+
+记录另含owner_kind=process/service。科学调用内的Storage/Resources观测归当前invocation；命令最初reader和最终publish/writer等没有科学父调用时，创建command下的具名服务scope，process_id填service.storage或service.resources，operation_id为其typed服务操作，分配独立invocation_id，父span引用真实command span或null。服务scope不伪装科学process、不要求科学plan钩子，但遵同一资源/取消/错误/终态记录；command汇总不重复累加已含服务消耗的科学子域。
+
+性能事件与中间快照写独立诊断root，按显式选择器和D/磁盘/队列配额采集，诊断失败不改科学结果。快照只try-copy已在手host块，不能保科学租约到后台、重算中间值或偷偷读回GPU。完整策略/文件协议见API，预算/flush/异常隔离见EXECUTION。
+
+## 源码依赖、构建与交付
 
 | CMake 目标 / 源码目录 | 直接依赖；责任 |
 |---|---|
@@ -96,179 +171,20 @@ flowchart TD
 不依赖 uncertainty，它只能返回空的协方差引用，这与 OBJECTS「除明确列出的可空例外外
 Ref 字段必需非空」冲突。因此 catalogue 的依赖补入 uncertainty（传递 operators），
 协方差仍只有一份实现，不允许在 catalogue 内复制构造逻辑。该依赖不构成环：
-uncertainty 只依赖 operators 与 numerics。它们只借 Context 接口。Storage 读产品时构造数据图及 recipe；具体 action 由 workflows 调用 make_action 解码，故 storage 不反向依赖科学库。公开静态入口目标 acsd_science 聚合上述科学库，不再单独包装每个算法。无动态插件、节点描述器、反射工厂或长期服务。设计preset验证声明/规范；远端已加入科学实现目标，实际构建/完成范围依现有CMake和阶段报告，本次不变更构建。
+uncertainty 只依赖 operators 与 numerics。科学核只借公开Context/ProcessContext接口。Storage 读产品时构造数据图及 recipe；具体 action 由 workflows 调用 make_action 解码，故 storage 不反向依赖科学库。公开静态入口目标acsd_science聚合科学库；模块本地typed adapter按本篇唯一标准登记为process。采用编译期显式装配的descriptor，不建设动态加载/反射工厂。设计preset验证声明/规范；远端已加入科学实现目标，实际构建/完成范围依现有CMake和阶段报告，本次不变更构建。
 
-## N1 校准、重组及有效观测
-
-1. 以 u16 DQ 保存 bad=1、saturated=2、nonlinear=4、missing=8、repaired=16；前四位默认不合格，repaired 必须附 G/influence 才可使用。NaN 的值与有效位冲突为 invalid_model。
-2. 原始二维 ADU 读入 FP64。dark 若含 bias，用 dark-bias 后再按曝光比缩放；不含 bias 则直接缩放。x=(d-b-t d_rate)/flat。flat 已按明确 normalization 标准化；flat≤0、溢出或饱和不做数值修复，保留 DQ。
-3. 输入 raw_noise 可指定完整 electron expectation 与读出因子。没有非负 electron expectation 时，gain/read 元数据本身不足以精确恢复 shot variance；默认 noise unknown；用户显式 Poisson plug-in 可用 max(d-b,0) 的电子期望并标 approximate。母版的噪声根按 shared_id 并入 Jacobian，而非每帧重建。
-4. sum/mean/crop/Bayer/flip/transpose 用显式 G、M、b。mean 恢复积分时乘成员数，noise 平方同变；有缺孔时成员及 footprint 必须对应，不用固定 bin 面积替代。G的严格维度及signed linear_view限制见下文；仅物理重组使用R_out G，原生路径只用R_native。
-5. 首期无自动非线性修复或去马赛克。API 收到无 influence 的数据依赖 G 返回 unsupported；合法未修复像元继续处理。
-
-## N2 无 WCS 盲解（可实现的有界基线）
-
-本地 Gaia 预处理按 HEALPix order 6 sky 分片；另建立四星 quad 不变式索引。索引记录 release/epoch、源 ID、ICRS 单位向量、亮度、XP 表示及其校准 hash。quad 以最长边为基线，将另外两点投影到该基线坐标，按镜像/交换两种方向枚举规范有序四维比值；KD-tree 保存四维坐标与源四元组、角尺度。生成时限制尺度范围和每片前 max_candidates 亮星，不声称覆盖全部天体。
-
-观测端先用固定格块的中位数/MAD 作候选检测背景（仅检测，不作 science sky），5×5 局部最大、detect_snr 阈值、按 SNR 与 (y,x) 确定排序、非极大抑制半径2像元。每格64×64最多8候选，再截到 max_candidates。候选位置用局部正值加权质心初始化并用像元积分 Gaussian 优化；零/负背景像元不被变成正 photon 均值。
-
-按候选确定顺序枚举 quads，按规范不变式在索引容差盒中查询，镜像均尝试；粗仿射 TAN 候选以所有检出星和历元传播后的 Gaia 互近邻验证。SolverRequest.regions非空只搜指定圆域并集，空时对完整离线索引搜索。scale_rad_pixel 是明确搜索范围，不从缺头猜唯一尺度。max_hypotheses 是已验证候选数量硬上限，超过返回 unsolved（search_exhausted），不伪称不存在天空解。
-
-匹配先以 match_radius_pixel gating、一对一最小距离（距离相同按 source_id），固定匹配后以平面+SIP 非线性最小二乘拟合，解析坐标 Jacobian，QR/SVD 线搜索。SIP 从0升至请求阶数，增加项必须满可估、留出残差改善；按源 ID hash mod5 留出1组，至少 min_matches 且每参数至少3个训练约束。列尺度、rank 和收敛见 EXECUTION。输出 WCS 仍须整 detector 域通过单射/60°准入，星点拟合成功不代替面积域准入。失败可尝试下个候选；全部失败返回 unsolved，附各原因与最优候选残差，不发布球面帧。此路径只保证有界搜索与正确失败，不保证任意视场盲解成功。
-
-天测参数和像元同数据 influence 通过最优条件微分求导；缺 PSF/大气模型等误差记 omitted。catalogue 位置 ERFA 历元传播；RV/observer 缺失不得产生已知 topocentric 方向。DCR 默认 omitted，其物理误差没有输入界时完整物理定位误差 conditional。
-
-## N3 PSF、源通量与联合标度
-
-科学源从 WCS 后 Gaia 预测独立选取；solver candidates 不转作测光源。以饱和/邻源/窗口掩码选择身份冻结后拟合。Gaussian 参数为 logσx、logσy、atanhρ；Moffat 为 logαx、logαy、atanhρ、log(β−1)；Airy 为 log first_zero_radius_pixel，圆对称。每源同时拟合连续位置、总 flux、常量/平面背景；flux 允许负，宽度/β 正参数用上述变换。空间 PSF 参数按归一 detector 的 degree≤2 多项式拟合，缺秩返回不可估，用户可重新请求常量，不暗中降阶。
-
-Gaussian 无相关时 erf 可分离积分，相关时二维自适应积分；Moffat/Airy 对真实 footprint 分块求积。用解析尾质量界选择窗口（Gaussian erfc；Moffat (1+r²/α²)^(1−β)；Airy encircled-energy Bessel 恒等式），不把窗内归一为1。PRF首期为单波段分段常量photosite响应；只支持下文明确的achromatic模型，色相关项记录unknown/conditional。integral+tail 数值预算不满足则拒绝该测量能力，不以采样 PSF 替代。源间混叠以共同窗口联合线性 flux+background 求解；窗口巨大超预算可拒绝源，不裁掉邻源却声称总 flux。
-
-PSF 非线性形参用 GN+Armijo 回溯（初始步1，减半，最多32步），每步 QR/SVD；迭代次数、参数梯度和步容差显式。拟合 influence 为 -(∂score/∂θ)^−1∂score/∂data，在可估空间计算，保留像元根、同星与 PSF 共用训练依赖。仅 GN 近似 Hessian 时标 conditional；不收敛返回 nonconverged。
-
-response 基函数按谱/滤镜/QE 折点分段 GK15/31 自适应，先以面板误差估计选择细化；认证数值界用分段多项式的区间余项或纯包含积分包围。普通 GK 差值仅 approximate。响应超 XP 谱支持域：有外部谱上界可补尾界，否则 unavailable/conditional 截带预测，不能宣称完整 q。
-
-photometry 采用科学分册 flux-domain joint Gaussian latent。θ=[log a,空间项]，空间基按训练权均值零；每星 latent 与 Gaia 系数测量共用一个根。初始化 log a 为正通量比的中位数（仅初值，无正比则0），latent 为 Gaia 观测。GN 每步按 source 消元谱 nuisance、全局 Schur/QR 解 θ，再回代；固定联合 covariance，不能每步偷换为未包含 logdet 的 marginal likelihood。Armijo 与迭代停止同 PSF；Huber 默认关，显式开启 δ=1.345 时仅给冻结权 influence 与聚类 bootstrap 验证。低计数原始 Poisson likelihood 首期 unsupported。星覆盖不足或谱/位置混淆时给 nullspace，不 ridge。α=exp(−hθ) 应用每个原生像元及模板，application_id 已存在立即 identity_conflict；训练像元→θ→x 的链式 Jacobian 与直接像元根合并一次。
-
-## N4 生产几何与支持 Boolean
-
-采用科学分册 §6 的 affine-strip 为唯一生产交叠主核，A 的 target-domain 包含积分是同入口 fallback；B 是独立验证，不在主路径重复算全部面积。源环首期支持简单 polygon 和孔洞，边为连续 detector 直线；收缩以 contraction_center 作同一 affine f 作用于全部环，hole 随之收缩。ring 必须不自交，外环逆时针、洞顺时针且严格内含；多外环须内部分离。一般 composite G 核保留 constituent 原生 footprint。
-
-每次计一个 interval box/候选裁剪/求积面板为1 work，精确有理运算每4096 limb 操作再记1，MPFR 每次超越运算按 ceil(bits/64) 记 work；全部累计受 Context 与子预算双约束。最多4096候选格/节点，超过先细分；资源不足保 coarse_unresolved，不枚举全天空常驻。累计采用有向 dyadic ledger，精度升级是128→192→256→…每次×2至 max_bits。相邻两级细化的界宽下降比>0.9连续3次且舍入宽≥总宽一半时触发升级；非此情形继续空间细化。到 max_depth 或极点 chart 无定义触发 target A；fallback 与主核共用剩余配额，不能重置。
-
-支持 S=union_j(D_j∩H_p) 需要单独 Boolean：target face dyadic 树节点对各 drop 判 inside/outside/undecided；任一 inside 即 union inside，全部 outside 即 outside，其余 undecided 并细分。子域 OR 后计一次面积，洞照包含谓词处理。精确模式可持久化 primitives+树，有限边界质量在 budget 内才 bounded；不以 Σa 或 N 代替 union。
-
-## M1 controls、sky 和合成的确定算法
-
-无显式 T/H 时，按共享 order 的 face chart 固定32×32 leaf patch 建控制中心；只在可比组公共支持内，以固定 mask 的面积平均建 T，每帧每 patch 一行。mask 来自 DQ/support，可选排星圆域必须在请求固定；不在控制像元上做 median/clip。H 每 patch 一个独立共同 s 列，同 patch 各帧共享；若有给定空间传递核则 H 用实际响应后的共同 basis。A 与 E 均按同一个 Basis(center,scale,weighted_mean) 求值，不允许不同插值。PSF 匹配只支持可实现的 Gaussian 额外卷积（σ_target²−σ_frame² PSD），其他核用户须提供验证过的匹配 action；不能自动反卷积。宽核 halo 用尾质量预算推导。
-
-先构实际控制连通分量；gauge reference_frame 是按 UTF-8 frame ID 最小者或用户显式者，reference 全部 basis 系数置0；weighted_sum 用给定正权。求解联合 [H,A G]，小分量 SVD，大分量 sparse QR 或 LSMR，按 EXECUTION 残差/秩准则。PSD 噪声先处理精确约束；仅有 C action 用增广 KKT [C,D;Dᵀ,0]，MINRES+可验证预条件器，不能把 C(v) 当 whitening。非 gauge 的额外 nullspace 保留，β 取最小欧氏范数代表，但不可估 E 方向不给“测得 sky”；有不唯一影响时该位置默认 correction=0、unavailable，不用代表值伪装修正。孤立帧同样0并记录无相对测量。用户 allow_prediction 才允许训练域外按固定模型预测，带 predicted/extrapolated 状态，完整噪声仍 P C Pᵀ。
-
-先冻结全分量 sky 解，再逐 leaf 资格→可选单步 LOO→权→归约。Γ 从共同 root 联合查询，不各帧独立读对角替代。BLUE/PSD 与非负 QP 见 EXECUTION；不同 K 的 mixed_observation 只能 equal 或显式 nonnegative_qp，后者是该混合样本方差目标，不称共同量 BLUE。LOO 前置失败逐位置 skip，N<4不猜坏帧。effective_response 保存实际 t,c,核组合及条件，不强行分离滤镜。
-
-## E1 Export 与层级
-
-build_export 对目标 WCS 整像元 footprint 计算真叶和 support 的交集 b；可用 N4 target dyadic Boolean 表示复合支持，按目标像元积分行。均值行 b/Σb，支持积分行 b，外推行 Ω(E)b/Σb。same leaf 的多个片先合并 b；所有下游模型使用同一 Q。没有支持形状且 primitives/dyadic_cells 严格请求则 unavailable；显式 full_leaf_approx 才使用完整 leaf。层级向下只对已知支持的四子叶按支持面积归约并保存独立 Q 与误差；没有完整支持用具名近似。不得把层级图作为同阶新观测供 Mosaic。
-
-HiPS默认tile宽512，可显式64/128/256，必须leaf_order≥log2(tile_width)，完整映射见下文。每层唯一 signal FITS；properties 指明 hips_frame=equatorial、hips_order、hips_tile_width、hips_tile_format=fits、dataproduct_type=image。NorderK/DirD/NpixP.fits，D=floor(P/10000)*10000。Allsky.fits 按 HiPS 标准生成，PNG/JPEG 仅可选浏览派生且不成为第二科学图。
-
-## 依赖与双平台构建策略
+生产构建新增ProcessHost/registry装配职责归resources（目标，不是假称当前已有）；模块descriptor归本模块，workflows只选ID/typed operation及绑定数据边。resources只依赖公开模型/服务接口及通用numerics，不include具体科学模块实现；根装配单元链接所有模块并调用登记，避免resources反向链接整个科学树形成环。模块本地adapter与其科学代码同属模块库。
 
 生产 C++20，标准库和成熟数值库。采用 Eigen 3.4 API（MPL2）密集 QR/SVD/稀疏 QR，MPFR4/GMP6（LGPL3+/LGPL3+ 或各上游许可选项）有向区间和精确有理裁剪，CFITSIO4（上游许可证）FITS，WCSLIB8（LGPL3+）解码/外部标准校验，ERFA2（BSD3）历元，nlohmann_json3（MIT）配置，zstd1（BSD3 或 GPL2 取 BSD3）块，Qt6（LGPL3 或商业，GUI独立）。HEALPix 生产索引按科学公式独立实现，禁止复制旧内部文件；不引入 GPL healpix_cxx。源的来源与版本由 third_party 清单登记，构建使用系统/工具链依赖，不在线下载浮动 master。每次实施构建记录精确版本、来源hash、编译选项和 license；首次实现提交即锁定两平台可用版本，不把本轮未安装依赖宣称已测试。
 
 Windows 科学 CLI 优先 MSYS2 UCRT64 GCC14+，MPFR/GMP 与库使用同一 CRT/ABI；Linux GCC14+/Clang18+、glibc，Ninja+系统依赖。GUI Qt6/MSVC独立，不跨 CRT 传 C++ 对象。AVX2/FMA 单独翻译单元运行时检测，baseline x86-64 无可选指令；认证区间禁 fast-math，FP contraction off，SIMD 结果需有向包含证据。库默认串行数值后端，由 Context 租线程。
 
-E04目标：内部诊断由唯一ACSD_DEV_MODE控制，默认OFF，独立于Debug/Release/RelWithDebInfo；当前CMake尚未加入该开关，后续须向所有调用目标传播统一0/1定义，并建立同优化的OFF/ON构建对照。生产实现时，仅ON把src/resources/diagnostics实现及sink加入目标，OFF不得链接writer、读诊断环境变量或保留可触发的详细计时/快照路径。后续提供统一探针入口（建议调用宏名ACSD_DEV_PERF/ACSD_DEV_SNAPSHOT，最终由声明/实现定案）；OFF宏不求值参数，ON快照先selection再构造payload。详细span/counter/gauge使用同Diagnostics.record，业务模块不自写printf/文件/后台线程。CPU计时/系统采样不能用科学算法kernel做旁路计算。
+目标DEV_MODE/CPU注册表与科学库使用同一构建身份，能力来自实际链接目标。安装和双平台检查按VERIFICATION；严格数值原语禁fast-math，baseline x86-64不能静态要求可选AVX指令。
 
-诊断归src/resources，编码/写盘复用src/storage的基础设施接口，装配在workflows；二者不反向调用科学核。GPU内部KernelExecutor由resources消费operators/numerics给出的已定义批次，首期需提供CPU实例；未来GPU目标是静态可选实现，backend支持表决定分派，不建插件注册系统。无新科学入口、无第二套算法正本。
+## 修改规则与完成条件
 
-最低静态probe注册表见本篇下表，它定义应落地的生产边界，非已命中证据。模型/数组probe只有实际输出存在才采集；缺项记NOT_SEEN，不合成数据。API拥有选择器/文件协议，OBJECTS拥有载荷与寿命，EXECUTION拥有预算/写队列，VERIFICATION拥有ON/OFF及故障反例。科学API/精度控制不能依赖探针开启。
+添加/维护科学步骤：修改其process文档、模块本地descriptor/typed adapter/唯一实现及独立反例；自动装配及能力表随构建更新。更改单位/所有权/执行状态等共享规则才修改本篇或公共标准。固定工作流只改WORKFLOWS和组合器，算法步骤不放回框架。
 
-当前 CMake 的 design preset 只验证文档、schema、声明，不链接生产依赖。现有科学实现开关ACSD_BUILD_SCIENCE=ON启用所需find_package；缺依赖 configure 失败，禁止自动回旧目录。安装 CLI、contract、schema、VERSION、licenses；版本由VERSION单一来源并在build identity中附源commit/dirty tree digest、编译器与选项、依赖精确版本/hash、DEV_MODE/后端能力；不从提交数量制造版本。GUI 自己的 install 不进根目标。Linux tar.gz 与 Windows zip/安装包可由新打包实现生成，构建必须按 manifest 提供运行库及 LGPL 替换/重链接要求，许可证选择不凭空给整个项目添加许可。
+框架首个可用增量必须能在同一Host中登记两个测试process、拒绝重复/错类型、独立调用与组合调用、共享资源计费、取消/异常清理、单/多线程同结果，并自动得到两者性能包围；科学模块随后逐个接入。本期只设计GPU边界，验收不要求GPU设备或SDK。
 
-### E04最低静态probe登记（目标，尚未接入）
-
-每项登记另有semantic_revision=1，单位从真实被观测对象取；producer/boundary/payload为唯一生产边界，后续实现将本表固化为只读登记，不按线程/输入创建新probe ID。新增科学语义必须升semantic_revision或新ID。表中存在不表示已采集；没有生产该量时记NOT_SEEN，不能重算或合成。span统一记录steady wall/cpu ns及明确的工作量/字节；counter为count，gauge为bytes。
-
-| probe_id / kind | producer与边界 | 既有载荷、科学单位与坐标 |
-|---|---|---|
-| `normalize.calibration.signal` / snapshot_array | calibrate_observation；after_bias_dark_flat | integrated_values,dq,numerical bounds；NativeObservation.unit；detector_pixel |
-| `normalize.astrometry.solution` / snapshot_model | solve_astrometry/bind_wcs；validated_full_domain | WcsModel,AstrometricSolution；rad and detector pixel, labelled columns；ICRS/detector_pixel |
-| `normalize.psf.model` / snapshot_model | fit_psf；after_psf_fit_before_scale | EffectivePSF,existing residual arrays；parameter-specific units；detector_pixel |
-| `normalize.photometry.measurements` / snapshot_model | measure_science_sources；before_photometric_fit | SourceMeasurements；source count unit; variance squared；detector_pixel/catalogue |
-| `normalize.photometry.solution` / snapshot_model | fit_photometry；joint_fit_complete | PhotoSolution；theta log scale and basis conventions；detector_pixel/catalogue |
-| `normalize.drizzle.geometry` / snapshot_model | compute_overlap；completed_source_or_partition | Overlaps and primitive constraints；sr; not an independent random variance；ICRS/HEALPix_NESTED |
-| `normalize.drizzle.signal` / snapshot_array | build_drizzle；after_same_R | SignalEstimate,DrizzleOperator；L/sr; normalizer sr；HEALPix_NESTED |
-| `normalize.information.reference_flux` / snapshot_model | estimate_flux_information；reference_information_complete | Information and requested estimator；reference L squared；ICRS |
-| `normalize.information.scene_variance` / snapshot_model | evaluate_scene_variance；actual_scene_query_complete | Variance query results；signal unit squared；HEALPix_NESTED |
-| `mosaic.sky.controls` / snapshot_model | build_sky_controls；before_sky_fit | SkyControls；control unit; covariance squared；ICRS/chart |
-| `mosaic.sky.fit` / snapshot_model | fit_relative_sky；component_frozen | SkyFit,existing residual arrays；basis-specific sky unit；ICRS/chart |
-| `mosaic.selection.samples` / snapshot_model | select_samples；eligibility_and_rejection_complete | Selection；dimensionless masks; labelled reasons；HEALPix_NESTED |
-| `mosaic.weight.coefficients` / snapshot_model | solve_weights；weights_frozen | WeightSolution；dimensionless weights; Gamma signal squared；HEALPix_NESTED |
-| `mosaic.integration.signal` / snapshot_array | coadd；after_coadd_before_writer | SignalEstimate；SignalEstimate.unit; not numerator；HEALPix_NESTED |
-| `export.projection.overlaps` / snapshot_model | build_export；target_overlap_rows_complete | existing b rows,Q,support；sr for overlap/integral; mean Q dimensionless；target_WCS_pixel |
-| `export.fits.signal` / snapshot_array | export_signal；before_FITS_encoding | output arrays and target WCS；ExportResult.estimate.unit；target_WCS_pixel |
-| `normalize.calibration.frame` / span | calibrate_observation；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `normalize.astrometry.search` / span | solve_astrometry；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `normalize.psf.fit` / span | fit_psf；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `normalize.photometry.fit` / span | fit_photometry；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `normalize.response.integral` / span | integrate_response；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `normalize.drizzle.overlap` / span | compute_overlap；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `operators.apply` / span | apply；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `operators.transpose` / span | transpose_apply；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `uncertainty.quadratic_form` / span | quadratic_form；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `mosaic.sky.fit_component` / span | fit_relative_sky；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `mosaic.weights.solve` / span | solve_weights；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `mosaic.integration.block` / span | coadd；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `export.projection.block` / span | build_export；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `io.read` / span | Storage.read/read_reserved；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `io.write` / span | ArrayBuilder.append/seal；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `resources.wait` / span | Resources/worker admission；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
-| `resources.payload_peak` / gauge | Resources.snapshot；existing accounting boundary | PerfRecord；bytes；none |
-| `geometry.precision_upgrade` / counter | compute_overlap；existing accounting boundary | PerfRecord；count；none |
-
-## 连接与输入细节
-
-### 盲解 catalogue/XP 公开能力与索引
-
-CatalogueProvider.describe给release/calibration、统一XP basis、quad角尺度覆盖和索引完备状态；query/quad-query均分页，page_size取整数1..4096（0表示没有可返回的条目，按invalid_request拒绝），cursor锁dataset hash和完整请求，空cursor起始、空next结束；不同查询复用cursor为invalid_request。query按source_id返回指定SkySearchRegion中传播历元后的星，brightness_mag及XP basis随记录可用。lookup按请求ID顺序返回，缺失给逐ID issue而不挤掉位置。query_quads按source四元组排序返回descriptor各分量区间及baseline范围内的所有已登记quad；regions空表示全索引，非空为明确center+radius并集。算法不downcast provider或读隐藏路径。
-
-本地索引构建入口build_catalogue_index使用CatalogueColumns：source_ids[N] u64，astrometry[N,8] f64，列为ra_rad,dec_rad,epoch_year,pmra_cosdec_rad_year,pmdec_rad_year,parallax_rad,RV_m_s,RV_present(0/1)；无RV数值位填0且present=0。brightness_mag[N]，xp_coefficients[N,d]与共同SpectralBasis绑定，noise按同source根保留。Gaia原生BP/RP的外定标和表示转换由GaiaXPy官方外定标模型离线解码为该统一分段多项式basis；保存release/模型/数值转换误差，不能把sampled插值当无损基函数。若用户只有sampled谱，必须输入其已知表示和协方差，物理模型状态conditional。所有帧使用provider.describe.xp_basis调用integrate_response；不从star coefficient长度猜basis。
-
-构建步骤：按order6分片，每片选最亮64星（brightness、source_id tie），每anchor取该片及相邻片中最近12个候选，每anchor最多16个由三邻点组成的quad（按最小三角面积递减、source tuple tie，排共线）。按基线角域筛选，去重source四元组，保两种镜像规范描述符。KD树以最大spread轴、坐标中位数递归，平手用source tuple；kd_left/right u64[Nq]（无子节点UINT64_MAX），kd_axis u8[Nq]、kd_split f64[Nq]、kd_bounds f64[Nq,4,2]。quad_source_ids[Nq,4]、quad_descriptors[Nq,4]、quad_baselines[Nq]rad、quad_centers[Nq,3]。排序/树构建可外存，配额不足返回resource_exhausted且index_complete=false，production不得悄悄用未完成索引当完整搜索。index_complete只针对此生成规则，不保证任何视场可解。
-
-quad不变式：最长基线端点A,B（长度平手按ID）；e=(B−A)/|B−A|，e_perp逆时针90°；其余C,D的坐标为 ((C−A)·e/|AB|,(C−A)·e_perp/|AB|)，对A/B交换、C/D交换和镜像枚举取字典最小四维向量并保实际置换。catalogue坐标用quad中心TAN平面，观测用detector连续中心；真实投影非仿射差由quad_descriptor_tolerance明确容纳，默认0.01（只作搜索heuristic，不作几何证书）。catalogue基线角范围等于观测最长边pixel×SolverRequest.scale_rad_pixel区间外包。regions定义搜索圆域并集，范围缺失不自行猜半径。搜索穷尽只证明该索引/阈值内未求解，不证明天空无解。query和lookup内存每页预算，source measurements可多遍按source分块。
-
-### 无WCS初态、模型绑定和G的维度
-
-Raw/校准Native始终拥有detector-only FootprintSet，但其wcs允许null；它们只定义真实收光域、身份和PRF。calibrate无需WCS/PSF/response，physical_collection=true，native_parent=null，regrouping=I，kernel/response可缺并记录能力。solve_astrometry消费该detector数据；解后bind_wcs创建新Native revision，绑定同Wcs到FootprintSet，校验整收光域，share数组不复制N个对象。fit_psf→measure源表后bind_observation_model把kernel与NormalizeFrame.response绑定新revision，保所有influence/输入依赖；apply_scale组合其transfer action，build_drizzle只能消费此后版本。绑相同模型可幂等返回同revision，绑定不同模型必须新revision，已scale状态不可换response而假装仍同单位。
-
-对G: n原生→m重组，只有physical_sum/physical_mean（非负、对应互不重复photosite的真实收光并集、系数分别1或1/成员数）产生可用物理重组样本；mean严格Drizzle前恢复sum。此时R_out是从m个重组收光域构造的leaf×m算子，总链为R_out G（leaf×n），不再写R_native G。一般signed/线性去马赛克为linear_view，可得到Gx及GCGᵀ作测量/诊断，但physical_collection=false且不伪造Ω/新物理footprint；直接build_drizzle返回unsupported。Normalize严格主路径保留native_parent，在原生CFA通道上使用R_native x，G派生不进入此signal链。未来若要signed输出重建须另定义估计量，当前不授权编码Agent自创。crop/flip/Bayer为物理选取，bin为物理并集，均支持。重复观测判重回溯original roots/source_index，不能用新channel名逃避同曝光重复。
-
-### 首期PSF唯一数学参数化
-
-首期只achromatic（wavelength_nm记录有效适用域，无谱插值PSF）；请求色相关分段核unsupported并记录未建色相关物理项。PSF先在原始detector平面给归一密度p_det[1/pixel²]，世界密度为p_det/g，在有效域条件下实现观测分册的积分；畸变不靠中心尺度代替换元。源位置偏移Δ以PixelCenter0为准。
-
-Gaussian：Σ=[[σx²,ρσxσy],[ρσxσy,σy²]]，m²=ΔᵀΣ⁻¹Δ，p_det=exp(−m²/2)/(2πsqrt(detΣ))。参数行依次logσx、logσy、atanhρ，σ单位pixel。Moffat同Σ但σ换α，p_det=(β−1)(1+m²)^−β/(πsqrt(detΣ))；参数行logαx、logαy、atanhρ、log(β−1)。Airy圆对称，参数行log r0，r0为第一暗环半径pixel；k=j_1,1/r0，j_1,1是J1第一正根（用有界根求解，不以截断常数当精确），p_det=k²/(4π)*[2J1(kr)/(kr)]²，r=0取极限。Gaussian/Moffat椭圆m>R尾分别exp(−R²/2)、(1+R²)^(1−β)；Airy圆r>R尾=J0(kR)²+J1(kR)²。
-
-parameters shape=[family参数数,多项式项数] f64，Basis按OBJECTS项序；空间degree≤2，center为detector域中心、scale为半宽，Basis实际值随对象持久化。Gaussian/Moffat形状矩阵保证SPD，非有限或极端无法积分给失败。PSF有限窗口内先按真实PRF分段，所有源/背景共窗拟合，窗口外质量不重归一。PixelResponse为独立空间PRF对象，不和谱Response混用；cells矩形在local photosite坐标，gains[波长bin,cell]非负，relative_mean_one时每波段在完整收光域面积平均=1；绝对概率模式各gain≤1。空cells是显式uniform假设，未知PRF误差仍unknown。
-
-evaluate_psf是唯一像元积分实现，fit/measure/information/sky均复用。EffectivePSF.detector_samples锁原生FootprintSet；regroup_scale_project从原生样本到当前输出（初始I，随后G、α、R、P、weights、Q按实际链组合），参数密度不再另含这些action。evaluate_psf返回PsfEvaluation中的[当前输出样本,请求源位置]积分模板，有限模板bank不是对continuum隐式稠密矩阵。误差与尾界随PsfEvaluation的实际字段和ErrorRecord强引用；请求可分源位置块，禁止消费者各写一份PSF积分。局部模型外插只conditional，不以满矩形归一域冒称实测支持。
-
-### 稀疏actual-scene三角网构建和参考信息请求
-
-build_supported_triangulation是information模块的唯一2D Delaunay实现：控点投影到给定gnomonic Chart，要求点在chart定义域且距中心≤maximum_radius_rad（首期≤5°）；用Bowyer–Watson增量插入，初始超三角覆盖全部点，按输入hash固定排列，邻接walk定位与局部cavity更新。orientation/incircle用binary64过滤+GMP精确有理谓词；cocircular tie按控点ID，不加随机joggle；去掉超三角关联项。triangle只有完全在support中且不跨hole/不兼容response才保留，边界无法判包含则不可用/待细化，不能用顶点都在支持内代替整三角包含。共线返回unavailable，重合点同身份同值合并，冲突值invalid_model。算法典型O(M log M)、最坏O(M²)，全部实际work计费，未完成网不作为已观测支持。SupportedTriangulation.vertices[M,2]保存chart坐标，triangles[T,3]u64索引，查询barycentric与curvature误差复用该唯一basis。
-
-Normalize.information使用ReferenceInformationRequest，不要求用户预先知道尚未生成的R/h/C。positions非空按指定ICRS位置，空时流式枚举control_order叶中心且在该帧足迹支持内；control_order≤drizzle.order。工作流将位置逆到detector，用evaluate_psf生成原生模板、实际同R投影h，background Basis在同原生样本积分后经同R得到Z，再调用estimate_flux_information。reference.condition=actual_scene且native_noise为空时使用该帧真实noise图；named_reference/blank_background必须提供同native index的native_noise和明确条件（可用已知物理均值/电子gain/读出等构造），无模型则precision unavailable，不把actual photon variance改名为参考variance。提供的NoiseModel完整经G/α/R影响一次，C仍unknown时V_F unavailable，signal不受影响。用户若只需直接矩阵科学调用，InformationRequest仍接受显式h/Z/C，两个请求角色不混淆。
-
-所有观测点坐标属于FootprintSet.detector_frame；make_wcs显式接detector_frame并持久化，bind必须相同。盲解在图像采样格检测后先按FootprintSet.detector_from_sample与offset转到该detector坐标再拟合，match_radius_pixel/scale_rad_pixel及PSF宽度均以该detector单位解释；不得把Bayer采样间距误当真实photosite宽度。用户显式变换Wcs到新detector坐标系时，必须同时变换FootprintSet并给新detector_frame。
-
-Native.linear_view不能进入Normalize物理Drizzle；若NormalizeFrame.regroup=linear_view，配置预检返回unsupported，用户可在独立API使用该视图；原生通道Normalize由不请求该regroup明确表达，不能默默忽略请求。physical_sum/mean保持raw parent，空间α必须先在最原始physical parent逐样本应用再按G归并，不能把一个bin中心α代替各成员；apply_scale负责沿parent/action链确定次序，当前值与template/noise共用G Dα链。
-
-### 外部输入和FITS边界
-
-首期Normalize输入仅二维FITS主图或显式指定image HDU，BITPIX=8/16/32/64/−32/−64，按BSCALE/BZERO转FP64；BLANK/非有限标missing并保NaN。BUNIT须ADU或显式单位映射，electron图不能当ADU混入。DQ扩展若有须整数同shape，位按N1；明确SATURATE头或配置给出的阈值可标饱和，否则输入携带linear_unsaturated_assumed条件，不虚构线性/饱和边界已测。header冲突或第三轴不猜slice。time/exposure需明确单位和time scale，UTC→TDB用ERFA及观测者条件，缺输入误差单列。除显式supplied_wcs外，缺WCS头仍实际盲解；输入WCS参考系/投影按foundation准入。products/Raw构造由storage+CLI共享reader完成，driver可直接用公开RawObservation/Array而不需FITS。
-
-HiPS发布允许tile_log2_width=6..9（64/128/256/512，默认512）；leaf_order≥tile_log2_width，tile_order=leaf_order−tile_log2_width，低阶模型可选较小合法tile或FITS导出，不伪造索引。标准依据为[HiPS 1.0](https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf)与[HiPS原始论文](https://doi.org/10.1051/0004-6361/201526075)的可变tile宽定义，未采用HiPS2.0草案新增能力。
-
-## 跨模块误差与输入合同
-
-calibrate_observation将RawObservation.context和frame逐字段保留到NativeObservation；regroup、bind_wcs、bind_observation_model、apply_scale不得丢失或改写。NormalizeFrame.frame必须等raw.frame，measure_science_sources输出frame=observation.frame。solve_astrometry从observation.context读取历元/TDB/observer，Gaia query按该历元传播；已知WCS与科学源也须与同context相容。相同像元的2016/2026两帧不会因值相同变同一观测，SourceIdentity.exposure和context均参与依赖。
-
-bind_wcs另接solution：solver成功传AstrometricSolution，supplied WCS可显式null；非null时solution.wcs必须同输入wcs，保存到FootprintSet.astrometry，GeometryRecipe及full闭包因此保留参数covariance、influence和included/omitted。它不是另一套WCS。首期几何/模板数值包含默认条件于该固定WCS；若非零天测参数误差尚无有效joint Jacobian/同根传播能力，输出ErrorRecord必须列astrometric_parameter_propagation_omitted，noise不能称无条件known，V_F/V_B及合成条件也保留fixed_wcs。不给外部solution时真实天测误差unknown；纯数值synthetic固定WCS请求可显式condition=fixed_numeric_model。保存误差来源不等于已完成一般拓扑参数传播，不能静默丢已提供模型后称物理误差完整。
-
-evaluate_psf返回PsfEvaluation而非裸Array。values/numerical_lower/numerical_upper shape=[输出样本数,source_positions数]，同一template笛卡尔索引；output_index/source_index明确各轴，索引命名为cartesian:<output_hash>:<source_hash>:row_major。native_tail_upper[source数]只报告原生正PSF模型在窗口/域外的质量，不能把signed transfer后的结果称概率。区间先在每个原生收光域积分，再经同一transfer：若原生误差e、transfer名义T0及逐元界ET，则输出确定半径≤|T0|e+ET(|h0|+e)+归约舍入；signed P等必须用绝对系数界，不用T0e抵消。缺absolute能力只可conditional/unavailable，不伪造有界。ErrorRecord强引用区分求积误差、模型尾损失和unknown物理项；partial结果保实际区间，work耗尽不只保请求tolerance。
-
-fit_psf、measure、photometry和information必须消费PsfEvaluation实际包围。InformationRequest.template_evaluation可空仅表示caller直接指定精确矩阵h（以所解析数字为定义）；非空时template_column指对应列，h必须为该列按output_index重新索引的名义值，lower/upper及error用于求解扰动/秩稳定性。Normalize内部构造这种绑定，不把PSF积分误差遗忘在临时结果。区间不足使信息量误差未达标时继续求积/升级，或unconverged/conditional，不仅传播随机covariance。
-
-NativeObservation.numerical_lower/upper随integrated_values同index；calibrate为(d−b−t dark)/flat用向外区间传播实际浮点/模型数值误差，regroup按signed G传，apply_scale用PhotoSolution.parameter_lower/upper和exp区间传，再建G Dα链。真实母版/fit随机误差仍在NoiseModel，不加到数值半径。原始输入已解析的数组数字定义数值模型，有限外部确定误差若给出必须进区间，未知物理项进ErrorRecord。build_drizzle使用这些x区间，绝不把scaled FP64值默认为零数值误差。
-
-PSF模板幅值与来源也固定：fit_psf返回的density为校准前置已完成、最原生physical samples中的单位总ADU源模板，source_scale=null；detector_samples为该parent，regroup_scale_project初始为到当前样本的G（原生I）。FootprintSet.sample_response_gain[N]（null表示1）保已知样本乘性响应，校准更新为raw gain/flat；PRF积分乘此系数，物理bin仍在parent积分后用G，不能以bin中心flat代替成员。
-
-apply_scale创建新的EffectivePSF：source_scale引用PhotoSolution、frame绑定观测；查询源位置时源端幅值a(source)=exp(h(source)^Tθ)是native ADU/L，生成a(source)*P_native，再经同实际G Dα/R/P等transfer，得到每单位已校准L的模板。这里source端a和detector端α(u_j)分开，不用星心α替代全PSF，也不把未乘a的αP误称L单位的归一模板。source_scale指向fit使用的原PSF/测量依赖，新PSF为后续revision，依赖图无环。跨response的reference c仍由ReferenceSED/response处理，不重复吸收。raw模板与校准模板的unit/reference身份明确，information按其目标L使用相同版本。
-
-EffectivePSF.parameter_lower/upper/error记录PSF拟合的数值证书，验证同EXECUTION的score根方法；evaluate_psf将这些参数盒与求积误差一起包围。参数证书缺失时只可条件于已解析固定PSF数值模型，不能伪称涵盖理想重新拟合的确定误差；unknown真实PSF/PRF偏差仍另列，不由训练Hessian自证。template_evaluation、PhotoSolution和Native的ErrorRecord均是实际强引用，生产实现不得另建误差正本。
-
-measure_science_sources 必须实际构造 SourceMeasurements.flux_numerical_lower/upper：固定模板的线性幅值/背景拟合，将 Native 输入区间与 PsfEvaluation 模板区间送入同一设计矩阵的验证求解，使用 EXECUTION 的矩阵逆扰动界及残差包围；自由位置/混叠参数按该处 score 根盒验证再投影到通量坐标。PSF 拟合数值参数盒也参与模板区间。支持不足、秩未证实或包围无法认证时保留名义值但明示 conditional/unconverged 与缺失区间，不能将随机方差当确定误差。实际模板证书归并到 SourceMeasurements.error 并保可重开依赖。fit_photometry 对每个源直接消费这些通量区间来包围 score，与 prediction 区间共同生成 PhotoSolution 参数盒；缺失通量界绝不按零处理。
-
-PsfEvaluationRequest.output_rows 空表示整个 transfer 输出；非空为该输出的严格递增、无重复零基行号，越界 invalid_request。返回 output_index 为精确子索引，values shape=[所选行数,源数]，source_index 不变。积分仅请求 transfer.dependency_blocks 所需原生样本，按工作预算分批；源拟合使用实际窗口行，information 按其查询子索引调用，禁止为了小窗口强制物化全帧×所有源矩阵。省略的输出行不重归一 PSF；native_tail_upper 仍只报告原生积分/截断域的质量，不拿未查询输出代替尾界。
+当前阶段只交付上述设计；后续实施先修统一公开声明、VirtualComputePool/Task/Pipe及registry边界，再同步schema/decoder、CPU/Storage/诊断服务和逐模块接入。允许删除过时接口及重建内部产物，不增加兼容别名、双reader、版本转换器或历史产品迁移模块。

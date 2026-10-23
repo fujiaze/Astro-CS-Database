@@ -1,6 +1,6 @@
 # 独立 Agent 真值协议与架构审核
 
-本协议依据[独立证据规范](../../science/foundation/INDEPENDENT_ORACLES.md)，使用[公共 API](API.md)验证[统一对象](OBJECTS.md)和[执行模型](EXECUTION.md)。本篇定义验收目标与审核条件；远端已有部分驱动、实现和验证记录，具体结果按冻结case与阶段报告。本次新增E01—E07仍未实施/验收。有限历史证据保持自己的输入与源码身份，不转记为新核心证据。
+本协议依据[独立证据规范](../../science/foundation/INDEPENDENT_ORACLES.md)，使用[公共 API](API.md)验证[统一对象](OBJECTS.md)和[执行模型](EXECUTION.md)。本篇定义验收目标与审核条件；远端已有部分驱动、实现和验证记录，具体结果按冻结case与阶段报告。本次新增基建实施清单仍未实施/验收。有限历史证据保持自己的输入与源码身份，不转记为新核心证据。
 
 ## 独立性和输入包
 
@@ -44,7 +44,7 @@ HST处理后图只可作带已有PSF和噪声的条件结构模板，额外退�
 
 设计审核记录实际阅读范围、发现、修订和未验证项。设计合同可以在未编写驱动器前完成独立审核，但不能声称标准接口已可运行。架构仍缺定义的核心数据或交互必须先修订；仅性能未知、真实模型待验证等已明确能力边界可作为后续实验要求保留，不能用审批字样掩盖缺接口。
 
-独立重构分支已从c5fee09fe建立；历史设计要求先接受设计再启动科学实现，远端现已包含部分实现，当前阶段依各交付记录。本次不重启或覆盖已有重构；E01—E07按API迁移清单接入。原阶段依赖仍为公共对象/数值/坐标/驱动→校准/PSF/响应/共享误差→严格几何及同R→sky/coadd/Export→产品/CLI/GUI。每阶段配独立真值和负例；代码存在、编译、模拟、真实运行分别报告。
+独立重构分支已从c5fee09fe建立；历史设计要求先接受设计再启动科学实现，远端现已包含部分实现，当前阶段依各交付记录。本次不重启或覆盖已有重构；基建实施清单按SYSTEM先完成Host/registry再逐process接入。原阶段依赖仍为公共对象/数值/坐标/驱动→校准/PSF/响应/共享误差→严格几何及同R→sky/coadd/Export→产品/CLI/GUI。每阶段配独立真值和负例；代码存在、编译、模拟、真实运行分别报告。
 
 ## 可交给独立实现者的最小验收包
 
@@ -72,7 +72,7 @@ U01真值须由独立实现者自行有理数重算，本表数值与算法不�
 |---|---|---|
 | A01 调用归因 | 全局历史peak=100MiB，A实际peak=50MiB；A=10work、B并发=100work；Resources.child/reserve/usage | A报50MiB/10work；父域不重复计费，process峰值另列；Lease跨调用保原域，子域不能重置祖先work；pinned是host子集 |
 | B01 流式输出 | H=32MiB，输出256MiB，buffer≤1MiB，begin/多次append/seal；另预留刚好足够的输入/输出/scratch | 无完整输出常驻、无二次reserve；短尾/空数组/不完整/多append、错误字节数和溢出；中途writefail/cancel/析构释放私有块，failed不能继续append，seal后不可改 |
-| H01 规范身份 | [1,2,3,4]以1次或2次append；跨1MiB边界、不同H/线程/raw/zstd/spool分区；dyadic跨1024元素；旧v2单2MiB块和Dyadic(2,-1)产品重开与显式迁移 | 新canonical_array_v1模式给同Array科学hash和规范descriptor IDs；路径/压缩不同可有不同manifest_hash；数值/单位/index/-0/有效域变化必须不同科学身份；新封存任意输入块先校验规范化。旧产品重开保持原Array/父图hash，仅显式迁移生成新revision/身份；未知算法版本具名拒绝 |
+| H01 规范身份 | 当前格式[1,2,3,4]分1次/2次append；跨1MiB、不同H/线程/raw/zstd；dyadic跨1024元素及等值(2,-1)/(1,0)；传旧格式作为负例 | 同当前模型hash与规范descriptor IDs，数值/单位/index/-0/有效域变化改变身份；旧格式具名拒绝并提示重建，不进入reader回退/产品转换 |
 | D01 开发探针 | OFF、ON未选、ON部分选；同优化/输入/H/work/后端；宏参数计数器、全配额/D=0、延迟写、诊断磁盘故障、cancel | OFF表达式零求值且无writer/env触发；ON只采已有块、精度/选择/科学hash相同；sink不能异步保科学Lease，无UAF/无限队列；诊断失败不改科学退出码；dropped/NOT_SEEN等统计真实 |
 | K01 执行后端 | CPU KernelExecutor的五类批次对独立小矩阵；固定归约跨不同装载块；请求gpu能力不足/显式回退；完成事件假实现模拟延迟/失败/取消 | values和包围包含真值，数组/单位/索引及transpose正确；CPU回退有requested/actual/reason；未完成不暴露host span，最后事件前不释放。未来GPU再做实设备同矩阵、端到端与驻留数据对照，CPU模拟不算GPU验收 |
 
@@ -93,3 +93,30 @@ F01 增补确定数值界的可证伪构型：固定精确 PSF、同名义 count
 ## 设计复核与实现验收的状态边界
 
 当前已完成的独立科学及完整性设计复核见[最终状态](../../audit/final-review.md#科学审核状态)，不再追加无具体反例的重复通用科学审核前置。本轮仅授权文档补全，新增工程目标尚未实施；现有各项独立数值/产品/资源/真实数据验收状态依其冻结证据，不能一概称未执行或已全部通过。本篇的oracle目录和命令定义完整目标，现有运行入口见根README与分支实现交付记录。foundation中的旧研究命令须在固定历史checkout运行，不导入新验证树、不以旧结果代替新证据。
+
+
+## 固定基建与逐process验收
+
+| case | 可证伪构型 | 必须观察 |
+|---|---|---|
+| REG01 登记 | 两process、重复ID/operation、缺schema/binding/文档、静态依赖环、错Request类型、未知ID | 构建/装配拒绝歧义；runtime错类型在run前拒绝；每项实际能力由链接registry导出，无Host算法switch |
+| LIFE01 生命周期 | validate/plan/run/finalize逐段故障、admit失败、cancel及已有输出Ref存活 | 含有效partial的预算/科学停止先finalize保原非ok与真实有效域；hard failure才直接清理。终态恰一次、cleanup无异常、无半成品发布、预算/lease不漏；失败和取消也有完整usage与终态事件 |
+| SCHED01 共享执行 | 两独立process并发、嵌套parallel_for、低H/满队列、不同完成顺序、data edge错版本 | 唯一池无死锁/超售，原子准入；模型依赖不混版本，固定归约/科学分支一致 |
+| PROC01 单模块维护 | 新增一个有输入输出的独立测试process，添加CPU binding和本地文档/反例 | 不修改Host算法分派，生成schema/能力/默认phase span；单invoke/工作流/driver均调用同一实现 |
+| FORMAT01 当前格式 | 旧v1/早期v2或当前格式未知字段/recipe/版本 | 明确unsupported/invalid_model，要求原始输入重建；没有兼容别名、双reader或隐式转换 |
+
+以上是待实施验收，当前文档检查不等于registry或process已经运行。科学process还需逐篇的精确小例/负例及原C01—X01矩阵；共享原语单测不能替代其正式producer→consumer→publish路径。首期没有GPU实现验收；仅检查显式gpu请求不谎报可用、资源/事件合同可用模拟验证。
+
+PROC01另须覆盖coadd三个typed阶段：已生成Selection/WeightSolution可直接传integrate，在恰足一轮总work时不重复计算；另一sky/Γ/selection身份不得复用。科学provider方法、action能力及坐标重载也须由唯一process key/type映射覆盖，不能因当前旧driver支持一个名字就绕过registry。
+
+
+## 虚拟计算池与模块组合的验收补充
+
+| case | 构型 | 判定 |
+|---|---|---|
+| POOL01 虚拟额度 | 两command并行CPU/I/O，某command长任务或慢盘、嵌套组合 | 单账本/唯一池，无超售或饥饿；等待不占CPU token，不按计时改科学分支 |
+| PIPE01 最小进展 | items=1的两段pipe、H仅够最小frontier；高key先ready/低key延迟、逆序完成；再减1字节；消费者慢/满队列/取消 | slot及内存同时为最低必需key保留，可行配置完成；不可行具名拒绝。重排有界且计费，queue信用不双计物理lease，EOF/失败/取消区分 |
+| ASYNC01 实际完成 | 假I/O延迟、短读/写满、取消future后底层仍完成；压缩/hash占满CPU配额、finalize等待flush | consumer在read+hash就绪后运行，writer完成后才能seal，buffer不提前回收；suspend/resume/finalize不占CPU token，I/O计算不能超售CPU，worker可推进其它ready任务 |
+| COMPOSE01 函数组合 | 同一校准/action/数值模块直接调用、单process、管道组合与独立最小依赖包 | 同科学单位/index/共享根/误差/选择；Host无新增算法switch，未列依赖不得隐式读取原项目会话 |
+
+以上为后续CPU框架验收目标，本轮未实现或实跑。GPU只扩展同一pool/批次/内存位置与事件合同，不要求本期设备代码。参考类比不引入其它软件的实现或兼容义务。

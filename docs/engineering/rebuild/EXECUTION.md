@@ -2,11 +2,11 @@
 
 本合同执行[科学几何](../../science/foundation/SPHERICAL_DRIZZLE.md)和[统计模型](../../science/foundation/STATISTICS_SKY_COADD.md)，不改变估计量。接口和数据依赖见[API](API.md)、[对象与持久化](OBJECTS.md)。所有复杂度中的 nnz、支持、秩及精度位长是实际量，不假定真实场景永远小秩或固定候选数。
 
-本篇是执行目标规范，不能据此推断当前实现已满足全部要求；本次资源子域、流式构建、诊断和设备承接均按API的E01—E07迁移，当前声明与实现未随本文修改。
+本篇是执行目标规范，不能据此推断当前实现已满足全部要求；本次资源子域、流式构建、诊断和设备承接均按API的实施清单落实，当前声明与实现未随本文修改。
 
 ## 计算单元与对象寿命
 
-进程只有一个资源服务、CPU池、Storage后台和I/O队列；每次命令持独立资源子域、归因账本和取消域，不新建池、不共享跨阶段科学会话。工作流声明不可变模型及块的输入/输出，工作流将其拆成有界 WorkUnit；不固定旧 Normalize 八节点或 ARS Frame/Operation 的实现层次。
+进程只有一个资源服务、CPU池、Storage后台和I/O队列；每次命令持独立资源子域、归因账本和取消域，不新建池、不共享跨阶段科学会话。工作流声明不可变模型及块的输入/输出，所属process的plan声明有界WorkUnit，框架按统一标准调度；不固定旧 Normalize 八节点或 ARS Frame/Operation 的实现层次。
 
 对象生命周期为 builder 独占写 → validate → publish immutable → consumer leases → 最后一份租约释放 → 回收或可验证 spill。部分写入对象不可见；迭代得到新版本，不覆盖被读取模型。async I/O、排队 task、action recipe 的依赖都持租约；cancel 发出后先阻止新任务，再让在途任务到安全边界，完成/撤销 I/O，最后释放，不能先销毁数组再等待 future。
 
@@ -27,7 +27,7 @@ C++参考原型和Python局部高精度算例仅说明路线可执行，完整�
 1. 请求者给 B [L/sr]、分配/支持积分 [L]、孔径、Cov [相应量平方]、支持及可接受模型条件。分配/支持积分严格区分；request 锁定 nominal 或随几何重算的 estimator。
 2. geometry 返回粗 Ω/A/a bounds 和共同约束。operators 计算 signed F/N/B/R 区间，不独立归一端点中点；需要 NL>0 才有认证归一结果。
 3. 对最终泛函计算界，把强对比/病态项反推到逐 primitive 的绝对面积限额。控制器优先细化实际影响最大的区域，不以统一1%面积或中点变化量停止。
-4. 通过 sky/BLUE 等求解的请求，须对可估/gauge固定系统给残差和扰动证书；ρ=‖|I−GM0|+|G|EM‖∞<1 才给该路线的有限解界。权归一分母需正下界。ρ失败 → 细化/升级或 geometry_solve_unresolved，不能 ridge 改目标。
+4. 通过sky/BLUE等求解的请求，须对可估/gauge固定系统给残差和扰动证书；唯一详细判据见[NUMERICS的验证线性解](standards/NUMERICS.md#验证线性解的矩阵扰动界)。权归一分母需正下界。证书不成立则细化/升级或geometry_solve_unresolved，不能ridge改目标。
 5. 选择/秩/接触分支可能改变时，证明分支稳定、包围全部允许分支或 selection_unresolved。仅冻结实际 mask/权的结果必须标 conditional，不能冒充理想重算流程。
 6. max_work/max_depth/max_bytes/precision 耗尽各自记录。返回后若序列化降精度使界增宽，重新检查 science tolerance；所有泛函分别保存 achieved/requested，不用一个 run PASS 覆盖局部失败。
 
@@ -76,7 +76,7 @@ geometry priority queue 每worker有上限，候选爆炸保留粗域及质量�
 
 ## 并行方式与可复现性
 
-唯一CPU线程池由RunContext管理。帧级任务、源块几何、目标块action、按source的谱积分和按连通分量的sky解共享线程租约；BLAS/OpenMP默认单线程，获租约才启用内部并行，禁止嵌套超售。大precision任务也占有bytes/工作配额，不能以线程空闲为由突破内存。
+唯一CPU线程池由ProcessHost/Resources管理。帧级任务、源块几何、目标块action、按source的谱积分和按连通分量的sky解共享线程租约；BLAS/OpenMP默认单线程，获租约才启用内部并行，禁止嵌套超售。大precision任务也占有bytes/工作配额，不能以线程空闲为由突破内存。
 
 source geometry可独立并行，但共享tile导数/边缓存不可变发布；每个结果写本地缓冲，按固定key归并，不对全局FP数组无序atomic累加。sky不同真实分量可并行，同一分量必须联合；最终coadd在sky解冻结后按目标块并行。Export目标块独立读取，重复叶随机身份保持相同。
 
@@ -108,7 +108,7 @@ Resources.reserve接ResourceRequest，原子预留host/pinned/device/spill及线
 
 ## 后端与未来GPU的执行边界
 
-ExecutionPolicy、KernelExecutor、KernelBatch、BackendBuffer、ArrayBacking和Completion是E03/E05目标角色，当前头文件尚无这些扩展，最终字段/签名必须一次落实在唯一声明；首期只有CPU，gpu请求能力失败/显式CPU回退按API。executor为空等价CPU基础设施，不改变科学函数签名。静态内部kernel白名单如下；不从产品或用户文本装载代码，也不把GMP/MPFR裁剪改写为无界GPU double。
+ExecutionPolicy、KernelExecutor、KernelBatch、BackendBuffer、ArrayBacking和Completion是E03/E05目标角色，当前头文件尚无这些扩展，最终字段/签名必须一次落实在唯一声明；本期只实现CPU，GPU仅设计扩展；gpu请求能力失败/显式CPU回退按API。executor为空等价CPU基础设施；不要求保留既有科学签名，后续只维护统一typed调用标准。静态内部kernel白名单如下；不从产品或用户文本装载代码，也不把GMP/MPFR裁剪改写为无界GPU double。
 
 | KernelKind | arrays顺序；数学输出 |
 |---|---|
@@ -126,25 +126,9 @@ GPU run经Storage.adopt把Array描述与ArrayBacking登记为ArrayRef：backing.
 
 Completion.ready表示事件已终结（可含设备错误），wait返回ok且value=1才代表成功，失败/取消按Result.code/assessment表达，不以bool吞错；用户取消的wait可返回cancelled，但allocation仍由清理队列保留至实际事件终结。Completion覆盖所有读取/写入该buffer的依赖；租约至少活到最后事件完成，用户取消只停止新提交并标结果不可发布，在途DMA/kernel到安全边界后回收。事件失败归到调用scope，禁止返回尚未完成的host view。host/pinned/device额度原子联合准入；pinned计H子集，device受待扩展的独立设备配额约束，首期设备/pinned配额目标默认0；当前Limits尚无这两个字段。CPU高精度fallback按批处理疑难项，避免每叶来回传输。设备选择按显式policy/已记录能力，不能按计时偷偷切换科学模型。
 
-可加速候选是数组校准/标度、CSR及因子action、批量模板与矩阵运算、固定归约；严格超越原语、MPFR/GMP和分支不稳定几何保CPU。跨后端用同科学输入、合法包围、支持/选择语义和预先容差验收，不承诺bitwise；速度必须包含upload/download、同步和fallback，分别给端到端/驻留重复调用读数。内存位置、异步释放和驻留规划已在文档定案；声明、装配与实现按E03/E05迁移，GPU实现/具体SDK与速度仍是未来工作。
+可加速候选是数组校准/标度、CSR及因子action、批量模板与矩阵运算、固定归约；严格超越原语、MPFR/GMP和分支不稳定几何保CPU。跨后端用同科学输入、合法包围、支持/选择语义和预先容差验收，不承诺bitwise；速度必须包含upload/download、同步和fallback，分别给端到端/驻留重复调用读数。内存位置、异步释放和驻留规划已在文档定案；声明、装配与实现按E03/E05实施，GPU实现/具体SDK与速度仍是未来工作。
 
-## 数值求解、可估性和停止的具体步骤
 
-所有列先除其2范数（精确零列保零）；参数结果和nullspace映回原单位。稠密SVD的singular_error_bound至少含分解残差、矩阵输入区间界及舍入项的谱范数上界。rank_relative=1e−12只是报告分类：σ下界>threshold为可估，σ上界<threshold可列数值不可估，误差区间跨threshold则rank_unresolved并升级算术/细化。任何真实零空间须有解析/gauge结构证据或明确conditional numerical_rank；不能把任意阈值删去的小但真实非零模态称精确物理不可辨识。
-
-SPD模型优先因子白化：C=F Fᵀ小系统Cholesky，病态用对称eigen。负特征值小于−spectral_error_bound即invalid_covariance；跨0的谱为precision_unresolved，精确零须输入结构或认证证书。PSD零空间U0先求 D0θ=y0（D0=U0ᵀD），不一致超过误差界invalid_model；求可行θp+Zη，再在正谱子空间白化GLS。exact约束可决定F并给V=0。伪逆只在已明确参数子空间中使用，不把 C+ 当总体精度。
-
-大系统首选 sparse QR；内存不能承受时LSMR，停止同时满足缩放残差 ||Dᵀr||∞≤abs_res+rel_res||D||1||r||∞ 和已要求的输出泛函残差界，且迭代数未超。默认 rel_res=1e−10、abs_res=1e−12（输入白化无量纲空间），它们不能代替科学 tolerance；未给有限下游误差证书仅conditional。仅covariance action时KKT+MINRES，内层求解的残差/作用误差纳外层证书。预条件器不得加ridge改变目标，可以只作迭代加速。没有验证大系统nullspace能力时返回not_identifiable/geometry_solve_unresolved，不用LSMR收敛自动证明唯一性。
-
-非线性PSF/photometry：每步按SYSTEM求GN/真实score导数，Armijo参数1e−4，回溯≤32次，先检查当前驻点，小步/梯度与输出误差满足则converged；非驻点更新必须likelihood下降；默认step=1e−10、gradient=1e−8、outer≤100。非驻点且目标不下降/overflow回溯失败nonconverged，不裁参数到任意物理值。covariance/influence只条件于报告的线性化模型，未知模型偏差不由Hessian变已知。
-
-### BLUE、PSD和非负QP
-
-SPD Γ：QR/Cholesky解 Γq=1，检查q/denominator误差；1ᵀq下界>0才给t=q/(1ᵀq)。PSD：先检查是否存在Γ零空间向量v且1ᵀv!=0；存在则有零方差归一解，取最小范数归一解并保存精确约束。否则在range(Γ)解q，若1在range外的分量未定则精度/秩未决；禁止用epsilon地板。权的数值区间由统计式3d传播，σ或分母太弱返回geometry_solve_unresolved。
-
-非负QP用active-set：从equal可行解开始，在当前自由集解equality-constrained PSD QP；候选有负权时沿当前到候选线段走到最先碰0者，按frame ID打破平手并加入active；可行候选后计算KKT梯度，若active有负reduced gradient则放开最小者，反之最优。每步至多K个线性约束变化，max_iterations与work均限制；退化循环时按frame ID Bland规则。精确PSD多解取最小2范数最优权。停止验证sum=1、t≥0、stationarity和complementarity的区间残差，目标方差/权泛函误差必须在预算；max_iterations后nonconverged。Γ未知时显式QP/BLUE unavailable，automatic才equal并列原因。不同均值mixed结果的方差可算，但不是共同量最佳无偏估计。
-
-LOO只计算一次所有候选q，从最大|q|超过Φ⁻¹(1−α/(2N))者拒一个，相等按frame ID；v_res必须有严格正下界，精确0且残差也0无需拒，0且残差被精确约束否定则模型不一致，不能除0。数值区间跨阈值是selection_unresolved：细化/升级，或显式固定实际分支conditional；默认不以任意中点决策认证成功。
 
 ## 全链误差记录和发布门
 
@@ -156,16 +140,24 @@ GeometryRevision使Ω/A共同源相关、全部目标叶、全sky分量、select
 
 publish_product只有required quantities均达标、所有必需closed graph存在时产生complete=true；明确conditional信号可发布但capability/condition必须匹配用户接受的目标。资源耗尽的面积/diagnostics可写run目录，不能偷标正式complete产品。FP32失败→FP64；FP64量化仍超预算则publication nonconverged，不自动降低请求或无依据允许高精度FITS dtype（FITS signal首期仅float32/64）。高精度primitive及模型端点仍可持久化供后续计算。
 
-## 驻点、舍入停滞和非线性失败
 
-非线性每次迭代在线搜索前检查当前有限有效likelihood、可估空间的缩放score、参数/输出泛函误差；score与预测步均达请求阈值时允许零步收敛，likelihood不需再下降。无噪声初始化已经精确拟合的情形必须成功。仅对尚未满足停止条件的非零更新要求Armijo下降；步被舍入为零但score仍大是precision_exhausted/升级，不是收敛。非驻点且所有回溯失败才nonconverged。该判断先于Armijo，所有非线性入口复用同一停止实现。
 
-## 可计算的SVD/eigen误差证书
 
-对数值SVD A≈UΣVᵀ，先向外求δU=||UᵀU−I||F、δV=||VᵀV−I||F及eR=||A−UΣVᵀ||F，δU/δV必须<1。极分解正交因子的距离界取eU=δU/(1+sqrt(1−δU))、eV同式，则奇异值绝对误差可取eR+eU||Σ||2 sqrt(1+δV)+eV||Σ||2，加输入矩阵区间的Frobenius半径与全部舍入界。所有范数、sqrt、乘加向外。δ≥1或界跨rank阈值则升级/未决，不省略正交缺陷。对称eigen A≈UΛUᵀ同理用δU及重建残差，给λ区间并区分显著负/零未决；精确零约束仍须结构来源。大系统无法给证书时只conditional数值秩，不升级为certified。
 
-## 拟合及模板数值误差不跨模块遗失
 
-PhotoSolution数值参数包围使用可估空间的score根验证：在候选盒X内有向求score g(θ0)和Hessian H(X)，取QR/SVD近似逆G，K=θ0−Gg(θ0)+(I−GH(X))(X−θ0)。K严格在X内部且||I−GH(X)||∞<1时给局部唯一驻点包围；Hessian正下界证明局部极小。GN/IRLS声明的条件模型使用其实际score，不以步长或随机covariance替代数值证书。exp/多项式/像元积分导数用同一解析模型的区间AD，Gaussian/Moffat可解析微分，Airy的J0/J1用MPFR有向值和Bessel导数递推，0附近用幂级数及下一项余界避免0/0。latent分块可先按给定θ盒用带误差线性解消元，再验证全局score；资源不足或不能证明正秩/盒内唯一则保conditional/unconverged，不擅自给零半径。
 
-谱v误差、PSF积分区间、counts数值包围均进入score区间；根盒再经α=exp(−hθ)和校准/重组原生区间传至x，R分子使用带符号x区间。template经signed transfer的绝对误差action在PSF结果中保存，information/sky/coadd同理消费；缺必须的绝对系数能力就返回未决/条件状态。这个数值账本与ξ根随机传播分开。所有局部验证只证明声明模型的局部解，不伪称非凸全局最优或真实物理模型已知。
+
+## Process执行约束与共享原语
+
+统一生命周期/注册/typed边界只由[SYSTEM](SYSTEM.md)定义。plan给保守上界和有界细化规则，不能要求预先枚举所有自适应几何；未知工作量按单元增量准入，work总额不重置。模块具体块模型、halo/屏障和可重入规则由各process拥有；本篇只给共同限额和不变量。数值求解、驻点/秩/PSF参数证书的唯一详细标准已移至[NUMERICS](standards/NUMERICS.md)。
+
+
+## 虚拟计算池的就绪队列与异步流水线
+
+所有资源服务通过SYSTEM唯一VirtualComputePool抽象，不能在模块另开CPU/I/O线程池。任务等待依赖、pipe空位或I/O时不占CPU运行token，Task/缓冲与元数据仍计费；线程租约只绑定实际运行的计算单元。read_async/append_async的buffer由完成依赖强持至实际I/O结束；取消不能先归还该容量。
+
+I/O中的压缩/解压/hash/host复制也需同一CPU compute token；固定I/O worker只可执行有界阻塞syscall等待，不能成为超出计算配额的第二zstd/校验线程池。suspend/resume通过有界continuation回ready后重新准入；finalize/cleanup的异步等待同样不占CPU token，只有最外层同步invoke可阻塞等待真实完成。
+
+每command有配额，pool在可用CPU/I/O token内采用有界轮转/加权公平调度ready队列，同级按稳定task key打破平手；科学优先级来自已声明工作而非计时临时改模型。长任务主动分成有取消点的有界单元，不能假装OS能安全抢占任意MPFR调用。工作窃取只改变谁执行，不改变固定归约/选择次序。不同资源等待分队列，不能把磁盘等待顶在计算ready队列首部阻塞全部计算。
+
+管道信用、内存租约和可推进frontier的定义只在SYSTEM维护。具体策略可减少prefetch/并发/块、释放cache或spill；不能把空队列误认EOF，不能用无限缓冲换高并发。固定H下保证至少一条最小进展路径，做不到应明确resource_exhausted，不死锁。异步吞吐须包括read/write/hash/封存/同步和必要传输；首期CPU，无GPU吞吐声明。
