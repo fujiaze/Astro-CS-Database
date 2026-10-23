@@ -151,17 +151,21 @@
 2. **真实 HST/M42 数据未验**：全部验证用合成输入与外部标准（astropy/wcslib、
    astropy-healpix、healpy、numpy/scipy）。
 3. **Huber bootstrap 未验**：Huber 默认关；显式开启后的聚类 bootstrap 验证未做。
-4. **`acsd normalize` 端到端未完成**：冻结 X01 输入（8 帧 × 128×128）上，
-   A 组（有 WCS）与 B 组（盲解）均未产出产品；当前实测 214.7 s wall、22.4 MB 峰值 RSS、
-   exit 4（`validation/lead/perf_x01_normalize.json`）。**VERIFICATION 的 P-small /
-   P-large 性能读数因此无法给出**（`tools/make_perf_inputs.py` 已就位，等链跑通再测）。
-5. **VERIFICATION 必需 case 的覆盖面**：11 个里 3 个 pass、1 个 fail、7 个
-   pending_implementation（真值已冻结、观察侧未跑或被上游阻塞）。这些**不是通过**。
-6. **合同驱动只接入 24 个操作**，其余在 schema 里声明但在驱动里具名 `unsupported`。
+4. **`acsd normalize` 端到端未完成**：冻结 X01 输入（8 帧 × 128×128）上，CLI 15 s 结束、
+   无崩溃、**published=0**，逐帧为具名失败（光谱基无效 2 帧、PSF 设计矩阵秩亏 1 帧、
+   像元积分 1 帧、盲解假设耗尽 4 帧）。**VERIFICATION 的 P-small / P-large 性能读数因此
+   无法给出**；已实测的是几何单帧代价（块级 0.28 s、逐像元 75.3 s，
+   `validation/geo/geo_performance.json`）与 x01 端到端的 wall/峰值 RSS
+   （22.4 MB；`validation/lead/perf_x01_normalize.json` 保留了修复前 214.7 s 的记录）。
+5. **VERIFICATION 必需 case 的覆盖面**：11 个里 **7 个 pass、0 个 fail、4 个 pending**
+   （W01/P01/R01/X01，各自写明具体缺口）。pending **不是通过**。
+6. **合同驱动接入 30 个操作**（含产品系与观测系），其余在 schema 里声明但在驱动里具名
+   `unsupported`。
 7. **极区（north_polar）仍是具名能力边界**：TAN 在天极无定义（chart 导数奇异）；
    A 路线的顶区版（不依赖 chart 导数）设计已定，**未实现**。
-8. **Drizzle 的逐像元归属**：当前以**块级源行**（16×16）实现并给出 (叶 × 源行) 权重；
-   块内按像元中心细分归属、误差进权重分子的一步**未做**。
+8. **Drizzle 的源行单位**：交付默认已改为**逐像元源行**（列数 = 帧像元数，权重是精确交叠
+   面积占比）；16×16 的块级路径保留为「精度换速度」的备选，但**块内归属误差未进分子**
+   （实测中心归属与精确交叠的最大差 1.0、RMS 0.1055），因此**块级不声称权重正确**。
 9. **参数盒是简化实现**：光度与 PSF 的数值参数盒按「剖面区间」给出，不是完整的
    interval-Newton 根证书（已具名标注）。
 10. **稀疏 QR/LSQR 未实现**：大规模星数走稠密分解，超预算时返回失败原因而非降级。
