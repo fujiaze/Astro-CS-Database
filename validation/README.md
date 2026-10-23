@@ -80,3 +80,7 @@ bash validation/lib/build_native.sh u01_driver c01_driver   # 只编译原生驱
 | X01 | 端到端：物理 Iλ → 原始 ADU → 三命令、盲解 | empirical + analytic_exact | 三命令已实跑；A 组推进到 PSF，B 组盲解未过（见 observed/e2e_summary.json） |
 
 详细数字见各 case 的 `truth/`、`observed/` 与 `comparison.json`。
+
+## 本次新增工程验收目标（尚未实施）
+
+本轮保留上述独立性规则、运行方法与历史case记录；当前状态仍以各case原始证据及后续阶段报告为准，不由本次文档修改重新认证。新增A01/B01/H01/D01/K01尚无对应生产服务验收：后续需有调用归因/高水位、远大于H的流式输出、规范块/Dyadic等值、探针OFF零求值/ON惰性与失败隔离、设备事件/驻留/回退的实际证据。schema检查或设计推演不能替代服务实跑。完整构型见[VERIFICATION](../docs/engineering/rebuild/VERIFICATION.md)。

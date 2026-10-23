@@ -48,13 +48,21 @@ flowchart TD
 
 目标 WCS 使用同一 coordinates/provider 模型域。支持均值 Q_ip=b_ip/Σb 与支持积分 Q_ip=b_ip 是两个独立请求，默认输出支持面亮度均值；整像元通量外推需显式选择。b=Ω(E_i∩H_p∩U_p)，不做第二次 drop 收缩。只有 full-leaf 近似支持时标明近似，不用一个比例恢复子叶形状。Q 对 signal、可用 noise 和 response 同步作用；只有最终 signal 时 noise=unknown。无支持为 NaN，负值与零保留。HiPS 层级派生也保存自身算子/支持近似，不能把低阶层伪装成重新 Normalize 的同阶独立观测。
 
+## 实施边界、代码与交付
+
+新增算法只在唯一所属模块实现；CLI/GUI/driver不得复制求解或误差传播。对外错误使用Code/Issue；捕获第三方异常/std::bad_alloc后按安全边界转换为internal/resource_exhausted，不能把半写对象标有效。析构、lease释放和诊断接口noexcept；错误不能穿透清理路径覆盖首个科学故障。边界集中查尺寸/溢出/单位/index/身份/能力，已验证内部块不每像元重复查验/打印。
+
+所有可变scratch/迭代状态为调用独占；共享cache只容纳不可变已验证对象，key含模型/域/算法/算术/后端，锁不跨I/O或kernel。数据版本更新按新对象发布，跨GeometryRevision失效闭包按原合同，不用可变单例“当前解”。注释解释单位、不变量、失败与算法来源，不能只重复代码；格式按.clang-format/.editorconfig，模块README只导航到所属正本，不另定义接口。
+
+发布目标必须由干净checkout双平台构建；固定依赖锁与license、运行库、命令/schema/VERSION匹配，提供--version/doctor机器可读能力。安装后在无开发源码的干净目录执行三命令与重开验证；根构建不偷偷打包GUI。OFF包核对不含开发writer/环境触发；ON开发包同优化选项比较、带显式dev标记。本次只修改文档；已有实现的生产包/覆盖程度仍须按其真实证据报告。
+
 ## 可复用边界
 
 复用候选为完整标准 WCS 解码、成熟 QR/SVD/稀疏求解、XP 谱表示、经审计的匹配思想和正确 w/F/N 代数。每项须给许可证、单位/原点、输入域、错误/线程及独立反例验证记录；在新接口内通过验证后才接纳。旧四角交叠、外部 cone 完备性假设、SNR 直接充当场景权、比例排异和异 basis sky 路线不进入新核心。旧实现行为不是回归真值。
 
 ## 实际源码与无环依赖（规范）
 
-本节是唯一源码目录和模块依赖规范。目录已建立职责入口，空目录用 README 保留；仅 include 是类型和函数声明，不提供算法实现。全部头合同在 include/acsd/contracts.hpp，内部头不得成为独立消费者的前置。
+本节是唯一目标源码目录和模块依赖规范；新增E01—E07为待迁移合同，不能把目标职责当成当前实现已全部符合。目录已建立职责入口，模块README保留职责导航；远端已加入实际实现，不能由README仍称设计阶段推断源码不存在。全部头合同在 include/acsd/contracts.hpp，内部头不得成为独立消费者的前置。
 
 | CMake 目标 / 源码目录 | 直接依赖；责任 |
 |---|---|
@@ -74,7 +82,7 @@ flowchart TD
 | acsd_coadd / src/coadd | sky、uncertainty、operators；选择和权及混合核 |
 | acsd_projection / src/projection | geometry、operators、uncertainty；目标 Q |
 | acsd_storage / src/storage | model、CFITSIO、zstd、nlohmann_json；块、products、发布、Array provider |
-| acsd_resources / src/resources | model、Threads；资源预算、Storage 接口消费者、唯一线程池 |
+| acsd_resources / src/resources | model、numerics、Threads；资源子域/预算/租约、CPU KernelExecutor、Storage接口消费者、唯一线程池 |
 | acsd_workflows / src/workflows | 上述全部；Normalize/Mosaic/Export 的因果编排与细化控制器 |
 | acsd、acsd-contract / apps/cli、apps/contract | workflows；分别用户命令与公开操作调用 |
 | acsd-gui / gui（独立 CMake 工程） | Qt6 Core/Widgets/Network；子进程协议，无核心链接 |
@@ -88,7 +96,7 @@ flowchart TD
 不依赖 uncertainty，它只能返回空的协方差引用，这与 OBJECTS「除明确列出的可空例外外
 Ref 字段必需非空」冲突。因此 catalogue 的依赖补入 uncertainty（传递 operators），
 协方差仍只有一份实现，不允许在 catalogue 内复制构造逻辑。该依赖不构成环：
-uncertainty 只依赖 operators 与 numerics。它们只借 Context 接口。Storage 读产品时构造数据图及 recipe；具体 action 由 workflows 调用 make_action 解码，故 storage 不反向依赖科学库。公开静态入口目标 acsd_science 聚合上述科学库，不再单独包装每个算法。无动态插件、节点描述器、反射工厂或长期服务。当前只构建 acsd_contracts INTERFACE 与文档校验；上述实现目标在负责人接受后逐项建立。
+uncertainty 只依赖 operators 与 numerics。它们只借 Context 接口。Storage 读产品时构造数据图及 recipe；具体 action 由 workflows 调用 make_action 解码，故 storage 不反向依赖科学库。公开静态入口目标 acsd_science 聚合上述科学库，不再单独包装每个算法。无动态插件、节点描述器、反射工厂或长期服务。设计preset验证声明/规范；远端已加入科学实现目标，实际构建/完成范围依现有CMake和阶段报告，本次不变更构建。
 
 ## N1 校准、重组及有效观测
 
@@ -150,9 +158,56 @@ HiPS默认tile宽512，可显式64/128/256，必须leaf_order≥log2(tile_width)
 
 Windows 科学 CLI 优先 MSYS2 UCRT64 GCC14+，MPFR/GMP 与库使用同一 CRT/ABI；Linux GCC14+/Clang18+、glibc，Ninja+系统依赖。GUI Qt6/MSVC独立，不跨 CRT 传 C++ 对象。AVX2/FMA 单独翻译单元运行时检测，baseline x86-64 无可选指令；认证区间禁 fast-math，FP contraction off，SIMD 结果需有向包含证据。库默认串行数值后端，由 Context 租线程。
 
-当前 CMake 的 design preset 只验证文档、schema、声明，不链接生产依赖。未来实现开关 ACSD_BUILD_SCIENCE=ON 才启用所需 find_package；缺依赖 configure 失败，禁止自动回旧目录。安装 CLI、contract、schema、VERSION、licenses；GUI 自己的 install 不进根目标。Linux tar.gz 与 Windows zip/安装包可由新打包实现生成，构建必须按 manifest 提供运行库及 LGPL 替换/重链接要求，许可证选择不凭空给整个项目添加许可。
+E04目标：内部诊断由唯一ACSD_DEV_MODE控制，默认OFF，独立于Debug/Release/RelWithDebInfo；当前CMake尚未加入该开关，后续须向所有调用目标传播统一0/1定义，并建立同优化的OFF/ON构建对照。生产实现时，仅ON把src/resources/diagnostics实现及sink加入目标，OFF不得链接writer、读诊断环境变量或保留可触发的详细计时/快照路径。后续提供统一探针入口（建议调用宏名ACSD_DEV_PERF/ACSD_DEV_SNAPSHOT，最终由声明/实现定案）；OFF宏不求值参数，ON快照先selection再构造payload。详细span/counter/gauge使用同Diagnostics.record，业务模块不自写printf/文件/后台线程。CPU计时/系统采样不能用科学算法kernel做旁路计算。
 
-## 审核后冻结的连接细节
+诊断归src/resources，编码/写盘复用src/storage的基础设施接口，装配在workflows；二者不反向调用科学核。GPU内部KernelExecutor由resources消费operators/numerics给出的已定义批次，首期需提供CPU实例；未来GPU目标是静态可选实现，backend支持表决定分派，不建插件注册系统。无新科学入口、无第二套算法正本。
+
+最低静态probe注册表见本篇下表，它定义应落地的生产边界，非已命中证据。模型/数组probe只有实际输出存在才采集；缺项记NOT_SEEN，不合成数据。API拥有选择器/文件协议，OBJECTS拥有载荷与寿命，EXECUTION拥有预算/写队列，VERIFICATION拥有ON/OFF及故障反例。科学API/精度控制不能依赖探针开启。
+
+当前 CMake 的 design preset 只验证文档、schema、声明，不链接生产依赖。现有科学实现开关ACSD_BUILD_SCIENCE=ON启用所需find_package；缺依赖 configure 失败，禁止自动回旧目录。安装 CLI、contract、schema、VERSION、licenses；版本由VERSION单一来源并在build identity中附源commit/dirty tree digest、编译器与选项、依赖精确版本/hash、DEV_MODE/后端能力；不从提交数量制造版本。GUI 自己的 install 不进根目标。Linux tar.gz 与 Windows zip/安装包可由新打包实现生成，构建必须按 manifest 提供运行库及 LGPL 替换/重链接要求，许可证选择不凭空给整个项目添加许可。
+
+### E04最低静态probe登记（目标，尚未接入）
+
+每项登记另有semantic_revision=1，单位从真实被观测对象取；producer/boundary/payload为唯一生产边界，后续实现将本表固化为只读登记，不按线程/输入创建新probe ID。新增科学语义必须升semantic_revision或新ID。表中存在不表示已采集；没有生产该量时记NOT_SEEN，不能重算或合成。span统一记录steady wall/cpu ns及明确的工作量/字节；counter为count，gauge为bytes。
+
+| probe_id / kind | producer与边界 | 既有载荷、科学单位与坐标 |
+|---|---|---|
+| `normalize.calibration.signal` / snapshot_array | calibrate_observation；after_bias_dark_flat | integrated_values,dq,numerical bounds；NativeObservation.unit；detector_pixel |
+| `normalize.astrometry.solution` / snapshot_model | solve_astrometry/bind_wcs；validated_full_domain | WcsModel,AstrometricSolution；rad and detector pixel, labelled columns；ICRS/detector_pixel |
+| `normalize.psf.model` / snapshot_model | fit_psf；after_psf_fit_before_scale | EffectivePSF,existing residual arrays；parameter-specific units；detector_pixel |
+| `normalize.photometry.measurements` / snapshot_model | measure_science_sources；before_photometric_fit | SourceMeasurements；source count unit; variance squared；detector_pixel/catalogue |
+| `normalize.photometry.solution` / snapshot_model | fit_photometry；joint_fit_complete | PhotoSolution；theta log scale and basis conventions；detector_pixel/catalogue |
+| `normalize.drizzle.geometry` / snapshot_model | compute_overlap；completed_source_or_partition | Overlaps and primitive constraints；sr; not an independent random variance；ICRS/HEALPix_NESTED |
+| `normalize.drizzle.signal` / snapshot_array | build_drizzle；after_same_R | SignalEstimate,DrizzleOperator；L/sr; normalizer sr；HEALPix_NESTED |
+| `normalize.information.reference_flux` / snapshot_model | estimate_flux_information；reference_information_complete | Information and requested estimator；reference L squared；ICRS |
+| `normalize.information.scene_variance` / snapshot_model | evaluate_scene_variance；actual_scene_query_complete | Variance query results；signal unit squared；HEALPix_NESTED |
+| `mosaic.sky.controls` / snapshot_model | build_sky_controls；before_sky_fit | SkyControls；control unit; covariance squared；ICRS/chart |
+| `mosaic.sky.fit` / snapshot_model | fit_relative_sky；component_frozen | SkyFit,existing residual arrays；basis-specific sky unit；ICRS/chart |
+| `mosaic.selection.samples` / snapshot_model | select_samples；eligibility_and_rejection_complete | Selection；dimensionless masks; labelled reasons；HEALPix_NESTED |
+| `mosaic.weight.coefficients` / snapshot_model | solve_weights；weights_frozen | WeightSolution；dimensionless weights; Gamma signal squared；HEALPix_NESTED |
+| `mosaic.integration.signal` / snapshot_array | coadd；after_coadd_before_writer | SignalEstimate；SignalEstimate.unit; not numerator；HEALPix_NESTED |
+| `export.projection.overlaps` / snapshot_model | build_export；target_overlap_rows_complete | existing b rows,Q,support；sr for overlap/integral; mean Q dimensionless；target_WCS_pixel |
+| `export.fits.signal` / snapshot_array | export_signal；before_FITS_encoding | output arrays and target WCS；ExportResult.estimate.unit；target_WCS_pixel |
+| `normalize.calibration.frame` / span | calibrate_observation；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `normalize.astrometry.search` / span | solve_astrometry；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `normalize.psf.fit` / span | fit_psf；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `normalize.photometry.fit` / span | fit_photometry；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `normalize.response.integral` / span | integrate_response；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `normalize.drizzle.overlap` / span | compute_overlap；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `operators.apply` / span | apply；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `operators.transpose` / span | transpose_apply；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `uncertainty.quadratic_form` / span | quadratic_form；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `mosaic.sky.fit_component` / span | fit_relative_sky；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `mosaic.weights.solve` / span | solve_weights；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `mosaic.integration.block` / span | coadd；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `export.projection.block` / span | build_export；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `io.read` / span | Storage.read/read_reserved；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `io.write` / span | ArrayBuilder.append/seal；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `resources.wait` / span | Resources/worker admission；existing bounded operation | PerfRecord；wall/cpu ns, count or bytes separately labelled；none |
+| `resources.payload_peak` / gauge | Resources.snapshot；existing accounting boundary | PerfRecord；bytes；none |
+| `geometry.precision_upgrade` / counter | compute_overlap；existing accounting boundary | PerfRecord；count；none |
+
+## 连接与输入细节
 
 ### 盲解 catalogue/XP 公开能力与索引
 
@@ -196,7 +251,7 @@ Native.linear_view不能进入Normalize物理Drizzle；若NormalizeFrame.regroup
 
 HiPS发布允许tile_log2_width=6..9（64/128/256/512，默认512）；leaf_order≥tile_log2_width，tile_order=leaf_order−tile_log2_width，低阶模型可选较小合法tile或FITS导出，不伪造索引。标准依据为[HiPS 1.0](https://www.ivoa.net/documents/HiPS/20170519/REC-HIPS-1.0-20170519.pdf)与[HiPS原始论文](https://doi.org/10.1051/0004-6361/201526075)的可变tile宽定义，未采用HiPS2.0草案新增能力。
 
-## 最终复核补齐的跨模块误差与输入合同
+## 跨模块误差与输入合同
 
 calibrate_observation将RawObservation.context和frame逐字段保留到NativeObservation；regroup、bind_wcs、bind_observation_model、apply_scale不得丢失或改写。NormalizeFrame.frame必须等raw.frame，measure_science_sources输出frame=observation.frame。solve_astrometry从observation.context读取历元/TDB/observer，Gaia query按该历元传播；已知WCS与科学源也须与同context相容。相同像元的2016/2026两帧不会因值相同变同一观测，SourceIdentity.exposure和context均参与依赖。
 

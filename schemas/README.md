@@ -1,5 +1,5 @@
 # Schema边界
 
-JSON Schema校验envelope、CLI输入形状、资源和事件；科学typed对象逐字段解码规则由contracts.hpp与API.md唯一拥有。schema不会把任意object当科学有效输入；未知字段/未定义type/缺必需字段必须由typed decoder拒绝。operation白名单由公开声明固定，不允许任意helper。
+现有JSON Schema负责envelope、CLI输入形状、资源和事件；typed对象字段/签名以contracts.hpp唯一拥有，science-input/cli-science/manifest按既有生成器同步。合法形状不等于单位/index/PSD/支持/身份/闭包语义有效。
 
-science-input.schema.json和cli-science.schema.json从contracts.hpp自动导出实际字段/类型/每operation参数；contract.schema直接引用。更新声明后运行tools/generate_contract_schema.py，check_design检查无漂移。产品持久化读者按OBJECTS的规范hash/块闭包另作语义验证，不能用input schema代替。
+本轮仅改文档，不修改schema。API的E01—E07迁移清单与目标诊断策略/执行选择需在后续声明和decoder修订时逐字段接入；当前schema不得被描述为已接受execution/diagnostics或设备配额。运行时设备句柄、容量arena与指针不进入科学wire；开发记录与科学协议分别验证。未知字段、未支持operation必须具名拒绝。

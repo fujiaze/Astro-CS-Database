@@ -1,6 +1,6 @@
 # 统一对象、身份与持久化
 
-本合同实现[观测科学接口 §7](../../science/foundation/OBSERVATION_COORDINATES.md)及[统一统计](../../science/foundation/STATISTICS_SKY_COADD.md)，保持其公共类型名和数学语义。API 见[标准接口](API.md)，大数组寿命见[计算与资源](EXECUTION.md)。旧统一对象或 JSON schema 不构成新核心的兼容要求。
+本合同实现[观测科学接口 §7](../../science/foundation/OBSERVATION_COORDINATES.md)及[统一统计](../../science/foundation/STATISTICS_SKY_COADD.md)，保持其公共类型名和数学语义。E02/E03/E04/E07的新增存储与设备角色是迁移目标，本轮未修改当前声明；既有产品不因此自动采用新布局。API 见[标准接口](API.md)，大数组寿命见[计算与资源](EXECUTION.md)。旧统一对象或 JSON schema 不构成新核心的兼容要求。
 
 ## 对象信封
 
@@ -107,7 +107,7 @@ staging 在同文件系统内写块、等待异步写完成、验证闭包/hash�
 |---|---|
 | Unit | multiplier>0；scale 给 L 身份（例如 adu:detector/revision、photon_rate_m2:response/hash），sr/pixel/nm 指数为整数。unit 不只显示字符串；平方 covariance 的 scale 是对应 L²，multiplier 平方。不同 scale 只有显式有物理依据的 action 可转换 |
 | Identity | object_id 为逻辑 UUID；revision uint64 单调；content_hash 为规范内容 hash，schema_id=acsd.<类型名>、major=2、minor=0。run_id 不进科学hash |
-| Interval / ExactInterval | 有限有序端点；后者 signed_integer 为无多余零的十进制 GMP 整数，端点=integer*2^exponent2，bits 记录原语精度。科学容差也按外包解析。允许 ExactInterval 表示超 binary64 可分辨范围 |
+| Interval / ExactInterval | 有限有序端点；后者 signed_integer 为无多余零的十进制 GMP 整数，端点=integer*2^exponent2，bits记录原语精度。E07新canonical_array_v1封存中的Dyadic先作等值归一：零唯一为(0,0)，非零integer移除全部2因子使之为奇数，指数相应增加；指数溢出int32拒绝，不截断。新模式封存/hash使用归一结果；bits仍保声明的算术精度。旧产品重开按其已声明版本验证原编码/hash，不隐式归一。科学容差按外包解析，允许ExactInterval超binary64范围 |
 | Array | [shape]、dtype、unit、index_id、按 flatten 范围排序的 block_ids；分块不跨元素，无 stride/隐式转置，little endian；dyadic元素用有符号整数和exponent编码，不按固定字节假定 |
 | ArrayView/Lease | 每 read 保留所有输入、解压缓冲及计费直到 lease 最后一份释放；span 与 shape 不可修改；read 可重入，不保留游标状态。跨API传 Ref<Array>，不传临时 ArrayView |
 | WcsModel | cd[2,2] rad/pixel，c/e/north 是右手切基；sip 的项唯一且按 (总阶,x_power) 排序；Box 闭域；normalization_error_rad 对原解析数值模型转换的数值误差，不是真实天测误差 |
@@ -135,6 +135,16 @@ staging 在同文件系统内写块、等待异步写完成、验证闭包/hash�
 
 PhotoSolution.theta、RankReport 和 ExactInterval 的数组/向量必须随闭包保存；字段 null 的可选性来自 Ref 可空规则：除下文明确的pre-WCS/linear_view/可选模型、noise/PSF/response/refinement、可选Calibration map、SkyRequest T/H外，Ref 字段必需非空，违反 invalid_model。所有给能力名的 Ref 空缺均必须有对应 unavailable issue。
 
+### E02/E07目标：数组封存、规范块与科学内容身份
+
+本节为待实施的新封存规则，不表示当前Storage已按此封存。实施时须在manifest的算法/capability身份记录canonical_array_v1；早期v2产品由既有reader读取并明确原布局，迁移生成新revision与新身份，不原地覆盖旧产品/旧hash或假称已经满足新合同。工作单元的计算块、I/O chunk、builder.append片段和spill分区可以随H/线程调整；已封存Array的规范块边界不能随之改变。固定宽dtype按flatten从0开始每2^20原始字节切规范块，即每块floor(2^20/itemsize)个元素，最后可短；空Array无块。dyadic按每1024个完整元素切块，元素先等值归一再编码规范Dyadic JSON，无空白、键按UTF8序；可以逐字符流式编码/散列，不要求一整个大整数或规范块常驻。相同解析值、shape、dtype、unit、index必有相同raw_sha256、begin/count和block_ids。浮点保-0位，无值NaN在FP64统一quiet位0x7ff8000000000000、FP32统一0x7fc00000且必须有validity；不能把非有限数当有效数。
+
+ArrayBuilder状态仅open→sealed或open→failed→aborted，任一未sealed析构等价abort。begin锁shape/index/unit；append按flatten顺序消费完整元素，累积到规范边界可将字节增量写私有raw spool并计算SHA256；seal验证总元素数、块覆盖及hash，形成不可变Array并保所有存储依赖。memory placement只能在完整输出已预留时使用；spill可用小于规范块的固定缓冲，raw写与zstd流式解码/压缩均受实际缓冲额度约束。压缩工作集不适合预算时使用raw，raw_sha256及科学身份不变。索引/块清单也可外存构建，seal的最终元数据仍须准入；无法容纳必要元数据正确返回resource_exhausted。
+
+copy是这个builder流程的小数组便利包装；open接受外部合法任意分块描述；已规范块可由descriptor重算身份并在访问时逐块验证bytes，非规范块在发布新Array身份前必须通过同一全流式校验与封存规范化，使科学对象只引用规范块。输入别名、外部物理分块与codec/path不进入科学hash。需要规范化的外部块raw/hash先校验再参加规范化，不能把未核验的数据宣布为同一个Array。规范块内容可惰性加载，封存验证身份后，reader每次读取仍核验实际物理块，不能因缓存命中跳过版本/来源绑定。
+
+对象hash仍包含实际科学数值、数值包围、支持/条件/算法与依赖身份；语义相容但数值或区间不同不要求同hash。同build/后端/算术的R01要求相同规范运算与停止顺序，从而给相同包围；跨后端按同科学容差及合法包含比较。Usage、未来资源子域ID/诊断性能记录、执行块边界及GeometryRevision.consumed是运行来源，不纳科学hash；manifest锁住存储布局与完整文件清单，不能拿科学root hash替代manifest_hash。规范化只改变存储分块，不允许重算数值、降低dtype或调整界。
+
 ### action recipe 的精确定义
 
 所有 action 必须暴露 apply 和真 transpose，拒绝非同index/单位输入；返回数组通过 Context.storage 分配。make_action 接受配方和已解析有序 children/arrays，长度及content_hash须与配方一致。不存在隐式科学全局注册。
@@ -155,13 +165,21 @@ PhotoSolution.theta、RankReport 和 ExactInterval 的数组/向量必须随闭�
 
 row_enclosure 返回完整domain列顺序的区间小行，超预算可 unsupported；大规模用dependency_blocks+稀疏CSR bound数据。absolute_factor_bound 若有必须是各根总因子的逐元绝对上界 action（codomain/latent索引明确），不能只是 |C(v)|。通过谱范数路线则用 operator_norm_upper 及 ||δ||₂，保存来源。所有 solve recipe 持久化实际系统、分解/可再生参数、列尺度、gauge/秩；只有“算法版本号”不构成闭包。
 
+### E04目标：诊断快照的载荷和寿命
+
+本节各Probe/Snapshot名称是待声明的基础设施角色；静态登记包含id/kind/semantic_revision/producer/boundary/semantic/unit_rule/coordinate_space/payload，实际单位取被观测对象而非猜ADU或L；ProbeTags的frame/component/model_hash、leaf、roi、attempt锁本次数值边界。数组快照必须携带原dtype/shape/endianness、index排序和单位、有效域/DQ以及所需WCS/HEALPix变换；模型快照为已有白名单模型及已完成数组的引用闭包，不调用新科学计算。signed F/N/B、V_F/V_B/V_ctrl必须使用各自probe ID，不能笼统命名weight。
+
+SnapshotPayload.fields用于已有Information/Variance等按值结果的小型标量列，name/类型/单位明确，unknown为null，ExactInterval不转double；不要求先构造新的科学Array。SnapshotPayload的views只在snapshot同步返回前可借用；arrays/models也只能在该期间读现有有效数据。sink必须立即try-copy至D计费的私有不可变缓冲/元数据，或SKIPPED_BUDGET；返回后不继续持有科学Lease、ArrayRef或指针，不触发新Storage.read、设备download或完整闭包遍历。大数据只取已在手的所选ROI/块；未就绪、非主机可读或模型依赖不在手时INVALID_VIEW/NOT_READY并记原因。异步writer只拥有复制后的诊断租约，完成/取消前不释放；诊断副本不能写回科学对象。
+
+二维host数组写原FP32/FP64 FITS并附metadata；不能正确生成WCS时只保存原块+完整坐标元数据，标wcs_unavailable，不编造头。精确dyadic、稀疏表和模型使用规范JSON/原块，禁止转double丢精度；摘要必须标representation=summary，不冒充原像素。禁止拉伸、clamp、abs、NaN→0。私有临时文件写完hash/size后原子改名；取消或失败保incomplete标记。状态只用WRITTEN/NOT_SELECTED/NOT_SEEN/NOT_READY/SKIPPED_BUDGET/IO_ERROR/CANCELLED/INVALID_VIEW；debug_manifest不成为产品输入或恢复点。
+
 ### 产品具体布局和版本规则
 
 产品根目录：manifest.json，frame_science.json 或 mosaic_science.json 或 export_science.json，objects/<hash>.json，blocks/<sha256>.bin[.zst]，signal/Norder*/Dir*/Npix*.fits（Export 改 signal.fits）。manifest 字段：format=acsd.product，major=2，minor=0，stage，product_id，revision，root_object，profile，capabilities，inputs[]（manifest hash），objects[]（相对路径+hash），blocks[]（descriptor），configuration_hash，algorithm_set，arithmetic，assessment，complete=true。完成前只有 staging manifest，正式 manifest 绝不先写。
 
 block descriptor 为 {id,path,dtype,shape,index_id,unit,begin,count,codec,raw_bytes,stored_bytes,raw_sha256}；begin/count为元素范围，不能与字节混用。raw或zstd单frame无dictionary，zstd解压上限=raw_bytes且经shape*itemsize验证；dyadic用Dyadic对象数组UTF8块，dtype=dyadic且raw_bytes按实际计费。FITS 为标准可读image，不复用bin块作浏览格式。sidecar根指root_object，同一图一份正本。
 
-规范JSON数字：整数直接十进制，binary64以 {"f64":"<16hex little-endian bits>"} 规范hash，用户可读JSON有限decimal输入在解析后转换该hash表示；-0保留位，科学值禁止非有限，NaN仅图像块带validity时准入。字符串NFC，key按UTF8排序，无空白、无重复key；Id内容hash不含自身content_hash/object_id/revision/run_id、物理路径、时间/耗时，但包含依赖的内容hash、schema、数据值/单位/状态/算法误差记录。数组block hash覆盖未压缩规范bytes。语义相同但舍入不同的float不会碰巧同hash。
+规范JSON数字：整数直接十进制，binary64以 {"f64":"<16hex little-endian bits>"} 规范hash，用户可读JSON有限decimal输入在解析后转换该hash表示；-0保留位，科学值禁止非有限，NaN仅图像块带validity时准入。字符串NFC，key按UTF8排序，无空白、无重复key；Id内容hash不含自身content_hash/object_id/revision/run_id、物理路径、时间/耗时，但包含依赖的内容hash、schema、数据值/单位/状态/算法误差记录。数组block hash覆盖未压缩规范bytes；E07新封存按canonical_array_v1固定边界，不按计算块大小；旧产品保持其声明算法与原块边界，重开不得重算成新身份。语义相同但舍入不同的float不会碰巧同hash。
 
 对象图不包含raw C++指针、Lease或Context。header构造的Ref递归序列化为 {"$ref":"sha256:..."}，对象唯一存objects目录。ActionRecipe通过白名单可重开，算法升级无法重放同系数则保存CSR或依赖分解；不接受“使用当前最新算法” recipe。产品major不兼容直接拒绝；minor未知可选字段保留并纳hash，未知必需capability只禁对应模型操作，signal可在manifest基本解析成功后读取。
 
@@ -171,9 +189,9 @@ block descriptor 为 {id,path,dtype,shape,index_id,unit,begin,count,codec,raw_by
 
 磁盘配额耗尽返回resource_exhausted且保留staging诊断；只要正式manifest未发布，不产生完成身份。重开先验hash可按访问惰性验证块，但任何未经验证块不可用于科学值；manifest/object闭包先全验证索引/循环/SharedId。损坏signal块致该产品不可用，不静默转零；损坏可选模型块只失去该能力并报错。
 
-## 审核后实际流式载荷、几何闭包与solve规范
+## 大载荷、几何闭包与solve规范
 
-本节将前文登记表落实为已更新声明字段；旧逐样本vector、无载荷Id或四数组solve示意不再是有效编码选择。
+本节规定大对象的实际编码与阶段状态；登记表只作导航，编码必须满足以下不变量。
 
 ### 原生身份、足迹和模型的阶段状态
 
@@ -213,9 +231,9 @@ least_squares定义A=MZ（m×r），要求满列秩；solve(b)=Z(AᵀA)⁻¹Aᵀ
 
 SolveSpec.policy包含显式整数/布尔/实数，JSON按实际类型；algorithm取canonical_qr_v1/canonical_svd_v1/lsmr_v1/minres_kkt_v1，与version一起锁定。error_record含实际残差和求解扰动证书；reader用同version算法恢复同数学映射与被声明数值包围，不能要求未实现版本重放。若科学闭包需完全固定名义系数（例如geometry反馈冻结权）且不能保证重现，则将该有限action保存CSR，不借当前solver近似代替。无需持久化跨平台库私有分解布局。
 
-### 其余字段、状态与输入别名
+### 状态、单位与输入别名
 
-Unit.linear_power和scale共同表达L的维数，variance=2，纯面积/功能系数=0；CSR values的unit是output/input，不是默认无量纲。NoiseModel.var_unit须等于影响后信号单位平方。以C作用孔径系数时，返回单位按API的乘积规则。
+Unit.linear_power和scale共同表达L的维数，variance=2，纯面积/功能系数=0；CSR values的unit是output/input，不是默认无量纲。NoiseModel.variance_unit须等于影响后信号单位平方。以C作用孔径系数时，返回单位按API的乘积规则。
 
 Assessment.execution记录调用是否complete/cancelled/failed，capability为supported/unsupported/unavailable；bool complete是所有本对象必需目标已完成（可在execution=complete而science=unconverged时为false）。成功结束执行不等于科学达标。SupportMap.states逐index为0 absent、1 positive、2 bounded_undecided；normalization_states为0 no_support、1 positive、2 support_unresolved、3 weak_support；observational_states为0 absent、1 observed、2 predicted、3 extrapolated。三个数组不可互换，空能力须issue，不能用全局单值替代逐叶。
 
@@ -227,7 +245,7 @@ ErrorRecord.requested/achieved按同序小型泛函集合（≤4096）；对整�
 
 BlockDescriptor是产品manifest与独立驱动共用唯一类型：id,path,dtype,shape,index_id,unit,begin,count,codec,raw_bytes,stored_bytes,raw_sha256。shape是所属整Array的shape，begin/count为flatten元素范围。id为规范科学descriptor（dtype/shape/index_id/unit/begin/count/raw_sha256）的SHA256，不含path/压缩选择；raw_sha256校验未压缩bytes。同一raw块可在不同索引/单位descriptor中复用，不能让相同raw bytes强迫不同科学域同ID。
 
-Storage.open(root,description,blocks)验证块覆盖、尺寸、dtype/单位/index一致及raw/hash后返回有寿命Array，元数据可先校验、bytes按访问惰性hash，但未经校验的bytes不能用于计算。raw/zstd与产品相同little-endian合同，解压上限raw_bytes并先资源预留。dyadic raw payload为UTF8规范Dyadic对象数组（signed_integer,exponent2），个数=count，无NaN/Inf，不当固定itemsize；整数指数和字符串语法逐项查。copy/read/open同一Storage后台，不引入第二份数组系统。
+Storage.open(root,description,blocks)验证块覆盖、尺寸、dtype/单位/index一致及raw/hash后返回有寿命Array，元数据可先校验、bytes按访问惰性hash，未经校验的bytes不能用于计算。E07新封存/显式迁移模式对非规范输入先全流式校验、等值归一与重分块，再发布新revision；open_product按产品声明的算法/capability选择旧验证或新规范规则，旧产品重开保持原Array及父图身份，不隐式迁移；无法识别其算法版本则unsupported。当前Storage.open没有模式参数，迁移时须在唯一声明及reader装配补齐版本上下文，不能猜块大小决定模式。raw/zstd与产品相同little-endian合同，解压上限raw_bytes并先资源预留。dyadic raw payload为UTF8规范Dyadic对象数组（signed_integer,exponent2），个数=count，无NaN/Inf，不当固定itemsize；整数指数和字符串语法逐项查。copy/read/open同一Storage后台，不引入第二份数组系统。
 
 PsfEvaluation.psf保原模型和实际transfer；source_positions≤4096每次，values及lower/upper三数组同shape/index，native_tail_upper绑定source_index；error为强引用。template数值区间和原生尾损失分别持久化。它们是跨sources/information/photometry对象，只有这一份正式定义，裸Array不被假定携带隐含ErrorRecord。普通矩阵数组仍是轻量数值数组。
 

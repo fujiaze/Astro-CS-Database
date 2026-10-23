@@ -2,9 +2,11 @@
 
 本合同执行[科学几何](../../science/foundation/SPHERICAL_DRIZZLE.md)和[统计模型](../../science/foundation/STATISTICS_SKY_COADD.md)，不改变估计量。接口和数据依赖见[API](API.md)、[对象与持久化](OBJECTS.md)。所有复杂度中的 nnz、支持、秩及精度位长是实际量，不假定真实场景永远小秩或固定候选数。
 
+本篇是执行目标规范，不能据此推断当前实现已满足全部要求；本次资源子域、流式构建、诊断和设备承接均按API的E01—E07迁移，当前声明与实现未随本文修改。
+
 ## 计算单元与对象寿命
 
-每次命令有独立 RunContext、线程预算、object store、I/O 服务与取消域。可复用同一个基础设施实现，但不共享跨阶段会话。工作流声明不可变模型及块的输入/输出，Runtime 将其拆成有界 WorkUnit；不固定旧 Normalize 八节点或 ARS Frame/Operation 的实现层次。
+进程只有一个资源服务、CPU池、Storage后台和I/O队列；每次命令持独立资源子域、归因账本和取消域，不新建池、不共享跨阶段科学会话。工作流声明不可变模型及块的输入/输出，工作流将其拆成有界 WorkUnit；不固定旧 Normalize 八节点或 ARS Frame/Operation 的实现层次。
 
 对象生命周期为 builder 独占写 → validate → publish immutable → consumer leases → 最后一份租约释放 → 回收或可验证 spill。部分写入对象不可见；迭代得到新版本，不覆盖被读取模型。async I/O、排队 task、action recipe 的依赖都持租约；cancel 发出后先阻止新任务，再让在途任务到安全边界，完成/撤销 I/O，最后释放，不能先销毁数组再等待 future。
 
@@ -43,7 +45,7 @@ C++参考原型和Python局部高精度算例仅说明路线可执行，完整�
 
 ## 内存预算与背压
 
-总硬预算 H 对可计费 payload/scratch/队列/cache/数值大整数约束；进程可用内存需另留运行时/库/不可控分配的测量余量。准入估算与运行峰值都记录，不能只统计主 signal 数组。FP64示例：单块65536叶×8帧 signal 约4 MiB，uint16 DQ约1 MiB；协方差、R、几何队列和压缩缓冲另计。
+科学硬预算 H=命令Limits.bytes，对科学payload/scratch/队列/cache/数值大整数约束；内部诊断有用户显式配置的附加D，进程准入上限同时计H+D，不能藏在RSS余量中；进程可用内存需另留运行时/库/不可控分配的测量余量。准入估算与运行峰值都记录，不能只统计主 signal 数组。FP64示例：单块65536叶×8帧 signal 约4 MiB，uint16 DQ约1 MiB；协方差、R、几何队列和压缩缓冲另计。
 
 一个工作块的上界模型为
 
@@ -78,19 +80,53 @@ geometry priority queue 每worker有上限，候选爆炸保留粗域及质量�
 
 source geometry可独立并行，但共享tile导数/边缓存不可变发布；每个结果写本地缓冲，按固定key归并，不对全局FP数组无序atomic累加。sky不同真实分量可并行，同一分量必须联合；最终coadd在sky解冻结后按目标块并行。Export目标块独立读取，重复叶随机身份保持相同。
 
-同一build/后端/算术、相同输入和配置，改变线程数或完成顺序应保持规范结果内容一致；进度、计时、内存和run_id不在科学内容hash内。跨后端/平台不承诺bitwise，但必须各自保合法包围且通过预先指定的绝对/相对科学容差。数据依赖选择受舍入影响可能换支时，不以“数值接近”豁免选择状态。
+同一build/后端/算术策略、相同输入和科学配置，改变线程数、H或完成顺序应保持规范结果内容一致；科学工作单元、优先级tie和归约树固定，执行块仅装载这些单元；进度、计时、内存和run_id不在科学内容hash内。跨后端/平台不承诺bitwise，但必须各自保合法包围且通过预先指定的绝对/相对科学容差。数据依赖选择受舍入影响可能换支时，不以“数值接近”豁免选择状态。
 
-验证至少覆盖1线程/多线程、正常/极低内存spill、正常/取消/写盘失败、随机任务完成顺序；各输出比较同一模型身份、共享根、支持/失败范围、signal/协方差泛函和数值界。cache关闭与开启必须保持科学状态和允差；cache只能复用有输入/hash/domain/arithmetic身份的证明。机器benchmark决定并发/块大小，不选择不同科学算法或放宽容差。
+验证至少覆盖1线程/多线程、正常/极低内存spill、正常/取消/写盘失败、随机任务完成顺序；各输出比较同一模型身份、共享根、支持/失败范围、signal/协方差泛函和数值界。cache关闭与开启必须保持科学状态和允差；cache只能复用有输入/hash/domain/arithmetic/算法身份且相同端点的证明；缓存父域更宽包围可用于候选筛选，不能替换本次规范输出界。若另选会改变输出区间的求界策略，必须具名为不同算法/算术策略，按跨后端容差验收而非伪称同hash。机器benchmark决定并发/块大小，不选择不同科学算法或放宽容差。
 
-## 一个进程的资源所有权与调用预算（实现定案）
+## E01/E02目标：资源归因、容量转交与进程准入
 
-上文“每次命令独立RunContext/线程预算”意为取消域与工作账本独立，不能解释为同进程各自建池。一个进程仅一个Resources服务、Storage、CPU池与I/O队列；多个嵌入式同步调用共享总H和线程上限，每命令是子配额。命令间只通过已发布产品交换科学状态。Context是Resources/Storage/Cancellation借用，不是Runtime对象系统。默认科学配置不藏在Context中。
+以下为现有Resources/Storage的改造目标，当前声明还没有ResourceRequest/ReservationState/child等扩展。一个进程仅一个Resources后台、Storage、CPU池与I/O队列；多个嵌入式同步调用共享总H和线程上限，每命令是子配额。命令间只通过已发布产品交换科学状态。Context借用Resources/Storage/Cancellation及可选Diagnostics/KernelExecutor，不是Runtime对象系统；这些服务均由调用者保持至在途工作/输出Lease释放。默认科学配置不藏在Context中。
 
-Resources.reserve必须原子同时预留输入pin、输出、scratch及必要I/O缓冲，失败返回resource_exhausted，不阻塞等待另一半资源。Reservation租约释放归还bytes/线程；consume_work用原子计数，失败无副作用，无调用可把总work重置。Storage解压、std::vector/共享模型控制块、大整数、排序、线程栈显式余量、事件队列均在准入估算内，实际计费超过reservation先扩预留，失败在有保证的安全边界保留未决，不让std::bad_alloc破坏包含记录。无法截获的库分配以实测峰值+20%余量预留；OS RSS不是硬受控payload上限，二者同时报告。
+Resources.reserve接ResourceRequest，原子预留host/pinned/device/spill及线程；pinned包含在host bytes内而非重复相加。失败返回resource_exhausted且不占另一半。Reservation是move-only的剩余额度，begin/read_reserved将额度原子拆分转为实际分配租约，不再二次reserve；未转交额度析构归还。ReservationState.available为原子可用容量快照，claim核验同一后台/归因域并原子拆出Lease，不信任调用者传入的裸字节数或伪造state。consume_work沿全部祖先原子计数，失败无副作用，child也不能重置额度。Storage解压、std::vector/共享模型控制块、大整数、排序、线程栈显式余量、事件队列均在准入估算内，实际计费超过reservation先扩预留，失败在有保证的安全边界保留未决，不让std::bad_alloc破坏包含记录。无法截获的库分配以实测峰值+20%余量预留；OS RSS不是硬受控payload上限，二者同时报告。
 
 取消检查不超过4096 work或100ms可中断批（先到者）；MPFR/精确裁剪单步按最大位长/顶点预留，无法保证可中断时先缩小块。I/O chunk≤8MiB，最多 min(threads,4) 在途读及2个写缓冲，每任务自己的预算也约束。LRU cache默认≤H/8，key含输入hash、domain、algorithm、precision、condition；pin计费、逐出只影响性能。无队列可无限增长；work调度队列≤2*threads，spool有磁盘配额，任务产生速度由reserve控制。
 
 大模型的dense_max_bytes默认min(H/4,64MiB)，小系统稠密QR/SVD；超过选稀疏/迭代路线，若任一必要分解（例如局部K² Γ）无结构化方法且超预算，返回resource_exhausted，不假定独立或改权。解完成前保留所需观测根多遍读能力；没有重读能力的provider在准入拒绝而非读一半后丢依赖。
+
+每个command/operation子域持有独立当前占用、单调累计和高水位。目标报告保留peak_payload_bytes作为该域计费host分配峰值，并需新增page-locked子集峰值、独立显存峰值和存活外存峰值；这些新增量当前不在Usage声明中；spill_bytes为累计写spill字节，written_bytes包括它，不能相加当总写量。read/written统计Storage边界实际字节，cache命中读量为0，重复物理I/O如实累加。父域聚合后代，子结果不能再加父结果重复统计。elapsed是本域steady历时，目标可空CPU时间只在能归因任务/线程时填写；进程RSS由process_snapshot给可空实测值，禁止用RSS或累计peak的差分作调用峰值。
+
+物理allocation只在进程账本计一次、归创建域；同进程多个Lease/读者不重复计payload。新读者的解压/复制/工作缓冲在其域计费，原内存借用保持原域pin以防逐出。运行结束后的不可变输出仍归原域，域随最后租约释放；下一次操作新建子域，其起始峰值为0，不能继承历史100MiB后报告差0。A=10work、B并发100work时A必须报告10。线程租约和reserve的准入锁只管账本，绝不跨科学核/磁盘I/O持锁。
+
+数组builder的memory模式把完整输出额度转为builder所有；spill模式只持有buffer_bytes及必要元数据，按规范块增量写出并复用同一缓冲，磁盘活存与累计写分别计账。begin失败不吞容量；append中途I/O失败保已写私有段、标failed，abort/析构回收所有未发布块，避免重试重复追加。seal可以外存归并规范块清单，但必要最终Array元数据本身仍受H限制；绝不把数百万std::string/block_ids当免费。已有预留生产路径不得调用自行reserve的copy/read而双重收费。
+
+## E04目标：开发观测的资源与失败隔离
+
+待实施的ACSD_DEV_MODE默认OFF；ON/OFF必须使用同科学H/work/归约/随机种子/停止规则。诊断策略给附加D、最大落盘字节、max_inflight_items、event_buffer_bytes与flush_timeout_ms；它们全部计进唯一进程准入，科学H额度不得被诊断占用。D不足、未选择、view尚未就绪或异步队列满时同步接口立即skip，不在生产者内等磁盘。线程本地性能事件缓冲也计D，溢出记dropped；单写者批量写，线程池/I/O租约为低优先有界诊断份额，不能启动另一套无限线程。
+
+诊断仅对现有数据try-copy；禁止异步pin科学数组，也不触发设备同步/拉回、额外PSF或几何计算。若要观察GPU数据，只能在已有host物化边界采集。诊断自身CPU、复制字节、flush wall及失败计数单列，不记入Result.usage科学work。诊断数据flush失败/磁盘满不改变科学code/退出码/发布；正式文件错误仍按正式错误处理。终止时停止新采集，按flush_timeout尽力排空，未完成条目标CANCELLED/incomplete；仍在途写持私有租约至完成，不能为满足超时先释放其缓冲。退出清理由正常I/O安全边界完成，不伪造硬实时保证。
+
+## 后端与未来GPU的执行边界
+
+ExecutionPolicy、KernelExecutor、KernelBatch、BackendBuffer、ArrayBacking和Completion是E03/E05目标角色，当前头文件尚无这些扩展，最终字段/签名必须一次落实在唯一声明；首期只有CPU，gpu请求能力失败/显式CPU回退按API。executor为空等价CPU基础设施，不改变科学函数签名。静态内部kernel白名单如下；不从产品或用户文本装载代码，也不把GMP/MPFR裁剪改写为无界GPU double。
+
+| KernelKind | arrays顺序；数学输出 |
+|---|---|
+| diagonal_apply | diagonal[N],x[N]；d*x |
+| csr_apply | offsets[M+1],indices[nnz],values[nnz],x[N]；CSR*x的rows半开子集 |
+| csr_transpose | 同CSR三数组及x[M]；CSRᵀ*x的源rows半开子集，按原始行/源键固定归并 |
+| factor_apply | 同CSR布局，因子F是实际稀疏矩阵；F*x，不另造隐含独立噪声 |
+| fixed_reduce | values[N]；先构规范全域固定二叉归约树，再取指定输出节点；rows必须[0,1)，输入不能由调度分块重排 |
+
+KernelBatch.spaces绑定完整索引/单位，arrays已验证且版本冻结；run同步返回KernelOutput的values/lower/upper同shape和实际舍入证书error，不能只给名义值或申请的tolerance。rows按输出轴切片，不改变全局归约。输入可已有数值包围，由上层同一signed误差传播实现消费；kernel证书覆盖其名义输入的运算误差。后端无所需包含/归约能力时返回unsupported或按显式策略CPU回退，不能降精度后仍certified。
+
+BackendBuffer是执行层opaque allocation；host/pinned_host/device三类不得互相reinterpret为ArrayView.span。Storage.read/read_reserved始终返回host可读视图，可能显式下载并计费；科学DTO/产品不保存指针、设备序号或stream。内部以Array内容hash/版本+device+算术+kernel版本缓存device mirror，多步action优先设备驻留复用；可以由设备对规范字节计算同样的hash，不强迫为每个内部kernel读回。持久化或公开host读边界才必须物化；传输与计算都在账本内。算法调用KernelExecutor而不是各自new CUDA缓冲/建stream。
+
+GPU run经Storage.adopt把Array描述与ArrayBacking登记为ArrayRef：backing.verified_blocks必须在完成事件成功后给规范块描述/hash（可在设备计算），adopt校验shape/unit/index/覆盖及科学身份并只claim元数据容量，不再收费同一device allocation。ArrayBacking强持设备分配/归因域/事件，Storage返回ArrayRef同时保此backing，最后Ref/读取租约释放才允许回收；不能依赖裸hash查进程全局表。第二个kernel调用Storage.backing(array)再resident(device)取得同一分配（无该驻留副本则unavailable，由executor显式上传/按内容身份有界缓存）；公开read/read_reserved委托backing.read_host，使用所传capacity覆盖下载/host缓冲并等待完成及核验原始hash后给ArrayView。backing方法失败沿原scope返回，未完成不暴露bytes。host数组也有同接口backing，不需要强制GPU支持；adopt的非文件块只存在于后台，正式发布/contract response必须先物化实际文件并验证规范块，不能序列化设备句柄或不存在的path。
+
+Completion.ready表示事件已终结（可含设备错误），wait返回ok且value=1才代表成功，失败/取消按Result.code/assessment表达，不以bool吞错；用户取消的wait可返回cancelled，但allocation仍由清理队列保留至实际事件终结。Completion覆盖所有读取/写入该buffer的依赖；租约至少活到最后事件完成，用户取消只停止新提交并标结果不可发布，在途DMA/kernel到安全边界后回收。事件失败归到调用scope，禁止返回尚未完成的host view。host/pinned/device额度原子联合准入；pinned计H子集，device受待扩展的独立设备配额约束，首期设备/pinned配额目标默认0；当前Limits尚无这两个字段。CPU高精度fallback按批处理疑难项，避免每叶来回传输。设备选择按显式policy/已记录能力，不能按计时偷偷切换科学模型。
+
+可加速候选是数组校准/标度、CSR及因子action、批量模板与矩阵运算、固定归约；严格超越原语、MPFR/GMP和分支不稳定几何保CPU。跨后端用同科学输入、合法包围、支持/选择语义和预先容差验收，不承诺bitwise；速度必须包含upload/download、同步和fallback，分别给端到端/驻留重复调用读数。内存位置、异步释放和驻留规划已在文档定案；声明、装配与实现按E03/E05迁移，GPU实现/具体SDK与速度仍是未来工作。
 
 ## 数值求解、可估性和停止的具体步骤
 
@@ -122,7 +158,7 @@ publish_product只有required quantities均达标、所有必需closed graph存�
 
 ## 驻点、舍入停滞和非线性失败
 
-非线性每次迭代在线搜索前检查当前有限有效likelihood、可估空间的缩放score、参数/输出泛函误差；score与预测步均达请求阈值时允许零步收敛，likelihood不需再下降。无噪声初始化已经精确拟合的情形必须成功。仅对尚未满足停止条件的非零更新要求Armijo下降；步被舍入为零但score仍大是precision_exhausted/升级，不是收敛。非驻点且所有回溯失败才nonconverged。此规则替代前文对“目标不下降”不区分驻点的表述。
+非线性每次迭代在线搜索前检查当前有限有效likelihood、可估空间的缩放score、参数/输出泛函误差；score与预测步均达请求阈值时允许零步收敛，likelihood不需再下降。无噪声初始化已经精确拟合的情形必须成功。仅对尚未满足停止条件的非零更新要求Armijo下降；步被舍入为零但score仍大是precision_exhausted/升级，不是收敛。非驻点且所有回溯失败才nonconverged。该判断先于Armijo，所有非线性入口复用同一停止实现。
 
 ## 可计算的SVD/eigen误差证书
 
