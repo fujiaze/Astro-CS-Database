@@ -37,9 +37,22 @@ struct CatalogueFixture {
 };
 
 std::vector<std::array<double, 3>> field() {
-  return {std::array<double, 3>{8.0, 8.0, 120.0},  std::array<double, 3>{20.0, 10.0, 110.0},
-          std::array<double, 3>{12.0, 22.0, 100.0}, std::array<double, 3>{24.0, 24.0, 90.0},
-          std::array<double, 3>{16.0, 16.0, 80.0}};
+  // Twenty-six non-degenerate sources over the 100x100 detector: the solver
+  // holds out one source group of five, and every negative test needs the
+  // training set to stay above the eight fit parameters.
+  return {std::array<double, 3>{10.0, 12.0, 140.0}, std::array<double, 3>{24.0, 9.0, 120.0},
+          std::array<double, 3>{41.0, 14.0, 110.0}, std::array<double, 3>{58.0, 8.0, 100.0},
+          std::array<double, 3>{76.0, 15.0, 130.0}, std::array<double, 3>{90.0, 11.0, 90.0},
+          std::array<double, 3>{8.0, 30.0, 115.0},  std::array<double, 3>{22.0, 33.0, 95.0},
+          std::array<double, 3>{38.0, 28.0, 125.0}, std::array<double, 3>{55.0, 36.0, 105.0},
+          std::array<double, 3>{72.0, 31.0, 85.0},  std::array<double, 3>{88.0, 34.0, 120.0},
+          std::array<double, 3>{14.0, 52.0, 100.0}, std::array<double, 3>{30.0, 49.0, 130.0},
+          std::array<double, 3>{47.0, 55.0, 90.0},  std::array<double, 3>{64.0, 50.0, 115.0},
+          std::array<double, 3>{81.0, 57.0, 110.0}, std::array<double, 3>{93.0, 48.0, 95.0},
+          std::array<double, 3>{20.0, 72.0, 120.0}, std::array<double, 3>{36.0, 80.0, 105.0},
+          std::array<double, 3>{53.0, 74.0, 135.0}, std::array<double, 3>{69.0, 84.0, 95.0},
+          std::array<double, 3>{86.0, 77.0, 115.0}, std::array<double, 3>{12.0, 90.0, 90.0},
+          std::array<double, 3>{45.0, 92.0, 110.0}, std::array<double, 3>{74.0, 94.0, 100.0}};
 }
 
 CatalogueFixture make_catalogue(const vpf::Chain& chain, const Ref<WcsModel>& model,
@@ -49,14 +62,20 @@ CatalogueFixture make_catalogue(const vpf::Chain& chain, const Ref<WcsModel>& mo
   std::vector<U64> ids;
   std::vector<double> astrometry;
   std::vector<double> brightness;
-  (void)model;
-  // A frozen compact shard (the same distribution as the catalogue.access
-  // driver, whose offline index is known to build).  The sky directions are
-  // not forced through the image WCS: this driver exercises the real solver
-  // and records the named scientific outcome instead of pretending a match.
+  // The catalogue is same-source with the image: every star direction is the
+  // exact sky position of the injected pixel centre under the same TAN frame
+  // (obtained through the typed forward operation).  The solver therefore has
+  // a genuine matched catalogue, not a decoy shard.
   for (std::size_t i = 0; i < sources.size(); ++i) {
-    const double ra = 0.10 + 0.0003 * static_cast<double>(i);
-    const double dec = 0.05 + 0.0002 * static_cast<double>(i);
+    auto forward_input = std::make_shared<modules::ForwardCenter0Input>();
+    forward_input->wcs = model;
+    forward_input->point = PixelCenter0{sources[i][0], sources[i][1]};
+    forward_input->request = vpf::budget(1e-12, 1e-12, 128);
+    auto sky = vpf::invoke<modules::ForwardCenter0Input, SkyICRS>(
+        chain, "coordinates.wcs", "forward.center0", forward_input);
+    if (sky.code != Code::ok) return out;
+    const double ra = std::atan2(sky.value->ny, sky.value->nx);
+    const double dec = std::asin(sky.value->nz);
     const U64 id = 1000 + i;
     ids.push_back(id);
     astrometry.insert(astrometry.end(), {ra, dec, 2016.0, 0.0, 0.0, 0.0, 0.0, 0.0});
@@ -83,11 +102,11 @@ CatalogueFixture make_catalogue(const vpf::Chain& chain, const Ref<WcsModel>& mo
 
   auto build_input = std::make_shared<modules::BuildCatalogueIndexInput>();
   build_input->request.columns = columns;
-  build_input->request.sky_order = 3;
-  build_input->request.max_stars_per_cell = 8;
-  build_input->request.neighbors_per_anchor = 3;
-  build_input->request.quads_per_anchor = 4;
-  build_input->request.quad_baseline_rad = Interval{1e-4, 1e-2};
+  build_input->request.sky_order = 6;
+  build_input->request.max_stars_per_cell = 16;
+  build_input->request.neighbors_per_anchor = 4;
+  build_input->request.quads_per_anchor = 8;
+  build_input->request.quad_baseline_rad = Interval{1e-6, 1e-1};
   build_input->request.release = "validation-release";
   build_input->request.calibration = "validation-calibration";
   auto built = vpf::invoke<modules::BuildCatalogueIndexInput, Ref<CatalogueIndex>>(
@@ -136,15 +155,15 @@ int main() {
   text("CTYPE1", "RA---TAN");
   text("CTYPE2", "DEC--TAN");
   text("RADESYS", "ICRS");
-  number("CRPIX1", 17.0);
-  number("CRPIX2", 17.0);
+  number("CRPIX1", 51.0);
+  number("CRPIX2", 51.0);
   number("CRVAL1", 10.0);
   number("CRVAL2", 20.0);
-  number("CD1_1", -0.001);
-  number("CD2_2", 0.001);
+  number("CD1_1", -0.0005);
+  number("CD2_2", 0.0005);
   auto make_wcs_input = std::make_shared<modules::MakeWcsInput>();
   make_wcs_input->header = header;
-  make_wcs_input->domain = Box{Vec2{-0.5, -0.5}, Vec2{32.5, 32.5}};
+  make_wcs_input->domain = Box{Vec2{-0.5, -0.5}, Vec2{100.5, 100.5}};
   make_wcs_input->detector_frame = "detector0";
   make_wcs_input->request = vpf::budget(1e-12, 1e-12, 128);
   auto wcs = vpf::invoke<modules::MakeWcsInput, Ref<WcsModel>>(
@@ -153,9 +172,9 @@ int main() {
   if (wcs.code != Code::ok || !wcs.value) return recorder.finish();
 
   const auto sources = field();
-  const std::vector<double> image = vpf::gaussian_image(32, 32, sources, 1.2, 0.0);
+  const std::vector<double> image = vpf::gaussian_image(100, 100, sources, 1.2, 0.0);
   auto native = vpf::make_native(chain.command, image,
-                                 std::vector<std::uint16_t>(image.size(), 0), 32, 32, "frame0",
+                                 std::vector<std::uint16_t>(image.size(), 0), 100, 100, "frame0",
                                  2016.0);
   if (!native.observation) return recorder.finish();
 
@@ -169,18 +188,18 @@ int main() {
   auto input = std::make_shared<modules::SolveAstrometryInput>();
   input->observation = native.observation;
   input->catalogue = catalogue.provider;
-  input->request.scale_rad_pixel = Interval{1e-5, 3e-5};
-  input->request.max_candidates = 32;
+  input->request.scale_rad_pixel = Interval{7.0e-6, 1.2e-5};
+  input->request.max_candidates = 40;
   input->request.max_hypotheses = 200;
   input->request.sip_order = 0;
-  input->request.detect_snr = 5.0;
-  input->request.match_radius_pixel = 2.0;
-  input->request.min_matches = 4;
+  input->request.detect_snr = 3.0;
+  input->request.match_radius_pixel = 1.0;
+  input->request.min_matches = 9;
   input->request.quad_descriptor_tolerance = 0.02;
   input->request.budget = vpf::budget(1e-8, 1e-8, 256);
 
   auto plan = modules::plan_solve_astrometry_op(chain.command, input,
-                                                PlanOptions{32, 1, Placement::memory});
+                                                PlanOptions{40, 1, Placement::memory});
   recorder.expect_code("astrometry.plan", "ok", plan);
   if (plan.code == Code::ok) {
     recorder.value("astrometry.plan.elements", plan.value->elements);
@@ -193,11 +212,59 @@ int main() {
   recorder.check("astrometry.named_result", solution.code != Code::internal,
                  "a named scientific code", vrt::code_name(solution.code));
   if (solution.code == Code::ok && solution.value) {
-    recorder.check("astrometry.wcs_present", (*solution.value)->wcs != nullptr, "true",
-                   (*solution.value)->wcs ? "true" : "false");
+    const Ref<WcsModel> solved = (*solution.value)->wcs;
+    recorder.check("astrometry.wcs_present", solved != nullptr, "true",
+                   solved ? "true" : "false");
     recorder.value("astrometry.solved", true);
+    if (solved) {
+      const Ref<WcsModel>& injected = *wcs.value;
+      const double crpix_error = std::max(std::fabs(solved->crpix_fits1[0] - 51.0),
+                                          std::fabs(solved->crpix_fits1[1] - 51.0));
+      recorder.value("astrometry.crpix_error_fits_pixel", crpix_error);
+      recorder.check("astrometry.crpix_close", crpix_error <= 1e-3, "<=1e-3 fits pixel",
+                     vrt::number(crpix_error));
+      double cd_error = 0.0;
+      for (std::size_t i = 0; i < 4; ++i)
+        cd_error = std::max(cd_error, std::fabs(solved->cd_rad_per_pixel[i] -
+                                                injected->cd_rad_per_pixel[i]));
+      recorder.value("astrometry.cd_error_rad_per_pixel", cd_error);
+      for (std::size_t i = 0; i < 4; ++i) {
+        recorder.value("astrometry.cd_solved_" + std::to_string(i), solved->cd_rad_per_pixel[i]);
+        recorder.value("astrometry.cd_injected_" + std::to_string(i), injected->cd_rad_per_pixel[i]);
+      }
+      recorder.value("astrometry.crpix_solved_0", solved->crpix_fits1[0]);
+      recorder.value("astrometry.crpix_solved_1", solved->crpix_fits1[1]);
+      const std::vector<double> parameters = vpf::read_f64(chain.command, (*solution.value)->parameters, 8);
+      for (std::size_t i = 0; i < parameters.size(); ++i)
+        recorder.value("astrometry.parameter_" + std::to_string(i), parameters[i]);
+      recorder.check("astrometry.cd_close", cd_error <= 1e-12, "<=5e-7 rad/pixel",
+                     vrt::number(cd_error));
+      // Sky agreement at the field centre through both frame models.
+      auto forward = [&](const Ref<WcsModel>& model, PixelCenter0 point) {
+        auto forward_input = std::make_shared<modules::ForwardCenter0Input>();
+        forward_input->wcs = model;
+        forward_input->point = point;
+        forward_input->request = vpf::budget();
+        return vpf::invoke<modules::ForwardCenter0Input, SkyICRS>(
+            chain, "coordinates.wcs", "forward.center0", forward_input);
+      };
+      for (const PixelCenter0 point : {PixelCenter0{10.0, 12.0}, PixelCenter0{90.0, 11.0}}) {
+        auto injected_sky = forward(injected, point);
+        auto solved_sky = forward(solved, point);
+        if (injected_sky.code == Code::ok && solved_sky.code == Code::ok) {
+          const double dot = injected_sky.value->nx * solved_sky.value->nx +
+                             injected_sky.value->ny * solved_sky.value->ny +
+                             injected_sky.value->nz * solved_sky.value->nz;
+          const std::string suffix = std::to_string(static_cast<int>(point.x));
+          recorder.value("astrometry.sky_dot_" + suffix, dot);
+          recorder.check("astrometry.sky_matches_injection_" + suffix, dot >= 1.0 - 1e-14,
+                         "dot>=1-1e-14", vrt::number(dot));
+        }
+      }
+    }
   } else {
     recorder.value("astrometry.solved", false);
+    recorder.value("astrometry.issue", vrt::issue_text(solution.assessment));
     recorder.note("solve_astrometry returned the named code " +
                   std::string(vrt::code_name(solution.code)) +
                   " for the frozen synthetic field");

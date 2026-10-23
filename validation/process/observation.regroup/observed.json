@@ -2,23 +2,32 @@
   "case": "observation.regroup",
   "source": "validation/process/observation.regroup/regroup.cpp",
   "status": "ran",
-  "attempts": 10,
-  "successes": 10,
+  "attempts": 19,
+  "successes": 19,
   "failures": [],
   "checks": [
     {"check": "start.services", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "start.open_command", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "start.register_builtin_types", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.operators.action", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "start.observation.regroup", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "start.freeze", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "start.make_host", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fixture.identity_action", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fixture.action_domain", "pass": true, "expected": "3", "actual": "3", "detail": ""},
+    {"check": "regroup.plan", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "regroup.run", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "regroup.exact_values", "pass": true, "expected": "[1,2,4]", "actual": "1,2,4", "detail": ""},
+    {"check": "regroup.index", "pass": true, "expected": "3", "actual": "3", "detail": ""},
+    {"check": "regroup.parent_preserved", "pass": true, "expected": "true", "actual": "true", "detail": ""},
+    {"check": "regroup.frame_preserved", "pass": true, "expected": "frame0", "actual": "frame0", "detail": ""},
     {"check": "negative.missing_G_plan", "pass": true, "expected": "invalid_request", "actual": "invalid_request(invalid_request:observation.regroup:the regroup input is invalid)", "detail": ""},
     {"check": "negative.missing_G", "pass": true, "expected": "invalid_request", "actual": "invalid_request(invalid_request:observation.regroup:no regrouping matrix supplied)", "detail": ""},
     {"check": "negative.unknown_operation", "pass": true, "expected": "unsupported", "actual": "unsupported(unsupported:host.invoke:unknown process 'observation.regroup' operation 'not_an_operation'; the frozen registry has no typed binding)", "detail": ""},
-    {"check": "negative.zero_member_count_contract", "pass": true, "expected": "invalid_model", "actual": "checked by validate when a G is supplied", "detail": ""}
+    {"check": "negative.singular_transform", "pass": true, "expected": "invalid_model", "actual": "invalid_model(invalid_model:observation.regroup:the image transform is not invertible)", "detail": ""}
   ],
-  "values": {},
+  "values": {"regroup.plan.elements": 3, "regroup.plan.persistent_host_bytes": 81998, "regroup.plan.progress_floor_host_bytes": 1053900, "regroup.plan.work_upper": 1048576},
   "resources": {},
   "commands": [],
-  "notes": ["the exact identity regrouping positive example is blocked: the public API has no LinearAction factory; operators.action must be integrated (or a public factory added) before this process can be exercised end to end"]
+  "notes": []
 }

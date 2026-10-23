@@ -2,8 +2,8 @@
   "case": "sources.astrometry",
   "source": "validation/process/sources.astrometry/astrometry.cpp",
   "status": "ran",
-  "attempts": 14,
-  "successes": 14,
+  "attempts": 19,
+  "successes": 19,
   "failures": [],
   "checks": [
     {"check": "start.services", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
@@ -18,11 +18,16 @@
     {"check": "fixture.catalogue_build", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "fixture.catalogue_provider", "pass": true, "expected": "true", "actual": "true", "detail": ""},
     {"check": "astrometry.plan", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
-    {"check": "astrometry.named_result", "pass": true, "expected": "a named scientific code", "actual": "unsolved", "detail": ""},
+    {"check": "astrometry.named_result", "pass": true, "expected": "a named scientific code", "actual": "ok", "detail": ""},
+    {"check": "astrometry.wcs_present", "pass": true, "expected": "true", "actual": "true", "detail": ""},
+    {"check": "astrometry.crpix_close", "pass": true, "expected": "<=1e-3 fits pixel", "actual": "2.4399015067899654e-05", "detail": ""},
+    {"check": "astrometry.cd_close", "pass": true, "expected": "<=5e-7 rad/pixel", "actual": "3.4898854595580275e-16", "detail": ""},
+    {"check": "astrometry.sky_matches_injection_10", "pass": true, "expected": "dot>=1-1e-14", "actual": "1.0000000000000002", "detail": ""},
+    {"check": "astrometry.sky_matches_injection_90", "pass": true, "expected": "dot>=1-1e-14", "actual": "1", "detail": ""},
     {"check": "negative.min_matches_zero", "pass": true, "expected": "invalid_request", "actual": "invalid_request(invalid_request:sources.astrometry:the match and the candidate budgets must be positive)", "detail": ""}
   ],
-  "values": {"astrometry.plan.elements": 1024, "astrometry.plan.persistent_host_bytes": 526336, "astrometry.plan.progress_floor_host_bytes": 2210816, "astrometry.solved": false},
+  "values": {"astrometry.plan.elements": 10000, "astrometry.plan.persistent_host_bytes": 526848, "astrometry.plan.progress_floor_host_bytes": 2464672, "astrometry.solved": true, "astrometry.crpix_error_fits_pixel": 2.4399015067899654e-05, "astrometry.cd_error_rad_per_pixel": 3.4898854595580275e-16, "astrometry.cd_solved_0": -8.7266462599713602e-06, "astrometry.cd_injected_0": -8.7266462599716482e-06, "astrometry.cd_solved_1": 3.4898854595580275e-16, "astrometry.cd_injected_1": 0, "astrometry.cd_solved_2": 3.4877743431063855e-16, "astrometry.cd_injected_2": 0, "astrometry.cd_solved_3": 8.7266462599705691e-06, "astrometry.cd_injected_3": 8.7266462599716482e-06, "astrometry.crpix_solved_0": 50.999987412887933, "astrometry.crpix_solved_1": 50.999975600984932, "astrometry.parameter_0": 50.999987412887933, "astrometry.parameter_1": 50.999975600984932, "astrometry.parameter_2": 0.17453292531632572, "astrometry.parameter_3": 0.34906585018594438, "astrometry.parameter_4": -8.7266462599713602e-06, "astrometry.parameter_5": 3.4898854595580275e-16, "astrometry.parameter_6": 3.4877743431063855e-16, "astrometry.parameter_7": 8.7266462599705691e-06, "astrometry.sky_dot_10": 1.0000000000000002, "astrometry.sky_dot_90": 1},
   "resources": {},
   "commands": [],
-  "notes": ["solve_astrometry returned the named code unsolved for the frozen synthetic field"]
+  "notes": []
 }

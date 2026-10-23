@@ -1,13 +1,17 @@
 {
   "case": "observation.regroup",
-  "title": "registration and contract negatives (positive blocked by the missing public action factory)",
+  "title": "identity regrouping through the typed operators.action process",
   "frozen_inputs": {
     "native_observation": "3 samples [1,2,4] ADU, DQ 0",
-    "output_index": "3 samples"
+    "G": "identity LinearAction built by Host-invoking operators.action make_action with domain/codomain = the 3-sample index",
+    "output_index": "3 samples, detector0 footprints"
   },
   "expected": {
+    "fixture.identity_action": "ok",
+    "regroup.run": "ok with exactly [1,2,4]",
+    "negative.missing_G_plan": "invalid_request",
     "negative.missing_G": "invalid_request",
-    "negative.missing_G_plan": "invalid_request"
-  },
-  "blocked": "identity G requires a LinearAction; no public factory before operators.action integration"
+    "negative.unknown_operation": "unsupported",
+    "negative.singular_transform": "invalid_model"
+  }
 }

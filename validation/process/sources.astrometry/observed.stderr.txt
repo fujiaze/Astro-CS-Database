@@ -11,4 +11,9 @@
 [ok] fixture.catalogue_provider
 [ok] astrometry.plan
 [ok] astrometry.named_result
+[ok] astrometry.wcs_present
+[ok] astrometry.crpix_close
+[ok] astrometry.cd_close
+[ok] astrometry.sky_matches_injection_10
+[ok] astrometry.sky_matches_injection_90
 [ok] negative.min_matches_zero

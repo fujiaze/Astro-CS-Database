@@ -1,14 +1,17 @@
 {
   "case": "observation.regroup",
   "status": "pass",
-  "attempts": 10,
-  "successes": 10,
+  "attempts": 19,
+  "successes": 19,
   "failures": [],
-  "values": {},
+  "values": {
+    "regroup.plan.elements": 3,
+    "regroup.plan.persistent_host_bytes": 81998,
+    "regroup.plan.progress_floor_host_bytes": 1053900,
+    "regroup.plan.work_upper": 1048576
+  },
   "resources": {},
-  "notes": [
-    "the exact identity regrouping positive example is blocked: the public API has no LinearAction factory; operators.action must be integrated (or a public factory added) before this process can be exercised end to end"
-  ],
+  "notes": [],
   "checks": [
     {
       "check": "start.services",
@@ -26,6 +29,13 @@
     },
     {
       "check": "start.register_builtin_types",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "start.operators.action",
       "pass": true,
       "expected": "ok",
       "actual": "ok",
@@ -53,6 +63,62 @@
       "detail": ""
     },
     {
+      "check": "fixture.identity_action",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "fixture.action_domain",
+      "pass": true,
+      "expected": "3",
+      "actual": "3",
+      "detail": ""
+    },
+    {
+      "check": "regroup.plan",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "regroup.run",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "regroup.exact_values",
+      "pass": true,
+      "expected": "[1,2,4]",
+      "actual": "1,2,4",
+      "detail": ""
+    },
+    {
+      "check": "regroup.index",
+      "pass": true,
+      "expected": "3",
+      "actual": "3",
+      "detail": ""
+    },
+    {
+      "check": "regroup.parent_preserved",
+      "pass": true,
+      "expected": "true",
+      "actual": "true",
+      "detail": ""
+    },
+    {
+      "check": "regroup.frame_preserved",
+      "pass": true,
+      "expected": "frame0",
+      "actual": "frame0",
+      "detail": ""
+    },
+    {
       "check": "negative.missing_G_plan",
       "pass": true,
       "expected": "invalid_request",
@@ -74,10 +140,10 @@
       "detail": ""
     },
     {
-      "check": "negative.zero_member_count_contract",
+      "check": "negative.singular_transform",
       "pass": true,
       "expected": "invalid_model",
-      "actual": "checked by validate when a G is supplied",
+      "actual": "invalid_model(invalid_model:observation.regroup:the image transform is not invertible)",
       "detail": ""
     }
   ],
