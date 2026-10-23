@@ -79,7 +79,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
       return fail<ProductLocation>(Code::cancelled, "the mosaic was cancelled", "mosaic",
                                    "no product was published");
     }
-    Result<Ref<ProductProvider>> product = open_product(context, location);
+  Result<Ref<ProductProvider>> product = open_product(context, location);
     if (!ok(product)) {
       return fail<ProductLocation>(product.code,
                                    product.assessment.issues.empty()
@@ -189,8 +189,55 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
                                      : frames.assessment.issues.front().reason,
                                  "mosaic", "no product was published");
   }
+
+  // Without an explicit T/H the process document builds the default 32x32
+  // face-chart patch inside a comparability group.  The workflow supplies such
+  // a group only when the frames actually share the response and the spatial
+  // kernel (their identities are the proofs); otherwise comparability is not
+  // established and the mosaic stops with the named reason instead of
+  // fabricating a group.
+  SkyRequest sky_request = request.sky;
+  if (sky_request.groups.empty() && !sky_request.T && !sky_request.H) {
+    Comparability group;
+    bool comparable = !descriptions.empty();
+    Id response_proof;
+    Id kernel_proof;
+    for (const Ref<FrameDescription>& description : descriptions) {
+      if (!description->response) {
+        comparable = false;
+        break;
+      }
+      const Id response = description->response->identity.object_id;
+      const Id kernel = description->psf ? description->psf->identity.object_id : response;
+      if (response.empty() || kernel.empty()) {
+        comparable = false;
+        break;
+      }
+      if (group.frames.empty()) {
+        response_proof = response;
+        kernel_proof = kernel;
+      } else if (response != response_proof || kernel != kernel_proof) {
+        comparable = false;
+        break;
+      }
+      group.frames.push_back(description->frame);
+    }
+    if (!comparable || group.frames.empty()) {
+      return fail<ProductLocation>(
+          Code::invalid_request,
+          "the default comparability group cannot be established: the frames do not "
+          "share one response and one spatial kernel",
+          "mosaic", "no product was published");
+    }
+    group.response_proof = response_proof;
+    group.spatial_kernel_proof = kernel_proof;
+    group.matching = nullptr;
+    group.assumptions.kind = "same_response_and_kernel_identity";
+    group.assumptions.fixed_objects = {response_proof, kernel_proof};
+    sky_request.groups.push_back(std::move(group));
+  }
   auto controls_input = std::make_shared<const modules::BuildSkyControlsInput>(
-      modules::BuildSkyControlsInput{val(frames), request.sky});
+      modules::BuildSkyControlsInput{val(frames), sky_request});
   Result<rt::InvocationPlan> controls_plan = modules::plan_sky_controls(
       workflow_runtime.command, controls_input, workflow_runtime.options);
   Result<Ref<SkyControls>> controls = rt::wait_external(
@@ -204,7 +251,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
                                  "mosaic", "no product was published");
   }
   auto sky_input = std::make_shared<const modules::FitRelativeSkyInput>(
-      modules::FitRelativeSkyInput{val(controls), request.sky});
+      modules::FitRelativeSkyInput{val(controls), sky_request});
   Result<rt::InvocationPlan> sky_plan = modules::plan_sky_fit(
       workflow_runtime.command, sky_input, workflow_runtime.options);
   Result<Ref<SkyFit>> sky = rt::wait_external(

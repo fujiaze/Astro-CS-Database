@@ -174,11 +174,21 @@ Result<Ref<CovarianceAction>> make_covariance(Context& context, Ref<NoiseModel> 
   // C = I C_latent I^T, so its input and its output are the codomain of the
   // influence.  The coordinates of a root describe its latent space and are
   // the fallback for a model without an influence.
+  if (model->influence.empty() && model->innovations.empty() &&
+      model->shared_factors.empty()) {
+    return model::fail<Ref<CovarianceAction>>(
+        Code::unavailable,
+        "the noise model carries no uncertainty root; a covariance cannot be "
+        "built without inventing one",
+        "make_covariance", "the covariance is not available");
+  }
   DomainUnits spaces;
-  const Ref<LinearAction>& first_influence = model->influence.front();
-  if (first_influence && first_influence->spaces.codomain) {
-    spaces.domain = first_influence->spaces.codomain;
-    spaces.codomain = first_influence->spaces.codomain;
+  const Ref<LinearAction>* first_influence =
+      model->influence.empty() ? nullptr : &model->influence.front();
+  if (first_influence && *first_influence &&
+      (*first_influence)->spaces.codomain) {
+    spaces.domain = (*first_influence)->spaces.codomain;
+    spaces.codomain = (*first_influence)->spaces.codomain;
   } else if (!model->innovations.empty() && model->innovations.front()) {
     spaces.domain = model->innovations.front()->coordinates;
     spaces.codomain = spaces.domain;

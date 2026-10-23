@@ -462,9 +462,11 @@ class ProductReader {
     }
     // The support map of the estimate is reopened as well: the export needs
     // the support of every leaf.
-    const Id support_ref = workflows::decode_ref(val(payload).contains("support")
-                                                      ? val(payload).at("support")
-                                                      : json(nullptr));
+    const auto ref = [&](const char* key) {
+      return workflows::decode_ref(val(payload).contains(key) ? val(payload).at(key)
+                                                              : json(nullptr));
+    };
+    const Id support_ref = ref("support");
     if (!support_ref.empty()) {
       Result<Ref<SupportMap>> resolved = this->support(support_ref);
       if (!ok(resolved)) {
@@ -477,47 +479,39 @@ class ProductReader {
       }
       estimate.support = val(resolved);
     }
-    for (ArrayRef* target : {&estimate.numerical_lower, &estimate.numerical_upper}) {
-      const Id hash_of_array = (*target) ? (*target)->identity.object_id : Id();
-      if (hash_of_array.empty()) continue;
-      Result<ArrayRef> array = this->array(hash_of_array);
+    // The published estimate carries the target bounds, the error record and
+    // the effective response as object references.  They are reopened here;
+    // a silent drop used to leave the mosaic without its spatial response.
+    for (const char* key : {"numerical_lower", "numerical_upper"}) {
+      const Id id = ref(key);
+      if (id.empty()) continue;
+      Result<ArrayRef> array = this->array(id);
       if (!ok(array)) {
-        return fail<Ref<SignalEstimate>>(array.code, "the bound cannot be reopened", "product.read",
-                                        "the product cannot be reopened");
-      }
-      *target = val(array);
-    }
-    const Id support = estimate.support ? estimate.support->identity.object_id : Id();
-    if (!support.empty()) {
-      Result<Ref<SupportMap>> resolved = this->support(support);
-      if (!ok(resolved)) {
-        return fail<Ref<SignalEstimate>>(
-            resolved.code,
-            resolved.assessment.issues.empty()
-                ? "the support cannot be reopened"
-                : "the support cannot be reopened: " + resolved.assessment.issues.front().reason,
-            "product.read", "the product cannot be reopened");
-      }
-      estimate.support = val(resolved);
-    }
-    const Id error = estimate.error ? estimate.error->identity.object_id : Id();
-    if (!error.empty()) {
-      Result<Ref<ErrorRecord>> resolved = this->error(error);
-      if (!ok(resolved)) {
-        return fail<Ref<SignalEstimate>>(resolved.code, "the error record cannot be reopened",
+        return fail<Ref<SignalEstimate>>(array.code, "the bound cannot be reopened",
                                          "product.read", "the product cannot be reopened");
       }
-      estimate.error = val(resolved);
+      if (std::string(key) == "numerical_lower")
+        estimate.numerical_lower = val(array);
+      else
+        estimate.numerical_upper = val(array);
     }
-    const Id response = estimate.effective_response ? estimate.effective_response->identity.object_id
-                                                     : Id();
-    if (!response.empty()) {
-      Result<Ref<SpatialResponse>> resolved = this->response(response);
+    const Id response_ref = ref("effective_response");
+    if (!response_ref.empty()) {
+      Result<Ref<SpatialResponse>> resolved = this->response(response_ref);
       if (!ok(resolved)) {
         return fail<Ref<SignalEstimate>>(resolved.code, "the response cannot be reopened",
                                          "product.read", "the product cannot be reopened");
       }
       estimate.effective_response = val(resolved);
+    }
+    const Id error_ref = ref("error");
+    if (!error_ref.empty()) {
+      Result<Ref<ErrorRecord>> resolved = this->error(error_ref);
+      if (!ok(resolved)) {
+        return fail<Ref<SignalEstimate>>(resolved.code, "the error record cannot be reopened",
+                                         "product.read", "the product cannot be reopened");
+      }
+      estimate.error = val(resolved);
     }
     auto result = std::make_shared<SignalEstimate>(estimate);
     return ok_result(std::shared_ptr<const SignalEstimate>(result));

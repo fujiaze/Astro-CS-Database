@@ -128,7 +128,7 @@ Result<ArrayView> LocalStorage::read(Context& context, ArrayRef array,
     }
     total *= extent;
   }
-  if (range.begin > range.count || range.begin + range.count > total) {
+  if (range.begin > total || range.begin + range.count > total) {
     return model::fail<ArrayView>(Code::invalid_request, "block request is out of range",
                                   "storage.read", "the requested range cannot be resolved");
   }

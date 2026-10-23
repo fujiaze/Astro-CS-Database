@@ -147,8 +147,8 @@ class CatalogueProviderImpl final : public CatalogueProvider {
   void load_index_arrays(Context& context);
   Result<U64> resolve_cursor(const std::string& cursor, const std::string& request_hash,
                               std::string& reason) const;
-  CatalogueStar make_star(Context& context, const StarRow& row, double epoch,
-                          double parallax_rad) const;
+  Result<CatalogueStar> make_star(Context& context, const StarRow& row, double epoch,
+                                  double parallax_rad) const;
 
   static U64 element_count(const ArrayRef& array) {
     if (!array) return 0;
@@ -272,8 +272,9 @@ Result<U64> CatalogueProviderImpl::resolve_cursor(const std::string& cursor,
   return model::ok_result(decoded.offset);
 }
 
-CatalogueStar CatalogueProviderImpl::make_star(Context& context, const StarRow& row, double epoch,
-                                               double parallax_rad) const {
+Result<CatalogueStar> CatalogueProviderImpl::make_star(Context& context, const StarRow& row,
+                                                           double epoch,
+                                                           double parallax_rad) const {
   CatalogueStar star;
   star.source_id = row.source_id;
   const catalogue::PropagatedPosition propagated = catalogue::propagate_star(row, epoch);
@@ -301,10 +302,18 @@ CatalogueStar CatalogueProviderImpl::make_star(Context& context, const StarRow& 
       const std::vector<U64> shape{coefficients};
       Result<ArrayRef> copy = context.storage.copy(context, DType::f64, bytes, shape, source->unit,
                                                     source->index_id);
-      if (ok(copy)) star.xp_coefficients = val(copy);
+      if (!ok(copy))
+        return model::fail<CatalogueStar>(
+            copy.code, "the XP coefficients cannot be copied for the source",
+            "catalogue.make_star", "the star has no spectral coefficients");
+      star.xp_coefficients = val(copy);
+    } else {
+      return model::fail<CatalogueStar>(
+          view.code, "the XP coefficients cannot be read for the source",
+          "catalogue.make_star", "the star has no spectral coefficients");
     }
   }
-  return star;
+  return model::ok_result(star);
 }
 
 Result<CataloguePage> CatalogueProviderImpl::query(Context& context,
@@ -360,7 +369,13 @@ Result<CataloguePage> CatalogueProviderImpl::query(Context& context,
     const StarRow& row = stars_[members[i]];
     const catalogue::PropagatedPosition propagated =
         catalogue::propagate_star(row, request.epoch_julian_year);
-    page.stars.push_back(make_star(context, row, request.epoch_julian_year, propagated.parallax_rad));
+    Result<CatalogueStar> star =
+        make_star(context, row, request.epoch_julian_year, propagated.parallax_rad);
+    if (!ok(star))
+      return model::fail<CataloguePage>(
+          star.code, "a catalogue star cannot be materialised", "catalogue.query",
+          "the page cannot be produced");
+    page.stars.push_back(val(star));
   }
   const U64 next = start + page.stars.size();
   if (next < members.size()) {
@@ -557,7 +572,13 @@ Result<std::vector<CatalogueStar>> CatalogueProviderImpl::lookup(
     }
     const catalogue::PropagatedPosition propagated =
         catalogue::propagate_star(row, row.epoch_year);
-    stars.push_back(make_star(context, row, row.epoch_year, propagated.parallax_rad));
+    Result<CatalogueStar> star =
+        make_star(context, row, row.epoch_year, propagated.parallax_rad);
+    if (!ok(star))
+      return model::fail<std::vector<CatalogueStar>>(
+          star.code, "a catalogue star cannot be materialised", "catalogue.lookup",
+          "the identifiers cannot be resolved");
+    stars.push_back(val(star));
   }
   if (unbounded) {
     assessment.noise = NoiseState::unknown;
