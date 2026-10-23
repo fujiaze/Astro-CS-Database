@@ -1,0 +1,50 @@
+{
+  "case": "cal_equivalence",
+  "title": "P1-4: one metadata validation verdict for the synchronous entry point and the typed hooks",
+  "milestone": "M4",
+  "contract_refs": [
+    "docs/engineering/rebuild/processes/observation.calibrate.md (algorithm and validation contract)",
+    "docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md (validate reads metadata only; payload conflict after read)",
+    "docs/engineering/rebuild/standards/FOUNDATION_API.md (validate/plan only read metadata)"
+  ],
+  "fixed_configuration": {
+    "valid_frame": {
+      "raw": [
+        10,
+        20,
+        -2
+      ],
+      "bias": 2,
+      "dark": 4,
+      "dark_contains_bias": true,
+      "exposure_seconds": 2,
+      "dark_exposure_seconds": 1,
+      "flat": 2,
+      "flat_normalization": 2
+    },
+    "cases": {
+      "dq_not_dimensionless": "invalid_model",
+      "exposure_zero": "invalid_model",
+      "absent_flat_zero_normalization": "invalid_model",
+      "missing_footprints": "unavailable",
+      "shape_mismatch": "invalid_model",
+      "flat_wrong_dtype": "invalid_model",
+      "payload_conflict": "typed=ok, sync=invalid_model (validate is metadata-only; CPU stage rejects after read)"
+    }
+  },
+  "required_checks": [
+    "cal.eq.valid",
+    "cal.eq.dq_not_dimensionless",
+    "cal.eq.exposure_zero",
+    "cal.eq.absent_flat_zero_normalization",
+    "cal.eq.missing_footprints",
+    "cal.eq.shape_mismatch",
+    "cal.eq.flat_wrong_dtype",
+    "cal.eq.payload_conflict_after_read"
+  ],
+  "min_attempts": 8,
+  "expected_success_count": 8,
+  "tolerance": "Codes compared by name; the payload-conflict case asserts the documented allowed difference",
+  "link": "science",
+  "timeout_seconds": 120
+}

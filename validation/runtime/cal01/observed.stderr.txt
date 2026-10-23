@@ -9,6 +9,8 @@
 [ok] cal.bias_array_ok
 [ok] cal.dark_array_ok
 [ok] cal.flat_array_ok
+[ok] cal.plan_bounds_ok
+[ok] cal.plan_ok
 [ok] cal.cal1_host_ok
 [cal01] read_f64 reserve
 [cal01] read_f64 reserve code=ok
@@ -55,6 +57,7 @@
 [ok] cal.root_second_adu_ok
 [ok] cal.root_both_frames_ok
 [ok] cal.root_shared_arrays_unchanged
+[FAIL] cal.root_shared_dependencies expected=>=1 identical dependency id across the two frames actual=deps1=0 deps2=0 common=0 detail=the shared bias/dark masters must be visible as a common dependency (or an equal output noise shared_id); empty dependencies cannot prove that the same source was reused
 [ok] cal.root_no_per_call_random_root
 [ok] cal.root_close_command_ok
 [ok] cal.host_close_ok

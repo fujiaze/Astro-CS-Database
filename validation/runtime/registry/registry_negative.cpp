@@ -8,6 +8,7 @@
 
 #include <cstdio>
 #include <filesystem>
+#include <set>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -223,8 +224,9 @@ void stable_manifest_order() {
   check(builder.register_type<U64>(good_codec<U64>("acsd.test.Out")).code ==
             Code::ok,
         "order: output type");
+  const Id alpha_document = temporary_document("order-alpha.md");
   auto zulu = builder.begin(descriptor("test.zulu", "observation", document));
-  auto alpha = builder.begin(descriptor("test.alpha", "observation", document));
+  auto alpha = builder.begin(descriptor("test.alpha", "observation", alpha_document));
   check(zulu.code == Code::ok && alpha.code == Code::ok, "order: begin");
   if (zulu.code == Code::ok && alpha.code == Code::ok) {
     check(builder.add(*zulu.value,
@@ -263,7 +265,7 @@ void stable_manifest_order() {
   reordered.register_type<U32>(good_codec<U32>("acsd.test.In"));
   reordered.register_type<U64>(good_codec<U64>("acsd.test.Out"));
   auto reordered_alpha =
-      reordered.begin(descriptor("test.alpha", "observation", document));
+      reordered.begin(descriptor("test.alpha", "observation", alpha_document));
   auto reordered_zulu =
       reordered.begin(descriptor("test.zulu", "observation", document));
   if (reordered_alpha.code == Code::ok && reordered_zulu.code == Code::ok) {
@@ -432,23 +434,43 @@ void missing_document() {
         "missing document: named error message");
 }
 
+void seed_one(RegistryBuilder& builder,
+              const std::shared_ptr<ProcessRegistration>& process,
+              const char* name) {
+  // One TypeId is registered exactly once per builder.
+  static std::set<const void*> seeded;
+  if (seeded.insert(&builder).second) {
+    (void)builder.register_type<U32>(good_codec<U32>("acsd.test.In"));
+    (void)builder.register_type<U64>(good_codec<U64>("acsd.test.Out"));
+  }
+  if (process)
+    builder.add<U32, U64>(process, operation<U32, U64>(
+                                       name, "acsd.test.In", "acsd.test.Out"));
+}
+
 void dependency_cycle() {
   const Id document = temporary_document("cycle.md");
+  const Id document_b = temporary_document("cycle-b.md");
   RegistryBuilder builder;
-  check(builder.begin(descriptor("test.cycle_a", "observation", document,
-                                 {"test.cycle_b"}))
-                .code == Code::ok,
-        "cycle: begin a");
-  check(builder.begin(descriptor("test.cycle_b", "observation", document,
-                                 {"test.cycle_a"}))
-                .code == Code::ok,
-        "cycle: begin b");
+  auto cycle_a = builder.begin(descriptor("test.cycle_a", "observation", document,
+                                 {"test.cycle_b"}));
+  check(cycle_a.code == Code::ok, "cycle: begin a");
+  seed_one(builder, *cycle_a.value, "a");
+  auto cycle_b = builder.begin(descriptor("test.cycle_b", "observation", document_b,
+                                 {"test.cycle_a"}));
+  check(cycle_b.code == Code::ok, "cycle: begin b");
+  seed_one(builder, *cycle_b.value, "b");
   check(freeze_code(builder) == Code::invalid_model,
         "static dependency cycle: invalid_model");
   RegistryBuilder again;
   const Id other = temporary_document("cycle-2.md");
-  again.begin(descriptor("test.cycle_a", "observation", other, {"test.cycle_b"}));
-  again.begin(descriptor("test.cycle_b", "observation", other, {"test.cycle_a"}));
+  const Id other_b = temporary_document("cycle-2-b.md");
+  auto again_a =
+      again.begin(descriptor("test.cycle_a", "observation", other, {"test.cycle_b"}));
+  seed_one(again, *again_a.value, "a");
+  auto again_b =
+      again.begin(descriptor("test.cycle_b", "observation", other_b, {"test.cycle_a"}));
+  seed_one(again, *again_b.value, "b");
   check(contains(freeze_reason(again), "dependency cycle"),
         "cycle: named error message");
 }
@@ -473,34 +495,38 @@ void unknown_module_dependency() {
 void valid_service_dependency() {
   const Id document = temporary_document("service.md");
   RegistryBuilder builder;
-  check(builder.begin(descriptor("test.service_dep", "storage", document,
+  auto service_dep = builder.begin(descriptor("test.service_dep", "storage", document,
                                  {"model", "service.storage",
-                                  "runtime"}))
-                .code == Code::ok,
-        "service dependency: begin");
+                                  "runtime"}));
+  check(service_dep.code == Code::ok, "service dependency: begin");
+  seed_one(builder, *service_dep.value, "service");
   check(freeze_code(builder) == Code::ok,
         "service.* dependency is legal");
 }
 
 void probe_conflict() {
   const Id document = temporary_document("probe.md");
+  const Id document_b = temporary_document("probe-b.md");
   RegistryBuilder builder;
-  check(builder.begin(descriptor("test.probe_a", "observation", document, {},
-                                 {{"shared.probe", "span", 1}}))
-                .code == Code::ok,
-        "probe conflict: begin a");
-  check(builder.begin(descriptor("test.probe_b", "observation", document, {},
-                                 {{"shared.probe", "span", 1}}))
-                .code == Code::ok,
-        "probe conflict: begin b");
+  auto probe_a = builder.begin(descriptor("test.probe_a", "observation", document, {},
+                                 {{"shared.probe", "span", 1}}));
+  check(probe_a.code == Code::ok, "probe conflict: begin a");
+  seed_one(builder, *probe_a.value, "pa");
+  auto probe_b = builder.begin(descriptor("test.probe_b", "observation", document_b, {},
+                                 {{"shared.probe", "span", 1}}));
+  check(probe_b.code == Code::ok, "probe conflict: begin b");
+  seed_one(builder, *probe_b.value, "pb");
   check(freeze_code(builder) == Code::identity_conflict,
         "probe id has exactly one owner: identity_conflict");
   RegistryBuilder again;
   const Id other = temporary_document("probe-2.md");
-  again.begin(descriptor("test.probe_a", "observation", other, {},
+  const Id other_b = temporary_document("probe-2-b.md");
+  auto again_a = again.begin(descriptor("test.probe_a", "observation", other, {},
                          {{"shared.probe", "span", 1}}));
-  again.begin(descriptor("test.probe_b", "observation", other, {},
+  seed_one(again, *again_a.value, "pa");
+  auto again_b = again.begin(descriptor("test.probe_b", "observation", other_b, {},
                          {{"shared.probe", "span", 1}}));
+  seed_one(again, *again_b.value, "pb");
   check(contains(freeze_reason(again), "probe 'shared.probe'"),
         "probe conflict: named error message");
 }
@@ -549,6 +575,41 @@ void foreign_registration_is_rejected() {
         "add with a null registration is invalid_request");
 }
 
+void empty_process_is_rejected() {
+  const Id document = temporary_document("empty.md");
+  RegistryBuilder builder;
+  (void)builder.register_type<U32>(good_codec<U32>("acsd.test.In"));
+  (void)builder.register_type<U64>(good_codec<U64>("acsd.test.Out"));
+  check(builder.begin(descriptor("test.empty", "observation", document)).code ==
+            Code::ok,
+        "empty process: begin");
+  check(freeze_code(builder) == Code::invalid_model,
+        "a process without an operation cannot freeze");
+  check(contains(freeze_reason(builder), "registers no operation"),
+        "empty process: named error message");
+}
+
+void duplicate_document_is_rejected() {
+  const Id document = temporary_document("shared-document.md");
+  RegistryBuilder builder;
+  (void)builder.register_type<U32>(good_codec<U32>("acsd.test.In"));
+  (void)builder.register_type<U64>(good_codec<U64>("acsd.test.Out"));
+  auto first = builder.begin(descriptor("test.doc_a", "observation", document));
+  auto second = builder.begin(descriptor("test.doc_b", "observation", document));
+  if (first.code == Code::ok)
+    (void)builder.add<U32, U64>(
+        first.value ? *first.value : nullptr,
+        operation<U32, U64>("da", "acsd.test.In", "acsd.test.Out"));
+  if (second.code == Code::ok)
+    (void)builder.add<U32, U64>(
+        second.value ? *second.value : nullptr,
+        operation<U32, U64>("db", "acsd.test.In", "acsd.test.Out"));
+  check(freeze_code(builder) == Code::identity_conflict,
+        "two processes cannot share one document");
+  check(contains(freeze_reason(builder), "share document"),
+        "duplicate document: named error message");
+}
+
 }  // namespace
 
 int main() {
@@ -573,6 +634,8 @@ int main() {
   immutable_after_freeze();
   cross_builder_registration();
   foreign_registration_is_rejected();
+  empty_process_is_rejected();
+  duplicate_document_is_rejected();
 
   if (failures != 0) {
     std::cerr << failures << " of " << checks << " registry checks failed\n";

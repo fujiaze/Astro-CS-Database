@@ -322,6 +322,38 @@ int main() {
     raw = make_raw({}, adu, dq, width, height, "frame0");
     calibration = make_calibration(bias, dark, flat, true);
 
+    // Independent work bound: ask the module's own plan for its declared work
+    // upper and require the Host usage to sit inside [samples, declared].
+    acsd::U64 declared_work = 0;
+    {
+      auto plan_input = std::make_shared<CalibrateInput>();
+      plan_input->raw = raw;
+      plan_input->request = calibration;
+      auto bounds = acsd::modules::bounds_calibration(ctx, plan_input);
+      recorder.expect_code("cal.plan_bounds_ok", "ok", bounds);
+      if (bounds.code == Code::ok && bounds.value) {
+        rt::PlanOptions options;
+        options.block_elements = std::min<acsd::U64>(bounds.value->max_block_elements, count);
+        options.window = 1;
+        options.placement = rt::Placement::memory;
+        auto plan = acsd::modules::plan_calibration(ctx, plan_input, options);
+        recorder.expect_code("cal.plan_ok", "ok", plan);
+        if (plan.code == Code::ok && plan.value) {
+          declared_work += plan.value->cleanup_work_upper;
+          for (const auto& region : plan.value->regions) {
+            acsd::U64 per_cohort = 0;
+            for (const auto& stage : region.stages) per_cohort += stage.work_upper;
+            declared_work += per_cohort * std::max<acsd::U64>(region.cohorts, 1);
+          }
+          recorder.value("cal.plan_block_elements",
+                         static_cast<long long>(plan.value->block_elements));
+          recorder.value("cal.plan_cohorts", static_cast<long long>(plan.value->cohorts));
+          recorder.value("cal.plan_regions", static_cast<long long>(plan.value->regions.size()));
+        }
+      }
+    }
+    recorder.value("cal.plan_declared_work", static_cast<long long>(declared_work));
+
     auto result = invoke(ctx, raw, calibration);
     recorder.check("cal.cal1_host_ok", result.code == Code::ok && result.value,
                    "ok + NativeObservation", vrt::code_of(result));
@@ -350,10 +382,15 @@ int main() {
                      native.frame == "frame0" &&
                          native.context.observation_jd_tdb == 2457500.5,
                      "frame0 + jd", native.frame);
-      recorder.check("cal.cal1_usage_work", result.usage.work >= count,
-                     ">= " + std::to_string(count) + " work units",
+      recorder.value("cal.cal1_usage_work_value", static_cast<long long>(result.usage.work));
+      recorder.check("cal.cal1_usage_work",
+                     declared_work >= count && result.usage.work >= count &&
+                         result.usage.work <= declared_work,
+                     std::to_string(count) + " <= usage.work <= plan-declared " +
+                         std::to_string(declared_work),
                      std::to_string(result.usage.work),
-                     "process usage aggregates stages; per-sample consume_work(1) is a lower bound");
+                     "the per-sample kernel consumes one unit each; the plan's declared "
+                     "work upper must cover the Host usage (an under-declared plan fails)");
       recorder.value("cal.cal1_lower0", lower.size() == count ? lower[0] : kNaN);
       recorder.value("cal.cal1_upper0", upper.size() == count ? upper[0] : kNaN);
     }
@@ -464,6 +501,23 @@ int main() {
                            a.component == b.component;
             }
           }
+          const auto& deps1 = result1.dependencies;
+          const auto& deps2 = result2.dependencies;
+          std::size_t common = 0;
+          for (const auto& id : deps1)
+            for (const auto& other : deps2)
+              if (id == other && !id.empty()) ++common;
+          recorder.value("cal.root_dep_count1", static_cast<long long>(deps1.size()));
+          recorder.value("cal.root_dep_count2", static_cast<long long>(deps2.size()));
+          recorder.value("cal.root_dep_common", static_cast<long long>(common));
+          recorder.check("cal.root_shared_dependencies", common >= 1,
+                         ">=1 identical dependency id across the two frames",
+                         "deps1=" + std::to_string(deps1.size()) + " deps2=" +
+                             std::to_string(deps2.size()) + " common=" +
+                             std::to_string(common),
+                         "the shared bias/dark masters must be visible as a common "
+                         "dependency (or an equal output noise shared_id); empty "
+                         "dependencies cannot prove that the same source was reused");
           recorder.check("cal.root_no_per_call_random_root", same_roots,
                          "identical shared root set (or both absent)",
                          std::string("noise1=") + (noise1 ? "present" : "null") +

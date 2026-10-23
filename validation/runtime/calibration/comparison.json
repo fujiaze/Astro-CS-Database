@@ -2,11 +2,11 @@
   "case": "cal_kernel",
   "status": "pass",
   "reason": "all required checks passed",
-  "attempts": 36,
-  "successes": 36,
-  "expected_success_count": 36,
-  "observed_success_count": 36,
-  "required_checks": 36,
+  "attempts": 37,
+  "successes": 37,
+  "expected_success_count": 37,
+  "observed_success_count": 37,
+  "required_checks": 37,
   "missing_checks": [],
   "failed_checks": [],
   "failures": [],
@@ -91,30 +91,30 @@
     {
       "check": "cal.plan_small_structure",
       "pass": true,
-      "expected": "region0 stream, cohorts1, stages3, edges2, adaptive=false",
+      "expected": "region0 serial (no pipe edges), stages3, work bounds",
       "actual": "structure differs",
-      "detail": "fixed plan of the walkthrough"
+      "detail": "the serial plan honestly declares no pipe edge (P1-8c)"
     },
     {
       "check": "cal.plan_small_floor",
       "pass": true,
-      "expected": "1052852",
-      "actual": "1052852",
+      "expected": "2166988",
+      "actual": "2166988",
       "detail": "F = 60n + S + control"
     },
     {
       "check": "cal.plan_small_persistent",
       "pass": true,
-      "expected": "32894",
-      "actual": "32894",
+      "expected": "33170",
+      "actual": "33170",
       "detail": "R = 26N + 16N (unknown noise placeholder) + final metadata + control"
     },
     {
-      "check": "cal.plan_small_edges",
+      "check": "cal.plan_small_serial",
       "pass": true,
-      "expected": "edges 0->1, 1->2",
-      "actual": "different edges",
-      "detail": "fixed stage graph"
+      "expected": "no pipe edges (serial composition)",
+      "actual": "edges declared",
+      "detail": "the plan does not advertise an unused pipe"
     },
     {
       "check": "cal.plan_large_cohorts",
@@ -133,15 +133,15 @@
     {
       "check": "cal.plan_large_floor",
       "pass": true,
-      "expected": "4984832",
-      "actual": "4984832",
+      "expected": "6623232",
+      "actual": "6623232",
       "detail": "F = 60n + S + control"
     },
     {
       "check": "cal.plan_large_persistent",
       "pass": true,
-      "expected": "8432768",
-      "actual": "8432768",
+      "expected": "26832768",
+      "actual": "26832768",
       "detail": "R includes the full output and the final model arrays"
     },
     {
@@ -161,7 +161,7 @@
     {
       "check": "cal.bounds_range",
       "pass": true,
-      "expected": "min=1, max=N, window>=2, spill allowed",
+      "expected": "min=1, max=N, window=1 (serial), spill allowed",
       "actual": "different bounds",
       "detail": "PlanBounds contract"
     },
@@ -185,6 +185,13 @@
       "expected": "invalid_request",
       "actual": "invalid_request",
       "detail": "window = 0 is rejected"
+    },
+    {
+      "check": "cal.plan_window_not_declared",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": "window=2 is rejected because the serial plan declares no pipe credit"
     },
     {
       "check": "cal.validate_ok",
@@ -280,17 +287,17 @@
     "plan.small.elements": 3,
     "plan.small.block": 3,
     "plan.small.cohorts": 1,
-    "plan.small.f": 1052852,
-    "plan.small.r": 32894,
+    "plan.small.f": 2166988,
+    "plan.small.r": 33170,
     "plan.large.elements": 200000,
     "plan.large.block": 65536,
     "plan.large.cohorts": 4,
-    "plan.large.f": 4984832,
-    "plan.large.r": 8432768,
+    "plan.large.f": 6623232,
+    "plan.large.r": 26832768,
     "plan.large.stage1_work": 65536
   },
   "resources": {
-    "checks": 36,
-    "successes": 36
+    "checks": 37,
+    "successes": 37
   }
 }

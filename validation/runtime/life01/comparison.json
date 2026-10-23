@@ -11,7 +11,7 @@
     "built": true,
     "status": "built",
     "classification": "ok",
-    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/life01.o -L /tmp/acsd-build-dev -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -fsanitize=address -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/life01",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/life01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -fsanitize=address -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/life01",
     "log": "validation/runtime/build/life01.build.log"
   },
   "command": "/workspace/Astro CS Database/validation/runtime/build/life01",

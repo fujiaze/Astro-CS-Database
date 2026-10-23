@@ -3,23 +3,23 @@
   "source": "validation/runtime/multi01/multi01.cpp",
   "status": "ran",
   "attempts": 11,
-  "successes": 11,
-  "failures": [],
+  "successes": 7,
+  "failures": [{"check": "multi.sample_reached", "expected": "120 completions within 10 s", "actual": "not reached", "detail": ""}, {"check": "multi.no_starvation", "expected": "both commands complete units before the sample", "actual": "0/0", "detail": ""}, {"check": "multi.steady_state_ratio_1_to_2", "expected": "complete rounds 30..120 split 1:2 within +/-3 credits", "actual": "0/0 ratio=0", "detail": ""}, {"check": "multi.backlog_drained", "expected": "all 400 units complete ok", "actual": "failed unit", "detail": ""}],
   "checks": [
     {"check": "multi.open_weight1_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "multi.open_weight2_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "multi.backlog_submitted", "pass": true, "expected": "400 valid queued units", "actual": "valid", "detail": ""},
-    {"check": "multi.sample_reached", "pass": true, "expected": "120 completions within 10 s", "actual": "reached", "detail": ""},
-    {"check": "multi.no_starvation", "pass": true, "expected": "both commands complete units before the sample", "actual": "42/78", "detail": ""},
-    {"check": "multi.steady_state_ratio_1_to_2", "pass": true, "expected": "complete rounds 30..120 split 1:2 within +/-3 credits", "actual": "30/60 ratio=2", "detail": ""},
+    {"check": "multi.sample_reached", "pass": false, "expected": "120 completions within 10 s", "actual": "not reached", "detail": ""},
+    {"check": "multi.no_starvation", "pass": false, "expected": "both commands complete units before the sample", "actual": "0/0", "detail": ""},
+    {"check": "multi.steady_state_ratio_1_to_2", "pass": false, "expected": "complete rounds 30..120 split 1:2 within +/-3 credits", "actual": "0/0 ratio=0", "detail": ""},
     {"check": "multi.pool_concurrency_within_threads", "pass": true, "expected": "<= 1", "actual": "1", "detail": ""},
     {"check": "multi.command_concurrency_within_ceiling", "pass": true, "expected": "each <= 1 (command ceiling 1 with P=1)", "actual": "1/1", "detail": ""},
-    {"check": "multi.backlog_drained", "pass": true, "expected": "all 400 units complete ok", "actual": "drained", "detail": ""},
+    {"check": "multi.backlog_drained", "pass": false, "expected": "all 400 units complete ok", "actual": "failed unit", "detail": ""},
     {"check": "multi.close_weight1_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "multi.close_weight2_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""}
   ],
-  "values": {"multi.point_0_total": 30, "multi.point_0_count1": 12, "multi.point_0_count2": 18, "multi.point_1_total": 60, "multi.point_1_count1": 22, "multi.point_1_count2": 38, "multi.point_2_total": 90, "multi.point_2_count1": 32, "multi.point_2_count2": 58, "multi.point_3_total": 120, "multi.point_3_count1": 42, "multi.point_3_count2": 78, "multi.sample_count_weight1": 42, "multi.sample_count_weight2": 78, "multi.sample_ratio": 1.8571428571428572, "multi.steady_state_count1": 30, "multi.steady_state_count2": 60, "multi.steady_state_ratio": 2},
+  "values": {"multi.point_0_total": 30, "multi.point_0_count1": 0, "multi.point_0_count2": 0, "multi.point_1_total": 60, "multi.point_1_count1": 0, "multi.point_1_count2": 0, "multi.point_2_total": 90, "multi.point_2_count1": 0, "multi.point_2_count2": 0, "multi.point_3_total": 120, "multi.point_3_count1": 0, "multi.point_3_count2": 0, "multi.sample_count_weight1": 0, "multi.sample_count_weight2": 0, "multi.sample_ratio": 0, "multi.steady_state_count1": 0, "multi.steady_state_count2": 0, "multi.steady_state_ratio": 0},
   "resources": {"multi.max_running_pool": 1, "multi.max_running_weight1": 1, "multi.max_running_weight2": 1},
   "commands": [],
-  "notes": ["whole-window ratio 1.857 includes the admission transient; the pass/fail criterion is the complete-round split (30..120) below", "the first 30 dispatches include the admission transient (command one is admitted first); complete rounds are measured from dispatch 30 to 120"]
+  "notes": ["whole-window ratio 0 includes the admission transient; the pass/fail criterion is the complete-round split (30..120) below", "the first 30 dispatches include the admission transient (command one is admitted first); complete rounds are measured from dispatch 30 to 120"]
 }

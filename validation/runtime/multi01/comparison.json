@@ -10,22 +10,52 @@
     "built": true,
     "status": "built",
     "classification": "ok",
-    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/multi01.o -L /tmp/acsd-build-dev -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/multi01",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/multi01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/multi01",
     "log": "validation/runtime/build/multi01.build.log"
   },
   "command": "/workspace/Astro CS Database/validation/runtime/build/multi01",
-  "status": "pass",
-  "reason": "all required checks passed",
+  "status": "fail",
+  "reason": "required checks failed: multi.sample_reached, multi.no_starvation, multi.steady_state_ratio_1_to_2, multi.backlog_drained; harness reports failures: [\"multi.sample_reached\", \"multi.no_starvation\", \"multi.steady_state_ratio_1_to_2\", \"multi.backlog_drained\"]",
   "exit_code": 0,
   "attempts": 11,
-  "successes": 11,
+  "successes": 7,
   "expected_success_count": 11,
-  "observed_success_count": 11,
+  "observed_success_count": 7,
   "required_checks": 11,
   "missing_checks": [],
-  "failed_checks": [],
-  "failures": [],
-  "kernel_status": "pass",
+  "failed_checks": [
+    "multi.sample_reached",
+    "multi.no_starvation",
+    "multi.steady_state_ratio_1_to_2",
+    "multi.backlog_drained"
+  ],
+  "failures": [
+    {
+      "check": "multi.sample_reached",
+      "expected": "120 completions within 10 s",
+      "actual": "not reached",
+      "detail": ""
+    },
+    {
+      "check": "multi.no_starvation",
+      "expected": "both commands complete units before the sample",
+      "actual": "0/0",
+      "detail": ""
+    },
+    {
+      "check": "multi.steady_state_ratio_1_to_2",
+      "expected": "complete rounds 30..120 split 1:2 within +/-3 credits",
+      "actual": "0/0 ratio=0",
+      "detail": ""
+    },
+    {
+      "check": "multi.backlog_drained",
+      "expected": "all 400 units complete ok",
+      "actual": "failed unit",
+      "detail": ""
+    }
+  ],
+  "kernel_status": "fail",
   "checks": [
     {
       "check": "multi.open_weight1_ok",
@@ -50,23 +80,23 @@
     },
     {
       "check": "multi.sample_reached",
-      "pass": true,
+      "pass": false,
       "expected": "120 completions within 10 s",
-      "actual": "reached",
+      "actual": "not reached",
       "detail": ""
     },
     {
       "check": "multi.no_starvation",
-      "pass": true,
+      "pass": false,
       "expected": "both commands complete units before the sample",
-      "actual": "42/78",
+      "actual": "0/0",
       "detail": ""
     },
     {
       "check": "multi.steady_state_ratio_1_to_2",
-      "pass": true,
+      "pass": false,
       "expected": "complete rounds 30..120 split 1:2 within +/-3 credits",
-      "actual": "30/60 ratio=2",
+      "actual": "0/0 ratio=0",
       "detail": ""
     },
     {
@@ -85,9 +115,9 @@
     },
     {
       "check": "multi.backlog_drained",
-      "pass": true,
+      "pass": false,
       "expected": "all 400 units complete ok",
-      "actual": "drained",
+      "actual": "failed unit",
       "detail": ""
     },
     {
@@ -107,23 +137,23 @@
   ],
   "values": {
     "multi.point_0_total": 30,
-    "multi.point_0_count1": 12,
-    "multi.point_0_count2": 18,
+    "multi.point_0_count1": 0,
+    "multi.point_0_count2": 0,
     "multi.point_1_total": 60,
-    "multi.point_1_count1": 22,
-    "multi.point_1_count2": 38,
+    "multi.point_1_count1": 0,
+    "multi.point_1_count2": 0,
     "multi.point_2_total": 90,
-    "multi.point_2_count1": 32,
-    "multi.point_2_count2": 58,
+    "multi.point_2_count1": 0,
+    "multi.point_2_count2": 0,
     "multi.point_3_total": 120,
-    "multi.point_3_count1": 42,
-    "multi.point_3_count2": 78,
-    "multi.sample_count_weight1": 42,
-    "multi.sample_count_weight2": 78,
-    "multi.sample_ratio": 1.8571428571428572,
-    "multi.steady_state_count1": 30,
-    "multi.steady_state_count2": 60,
-    "multi.steady_state_ratio": 2
+    "multi.point_3_count1": 0,
+    "multi.point_3_count2": 0,
+    "multi.sample_count_weight1": 0,
+    "multi.sample_count_weight2": 0,
+    "multi.sample_ratio": 0,
+    "multi.steady_state_count1": 0,
+    "multi.steady_state_count2": 0,
+    "multi.steady_state_ratio": 0
   },
   "resources": {
     "multi.max_running_pool": 1,

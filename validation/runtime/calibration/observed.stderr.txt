@@ -12,7 +12,7 @@
 [ok] cal.plan_small_structure
 [ok] cal.plan_small_floor
 [ok] cal.plan_small_persistent
-[ok] cal.plan_small_edges
+[ok] cal.plan_small_serial
 [ok] cal.plan_large_cohorts
 [ok] cal.plan_large_block
 [ok] cal.plan_large_floor
@@ -23,6 +23,7 @@
 [ok] cal.plan_block_out_of_range
 [ok] cal.plan_block_zero
 [ok] cal.plan_window_zero
+[ok] cal.plan_window_not_declared
 [ok] cal.validate_ok
 [ok] cal.validate_absent_flat
 [ok] cal.validate_absent_flat_zero_rejected

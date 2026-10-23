@@ -23,7 +23,7 @@
 
 ## 最终状态（M0–M4 快照）
 
-**15/15 pass。** 这是 M0–M4 的快照：M0 公共合同/注册、M1 账本与所有权、
+**14 pass / 1 fail（cal01）。** 这是 M0–M4 的快照：M0 公共合同/注册、M1 账本与所有权、
 M2 Task/pool/pipe、M3 Storage/诊断、M4 `observation.calibrate` 的 Host 全链。
 M5 的其余模块接入不在本 manifest 内；后续 M5 实现变化必须重新跑本目录，
 **不得修改判据去迁就实现**（发现缺陷照旧 fail）。
@@ -81,7 +81,7 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 | `b01` | B01 | spill writer，1 MiB buffer，8×1 MiB append（按 64× 比例从 32 MiB/256 MiB 缩小） | 8 次 append 累计元素数；seal 尺寸/读回；非连续/失败 writer 不能 seal；取消中途 abort 无半成品；seal 后不可改；空 writer seal 拒绝 | **实跑 pass 24/24** |
 | `d01_off` | D01 | `ACSD_DEV_MODE=0`，宏参数为**本构建不存在的表达式/标识符**，ctx 表达式带副作用计数 | 编译通过（零求值）；运行时 ctx/payload 计数器为 0 | **实跑 pass 3/3** |
 | `d01_on` | D01 | `ACSD_DEV_MODE=1`，未选 probe + 合法 PerfRecord/SnapshotPayload，D 未配置 | 未选时 probe_selected=false 且不构造 payload；try_* noexcept；两次 invoke 的 Code/value/work 相同；span id 非 0 | **实跑 pass 15/15**（对 `ACSD_DEV_MODE=1` 的 `/tmp/acsd-build-dev` 构建） |
-| `cal01` | M4 C-CAL-1/2/DQ/ROOT | Host 全链：make_services→open_command→generated registry→freeze→make_host→invoke→wait；固定 raw/bias/dark/flat；两帧共享 bias/dark | C-CAL-1/2 数值、DQ NaN/Issue、NaN 冲突拒绝；共享根跨调用不新增随机根 | **实跑 pass 34/34**（Host 全链 C-CAL-1/2/DQ/ROOT；内核证据另见 `validation/runtime/calibration/`） |
+| `cal01` | M4 C-CAL-1/2/DQ/ROOT | Host 全链；固定 raw/bias/dark/flat；两帧共享 bias/dark；`modules::plan_calibration` 的真实 work 上界 | C-CAL-1/2 数值、DQ NaN/Issue、NaN 冲突拒绝；`usage.work` 必须在 `[samples, plan-declared]`；两帧必须给出共享依赖/共享根证据 | **实跑 fail 39/41**：数值/DQ 全过；`usage.work=140 > plan-declared 67`；两帧 `dependencies` 均为空，无法证明同源复用（缺口见下，判据未放宽） |
 
 `H01/FORMAT01`、`PROC01/SCHED01/POOL01` 不在本轮写入范围的最小必测集内（分别需要
 产品格式、模块接入与 command 编排夹具），本目录不伪造其证据；如 Lead 需要，另立 case。
@@ -91,7 +91,7 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 
 构建：`ACSD_BUILD=/tmp/acsd-build bash validation/runtime/build.sh`（15/15 built；
 `d01_on` 另用 `ACSD_BUILD=/tmp/acsd-build-dev`，该目录以 `-DACSD_DEV_MODE=1` 构建）。
-运行：`python3 validation/runtime/run_cases.py --no-build` → **15/15 pass**。
+运行：`python3 validation/runtime/run_cases.py --no-build` → **14 pass / 1 fail（cal01）**。
 逐 case 证据：`<case>/observed.json`、`comparison.json`、`observed.stdout.txt`、
 `observed.stderr.txt`；汇总 `manifest.json`。
 
@@ -111,7 +111,7 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 | b01 | pass 24/24 | 8×append 累计值、seal/读回、失败/取消无半成品、abort 幂等 |
 | d01_off | pass 3/3 | OFF 宏零求值（未声明标识符可编译、运行时计数 0） |
 | d01_on | pass 15/15 | ON 构建下 span id=5/6；探针前后 Code/value/work 相同 |
-| cal01 | pass 34/34 | Host 全链 C-CAL-1 x=[4,14,−8]、C-CAL-2 [0,10,−12]、DQ NaN/Issue、ROOT 共享根 |
+| cal01 | **fail 39/41** | 数值 C-CAL-1 x=[4,14,−8]、C-CAL-2 [0,10,−12]、DQ NaN/Issue 全过；`usage.work=140 > plan-declared 67`；两帧 `dependencies` 空（0/0，common=0） |
 
 ### 本轮修复的问题（已复测）
 
@@ -125,8 +125,28 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 4. **取消不唤醒 ready 队列任务 P0**：用 `repros/cancel_drain.cpp` 复测，
    最新 libruntime 下 20 个任务全部以 ok/cancelled 终态返回（之前第 4 个 state=2
    永久阻塞）。
-5. **M4 plan/run 落地**：`cal01` 由 pending 改为实跑通过；plan 不再返回
-   `unsupported: not integrated before M4`。
+5. **M4 plan/run 落地**：plan 不再返回 `unsupported: not integrated before M4`，
+   Host 全链可运行、C-CAL-1/2/DQ 数值与 DQ 规则全过。但按冻结判据 `cal01` 仍为
+   **fail**（见下“当前失败”），需 cal-m4 修 plan/work 与共享依赖证据。
+
+### 当前失败（cal01，判据冻结，不迁就实现）
+
+`cal01` attempts 41 / successes 39，两个 required 失败：
+
+1. `cal.cal1_usage_work`：`3 <= usage.work <= plan-declared`。用公开
+   `acsd::modules::bounds_calibration` + `plan_calibration` 取得真实 plan
+   （`block_elements=3, cohorts=1, regions=1`，stages/cleanup 合计
+   `declared_work=67`），Host 实跑 `usage.work=140`。即 **plan 的 work 上界
+   低于实际消费**（或 Host 记账超出 plan 声明），按 SCHEDULER 的
+   “work_upper 是本次执行段上限”判 fail；需 cal-m4 修 plan 的 work 模型
+   （或修正 Host 的 usage 归属），不能用放宽判据掩盖。
+2. `cal.root_shared_dependencies`：C-CAL-ROOT 两帧共享同一 bias/dark
+   ArrayRef，但两次 invoke 的 `Result.dependencies` 都是空
+   （deps1=0, deps2=0, common=0），输出 `NoiseModel` 也为 null。因此当前
+   **没有公开证据**证明“共享母版同源未被重造”；按冻结判据记 fail 并写明缺口
+   （需要 Host/process 把共享 Array/NoiseRoot 身份放进 dependencies，或输出
+   带相同 `SharedId` 的 noise 根）。`cal.root_no_per_call_random_root` 仍通过
+   （两帧均无 noise 根，属“未凭空造根”的必要非充分证据）。
 
 ### 实现侧已定位并修正的观察（复跑确认）
 

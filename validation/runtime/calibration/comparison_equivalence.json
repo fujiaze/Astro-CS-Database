@@ -1,0 +1,97 @@
+{
+  "case": "cal_equivalence",
+  "status": "pass",
+  "reason": "all required checks passed",
+  "attempts": 8,
+  "successes": 8,
+  "expected_success_count": 8,
+  "observed_success_count": 8,
+  "required_checks": 8,
+  "missing_checks": [],
+  "failed_checks": [],
+  "failures": [],
+  "checks": [
+    {
+      "check": "cal.eq.valid",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the valid frame calibrates through the synchronous entry"
+    },
+    {
+      "check": "cal.eq.dq_not_dimensionless",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "sync=invalid_model typed=invalid_model bounds=invalid_model",
+      "detail": "the synchronous entry point and the typed hooks share one metadata verdict"
+    },
+    {
+      "check": "cal.eq.exposure_zero",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "sync=invalid_model typed=invalid_model bounds=invalid_model",
+      "detail": "the synchronous entry point and the typed hooks share one metadata verdict"
+    },
+    {
+      "check": "cal.eq.absent_flat_zero_normalization",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "sync=invalid_model typed=invalid_model bounds=invalid_model",
+      "detail": "the synchronous entry point and the typed hooks share one metadata verdict"
+    },
+    {
+      "check": "cal.eq.missing_footprints",
+      "pass": true,
+      "expected": "unavailable",
+      "actual": "sync=unavailable typed=unavailable bounds=unavailable",
+      "detail": "the synchronous entry point and the typed hooks share one metadata verdict"
+    },
+    {
+      "check": "cal.eq.shape_mismatch",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "sync=invalid_model typed=invalid_model bounds=invalid_model",
+      "detail": "the synchronous entry point and the typed hooks share one metadata verdict"
+    },
+    {
+      "check": "cal.eq.flat_wrong_dtype",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "sync=invalid_model typed=invalid_model bounds=invalid_model",
+      "detail": "the synchronous entry point and the typed hooks share one metadata verdict"
+    },
+    {
+      "check": "cal.eq.payload_conflict_after_read",
+      "pass": true,
+      "expected": "typed=ok, sync=invalid_model",
+      "actual": "typed=ok sync=invalid_model",
+      "detail": "validate is metadata-only; the payload conflict is rejected by the CPU stage"
+    }
+  ],
+  "values": {
+    "eq.dq_not_dimensionless.sync": "invalid_model",
+    "eq.dq_not_dimensionless.typed": "invalid_model",
+    "eq.dq_not_dimensionless.bounds": "invalid_model",
+    "eq.exposure_zero.sync": "invalid_model",
+    "eq.exposure_zero.typed": "invalid_model",
+    "eq.exposure_zero.bounds": "invalid_model",
+    "eq.absent_flat_zero_normalization.sync": "invalid_model",
+    "eq.absent_flat_zero_normalization.typed": "invalid_model",
+    "eq.absent_flat_zero_normalization.bounds": "invalid_model",
+    "eq.missing_footprints.sync": "unavailable",
+    "eq.missing_footprints.typed": "unavailable",
+    "eq.missing_footprints.bounds": "unavailable",
+    "eq.shape_mismatch.sync": "invalid_model",
+    "eq.shape_mismatch.typed": "invalid_model",
+    "eq.shape_mismatch.bounds": "invalid_model",
+    "eq.flat_wrong_dtype.sync": "invalid_model",
+    "eq.flat_wrong_dtype.typed": "invalid_model",
+    "eq.flat_wrong_dtype.bounds": "invalid_model",
+    "eq.payload_conflict.typed": "ok",
+    "eq.payload_conflict.sync": "invalid_model"
+  },
+  "resources": {
+    "checks": 8,
+    "successes": 8
+  }
+}

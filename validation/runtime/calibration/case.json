@@ -49,28 +49,34 @@
       "elements": 3,
       "block_elements": 3,
       "cohorts": 1,
-      "progress_floor_bytes": 1052852,
-      "persistent_bytes": 32894
+      "progress_floor_bytes": 2166988,
+      "persistent_bytes": 33170
     },
     "plan_large": {
       "elements": 200000,
       "block_elements": 65536,
       "cohorts": 4,
-      "progress_floor_bytes": 4984832,
-      "persistent_bytes": 8432768
+      "progress_floor_bytes": 6623232,
+      "persistent_bytes": 26832768
     },
     "plan_constants": {
-      "storage_workspace_bytes": 1048576,
+      "canonical_io_block_bytes": 1048576,
+      "storage_fixed_workspace_bytes": 65536,
+      "frame_materialization_bytes_per_element": 92,
       "cohort_control_bytes": 4096,
       "final_metadata_bytes": 16384,
-      "plan_control_bytes": 16384
+      "plan_control_bytes": 16384,
+      "read_work_per_cohort": "5*(64+work_units(8n))",
+      "calibrate_work_per_cohort": "n",
+      "write_work_per_cohort": "4*16+4*work_units(8n)+4*16"
     },
     "bounds": {
       "min_block_elements": 1,
       "max_block_elements": 10000,
-      "max_window": 4,
+      "max_window": 1,
       "allow_spill": true
-    }
+    },
+    "pipe_edges": "none (serial composition; window=2 rejected)"
   },
   "required_checks": [
     "cal.c_cal_1_x",
@@ -87,7 +93,7 @@
     "cal.plan_small_structure",
     "cal.plan_small_floor",
     "cal.plan_small_persistent",
-    "cal.plan_small_edges",
+    "cal.plan_small_serial",
     "cal.plan_large_cohorts",
     "cal.plan_large_block",
     "cal.plan_large_floor",
@@ -98,6 +104,7 @@
     "cal.plan_block_out_of_range",
     "cal.plan_block_zero",
     "cal.plan_window_zero",
+    "cal.plan_window_not_declared",
     "cal.validate_ok",
     "cal.validate_absent_flat",
     "cal.validate_absent_flat_zero_rejected",
@@ -110,8 +117,8 @@
     "cal.validate_footprints",
     "cal.validate_missing_input"
   ],
-  "min_attempts": 36,
-  "expected_success_count": 36,
+  "min_attempts": 37,
+  "expected_success_count": 37,
   "tolerance": "exact FP64 values for the nominal samples ([4,14,-8] and [0,10,-12]); the enclosure must contain the nominal value; plan byte counts are exact integers of the frozen formula",
   "link": "science",
   "timeout_seconds": 120,

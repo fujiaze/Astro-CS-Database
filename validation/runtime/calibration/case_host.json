@@ -71,6 +71,27 @@
         14,
         -8
       ]
+    },
+    "plan": {
+      "plan_small": {
+        "R": 33170,
+        "F": 2166988
+      },
+      "plan_large": {
+        "R": 26832768,
+        "F": 6623232
+      },
+      "workspace": "S(n)=2*1MiB + 8n + 64KiB",
+      "work": "read 5*(64+work_units(8n)), calibrate n, write 4*16+4*work_units(8n)+4*16",
+      "edges": "none (serial); plan window=2 rejected",
+      "frame_materialization_per_element": 92
+    },
+    "p1_4_verdict_matrix": {
+      "dq_not_dimensionless": "invalid_model",
+      "exposure_zero": "invalid_model",
+      "absent_flat_zero_normalization": "invalid_model",
+      "missing_footprints": "unavailable",
+      "shape_mismatch": "invalid_model"
     }
   },
   "required_checks": [
@@ -95,13 +116,21 @@
     "cal.host.c_cal_root",
     "cal.host.dev_off_deterministic",
     "cal.host.c_cal_h_plan",
+    "cal.host.c_cal_h_work_covered",
+    "cal.host.c_cal_h_materialization_covered",
     "cal.host.c_cal_h",
-    "cal.host.c_cal_order_window2",
+    "cal.host.c_cal_order_window_not_declared",
+    "cal.host.c_cal_order_serial_declared",
+    "cal.host.p1_4_dq_not_dimensionless",
+    "cal.host.p1_4_exposure_zero",
+    "cal.host.p1_4_absent_flat_zero_normalization",
+    "cal.host.p1_4_missing_footprints",
+    "cal.host.p1_4_shape_mismatch",
     "cal.host.close_command",
     "cal.host.close_host"
   ],
-  "min_attempts": 25,
-  "expected_success_count": 25,
+  "min_attempts": 33,
+  "expected_success_count": 33,
   "tolerance": "exact FP64 nominal values; the enclosure must contain the nominal value; plan byte counts exact; Codes by name",
   "link": "science+runtime+generated",
   "timeout_seconds": 240

@@ -2,11 +2,11 @@
   "case": "cal_host",
   "status": "pass",
   "reason": "all required checks passed",
-  "attempts": 25,
-  "successes": 25,
-  "expected_success_count": 25,
-  "observed_success_count": 25,
-  "required_checks": 25,
+  "attempts": 33,
+  "successes": 33,
+  "expected_success_count": 33,
+  "observed_success_count": 33,
+  "required_checks": 33,
   "missing_checks": [],
   "failed_checks": [],
   "failures": [],
@@ -77,8 +77,8 @@
     {
       "check": "cal.host.plan_numbers",
       "pass": true,
-      "expected": "R=32894, F=1052852",
-      "actual": "R=32894, F=1052852",
+      "expected": "R=33170, F=2166988",
+      "actual": "R=33170, F=2166988",
       "detail": "the frozen plan formula of the walkthrough"
     },
     {
@@ -154,9 +154,23 @@
     {
       "check": "cal.host.c_cal_h_plan",
       "pass": true,
-      "expected": "4 cohorts, n=65536, R=8432768, F=4984832",
+      "expected": "4 cohorts, n=65536, R=26832768, F=6623232",
       "actual": "c=4, n=65536",
-      "detail": "the frozen plan formula at the canonical boundary"
+      "detail": "the serial plan with S(n), work bounds and no pipe edges"
+    },
+    {
+      "check": "cal.host.c_cal_h_work_covered",
+      "pass": true,
+      "expected": "measured work <= declared stage work totals",
+      "actual": "measured=201906 declared=268580",
+      "detail": "the plan work_upper covers read/write/assembly work (P1-8b)"
+    },
+    {
+      "check": "cal.host.c_cal_h_materialization_covered",
+      "pass": true,
+      "expected": "unmanaged heap peak within materialization bound + 8 MiB overhead",
+      "actual": "peak=14849040 declared=18400000",
+      "detail": "allocator measurement supports the unaccounted term; not a peak proof"
     },
     {
       "check": "cal.host.c_cal_h",
@@ -166,11 +180,53 @@
       "detail": "tail block and block boundaries"
     },
     {
-      "check": "cal.host.c_cal_order_window2",
+      "check": "cal.host.c_cal_order_window_not_declared",
       "pass": true,
-      "expected": "window=2 over 3 single-element cohorts gives [4,14,-8]",
-      "actual": "ordered composition correct",
-      "detail": "two expanded cohorts, the sink consumes the lowest key first"
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": "a window without pipe credit is rejected"
+    },
+    {
+      "check": "cal.host.c_cal_order_serial_declared",
+      "pass": true,
+      "expected": "one serial region, 3 cohorts, no pipe edge",
+      "actual": "serial",
+      "detail": "the plan does not advertise unused pipes"
+    },
+    {
+      "check": "cal.host.p1_4_dq_not_dimensionless",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model/invalid_model",
+      "detail": "sync and typed metadata validation are one verdict"
+    },
+    {
+      "check": "cal.host.p1_4_exposure_zero",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model/invalid_model",
+      "detail": "sync and typed metadata validation are one verdict"
+    },
+    {
+      "check": "cal.host.p1_4_absent_flat_zero_normalization",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model/invalid_model",
+      "detail": "sync and typed metadata validation are one verdict"
+    },
+    {
+      "check": "cal.host.p1_4_missing_footprints",
+      "pass": true,
+      "expected": "unavailable",
+      "actual": "unavailable/unavailable",
+      "detail": "sync and typed metadata validation are one verdict"
+    },
+    {
+      "check": "cal.host.p1_4_shape_mismatch",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model/invalid_model",
+      "detail": "sync and typed metadata validation are one verdict"
     },
     {
       "check": "cal.host.close_command",
@@ -189,8 +245,8 @@
   ],
   "values": {
     "host.registration_linked": true,
-    "plan.R": 32894,
-    "plan.F": 1052852,
+    "plan.R": 33170,
+    "plan.F": 2166988,
     "host.c_cal_1.issues": "",
     "host.c_cal_1.x0": 4,
     "host.c_cal_1.x1": 14,
@@ -203,22 +259,35 @@
     "host.root.shared_id": "master_flat",
     "host.root.influences": 1,
     "host.dev_off_identity": "acsd.NativeObservation:5ebea39ffb9039d44e3cc4f82142f010ed40edff318e5fb50162aaa898554106",
+    "host.c_cal_h.plan_R": 26832768,
+    "host.c_cal_h.plan_F": 6623232,
+    "host.c_cal_h.declared_work": 268580,
+    "host.c_cal_h.declared_materialization": 18400000,
+    "host.c_cal_h.measured_work": 201906,
+    "host.c_cal_h.unaccounted_heap_peak": 14849040,
     "host.c_cal_h.code": "ok",
     "host.c_cal_h.issues": "",
     "host.c_cal_h.last": 50999.75,
     "host.c_cal_h.block_boundary": 17384,
-    "host.c_cal_h.plan_R": 8432768,
-    "host.c_cal_h.plan_F": 4984832,
-    "host.order.code": "ok",
-    "host.order.cohorts": 3,
-    "host.order.window": 2
+    "host.order.window2_code": "invalid_request",
+    "host.order.serial_edges": 0,
+    "host.p1_4.dq_not_dimensionless.typed": "invalid_model",
+    "host.p1_4.dq_not_dimensionless.host": "invalid_model",
+    "host.p1_4.exposure_zero.typed": "invalid_model",
+    "host.p1_4.exposure_zero.host": "invalid_model",
+    "host.p1_4.absent_flat_zero_normalization.typed": "invalid_model",
+    "host.p1_4.absent_flat_zero_normalization.host": "invalid_model",
+    "host.p1_4.missing_footprints.typed": "unavailable",
+    "host.p1_4.missing_footprints.host": "unavailable",
+    "host.p1_4.shape_mismatch.typed": "invalid_model",
+    "host.p1_4.shape_mismatch.host": "invalid_model"
   },
   "resources": {
     "peak_host_bytes": 10000714,
-    "work": 204258,
-    "read_bytes": 3600924,
-    "written_bytes": 7200780,
-    "checks": 25,
-    "successes": 25
+    "work": 204132,
+    "read_bytes": 0,
+    "written_bytes": 7200708,
+    "checks": 33,
+    "successes": 33
   }
 }

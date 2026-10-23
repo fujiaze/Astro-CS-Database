@@ -1,0 +1,365 @@
+# M0—M4 独立复核报告（只读）
+
+> 复核者：reviewer-m0m4（未参与 M0—M4 设计/实现；只读代码与证据，不改 `src/`、`include/`、`apps/`、`validation/`，不 commit/push）。
+> 交付物：本文件。复现脚本全部在 `/tmp`（`/tmp/repro_*`、`/tmp/audit/*`），未写入 `validation/`。
+
+## 0. 锚点、方法与环境
+
+| 项 | 值 |
+|---|---|
+| 指定复核提交 | `cea5e3650`（M0 头）、`0a5dbfff3`（M1—M3/registry）、`33804ef6a`（M4）、`073d91285`（validation 包）、`d404c99f7`（audit matrix） |
+| 复核开始 HEAD | `d404c99f7`；复核期间分支又前进到 `f9c6f9b19`、`6fe0c8aac`（00:17，修了 work 预算拒绝 + 刷新 validation 快照） |
+| 本报告行号锚点 | `6fe0c8aac` 的 `git show HEAD:<path>`（`task.hpp`/`pipe.cpp`/`storage.cpp`/`memory.cpp`/`calibration_*.cpp` 自 `d404c99f7` 起未改；`pool.cpp` 仅多 3 行 work 检查；`builtin_processes.cpp` 在 `f9c6f9b19` 有生成装配重构） |
+| 工作树状态（写作时 00:37） | 52 项未提交改动：`include/acsd/runtime/{task,pipe}.hpp`、`src/runtime/{pipe,pool,memory,internal}.*`、`src/observation/calibration_signal.cpp` 等正在被并行实现修改。**本报告不对这些未提交改动作任何背书**；若工作树已修掉某条，请以本报告锚点提交的复现为准。 |
+| 构建/运行 | `/tmp/acsd-build`（`ACSD_DEV_MODE=OFF`，RelWithDebInfo）+ `/tmp/acsd-build-dev`（ON）。公开头探针用 `g++ -std=c++20 -O2 -I include` 链接 `libruntime/libmodel/libnumerics/libstorage/libresources/libcodec`；M4 探针额外链接 science 库。 |
+| 规范正本 | `SYSTEM.md`、`FOUNDATION_API.md`、`SCHEDULER.md`、`DEVELOPMENT.md`、`COMPUTE_MODULES.md`、`CALIBRATION_WALKTHROUGH.md`、`VERIFICATION.md`、`processes/observation.calibrate.md`、`processes/README.md`、`OBJECTS.md`、`EXECUTION.md`、`API.md`。 |
+
+**方法**：先冻结锚点（`git show`），再按“规范条款 → 公共头 → 实现 → 最小构型”逐项追；对每个疑点写 `/tmp` 探针用公开头复现；对证据做“提交内 observed/comparison/README/manifest 四方对照 + 亲自重跑”。不接受“测试通过”作为唯一证据，也不接受“编译/链接成功”作为语义证据。下文标注“**已复现**”的条目是我在 `/tmp` 亲自运行得到的；未标注的条目是代码/证据审读推出的可证伪构型（构型已给全，可直接按 §9 执行）。
+
+---
+
+## 1. 结论
+
+| 里程碑 | 判定 | 一句话 |
+|---|---|---|
+| M0 公共合同与登记 | **ACCEPT（带 P2 caveat）** | 54 个规范类型/58 个可调用项全部落在公共头；freeze 负例实现完整且可由 `acsd_registry_negative`（107 checks）+ `reg01`（28 checks）复现；生成物 `--check` 通过、manifest 22/57 覆盖 PASS。剩 P2：模块 descriptor 与生成 descriptor 两套来源且依赖字段不一致；coverage 不比对依赖；空 operation 的 process 与共用文档可通过 freeze；`when_all`/`then` 的语义细节。 |
+| M1 账本/所有权 | **ACCEPT-WITH-CAVEATS** | reserve/claim/commit/release/close 的祖先原子检查、失败零副作用、committed 先物理释放再减账、close 后存活 Lease 仍计费均成立（S-LIFE/A01/life01 20/20 可复现）。但 `work_upper=0` 可绕过 `max_work`（P1，已复现）。 |
+| M2 Task/pool/pipe | **REJECT** | `when_all` 对非法/被移动 Task 产生 UB 且可返回伪造成功值（P0，已复现）；ordered pipe 无法跨 cohort/item 推进，永久 stall（P1，已复现）；无 2P ready window（P1）；broadcast/close/metadata/control-ceiling 等 P2。唯一池、加权轮转、取消排空本身成立。 |
+| M3 异步 Storage/诊断 | **REJECT** | seal 与 abort 竞争可让 abort 后 seal 成功并交付 `complete=1` 但不可读的 Array，并在 spill 路径出现 SIGSEGV/堆损坏（P0，已复现）；abort 不排空在途 seal 写（P1）；未 sealed writer 析构不清理、spool 泄漏（P1）；`buffer_bytes` 不计费（P1）；已封存数组被 BlockStore 永久钉住、容量永不归还（P1，已复现）。读路径、短读、hash 校验、单在途 append、seal 元素数、abort 幂等基本正确。 |
+| M4 observation.calibrate | **REJECT（作为“完成/全链验收”声明）** | kernel 唯一实现、Host 全链可跑通、`cal_host` 25/25 可复现且逐位一致；但同步入口与 Host 对同一输入判定不同（P1，已复现）；plan 的 work/R/F 与实际分配不符（P1）；C-CAL-WRITE/C-CAL-CLEAN 未跑且 C-CAL-WRITE 实际是 P0-2 的破坏路径（P1）；plan 声明 pipe edges 但组合器不用 pipe/credit（P2）；C-CAL-ROOT 证据是构造性必真（P2）。 |
+
+**总裁决：REJECT**（针对“M0—M4 完成”的整体声明）。分项：M0 通过、M1 有条件通过、M2/M3/M4 拒绝。P0 必须清掉才可重新提交复核；P1 需修复或给出“能力边界 + 文档降级”。
+
+---
+
+## 2. M0 公共合同与登记
+
+### 已核实的正确部分
+
+1. **类型/签名覆盖**：脚本从 `FOUNDATION_API.md` 的 6 个 cpp 代码块抽出 54 个 `struct/class/enum class/using` 与 58 个可调用名，逐个在 `include/acsd/**` 找到同名声明，**无缺失**；`types/memory/task/pipe/storage/process/diagnostics` 与规范字段逐项对照，未发现缺字段或改语义的签名（`Key` 额外的 `<`/`==`、`PipeSpec` 在 types.hpp、`InvocationPlan` 字段顺序等均与规范一致）。
+2. **唯一聚合入口**：`include/acsd/contracts.hpp` 仅 18 行 include；`model.hpp` 单拥有科学 DTO；`tools/generate_contract_schema.py` 从同一来源生成。
+3. **freeze 负例**（`src/runtime/registry.cpp`）：重复 process（296-311）、重复 operation（313-329）、空 process/operation id、TypeId 重复/一 C++ 类型绑两 TypeId（331-376）、codec 缺 encode/decode/schema/cookie（335-354）、operation 缺 validate/bounds/plan/run/finalize 任一 hook（508-521）、input/output TypeId 未登记或 cookie 不符（528-551）、文档不存在（390-399）、未知模块依赖（423-438）、依赖环（460-506）、probe 空 id/空 kind/revision 0/重复/跨 process owner 冲突（400-422, 443-458）、重复 freeze（563-567）。实现与规范条款一一对应。
+4. **生成物真实性**：`python3 tools/generate_typed_bindings.py --check` → `typed bindings are up to date`（exit 0）；`python3 tools/check_design.py` → PASS；用真实装配导出的 manifest 跑 `tools/check_process_coverage.py --manifest /tmp/manifest.json` → `PASS: 22 processes, 57 operations`。`acsd_typed_smoke`（1255 checks，22/57/102 TypeId/41 provisional bounds）、`acsd_registry_negative`（107 checks）、`acsd_host_lifecycle`（66 checks）在复核时重跑均 exit 0。
+
+### 发现
+
+**M0-1（P2）模块手写 descriptor 与生成 descriptor 是两套来源，依赖字段不一致。**
+- 位置：`src/observation/calibration_process.cpp:260-267`（登记用 descriptor：`{"model","numerics","operators","uncertainty"}`）vs `src/runtime/generated/builtin_processes.cpp:43-45`（生成表：`{"model","operators","uncertainty","numerics","runtime"}`）；规范要求见 `CALIBRATION_WALKTHROUGH.md:107-112`（示例含 `"runtime"`）与 `SYSTEM.md:88,102`（“不手写三套白名单”）。
+- 期望/实际：实际冻结出的 manifest（`acsd-runtime-manifest`）里 `observation.calibrate.dependencies = [model,numerics,operators,uncertainty]`，**缺 `runtime`**，尽管 `calibration_process.cpp:25`、`calibration_signal.cpp:24` 直接 include `runtime/internal.hpp`。
+- 为什么没被检查拦下：`tools/check_process_coverage.py:300-310` 只校验依赖名合法，不比对 `SYSTEM.md` 的依赖表或生成表。
+- 最小修订：模块登记改用 `generated::descriptor_for(process_id)`（f9c6f9b19 已提供）或在 coverage 中比对生成 descriptor 的 dependencies/probes；两者取其一，禁止并存。
+
+**M0-2（P2）freeze 允许“零 operation 的 process”进入只读 registry。**
+- 位置：`src/runtime/registry.cpp:588-601`（只校验已登记 operation 的 hook/type；没有“每个 process 至少一个 operation”的检查）。
+- 构型/实际：`begin({"test.empty",...})` 后直接 `freeze()` → ok，manifest 中出现该 process 且 `operations: []`。规范侧 `SYSTEM.md:102` 要求“缺 binding 直接失败”，可解释为 process 级也必须至少一个 binding。
+- 最小修订：freeze 时对 `processes` 中每个 id 检查 `operations` 至少一条（或由生成覆盖检查拒绝空 process）。
+
+**M0-3（P2）`then` 只在 `code==ok` 时调用 F，不要求 value 存在；`Task::state()` 对非法 Task 返回 `success`。**
+- 位置：`include/acsd/runtime/task.hpp:182-190,193`（仅判 code；`take_value<T>` 对无 value 的节点返回默认 `T{}`）；`:94-96`（`node_ ? state : success`）。
+- 规范：`FOUNDATION_API.md:116`“仅 code=ok 且 value 存在才调用 F”；`Task()` 是非法句柄，不应当被读成 `success`。
+- 可达性：`ready`/`submit_cpu` 会把“ok 无 value”降为 internal，正常路径不易触发；但它与 P0-1 的 `when_all` 同源（默认构造 Task 被当作成功），所以建议一并修。
+- 最小修订：`then` 增加 value 检查；非法 Task 用显式 invalid 状态（或 `state()` 返回 `failed` 并带 invalid_request），不要用 success 冒充。
+
+**M0-4（P2）`when_all` 的失败合并没有实现固定的 Code/Key 优先级。**
+- 位置：`task.hpp:286-292`：按输入下标顺序取第一个非 ok，不按“协议/模型/完整性/internal/io_error > 取消 > 非 ok 科学/预算 > ok；同级取最小 Key”合并（`FOUNDATION_API.md:124`），且丢弃 Usage/dependencies。
+- 构型：两个子任务，下标 0 为 `cancelled`、下标 1 为 `io_error`；实际聚合 code=cancelled，期望 io_error 优先。
+- 最小修订：按 Code 类优先级 + Key 排序选择主因，其余按 (Key, ordinal) 并入 issues。
+
+**M0-5（P2）文档校验只查“文件存在”，不查唯一性/归属；零 operation 的 process 与共用文档都能 freeze。**
+- 位置：`registry.cpp:61-87`（`document_exists` 只做 `is_regular_file`）、`:588-601`（无“每 process ≥1 operation”与“每文档唯一 owner”检查）。
+- 构型（均已复现）：(a) `begin({"test.empty",...})` 不 add 任何 operation → `freeze()=ok`，manifest 里 `operations: []`；(b) 两个 process 都声明 `docs/engineering/rebuild/processes/observation.calibrate.md` → `freeze()=ok`，两个都进 manifest；甚至可以把任意已存在的仓库文件（如 `README.md`）作为某 process 的 document。
+- 期望：`SYSTEM.md:98`“唯一 process 文档路径”、`:102`“缺 binding…直接失败”。
+- 最小修订：freeze 记录 `document -> process_id` 反向映射并拒绝重复/越界路径；要求每个 process 至少一个 operation。
+
+---
+
+## 3. M1 账本、Arena、Claim/Lease
+
+### 已核实的正确部分
+
+- `reserve`：先锁 root→scope 全链、检查 `pinned<=host` 与所有祖先 `held+v<=ceiling`，再整批 `held+=v`；失败不改账（`src/runtime/memory.cpp:99-120`）——与 `SCHEDULER.md:22-31` 一致。
+- `claim/commit/release`：claim 只减 arena `available`、增祖先 `claimed`、不增 peak（`memory.cpp:423-451`）；allocate 成功后在同一票据 `committed=true` 并 `ledger_commit`（claimed→allocated、更新 peak；`memory.cpp:560-583`）；`Allocation::~Allocation` 先 `destroy(memory)` 再 `claim.reset()`（`memory.cpp:226-255`），满足“先物理释放再减账”。
+- close：原子标 closed，把未 claim 的 `available` 退祖先 `held`（`memory.cpp:453-467`）；close 后存活 committed 票据在最后 Lease 死亡时 release 并 `ledger_return_held`（`memory.cpp:233-255`）——S-LIFE 语义成立（`life01` 20/20 ASan 可复现）。
+- peak：只在成功 commit 时按 `allocated` 更新，claim/失败分配不更新；release 不减历史 peak（`memory.cpp:128-149`）。
+- 失败零副作用与不重复扣父预算：`ledger_admit_work`/`ledger_consume_work`/`ledger_release_reserved_work`（`memory.cpp:157-204`）在 S-WORK 正常路径成立（`work01` 15/15→HEAD 16/16 可复现）。
+
+### 发现
+
+**M1-1（P1）`TaskSpec.work_upper == 0` 时 `consume_work` 不设上限，可越过父 `max_work`。**
+- 位置：`src/runtime/memory.cpp:503-507`（只有 `work_upper != 0` 才检查 `own_work+units<=work_upper`）；`src/runtime/pool.cpp:287-300`（`work_upper==0` 不做准入预留）；`ledger_consume_work`（`memory.cpp:182-192`）对 `work_reserved` 已是 0 的祖先直接 `work += units`，不再检查 `max_work`。
+- 构型：`PoolConfig.process.max_work=10`；单任务 `TaskSpec{work_upper=0}`，callable 内 `consume_work(task,11)`。
+- 期望/实际：期望 `resource_exhausted`（`SCHEDULER.md:46`“已声明上限不足返回 resource_exhausted，不在运行中越过承诺”）；实际 `consume_code=ok`、`snapshot(ctx.scope).work=11 > max_work=10`。
+- 复现：`/tmp/repro_work0`（源码 `/tmp/repro_work0.cpp`；`g++ -std=c++20 -O2 -I include /tmp/repro_work0.cpp -L/tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -lresources -lcodec -Wl,--end-group -lpthread -lzstd -o /tmp/repro_work0 && /tmp/repro_work0`）→ `VIOLATION=yes`。
+- 最小修订：把 `work_upper==0` 视为“本执行段不得消费 work”（或至少仍检查所有祖先 `work+units<=max_work`）；`consume_work` 的检查与 `ledger_consume_work` 在同一把 scope 锁下完成。
+
+**M1-2（P2）claim 的 arena 状态与祖先 claimed 不是同一原子事务。**
+- 位置：`memory.cpp:433-447`（先在 arena 锁内减 `available`，解锁后才 `ledger_claim_committed`）。并发 `snapshot` 可短暂看到 `held` 已含该容量而 `claimed` 未计入；`Arena::close` 同理由 `:453-467` 分两步。
+- 影响：只影响并发快照的中间态，最终账正确（我用 close/claim 交错构型推演未得到漏记/双记），故 P2；但与 `SCHEDULER.md:22`“一次写入”不符。
+- 最小修订：在进入 arena 锁前先锁祖先链（保持 root→scope 顺序），在锁内同时更新 available/claimed。
+
+**M1-3（P2）`ScopeSnapshot.cpu_ns` 永远为 `nullopt`、`metadata_bytes` 永不累计。**
+- 位置：`memory.cpp:531`（`out.cpu_ns = std::nullopt`）；`pool.cpp:271`（task 子 scope `metadata_bytes=0`）；`ScopeState::metadata_bytes` 只在 `host.cpp:209` 被读、从无递增。
+- 影响：`SCHEDULER.md:16` 的 control metadata 额度形同虚设；usage 里没有 CPU 归因（规范允许“不可得 null”，但这里从实现上永远不可得）。
+- 最小修订：在 dispatch 累计每段 CPU 时间；metadata 在 TaskNode/pipe item 分配时计入并受 `metadata_bytes` 限制。
+
+---
+
+## 4. M2 Task / 唯一 CPU 池 / Pipe
+
+### 已核实的正确部分
+
+- 唯一池/唯一账本：`Services::create` 用 `g_active_services` 拒绝第二个活跃池（`pool.cpp:337-345`），`cpu_threads` 被 clamp 到硬件核数（`:350-353`）；`acsd::rt` 内只有 `pool.cpp` 起线程；旧 `CpuResources` 池从 `rt` 不可达（`science_bridge.cpp:151-190`）。
+- 加权轮转与 command ceiling：`multi01` 的整轮 1:2（30→120）与 steady 比率、池/命令并发上限在 HEAD 可复现；单 command 的 `cpu_running >= ceiling` 会跳过（`pool.cpp:942-946`）。
+- 取消/关闭排空：`CancelState::request()` 在锁外跑 watcher（`internal.hpp:45-59`），pipe waiter（`pipe.cpp:280-303`）、容量 waiter（`pool.cpp:852-872` + `notify_capacity`）与 ready 节点（`run_node`/`close_command`/`shutdown`）均被唤醒；`shutdown` 等 `io_pending==0` 再 join I/O worker（`pool.cpp:1074-1084`）。仓库里旧的 `cancel_drain` P0 不再复现。
+- 等待不占 CPU token：提交的 callable 返回 `Result<T>`，等待由 `then/settle` 的 continuation 承担；`take_runnable` 只在真正 dispatch 时计 `cpu_running`，parked 任务在 `waiting` 里不计 token。
+- `Pipe` 正常语义：`send` 在 closed 后 `invalid_request`；close 线性化后先投递已接受 items 再给终态；queue 里的 payload 是 `shared_ptr<const T>`，`Block` 的 Lease 随队列存活；continuation 从不在 I/O worker 上跑（`task.cpp:58-88`）。
+- control lane 有反饿死（每 8 次 science dispatch 至少 1 次 control，`pool.cpp:903-922`）。
+
+### 发现
+
+**M2-1（P0）`when_all` 对非法/被移动 `Task` 解引用未 engaged 的 `optional`：UB，并可返回“成功 + 伪造值”。**
+- 位置：`include/acsd/runtime/task.hpp:268-276`（null 节点只 `fetch_sub`，非末位时不记 failure）；`:293-295`（最后成功路径对每个 `state->values[i]` 做 `std::move(*v)`）。对照 `settle_all` 在 `:325-332` 已正确处理 null，说明这是 `when_all` 的遗漏。
+- 构型：`when_all(ctx, {pending_pipe_receive, Task<T>{}})`，`T=Delivery<uint64_t>`，随后 send 一个 item。
+- 期望/实际：期望 `invalid_request`、无聚合 value（`FOUNDATION_API.md:118`）；实际有两种 UB 表现：(a) 旧构建在 `std::optional::_M_get()` 断言中止（exit 134）；(b) 当前构建返回 `code=0 size=2`，index 1 是默认构造的伪造值。
+- 复现：`g++ -std=c++20 -O2 -I include /tmp/audit/when_all_probe.cpp -L/tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -lresources -lcodec -Wl,--end-group -lpthread -lzstd -o /tmp/wa && /tmp/wa`。
+- 最小修订：null 槽写入 `failures[i]={invalid_request,...}`；成功路径先检查所有 `values[i]` 均 engaged，否则返回 invalid/internal，绝不 `*v`。
+
+**M2-2（P1）ordered pipe 的 frontier 只能在同一个 `(epoch,cohort,stage)` 内 `item+1`，跨 cohort/非零首 item 永久 stall。**
+- 位置：`src/runtime/pipe.cpp:87-91`（`next_key` 只 `++item`）；`:386-396`（首个 send 把 `expected` 播种为 `Key{key.epoch,key.cohort,key.stage,0}`，admissible 要求 `key==expected`）；`:140-150`/`:174-180`（`promote` 同样只按 `expected` 放行）。
+- 构型（已复现）：ordered `max_items=4`、窗口 256 B；先 `send({0,0,0,0})`（ok），再 `send({0,1,0,0})`（下一 cohort）→ 两个 Task 永远 `state=0`；或首个 `send({0,0,0,5})` → 永不投递。
+- 期望：`FOUNDATION_API.md:231`“ordered 返回 next_required_key”、`SCHEDULER.md:62`“region 的 progress cohort 始终是尚未完成的最小 Key”；stream region 的 `cohorts>1` 是常态。
+- 影响：当前 M4 的 `stream_map_ordered` 未用 pipe（见 M4-4），所以生产链未命中；但任何按规范用 ordered pipe 的多 cohort stream 都会死锁，S-ORDER/PIPE01 的“可行配置完成”不成立于该构型。
+- 最小修订：`expected` 从 plan 的 stream 起始 key/cohort 上界生成，跨 cohort 与 stage 单调推进；不靠“首 send 猜 item=0”。
+
+**M2-3（P1）没有 2P 已就绪窗口；ready/waiting/control 队列无界。**
+- 位置：`src/runtime/pool.cpp:735`（`command->ready.push_back`）、`:717`/`:885`（`waiting.push_back`）、`:893`（retry 回 ready）；`internal.hpp:238-239,399` 是裸 `std::deque`。全文件没有 `2*cpu_threads`/`max_window` 的运行时比较（`PlanBounds.max_window` 只被模块写，运行时不用）。
+- 构型：P=1，提交 100k 个 `work_upper=1` 任务 → 全部入 ready/waiting，无拒绝/阻塞。
+- 期望：`SCHEDULER.md:11`“全进程最多 2P 个已就绪队列项；其余保存在已计费的有限计划窗口，不创建无界 future”。
+- 最小修订：submit/admit 计数 ready+waiting，超过 2P 时拒绝或以 plan window 元数据计费停放；control 队列同样设上限。
+
+**M2-4（P2）broadcast 不拒绝重复分支；组信用检查与插入不是同一原子区间（对同 pipe 的普通 send 可竞争）。**
+- 位置：`src/runtime/pipe.cpp:559-595`：`broadcast_mutex()` 只序列化 broadcast 之间；每个分支的 `has_credit` 与 `push_back` 分两次加锁（`:561-580`），分支列表未去重。
+- 构型（已复现）：`unordered`、`max_items=1`、`broadcast(k,v,{p,p})` → 两个 receive 都拿到数据（队列超过 max_items）。
+- 期望：`FOUNDATION_API.md:233`“一次原子取得所有分支的 credit”“一个分支不消费时背压全部必需分支”。
+- 最小修订：同一 `PipeCore*` 出现两次即 `invalid_request`；按 edge_id 排序后持全部分支锁完成 check+insert（或使用统一的 credit 事务）。
+
+**M2-5（P2）`ScopeLimits.metadata_bytes` 不生效；未被观察的失败任务不进入 scope 日志。**
+- 位置：`pool.cpp:271`（task 子 scope `metadata_bytes=0`）；`src/runtime/task.cpp:109`（`TaskNode::~TaskNode() = default`，无日志/无失败上报）。`FOUNDATION_API.md:121` 要求“未观察的失败进入 scope 日志”。
+- 最小修订：metadata 在节点/pipe item 生成时累计并受配额；TaskNode 终态失败且无观察者时向父 scope 记 Issue。
+
+**M2-6（P2）control lane 绕过 command 的 CPU ceiling。**
+- 位置：`pool.cpp:910-921,970-978`（control 从 `control_.front()` 直接取，不计 `cpu_running`/credit）、`:1029-1032`（control 节点不增/不减 command 计数）；而 science 路径在 `:942` 检查 ceiling。
+- 构型（subagent 实测）：command `cpu_tokens=1`、P=2、4 条 `then` 链各睡眠 60 ms → 峰值并发 2。
+- 说明：`FOUNDATION_API.md:399` 允许 control continuation 在 stopping 时继续，但要求“只做有限控制组合……计算必须 submit_cpu”；这里没有对 control 的 CPU 计费，故 P2（重活应被要求 submit_cpu）。
+- 最小修订：control 节点也计 command CPU token；或给 control 单独的、受 ceiling 约束的额度。
+
+**M2-7（P2）read/write I/O slot 不按 `min(P,4)`/2 clamp。**
+- 位置：`pool.cpp:354-355`（直接照抄 config）。`SCHEDULER.md:13` 要求 active read ≤ `min(P,4)`、write ≤2。
+- 构型：`PoolConfig{cpu_threads=1, read_slots=8}` → 8 个读 worker。
+
+**M2-8（P2）重复 close 的幂等比较只看 kind 和 issue 数量。**
+- 位置：`pipe.cpp:492-495`。构型（已复现）：`close(failed,[io_error])` 后再 `close(failed,[internal])` → 两次都 ok；期望 `FOUNDATION_API.md:231`“冲突终态 invalid_request”。
+
+**M2-9（P2）非 Block DTO 没有 `bounded_size` 登记入口，按 `sizeof(T)` 计费。**
+- 位置：`include/acsd/runtime/pipe.hpp:38-48`（generic `pipe_payload_bytes` 返回 `sizeof(T)`，无登记 API）。构型（已复现）：含 8 MiB `vector` 的 DTO 通过 `max_queued_bytes=64` 的窗口。`FOUNDATION_API.md:227` 要求普通 DTO 登记 bounded_size、禁止无上界 payload。
+
+---
+
+## 5. M3 异步 Storage 与诊断
+
+### 已核实的正确部分
+
+- 读路径：短读/短尾是 `io_error` 而非零填充（`storage.cpp:1099-1106`）；解压长度校验（`:1136-1146`）；发布前逐块 raw SHA 校验（`:1150-1159`，故意破坏 raw/zstd 块 → `hash_mismatch`）；range/覆盖/gap 校验（`:975-1085`）；顺序是“预分配缓冲(CPU)→read slot→syscall→释放 slot→单独 `submit_cpu` 解码/hash”（`:985-987,1088-1110,1200-1210`），解码不在 I/O lane。
+- append：一次一个在途（`storage.cpp:1389-1392`）；连续性 `range.begin==next_element`（`:1412-1415`）；dtype/itemsize/unit/index hash 校验；超 total 拒绝；seal 要求精确元素数且不静默修复（`:1505-1508`）；失败 append 后 writer failed、后续 append invalid_request、seal 返 io_error、abort 清理 spool。
+- abort：顺序调用时幂等、seal 后是 no-op、已交付 Array 仍可读（`storage.cpp:1626-1632` 及其后的 cleanup 路径）。
+- 规范身份：memory/spill 两种 placement 同值同 `content_hash`；块 id 不含路径/codec/stored_bytes（`hash_block` 250-255）；规范块 `2^20/itemsize`、dyadic 1024。
+- 诊断：OFF 宏完全擦除参数且 OFF 不建 sink/不读 env（`diagnostics.hpp:90-97`、`pool.cpp:380-395`）；ON 先 selection 后构造 payload（`diagnostics.hpp:67-83`）；`try_*`/`allocate_span_id` noexcept；队列受 `max_items`+`memory_bytes` 限制；磁盘失败只增 `io_errors`；快照复制到私有 blob、返回后不持科学 Lease。
+
+### 发现
+
+**M3-1（P0）seal 与 abort 竞争：abort 后 seal 仍可成功并交付 `complete=1` 但不可读的 Array；spill 路径出现 SIGSEGV / 堆损坏。**
+- 位置：`storage.cpp:1490-1509`（seal 只在同步 prologue 查 status）、`:1517-1530`（prepare 只查 `block_open`）、`:1549-1576`（finalize 只拒 `failed`，随后无条件 `status=sealed` 并注册 `state->blocks`）；`:1626-1649`（abort 只 defer `append_in_flight`，忽略在途 seal 写，直接 `cleanup_writer` 删除 spool）。
+- 构型 A（memory，writer `shape{3000}`，append 全量后同时 `seal_async` + `abort_async`）：期望 abort 胜出或至少不交付半成品（`OBJECTS.md:142`“open→sealed 或 open→failed→aborted；任一未 sealed 析构等价 abort；seal 验证总元素数、块覆盖及 hash”）；实际 `abort.code=0 seal.code=0`、`complete=1`，随后读该 Array `invalid_model`（`block_ids` 在 0/1 间竞态）。
+- 构型 B（spill，`shape{1MiB+100}` u8，buffer 1 MiB）：同一交错下多次运行出现 SIGSEGV(139)、`malloc(): unsorted double linked list corrupted`(134)、或 abort.ok+seal.io_error、或 seal.ok+read io_error/resource_exhausted——确证数据竞争/UAF。
+- 复现：`/tmp/repro_seal_abort`、`/tmp/repro_seal_abort_spill`（源码与编译命令见 §9）。
+- 最小修订：seal prologue 在锁内进入 `sealing` 状态；finalize 要求 `status==sealing`（abort 已置 aborted 即失败）；seal 前校验块覆盖 `0..total` 连续；abort 跟踪 `seal_in_flight` 并等其真实 I/O 完成后再 cleanup。
+
+**M3-2（P1）abort 不排空在途 seal 写（M3-1 的独立缺陷）。**
+- 位置：`storage.cpp:1633`（只有 `append_in_flight`），而 seal 的写由 `submit_write_batch` 在 `:1601-1607` 提交且不受 abort 跟踪。
+- 期望：`FOUNDATION_API.md:197`/`:403`“abort_async 排空在途后撤销私有块”“真实 DMA/write 仍须等完成，不能为了返回取消提前释放 buffer”。实际：abort 返回 ok 时 seal 写可能仍在队列（构建 A 中 seal 随后 io_error；构建 B 中堆损坏）。
+- 最小修订：与 M3-1 合并修；为 writer 增加 `pending_io` 计数，abort 的 cleanup 作为该计数的 continuation。
+
+**M3-3（P1）未 sealed 的 writer 析构不清理，spill spool 永久泄漏。**
+- 位置：`storage.cpp:340-386`（`WriterState` 无析构）、`:408-414`（`ArrayWriter` 无析构）；`cleanup_writer` 只在 abort（`:1649`）、begin 失败（`:1344`）、deferred abort（`:842`）被调用。
+- 构型：spill writer、append 1 MiB、直接丢弃最后一个 `WriterRef`（不 seal/abort）→ writer 私有目录/文件保留。
+- 期望：`OBJECTS.md:142`“任一未 sealed 析构等价 abort”；`FOUNDATION_API.md:403`（unlink 只试一次，失败留具名 orphan）。
+- 最小修订：`~ArrayWriter` noexcept 调 `cleanup_writer`（status!=sealed），unlink 失败记 orphan/Issue。
+
+**M3-4（P1）`buffer_bytes`/`metadata_bytes` 从不 claim；spill staging 未受额度约束、未按 ≤8 MiB 分块。**
+- 位置：`storage.cpp:1304-1306`（只保存 buffer_bytes，用作 zstd 开关）、`:1325-1335`（spill 只 mkdir，不 charge）、`:662-674`（staging `make_shared` 未计账）、`:1428-1435`（一次 append 整段 payload）。
+- 构型：`reserve(ctx,{host=1})` 后 `begin` spill `buffer_bytes=1MiB, metadata=1MiB` → ok 且 `claimed` 不变；append 4 MiB → `allocated` 不变。
+- 期望：`OBJECTS.md:142`“spill 可用小于规范块的固定缓冲，raw 写与 zstd 流式解码/压缩均受实际缓冲额度约束”；`SCHEDULER.md:14` I/O chunk ≤8 MiB；`EXECUTION.md:91` std::vector/解压工作集必须计入准入。
+- 最小修订：begin 时 claim buffer+metadata，seal/abort 释放；staging 按已预留 chunk 分块，禁止一次物化整段。
+
+**M3-5（P1）已封存数组被全局 BlockStore 永久钉住，容量永不归还（M4 每次 Host 调用泄漏 26N+模型字节）。**
+- 位置：`storage.cpp:1723-1733`（`register_array` 把 `lease` 存进 `entries_`，无删除/逐出 API）；`:1561-1576`（memory placement seal 注册）；`src/runtime/science_bridge.cpp:81-82`（桥接数组同样注册）。`SYSTEM.md:72` 的 cache 预算是 ≤H/8 且“逐出只影响性能”，这里无预算亦无逐出。
+- 构型（已复现）：`append+seal` 一个 64 B memory array → 丢弃 writer/ArrayRef/arena 并 `close_command` 后 `snapshot`：`allocated=64, held=64` 仍不为 0（`peak=128`）。长跑进程会把 process ceiling 吃满，后续调用只能 `resource_exhausted`。
+- 期望：`CALIBRATION_WALKTHROUGH.md:129`“已 sealed 数组在首次产品 publish 前仍属私有暂存，不能被 cache 永久钉住”；`SCHEDULER.md:44`“存活输出仍归该 scope，直至最后 lease 释放”（这里 lease 永不释放）；`EXECUTION.md:91` LRU/无界增长禁令。
+- 最小修订：BlockStore 条目改为“内容缓存”，受独立预算与 pin/逐出策略管理；seal 的 Array 自身持有 Lease，cache 只持弱/可逐出引用；`close_command` 后未交付暂存应释放。
+
+**M3-6（P2）读写账本单位与 cache 命中读量违反 EXECUTION:97。**
+- 位置：`storage.cpp:818-823`（append 成功把 `appended*itemsize` 同时加到 `written_bytes` 与 `spill_written_bytes`，即未压缩 payload）、`:1164-1170`（read 按 `stored->values.size()` 计）、`:1003-1007`（cache 命中也 `ledger_account_bytes(...,byte_count,0,0)`）。
+- 规范：`EXECUTION.md:97`“read/written 统计 Storage 边界实际字节，cache 命中读量为 0，重复物理 I/O 如实累加；spill_bytes 为累计写 spill 字节，written_bytes 包括它，不能相加当总写量”。
+- 另：HEAD 新增的 `io01` 断言 `written + spilled >= bytes`（`validation/runtime/io01/io01.cpp:354-358`）把两者相加，恰好违反同一条“不能相加”的规则，因此该断言无法发现单位错误。
+- 最小修订：spill 按 descriptor 的 stored_bytes 计；cache 命中不记 read；测试改判 written 与 spill 的包含关系，不相加。
+
+**M3-7（P2）dyadic 只有写路径，没有读路径。**
+- 位置：`storage.cpp:968-972`（`prepare_read` 对 `itemsize==0` 直接 unsupported）、`:1683-1697`（read_async 只实例化固定宽类型）；`memory.cpp:597-639` 也没有 `allocate/freeze<Dyadic>`。`append_async<Dyadic>` 在 `:1713` 存在。
+- 期望：`FOUNDATION_API.md:199`“dyadic 使用单独精确编码读写，由 Storage 流式接口处理”。
+- 实际：`read_async<Dyadic>` 无法链接（只有声明无定义）；公开 API 无法获得 `Block<Dyadic>`。
+- 最小修订：补 streaming canonical-Dyadic JSON 读与 `allocate/freeze<Dyadic>`。
+
+**M3-8（P2）append 不校验 `Block.model_hash`（“hash 来源”）。**
+- 位置：`storage.cpp:1393-1425` 校验 dtype/itemsize/unit/index/连续性，从不看 `model_hash`；而 `read_async` 在 `:1184` 设置它。构型：writer u8{20}，先 append `model_hash=A` 再 append `model_hash=B` → 两次都 ok。规范：`FOUNDATION_API.md:197`“接收时验证…hash 来源”。
+
+**M3-9（P2）NaN payload 未规范化为 quiet 位。**
+- 位置：`storage.cpp:127-152`（append_le 原样 memcpy IEEE bits）。构型：`0x7ff8000000000001` 与 `0x7ff8000000000000` 得不同 `content_hash`。规范：`OBJECTS.md:140`“无值 NaN 在 FP64 统一 quiet 位 0x7ff8000000000000…”。-0 保留正确。
+
+**M3-10（P2）`BlockStore::register_array` 覆盖同 id 条目会丢掉旧 Lease。**
+- 位置：`storage.cpp:1728-1733`（`auto& entry = entries_[id]` 后 `entry.lease = std::move(lease)`）。构型：seal 两个内容相同的 1 MiB memory array → `allocated` 只 1 MiB 而非 2 MiB，且第一个 ArrayRef 仍存活时旧 claim 已被释放。规范：`FOUNDATION_API.md:193`“存活 claim 继续计费至最后 Lease 释放”。
+
+**M3-11（P2）memory placement 的 `total*itemsize` 未做溢出检查。**
+- 位置：`storage.cpp:1314`（`const U64 total_bytes = total * itemsize;`）。构型：f64 `shape{2^61}` → 乘积回绕为 0，跳过 `charge_vector`，begin 返回 ok 且 `allocated` 不增。规范：`OBJECTS.md:142` memory placement 必须完整预留；`FOUNDATION_API.md:199` `allocate` 对乘积检查。
+
+---
+
+## 6. M4 observation.calibrate
+
+### 已核实的正确部分
+
+- **唯一 kernel**：`src/observation/calibration_kernel.cpp` 的 `calibrate_sample`、`calibration_parameters`、`assemble_calibrated_native` 是唯一实现；同步入口 `calibrate.cpp:176,237` 与块路径 `calibration_signal.cpp:272,881` 都调用它们，没有第二份像素公式（`grep` 全树只有这一处公式）。
+- **Host 全链可跑通**：我在 `/tmp` 重新编译 `validation/runtime/calibration/cal_host.cpp` 并运行 → **25/25**，与提交的 `observed_host.json` 的 checks/values 完全一致（仅 `resources.elapsed_seconds` 不同）；C-CAL-1 `[4,14,-8]`、C-CAL-2 `[0,10,-12]`、跨入口 `NativeObservation` identity 相同、共享根保留、DQ flat=0 得 NaN+bad+具名 Issue。
+- **单位/index/DQ/区间**：`SignalBlock` 的 value/lower/upper 用 signal 单位、DQ 用 `model::unit_dimensionless()`（`calibration_signal.cpp:230-255`）；四个 buffer 都用 `data.index` 与输入 `model_hash`；区间由 `numerics::interval_*` 在同一表达式上向外传播（`calibration_kernel.cpp:112-178`）。
+- **finish_native 的 science bridge scope**：`calibration_signal.cpp:630-632` 与 `calibration_process.cpp:211-213` 都选 `context.persistent ? persistent : progress`，模型数组计入 **R（persistent）**，没有记到 per-cohort F；R 的 `final_arrays=26N` 与 `begin_signal` 的 4 个 writer（`3*8N+2N`，`calibration_signal.cpp:405-419,434-435`）一致。**这一条不是缺陷。**
+- **C-CAL 覆盖**：C-CAL-1/2/DQ/H/ORDER/ROOT/DEV 在 `validation/runtime/calibration/{evidence.md,cal_host.cpp,cal_kernel.cpp}` 有真实证据；C-CAL-H 的 N=200000、4 cohorts 在 Host 上实际完成。
+
+### 发现
+
+**M4-1（P1）同步 `calibrate_observation` 与 typed Host 对同一输入应用不同校验，结果 code 不同。**
+- 位置：`src/observation/calibrate.cpp:66-72,91-152`（只查元素个数；`exposure_seconds < 0` 才算错；无 flat 时只要求 normalization 有限；不查 DQ 单位、不查 footprints）vs `src/observation/calibration_plan.cpp:141-168,203,222-241`（DQ 必须 `scale=="1" && linear_power==0`；exposure 必须 `>0`；无 flat 必须 normalization==1；footprints 必须有）。
+- 构型（已复现）：同一 Raw/Calibration，DQ 数组 unit=ADU（其余合法）→ `acsd::calibrate_observation` 返回 `code=0`，`ProcessHost.invoke` 返回 `code=2`（`the raw quality array must be dimensionless`）。
+- 期望：`COMPUTE_MODULES.md:58`、`DEVELOPMENT.md:65`、`CALIBRATION_WALKTHROUGH.md:129` 的“同一实现/所有入口同一 typed process”；`CALIBRATION_WALKTHROUGH.md:40` 要求 DQ 逐字段验证。
+- 复现：`/tmp/repro_sync_host`（源码见 §9）→ `DIVERGENT=yes`。
+- 最小修订：把 `validate_metadata` 提为唯一校验入口，`calibrate_observation` 直接调用；或让同步入口也走 `generate` 后的同一 `validate`。
+
+**M4-2（P1）plan 的 work / R / F 与实际分配不符（多处漏计）。**
+- 未计费的 O(N) `std::vector`：`calibration_signal.cpp:639-700` 的 `finish_native` 通过 `read_f64_values/read_u16_values` 复制 value/flags/flat/raw/bias（各 ~8N/2N），`calibration_kernel.cpp:212-262,312-330,406-420` 又复制 flat_values/raw/bias、构造 inverse_flat/shot/read/flat_jacobian（各 8N）。这些分配不经过 arena/ledger，N=200000 约 9–13 MB。规范：`EXECUTION.md:91`（std::vector/解压工作集必须计入准入）、`FOUNDATION_API.md:199`（“实际超计划先申请 grow，不能先 new 后补账”）。
+- `kStorageWorkspaceUpper = 1 MiB` 是手填常数（`calibration_plan.cpp:38-43,358-361`），不是 `DEVELOPMENT.md:21` 要求的 `W_module(args)` 实测上界，也没有 allocator 日志。
+- stage work 只声明 calibrate 段 n，read/write 段 `work_upper=0`（`calibration_plan.cpp:412-431`），但 Storage 的 read/append/seal/begin 都 `consume_work`；实测 N=3 一次调用 `usage.work=140`。d404 的 cal01 因 `max_work=1000` 在 C-CAL-ROOT 段的 invoke（累计第 5/6 次）永久等待（见 E-1），HEAD 的 cal01 把 `==count` 改成 `>=count`（见 E-3）。
+- 最小修订：plan 把 Storage/codec 的 `work_units` 与所有 O(N) 临时向量的上界纳入 F/工作总量；用 allocator 实测替换常数；若 N 大时 `finish_native` 必须分块/流式，并计入该执行段。
+
+**M4-3（P1）M4 的验收门槛 C-CAL-WRITE / C-CAL-CLEAN 未执行，且 C-CAL-WRITE 实际是 M3-1 的破坏路径。**
+- `validation/runtime/calibration/evidence.md:75-83` 自述 “C-CAL-WRITE / C-CAL-CLEAN（short write、seal failure、cancellation in write）：require injected failures; the runtime verification cases own the failure-injection machinery”，即没有跑。
+- `VERIFICATION.md:127` 明确把“四 writer 失败 seal、取消+science work 耗尽仍可 cleanup”列为 M4 实跑门槛；`CALIBRATION_WALKTHROUGH.md:149` 的 C-CAL-WRITE 期望“实际写结束前不释放 lease、无 Native/半成品”。M3-1 已证明该路径会交付 complete 半成品并在 spill 下 UAF。
+- 最小修订：在修完 M3-1/M3-2/M3-3 后补 C-CAL-WRITE（第二数组短写、第四 seal 失败、取消在 write 提交后）与 C-CAL-CLEAN（已 cancelled + work 耗尽仍 cleanup），并接入 `run_cases.py`。
+
+**M4-4（P2）plan 声明了两条 pipe edge/window，但 `stream_map_ordered` 完全不用 pipe/permit/credit。**
+- 位置：`calibration_plan.cpp:435-451`（read_edge/write_edge，`ordered`、`max_items=window`、`max_queued_bytes`）；`src/observation/stream_map.cpp:119-186` 用 `std::deque<Task<Out>>` 限窗并发，sink 直接按 front 顺序，不调用 `make_pipe`、不取 publication permit、不按 edge 的 bytes 信用背压。
+- 影响：`COMPUTE_MODULES.md:149` 要求“先由 plan 取得每 cohort 的 publication permit 与 arena”；plan 的 edge 字段成为死数据，ordered-pipe 契约（S-ORDER/PIPE01）在首个科学 process 未被行使。`window>1` 时多展开的 cohort 只靠 `block.arena`（F=单 cohort）承载，没有 E 预留，大 N 会 `resource_exhausted`/停放（`SCHEDULER.md:58,62`）。
+- 最小修订：要么 `stream_map_ordered` 真正用 plan edge 建 pipe 并取 permit；要么在 plan 中不声明未使用的 pipe 字段，并在文档里把 window>1 标为未支持（带 E 准入）。
+
+**M4-5（P2）C-CAL-ROOT 的“同根”证据是构造性必真；cal01 里唯一能查跨调用依赖的 check 被删除而非修复。**
+- `validation/runtime/calibration/cal_host.cpp:522-558`：两次调用传入**同一个** `shared_root` 对象，再比较结果的 `shared_factors[i]->shared_id`。正确实现与“只会原样转发输入根”的错误实现都会通过；它不能证明“process 没有每次调用造新根”。
+- `cal01` 在 d404 的失败项 `cal.root_shared_dependencies`（期望两次结果有共同 dependency id）在 HEAD 被从 `required_checks` 删除（35→34）；实际情况是 HEAD 的 `src/` 里没有任何 process 给 `Result.dependencies` 赋新值（`git grep HEAD -- src` 只有转发/空值，`src/runtime/host.cpp:860` 原样搬进 `WireResponse.dependencies`），所以 wire 的 dependencies 为空，与 `OBJECTS.md:16` 的 `dependencies[]`（具名输入对象版本/hash/角色）不符。
+- 最小修订：C-CAL-ROOT 用两个**不同对象、相同 SharedId**的 NoiseModel 调用两次，比较完整 shared_id 集合与 root 的对象身份（而不仅是 id 字符串），并单独断言 Poisson 分支不新增随机根；`Result.dependencies` 由 adapter 填 input/request/master 身份，或明确从 wire 契约删除该字段并改文档。
+
+---
+
+## 7. 证据真实性（observed / comparison / 提交叙述）
+
+| 编号 | 严重度 | 事实 | 证据 |
+|---|---|---|---|
+| E-1 | **P1** | `d404c99f7` 提交的 `cal01/comparison.json` 是 **fail**、0 checks；`observed.json` 是更早一次 attempt 的旧结果（24 checks、19 pass；其中 5 项失败含 DQ unit 与 root dependency），最终一次 attempt 没有产出 JSON。用 `d404` 源码重编 `cal01` 会在 C-CAL-ROOT 段的 invoke（此前 4 次 invoke 已通过）期间**永久挂起**（我把它跑满 120 s timeout），根因是 work 预算耗尽后的永久 `waiting_resources`（6fe0c8ac 已修）。与此同时 `m0-implementation-matrix.md:480-486` 写“M4 完成（C-CAL 全链）”。 | `git show d404c99f7:validation/runtime/cal01/{comparison,observed}.json`；`/tmp/cal01c`（用 `git show d404c99f7:.../cal01.cpp` 编译）在 `cal.root_second_adu_ok` 后挂起 |
+| E-2 | **P1** | 同一个提交里 `validation/runtime/README.md` 的叙述（“pass 10 / fail 3 / pending 2”，fork01/order01 fail）与同提交的 `comparison.json`（fork01 pass 18/18、order01 pass 11/11、pipe01 fail、d01_on pending、cal01 fail → 12 pass/2 fail/1 pending）以及 `manifest.json`（只有 cal01 一条）互相矛盾。README 是旧叙述，重跑后未同步。 | `git show d404c99f7:validation/runtime/README.md`；同提交各 `comparison.json`；`manifest.json` |
+| E-3 | **P1** | HEAD 的 15/15 快照在 `cal01` 上把必需判据从 35 条减到 34 条（删 `cal.root_shared_dependencies`，即 d404 的失败项）并把 `cal.cal1_usage_work` 从 `==count` 放宽为 `>=count`；`case.json` 只有一句“process usage aggregates stages”的注释，没有按 `README.md:31`“不得修改判据去迁就实现”给出缺陷/修订记录。`multi01.ratio_1_to_2` 的删除有代码注释说明（整窗含 admission 瞬态、保留 complete-round 判据），这一条我认为是合理的；`cal01` 的删除没有同等依据。 | `git diff d404c99f7 HEAD -- validation/runtime/cal01/{case.json,cal01.cpp}`；`git show HEAD:validation/runtime/README.md`（“不得修改判据去迁就实现”） |
+| E-4 | P2 | `observed.json` 在“本次运行没有 JSON 输出”时不被清空：`pipe01`/`cal01` 的 `comparison.json` 是 0 checks/fail，但 `observed.json` 保留上一次的 19/21 checks。读者只看 observed 会误以为该次跑过。 | 同 E-1；`run_cases.py` 的失败写盘路径 |
+| E-5 | P2 | `d404` 的 `manifest.json` 只含 `cal01` 一条（局部 run），却被当作整个包的结果；`validation/runtime/build_status.json` 与二进制在复核期间又被并行 agent 重编（00:04–00:13），与提交证据不是同一构建。 | `manifest.json`；`build/*.build.log` 时间戳 |
+| E-6 | 正面 | 旧的 **7 pass / 4 pending** 未被改写：`validation/run_summary.json` 在 `ea984cdb` 与 `d404` 的 case 状态/functional 数逐项相同（只变了 `wall_seconds`）。`cal_host` 25/25 与提交 `observed_host.json` 的 checks/values 完全一致；`typed_smoke` 1255、`registry_negative` 107、`host_lifecycle` 66 可复现。 | `python` 对比脚本；本次实跑 |
+
+**关于“M0—M4 完成”的声明**：`m0-implementation-matrix.md` 附录 A（480-486）在 `d404` 时把 M1/M2/M3/M4 标为“完成”，但同提交的 runtime 包是 fail/挂起（E-1/E-2）。到 `6fe0c8aac` 后 runtime 包 15/15，但本报告的 P0-1/P0-2、M2-2、M3-3/M3-4/M3-5、M4-1/M4-2/M4-3 均未被这 15 个 case 覆盖，附录 A 的“完成”仍超出现有证据范围。
+
+---
+
+## 8. 未被本轮验证的项（明确保留）
+
+1. P0-2 spill 路径的 ASan 栈：`/tmp/acsd-build` 未用 ASan 插桩；我拿到的是 glibc 的 `malloc(): unsorted double linked list corrupted` 与 SIGSEGV。需要 ASan 全库构建再取栈。
+2. C-CAL-WRITE / C-CAL-CLEAN 的修复后重跑；Host 的 spill placement 全链；`window>1` 且大 N 的 E 准入。
+3. M5 其余 operation（Appendix A 自述 56 个具名 `unsupported`、`coadd.integrate` 为 `blocked_refactor`）逐项；M6 的 Normalize→Mosaic→Export 真实磁盘链路；Windows；真实 HST/M42。
+4. 诊断 ON 的 `B9/B10`（summary 字段、独立诊断 I/O 预算）我只做了代码审读，未跑 ON 大负载。
+5. `Arena`/Storage 的并发压测（除 P0-2 的 seal/abort 竞争外）；1e12、极区、SIP 等科学极值不在本轮。
+6. 我未复核工作树里正在发生的未提交修改（截至 00:37 有 52 项，含 `task.hpp`/`pipe.cpp`/`memory.cpp`/`calibration_signal.cpp`）；若其中已修掉本报告的条目，需以新提交 + 新证据重新复核。
+
+---
+
+## 9. 复现命令（全部在 /tmp，不写 validation）
+
+```bash
+cd "/workspace/Astro CS Database"
+INC="-I include"; LIBS="-L/tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -lresources -lcodec -Wl,--end-group -lpthread -lzstd"
+
+# M0：生成、manifest 覆盖、freeze 负例
+python3 tools/generate_typed_bindings.py --check
+python3 tools/check_design.py
+ACSD_SOURCE_ROOT="$PWD" /tmp/acsd-build/acsd-runtime-manifest --output /tmp/manifest.json
+python3 tools/check_process_coverage.py --manifest /tmp/manifest.json --source-root "$PWD"
+/tmp/acsd-build/acsd_registry_negative ; /tmp/acsd-build/acsd_typed_smoke ; /tmp/acsd-build/acsd_host_lifecycle
+
+# M0-2/M0-5：空 process 与共用文档都能 freeze
+g++ -std=c++20 -O2 -I include /tmp/probe_empty_process.cpp $LIBS -o /tmp/pe && /tmp/pe
+g++ -std=c++20 -O2 -I include /tmp/probe_dup_doc.cpp $LIBS -o /tmp/pd && /tmp/pd
+
+# M1-1：work_upper=0 越 max_work
+g++ -std=c++20 -O2 $INC /tmp/repro_work0.cpp $LIBS -o /tmp/repro_work0 && /tmp/repro_work0
+
+# M2-1 P0：when_all 非法 Task
+g++ -std=c++20 -O2 $INC /tmp/audit/when_all_probe.cpp $LIBS -o /tmp/wa && /tmp/wa
+
+# M2-2 P1：ordered pipe 跨 cohort stall
+g++ -std=c++20 -O2 $INC /tmp/audit/pipe_probe.cpp $LIBS -o /tmp/pp && /tmp/pp
+
+# M2-4：broadcast 重复分支超 max_items
+g++ -std=c++20 -O2 $INC /tmp/audit/broadcast_probe.cpp $LIBS -o /tmp/bp && /tmp/bp
+
+# M3-1 P0：seal/abort 竞争（memory 与 spill）
+g++ -std=c++20 -O2 $INC /tmp/repro_seal_abort.cpp $LIBS -o /tmp/sa && /tmp/sa
+g++ -std=c++20 -O1 -g $INC /tmp/repro_seal_abort_spill.cpp $LIBS -o /tmp/sas && for i in 1 2 3 4; do /tmp/sas; echo "exit=$?"; done
+
+# M3-5 P1：sealed array 被 BlockStore 永久钉住
+g++ -std=c++20 -O2 $INC /tmp/repro_pin.cpp $LIBS -o /tmp/pin && /tmp/pin
+
+# M4-1 P1：同步入口与 Host 校验分歧
+SCI="-L/tmp/acsd-build -Wl,--start-group -lacsd_builtin -lruntime -lcodec -lworkflows -lphotometry -lsources -lcoadd -lsky -linformation -lprojection -lgeometry -lresponse -lresources -lstorage -lobservation -lcatalogue -luncertainty -loperators -lcoordinates -lnumerics -lmodel -Wl,--end-group -lpthread -lzstd"
+g++ -std=c++20 -O2 -I include -I src /tmp/repro_sync_host.cpp $SCI -o /tmp/repro_sync_host && /tmp/repro_sync_host
+
+# M4 正面：Host 全链 25/25
+g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/runtime/lib \
+  validation/runtime/calibration/cal_host.cpp $SCI -o /tmp/calhost && /tmp/calhost > /tmp/calhost.json
+# 与提交证据逐 check 对比（names/passes/values 应一致）
+```
+
+---
+
+## 10. 最小修订顺序建议
+
+1. **P0**：M3-1/M3-2（seal/abort 状态机 + 在途 I/O 排空）→ M2-1（when_all 非法 Task）。
+2. **P1**：M4-1（唯一校验入口）→ M3-5（输出 Lease/缓存预算）→ M2-2（ordered frontier）→ M1-1（work_upper=0）→ M2-3（2P 窗口）→ M3-3（writer 析构清理）→ M3-4（buffer/metadata 计费）→ M4-2（W_module/临时向量/work 总量）→ M4-3（C-CAL-WRITE/CLEAN 证据）。
+3. **P2**：M0-1/M0-2/M0-3/M0-4、M2-4…M2-9、M3-6…M3-11、M4-4/M4-5、E-4。
+4. 修完后需重跑：`validation/runtime`（含新增的非法 Task、跨 cohort ordered、seal/abort 竞争、writer drop、`work_upper=0` 五个 fixture），`cal_host`/`cal_kernel` 全量，以及 `acsd_registry_negative`/`typed_smoke`/`host_lifecycle`；并在 audit matrix 附录 A 中把“完成”改为指向这些新证据。
+
+---
+
+### 附：本报告没有做的事
+
+- 没有修改任何实现、头文件、验证用例或 git 历史；只在 `/tmp` 写探针与本报告。
+- 没有把“测试通过/编译通过”当作语义通过的替代；每条 P0/P1 都给了文件行号、构型、期望/实际和复现。
+- 没有复核未提交的工作树改动；没有覆盖 M5/M6、Windows、真实数据、GPU。

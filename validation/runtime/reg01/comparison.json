@@ -10,22 +10,46 @@
     "built": true,
     "status": "built",
     "classification": "ok",
-    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/reg01.o -L /tmp/acsd-build-dev -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/reg01",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/reg01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/reg01",
     "log": "validation/runtime/build/reg01.build.log"
   },
   "command": "/workspace/Astro CS Database/validation/runtime/build/reg01",
-  "status": "pass",
-  "reason": "all required checks passed",
+  "status": "fail",
+  "reason": "required checks not attempted: reg.manifest_nonempty, reg.make_host_ok, reg.open_command_ok, reg.invoke_alpha_ok, reg.invoke_alpha_value, reg.invoke_alpha_ran_once, reg.invoke_beta_ok, reg.invoke_beta_value, reg.unknown_process_unsupported, reg.unknown_operation_unsupported, reg.wrong_request_invalid_request, reg.wrong_request_before_run, reg.close_command_ok, reg.host_close_async_ok; required checks failed: reg.freeze_ok; attempts 14 < min_attempts 28; harness reports failures: [\"reg.freeze_ok\"]",
   "exit_code": 0,
-  "attempts": 28,
-  "successes": 28,
+  "attempts": 14,
+  "successes": 13,
   "expected_success_count": 28,
-  "observed_success_count": 28,
+  "observed_success_count": 13,
   "required_checks": 28,
-  "missing_checks": [],
-  "failed_checks": [],
-  "failures": [],
-  "kernel_status": "pass",
+  "missing_checks": [
+    "reg.manifest_nonempty",
+    "reg.make_host_ok",
+    "reg.open_command_ok",
+    "reg.invoke_alpha_ok",
+    "reg.invoke_alpha_value",
+    "reg.invoke_alpha_ran_once",
+    "reg.invoke_beta_ok",
+    "reg.invoke_beta_value",
+    "reg.unknown_process_unsupported",
+    "reg.unknown_operation_unsupported",
+    "reg.wrong_request_invalid_request",
+    "reg.wrong_request_before_run",
+    "reg.close_command_ok",
+    "reg.host_close_async_ok"
+  ],
+  "failed_checks": [
+    "reg.freeze_ok"
+  ],
+  "failures": [
+    {
+      "check": "reg.freeze_ok",
+      "expected": "ok",
+      "actual": "identity_conflict(identity_conflict:registry.freeze:process 'validation.reg.beta' and process 'validation.reg.alpha' share document 'validation/runtime/README.md'; a process owns one unique document)",
+      "detail": ""
+    }
+  ],
+  "kernel_status": "fail",
   "checks": [
     {
       "check": "reg.alpha_process_registered",
@@ -43,107 +67,9 @@
     },
     {
       "check": "reg.freeze_ok",
-      "pass": true,
+      "pass": false,
       "expected": "ok",
-      "actual": "ok",
-      "detail": ""
-    },
-    {
-      "check": "reg.manifest_nonempty",
-      "pass": true,
-      "expected": "non-empty manifest",
-      "actual": "937 bytes",
-      "detail": ""
-    },
-    {
-      "check": "reg.make_host_ok",
-      "pass": true,
-      "expected": "ok",
-      "actual": "ok",
-      "detail": ""
-    },
-    {
-      "check": "reg.open_command_ok",
-      "pass": true,
-      "expected": "ok",
-      "actual": "ok",
-      "detail": ""
-    },
-    {
-      "check": "reg.invoke_alpha_ok",
-      "pass": true,
-      "expected": "ok",
-      "actual": "ok",
-      "detail": ""
-    },
-    {
-      "check": "reg.invoke_alpha_value",
-      "pass": true,
-      "expected": "42",
-      "actual": "42",
-      "detail": ""
-    },
-    {
-      "check": "reg.invoke_alpha_ran_once",
-      "pass": true,
-      "expected": "1",
-      "actual": "1",
-      "detail": ""
-    },
-    {
-      "check": "reg.invoke_beta_ok",
-      "pass": true,
-      "expected": "ok",
-      "actual": "ok",
-      "detail": ""
-    },
-    {
-      "check": "reg.invoke_beta_value",
-      "pass": true,
-      "expected": "700",
-      "actual": "700",
-      "detail": ""
-    },
-    {
-      "check": "reg.unknown_process_unsupported",
-      "pass": true,
-      "expected": "unsupported",
-      "actual": "unsupported(unsupported:host.invoke:unknown process 'validation.reg.unknown' operation 'run'; the frozen registry has no typed binding)",
-      "detail": ""
-    },
-    {
-      "check": "reg.unknown_operation_unsupported",
-      "pass": true,
-      "expected": "unsupported",
-      "actual": "unsupported(unsupported:host.invoke:unknown process 'validation.reg.alpha' operation 'unknown_operation'; the frozen registry has no typed binding)",
-      "detail": ""
-    },
-    {
-      "check": "reg.wrong_request_invalid_request",
-      "pass": true,
-      "expected": "invalid_request",
-      "actual": "invalid_request(invalid_request:host.invoke:typed binding cookie mismatch for process 'validation.reg.alpha' operation 'run': the in-process call does not match the registered TypeId/C++ type pair)",
-      "detail": ""
-    },
-    {
-      "check": "reg.wrong_request_before_run",
-      "pass": true,
-      "expected": "0",
-      "actual": "0",
-      "detail": ""
-    },
-    {
-      "check": "reg.close_command_ok",
-      "pass": true,
-      "expected": "ok",
-      "actual": "ok",
-      "detail": ""
-    },
-    {
-      "check": "reg.host_close_async_ok",
-      "pass": true,
-      "expected": "ok",
-      "actual": "ok",
+      "actual": "identity_conflict(identity_conflict:registry.freeze:process 'validation.reg.beta' and process 'validation.reg.alpha' share document 'validation/runtime/README.md'; a process owns one unique document)",
       "detail": ""
     },
     {
@@ -220,21 +146,18 @@
       "check": "reg.dependency_cycle_rejected",
       "pass": true,
       "expected": "freeze rejects a static dependency cycle",
-      "actual": "invalid_model",
+      "actual": "identity_conflict",
       "detail": "A depends on B and B depends on A (ProcessDescriptor.dependencies)"
     }
   ],
   "values": {
     "services": "created",
-    "registry.has.alpha.run": true,
-    "registry.has.beta.run": true,
-    "manifest.length": 937,
     "reg.duplicate_process.second_begin_code": "ok",
     "reg.type_mismatch.add_code": "ok",
     "reg.no_document.add_code": "ok"
   },
   "resources": {
-    "checks": 28,
-    "successes": 28
+    "checks": 14,
+    "successes": 13
   }
 }

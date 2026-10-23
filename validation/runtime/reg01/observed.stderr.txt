@@ -1,20 +1,6 @@
 [ok] reg.alpha_process_registered
 [ok] reg.beta_process_registered
-[ok] reg.freeze_ok
-[ok] reg.manifest_nonempty
-[ok] reg.make_host_ok
-[ok] reg.open_command_ok
-[ok] reg.invoke_alpha_ok
-[ok] reg.invoke_alpha_value
-[ok] reg.invoke_alpha_ran_once
-[ok] reg.invoke_beta_ok
-[ok] reg.invoke_beta_value
-[ok] reg.unknown_process_unsupported
-[ok] reg.unknown_operation_unsupported
-[ok] reg.wrong_request_invalid_request
-[ok] reg.wrong_request_before_run
-[ok] reg.close_command_ok
-[ok] reg.host_close_async_ok
+[FAIL] reg.freeze_ok expected=ok actual=identity_conflict(identity_conflict:registry.freeze:process 'validation.reg.beta' and process 'validation.reg.alpha' share document 'validation/runtime/README.md'; a process owns one unique document)
 [ok] reg.unfrozen_type_register_ok
 [ok] reg.unfrozen_make_host_rejected
 [ok] reg.duplicate_process_rejected

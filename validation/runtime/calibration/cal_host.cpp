@@ -21,6 +21,54 @@
 
 #include "harness.hpp"
 
+#include <atomic>
+#include <cstdlib>
+#include <new>
+
+// Test-only heap metering for the unaccounted std::vector materialization of
+// the calibrate path.  The runtime arena uses aligned operator new, which this
+// plain operator new/delete pair deliberately does not intercept; therefore the
+// counter measures exactly the unmanaged std::vector/heap allocations, not the
+// ledger-metered arena buffers.
+namespace {
+constexpr std::size_t kHeapHeader = alignof(std::max_align_t);
+std::atomic<std::size_t> g_heap_live{0};
+std::atomic<std::size_t> g_heap_peak{0};
+
+void heap_add(std::size_t bytes) {
+  const std::size_t live = g_heap_live.fetch_add(bytes, std::memory_order_relaxed) + bytes;
+  std::size_t peak = g_heap_peak.load(std::memory_order_relaxed);
+  while (live > peak &&
+         !g_heap_peak.compare_exchange_weak(peak, live, std::memory_order_relaxed)) {
+  }
+}
+void heap_remove(std::size_t bytes) {
+  g_heap_live.fetch_sub(bytes, std::memory_order_relaxed);
+}
+std::size_t heap_live() { return g_heap_live.load(std::memory_order_relaxed); }
+std::size_t heap_peak() { return g_heap_peak.load(std::memory_order_relaxed); }
+void heap_reset_peak() { g_heap_peak.store(heap_live(), std::memory_order_relaxed); }
+}  // namespace
+
+void* operator new(std::size_t size) {
+  void* raw = std::malloc(size + kHeapHeader);
+  if (!raw) throw std::bad_alloc();
+  *static_cast<std::size_t*>(raw) = size;
+  heap_add(size);
+  return static_cast<char*>(raw) + kHeapHeader;
+}
+void operator delete(void* pointer) noexcept {
+  if (!pointer) return;
+  char* raw = static_cast<char*>(pointer) - kHeapHeader;
+  const std::size_t size = *reinterpret_cast<std::size_t*>(raw);
+  heap_remove(size);
+  std::free(raw);
+}
+void operator delete(void* pointer, std::size_t) noexcept { operator delete(pointer); }
+void* operator new[](std::size_t size) { return operator new(size); }
+void operator delete[](void* pointer) noexcept { operator delete(pointer); }
+void operator delete[](void* pointer, std::size_t) noexcept { operator delete(pointer); }
+
 namespace {
 
 namespace rt = acsd::rt;
@@ -192,12 +240,12 @@ struct Driver {
     return sealed.value.value_or(nullptr);
   }
 
-  ArrayRef make_flags(const std::vector<std::uint16_t>& values) {
+  ArrayRef make_flags_with_unit(const std::vector<std::uint16_t>& values, const Unit& unit) {
     const U64 count = static_cast<U64>(values.size());
     rt::BuildSpec spec;
     spec.layout.dtype = DType::u16;
     spec.layout.shape = {count};
-    spec.layout.unit = dq_unit();
+    spec.layout.unit = unit;
     spec.layout.index = index;
     spec.placement = rt::Placement::memory;
     spec.buffer_bytes = count * sizeof(std::uint16_t);
@@ -206,7 +254,7 @@ struct Driver {
         rt::begin_async(context, arena, spec));
     if (writer.code != Code::ok || !writer.value) return nullptr;
     Result<rt::Buffer<std::uint16_t>> buffer = rt::allocate<std::uint16_t>(
-        context, arena, acsd::BlockRequest{0, count}, index, dq_unit(),
+        context, arena, acsd::BlockRequest{0, count}, index, unit,
         "sha256:" + std::string(64, 'e'));
     if (buffer.code != Code::ok || !buffer.value) return nullptr;
     for (U64 i = 0; i < count; ++i) buffer.value->values[i] = values[i];
@@ -218,6 +266,10 @@ struct Driver {
     Result<ArrayRef> sealed = rt::wait_external(rt::seal_async(context, *writer.value));
     if (sealed.code != Code::ok) return nullptr;
     return sealed.value.value_or(nullptr);
+  }
+
+  ArrayRef make_flags(const std::vector<std::uint16_t>& values) {
+    return make_flags_with_unit(values, dq_unit());
   }
 
   Ref<RawObservation> make_raw(const std::vector<double>& raw,
@@ -383,9 +435,9 @@ int main() {
         recorder.value("plan.R", plan.value->persistent.host_bytes);
         recorder.value("plan.F", plan.value->progress_floor.host_bytes);
         recorder.check("cal.host.plan_numbers",
-                       plan.value->persistent.host_bytes == 32894 &&
-                           plan.value->progress_floor.host_bytes == 1052852,
-                       "R=32894, F=1052852",
+                       plan.value->persistent.host_bytes == 33170 &&
+                           plan.value->progress_floor.host_bytes == 2166988,
+                       "R=33170, F=2166988",
                        "R=" + std::to_string(plan.value->persistent.host_bytes) + ", F=" +
                            std::to_string(plan.value->progress_floor.host_bytes),
                        "the frozen plan formula of the walkthrough");
@@ -575,7 +627,9 @@ int main() {
   // C-CAL-H: a frame crossing the 1 MiB canonical array boundary with three
   // full 65536-element blocks and a short tail block.  The nominal value of an
   // unmapped calibration is x = raw / 1, so exact FP64 equality is a valid
-  // oracle and the block boundaries must not alter it.
+  // oracle and the block boundaries must not alter it.  This block also records
+  // the declared work upper bound vs the measured work, and the unaccounted
+  // heap peak vs the plan's materialization term.
   {
     const U64 side_width = 400;
     const U64 side_height = 500;  // N = 200000
@@ -595,7 +649,64 @@ int main() {
     Calibration plain;
     plain.exposure_seconds = 1.0;
     plain.flat_normalization = 1.0;
+
+    // Plan first: the work/materialization bounds are part of the evidence.
+    U64 declared_work = 0;
+    U64 declared_materialization = 0;
+    Result<rt::InvocationPlan> plan;
+    Result<rt::PlanBounds> bounds =
+        acsd::modules::bounds_calibration(context, make_input(raw_large, plain));
+    if (bounds.code == Code::ok && bounds.value) {
+      rt::PlanOptions options;
+      options.block_elements = bounds.value->max_block_elements;
+      options.window = 1;
+      options.placement = rt::Placement::memory;
+      plan = acsd::modules::plan_calibration(context, make_input(raw_large, plain), options);
+      if (plan.code == Code::ok && plan.value) {
+        const rt::InvocationPlan& value = *plan.value;
+        U64 per_cohort = 0;
+        for (const rt::StageSpec& stage : value.regions[0].stages) {
+          per_cohort += stage.work_upper;
+        }
+        declared_work = per_cohort * value.cohorts;
+        declared_materialization = 92 * value.elements;
+        recorder.value("host.c_cal_h.plan_R", value.persistent.host_bytes);
+        recorder.value("host.c_cal_h.plan_F", value.progress_floor.host_bytes);
+        recorder.value("host.c_cal_h.declared_work", declared_work);
+        recorder.value("host.c_cal_h.declared_materialization", declared_materialization);
+        recorder.check("cal.host.c_cal_h_plan",
+                       value.cohorts == 4 && value.block_elements == 65536 &&
+                           value.persistent.host_bytes == 26832768 &&
+                           value.progress_floor.host_bytes == 6623232,
+                       "4 cohorts, n=65536, R=26832768, F=6623232",
+                       "c=" + std::to_string(value.cohorts) +
+                           ", n=" + std::to_string(value.block_elements),
+                       "the serial plan with S(n), work bounds and no pipe edges");
+      }
+    }
+
+    const U64 work_before = rt::snapshot(context.scope).work;
+    heap_reset_peak();
+    const std::size_t live_before = heap_live();
     Result<Ref<NativeObservation>> result = invoke(make_input(raw_large, plain));
+    const U64 measured_work = rt::snapshot(context.scope).work - work_before;
+    const std::size_t unaccounted_peak = heap_peak() - live_before;
+    recorder.value("host.c_cal_h.measured_work", measured_work);
+    recorder.value("host.c_cal_h.unaccounted_heap_peak", static_cast<U64>(unaccounted_peak));
+    recorder.check("cal.host.c_cal_h_work_covered",
+                   declared_work != 0 && measured_work <= declared_work,
+                   "measured work <= declared stage work totals",
+                   "measured=" + std::to_string(measured_work) +
+                       " declared=" + std::to_string(declared_work),
+                   "the plan work_upper covers read/write/assembly work (P1-8b)");
+    recorder.check("cal.host.c_cal_h_materialization_covered",
+                   declared_materialization != 0 &&
+                       unaccounted_peak <= declared_materialization + (8ull << 20),
+                   "unmanaged heap peak within materialization bound + 8 MiB overhead",
+                   "peak=" + std::to_string(unaccounted_peak) +
+                       " declared=" + std::to_string(declared_materialization),
+                   "allocator measurement supports the unaccounted term; not a peak proof");
+
     std::string large_issues;
     for (const auto& issue : result.assessment.issues) {
       if (!large_issues.empty()) large_issues += " | ";
@@ -621,118 +732,109 @@ int main() {
         recorder.value("host.c_cal_h.block_boundary",
                        (*values.value)[65536]);
       }
-      Result<rt::PlanBounds> bounds =
-          acsd::modules::bounds_calibration(context, make_input(raw_large, plain));
-      if (bounds.code == Code::ok && bounds.value) {
-        rt::PlanOptions options;
-        options.block_elements = bounds.value->max_block_elements;
-        options.window = 1;
-        options.placement = rt::Placement::memory;
-        Result<rt::InvocationPlan> plan =
-            acsd::modules::plan_calibration(context, make_input(raw_large, plain), options);
-        if (plan.code == Code::ok && plan.value) {
-          recorder.value("host.c_cal_h.plan_R", plan.value->persistent.host_bytes);
-          recorder.value("host.c_cal_h.plan_F", plan.value->progress_floor.host_bytes);
-          recorder.check("cal.host.c_cal_h_plan",
-                         plan.value->cohorts == 4 && plan.value->block_elements == 65536 &&
-                             plan.value->persistent.host_bytes == 8432768 &&
-                             plan.value->progress_floor.host_bytes == 4984832,
-                         "4 cohorts, n=65536, R=8432768, F=4984832",
-                         "c=" + std::to_string(plan.value->cohorts) +
-                             ", n=" + std::to_string(plan.value->block_elements),
-                         "the frozen plan formula at the canonical boundary");
-        }
-      }
     }
     recorder.check("cal.host.c_cal_h", exact && count == raw_values.size(),
                    "N=200000 values exact across 65536/65536/65536/3392 blocks",
                    "N=" + std::to_string(count), "tail block and block boundaries");
   }
 
-  // C-CAL-ORDER: the Host admission fixes window=1, so the window=2 ordered
-  // composition is exercised directly through the module functions (same
-  // public runtime API, no Host re-planning).  Two cohorts may be expanded at
-  // once, the sink still consumes key 0 before key 1, and the seal/finish
-  // assembly is the same as the Host path.
+  // C-CAL-ORDER: the plan is serial and honestly declares no pipe edge.  The
+  // Host admission uses window=1 by contract; a window/edge the composition
+  // does not actually use must be rejected rather than advertised (P1-8c).
   {
     auto input = make_input(raw1, request1);
     rt::PlanOptions options;
     options.block_elements = 1;
     options.window = 2;
     options.placement = rt::Placement::memory;
-    Result<rt::InvocationPlan> plan =
+    Result<rt::InvocationPlan> rejected =
         acsd::modules::plan_calibration(context, input, options);
-    bool correct = false;
-    if (plan.code == Code::ok && plan.value) {
-      const auto plan_ref = std::make_shared<rt::InvocationPlan>(*plan.value);
-      Result<rt::ArenaRef> persistence = rt::reserve(context, plan_ref->persistent);
-      Result<rt::ArenaRef> progress = rt::reserve(context, plan_ref->progress_floor);
-      if (persistence.value && progress.value) {
-        rt::InvocationContext region = context;
-        region.region = 0;
-        region.persistent = *persistence.value;
-        region.progress = *progress.value;
-        Result<acsd::modules::SignalWriter> writer =
-            rt::wait_external(acsd::modules::begin_signal(region, plan_ref, input));
-        if (writer.code == Code::ok && writer.value) {
-          acsd::modules::SignalWriter sink_writer = *writer.value;
-          auto body = acsd::modules::stream_map_ordered<acsd::modules::CalibrationBlock,
-                                                       acsd::modules::SignalBlock>(
-              region, plan_ref, 0,
-              [input](acsd::modules::BlockContext block) {
-                return acsd::modules::read_calibration_block(block, input);
-              },
-              [](acsd::modules::BlockContext block, acsd::modules::CalibrationBlock data) {
-                return acsd::modules::calibrate_block(block, std::move(data));
-              },
-              [sink_writer](acsd::modules::BlockContext block,
-                            acsd::modules::SignalBlock data) {
-                return acsd::modules::append_signal(block, sink_writer, std::move(data));
-              });
-          Result<rt::Done> ran = rt::wait_external(std::move(body));
-          if (ran.code == Code::ok) {
-            Result<acsd::modules::SignalArrays> sealed =
-                rt::wait_external(acsd::modules::seal_signal(region, *writer.value));
-            if (sealed.code == Code::ok && sealed.value) {
-              Result<Ref<NativeObservation>> native = rt::wait_external(
-                  acsd::modules::finish_native(region, input, *sealed.value));
-              if (native.code == Code::ok && native.value) {
-                Result<std::vector<double>> values =
-                    read_f64(context, driver.arena, (*native.value)->integrated_values);
-                correct = values.value && values.value->size() == 3 &&
-                          (*values.value)[0] == 4.0 && (*values.value)[1] == 14.0 &&
-                          (*values.value)[2] == -8.0;
-                recorder.value("host.order.code", vrt::code_name(native.code));
-                recorder.value("host.order.cohorts", plan_ref->cohorts);
-                recorder.value("host.order.window", plan_ref->options.window);
-              } else {
-                recorder.value("host.order.code", vrt::code_name(native.code));
-              }
-            } else {
-              recorder.value("host.order.code", vrt::code_name(sealed.code));
-            }
-          } else {
-            recorder.value("host.order.code", vrt::code_name(ran.code));
-          }
-        }
-        (*persistence.value)->close();
-        (*progress.value)->close();
-      }
+    recorder.value("host.order.window2_code", vrt::code_name(rejected.code));
+    recorder.check("cal.host.c_cal_order_window_not_declared",
+                   rejected.code == Code::invalid_request, "invalid_request",
+                   vrt::code_name(rejected.code),
+                   "a window without pipe credit is rejected");
+    options.window = 1;
+    Result<rt::InvocationPlan> serial =
+        acsd::modules::plan_calibration(context, input, options);
+    bool declared_serial = false;
+    if (serial.code == Code::ok && serial.value) {
+      declared_serial = serial.value->regions.size() == 1 &&
+                        serial.value->regions[0].edges.empty() &&
+                        serial.value->regions[0].cohorts == 3 &&
+                        serial.value->options.window == 1;
+      recorder.value("host.order.serial_edges",
+                     static_cast<U64>(serial.value->regions[0].edges.size()));
     }
-    recorder.check("cal.host.c_cal_order_window2", correct,
-                   "window=2 over 3 single-element cohorts gives [4,14,-8]",
-                   correct ? "ordered composition correct" : "different result",
-                   "two expanded cohorts, the sink consumes the lowest key first");
-    recorder.note("C-CAL-ORDER runs as a direct module composition because the Host "
-                  "admission fixes window=1 by contract");
+    recorder.check("cal.host.c_cal_order_serial_declared", declared_serial,
+                   "one serial region, 3 cohorts, no pipe edge",
+                   declared_serial ? "serial" : "different plan",
+                   "the plan does not advertise unused pipes");
   }
+  recorder.note("C-CAL-ORDER: serial plan (window=1, no edge); real pipe credit is future work");
 
-  // The Host fixes window=1, so the ordered overlap case is reported, not
-  // claimed: it needs a direct region composition (window=2 + E).
-  recorder.note("C-CAL-ORDER: the Host admission uses window=1 by contract; the "
-                "window>1 overlap path of stream_map_ordered is not exercised by this case");
   recorder.note("C-CAL-CLEAN/C-CAL-WRITE need injected cancellation/short writes; they are "
                 "covered by the runtime verification cases, not fabricated here");
+
+  // P1-4: the synchronous entry point and the typed Host path must return the
+  // same metadata verdict.  The typed Host validate hook is the shared
+  // validate_calibration; cal_equivalence additionally compares the synchronous
+  // entry point against it.  Each case below runs the real typed invocation and
+  // asserts that its code equals the typed validate code (and that the run did
+  // not happen for invalid metadata).
+  {
+    struct Case {
+      const char* name;
+      Ref<RawObservation> raw;
+      Calibration request;
+      Code expected;
+    };
+    std::vector<Case> cases;
+    {
+      auto quoted = std::make_shared<RawObservation>(*raw1);
+      quoted->dq = driver.make_flags_with_unit(ccal1_dq, adu_unit());
+      cases.push_back(Case{"dq_not_dimensionless", quoted, request1, Code::invalid_model});
+    }
+    {
+      auto bad_exposure = request1;
+      bad_exposure.exposure_seconds = 0.0;
+      cases.push_back(
+          Case{"exposure_zero", raw1, bad_exposure, Code::invalid_model});
+    }
+    {
+      auto bad_flat = request1;
+      bad_flat.flat = nullptr;
+      bad_flat.flat_normalization = 0.0;
+      cases.push_back(
+          Case{"absent_flat_zero_normalization", raw1, bad_flat, Code::invalid_model});
+    }
+    {
+      auto no_footprints = std::make_shared<RawObservation>(*raw1);
+      no_footprints->footprints = nullptr;
+      cases.push_back(
+          Case{"missing_footprints", no_footprints, request1, Code::unavailable});
+    }
+    {
+      auto bad_shape = std::make_shared<RawObservation>(*raw1);
+      bad_shape->width = 4;  // N=3 index no longer covers the frame
+      cases.push_back(Case{"shape_mismatch", bad_shape, request1, Code::invalid_model});
+    }
+    for (const Case& item : cases) {
+      auto input = make_input(item.raw, item.request);
+      Result<rt::Done> typed = acsd::modules::validate_calibration(context, input);
+      Result<Ref<NativeObservation>> hosted = invoke(input);
+      const bool same = typed.code == item.expected && hosted.code == typed.code;
+      recorder.value(std::string("host.p1_4.") + item.name + ".typed",
+                     vrt::code_name(typed.code));
+      recorder.value(std::string("host.p1_4.") + item.name + ".host",
+                     vrt::code_name(hosted.code));
+      recorder.check(std::string("cal.host.p1_4_") + item.name, same,
+                     std::string(vrt::code_name(item.expected)),
+                     std::string(vrt::code_name(hosted.code)) + "/" +
+                         vrt::code_name(typed.code),
+                     "sync and typed metadata validation are one verdict");
+    }
+  }
 
   const rt::ScopeSnapshot snapshot = rt::snapshot(context.scope);
   recorder.resource("peak_host_bytes", snapshot.peak_allocated.host_bytes);

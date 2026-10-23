@@ -1,0 +1,8 @@
+[ok] cal.eq.valid
+[ok] cal.eq.dq_not_dimensionless
+[ok] cal.eq.exposure_zero
+[ok] cal.eq.absent_flat_zero_normalization
+[ok] cal.eq.missing_footprints
+[ok] cal.eq.shape_mismatch
+[ok] cal.eq.flat_wrong_dtype
+[ok] cal.eq.payload_conflict_after_read

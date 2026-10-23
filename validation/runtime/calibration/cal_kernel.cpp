@@ -301,10 +301,14 @@ int main() {
   // S=1 MiB storage workspace, 4 KiB cohort control, 16 KiB final metadata,
   // 16 KiB plan control.
   // -------------------------------------------------------------------------
-  const U64 kStorageWorkspace = 1ull << 20;
+  const U64 kCanonicalIoBlock = 1ull << 20;
+  const U64 kStorageFixed = 64ull << 10;
+  const U64 kFrameMaterializationPerElement = 92;
   const U64 kCohortControl = 4ull << 10;
   const U64 kFinalMetadata = 16ull << 10;
   const U64 kPlanControl = 16ull << 10;
+  auto work_units = [](U64 bytes) { return 1 + bytes / 4096; };
+  auto workspace = [&](U64 n) { return 2 * kCanonicalIoBlock + 8 * n + kStorageFixed; };
   auto plan_of = [&](MetadataFrame& frame, U64 block) {
     rt::PlanOptions options;
     options.block_elements = block;
@@ -325,16 +329,23 @@ int main() {
       recorder.value("plan.small.cohorts", value.cohorts);
       recorder.value("plan.small.f", value.progress_floor.host_bytes);
       recorder.value("plan.small.r", value.persistent.host_bytes);
-      const U64 expected_floor = 60 * 3 + kStorageWorkspace + kCohortControl;
-      const U64 expected_persistent = 26 * 3 + 16 * 3 + kFinalMetadata + kPlanControl;
+      const U64 expected_floor = 60 * 3 + workspace(3) + kCohortControl;
+      const U64 expected_persistent = 26 * 3 + 16 * 3 +
+                                      kFrameMaterializationPerElement * 3 + kFinalMetadata +
+                                      kPlanControl;
+      const U64 expected_read_work = 5 * (64 + work_units(24));
+      const U64 expected_write_work = 4 * 16 + 4 * work_units(24) + 4 * 16;
       recorder.check("cal.plan_small_structure",
                      value.regions.size() == 1 && value.regions[0].id == 0 &&
                          value.regions[0].kind == rt::RegionKind::stream &&
                          value.regions[0].cohorts == 1 && value.regions[0].stages.size() == 3 &&
-                         value.regions[0].edges.size() == 2 && !value.adaptive &&
-                         value.regions[0].stages[1].work_upper == 3,
-                     "region0 stream, cohorts1, stages3, edges2, adaptive=false",
-                     "structure differs", "fixed plan of the walkthrough");
+                         value.regions[0].edges.empty() && !value.adaptive &&
+                         value.regions[0].stages[1].work_upper == 3 &&
+                         value.regions[0].stages[0].work_upper == expected_read_work &&
+                         value.regions[0].stages[2].work_upper == expected_write_work,
+                     "region0 serial (no pipe edges), stages3, work bounds",
+                     "structure differs",
+                     "the serial plan honestly declares no pipe edge (P1-8c)");
       recorder.check("cal.plan_small_floor", value.progress_floor.host_bytes == expected_floor,
                      std::to_string(expected_floor),
                      std::to_string(value.progress_floor.host_bytes), "F = 60n + S + control");
@@ -343,11 +354,9 @@ int main() {
                      std::to_string(expected_persistent),
                      std::to_string(value.persistent.host_bytes),
                      "R = 26N + 16N (unknown noise placeholder) + final metadata + control");
-      recorder.check("cal.plan_small_edges",
-                     value.regions[0].edges[0].from == 0 && value.regions[0].edges[0].to == 1 &&
-                         value.regions[0].edges[1].from == 1 && value.regions[0].edges[1].to == 2 &&
-                         value.regions[0].edges[0].id == 0 && value.regions[0].edges[1].id == 1,
-                     "edges 0->1, 1->2", "different edges", "fixed stage graph");
+      recorder.check("cal.plan_small_serial", value.regions[0].edges.empty(),
+                     "no pipe edges (serial composition)", "edges declared",
+                     "the plan does not advertise an unused pipe");
     }
   }
   {
@@ -362,8 +371,10 @@ int main() {
       recorder.value("plan.large.f", value.progress_floor.host_bytes);
       recorder.value("plan.large.r", value.persistent.host_bytes);
       recorder.value("plan.large.stage1_work", value.regions[0].stages[1].work_upper);
-      const U64 expected_floor = 60 * 65536 + kStorageWorkspace + kCohortControl;
-      const U64 expected_persistent = 26 * 200000 + 16 * 200000 + kFinalMetadata + kPlanControl;
+      const U64 expected_floor = 60 * 65536 + workspace(65536) + kCohortControl;
+      const U64 expected_persistent = 26 * 200000 + 16 * 200000 +
+                                      kFrameMaterializationPerElement * 200000 +
+                                      kFinalMetadata + kPlanControl;
       recorder.check("cal.plan_large_cohorts", value.cohorts == 4, "4",
                      std::to_string(value.cohorts), "ceil(200000/65536)");
       recorder.check("cal.plan_large_block", value.block_elements == 65536, "65536",
@@ -394,8 +405,8 @@ int main() {
       recorder.check("cal.bounds_range",
                      bounds.value->min_block_elements == 1 &&
                          bounds.value->max_block_elements == 10000 &&
-                         bounds.value->max_window >= 2 && bounds.value->allow_spill,
-                     "min=1, max=N, window>=2, spill allowed",
+                         bounds.value->max_window == 1 && bounds.value->allow_spill,
+                     "min=1, max=N, window=1 (serial), spill allowed",
                      "different bounds", "PlanBounds contract");
     }
     rt::PlanOptions bad;
@@ -412,6 +423,11 @@ int main() {
     rejected = acsd::modules::plan_calibration(rt::InvocationContext{}, make_input(frame), bad);
     recorder.check("cal.plan_window_zero", rejected.code == Code::invalid_request,
                    "invalid_request", code_name(rejected.code), "window = 0 is rejected");
+    bad.window = 2;
+    rejected = acsd::modules::plan_calibration(rt::InvocationContext{}, make_input(frame), bad);
+    recorder.check("cal.plan_window_not_declared", rejected.code == Code::invalid_request,
+                   "invalid_request", code_name(rejected.code),
+                   "window=2 is rejected because the serial plan declares no pipe credit");
   }
 
   // -------------------------------------------------------------------------

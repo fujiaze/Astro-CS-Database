@@ -10,7 +10,7 @@
     "built": true,
     "status": "built",
     "classification": "ok",
-    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/d01_off.o -L /tmp/acsd-build-dev -Wl,--start-group -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/d01_off",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/d01_off.o -L /tmp/acsd-build -Wl,--start-group -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/d01_off",
     "log": "validation/runtime/build/d01_off.build.log"
   },
   "command": "/workspace/Astro CS Database/validation/runtime/build/d01_off",

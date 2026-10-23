@@ -19,7 +19,15 @@
 [ok] cal.host.c_cal_root
 [ok] cal.host.dev_off_deterministic
 [ok] cal.host.c_cal_h_plan
+[ok] cal.host.c_cal_h_work_covered
+[ok] cal.host.c_cal_h_materialization_covered
 [ok] cal.host.c_cal_h
-[ok] cal.host.c_cal_order_window2
+[ok] cal.host.c_cal_order_window_not_declared
+[ok] cal.host.c_cal_order_serial_declared
+[ok] cal.host.p1_4_dq_not_dimensionless
+[ok] cal.host.p1_4_exposure_zero
+[ok] cal.host.p1_4_absent_flat_zero_normalization
+[ok] cal.host.p1_4_missing_footprints
+[ok] cal.host.p1_4_shape_mismatch
 [ok] cal.host.close_command
 [ok] cal.host.close_host
