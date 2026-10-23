@@ -213,6 +213,29 @@ if(ACSD_BUILD_SCIENCE)
       DEPENDS acsd-runtime-manifest
       COMMENT "Exporting the frozen process manifest")
   endif()
+  if(TARGET acsd_builtin)
+    file(GLOB_RECURSE ACSD_PROCESS_DRIVERS
+         ${CMAKE_CURRENT_SOURCE_DIR}/validation/process/*/*.cpp)
+    foreach(ACSD_DRIVER ${ACSD_PROCESS_DRIVERS})
+      file(RELATIVE_PATH ACSD_DRIVER_REL
+           ${CMAKE_CURRENT_SOURCE_DIR}/validation/process ${ACSD_DRIVER})
+      string(REPLACE "/" "_" ACSD_DRIVER_NAME "${ACSD_DRIVER_REL}")
+      string(REPLACE ".cpp" "" ACSD_DRIVER_NAME "${ACSD_DRIVER_NAME}")
+      add_executable(acsd_process_${ACSD_DRIVER_NAME} ${ACSD_DRIVER})
+      # Module archives reference generated::descriptor_for (in acsd_builtin)
+      # and acsd_builtin references the module register functions: one archive
+      # pass cannot resolve both directions, so rescan the group in link order.
+      target_link_libraries(acsd_process_${ACSD_DRIVER_NAME} PRIVATE
+        -Wl,--start-group
+        acsd_builtin runtime model codec numerics resources storage
+        operators uncertainty coordinates observation catalogue response
+        sources photometry geometry information sky coadd projection
+        -Wl,--end-group)
+      add_test(NAME process_${ACSD_DRIVER_NAME}
+               COMMAND acsd_process_${ACSD_DRIVER_NAME}
+               WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    endforeach()
+  endif()
   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/runtime/registry/typed_smoke.cpp AND TARGET acsd_builtin)
     add_executable(acsd_typed_smoke
       validation/runtime/registry/typed_smoke.cpp)
@@ -238,7 +261,7 @@ endif()
 
 if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/numerics_selftest.cpp)
   add_executable(acsd_numerics_selftest validation/lead/numerics_selftest.cpp)
-  target_link_libraries(acsd_numerics_selftest PRIVATE numerics)
+  target_link_libraries(acsd_numerics_selftest PRIVATE numerics model)
   add_test(NAME numerics_selftest COMMAND acsd_numerics_selftest)
 endif()
 

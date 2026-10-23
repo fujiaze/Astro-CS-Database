@@ -290,7 +290,10 @@ std::optional<double> BigInt::to_double() const {
   long double scaled = std::ldexp(value, exp);
   double result = static_cast<double>(scaled);
   if (!std::isfinite(result)) return std::nullopt;
-  return result;
+  // The limbs carry the magnitude; the sign is a separate flag.  Dropping it
+  // made to_double_floor() walk ~2^52 ulps downwards for every negative value
+  // (for example Rational(-1,2)), which never terminated in practice.
+  return negative_ ? -result : result;
 }
 
 double BigInt::to_double_floor() const {

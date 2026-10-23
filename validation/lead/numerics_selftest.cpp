@@ -5,6 +5,7 @@
 // a linear and of a quadratic integrand, and the Gauss-Legendre panel must
 // agree with them.  A rule that double counts the centre node or that drops
 // the half-width Jacobian factor fails these checks immediately.
+#include "model/units.hpp"
 #include "numerics/linalg.hpp"
 #include "numerics/quadrature.hpp"
 
@@ -195,6 +196,22 @@ int main() {
       std::printf("ok     pseudo inverse projects onto the row space\n");
     } else {
       std::printf("FAIL   pseudo inverse projects onto the row space (worst %g)\n", worst);
+      ++failures;
+    }
+  }
+
+  // Regression: the exact/dyadic conversion must keep the sign.  A negative
+  // exact point that silently becomes positive makes floor/ceil loops walk
+  // ~2^52 ulp (the geometry footprint hang).
+  {
+    const acsd::ExactInterval half = acsd::model::exact_point(-0.5);
+    const double lower = acsd::model::dyadic_to_double(half.lower);
+    const double upper = acsd::model::dyadic_to_double(half.upper);
+    if (lower == -0.5 && upper == -0.5) {
+      std::printf("ok     dyadic conversion keeps the sign of an exact point\n");
+    } else {
+      std::printf("FAIL   dyadic conversion sign: lower=%g upper=%g\n", lower,
+                  upper);
       ++failures;
     }
   }
