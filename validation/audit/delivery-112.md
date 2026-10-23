@@ -52,14 +52,23 @@
 ## 2. 独立验证的真实状态
 
 `python3 validation/run_all.py`（一键入口，输出 `validation/run_summary.json`）：
+**pass = 7，fail = 0，pending = 4**。
 
 | case | 状态 | 关键数字 |
 |---|---|---|
-| U01 | **pass**（14/14，含内存与合同进程双路由） | 277/64 = **4.328125**，包围 [4.328125, 4.328125]；C 列 [3.75, 2] 与 [2, 10.3125]；判别负值 289/64 = 4.515625（差 0.1875） |
-| C01 | **pass**（69/69） | forward ≤ 6.44e−16 rad；inverse 0 pixel；导数相对差 ≤ 2.7e−7；SIP 2..9 阶全覆盖；4 个具名失败 |
-| G01 | **pass**（171/171） | 逐叶与总和含独立真值；work=1 → 具名 work 终止；max_bits=16 → 具名 precision 终止；极区 `chart_apex_singular` 具名边界 |
-| F01 | **fail → 见 §5** | 曾定位到 fit_psf 的参数界形状 P0（已修）与 PSF 退化模型 P0（在修） |
-| S01 / W01 / V01 / E01 / P01 / R01 / X01 | **pending_implementation → 见 §5** | 真值已冻结，观察侧待补 |
+| U01 | **pass**（14/14，内存与合同进程双路由） | 277/64 = **4.328125**，包围 [4.328125, 4.328125]；C 列 [3.75, 2] 与 [2, 10.3125]；判别负值 289/64 = 4.515625（差 0.1875） |
+| C01 | **pass**（69/69） | forward ≤ 6.44e−16 rad；inverse 往返 0 pixel；导数相对差 ≤ 2.7e−7；SIP 2..9 阶全覆盖；4 个具名失败 |
+| G01 | **pass**（171/171） | 逐叶与总和含独立真值；work=1 → 具名 work 终止且不认证；max_bits=16 → 具名 precision；极区 `chart_apex_singular` 具名边界 |
+| F01 | **pass**（1 pass + 1 pending） | fit_psf 与 measure_science_sources 返回 ok（8 星、integrated_flux 937.6175…）；`two_source_aperture_flux` 标 pending 并写明「驱动测的是每源在其 PSF 窗口上的积分，不是孔径盒积分」 |
+| S01 | **pass**（1 pass + 1 pending） | 公共天光保护：观测 K·H 的自由公共方向逐列为 0（≤1e−10）；留出方差 pending（公开合同里 P 的域不可观测） |
+| V01 | **pass**（12/12） | 仿射真值被重心插值精确复现到 **4.44e−16**；二次真值在 δ+M 界内；无曲率界时只给条件预测、**不发布区间**；域外查询不填 |
+| E01 | **pass**（11/11） | 独立闭包检查器（块哈希**从磁盘字节重算**）+ FITS 头/像元经 astropy 往返差 **0** |
+| W01 | pending | 观察侧到达联合协方差装配并给出具名证书失败（`the normalising denominator has no positive lower bound`）；权重真值（BLUE 7/6,−1/6；QP 1,0；LOO 假阳性率/覆盖率）由 `validation/stats` 的 173 项检查对冻结参考实测 |
+| P01 | pending（6/7） | 6 项具名负例逐条被检出且**可归因于篡改**；`unknown_recipe` 需合同路径 dispatch |
+| R01 | pending（6/7） | 载荷与资源无关（threads 1/4、H=32/256MiB 四次运行 signal 哈希全同）；写失败具名且不发布；取消 → exit 5 且 cancelled=1；**work 账本 8625 units**；`cache_switch_reachable` pending（配置 schema 无缓存开关） |
+| X01 | pending | 三命令在真实磁盘上实跑：`normalize` 15 s 结束、**无崩溃**、published=0、逐帧状态具名；未发布产品 |
+
+**「未决」不是「通过」**：W01/P01/R01/X01 的观察侧各自写明了具体缺口（见 `validation/<case>/comparison.json` 的 `reason`）。
 
 **红线（写在 `validation/README.md`）**：任何量测必须记录 attempts/successes；
 成功数为 0 判 fail，不得用空集默认值充当观测值。这条红线本身是本次重建中
@@ -78,7 +87,12 @@
 - 产品往返：publish → **新进程** open → 独立读回，瓦片 64×64×12、CTYPE1=RA---HPX、
   有限值恰为源叶 −2/0/3。
 - 坏闭包不发布：错 manifest hash、缺块、坏块（hash_mismatch）、截断 manifest 全部被拒。
-- `acsd normalize`（8 帧 × 128×128 的冻结 X01 输入）：**未完成**，见 §5。
+- `acsd normalize`（8 帧 × 128×128 的冻结 X01 输入）：**15 s 结束、无崩溃、published=0**，
+  逐帧状态具名（2×「the spectral basis is invalid」、1×「the design matrix is rank deficient」、
+  1×「the pixel integral cannot be built」、4×「the search was exhausted at the hypothesis limit」）。
+  未发布任何产品 ⇒ 见 §5。
+- 取消：控制报文与 SIGTERM 均 → **exit 5**、恰一个 run_finished、products 为空。
+- 预算耗尽（work=1）→ **exit 4 + resource_exhausted**、products 为空（不再出现「exit 0 + 不同载荷」）。
 
 ---
 
