@@ -2,8 +2,8 @@
   "artifacts": {},
   "binary_identity": {
     "path": "/workspace/Astro CS Database/validation/build/f01_driver",
-    "sha256": "611a4b35509ead1b4b5f20c67d00b5f83cfe40b62bbd1c38c6096c5aa8b1d4cd",
-    "size_bytes": "1618808"
+    "sha256": "1bde28c6268a014ea0a758a14d5e15c7a55dddb6e6e9395e3eb9b2777f8a1a93",
+    "size_bytes": "1655584"
   },
   "command": [
     "/workspace/Astro CS Database/validation/build/f01_driver",
@@ -12,81 +12,234 @@
   ],
   "exit_code": 0,
   "missing_entry_points": [],
-  "peak_rss_bytes": 123953152,
+  "peak_rss_bytes": 123965440,
   "reason": "",
   "response": {
     "driver": "f01_native",
     "frames": [
       {
-        "code": "not_identifiable",
-        "reason": "the design matrix is rank deficient; the singular values are 1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000"
+        "code": "ok",
+        "stars": [
+          {
+            "integrated_flux": 937.617527055716,
+            "position": [
+              10.500000000001274,
+              10.500000000017177
+            ],
+            "source_id": 1000,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 597.344417892942,
+            "position": [
+              30.4999999999978,
+              14.500000000031136
+            ],
+            "source_id": 1001,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 767.4838010000043,
+            "position": [
+              12.500000000004007,
+              34.50000000001528
+            ],
+            "source_id": 1002,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 483.9275927627025,
+            "position": [
+              40.49999999998088,
+              30.500000000012694
+            ],
+            "source_id": 1003,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 852.5704589686615,
+            "position": [
+              24.499999999999744,
+              8.500000000006533
+            ],
+            "source_id": 1004,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 436.66822423532807,
+            "position": [
+              52.5000000000137,
+              12.499999999982084
+            ],
+            "source_id": 1005,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 710.7725616930621,
+            "position": [
+              8.499999999979796,
+              48.50000000001447
+            ],
+            "source_id": 1006,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 540.6388370667057,
+            "position": [
+              22.499999999983224,
+              52.49999999996558
+            ],
+            "source_id": 1007,
+            "variance": -1.0
+          }
+        ]
+      },
+      {
+        "code": "ok",
+        "stars": [
+          {
+            "integrated_flux": 468.8087635278581,
+            "position": [
+              10.500000000001274,
+              10.500000000017177
+            ],
+            "source_id": 1000,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 298.6722089464704,
+            "position": [
+              30.4999999999978,
+              14.500000000031136
+            ],
+            "source_id": 1001,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 383.7419005000019,
+            "position": [
+              12.500000000004007,
+              34.50000000001528
+            ],
+            "source_id": 1002,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 241.96379638135215,
+            "position": [
+              40.49999999998088,
+              30.500000000012694
+            ],
+            "source_id": 1003,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 426.2852294843311,
+            "position": [
+              24.499999999999744,
+              8.500000000006533
+            ],
+            "source_id": 1004,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 218.3341121176645,
+            "position": [
+              52.5000000000137,
+              12.499999999982084
+            ],
+            "source_id": 1005,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 355.3862808465316,
+            "position": [
+              8.499999999979796,
+              48.50000000001447
+            ],
+            "source_id": 1006,
+            "variance": -1.0
+          },
+          {
+            "integrated_flux": 270.3194185333534,
+            "position": [
+              22.499999999983224,
+              52.49999999996558
+            ],
+            "source_id": 1007,
+            "variance": -1.0
+          }
+        ]
       }
     ],
+    "photometry": {
+      "prediction_code": "invalid_model"
+    },
     "position_round_trip": [
       {
         "code": "ok",
-        "expected_x": 4.5,
-        "expected_y": 4.5,
-        "x": 4.499999999998726,
-        "y": 4.500000000014629
-      },
-      {
-        "code": "ok",
         "expected_x": 10.5,
-        "expected_y": 5.5,
-        "x": 10.49999999999433,
-        "y": 5.50000000000378
+        "expected_y": 10.5,
+        "x": 10.500000000001274,
+        "y": 10.500000000017177
       },
       {
         "code": "ok",
-        "expected_x": 3.5,
-        "expected_y": 11.5,
-        "x": 3.5000000000031246,
-        "y": 11.500000000012777
+        "expected_x": 30.5,
+        "expected_y": 14.5,
+        "x": 30.4999999999978,
+        "y": 14.500000000031136
       },
       {
         "code": "ok",
         "expected_x": 12.5,
-        "expected_y": 10.5,
-        "x": 12.50000000000735,
-        "y": 10.499999999994868
+        "expected_y": 34.5,
+        "x": 12.500000000004007,
+        "y": 34.50000000001528
+      },
+      {
+        "code": "ok",
+        "expected_x": 40.5,
+        "expected_y": 30.5,
+        "x": 40.49999999998088,
+        "y": 30.500000000012694
+      },
+      {
+        "code": "ok",
+        "expected_x": 24.5,
+        "expected_y": 8.5,
+        "x": 24.499999999999744,
+        "y": 8.500000000006533
+      },
+      {
+        "code": "ok",
+        "expected_x": 52.5,
+        "expected_y": 12.5,
+        "x": 52.5000000000137,
+        "y": 12.499999999982084
       },
       {
         "code": "ok",
         "expected_x": 8.5,
-        "expected_y": 2.5,
-        "x": 8.500000000002007,
-        "y": 2.4999999999740607
+        "expected_y": 48.5,
+        "x": 8.499999999979796,
+        "y": 48.50000000001447
       },
       {
         "code": "ok",
-        "expected_x": 13.5,
-        "expected_y": 3.5,
-        "x": 13.500000000011102,
-        "y": 3.5000000000244027
-      },
-      {
-        "code": "ok",
-        "expected_x": 2.5,
-        "expected_y": 8.5,
-        "x": 2.5000000000058655,
-        "y": 8.50000000001791
-      },
-      {
-        "code": "ok",
-        "expected_x": 7.5,
-        "expected_y": 12.5,
-        "x": 7.500000000015903,
-        "y": 12.500000000050129
+        "expected_x": 22.5,
+        "expected_y": 52.5,
+        "x": 22.499999999983224,
+        "y": 52.49999999996558
       }
     ],
     "route": "in_memory_public_api"
   },
   "response_file": "f01/observed/native_f01.json",
-  "response_sha256": "61073b613387069c38b74e63df4d091aafc8db7e9cc0f3f731d8d3de5028ab61",
+  "response_sha256": "9043a4d1ba2de804162b590f144b6204ad29f688368c10f7dd582a6c76bcc8ed",
   "route": "native",
   "status": "ok",
   "stderr": "",
-  "stdout": "{\n \"driver\": \"f01_native\",\n \"frames\": [\n  {\n   \"code\": \"not_identifiable\",\n   \"reason\": \"the design matrix is rank deficient; the singular values are 1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000\"\n  }\n ],\n \"position_round_trip\": [\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 4.5,\n   \"expected_y\": 4.5,\n   \"x\": 4.499999999998726,\n   \"y\": 4.500000000014629\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 10.5,\n   \"expected_y\": 5.5,\n   \"x\": 10.49999999999433,\n   \"y\": 5.50000000000378\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 3.5,\n   \"expected_y\": 11.5,\n   \"x\": 3.5000000000031246,\n   \"y\": 11.500000000012777\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 12.5,\n   \"expected_y\": 10.5,\n   \"x\": 12.50000000000735,\n   \"y\": 10.499999999994868\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 8.5,\n   \"expected_y\": 2.5,\n   \"x\": 8.500000000002007,\n   \"y\": 2.4999999999740607\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 13.5,\n   \"expected_y\": 3.5,\n   \"x\": 13.500000000011102,\n   \"y\": 3.5000000000244027\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 2.5,\n   \"expected_y\": 8.5,\n   \"x\": 2.5000000000058655,\n   \"y\": 8.50000000001791\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 7.5,\n   \"expected_y\": 12.5,\n   \"x\": 7.500000000015903,\n   \"y\": 12.500000000050129\n  }\n ],\n \"route\": \"in_memory_public_api\"\n}",
-  "wall_seconds": 27.804403840913437
+  "stdout": "{\n \"driver\": \"f01_native\",\n \"frames\": [\n  {\n   \"code\": \"ok\",\n   \"stars\": [\n    {\n     \"integrated_flux\": 937.617527055716,\n     \"position\": [\n      10.500000000001274,\n      10.500000000017177\n     ],\n     \"source_id\": 1000,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 597.344417892942,\n     \"position\": [\n      30.4999999999978,\n      14.500000000031136\n     ],\n     \"source_id\": 1001,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 767.4838010000043,\n     \"position\": [\n      12.500000000004007,\n      34.50000000001528\n     ],\n     \"source_id\": 1002,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 483.9275927627025,\n     \"position\": [\n      40.49999999998088,\n      30.500000000012694\n     ],\n     \"source_id\": 1003,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 852.5704589686615,\n     \"position\": [\n      24.499999999999744,\n      8.500000000006533\n     ],\n     \"source_id\": 1004,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 436.66822423532807,\n     \"position\": [\n      52.5000000000137,\n      12.499999999982084\n     ],\n     \"source_id\": 1005,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 710.7725616930621,\n     \"position\": [\n      8.499999999979796,\n      48.50000000001447\n     ],\n     \"source_id\": 1006,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 540.6388370667057,\n     \"position\": [\n      22.499999999983224,\n      52.49999999996558\n     ],\n     \"source_id\": 1007,\n     \"variance\": -1.0\n    }\n   ]\n  },\n  {\n   \"code\": \"ok\",\n   \"stars\": [\n    {\n     \"integrated_flux\": 468.8087635278581,\n     \"position\": [\n      10.500000000001274,\n      10.500000000017177\n     ],\n     \"source_id\": 1000,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 298.6722089464704,\n     \"position\": [\n      30.4999999999978,\n      14.500000000031136\n     ],\n     \"source_id\": 1001,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 383.7419005000019,\n     \"position\": [\n      12.500000000004007,\n      34.50000000001528\n     ],\n     \"source_id\": 1002,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 241.96379638135215,\n     \"position\": [\n      40.49999999998088,\n      30.500000000012694\n     ],\n     \"source_id\": 1003,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 426.2852294843311,\n     \"position\": [\n      24.499999999999744,\n      8.500000000006533\n     ],\n     \"source_id\": 1004,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 218.3341121176645,\n     \"position\": [\n      52.5000000000137,\n      12.499999999982084\n     ],\n     \"source_id\": 1005,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 355.3862808465316,\n     \"position\": [\n      8.499999999979796,\n      48.50000000001447\n     ],\n     \"source_id\": 1006,\n     \"variance\": -1.0\n    },\n    {\n     \"integrated_flux\": 270.3194185333534,\n     \"position\": [\n      22.499999999983224,\n      52.49999999996558\n     ],\n     \"source_id\": 1007,\n     \"variance\": -1.0\n    }\n   ]\n  }\n ],\n \"photometry\": {\n  \"prediction_code\": \"invalid_model\"\n },\n \"position_round_trip\": [\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 10.5,\n   \"expected_y\": 10.5,\n   \"x\": 10.500000000001274,\n   \"y\": 10.500000000017177\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 30.5,\n   \"expected_y\": 14.5,\n   \"x\": 30.4999999999978,\n   \"y\": 14.500000000031136\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 12.5,\n   \"expected_y\": 34.5,\n   \"x\": 12.500000000004007,\n   \"y\": 34.50000000001528\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 40.5,\n   \"expected_y\": 30.5,\n   \"x\": 40.49999999998088,\n   \"y\": 30.500000000012694\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 24.5,\n   \"expected_y\": 8.5,\n   \"x\": 24.499999999999744,\n   \"y\": 8.500000000006533\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 52.5,\n   \"expected_y\": 12.5,\n   \"x\": 52.5000000000137,\n   \"y\": 12.499999999982084\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 8.5,\n   \"expected_y\": 48.5,\n   \"x\": 8.499999999979796,\n   \"y\": 48.50000000001447\n  },\n  {\n   \"code\": \"ok\",\n   \"expected_x\": 22.5,\n   \"expected_y\": 52.5,\n   \"x\": 22.499999999983224,\n   \"y\": 52.49999999996558\n  }\n ],\n \"route\": \"in_memory_public_api\"\n}",
+  "wall_seconds": 0.2659855809761211
 }

@@ -513,18 +513,28 @@ Result<Ref<LinearAction>> make_csr_action(Context& context, U64 rows, U64 cols,
   recipe.kind = ActionRecipe::Kind::csr;
   recipe.algorithm = "canonical_csr_v1";
   recipe.version = 1;
+  // The action always describes its own spaces: a consumer that only sees the
+  // action (a covariance action, a drizzle recipe, an external implementation)
+  // has to know the size of the domain and of the codomain.  An unnamed space
+  // gets a synthetic identity that carries its size.
   DomainUnits spaces;
-  if (!domain_index.empty()) {
+  {
     Index domain;
-    domain.identity.object_id = domain_index;
-    domain.identity.content_hash = domain_index;
+    domain.size = cols;
+    domain.kind = Index::Kind::parameter;
+    domain.identity.object_id = domain_index.empty() ? Id("csr-domain-" + std::to_string(cols))
+                                                     : domain_index;
+    domain.identity.content_hash = domain.identity.object_id;
     domain.identity.schema_id = "acsd.Index";
     spaces.domain = std::make_shared<const Index>(domain);
   }
-  if (!codomain_index.empty()) {
+  {
     Index codomain;
-    codomain.identity.object_id = codomain_index;
-    codomain.identity.content_hash = codomain_index;
+    codomain.size = rows;
+    codomain.kind = Index::Kind::parameter;
+    codomain.identity.object_id = codomain_index.empty() ? Id("csr-codomain-" + std::to_string(rows))
+                                                         : codomain_index;
+    codomain.identity.content_hash = codomain.identity.object_id;
     codomain.identity.schema_id = "acsd.Index";
     spaces.codomain = std::make_shared<const Index>(codomain);
   }

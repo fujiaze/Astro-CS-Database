@@ -332,6 +332,9 @@ Result<Ref<NativeObservation>> calibrate_observation(Context& context, Ref<RawOb
   std::vector<std::string> noise_included;
   std::vector<std::string> noise_omitted;
   NoiseState noise_state = NoiseState::unknown;
+  std::string noise_source =
+      "the noise source is unknown: neither a supplied raw noise nor an explicit Poisson plugin "
+      "was available";
 
   if (request.raw_noise) {
     // The user supplied the complete electron expectation and readout factor.
@@ -341,6 +344,9 @@ Result<Ref<NativeObservation>> calibrate_observation(Context& context, Ref<RawOb
     noise_model->unknown_terms = request.raw_noise->unknown_terms;
     noise_state = request.raw_noise->state;
     noise_included.push_back("raw_noise_user_supplied");
+    noise_source =
+        "the noise source is the supplied raw noise: the complete electron expectation and the "
+        "readout factor are given, so the variance is the one the user declared";
     // The calibration Jacobian d x / d d = 1/flat maps the raw amplitudes onto
     // the calibrated samples.
     Result<Ref<LinearAction>> scale =
@@ -352,7 +358,7 @@ Result<Ref<NativeObservation>> calibrate_observation(Context& context, Ref<RawOb
     std::vector<Ref<LinearAction>> composed;
     composed.reserve(noise_model->influence.size());
     for (const Ref<LinearAction>& influence : noise_model->influence) {
-      Result<Ref<LinearAction>> chained = observation::compose_actions(context, val(scale), influence);
+      Result<Ref<LinearAction>> chained = acsd::compose(context, val(scale), influence);
       if (!ok(chained)) {
         return model::fail<Ref<NativeObservation>>(chained.code,
                                                    "the calibration Jacobian cannot be applied",
@@ -405,13 +411,13 @@ Result<Ref<NativeObservation>> calibrate_observation(Context& context, Ref<RawOb
                                                    "the calibration Jacobian cannot be built", kOrigin,
                                                    "the observation cannot be calibrated");
       }
-      Result<Ref<LinearAction>> shot_influence = observation::compose_actions(context, val(scale), val(shot_root)->factor);
+      Result<Ref<LinearAction>> shot_influence = acsd::compose(context, val(scale), val(shot_root)->factor);
       if (!ok(shot_influence)) {
         return model::fail<Ref<NativeObservation>>(shot_influence.code,
                                                    "the shot influence cannot be built", kOrigin,
                                                    "the observation cannot be calibrated");
       }
-      Result<Ref<LinearAction>> read_influence = observation::compose_actions(context, val(scale), val(read_root)->factor);
+      Result<Ref<LinearAction>> read_influence = acsd::compose(context, val(scale), val(read_root)->factor);
       if (!ok(read_influence)) {
         return model::fail<Ref<NativeObservation>>(read_influence.code,
                                                    "the readout influence cannot be built", kOrigin,
@@ -422,6 +428,10 @@ Result<Ref<NativeObservation>> calibrate_observation(Context& context, Ref<RawOb
       noise_model->influence.push_back(val(shot_influence));
       noise_model->influence.push_back(val(read_influence));
       noise_state = NoiseState::approximate;
+      noise_source =
+          "the noise source is the explicit Poisson plugin: the electron expectation is "
+          "max(d-b,0) and the readout factor is the declared read noise, so the shot variance "
+          "is approximate and the exact photon statistics are not recovered";
       noise_included.push_back("shot_poisson_plugin(max(d-b,0))");
       noise_included.push_back("readout_noise");
       noise_omitted.push_back("exact_shot_variance_not_recovered");
@@ -443,6 +453,9 @@ Result<Ref<NativeObservation>> calibrate_observation(Context& context, Ref<RawOb
       term.influence = val(placeholder);
       noise_model->unknown_terms.push_back(term);
       noise_state = NoiseState::unknown;
+      noise_source =
+          "the noise source is unknown: the gain and readout metadata alone do not recover the "
+          "shot variance, so the complete variance is unknown and is never filled with zero";
       noise_omitted.push_back("shot_variance_unknown");
       if (has_gain && has_read) {
         // unreachable, kept for clarity of the branch structure
@@ -480,7 +493,7 @@ Result<Ref<NativeObservation>> calibrate_observation(Context& context, Ref<RawOb
     const std::size_t offset = request.master_noise->influence.size() - shared_count;
     for (std::size_t k = 0; k < shared_count; ++k) {
       const Ref<LinearAction>& influence = request.master_noise->influence[offset + k];
-      Result<Ref<LinearAction>> chained = observation::compose_actions(context, val(jacobian), influence);
+      Result<Ref<LinearAction>> chained = acsd::compose(context, val(jacobian), influence);
       if (!ok(chained)) {
         return model::fail<Ref<NativeObservation>>(chained.code,
                                                    "the master root cannot be merged", kOrigin,
@@ -579,6 +592,8 @@ Result<Ref<NativeObservation>> calibrate_observation(Context& context, Ref<RawOb
   observation::note_calibration_jacobian(assessment);
   for (const std::string& item : noise_included) model::set_included(assessment, item);
   for (const std::string& item : noise_omitted) model::set_omitted(assessment, item);
+  // The branch of the noise rule that was taken, with its reason.
+  model::set_included(assessment, "noise_source=" + noise_source);
   if (repaired > 0) {
     model::add_issue(assessment, Code::unavailable,
                       "repaired samples need a G/influence before they may be used", kOrigin,

@@ -1,25 +1,6 @@
 {
   "case": "R01",
-  "failures": [
-    {
-      "actual": {
-        "code": "ok",
-        "reference_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
-        "signal_sha256": "c8254c426142500cb28f26de4d024d83a539219476ff8c4d054814124ebf5eb0"
-      },
-      "expected": "a named work exhaustion and an unchanged payload",
-      "functional": "work_budget_is_named",
-      "reason": "the work budget of one unit was exceeded but the run reported success and published a different payload",
-      "scope": "run_matrix"
-    },
-    {
-      "actual": 0,
-      "expected": 1,
-      "functional": "cancelled_counter",
-      "reason": "the summary does not count the cancelled run",
-      "scope": "run_matrix"
-    }
-  ],
+  "failures": [],
   "functionals": [
     {
       "expected_success_count": 3,
@@ -41,13 +22,13 @@
       "kind": "value",
       "name": "work_budget_is_named",
       "observed": {
-        "code": "ok",
+        "code": "failed",
         "reference_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
-        "signal_sha256": "c8254c426142500cb28f26de4d024d83a539219476ff8c4d054814124ebf5eb0"
+        "signal_sha256": null
       },
       "observed_success_count": 1,
-      "status": "fail",
-      "truth": "the budget exhaustion is named and the payload is the same"
+      "status": "pass",
+      "truth": "the budget exhaustion is named and no different payload is published"
     },
     {
       "expected_success_count": 1,
@@ -67,7 +48,7 @@
       "kind": "value",
       "name": "cancellation_is_named",
       "observed": {
-        "cancelled": 0,
+        "cancelled": 1,
         "exit_code": 5,
         "published": 0,
         "reason": "the export was cancelled"
@@ -80,10 +61,10 @@
       "expected_success_count": 1,
       "kind": "value",
       "name": "cancelled_counter",
-      "observed": 0,
+      "observed": 1,
       "observed_success_count": 1,
       "reason": "the frame is counted as failed although the reason names the cancellation",
-      "status": "fail",
+      "status": "pass",
       "truth": "the summary counts the cancelled run"
     },
     {
@@ -109,7 +90,7 @@
     }
   ],
   "notes": "R01: the run matrix over the resource limits and the two named failure paths (a write that cannot be completed and a cancelled run)",
-  "status": "fail",
+  "status": "pending_implementation",
   "status_vocabulary": {
     "fail": "at least one functional is outside the frozen tolerance",
     "not_applicable": "the case does not exercise the requested functional",

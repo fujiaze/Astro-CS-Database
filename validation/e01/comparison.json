@@ -43,7 +43,7 @@
       "truth": true
     },
     {
-      "detail": "sha256:2b11c3e24e15f3594a60d1b2f3a1eb0b44b7ee40e77c423b311a6de18536e906",
+      "detail": "sha256:680b90e2762da2b9983c1e1a27da3ec0aedd8a258c44eedd0920f514bdcb561f",
       "expected_success_count": 1,
       "kind": "value",
       "name": "closure:root_object_declared",

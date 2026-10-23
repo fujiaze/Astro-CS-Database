@@ -2,22 +2,81 @@
   "artifacts": {},
   "binary_identity": {
     "path": "/workspace/Astro CS Database/validation/build/w01_driver",
-    "sha256": "873926b905e7ed4046cd7361e93261cbf5b823b1f42f2aab96ee86c99ff76078",
-    "size_bytes": "1485824"
+    "sha256": "e63bf3bafaec9abbb05ffb1dacbee8df756961c2383fa8bd38085d3f06e7cb72",
+    "size_bytes": "1499336"
   },
   "command": [
     "/workspace/Astro CS Database/validation/build/w01_driver",
     "--output",
     "/workspace/Astro CS Database/validation/w01/observed/native_w01.json"
   ],
-  "exit_code": -11,
+  "exit_code": 0,
   "missing_entry_points": [],
-  "peak_rss_bytes": 281210880,
-  "reason": "driver exited with code -11",
-  "response": null,
+  "peak_rss_bytes": 281841664,
+  "reason": "",
+  "response": {
+    "cases": [
+      {
+        "code": "geometry_solve_unresolved",
+        "issues": [
+          {
+            "impact": "the weights cannot be solved",
+            "origin": "solve_weights",
+            "reason": "the normalising denominator has no positive lower bound"
+          }
+        ],
+        "name": "blue",
+        "policy": 2,
+        "reason": "the normalising denominator has no positive lower bound"
+      },
+      {
+        "code": "geometry_solve_unresolved",
+        "issues": [
+          {
+            "impact": "the weights cannot be solved",
+            "origin": "solve_weights",
+            "reason": "the equality constrained sub problem has no positive normaliser"
+          }
+        ],
+        "name": "nonnegative_qp",
+        "policy": 3,
+        "reason": "the equality constrained sub problem has no positive normaliser"
+      },
+      {
+        "code": "geometry_solve_unresolved",
+        "issues": [
+          {
+            "impact": "the weights cannot be solved",
+            "origin": "solve_weights",
+            "reason": "the normalising denominator has no positive lower bound"
+          }
+        ],
+        "name": "automatic",
+        "policy": 0,
+        "reason": "the normalising denominator has no positive lower bound"
+      },
+      {
+        "code": "geometry_solve_unresolved",
+        "issues": [
+          {
+            "impact": "the weights cannot be solved",
+            "origin": "solve_weights",
+            "reason": "the normalising denominator has no positive lower bound"
+          }
+        ],
+        "name": "blue_singular",
+        "policy": 2,
+        "reason": "the normalising denominator has no positive lower bound"
+      }
+    ],
+    "driver": "w01_native",
+    "route": "in_memory_public_api"
+  },
+  "response_file": "w01/observed/native_w01.json",
+  "response_sha256": "2d83d2a6dfd04be1f7b970130c3fac8e4641a29197ce3097adea0f5317674ffb",
   "route": "native",
-  "status": "error",
-  "stderr": "[w01] case blue start\n[w01] blue selection index size=2 ids_shape=4, dtype=2 values=0,0,0,4.94066e-324,\n[w01] case blue solving\n",
+  "status": "ok",
+  "stderr": "[coadd] covariance domain size=4 rows=2 cols=2\n[coadd] covariance domain size=4 rows=2 cols=2\n[coadd] covariance domain size=4 rows=2 cols=2\n[coadd] covariance domain size=4 rows=2 cols=2\n[coadd] covariance domain size=4 rows=2 cols=2\n[coadd] covariance domain size=4 rows=2 cols=2\n[coadd] covariance domain size=4 rows=2 cols=2\n[coadd] covariance domain size=4 rows=2 cols=2\n",
   "stdout": "",
-  "wall_seconds": 0.003077071043662727
+  "wall_seconds": 0.002948820940218866
 }

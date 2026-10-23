@@ -1,0 +1,58 @@
+{
+  "cases": [
+    {
+      "code": "geometry_solve_unresolved",
+      "issues": [
+        {
+          "impact": "the weights cannot be solved",
+          "origin": "solve_weights",
+          "reason": "the normalising denominator has no positive lower bound"
+        }
+      ],
+      "name": "blue",
+      "policy": 2,
+      "reason": "the normalising denominator has no positive lower bound"
+    },
+    {
+      "code": "geometry_solve_unresolved",
+      "issues": [
+        {
+          "impact": "the weights cannot be solved",
+          "origin": "solve_weights",
+          "reason": "the equality constrained sub problem has no positive normaliser"
+        }
+      ],
+      "name": "nonnegative_qp",
+      "policy": 3,
+      "reason": "the equality constrained sub problem has no positive normaliser"
+    },
+    {
+      "code": "geometry_solve_unresolved",
+      "issues": [
+        {
+          "impact": "the weights cannot be solved",
+          "origin": "solve_weights",
+          "reason": "the normalising denominator has no positive lower bound"
+        }
+      ],
+      "name": "automatic",
+      "policy": 0,
+      "reason": "the normalising denominator has no positive lower bound"
+    },
+    {
+      "code": "geometry_solve_unresolved",
+      "issues": [
+        {
+          "impact": "the weights cannot be solved",
+          "origin": "solve_weights",
+          "reason": "the normalising denominator has no positive lower bound"
+        }
+      ],
+      "name": "blue_singular",
+      "policy": 2,
+      "reason": "the normalising denominator has no positive lower bound"
+    }
+  ],
+  "driver": "w01_native",
+  "route": "in_memory_public_api"
+}

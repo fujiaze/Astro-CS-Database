@@ -498,6 +498,13 @@ Result<std::vector<Variance>> evaluate_scene_variance(Context& context, const Fr
   }
 
   for (const HealpixLeaf& leaf : leaves) {
+    // The cancellation checkpoint of the scene variance: the evaluation stops
+    // with a named failure and without a partial result.
+    if (context.cancellation.requested()) {
+      return model::fail<std::vector<Variance>>(Code::cancelled, "cancelled",
+                                                 "evaluate_scene_variance",
+                                                 "the scene variance is cancelled");
+    }
     Variance variance;
     variance.unit = variance_unit;
     if (unknown) {

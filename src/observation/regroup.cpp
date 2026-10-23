@@ -72,15 +72,8 @@ Result<Ref<NativeObservation>> regroup_observation(Context& context,
     return model::fail<Ref<NativeObservation>>(Code::invalid_model, "the regrouping has no output samples",
                                                kOrigin, "the regrouping cannot be built");
   }
-  // The declared domain of the matrix is read from its recipe: the action
-  // object itself does not carry the inherited DomainUnits member.
-  Result<ActionRecipe> g_recipe = request.G->serialize_recipe();
-  if (!ok(g_recipe)) {
-    return model::fail<Ref<NativeObservation>>(g_recipe.code,
-                                               "the regrouping matrix cannot be described", kOrigin,
-                                               "the regrouping cannot be built");
-  }
-  const DomainUnits& spaces = val(g_recipe).spaces;
+  // The declared domain of the matrix is the public member of the action.
+  const DomainUnits& spaces = request.G->spaces;
   if (!spaces.domain || !spaces.codomain) {
     return model::fail<Ref<NativeObservation>>(Code::invalid_model,
                                                "the regrouping matrix has no declared domain", kOrigin,
@@ -327,7 +320,7 @@ Result<Ref<NativeObservation>> regroup_observation(Context& context,
       return model::fail<Ref<NativeObservation>>(scale.code, "the mean restoration cannot be built",
                                                  kOrigin, "the regrouping cannot be built");
     }
-    Result<Ref<LinearAction>> chained = observation::compose_actions(context, val(scale), request.G);
+    Result<Ref<LinearAction>> chained = acsd::compose(context, val(scale), request.G);
     if (!ok(chained)) {
       return model::fail<Ref<NativeObservation>>(chained.code, "the mean restoration cannot be built",
                                                  kOrigin, "the regrouping cannot be built");
@@ -340,7 +333,7 @@ Result<Ref<NativeObservation>> regroup_observation(Context& context,
     noise_model->shared_factors = parent_noise->shared_factors;
     noise_model->unknown_terms = parent_noise->unknown_terms;
     for (const Ref<LinearAction>& influence : parent_noise->influence) {
-      Result<Ref<LinearAction>> chained = observation::compose_actions(context, effective_g, influence);
+      Result<Ref<LinearAction>> chained = acsd::compose(context, effective_g, influence);
       if (!ok(chained)) {
         return model::fail<Ref<NativeObservation>>(chained.code,
                                                    "the noise influence cannot be regrouped", kOrigin,

@@ -17,9 +17,13 @@ CXX=${CXX:-g++}
 compile() {
   source_file=$1
   object="$BUILD/$(echo "$source_file" | sed "s|$ROOT/||; s|/|_|g; s|\.cpp$|.o|")"
-  "$CXX" -std=c++20 -O2 -fno-fast-math -ffp-contract=off -frounding-math -mfpmath=sse \
-      -include iostream \
-      -I "$ROOT/include" -I "$ROOT/src" -c "$source_file" -o "$object"
+  # The object is rebuilt only when the source or the contract header is newer.
+  if [ ! -f "$object" ] || [ "$source_file" -nt "$object" ] || \
+     [ "$ROOT/include/acsd/contracts.hpp" -nt "$object" ]; then
+    "$CXX" -std=c++20 -O2 -fno-fast-math -ffp-contract=off -frounding-math -mfpmath=sse \
+        -include iostream \
+        -I "$ROOT/include" -I "$ROOT/src" -c "$source_file" -o "$object"
+  fi
   echo "$object"
 }
 

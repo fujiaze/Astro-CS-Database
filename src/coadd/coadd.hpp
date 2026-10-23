@@ -56,7 +56,8 @@ struct QpResult {
 // t >= 0.  The active set method starts from the equal weight feasible
 // solution, walks along the segment to a candidate with a negative weight,
 // breaks the ties by the frame identity and uses the Bland rule.
-QpResult solve_nonnegative_qp(const numerics::Matrix& gamma, const std::vector<std::string>& names,
+QpResult solve_nonnegative_qp(Context& context, const numerics::Matrix& gamma,
+                               const std::vector<std::string>& names,
                                std::size_t max_iterations);
 
 // The covariance matrix of the accepted samples of one leaf.

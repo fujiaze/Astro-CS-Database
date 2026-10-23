@@ -126,6 +126,58 @@ std::vector<Segment> boundary_segments(const WcsModel& wcs, const Box& detector_
   return segments;
 }
 
+
+// ---------------------------------------------------------------------------
+// The apex version of the fallback.
+//
+// The chart of a polar face is singular at the apex: the chart coordinates of
+// the detector region cannot be enclosed with the affine model of the chart,
+// because the derivative of the chart with respect to (z, phi) is unbounded
+// there.  The apex version therefore never asks for the chart of the detector
+// region.  It works with the forward chart (the direction of a point of the
+// detector maps to its chart position) and it decides the cells of the
+// candidate faces on the (s,t) grid of the target leaf order.
+//
+// The conservatism is deliberate: the candidate set contains every cell of
+// every candidate face (so no covered cell is ever missed) and a cell whose
+// boundary cannot be proven disjoint from the source region stays undecided
+// with its whole cell mass.  The apex cells themselves are always undecided:
+// the chart has no meaning there, so no whole cell proof is possible.
+constexpr U64 kApexSamplesPerEdge = 32;
+
+// The chart position of a point of the detector (the forward chart map).
+bool forward_chart_position(const WcsModel& wcs, double u, double v, U32& face, double& s,
+                            double& t) {
+  const Vec2 q = coordinates::tangent_offset(wcs, u, v);
+  const SkyICRS direction = coordinates::direction_from_tangent(wcs, q);
+  coordinates::ChartPoint point;
+  if (!coordinates::chart_inverse(direction, point)) return false;
+  face = point.face;
+  s = point.s;
+  t = point.t;
+  return true;
+}
+
+
+// True when the cell of the face at (ix, iy) touches the apex of a polar
+// face.  The north polar faces have their apex in the corner (1, 1) of the
+// (s, t) square, the south polar faces in the corner (0, 0).
+bool is_apex_cell(U32 face, long long ix, long long iy, long long nside) {
+  const double s_hi = static_cast<double>(ix + 1) / static_cast<double>(nside);
+  const double t_hi = static_cast<double>(iy + 1) / static_cast<double>(nside);
+  const double s_lo = static_cast<double>(ix) / static_cast<double>(nside);
+  const double t_lo = static_cast<double>(iy) / static_cast<double>(nside);
+  if (face < 4) {
+    // The north polar faces: the apex is the corner (1, 1).
+    return s_hi + t_hi >= 2.0 - 1.0e-12;
+  }
+  if (face >= 8) {
+    // The south polar faces: the apex is the corner (0, 0).
+    return s_lo + t_lo <= 1.0e-12;
+  }
+  return false;
+}
+
 // The chart enclosure of one boundary segment.  A segment whose chart model is
 // not provable (a chart singularity or a face boundary crossing) makes the
 // separation test fail for every cell: the cells stay undecided.
@@ -172,6 +224,21 @@ Membership membership_of(const Box& root_box, const Box& detector_rect) {
   return Membership::undecided;
 }
 
+// True when the pole of the given hemisphere is inside the source region.
+// The inverse of the pole direction is well conditioned away from the pole,
+// so the root box of the solution says whether the pole is covered.
+bool pole_inside(Context& context, Ref<WcsModel> model_ref, const Box& detector_rect, bool north) {
+  SkyICRS pole;
+  pole.nx = 0.0;
+  pole.ny = 0.0;
+  pole.nz = north ? 1.0 : -1.0;
+  NumericBudget inverse_budget;
+  inverse_budget.max_iterations = 64;
+  Result<InverseResult> inverted = acsd::inverse(context, model_ref, pole, inverse_budget);
+  if (inverted.code != Code::ok) return false;
+  return membership_of(inverted.value->root_box, detector_rect) == Membership::inside;
+}
+
 }  // namespace
 
 DyadicInterval pi_enclosure() {
@@ -191,6 +258,213 @@ DyadicInterval pi_enclosure() {
   out.upper.signed_integer = upper.to_string();
   out.upper.exponent2 = -static_cast<std::int32_t>(kScale);
   return out;
+}
+
+
+ContainmentOutcome target_containment_apex(Context& context, const WcsModel& wcs,
+                                           Ref<WcsModel> model_ref, const Box& detector_rect,
+                                           U32 order, const GeometryBudget& budget) {
+  ContainmentOutcome outcome;
+  const U64 nside = 1ull << order;
+  const double inv_nside = 1.0 / static_cast<double>(nside);
+  const double crpix_u = wcs.crpix_fits1[0];
+  const double crpix_v = wcs.crpix_fits1[1];
+  const double u0 = detector_rect.lower[0] + 1.0 - crpix_u;
+  const double u1 = detector_rect.upper[0] + 1.0 - crpix_u;
+  const double v0 = detector_rect.lower[1] + 1.0 - crpix_v;
+  const double v1 = detector_rect.upper[1] + 1.0 - crpix_v;
+
+  // The forward chart positions of the boundary of the source region.  The
+  // samples are the positions of the boundary curve in the chart; the faces
+  // they carry are the candidate faces.
+  struct BoundarySample {
+    U32 face = 0;
+    double s_lo = 0.0;
+    double s_hi = 0.0;
+    double t_lo = 0.0;
+    double t_hi = 0.0;
+    bool provable = true;
+  };
+  std::vector<BoundarySample> samples;
+  std::vector<U32> candidate_faces;
+  const U64 samples_per_edge = kApexSamplesPerEdge;
+  const double du = (u1 - u0) / static_cast<double>(samples_per_edge);
+  const double dv = (v1 - v0) / static_cast<double>(samples_per_edge);
+  // The half width of the detector box that the chart enclosure of one sample
+  // covers: the motion of the boundary between two samples.
+  const double half_u = 0.5 * std::fabs(du);
+  const double half_v = 0.5 * std::fabs(dv);
+  for (U64 i = 0; i < samples_per_edge; ++i) {
+    const double a = u0 + du * static_cast<double>(i);
+    const double b = u0 + du * static_cast<double>(i + 1);
+    const double c = v0 + dv * static_cast<double>(i);
+    const double d = v0 + dv * static_cast<double>(i + 1);
+    const double points[4][2] = {{a, c}, {b, c}, {b, d}, {a, d}};
+    for (const auto& point : points) {
+      BoundarySample sample;
+      if (!forward_chart_position(wcs, point[0], point[1], sample.face, sample.s_lo,
+                                  sample.t_lo)) {
+        sample.provable = false;
+        continue;
+      }
+      // The chart enclosure of the box around the sample: it widens the point
+      // to the motion of the boundary between two samples.  A box that crosses
+      // a face meridian has no provable chart enclosure.
+      ChartBox box;
+      if (chart_enclosure(wcs, point[0] - half_u, point[0] + half_u, point[1] - half_v,
+                          point[1] + half_v, box) &&
+          box.face == sample.face) {
+        sample.s_lo = box.s_lo;
+        sample.s_hi = box.s_hi;
+        sample.t_lo = box.t_lo;
+        sample.t_hi = box.t_hi;
+      } else {
+        sample.provable = false;
+      }
+      samples.push_back(sample);
+    }
+  }
+  outcome.boundary_segments = samples.size();
+  geometry::containment_counts().boundary_segments += samples.size();
+
+  // The candidate faces: the faces the boundary runs through and, when the
+  // source region covers a pole, the polar faces of that hemisphere (the
+  // cells around the apex are covered by the source region although the
+  // boundary does not touch them).
+  std::vector<U32> faces;
+  for (const BoundarySample& sample : samples) {
+    if (!sample.provable) continue;
+    if (std::find(faces.begin(), faces.end(), sample.face) == faces.end()) {
+      faces.push_back(sample.face);
+    }
+  }
+  const bool north_pole_inside = pole_inside(context, model_ref, detector_rect, true);
+  const bool south_pole_inside = pole_inside(context, model_ref, detector_rect, false);
+  if (north_pole_inside) {
+    for (U32 face = 0; face < 4; ++face) {
+      if (std::find(faces.begin(), faces.end(), face) == faces.end()) faces.push_back(face);
+    }
+  }
+  if (south_pole_inside) {
+    for (U32 face = 8; face < 12; ++face) {
+      if (std::find(faces.begin(), faces.end(), face) == faces.end()) faces.push_back(face);
+    }
+  }
+  if (faces.empty()) return outcome;
+
+  // The exact area of one cell of the equal-area chart.
+  const DyadicInterval pi = pi_enclosure();
+  const BigInt divisor = BigInt(3) * BigInt(nside) * BigInt(nside);
+  const BigInt cell_area_lower = BigInt::from_string(pi.lower.signed_integer) / divisor;
+  const BigInt cell_area_upper = BigInt::from_string(pi.upper.signed_integer) / divisor;
+  Dyadic cell_area;
+  cell_area.signed_integer = cell_area_lower.to_string();
+  cell_area.exponent2 = -DyadicLedger::kScaleBits;
+
+  const U64 max_work = budget.max_work > 0 ? budget.max_work : 1000000ull;
+  NumericBudget inverse_budget;
+  inverse_budget.max_iterations = 64;
+
+  std::map<std::pair<U32, U64>, std::pair<BigInt, BigInt>> ledgers;
+  BigInt undecided(0);
+
+  for (U32 face : faces) {
+    // Every cell of the candidate face is a candidate: the fill is
+    // deliberately conservative, so no covered cell is missed.
+    for (long long iy = 0; iy < static_cast<long long>(nside); ++iy) {
+      for (long long ix = 0; ix < static_cast<long long>(nside); ++ix) {
+        if (context.cancellation.requested()) {
+          outcome.complete = false;
+          outcome.cancelled = true;
+          return outcome;
+        }
+        if (outcome.work >= max_work) return outcome;
+        ++outcome.work;
+        {
+          const U64 units = 1 + samples.size();
+          const Result<U64> charged = context.resources.consume_work(units);
+          if (charged.code != Code::ok) return outcome;
+        }
+        const double s_lo = static_cast<double>(ix) * inv_nside;
+        const double s_hi = static_cast<double>(ix + 1) * inv_nside;
+        const double t_lo = static_cast<double>(iy) * inv_nside;
+        const double t_hi = static_cast<double>(iy + 1) * inv_nside;
+
+        // The separation test: the boundary of the source region must not
+        // meet the cell.  A face whose boundary is not provable (a meridian
+        // crossing) leaves all its cells undecided.
+        bool separated = true;
+        for (const BoundarySample& sample : samples) {
+          if (!sample.provable) {
+            if (sample.face != face) continue;
+            separated = false;
+            break;
+          }
+          if (sample.face != face) continue;
+          if (overlaps(s_lo, s_hi, sample.s_lo, sample.s_hi) &&
+              overlaps(t_lo, t_hi, sample.t_lo, sample.t_hi)) {
+            separated = false;
+            break;
+          }
+        }
+
+        CellDecision decision = CellDecision::undecided;
+        // The apex cells are never decided: the chart has no meaning at the
+        // apex, so no whole cell proof is possible there.
+        const bool apex_cell = is_apex_cell(face, ix, iy, static_cast<long long>(nside));
+        if (separated && !apex_cell) {
+          const double s_mid = 0.5 * (s_lo + s_hi);
+          const double t_mid = 0.5 * (t_lo + t_hi);
+          const SkyICRS direction = coordinates::healpix_face_point(face, s_mid, t_mid);
+          Result<InverseResult> inverted =
+              acsd::inverse(context, model_ref, direction, inverse_budget);
+          if (inverted.code == Code::ok) {
+            const Membership membership = membership_of(inverted.value->root_box, detector_rect);
+            if (membership == Membership::inside) {
+              decision = CellDecision::inside;
+            } else if (membership == Membership::outside) {
+              decision = CellDecision::outside;
+            }
+          }
+        }
+
+        if (decision == CellDecision::undecided) {
+          ++outcome.cells_undecided;
+          ++geometry::containment_counts().cells_undecided;
+        } else {
+          ++outcome.cells_decided;
+          ++geometry::containment_counts().cells_decided;
+        }
+        const HealpixLeaf leaf =
+            coordinates::chart_leaf(order, face, static_cast<U64>(ix), static_cast<U64>(iy));
+        auto& entry = ledgers[{leaf.order, leaf.ipix}];
+        if (decision == CellDecision::inside) {
+          entry.first = entry.first + cell_area_lower;
+          entry.second = entry.second + cell_area_upper;
+        } else if (decision == CellDecision::undecided) {
+          entry.second = entry.second + cell_area_upper;
+          undecided = undecided + cell_area_upper;
+        }
+      }
+    }
+  }
+
+  outcome.leaves.reserve(ledgers.size());
+  for (const auto& entry : ledgers) {
+    ContainmentLeaf leaf;
+    leaf.leaf = HealpixLeaf{entry.first.first, entry.first.second};
+    leaf.decision = entry.second.first.is_zero() ? CellDecision::outside : CellDecision::inside;
+    leaf.lower.signed_integer = entry.second.first.to_string();
+    leaf.lower.exponent2 = -DyadicLedger::kScaleBits;
+    leaf.upper.signed_integer = entry.second.second.to_string();
+    leaf.upper.exponent2 = -DyadicLedger::kScaleBits;
+    outcome.leaves.push_back(leaf);
+  }
+  outcome.undecided_mass.signed_integer = undecided.to_string();
+  outcome.undecided_mass.exponent2 = -DyadicLedger::kScaleBits;
+  outcome.complete = true;
+  outcome.apex_version = true;
+  return outcome;
 }
 
 ContainmentOutcome target_containment(Context& context, const WcsModel& wcs, Ref<WcsModel> model_ref,

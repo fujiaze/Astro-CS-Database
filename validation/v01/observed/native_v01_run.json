@@ -12,7 +12,7 @@
   ],
   "exit_code": 0,
   "missing_entry_points": [],
-  "peak_rss_bytes": 130031616,
+  "peak_rss_bytes": 129908736,
   "reason": "",
   "response": {
     "cases": [
@@ -299,5 +299,5 @@
   "status": "ok",
   "stderr": "",
   "stdout": "",
-  "wall_seconds": 0.3318820180138573
+  "wall_seconds": 0.3322471569990739
 }

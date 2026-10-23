@@ -19,6 +19,7 @@
       "src/coordinates/wcs.cpp",
       "src/geometry/containment.cpp",
       "src/geometry/drizzle.cpp",
+      "src/geometry/exact_fraction.cpp",
       "src/geometry/exact_polygon.cpp",
       "src/geometry/kernel.cpp",
       "src/geometry/overlap.cpp",

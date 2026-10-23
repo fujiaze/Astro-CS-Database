@@ -58,6 +58,11 @@ std::vector<double> apply_action(acsd::Context& context, acsd::Ref<acsd::LinearA
 
 }  // namespace
 
+// A cancellation token that asks the modules to stop.
+struct Cancelled : acsd::Cancellation {
+  bool requested() const noexcept override { return true; }
+};
+
 int main() {
   CountingResources resources;
   NoCancellation cancellation;
@@ -440,6 +445,29 @@ int main() {
     acsd::Result<acsd::Ref<acsd::SkyFit>> illegal_fit =
         acsd::fit_relative_sky(context, value_of(controls), illegal);
     check(!is_ok(illegal_fit), "the fit of an illegal basis does not succeed");
+  }
+
+
+  // ---- a cancelled run stops with a named failure --------------------------
+  // The modules check the cancellation in their loops and fail with the code
+  // cancelled; they never return the truncated result as if it were complete.
+  {
+    Cancelled cancellation;
+    acsd::Context cancelled_context{resources, cancellation, storage};
+    acsd::Result<acsd::Ref<acsd::SkyControls>> cancelled_controls =
+        acsd::build_sky_controls(cancelled_context, provider, request);
+    check(!is_ok(cancelled_controls), "the cancelled controls are not built");
+    if (!is_ok(cancelled_controls)) {
+      check(cancelled_controls.code == acsd::Code::cancelled,
+            "the cancelled controls fail with the code cancelled");
+    }
+    acsd::Result<acsd::Ref<acsd::SkyFit>> cancelled_fit =
+        acsd::fit_relative_sky(cancelled_context, value_of(controls), request);
+    check(!is_ok(cancelled_fit), "the cancelled fit does not succeed");
+    if (!is_ok(cancelled_fit)) {
+      check(cancelled_fit.code == acsd::Code::cancelled,
+            "the cancelled fit fails with the code cancelled");
+    }
   }
 
   std::printf("%d failure(s)\n", failures);

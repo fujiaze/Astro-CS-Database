@@ -46,6 +46,11 @@ void check_close(double value, double expected, double tolerance, const std::str
 
 }  // namespace
 
+// A cancellation token that asks the modules to stop.
+struct Cancelled : acsd::Cancellation {
+  bool requested() const noexcept override { return true; }
+};
+
 int main() {
   CountingResources resources;
   NoCancellation cancellation;
@@ -231,6 +236,20 @@ int main() {
         check_close(weights[0], 0.5, 1e-12, "the first weight of the mixed observation is one half");
         check_close(weights[1], 0.5, 1e-12, "the second weight of the mixed observation is one half");
       }
+    }
+  }
+
+
+  // ---- a cancelled run stops with a named failure --------------------------
+  {
+    Cancelled cancellation;
+    acsd::Context cancelled_context{resources, cancellation, storage};
+    acsd::Result<acsd::Ref<acsd::Selection>> cancelled_selection =
+        acsd::select_samples(cancelled_context, provider, request);
+    check(!is_ok(cancelled_selection), "the cancelled selection is not built");
+    if (!is_ok(cancelled_selection)) {
+      check(cancelled_selection.code == acsd::Code::cancelled,
+            "the cancelled selection fails with the code cancelled");
     }
   }
 

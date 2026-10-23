@@ -88,9 +88,11 @@ int run_regroup_cases() {
       adu_unit("detector0"));
   check(g_sum.code == Code::ok, "the regrouping matrix is built");
   if (g_sum.value.has_value()) {
+    // The public member of the action carries the declared domain; the
+    // implementation must not have to read the recipe to find it.
     const acsd::DomainUnits& spaces = (*g_sum.value)->spaces;
-    check(spaces.domain == nullptr,
-          "the action object does not carry the inherited domain member (base defect)");
+    check(spaces.domain != nullptr && spaces.codomain != nullptr,
+          "the action object carries the inherited domain member");
   }
   if (!g_sum.value.has_value()) return 1;
 

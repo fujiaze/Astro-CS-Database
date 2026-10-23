@@ -786,6 +786,12 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
   std::vector<Patch> patches;
   std::map<std::string, std::size_t> patch_index;
   for (std::size_t f = 0; f < blocks.size(); ++f) {
+    // The cancellation checkpoint of the patch grid: the controls stop with a
+    // named failure and without a partial result.
+    if (context.cancellation.requested()) {
+      return model::fail<Ref<SkyControls>>(Code::cancelled, "cancelled", "build_sky_controls",
+                                           "the controls are cancelled");
+    }
     FrameBlock& block = blocks[f];
     block.patch_of_leaf.assign(block.leaves.size(), 0);
     for (std::size_t row = 0; row < block.leaves.size(); ++row) {
@@ -1231,6 +1237,10 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
       return model::fail<Ref<SkyFit>>(Code::invalid_model, reason, "fit_relative_sky",
                                       "the sky cannot be fitted");
     }
+  }
+  if (context.cancellation.requested()) {
+    return model::fail<Ref<SkyFit>>(Code::cancelled, "cancelled", "fit_relative_sky",
+                                    "the sky cannot be fitted");
   }
   if (!controls) {
     return model::fail<Ref<SkyFit>>(Code::invalid_request, "no controls supplied",

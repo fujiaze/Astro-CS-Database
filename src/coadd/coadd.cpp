@@ -16,6 +16,8 @@
 //   * coadd calls the same selection and weight procedure, it never
 //     implements a second one and it never applies the sky twice.
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 #include <cmath>
 #include <cstdint>
 #include <map>
@@ -223,7 +225,8 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
   U64 total = 0;
   for (const FrameView& frame : frames) total += frame.leaves.size();
 
-  auto to_csr = [&](Ref<LinearAction> action, U64 rows) -> Result<operators::CsrMatrix> {
+  auto to_csr = [&](Ref<LinearAction> action, U64 rows,
+                    U64 expected_columns) -> Result<operators::CsrMatrix> {
     operators::CsrMatrix matrix;
     matrix.rows = rows;
     matrix.cols = 0;
@@ -234,9 +237,17 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
       matrix = payload;
       return model::ok_result(matrix);
     }
-    // A dense materialisation is only used when the action has no sparse
-    // payload; the small matrix path of the contract is the only case here.
-    const U64 columns = impl ? impl->domain_size() : 0;
+    // The action is materialised column by column with the public interface
+    // of the contract, so that an implementation outside the operators module
+    // is usable as well.  The number of columns is the size of the latent
+    // space of the root, which the contract carries.
+    const U64 columns = impl ? impl->domain_size() : expected_columns;
+    if (columns == 0) {
+      return model::fail<operators::CsrMatrix>(Code::invalid_model,
+                                               "the action has no columns in the latent space",
+                                               "coadd.covariance",
+                                               "the joint noise cannot be built");
+    }
     matrix.cols = columns;
     matrix.offsets.assign(static_cast<std::size_t>(rows) + 1, 0);
     for (U64 j = 0; j < columns; ++j) {
@@ -282,7 +293,11 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
                                                 "coadd.covariance", "the joint noise cannot be built");
     }
     for (std::size_t k = 0; k < roots.size(); ++k) {
-      Result<operators::CsrMatrix> matrix = to_csr(noise.influence[k], frame.leaves.size());
+      const U64 latent = roots[k] && roots[k]->coordinates
+                             ? roots[k]->coordinates->size
+                             : 0;
+      Result<operators::CsrMatrix> matrix =
+          to_csr(noise.influence[k], frame.leaves.size(), latent);
       if (!ok(matrix)) {
         return model::fail<Ref<CovarianceAction>>(matrix.code, "an influence cannot be converted",
                                                   "coadd.covariance",
@@ -342,6 +357,18 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
         merged.offsets[row + i + 1] = merged.indices.size();
       }
       row += block.rows;
+    }
+    if (std::getenv("ACSD_COADD_DEBUG") != nullptr) {
+      std::fprintf(stderr, "DBG merged root rows=%llu cols=%llu offs=%zu idx=%zu vals=%zu\n",
+                   (unsigned long long)merged.rows, (unsigned long long)merged.cols,
+                   merged.offsets.size(), merged.indices.size(), merged.values.size());
+      for (std::size_t i = 0; i < merged.offsets.size(); ++i) {
+        std::fprintf(stderr, "   off[%zu]=%llu\n", i, (unsigned long long)merged.offsets[i]);
+      }
+      for (std::size_t i = 0; i < merged.values.size(); ++i) {
+        std::fprintf(stderr, "   val[%zu]=%g idx=%llu\n", i, merged.values[i],
+                     (unsigned long long)merged.indices[i]);
+      }
     }
     Result<Ref<LinearAction>> action = operators::make_csr_action(
         context, merged.rows, merged.cols, merged.offsets, merged.indices, merged.values, Id(), Id(),
@@ -452,6 +479,12 @@ Result<Ref<Selection>> select_samples(Context& context, const FramesProvider& fr
   std::vector<std::uint8_t> accepted(leaf_count * frame_count, 0);
   std::vector<std::uint16_t> reasons(leaf_count * frame_count, kAccepted);
   for (std::size_t leaf = 0; leaf < leaf_count; ++leaf) {
+    // The cancellation checkpoint of the selection: the selection stops with a
+    // named failure and without a partial selection.
+    if (context.cancellation.requested()) {
+      return model::fail<Ref<Selection>>(Code::cancelled, "cancelled", "select_samples",
+                                         "the selection is cancelled");
+    }
     for (std::size_t f = 0; f < frame_count; ++f) {
       const std::size_t flat = leaf * frame_count + f;
       auto found = views[f].row_of_leaf.find({leaves[leaf].order, leaves[leaf].ipix});
@@ -720,9 +753,13 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
     views.push_back(val(read));
   }
   const std::size_t frame_count = views.size();
-  const U64 accepted_count = selection->accepted->shape.empty()
-                                 ? 0
-                                 : selection->accepted->shape[0] * selection->accepted->shape[1];
+  // The shape of the accepted samples is read defensively: a selection that
+  // does not carry a two dimensional shape is refused by name instead of
+  // reading outside the array.
+  const std::vector<U64>& accepted_shape = selection->accepted->shape;
+  const U64 accepted_count =
+      accepted_shape.size() == 2 ? accepted_shape[0] * accepted_shape[1]
+                                 : (accepted_shape.size() == 1 ? accepted_shape[0] : 0);
   Result<ArrayView> accepted_array =
       context.storage.read(context, selection->accepted, BlockRequest{0, accepted_count});
   if (!ok(accepted_array)) {
@@ -732,6 +769,11 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
   const std::vector<std::uint8_t> accepted = model::decode_u8(val(accepted_array).bytes);
   const std::size_t leaf_count =
       selection->index ? static_cast<std::size_t>(selection->index->size) : 0;
+  if (accepted_count != leaf_count * frame_count) {
+    return model::fail<Ref<WeightSolution>>(
+        Code::invalid_model, "the accepted samples do not match the leaves and the frames",
+        "solve_weights", "the weights cannot be solved");
+  }
 
   // The policy.
   WeightPolicy policy = request.weights;
@@ -832,8 +874,15 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
       }
       Result<Matrix> block = covariance_block(context, joint, rows, columns);
       if (!ok(block)) {
-        return model::fail<Ref<WeightSolution>>(block.code, "the covariance block cannot be read",
-                                                "solve_weights", "the weights cannot be solved");
+        Result<Ref<WeightSolution>> out = model::fail<Ref<WeightSolution>>(
+            block.code, "the covariance block cannot be read", "solve_weights",
+            "the weights cannot be solved");
+        // The reason of the block is kept, so that the failure names its
+        // cause instead of a generic message.
+        for (const Issue& issue : block.assessment.issues) {
+          model::add_issue(out.assessment, issue.code, issue.reason, issue.origin, issue.impact);
+        }
+        return out;
       }
       if (policy == WeightPolicy::blue) {
         coadd_internal::BlueResult blue = coadd_internal::solve_blue(val(block), request.solve.rank_relative > 0.0
@@ -848,7 +897,8 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
       } else {
         std::vector<std::string> names;
         for (std::size_t f : eligible) names.push_back(views[f].frame);
-        coadd_internal::QpResult qp = coadd_internal::solve_nonnegative_qp(val(block), names, 100);
+        coadd_internal::QpResult qp =
+            coadd_internal::solve_nonnegative_qp(context, val(block), names, 100);
         if (qp.outcome != coadd_internal::QpOutcome::kSolved) {
           return model::fail<Ref<WeightSolution>>(Code::geometry_solve_unresolved, qp.reason,
                                                   "solve_weights", "the weights cannot be solved");

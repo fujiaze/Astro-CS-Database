@@ -69,9 +69,5 @@ Result<Ref<LinearAction>> make_diagonal_action(Context& context,
                                                 Ref<Index> index, const Unit& in_unit,
                                                 const Unit& out_unit);
 
-// Composes two actions.  The public factory does not fill the child list of
-// the recipe, so the composition is assembled here with the declared recipe.
-Result<Ref<LinearAction>> compose_actions(Context& context, Ref<LinearAction> outer,
-                                           Ref<LinearAction> inner);
 
 }  // namespace acsd::observation

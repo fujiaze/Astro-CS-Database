@@ -1,12 +1,12 @@
 {
   "artifacts": {
     "response_file": "/workspace/Astro CS Database/validation/c01/observed/contract_c01.json",
-    "response_sha256": "5a9349f58d586ffe44d74ce432e4a41e01e68d79e00e074ad3efb1877d0509b0"
+    "response_sha256": "1049f42826261f185e627efce733613e1bcd697fa9de2b14fcd5ba675066244c"
   },
   "binary_identity": {
     "path": "/workspace/Astro CS Database/build/science/acsd-contract",
-    "sha256": "23fccfce7cdffa925bc07e7a2423b678026fc30c205a73b19a8c089828318b3c",
-    "size_bytes": "4230848"
+    "sha256": "2fc17cf402890bac445458c963d5756a4619e28bd748912c9384c05e5c653e1a",
+    "size_bytes": "5190992"
   },
   "command": [
     "/workspace/Astro CS Database/build/science/acsd-contract",
@@ -17,7 +17,7 @@
   ],
   "exit_code": 0,
   "missing_entry_points": [],
-  "peak_rss_bytes": 74870784,
+  "peak_rss_bytes": 74911744,
   "reason": "",
   "response": {
     "algorithm_set": [
@@ -291,7 +291,7 @@
     "resources": {
       "byte_budget": 8388608,
       "bytes": 8388608,
-      "elapsed_seconds": 0.00085826,
+      "elapsed_seconds": 0.000687319,
       "peak_payload_bytes": 0,
       "read_bytes": 0,
       "spill_bytes": 0,
@@ -329,7 +329,7 @@
       "code": "ok",
       "dependencies": [],
       "usage": {
-        "elapsed_seconds": 6.53e-07,
+        "elapsed_seconds": 5.41e-07,
         "peak_payload_bytes": 0,
         "read_bytes": 0,
         "spill_bytes": 0,
@@ -345,5 +345,5 @@
   "status": "ok",
   "stderr": "",
   "stdout": "",
-  "wall_seconds": 0.005768581992015243
+  "wall_seconds": 0.004766823025420308
 }

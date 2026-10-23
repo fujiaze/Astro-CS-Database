@@ -157,29 +157,4 @@ Result<Ref<LinearAction>> make_diagonal_action(Context& context,
                      std::span<const ArrayRef>{arrays.data(), arrays.size()});
 }
 
-Result<Ref<LinearAction>> compose_actions(Context& context, Ref<LinearAction> outer,
-                                           Ref<LinearAction> inner) {
-  if (!outer || !inner) {
-    return model::fail<Ref<LinearAction>>(Code::invalid_request,
-                                          "the composition needs two actions",
-                                          "observation.action", "the action cannot be built");
-  }
-  Result<ActionRecipe> outer_recipe = outer->serialize_recipe();
-  if (!ok(outer_recipe)) {
-    return model::fail<Ref<LinearAction>>(outer_recipe.code,
-                                          "the outer action cannot be described",
-                                          "observation.action", "the action cannot be built");
-  }
-  ActionRecipe recipe;
-  recipe.kind = ActionRecipe::Kind::compose;
-  recipe.algorithm = "canonical_compose_v1";
-  recipe.version = 1;
-  recipe.spaces = val(outer_recipe).spaces;
-  const std::vector<Ref<LinearAction>> children{outer, inner};
-  recipe.children.push_back(outer->spaces.domain ? outer->spaces.domain->identity.object_id : Id());
-  recipe.children.push_back(inner->spaces.domain ? inner->spaces.domain->identity.object_id : Id());
-  return make_action(context, recipe, std::span<const Ref<LinearAction>>{children.data(), children.size()},
-                     std::span<const ArrayRef>{});
-}
-
 }  // namespace acsd::observation

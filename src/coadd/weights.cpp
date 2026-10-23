@@ -165,7 +165,8 @@ BlueResult solve_blue(const Matrix& gamma, double rank_relative) {
   return result;
 }
 
-QpResult solve_nonnegative_qp(const Matrix& gamma, const std::vector<std::string>& names,
+QpResult solve_nonnegative_qp(Context& context, const Matrix& gamma,
+                               const std::vector<std::string>& names,
                                std::size_t max_iterations) {
   QpResult result;
   const std::size_t n = gamma.rows;
@@ -212,6 +213,13 @@ QpResult solve_nonnegative_qp(const Matrix& gamma, const std::vector<std::string
   };
 
   for (std::size_t iteration = 0; iteration < max_iterations; ++iteration) {
+    // The cancellation checkpoint of the active set: the iteration stops with
+    // a named result and without a partial solution.
+    if (context.cancellation.requested()) {
+      result.outcome = QpOutcome::kUnresolved;
+      result.reason = "cancelled";
+      return result;
+    }
     std::vector<double> candidate;
     if (!solve_free(candidate)) {
       result.outcome = QpOutcome::kUnresolved;

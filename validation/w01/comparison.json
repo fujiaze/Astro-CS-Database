@@ -5,10 +5,19 @@
     {
       "expected_success_count": 1,
       "kind": "value",
-      "name": "w01_driver_available",
+      "name": "blue_weights",
       "observed": null,
       "observed_success_count": 0,
-      "reason": "driver exited with code -11",
+      "reason": "the normalising denominator has no positive lower bound",
+      "status": "pending_implementation"
+    },
+    {
+      "expected_success_count": 1,
+      "kind": "value",
+      "name": "qp_weights",
+      "observed": null,
+      "observed_success_count": 0,
+      "reason": "the equality constrained sub problem has no positive normaliser",
       "status": "pending_implementation"
     }
   ],

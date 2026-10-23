@@ -84,6 +84,11 @@ struct Case {
 
 }  // namespace
 
+// A cancellation token that asks the modules to stop.
+struct Cancelled : acsd::Cancellation {
+  bool requested() const noexcept override { return true; }
+};
+
 int main() {
   MemoryStorage storage;
   CountingResources resources;
@@ -693,6 +698,54 @@ int main() {
         check_close(*variance.value, 13.0, 1e-9,
                     "the native scene variance uses the functional of the leaf");
       }
+    }
+  }
+
+
+  // ---- a cancelled run stops with a named failure --------------------------
+  {
+    Cancelled cancellation;
+    acsd::Context cancelled_context{resources, cancellation, storage};
+    // A support map and a control of their own, so that the cancellation is
+    // the only reason for the failure.
+    std::vector<acsd::HealpixLeaf> cancelled_leaves{acsd::HealpixLeaf{1, 0}};
+    std::vector<U64> cancelled_ids{1, 0};
+    acsd::Result<acsd::ArrayRef> cancelled_id_array =
+        store_u64(cancelled_context, cancelled_ids, {1, 2}, "cancel:ids");
+    acsd::Result<acsd::ArrayRef> cancelled_state_array = cancelled_context.storage.copy(
+        cancelled_context, DType::u8, encode_u8(std::vector<std::uint8_t>{1}),
+        std::vector<U64>{1}, acsd::Unit{}, "cancel:states");
+    acsd::Result<acsd::ArrayRef> cancelled_position_array =
+        store_f64(cancelled_context, {0.0, 0.0}, {1, 2}, "cancel:positions", acsd::Unit{});
+    acsd::Result<acsd::ArrayRef> cancelled_value_array =
+        store_f64(cancelled_context, {1.0}, {1}, "cancel:values", acsd::Unit{});
+    acsd::Result<acsd::ArrayRef> cancelled_error_array =
+        store_f64(cancelled_context, {0.01}, {1}, "cancel:errors", acsd::Unit{});
+    auto cancelled_support = std::make_shared<acsd::SupportMap>();
+    auto cancelled_index = std::make_shared<acsd::Index>();
+    cancelled_index->size = 1;
+    cancelled_index->kind = acsd::Index::Kind::leaf;
+    cancelled_index->order = 1;
+    cancelled_index->ids = value_of(cancelled_id_array);
+    cancelled_support->index = std::shared_ptr<const acsd::Index>(cancelled_index);
+    cancelled_support->states = value_of(cancelled_state_array);
+    auto cancelled_controls = std::make_shared<acsd::PrecisionControls>();
+    cancelled_controls->kind = acsd::PrecisionControls::Kind::actual_scene;
+    cancelled_controls->positions = value_of(cancelled_position_array);
+    cancelled_controls->values = value_of(cancelled_value_array);
+    cancelled_controls->log_errors = value_of(cancelled_error_array);
+    acsd::Chart cancelled_chart;
+    cancelled_chart.center = acsd::SkyICRS{0.6, 0.0, 0.8};
+    cancelled_chart.maximum_radius_rad = 5.0 * M_PI / 180.0;
+    acsd::Result<acsd::Ref<acsd::SupportedTriangulation>> cancelled_mesh =
+        acsd::build_supported_triangulation(cancelled_context,
+                                            acsd::Ref<acsd::PrecisionControls>(cancelled_controls),
+                                            cancelled_chart,
+                                            acsd::Ref<acsd::SupportMap>(cancelled_support));
+    check(!is_ok(cancelled_mesh), "the cancelled mesh is not built");
+    if (!is_ok(cancelled_mesh)) {
+      check(cancelled_mesh.code == acsd::Code::cancelled,
+            "the cancelled mesh fails with the code cancelled");
     }
   }
 

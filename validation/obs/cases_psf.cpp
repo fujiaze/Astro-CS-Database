@@ -276,6 +276,99 @@ int run_psf_cases() {
     }
   }
 
+  // A signed regrouping (a demosaic like combination) is a linear view: the
+  // template is mapped through the signed matrix, the output rows are the
+  // regrouped samples and the error of a signed transfer is an absolute
+  // bound, so the evaluation is marked conditional.
+  {
+    // A two by two native frame and one regrouped sample.
+    const U64 native_count = 4;
+    std::shared_ptr<const Index> native_index = make_index(native_count, "detector0");
+    std::shared_ptr<const Index> grouped_index = make_index(1, "detector0");
+    std::shared_ptr<acsd::FootprintSet> native_footprints = make_footprints(native_index, 2, 2);
+    std::shared_ptr<acsd::FootprintSet> grouped_footprints = make_footprints(grouped_index, 1, 1);
+    // The classic signed quarter sum: (a - b + c + d) / 2.
+    const std::vector<U64> offsets{0, 4};
+    const std::vector<U64> indices{0, 1, 2, 3};
+    const std::vector<double> signed_values{0.5, -0.5, 0.5, 0.5};
+    Result<acsd::Ref<acsd::LinearAction>> signed_action = make_csr(
+        fixture.context, 1, native_count, offsets, indices, signed_values, native_index,
+        grouped_index, adu_unit("detector0"));
+    check(signed_action.code == acsd::Code::ok, "the signed regrouping matrix is built");
+    if (signed_action.value.has_value()) {
+      const double small_px = 0.5;
+      const double small_py = 0.5;
+      const double at00 = gaussian_pixel_integral(small_px, small_py, 0.0, 0.0, sigma);
+      const double at10 = gaussian_pixel_integral(small_px, small_py, 1.0, 0.0, sigma);
+      const double at01 = gaussian_pixel_integral(small_px, small_py, 0.0, 1.0, sigma);
+      const double at11 = gaussian_pixel_integral(small_px, small_py, 1.0, 1.0, sigma);
+      const double expected = 0.5 * at00 - 0.5 * at10 + 0.5 * at01 + 0.5 * at11;
+      auto signed_psf = make_psf(fixture, acsd::PsfRequest::Family::gaussian,
+                                 {std::log(sigma), std::log(sigma), 0.0}, native_footprints, 2, 2);
+      signed_psf->regroup_scale_project = *signed_action.value;
+      // The kernel is locked to the native samples; the transfer maps them onto the
+      // regrouped sample.
+      signed_psf->detector_samples = native_footprints;
+
+      acsd::PsfEvaluationRequest signed_request{};
+      signed_request.source_positions = {acsd::PixelCenter0{small_px, small_py}};
+      signed_request.budget = request.budget;
+      Result<acsd::Ref<acsd::PsfEvaluation>> signed_evaluation =
+          acsd::evaluate_psf(fixture.context, signed_psf, signed_request);
+      check(signed_evaluation.code == acsd::Code::ok, "the signed transfer is evaluated");
+      if (signed_evaluation.value.has_value()) {
+        const acsd::Ref<acsd::PsfEvaluation> signed_result = *signed_evaluation.value;
+        check(signed_result->values->shape[0] == 1 && signed_result->values->shape[1] == 1,
+              "the signed transfer produces the regrouped sample");
+        acsd::ArrayView signed_values_read =
+            *fixture.storage.read(fixture.context, signed_result->values, acsd::BlockRequest{0, 1})
+                 .value;
+        const std::vector<double> mapped = decode_f64(signed_values_read);
+        // The regrouped sample is the signed combination of the four native
+        // samples; the reference is the analytic pixel integral, so the check
+        // does not use the implementation of the transfer.
+        check_close(mapped[0], expected, 1.0e-13, "the signed transfer maps the template");
+        // The error of a signed transfer is an absolute bound, so the
+        // evaluation cannot be certified and says so.
+        bool approximate = false;
+        for (const acsd::Issue& issue : signed_result->assessment.issues) {
+          if (issue.reason.find("absolute") != std::string::npos ||
+              issue.reason.find("signed") != std::string::npos) {
+            approximate = true;
+          }
+        }
+        check(approximate,
+              "the evaluation of a signed transfer states that the error is an absolute bound");
+        check(signed_result->assessment.validity == acsd::Validity::approximate,
+              "the evaluation of a signed transfer is marked approximate");
+        check(signed_result->assessment.science == acsd::ScienceState::conditional,
+              "the evaluation of a signed transfer is conditional");
+      }
+
+      // The sparse selection under the signed transfer: the requested row is
+      // the only output row and the omitted rows are not renormalised.
+      acsd::PsfEvaluationRequest sparse{};
+      sparse.source_positions = signed_request.source_positions;
+      sparse.budget = request.budget;
+      sparse.output_rows = {0};
+      Result<acsd::Ref<acsd::PsfEvaluation>> sparse_evaluation =
+          acsd::evaluate_psf(fixture.context, signed_psf, sparse);
+      check(sparse_evaluation.code == acsd::Code::ok,
+            "the sparse selection under a signed transfer succeeds");
+      if (sparse_evaluation.value.has_value()) {
+        check((*sparse_evaluation.value)->values->shape[0] == 1,
+              "the sparse selection keeps the requested row");
+        acsd::ArrayView sparse_read =
+            *fixture.storage.read(fixture.context, (*sparse_evaluation.value)->values,
+                                  acsd::BlockRequest{0, 1})
+                 .value;
+        const std::vector<double> sparse_values = decode_f64(sparse_read);
+        check_close(sparse_values[0], expected, 1.0e-13,
+                    "the sparse selection under a signed transfer keeps the value");
+      }
+    }
+  }
+
   std::printf("  psf cases done\n");
   return g_failures == 0 ? 0 : 1;
 }

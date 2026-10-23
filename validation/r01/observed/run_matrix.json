@@ -13,7 +13,7 @@
    "keys": {
     "signal_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
     "configuration_hash": "sha256:bb04bc71d2308f213fde09adca0e78cc5a6010ee730ebd8d64766ed3f4ebcb0b",
-    "manifest_sha256": "24f40081b9e0d7f875e6c4db573adcb66bb20636a4692a575f10f7442be8ac8d",
+    "manifest_sha256": "9a1f47cf6a069a684006d498bfb1f5c222f0eff5d26ae035233cd407a866e6ca",
     "objects": 6,
     "blocks": 2
    },
@@ -43,7 +43,7 @@
     "frame_id": null,
     "message": "the run finished",
     "protocol": "acsd.events/2",
-    "run_id": "run-5702a5ff4af09750",
+    "run_id": "run-7fd8949ebd7aacc2",
     "seq": 4,
     "summary": {
      "cancelled": 0,
@@ -74,7 +74,7 @@
    "keys": {
     "signal_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
     "configuration_hash": "sha256:29d4060264fb91b09dee78226b34ea1f20ad4e5d84fecb8b940df856faf26cd5",
-    "manifest_sha256": "3f8613948a3b4e4e37ee63270e1ca73b81a7f59097a0ef7182b5be6bc467ae0d",
+    "manifest_sha256": "218e9b24480684a9db14b16e821dab7b50f6104e1e54fb5c2875a4a0f4c603c5",
     "objects": 6,
     "blocks": 2
    },
@@ -104,7 +104,7 @@
     "frame_id": null,
     "message": "the run finished",
     "protocol": "acsd.events/2",
-    "run_id": "run-506783796733d8ad",
+    "run_id": "run-e1e377e0056c21ba",
     "seq": 4,
     "summary": {
      "cancelled": 0,
@@ -135,7 +135,7 @@
    "keys": {
     "signal_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
     "configuration_hash": "sha256:38fff302052cfef093465005d96344a51b6c3852e514862ed842ea076314188c",
-    "manifest_sha256": "97187f9de26cf0d7ed58c5415dc8e745293c2ee36f79f8c7274bd16b16c60bf7",
+    "manifest_sha256": "398cc9622d421d5dba25d39544e0bf48403487e2437939d29aebbde62c21b9b3",
     "objects": 6,
     "blocks": 2
    },
@@ -165,7 +165,7 @@
     "frame_id": null,
     "message": "the run finished",
     "protocol": "acsd.events/2",
-    "run_id": "run-ff00bbb12f66a119",
+    "run_id": "run-3042427390e4f471",
     "seq": 4,
     "summary": {
      "cancelled": 0,
@@ -196,7 +196,7 @@
    "keys": {
     "signal_sha256": "dadeff11a06363465d46612df4482d904b70f1c298782e136a723c8a7010772b",
     "configuration_hash": "sha256:54cfc160fdc7113f63e07e0ec83a2d5a02f626d6fffa1d1ff5b89ee0cf74a0b2",
-    "manifest_sha256": "66ec538c6941c310afe81fb9f8f288d83c31e6b82fe6eb515ea36d77f53c72e0",
+    "manifest_sha256": "a8103a010b3813889261266195bf8cb6bfaaa41970ee2f8a37730a6037e67afb",
     "objects": 6,
     "blocks": 2
    },
@@ -226,7 +226,7 @@
     "frame_id": null,
     "message": "the run finished",
     "protocol": "acsd.events/2",
-    "run_id": "run-af454797f138b4bd",
+    "run_id": "run-82e72298baceb69d",
     "seq": 4,
     "summary": {
      "cancelled": 0,
@@ -254,55 +254,55 @@
     "bytes": 1073741824,
     "work": 1
    },
-   "exit_code": 0,
+   "exit_code": 4,
    "keys": {
-    "signal_sha256": "c8254c426142500cb28f26de4d024d83a539219476ff8c4d054814124ebf5eb0",
-    "configuration_hash": "sha256:3bf9de381b325ffb5c53ad1200a6770c1488b9a83c05c55eb289870d504ced21",
-    "manifest_sha256": "b3181ad783cf863d243db103aa8edd0d2cee3a6dfde24616aadaafc524356592",
-    "objects": 6,
-    "blocks": 2
+    "signal_sha256": null,
+    "configuration_hash": null,
+    "manifest_sha256": null,
+    "objects": 0,
+    "blocks": 0
    },
    "stdout_is_pure_jsonl": true,
    "summary": {
     "cancelled": 0,
-    "failed": 0,
+    "failed": 1,
     "frames": [
      {
-      "code": "ok",
+      "code": "failed",
       "frame": "export",
-      "reason": "the export was published",
-      "status": "published"
+      "reason": "the geometry did not reach the requested tolerance",
+      "status": "failed"
      }
     ],
     "inputs_total": 1,
-    "published": 1,
+    "published": 0,
     "unsolved": 0
    },
    "run_finished": {
     "assessment": null,
     "block": null,
-    "code": "ok",
+    "code": "failed",
     "completed": 0,
     "event": "run_finished",
-    "exit_code": 0,
+    "exit_code": 4,
     "frame_id": null,
     "message": "the run finished",
     "protocol": "acsd.events/2",
-    "run_id": "run-c357cf5efe88072b",
-    "seq": 4,
+    "run_id": "run-0e631f29c3df1613",
+    "seq": 3,
     "summary": {
      "cancelled": 0,
-     "failed": 0,
+     "failed": 1,
      "frames": [
       {
-       "code": "ok",
+       "code": "failed",
        "frame": "export",
-       "reason": "the export was published",
-       "status": "published"
+       "reason": "the geometry did not reach the requested tolerance",
+       "status": "failed"
       }
      ],
      "inputs_total": 1,
-     "published": 1,
+     "published": 0,
      "unsolved": 0
     },
     "total": 0
@@ -345,7 +345,7 @@
    "frame_id": null,
    "message": "the run finished",
    "protocol": "acsd.events/2",
-   "run_id": "run-87705ac5ac010f03",
+   "run_id": "run-1633729c021be6bd",
    "seq": 3,
    "summary": {
     "cancelled": 0,
@@ -394,17 +394,17 @@
    "frame_id": null,
    "message": "the run finished",
    "protocol": "acsd.events/2",
-   "run_id": "run-9f400112dbaf83a0",
+   "run_id": "run-5e5605f5403cc27f",
    "seq": 3,
    "summary": {
-    "cancelled": 0,
-    "failed": 1,
+    "cancelled": 1,
+    "failed": 0,
     "frames": [
      {
-      "code": "failed",
+      "code": "cancelled",
       "frame": "export",
       "reason": "the export was cancelled",
-      "status": "failed"
+      "status": "cancelled"
      }
     ],
     "inputs_total": 1,
@@ -414,14 +414,14 @@
    "total": 0
   },
   "summary": {
-   "cancelled": 0,
-   "failed": 1,
+   "cancelled": 1,
+   "failed": 0,
    "frames": [
     {
-     "code": "failed",
+     "code": "cancelled",
      "frame": "export",
      "reason": "the export was cancelled",
-     "status": "failed"
+     "status": "cancelled"
     }
    ],
    "inputs_total": 1,

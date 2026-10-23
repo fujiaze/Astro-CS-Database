@@ -161,8 +161,17 @@ int run_bind_cases() {
     const std::vector<double> values = decode_f64(parameters);
     const double fitted_sigma = std::exp(values[0]);
     std::printf("  fitted sigma = %.6f (truth %.6f)\n", fitted_sigma, sigma);
-    check(std::fabs(fitted_sigma - sigma) < 0.05, "the fitted width matches the truth");
-    check(std::fabs(values[2]) < 1.0e-6, "the fitted correlation is zero");
+    // Regression assertion: the central difference of the shape derivative has
+    // to be averaged.  When the two one sided differences are summed instead,
+    // the derivative is twice too large, the Gauss-Newton step overshoots and
+    // the fitted width drifts away from the truth without any error message.
+    check(std::fabs(fitted_sigma - sigma) < 0.05,
+          "the fitted width matches the truth (regression: a central difference that is summed "
+          "instead of averaged would double the shape derivative)");
+    check(std::fabs(values[2]) < 1.0e-6,
+          "the fitted correlation is zero (regression: the shape derivative has to be built at "
+          "the current position of the source, otherwise the nominal template and the perturbed "
+          "template describe different models)");
     check(psf->achromatic, "the fitted kernel is achromatic");
     check(psf->parameter_lower && psf->parameter_upper,
           "the fitted kernel carries a numerical parameter box");

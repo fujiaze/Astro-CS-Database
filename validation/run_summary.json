@@ -4,26 +4,107 @@
       {
         "case": "C01",
         "exit_code": 0,
-        "wall_seconds": 11.487011863966472,
+        "wall_seconds": 2.0363203060114756,
         "stderr": "",
         "status": "pass",
-        "functionals": 34,
+        "functionals": 69,
+        "failures": []
+      },
+      {
+        "case": "G01",
+        "exit_code": 0,
+        "wall_seconds": 216.91856133798137,
+        "stderr": "",
+        "status": "pass",
+        "functionals": 171,
         "failures": []
       },
       {
         "case": "U01",
         "exit_code": 0,
-        "wall_seconds": 2.432215364999138,
+        "wall_seconds": 1.07544870802667,
         "stderr": "",
         "status": "pass",
-        "functionals": 13,
+        "functionals": 14,
+        "failures": []
+      },
+      {
+        "case": "F01",
+        "exit_code": 0,
+        "wall_seconds": 2.0863076189998537,
+        "stderr": "",
+        "status": "pass",
+        "functionals": 2,
+        "failures": []
+      },
+      {
+        "case": "S01",
+        "exit_code": 0,
+        "wall_seconds": 3.2279181289486587,
+        "stderr": "",
+        "status": "pass",
+        "functionals": 2,
+        "failures": []
+      },
+      {
+        "case": "W01",
+        "exit_code": 0,
+        "wall_seconds": 4.056540237972513,
+        "stderr": "",
+        "status": "pending_implementation",
+        "functionals": 2,
+        "failures": []
+      },
+      {
+        "case": "V01",
+        "exit_code": 0,
+        "wall_seconds": 2.22664490097668,
+        "stderr": "",
+        "status": "pass",
+        "functionals": 12,
+        "failures": []
+      },
+      {
+        "case": "E01",
+        "exit_code": 0,
+        "wall_seconds": 2.037480913917534,
+        "stderr": "",
+        "status": "pass",
+        "functionals": 11,
+        "failures": []
+      },
+      {
+        "case": "P01",
+        "exit_code": 0,
+        "wall_seconds": 1.8678034750046209,
+        "stderr": "",
+        "status": "pending_implementation",
+        "functionals": 7,
+        "failures": []
+      },
+      {
+        "case": "R01",
+        "exit_code": 0,
+        "wall_seconds": 1.5664603549521416,
+        "stderr": "",
+        "status": "pending_implementation",
+        "functionals": 7,
+        "failures": []
+      },
+      {
+        "case": "X01",
+        "exit_code": 0,
+        "wall_seconds": 3.96746704808902,
+        "stderr": "",
+        "status": "pending_implementation",
+        "functionals": 1,
         "failures": []
       }
     ],
     "counts": {
-      "pass": 2,
+      "pass": 7,
       "fail": 0,
-      "pending_implementation": 0,
+      "pending_implementation": 4,
       "other": 0
     },
     "environment": {

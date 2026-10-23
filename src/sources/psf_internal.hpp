@@ -96,6 +96,19 @@ double support_radius(PsfRequest::Family family,
 std::vector<U64> candidate_rows(const FootprintSet& footprints,
                                 const std::vector<PixelCenter0>& positions, double radius);
 
+// The valid domain of the local parameters of the model.  A parameter vector
+// outside of it does not describe a density: the Gaussian and the Moffat need
+// a positive width and a correlation with an absolute value below one, the
+// Airy needs a positive first dark ring radius.
+bool local_parameters_valid(PsfRequest::Family family, const std::vector<double>& local,
+                            std::string& reason);
+
+// The largest change of a local parameter that keeps the parameter vector
+// inside the valid domain.  It is used to constrain the Gauss-Newton step, so
+// the step can never walk into an invalid model.
+double local_parameter_margin(PsfRequest::Family family, const std::vector<double>& local,
+                              std::size_t parameter);
+
 // The template block of a set of sources over a set of native samples.
 struct TemplateBlock {
   std::vector<U64> rows;
@@ -134,8 +147,6 @@ std::vector<double> solve_scaled(const numerics::SvdResult& svd, const std::vect
 std::vector<double> solve_damped(const numerics::SvdResult& svd, const std::vector<double>& rhs,
                                   const std::vector<double>& column_scale, double damping);
 
-// The propagated ICRS direction of a catalogue star at the observation epoch.
-SkyICRS propagate_star(const CatalogueStar& star, const AstrometricContext& context);
 
 // The detector position of a catalogue star.
 Result<PixelCenter0> detector_position(Context& context, Ref<WcsModel> wcs,

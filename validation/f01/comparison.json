@@ -1,32 +1,94 @@
 {
   "case": "F01",
-  "failures": [
-    {
-      "actual": {
-        "attempts": 1,
-        "successes": 0
-      },
-      "expected": "an EffectivePSF and the measured fluxes",
-      "functional": "fit_psf_and_measure",
-      "reason": "the design matrix is rank deficient; the singular values are 1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000",
-      "scope": "fit_psf"
-    }
-  ],
+  "failures": [],
   "functionals": [
     {
-      "expected_success_count": 1,
+      "expected_success_count": 2,
       "kind": "value",
       "name": "fit_psf_and_measure",
       "observed": {
-        "attempts": 1,
+        "attempts": 2,
         "first_failure": {
-          "code": "not_identifiable",
-          "reason": "the design matrix is rank deficient; the singular values are 1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000"
+          "code": "ok",
+          "stars": [
+            {
+              "integrated_flux": 937.617527055716,
+              "position": [
+                10.500000000001274,
+                10.500000000017177
+              ],
+              "source_id": 1000,
+              "variance": -1.0
+            },
+            {
+              "integrated_flux": 597.344417892942,
+              "position": [
+                30.4999999999978,
+                14.500000000031136
+              ],
+              "source_id": 1001,
+              "variance": -1.0
+            },
+            {
+              "integrated_flux": 767.4838010000043,
+              "position": [
+                12.500000000004007,
+                34.50000000001528
+              ],
+              "source_id": 1002,
+              "variance": -1.0
+            },
+            {
+              "integrated_flux": 483.9275927627025,
+              "position": [
+                40.49999999998088,
+                30.500000000012694
+              ],
+              "source_id": 1003,
+              "variance": -1.0
+            },
+            {
+              "integrated_flux": 852.5704589686615,
+              "position": [
+                24.499999999999744,
+                8.500000000006533
+              ],
+              "source_id": 1004,
+              "variance": -1.0
+            },
+            {
+              "integrated_flux": 436.66822423532807,
+              "position": [
+                52.5000000000137,
+                12.499999999982084
+              ],
+              "source_id": 1005,
+              "variance": -1.0
+            },
+            {
+              "integrated_flux": 710.7725616930621,
+              "position": [
+                8.499999999979796,
+                48.50000000001447
+              ],
+              "source_id": 1006,
+              "variance": -1.0
+            },
+            {
+              "integrated_flux": 540.6388370667057,
+              "position": [
+                22.499999999983224,
+                52.49999999996558
+              ],
+              "source_id": 1007,
+              "variance": -1.0
+            }
+          ]
         },
-        "successes": 0
+        "successes": 2
       },
-      "observed_success_count": 0,
-      "status": "fail",
+      "observed_success_count": 2,
+      "status": "pass",
       "tolerance": 0.0,
       "truth": "the PSF fit and the source measurement succeed",
       "unit": "count"
@@ -36,7 +98,7 @@
       "kind": "value",
       "name": "two_source_aperture_flux",
       "observed_success_count": 0,
-      "reason": "the measurement path did not produce a flux (see fit_psf_and_measure)",
+      "reason": "no observed aperture integral: the driver measures the integrated flux of each source over its PSF window, not the integral over the requested aperture box, so the truth of this functional is not comparable with the observation",
       "status": "pending_implementation",
       "tolerance": 1.5707599904756592e-10,
       "truth": 157.07599904756592,
@@ -44,7 +106,7 @@
     }
   ],
   "notes": "F01: the independent erf pixel integral truth against the real measure_science_sources -> fit_photometry -> apply_scale path",
-  "status": "fail",
+  "status": "pass",
   "status_vocabulary": {
     "fail": "at least one functional is outside the frozen tolerance",
     "not_applicable": "the case does not exercise the requested functional",

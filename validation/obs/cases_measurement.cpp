@@ -193,6 +193,10 @@ int run_measurement_cases() {
   check_close(result->stars[0].position.x, source_x, 1.0e-6, "the source position is recovered");
   check_close(result->stars[0].position.y, source_y, 1.0e-6, "the source position is recovered");
   std::printf("  measured flux = %.10f (truth 100)\n", result->stars[0].integrated_flux);
+  // Regression assertion: the least squares problem of the measurement is
+  // solved with the residual as the right hand side.  With the score as the
+  // right hand side the amplitude comes out with the wrong sign and scale,
+  // and no error is raised.
   check(std::fabs(result->stars[0].integrated_flux - 100.0) < 1.0,
         "the measured flux is close to the truth");
   check(result->stars[0].variance.value.has_value() == false,

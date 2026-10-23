@@ -88,8 +88,11 @@ Result<acsd::ArrayRef> store_u16(Context& context, const std::vector<std::uint16
 }
 
 Result<acsd::ArrayRef> store_u8(Context& context, const std::vector<std::uint8_t>& values,
-                                const std::string& id) {
-  const std::vector<U64> shape{static_cast<U64>(values.size())};
+                                const std::string& id,
+                                const std::vector<U64>& declared_shape = {}) {
+  const std::vector<U64> shape = declared_shape.empty()
+                                     ? std::vector<U64>{static_cast<U64>(values.size())}
+                                     : declared_shape;
   return context.storage.copy(context, acsd::DType::u8, as_bytes(values), shape,
                               valsupport::unit_dimensionless(), id);
 }
@@ -353,13 +356,16 @@ int main(int argc, char** argv) {
       description->estimator.quantity = "signal";
       description->estimator.unit = valsupport::unit_dimensionless();
 
-      // the index of the frame: one leaf
+      // The index of the frame: the two leaves of the selection.  Every frame
+      // has to carry every leaf that the selection accepts, otherwise an
+      // accepted sample has no leaf in its frame and the joint covariance of
+      // that leaf does not exist.
       auto index = std::make_shared<acsd::Index>();
-      index->size = 1;
+      index->size = 2;
       index->order = 0;
       index->kind = acsd::Index::Kind::leaf;
       index->namespace_id = "w01:leaves";
-      const std::vector<U64> ids{0, static_cast<U64>(frame_index)};
+      const std::vector<U64> ids{0, 0, 0, 1};
       Result<acsd::ArrayRef> stored_ids = store_u64(context, ids, "w01:ids");
       if (!ok(stored_ids)) return descriptions;
       index->ids = *stored_ids.value;
@@ -372,13 +378,18 @@ int main(int argc, char** argv) {
       const std::shared_ptr<acsd::NoiseRoot> root_two_handle = make_root("root-two");
       noise->shared_factors = {root_one_handle, root_two_handle};
       const double second = singular_second_root ? 0.0 : influence_two[frame_index];
+      // The influence of a root maps its latent coordinate onto the leaves of
+      // the frame: two leaves, one latent coordinate.
       noise->influence = {
-          std::make_shared<DenseAction>(1, 1, std::vector<double>{influence_one[frame_index]}),
-          std::make_shared<DenseAction>(1, 1, std::vector<double>{second})};
+          std::make_shared<DenseAction>(2, 1,
+                                        std::vector<double>{influence_one[frame_index], 0.0}),
+          std::make_shared<DenseAction>(2, 1, std::vector<double>{second, 0.0})};
       auto covariance = std::make_shared<acsd::CovarianceAction>();
       covariance->model = noise;
       description->noise = covariance;
-      description->native_to_leaf = std::make_shared<DenseAction>(1, 1, std::vector<double>{1.0});
+      // Two native samples, one per leaf: the identity on two coordinates.
+      description->native_to_leaf =
+          std::make_shared<DenseAction>(2, 2, std::vector<double>{1.0, 0.0, 0.0, 1.0});
       descriptions.push_back(description);
     }
     return descriptions;
@@ -397,9 +408,13 @@ int main(int argc, char** argv) {
     if (!ok(stored_leaf_ids)) return selection;
     index->ids = *stored_leaf_ids.value;
     selection->index = index;
-    Result<acsd::ArrayRef> accepted = store_u8(context, std::vector<std::uint8_t>{1, 1}, name);
+    // The accepted and the eligibility map are [leaf, frame]: two leaves and
+    // two frames, every sample eligible.
+    const std::vector<U64> map_shape{2, 2};
+    Result<acsd::ArrayRef> accepted =
+        store_u8(context, std::vector<std::uint8_t>{1, 1, 1, 1}, name, map_shape);
     Result<acsd::ArrayRef> eligibility =
-        store_u8(context, std::vector<std::uint8_t>{1, 1}, name + ":eligibility");
+        store_u8(context, std::vector<std::uint8_t>{1, 1, 1, 1}, name + ":eligibility", map_shape);
     if (!ok(accepted) || !ok(eligibility)) return selection;
     selection->accepted = *accepted.value;
     selection->eligibility = *eligibility.value;

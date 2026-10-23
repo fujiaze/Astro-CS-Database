@@ -247,6 +247,12 @@ class BowyerWatson {
     int current = 0;
 
     for (std::size_t index = 0; index < count; ++index) {
+      // The cancellation checkpoint of the insertion: the mesh stops with a
+      // named failure and without a partial mesh.
+      if (context.cancellation.requested()) {
+        return model::fail<U64>(Code::cancelled, "cancelled", "information.triangulation",
+                                 "the mesh is cancelled");
+      }
       Result<U64> consumed = context.resources.consume_work(1);
       if (!ok(consumed)) {
         return model::fail<U64>(consumed.code, "the work budget is exhausted",

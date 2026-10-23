@@ -1,3 +1,4 @@
+#include "obs_fixture.hpp"
 #include "obs_validation.hpp"
 
 #include <cmath>
@@ -208,23 +209,9 @@ std::shared_ptr<const Index> make_index(U64 size, const std::string& namespace_i
 
 std::shared_ptr<acsd::FootprintSet> make_footprints(std::shared_ptr<const Index> index, U64 width,
                                                      U64 height) {
-  auto footprints = std::make_shared<acsd::FootprintSet>();
-  footprints->index = index;
-  footprints->width = width;
-  footprints->height = height;
-  footprints->detector_from_sample = {1.0, 0.0, 0.0, 1.0};
-  footprints->offset = {0.0, 0.0};
-  footprints->local_cell.lower = {-0.5, -0.5};
-  footprints->local_cell.upper = {0.5, 0.5};
-  footprints->detector_frame = "detector0";
-  footprints->identity.object_id = "footprints:detector0";
-  footprints->identity.content_hash = "sha256:" + std::string(64, '0');
-  footprints->identity.schema_id = "acsd.FootprintSet";
-  footprints->identity.schema_major = 2;
-  footprints->identity.schema_minor = 0;
-  footprints->assessment.complete = true;
-  footprints->assessment.execution = acsd::ExecutionState::complete;
-  return footprints;
+  // The construction is shared with the independent verification, see
+  // obs_fixture.hpp and obs_fixture.md.
+  return acsd_validation::make_minimal_footprints(index, width, height, "detector0");
 }
 
 ArrayRef make_f64_array(Context& context, const std::vector<double>& values, const Unit& unit,

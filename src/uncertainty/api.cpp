@@ -170,13 +170,22 @@ Result<Ref<CovarianceAction>> make_covariance(Context& context, Ref<NoiseModel> 
 
   auto covariance = std::make_shared<CovarianceAction>();
   covariance->model = val(merged);
+  // The covariance acts on the space where the influences of the roots land:
+  // C = I C_latent I^T, so its input and its output are the codomain of the
+  // influence.  The coordinates of a root describe its latent space and are
+  // the fallback for a model without an influence.
   DomainUnits spaces;
-  if (!model->innovations.empty() && model->innovations.front()) {
+  const Ref<LinearAction>& first_influence = model->influence.front();
+  if (first_influence && first_influence->spaces.codomain) {
+    spaces.domain = first_influence->spaces.codomain;
+    spaces.codomain = first_influence->spaces.codomain;
+  } else if (!model->innovations.empty() && model->innovations.front()) {
     spaces.domain = model->innovations.front()->coordinates;
+    spaces.codomain = spaces.domain;
   } else if (!model->shared_factors.empty() && model->shared_factors.front()) {
     spaces.domain = model->shared_factors.front()->coordinates;
+    spaces.codomain = spaces.domain;
   }
-  spaces.codomain = spaces.domain;
   spaces.input = model->variance_unit;
   spaces.output = model->variance_unit;
   covariance->input_output = spaces;

@@ -452,10 +452,20 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   // algorithms and never a double count.
   const bool kernel_complete =
       kernel.termination == Termination::tolerance_met && kernel.unresolved.empty();
-  const geometry::ContainmentOutcome containment =
-      kernel_complete ? geometry::ContainmentOutcome{}
-                       : geometry::target_containment(context, *model, model, drop_rectangle,
-                                                    order, request);
+  geometry::ContainmentOutcome containment;
+  if (!kernel_complete) {
+    containment = geometry::target_containment(context, *model, model, drop_rectangle, order,
+                                                request);
+    // The apex version: the source region covers a pole, where the chart of a
+    // polar face is singular and the chart of the detector region cannot be
+    // enclosed.  The fallback then works on the (s, t) grid of the candidate
+    // faces and keeps the undecided mass of the apex region.
+    if (containment.leaves.empty() && !containment.complete) {
+      geometry::ContainmentOutcome apex = geometry::target_containment_apex(
+          context, *model, model, drop_rectangle, order, request);
+      if (apex.complete) containment = apex;
+    }
+  }
   if (containment.cancelled) {
     return fail<Ref<Overlaps>>(Code::cancelled, "cancelled", "compute_overlap:target_containment",
                                "the run was cancelled at a safety boundary of the containment "

@@ -41,6 +41,9 @@ struct ContainmentOutcome {
   // The run was cancelled at a safety boundary: the undecided mass of the
   // cells that were not reached is kept.
   bool cancelled = false;
+  // The apex version of the fallback ran: the source region covers a pole,
+  // where the chart of a polar face is singular.
+  bool apex_version = false;
   U64 cells_undecided = 0;
 };
 
@@ -57,6 +60,18 @@ struct ContainmentOutcome {
 ContainmentOutcome target_containment(Context& context, const WcsModel& wcs, Ref<WcsModel> model_ref,
                                       const Box& detector_rect, U32 order,
                                       const GeometryBudget& budget);
+
+// The apex version of the fallback: the source region covers a pole, where the
+// chart of a polar face is singular and the chart of the detector region
+// cannot be enclosed.  The candidate cells are the cells of the candidate
+// faces on the (s, t) grid of the target leaf order (a conservative fill: no
+// covered cell is missed), the separation test uses the forward chart of the
+// boundary and the cells whose boundary cannot be proven disjoint from the
+// source region, and the apex cells themselves, stay undecided with their
+// whole cell mass.
+ContainmentOutcome target_containment_apex(Context& context, const WcsModel& wcs,
+                                           Ref<WcsModel> model_ref, const Box& detector_rect,
+                                           U32 order, const GeometryBudget& budget);
 
 // The rigorous dyadic enclosure of pi, used for the exact cell area of the
 // equal-area chart (the cell area is pi/(3 nside^2) steradian).

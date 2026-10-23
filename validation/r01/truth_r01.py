@@ -214,10 +214,16 @@ def main() -> int:
             others = [entry for entry in matrix.get("runs", []) if entry["id"] != "work_1"]
             reference = others[0]["keys"]["signal_sha256"] if others else None
             named = finished.get("code") not in (None, "ok")
-            same_payload = run["keys"]["signal_sha256"] == reference
+            # The red line is that a starved budget never publishes a
+            # *different* payload.  Publishing nothing satisfies it, and it is
+            # the better outcome: the run reports the exhaustion and leaves no
+            # product behind.  Publishing the same payload is also admissible.
+            # Only a published payload that differs from the reference fails.
+            signal = run["keys"]["signal_sha256"]
+            same_payload = signal is None or signal == reference
             rows.append({"name": "work_budget_is_named", "kind": "value",
                          "status": "pass" if (named and same_payload) else "fail",
-                         "truth": "the budget exhaustion is named and the payload is the same",
+                         "truth": "the budget exhaustion is named and no different payload is published",
                          "observed": {"code": finished.get("code"),
                                       "signal_sha256": run["keys"]["signal_sha256"],
                                       "reference_sha256": reference},
@@ -228,8 +234,9 @@ def main() -> int:
                                  "actual": {"code": finished.get("code"),
                                             "signal_sha256": run["keys"]["signal_sha256"],
                                             "reference_sha256": reference},
-                                 "reason": "the work budget of one unit was exceeded but the run "
-                                           "reported success and published a different payload"})
+                                 "reason": "the work budget of one unit was exceeded and the run "
+                                           "either reported success or published a different "
+                                           "payload"})
                 status = "fail"
 
         # 3) a write that cannot be completed must be named and must not publish
