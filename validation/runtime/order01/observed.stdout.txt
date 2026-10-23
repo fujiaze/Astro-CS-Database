@@ -1,0 +1,25 @@
+{
+  "case": "order01",
+  "source": "validation/runtime/order01/order01.cpp",
+  "status": "ran",
+  "attempts": 11,
+  "successes": 11,
+  "failures": [],
+  "checks": [
+    {"check": "order.open_command_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "order.make_pipe_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "order.high_key_does_not_take_reserved_slot", "pass": true, "expected": "high-key send still waiting for the minimum key", "actual": "state=0", "detail": ""},
+    {"check": "order.low_key_send_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "order.first_receive_is_low_key", "pass": true, "expected": "key0", "actual": "key item=0", "detail": ""},
+    {"check": "order.high_key_send_ok_after_credit", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "order.second_receive_is_high_key", "pass": true, "expected": "key1", "actual": "key item=1", "detail": ""},
+    {"check": "order.no_unbounded_reorder", "pass": true, "expected": "delivery keys strictly increasing", "actual": "ok", "detail": ""},
+    {"check": "order.close_pipe_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "order.region_body_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "order.close_command_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""}
+  ],
+  "values": {"order.allocated_while_high_pending": 0},
+  "resources": {},
+  "commands": [],
+  "notes": []
+}

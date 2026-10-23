@@ -1,0 +1,42 @@
+{
+  "case": "life01",
+  "title": "closed arena still bills a surviving Lease; cancel does not free an in-flight write; no UAF",
+  "milestone": "M1",
+  "contract_refs": [
+    "SCHEDULER.md#资源账本的原子操作",
+    "SCHEDULER.md S-LIFE",
+    "VERIFICATION.md LIFE01"
+  ],
+  "fixed_configuration": {
+    "arena": "4096 B Block survives close(arena)",
+    "inflight_write": "16 MiB spill append, cancelled after submit",
+    "asan": "built with -fsanitize=address"
+  },
+  "required_checks": [
+    "life.open_command_ok",
+    "life.reserve_arena_ok",
+    "life.allocate_block_ok",
+    "life.freeze_block_ok",
+    "life.surviving_lease_still_billed",
+    "life.close_returns_unclaimed_only",
+    "life.peak_is_history",
+    "life.release_after_close_once",
+    "life.peak_history_preserved",
+    "life.reserve_write_arena_ok",
+    "life.begin_writer_ok",
+    "life.allocate_write_buffer_ok",
+    "life.freeze_write_block_ok",
+    "life.cancel_write_in_flight",
+    "life.cancel_write_not_released_early",
+    "life.cancel_append_terminal_named",
+    "life.abort_after_cancel_ok",
+    "life.cancel_write_released_after_real_completion",
+    "life.close_command_ok",
+    "life.no_double_billing_after_close"
+  ],
+  "min_attempts": 20,
+  "expected_success_count": 20,
+  "tolerance": "allocated/held deltas compared to a frozen baseline snapshot; exact byte counts",
+  "link": "default",
+  "timeout_seconds": 180
+}

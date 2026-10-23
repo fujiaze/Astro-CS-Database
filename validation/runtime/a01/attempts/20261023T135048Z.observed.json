@@ -1,0 +1,179 @@
+{
+  "case": "a01",
+  "source": "validation/runtime/a01/a01.cpp",
+  "status": "ran",
+  "attempts": 21,
+  "successes": 20,
+  "failures": [
+    {
+      "check": "a01.pinned_subset_reserve_ok",
+      "expected": "ok",
+      "actual": "resource_exhausted",
+      "detail": ""
+    }
+  ],
+  "checks": [
+    {
+      "check": "a01.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "a01.child_b_scope_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "a01.child_b_reserve_100mib_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "a01.child_b_allocate_100mib_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "a01.child_b_peak_100mib",
+      "pass": true,
+      "expected": "100 MiB",
+      "actual": "104857600",
+      "detail": ""
+    },
+    {
+      "check": "a01.child_a_scope_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "a01.child_a_reserve_50mib_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "a01.child_a_allocate_50mib_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "a01.child_a_freeze_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "a01.child_a_consume_10_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "a01.child_a_peak_50mib",
+      "pass": true,
+      "expected": "50 MiB",
+      "actual": "52428800",
+      "detail": "the child reports its own peak, not the global 100 MiB history"
+    },
+    {
+      "check": "a01.child_a_work_10",
+      "pass": true,
+      "expected": "10",
+      "actual": "10",
+      "detail": ""
+    },
+    {
+      "check": "a01.child_b_consume_100_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "a01.parent_peak_not_double_counted",
+      "pass": true,
+      "expected": "100 MiB <= parent peak delta <= 116 MiB (not 150 MiB)",
+      "actual": "104857600",
+      "detail": ""
+    },
+    {
+      "check": "a01.parent_work_110",
+      "pass": true,
+      "expected": "110",
+      "actual": "110",
+      "detail": "10 from A + 100 from B, billed once"
+    },
+    {
+      "check": "a01.lease_keeps_original_domain",
+      "pass": true,
+      "expected": "50 MiB still allocated in A's domain",
+      "actual": "52428800",
+      "detail": "the surviving output Lease, not the ScopeRef, owns the lifetime"
+    },
+    {
+      "check": "a01.lease_release_returns_to_domain",
+      "pass": true,
+      "expected": "allocated returns to baseline",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "a01.child_p_scope_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "a01.pinned_subset_reserve_ok",
+      "pass": false,
+      "expected": "ok",
+      "actual": "resource_exhausted",
+      "detail": ""
+    },
+    {
+      "check": "a01.pinned_reserve_gt_host_rejected",
+      "pass": true,
+      "expected": "non-ok",
+      "actual": "invalid_request",
+      "detail": ""
+    },
+    {
+      "check": "a01.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "a01.child_b_peak": 104857600,
+    "a01.child_a_peak": 52428800,
+    "a01.child_a_work": 10,
+    "a01.parent_peak_delta": 104857600,
+    "a01.parent_work_delta": 110,
+    "a01.parent_allocated_without_a_handle": 52428800
+  },
+  "resources": {},
+  "commands": [],
+  "notes": [],
+  "command": "/workspace/Astro CS Database/validation/runtime/build/a01",
+  "exit_code": 0,
+  "stderr_tail": "[ok] a01.open_command_ok\n[ok] a01.child_b_scope_ok\n[ok] a01.child_b_reserve_100mib_ok\n[ok] a01.child_b_allocate_100mib_ok\n[ok] a01.child_b_peak_100mib\n[ok] a01.child_a_scope_ok\n[ok] a01.child_a_reserve_50mib_ok\n[ok] a01.child_a_allocate_50mib_ok\n[ok] a01.child_a_freeze_ok\n[ok] a01.child_a_consume_10_ok\n[ok] a01.child_a_peak_50mib\n[ok] a01.child_a_work_10\n[ok] a01.child_b_consume_100_ok\n[ok] a01.parent_peak_not_double_counted\n[ok] a01.parent_work_110\n[ok] a01.lease_keeps_original_domain\n[ok] a01.lease_release_returns_to_domain\n[ok] a01.child_p_scope_ok\n[FAIL] a01.pinned_subset_reserve_ok expected=ok actual=resource_exhausted\n[ok] a01.pinned_reserve_gt_host_rejected\n[ok] a01.close_command_ok\n",
+  "timed_out": false
+}

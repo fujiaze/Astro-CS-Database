@@ -1,0 +1,41 @@
+{
+  "case": "d01_off",
+  "source": "validation/runtime/d01_off/d01_off.cpp",
+  "status": "ran",
+  "attempts": 3,
+  "successes": 3,
+  "failures": [],
+  "checks": [
+    {
+      "check": "d01_off.compiled_with_off",
+      "pass": true,
+      "expected": "ACSD_DEV_MODE=0",
+      "actual": "off",
+      "detail": ""
+    },
+    {
+      "check": "d01_off.ctx_not_evaluated",
+      "pass": true,
+      "expected": "0 ctx evaluations",
+      "actual": "0",
+      "detail": "the OFF macro must not evaluate its ctx argument"
+    },
+    {
+      "check": "d01_off.payload_not_constructed",
+      "pass": true,
+      "expected": "0 payload constructions",
+      "actual": "0",
+      "detail": "a payload constructor that aborts must never run"
+    }
+  ],
+  "values": {},
+  "resources": {},
+  "commands": [],
+  "notes": [
+    "compile-only zero-evaluation is proven by this TU compiling with undeclared identifiers; the run-time counters cover the same macros with declared arguments."
+  ],
+  "command": "/workspace/Astro CS Database/validation/runtime/build/d01_off",
+  "exit_code": 0,
+  "stderr_tail": "[ok] d01_off.compiled_with_off\n[ok] d01_off.ctx_not_evaluated\n[ok] d01_off.payload_not_constructed\n",
+  "timed_out": false
+}

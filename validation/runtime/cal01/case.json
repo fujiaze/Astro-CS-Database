@@ -1,0 +1,100 @@
+{
+  "case": "cal01",
+  "title": "C-CAL-1/2/DQ/ROOT through the full Host/registry chain (make_services -> generated registry -> ProcessHost.invoke)",
+  "milestone": "M4",
+  "contract_refs": [
+    "docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md#引导、调用与事件顺序",
+    "docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md#固定验收输入与故障矩阵",
+    "docs/engineering/rebuild/standards/FOUNDATION_API.md#计划、注册和Host"
+  ],
+  "fixed_configuration": {
+    "c_cal_1": {
+      "raw": [
+        10,
+        20,
+        -2
+      ],
+      "bias": 2,
+      "dark": 4,
+      "dark_contains_bias": true,
+      "t": 2,
+      "t_dark": 1,
+      "flat": 2,
+      "normalization": 2,
+      "expected": [
+        4,
+        14,
+        -8
+      ]
+    },
+    "c_cal_2": {
+      "same_maps": true,
+      "dark_contains_bias": false,
+      "expected": [
+        0,
+        10,
+        -12
+      ]
+    },
+    "c_cal_dq": {
+      "flat": [
+        2,
+        2,
+        0
+      ],
+      "expected": "NaN + DQ flag + named Issue; NaN raw with valid DQ -> invalid_model and no Native"
+    },
+    "c_cal_root": {
+      "frames": 2,
+      "shared": [
+        "bias",
+        "dark"
+      ],
+      "expected": "same shared-root set across calls, no per-call random root"
+    },
+    "chain": "make_services -> open_command -> RegistryBuilder -> generated::register_builtin_types -> generated::register_processes -> freeze -> make_host -> invoke<CalibrateInput,Ref<NativeObservation>> -> wait_external"
+  },
+  "required_checks": [
+    "cal.services_ok",
+    "cal.open_command_ok",
+    "cal.register_builtin_types_ok",
+    "cal.register_processes_ok",
+    "cal.freeze_ok",
+    "cal.make_host_ok",
+    "cal.adu_array_ok",
+    "cal.dq_array_ok",
+    "cal.bias_array_ok",
+    "cal.dark_array_ok",
+    "cal.flat_array_ok",
+    "cal.cal1_host_ok",
+    "cal.cal1_exact_values",
+    "cal.cal1_negative_not_clipped",
+    "cal.cal1_interval_contains_exact",
+    "cal.cal1_dq_clean",
+    "cal.cal1_frame_context",
+    "cal.cal1_usage_work",
+    "cal.cal2_host_ok",
+    "cal.cal2_exact_values",
+    "cal.dq_flat_array_ok",
+    "cal.dq_zero_flat_host_ok",
+    "cal.dq_zero_flat_nan",
+    "cal.dq_zero_flat_flag",
+    "cal.dq_zero_flat_named_issue",
+    "cal.dq_nan_array_ok",
+    "cal.dq_nan_conflict_rejected",
+    "cal.dq_nan_conflict_no_native",
+    "cal.root_second_adu_ok",
+    "cal.root_both_frames_ok",
+    "cal.root_shared_arrays_unchanged",
+    "cal.root_shared_dependencies",
+    "cal.root_no_per_call_random_root",
+    "cal.close_command_ok",
+    "cal.host_close_ok"
+  ],
+  "min_attempts": 35,
+  "expected_success_count": 35,
+  "tolerance": "exact double equality for the fixed dyadic inputs; interval must enclose the exact value; DQ/Issue and Codes by name",
+  "link": "science",
+  "timeout_seconds": 180,
+  "gate": "M4 Host chain reaches observation.calibrate but the registered plan hook is still the M0 stub: plan returns unsupported (\"not integrated before M4\"). The chain itself (generated codecs/descriptors, freeze, host, invoke, Storage arrays) is exercised; the numeric C-CAL gate stays pending until calibration_plan/runtime integration lands. Kernel evidence is owned by validation/runtime/calibration/."
+}

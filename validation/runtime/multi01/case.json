@@ -1,0 +1,41 @@
+{
+  "case": "multi01",
+  "title": "weighted round robin: weight 1:2 dispatch ratio, no pool/command oversubscription, no starvation",
+  "milestone": "M2",
+  "contract_refs": [
+    "SCHEDULER.md S-MULTI",
+    "SCHEDULER.md#多command分配与公平性"
+  ],
+  "fixed_configuration": {
+    "weights": [
+      1,
+      2
+    ],
+    "cpu_threads": 1,
+    "units_per_command": 200,
+    "sample_size": 120,
+    "unit_cost_us": 200,
+    "method": "P=1 makes completion order equal dispatch order; sample after 30 completions",
+    "per_command_cpu_ceiling": 1,
+    "startup_transient": "first 30 dispatches excluded from the complete-round check"
+  },
+  "required_checks": [
+    "multi.open_weight1_ok",
+    "multi.open_weight2_ok",
+    "multi.backlog_submitted",
+    "multi.sample_reached",
+    "multi.no_starvation",
+    "multi.ratio_1_to_2",
+    "multi.steady_state_ratio_1_to_2",
+    "multi.pool_concurrency_within_threads",
+    "multi.command_concurrency_within_ceiling",
+    "multi.backlog_drained",
+    "multi.close_weight1_ok",
+    "multi.close_weight2_ok"
+  ],
+  "min_attempts": 12,
+  "expected_success_count": 12,
+  "tolerance": "empirical: ratio in [1.5,2.5] and |count2-2*count1|<=8; frozen in this manifest",
+  "link": "default",
+  "timeout_seconds": 180
+}

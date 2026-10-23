@@ -1,0 +1,117 @@
+{
+  "case": "multi01",
+  "source": "validation/runtime/multi01/multi01.cpp",
+  "status": "ran",
+  "attempts": 12,
+  "successes": 11,
+  "failures": [
+    {
+      "check": "multi.round_ratio_not_starved",
+      "expected": "2*count1-3 <= count2 <= 2*count1+3 (whole feasible rounds)",
+      "actual": "83 <= 77 <= 89",
+      "detail": ""
+    }
+  ],
+  "checks": [
+    {
+      "check": "multi.open_weight1_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.open_weight2_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.backlog_submitted",
+      "pass": true,
+      "expected": "400 valid queued units",
+      "actual": "valid",
+      "detail": ""
+    },
+    {
+      "check": "multi.sample_reached",
+      "pass": true,
+      "expected": "120 completions within 10 s",
+      "actual": "reached",
+      "detail": ""
+    },
+    {
+      "check": "multi.no_starvation",
+      "pass": true,
+      "expected": "both commands complete units before the sample",
+      "actual": "43/77",
+      "detail": ""
+    },
+    {
+      "check": "multi.ratio_1_to_2",
+      "pass": true,
+      "expected": "count(weight2)/count(weight1) in [1.5, 2.5]",
+      "actual": "1.791",
+      "detail": "P=1 serializes completion order; both queues stay backlogged"
+    },
+    {
+      "check": "multi.round_ratio_not_starved",
+      "pass": false,
+      "expected": "2*count1-3 <= count2 <= 2*count1+3 (whole feasible rounds)",
+      "actual": "83 <= 77 <= 89",
+      "detail": ""
+    },
+    {
+      "check": "multi.pool_concurrency_within_threads",
+      "pass": true,
+      "expected": "<= 1",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "multi.command_concurrency_within_ceiling",
+      "pass": true,
+      "expected": "each <= 1 (command ceiling 1 with P=1)",
+      "actual": "1/1",
+      "detail": ""
+    },
+    {
+      "check": "multi.backlog_drained",
+      "pass": true,
+      "expected": "all 400 units complete ok",
+      "actual": "drained",
+      "detail": ""
+    },
+    {
+      "check": "multi.close_weight1_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.close_weight2_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "multi.sample_count_weight1": 43,
+    "multi.sample_count_weight2": 77,
+    "multi.sample_ratio": 1.7906976744186047
+  },
+  "resources": {
+    "multi.max_running_pool": 1,
+    "multi.max_running_weight1": 1,
+    "multi.max_running_weight2": 1
+  },
+  "commands": [],
+  "notes": [],
+  "command": "/workspace/Astro CS Database/validation/runtime/build/multi01",
+  "exit_code": 0,
+  "stderr_tail": "ok_body=1\n[dbg] complete node=156 code=0 already=0\n[dbg] run_node id=156 control=0 took_body=1\n[dbg] complete node=157 code=0 already=0\n[dbg] run_node id=157 control=0 took_body=1\n[dbg] complete node=158 code=0 already=0\n[dbg] run_node id=158 control=0 took_body=1\n[dbg] complete node=159 code=0 already=0\n[dbg] run_node id=159 control=0 took_body=1\n[dbg] complete node=160 code=0 already=0\n[dbg] run_node id=160 control=0 took_body=1\n[dbg] complete node=161 code=0 already=0\n[dbg] run_node id=161 control=0 took_body=1\n[dbg] complete node=162 code=0 already=0\n[dbg] run_node id=162 control=0 took_body=1\n[dbg] complete node=163 code=0 already=0\n[dbg] run_node id=163 control=0 took_body=1\n[dbg] complete node=164 code=0 already=0\n[dbg] run_node id=164 control=0 took_body=1\n[dbg] complete node=165 code=0 already=0\n[dbg] run_node id=165 control=0 took_body=1\n[dbg] complete node=166 code=0 already=0\n[dbg] run_node id=166 control=0 took_body=1\n[dbg] complete node=167 code=0 already=0\n[dbg] run_node id=167 control=0 took_body=1\n[dbg] complete node=168 code=0 already=0\n[dbg] run_node id=168 control=0 took_body=1\n[dbg] complete node=169 code=0 already=0\n[dbg] run_node id=169 control=0 took_body=1\n[dbg] complete node=170 code=0 already=0\n[dbg] run_node id=170 control=0 took_body=1\n[dbg] complete node=171 code=0 already=0\n[dbg] run_node id=171 control=0 took_body=1\n[dbg] complete node=172 code=0 already=0\n[dbg] run_node id=172 control=0 took_body=1\n[dbg] complete node=173 code=0 already=0\n[dbg] run_node id=173 control=0 took_body=1\n[dbg] complete node=174 code=0 already=0\n[dbg] run_node id=174 control=0 took_body=1\n[dbg] complete node=175 code=0 already=0\n[dbg] run_node id=175 control=0 took_body=1\n[dbg] complete node=176 code=0 already=0\n[dbg] run_node id=176 control=0 took_body=1\n[dbg] complete node=177 code=0 already=0\n[dbg] run_node id=177 control=0 took_body=1\n[dbg] complete node=178 code=0 already=0\n[dbg] run_node id=178 control=0 took_body=1\n[dbg] complete node=179 code=0 already=0\n[dbg] run_node id=179 control=0 took_body=1\n[dbg] complete node=180 code=0 already=0\n[dbg] run_node id=180 control=0 took_body=1\n[dbg] complete node=181 code=0 already=0\n[dbg] run_node id=181 control=0 took_body=1\n[dbg] complete node=182 code=0 already=0\n[dbg] run_node id=182 control=0 took_body=1\n[dbg] complete node=183 code=0 already=0\n[dbg] run_node id=183 control=0 took_body=1\n[dbg] complete node=184 code=0 already=0\n[dbg] run_node id=184 control=0 took_body=1\n[dbg] complete node=185 code=0 already=0\n[dbg] run_node id=185 control=0 took_body=1\n[dbg] complete node=186 code=0 already=0\n[dbg] run_node id=186 control=0 took_body=1\n[dbg] complete node=187 code=0 already=0\n[dbg] run_node id=187 control=0 took_body=1\n[dbg] complete node=188 code=0 already=0\n[dbg] run_node id=188 control=0 took_body=1\n[dbg] complete node=189 code=0 already=0\n[dbg] run_node id=189 control=0 took_body=1\n[dbg] complete node=190 code=0 already=0\n[dbg] run_node id=190 control=0 took_body=1\n[dbg] complete node=191 code=0 already=0\n[dbg] run_node id=191 control=0 took_body=1\n[dbg] complete node=192 code=0 already=0\n[dbg] run_node id=192 control=0 took_body=1\n[dbg] complete node=193 code=0 already=0\n[dbg] run_node id=193 control=0 took_body=1\n[dbg] complete node=194 code=0 already=0\n[dbg] run_node id=194 control=0 took_body=1\n[dbg] complete node=195 code=0 already=0\n[dbg] run_node id=195 control=0 took_body=1\n[dbg] complete node=196 code=0 already=0\n[dbg] run_node id=196 control=0 took_body=1\n[dbg] complete node=197 code=0 already=0\n[dbg] run_node id=197 control=0 took_body=1\n[dbg] complete node=198 code=0 already=0\n[dbg] run_node id=198 control=0 took_body=1\n[dbg] complete node=199 code=0 already=0\n[dbg] run_node id=199 control=0 took_body=1\n[dbg] complete node=200 code=0 already=0\n[ok] multi.backlog_drained\n[dbg] run_node id=200 control=0 took_body=1\n[dbg] complete node=401 code=0 already=0\n[dbg] complete node=402 code=0 already=0\n[ok] multi.close_weight1_ok\n[ok] multi.close_weight2_ok\n",
+  "timed_out": false
+}

@@ -1,0 +1,165 @@
+{
+  "case": "work01",
+  "title": "work_upper is an atomic ancestor reservation: upper=6+6 under max_work=10 is rejected, unused 2 return",
+  "milestone": "M1",
+  "contract_refs": [
+    "SCHEDULER.md#资源账本的原子操作",
+    "SCHEDULER.md S-WORK"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/work01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/work01",
+    "log": "validation/runtime/build/work01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/work01",
+  "status": "fail",
+  "reason": "required checks failed: work.after_first_consumed_4, work.consumed_never_returns; harness reports failures: [\"work.after_first_consumed_4\", \"work.consumed_never_returns\"]",
+  "exit_code": 0,
+  "attempts": 16,
+  "successes": 14,
+  "expected_success_count": 16,
+  "observed_success_count": 14,
+  "required_checks": 16,
+  "missing_checks": [],
+  "failed_checks": [
+    "work.after_first_consumed_4",
+    "work.consumed_never_returns"
+  ],
+  "failures": [
+    {
+      "check": "work.after_first_consumed_4",
+      "expected": "work delta == 4",
+      "actual": "10",
+      "detail": ""
+    },
+    {
+      "check": "work.consumed_never_returns",
+      "expected": "resource_exhausted within 2 s",
+      "actual": "cancelled(cancelled:runtime.pool:the command was cancelled or drained)",
+      "detail": "consumed=10 is permanent; upper=1 can never be admitted"
+    }
+  ],
+  "kernel_status": "fail",
+  "checks": [
+    {
+      "check": "work.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "work.first_segment_started",
+      "pass": true,
+      "expected": "started",
+      "actual": "started",
+      "detail": ""
+    },
+    {
+      "check": "work.first_consumed_4",
+      "pass": true,
+      "expected": "consume_work(4) == ok",
+      "actual": "units=4",
+      "detail": ""
+    },
+    {
+      "check": "work.second_not_running_concurrently",
+      "pass": true,
+      "expected": "not running, not terminal, second_runs=0",
+      "actual": "state=1 runs=0",
+      "detail": "4 consumed + 6 held + 6 reserved would exceed max_work=10"
+    },
+    {
+      "check": "work.second_waits_for_resources",
+      "pass": true,
+      "expected": "waiting_resources or waiting_dependencies",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "work.second_not_double_reserved",
+      "pass": true,
+      "expected": "not terminal and never started while 1 holds its upper",
+      "actual": "state=1",
+      "detail": ""
+    },
+    {
+      "check": "work.upper_gt_budget_rejected",
+      "pass": true,
+      "expected": "resource_exhausted within 2 s",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pool:TaskSpec.work_upper exceeds the declared max_work budget)",
+      "detail": "upper=11 > max_work=10 can never be admitted"
+    },
+    {
+      "check": "work.first_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "work.after_first_consumed_4",
+      "pass": false,
+      "expected": "work delta == 4",
+      "actual": "10",
+      "detail": ""
+    },
+    {
+      "check": "work.second_readmitted_after_release",
+      "pass": true,
+      "expected": "ok within 5 s",
+      "actual": "ok",
+      "detail": "the unused 2 of segment 1 make room for the waiting upper=6"
+    },
+    {
+      "check": "work.second_ran_once",
+      "pass": true,
+      "expected": "1",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "work.second_consumed_6",
+      "pass": true,
+      "expected": "6",
+      "actual": "6",
+      "detail": ""
+    },
+    {
+      "check": "work.total_consumed_10",
+      "pass": true,
+      "expected": "10",
+      "actual": "10",
+      "detail": ""
+    },
+    {
+      "check": "work.total_within_budget",
+      "pass": true,
+      "expected": "<= 10",
+      "actual": "10",
+      "detail": ""
+    },
+    {
+      "check": "work.consumed_never_returns",
+      "pass": false,
+      "expected": "resource_exhausted within 2 s",
+      "actual": "cancelled(cancelled:runtime.pool:the command was cancelled or drained)",
+      "detail": "consumed=10 is permanent; upper=1 can never be admitted"
+    },
+    {
+      "check": "work.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "work.second_state_while_first_holds": "1",
+    "work.after_first": 10,
+    "work.final_total": 10
+  },
+  "resources": {}
+}

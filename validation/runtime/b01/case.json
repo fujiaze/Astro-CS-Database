@@ -1,0 +1,47 @@
+{
+  "case": "b01",
+  "title": "streaming output: many appends + seal, failed/cancelled writer leaves no half product",
+  "milestone": "M3",
+  "contract_refs": [
+    "VERIFICATION.md B01",
+    "FOUNDATION_API.md#资源与数组所有权"
+  ],
+  "fixed_configuration": {
+    "buffer_bytes": 1048576,
+    "output_bytes": 8388608,
+    "appends": 8,
+    "placement": "spill",
+    "scaled_from": "H=32MiB/output=256MiB row scaled to 1MiB/8MiB (same 64x ratio and failure paths)"
+  },
+  "required_checks": [
+    "b01.open_command_ok",
+    "b01.reserve_ok",
+    "b01.begin_ok",
+    "b01.eight_appends_cumulative",
+    "b01.seal_ok",
+    "b01.sealed_shape",
+    "b01.readback_ok",
+    "b01.readback_matches_input",
+    "b01.append_after_seal_rejected",
+    "b01.abort_sealed_noop_ok",
+    "b01.empty_writer_seal_rejected",
+    "b01.empty_writer_abort_ok",
+    "b01.contiguous_first_append_ok",
+    "b01.gap_allocate_ok",
+    "b01.non_contiguous_append_rejected",
+    "b01.failed_writer_cannot_seal",
+    "b01.abort_after_failure_ok",
+    "b01.abort_idempotent_ok",
+    "b01.cancel_first_append_ok",
+    "b01.cancel_allocate_ok",
+    "b01.cancel_append_terminal_named",
+    "b01.cancel_no_half_product",
+    "b01.cancel_abort_ok",
+    "b01.close_command_ok"
+  ],
+  "min_attempts": 24,
+  "expected_success_count": 24,
+  "tolerance": "cumulative append values exact; sealed element count exact; byte-identical read-back",
+  "link": "default",
+  "timeout_seconds": 180
+}

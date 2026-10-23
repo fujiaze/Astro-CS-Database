@@ -1,0 +1,24 @@
+{
+  "case": "d01_off",
+  "title": "ACSD_DEV_MODE=0: macros evaluate no argument (undeclared identifiers compile, runtime counters stay 0)",
+  "milestone": "M3",
+  "contract_refs": [
+    "VERIFICATION.md D01",
+    "FOUNDATION_API.md#性能与中间数据入口"
+  ],
+  "fixed_configuration": {
+    "dev_mode": 0,
+    "compile_only_args": "undeclared identifiers",
+    "runtime_args": "side-effect ctx and aborting payload"
+  },
+  "required_checks": [
+    "d01_off.compiled_with_off",
+    "d01_off.ctx_not_evaluated",
+    "d01_off.payload_not_constructed"
+  ],
+  "min_attempts": 3,
+  "expected_success_count": 3,
+  "tolerance": "exact zero evaluation counts",
+  "link": "default",
+  "timeout_seconds": 60
+}

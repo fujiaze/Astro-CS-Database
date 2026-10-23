@@ -1,0 +1,16 @@
+[ok] io.open_command_ok
+[ok] io.read_attempt_compute_ok
+[ok] io.read_attempt_read_ok
+[ok] io.read_pending_while_compute_runs
+[ok] io.compression_jobs_prepared
+[ok] io.compression_appends_ok
+[ok] io.compression_within_one_cpu
+[ok] io.seal_reserve_ok
+[ok] io.seal_begin_writer_ok
+[ok] io.seal_freeze_block_ok
+[ok] io.append_buffer_charged_until_write
+[ok] io.seal_append_ok
+[ok] io.seal_completed
+[ok] io.seal_readback_matches
+[ok] io.seal_array_size
+[ok] io.close_command_ok

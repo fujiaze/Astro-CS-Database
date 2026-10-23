@@ -1,0 +1,26 @@
+{
+  "case": "cal01",
+  "title": "C-CAL-1/2/DQ/ROOT through the full Host/registry chain (make_services -> generated registry -> ProcessHost.invoke)",
+  "milestone": "M4",
+  "contract_refs": [
+    "docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md#引导、调用与事件顺序",
+    "docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md#固定验收输入与故障矩阵",
+    "docs/engineering/rebuild/standards/FOUNDATION_API.md#计划、注册和Host"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/cal01.o -L /tmp/acsd-build -Wl,--start-group -lacsd_builtin -lcodec -lobservation -lcoordinates -lcatalogue -lsources -lresponse -lphotometry -lgeometry -loperators -luncertainty -linformation -lsky -lcoadd -lprojection -lworkflows -lstorage -lresources -lnumerics -lmodel -lruntime -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/cal01",
+    "log": "validation/runtime/build/cal01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/cal01",
+  "status": "fail",
+  "reason": "case did not emit JSON evidence: Expecting value: line 1 column 1 (char 0)",
+  "exit_code": -1,
+  "stderr_tail": "[ok] cal.services_ok\n[ok] cal.open_command_ok\n[ok] cal.register_builtin_types_ok\n[ok] cal.register_processes_ok\n[ok] cal.freeze_ok\n[ok] cal.make_host_ok\n[ok] cal.adu_array_ok\n[ok] cal.dq_array_ok\n[ok] cal.bias_array_ok\n[ok] cal.dark_array_ok\n[ok] cal.flat_array_ok\n[ok] cal.cal1_host_ok\n[ok] cal.cal1_exact_values\n[ok] cal.cal1_negative_not_clipped\n[ok] cal.cal1_interval_contains_exact\n[ok] cal.cal1_dq_clean\n[ok] cal.cal1_frame_context\n[FAIL] cal.cal1_usage_work expected=3 work units actual=140 detail=the process kernel consumes one unit per native sample\n[ok] cal.cal2_host_ok\n[ok] cal.cal2_exact_values\n[ok] cal.dq_flat_array_ok\n[ok] cal.dq_zero_flat_host_ok\n[ok] cal.dq_zero_flat_nan\n[ok] cal.dq_zero_flat_flag\n[ok] cal.dq_zero_flat_named_issue\n[ok] cal.dq_nan_array_ok\n[ok] cal.dq_nan_conflict_rejected\n[ok] cal.dq_nan_conflict_no_native\n[ok] cal.root_second_adu_ok\n\ntimeout after 180 s",
+  "timed_out": true,
+  "attempts": 0,
+  "successes": 0,
+  "failures": []
+}

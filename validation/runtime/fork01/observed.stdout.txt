@@ -1,0 +1,32 @@
+{
+  "case": "fork01",
+  "source": "validation/runtime/fork01/fork01.cpp",
+  "status": "ran",
+  "attempts": 18,
+  "successes": 18,
+  "failures": [],
+  "checks": [
+    {"check": "fork.open_command_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fork.pipe_a_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fork.pipe_b_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fork.reserve_arena_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fork.allocate_8_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fork.freeze_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fork.receives_wake_within_3s", "pass": true, "expected": "branch A receive terminal within 3 s", "actual": "state=5", "detail": "a broadcast that never credits its branches is a named failure"},
+    {"check": "fork.branch_a_receives", "pass": true, "expected": "ok + Block", "actual": "ok", "detail": ""},
+    {"check": "fork.one_physical_8b", "pass": true, "expected": "8 <= allocated delta < 16 (one physical 8-byte block)", "actual": "8", "detail": "broadcast shares the read-only T/Lease; only the queue credits are per-edge"},
+    {"check": "fork.slow_branch_not_lost", "pass": true, "expected": "ok + Block after 30 ms delay", "actual": "ok", "detail": ""},
+    {"check": "fork.broadcast_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fork.both_branches_same_bytes", "pass": true, "expected": "1..8 on both branches", "actual": "identical", "detail": ""},
+    {"check": "fork.both_branches_same_lease", "pass": true, "expected": "all three Lease owners identical", "actual": "a/b/reference owners 94576459282736/94576459282736/94576459282736", "detail": ""},
+    {"check": "fork.join_not_early", "pass": true, "expected": "both deliveries keep the full block range", "actual": "ok", "detail": ""},
+    {"check": "fork.close_a_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fork.close_b_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fork.region_body_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fork.close_command_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""}
+  ],
+  "values": {"fork.pipe_a_ids": "0/10", "fork.pipe_b_edge": 11, "fork.allocated_delta": 8, "fork.peak_delta": 8},
+  "resources": {},
+  "commands": [],
+  "notes": []
+}

@@ -1,0 +1,156 @@
+{
+  "case": "io01",
+  "title": "P=1: slow read overlaps ready compute, compression within one CPU, seal waits the real write",
+  "milestone": "M3",
+  "contract_refs": [
+    "SCHEDULER.md S-IO",
+    "VERIFICATION.md ASYNC01"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/io01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/io01",
+    "log": "validation/runtime/build/io01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/io01",
+  "status": "pass",
+  "reason": "all required checks passed",
+  "exit_code": 0,
+  "attempts": 16,
+  "successes": 16,
+  "expected_success_count": 14,
+  "observed_success_count": 16,
+  "required_checks": 14,
+  "missing_checks": [],
+  "failed_checks": [],
+  "failures": [],
+  "kernel_status": "pass",
+  "checks": [
+    {
+      "check": "io.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "io.read_attempt_compute_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "io.read_attempt_read_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "io.read_pending_while_compute_runs",
+      "pass": true,
+      "expected": "compute entered while the read task was still in flight",
+      "actual": "observed",
+      "detail": "P=1: an I/O wait must not hold the only CPU token"
+    },
+    {
+      "check": "io.compression_jobs_prepared",
+      "pass": true,
+      "expected": "3 writers",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "io.compression_appends_ok",
+      "pass": true,
+      "expected": "all ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "io.compression_within_one_cpu",
+      "pass": true,
+      "expected": "process CPU / wall <= 1.5 with cpu_threads=1",
+      "actual": "1.018",
+      "detail": "a multi-threaded compressor would exceed the one-token quota"
+    },
+    {
+      "check": "io.seal_reserve_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "io.seal_begin_writer_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "io.seal_freeze_block_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "io.append_buffer_charged_until_write",
+      "pass": true,
+      "expected": ">= 8 MiB charged while the append write runs",
+      "actual": "8388608",
+      "detail": ""
+    },
+    {
+      "check": "io.seal_append_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "io.seal_completed",
+      "pass": true,
+      "expected": "ok within 30 s",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "io.seal_readback_matches",
+      "pass": true,
+      "expected": "sealed array reads back byte-identical after seal",
+      "actual": "identical",
+      "detail": "a seal that returned before the real write would not expose the payload"
+    },
+    {
+      "check": "io.seal_array_size",
+      "pass": true,
+      "expected": "8388608 elements",
+      "actual": "8388608",
+      "detail": ""
+    },
+    {
+      "check": "io.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "io.read_attempt_0_bytes": 33554432,
+    "io.read_attempt_0_pending_at_compute": true,
+    "io.read_concurrency_attempts": 1,
+    "io.compression_wall_seconds": 0.20216471899766475,
+    "io.compression_cpu_seconds": 0.20581632900000002,
+    "io.compression_cpu_ratio": 1.0180625483043728,
+    "io.seal_charged_during_append": 8388608,
+    "io.written_bytes_at_seal": 0,
+    "io.spill_written_bytes_at_seal": 0,
+    "io.written_ledger_at_seal": 0
+  },
+  "resources": {}
+}

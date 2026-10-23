@@ -1,0 +1,15 @@
+[ok] d01_on.register_process_ok
+[ok] d01_on.freeze_ok
+[ok] d01_on.make_host_ok
+[ok] d01_on.open_command_ok
+[ok] d01_on.unselected_probe_false
+[ok] d01_on.try_entries_noexcept
+[ok] d01_on.baseline_invoke_ok
+[ok] d01_on.unselected_payload_not_constructed
+[ok] d01_on.repeat_invoke_ok
+[ok] d01_on.science_code_unchanged
+[ok] d01_on.science_value_unchanged
+[ok] d01_on.science_usage_unchanged
+[FAIL] d01_on.span_ids_allocated expected=two distinct non-zero span ids actual=0/0
+[ok] d01_on.run_calls
+[ok] d01_on.close_command_ok

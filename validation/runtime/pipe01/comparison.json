@@ -1,0 +1,25 @@
+{
+  "case": "pipe01",
+  "title": "bounded pipe: backpressure, cancel wake-up, EOF/failed/cancelled tri-state, ordered reduce",
+  "milestone": "M2",
+  "contract_refs": [
+    "VERIFICATION.md PIPE01",
+    "FOUNDATION_API.md#Pipe与广播"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/pipe01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/pipe01",
+    "log": "validation/runtime/build/pipe01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/pipe01",
+  "status": "fail",
+  "reason": "case did not emit JSON evidence: Expecting value: line 1 column 1 (char 0)",
+  "exit_code": -1,
+  "stderr_tail": "[ok] pipe.open_reject_command_ok\n[ok] pipe.zero_items_rejected\n[ok] pipe.zero_bytes_rejected\n[ok] pipe.unknown_edge_rejected\n[ok] pipe.unknown_region_rejected\n[ok] pipe.close_reject_command_ok\n[ok] pipe.eof_make_pipe_ok\n[ok] pipe.eof_close_ok\n[ok] pipe.eof_distinct\n[ok] pipe.send_after_close_invalid_request\n[ok] pipe.eof_close_command_ok\n[ok] pipe.failed_close_ok\n[ok] pipe.failed_distinct\n[ok] pipe.failed_keeps_issue\n[ok] pipe.failed_close_command_ok\n[ok] pipe.cancelled_close_ok\n[ok] pipe.cancelled_distinct\n[ok] pipe.cancelled_close_command_ok\n[ok] pipe.full_make_pipe_ok\n[ok] pipe.full_second_send_backpressured\n[ok] pipe.full_first_received\n[ok] pipe.full_first_send_ok\n[ok] pipe.full_second_send_after_consume_ok\n[ok] pipe.full_second_received\n[ok] pipe.full_close_command_ok\n[ok] pipe.order_make_pipe_ok\n\ntimeout after 120 s",
+  "timed_out": true,
+  "attempts": 0,
+  "successes": 0,
+  "failures": []
+}

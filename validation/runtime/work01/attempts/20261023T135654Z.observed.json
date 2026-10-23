@@ -1,0 +1,139 @@
+{
+  "case": "work01",
+  "source": "validation/runtime/work01/work01.cpp",
+  "status": "ran",
+  "attempts": 12,
+  "successes": 7,
+  "failures": [
+    {
+      "check": "work.second_decided_before_first_release",
+      "expected": "terminal within 20 ms while segment 1 still reserves",
+      "actual": "state=1",
+      "detail": ""
+    },
+    {
+      "check": "work.second_rejected_resource_exhausted",
+      "expected": "resource_exhausted",
+      "actual": "cancelled(cancelled:runtime.pool:the command was cancelled or drained)",
+      "detail": "4 consumed + 6 held + 6 requested exceeds max_work=10"
+    },
+    {
+      "check": "work.third_admitted_after_return",
+      "expected": "ok within 5 s",
+      "actual": "cancelled(cancelled:runtime.task:cancel requested before submission)",
+      "detail": "admission 4 + 6 <= 10 proves the unused 2 were returned"
+    },
+    {
+      "check": "work.third_consumed_3",
+      "expected": "consume_work(3) == ok",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "work.total_consumed_7",
+      "expected": "7",
+      "actual": "4",
+      "detail": ""
+    }
+  ],
+  "checks": [
+    {
+      "check": "work.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "work.first_segment_started",
+      "pass": true,
+      "expected": "started",
+      "actual": "started",
+      "detail": ""
+    },
+    {
+      "check": "work.first_consumed_4",
+      "pass": true,
+      "expected": "consume_work(4) == ok",
+      "actual": "code=ok units=4",
+      "detail": ""
+    },
+    {
+      "check": "work.second_decided_before_first_release",
+      "pass": false,
+      "expected": "terminal within 20 ms while segment 1 still reserves",
+      "actual": "state=1",
+      "detail": ""
+    },
+    {
+      "check": "work.second_rejected_resource_exhausted",
+      "pass": false,
+      "expected": "resource_exhausted",
+      "actual": "cancelled(cancelled:runtime.pool:the command was cancelled or drained)",
+      "detail": "4 consumed + 6 held + 6 requested exceeds max_work=10"
+    },
+    {
+      "check": "work.first_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "work.after_first_consumed_4",
+      "pass": true,
+      "expected": "work delta == 4",
+      "actual": "4",
+      "detail": ""
+    },
+    {
+      "check": "work.third_admitted_after_return",
+      "pass": false,
+      "expected": "ok within 5 s",
+      "actual": "cancelled(cancelled:runtime.task:cancel requested before submission)",
+      "detail": "admission 4 + 6 <= 10 proves the unused 2 were returned"
+    },
+    {
+      "check": "work.third_consumed_3",
+      "pass": false,
+      "expected": "consume_work(3) == ok",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "work.total_consumed_7",
+      "pass": false,
+      "expected": "7",
+      "actual": "4",
+      "detail": ""
+    },
+    {
+      "check": "work.total_within_budget",
+      "pass": true,
+      "expected": "<= 10",
+      "actual": "4",
+      "detail": ""
+    },
+    {
+      "check": "work.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "work.second_late_decision": false,
+    "work.after_first": 4,
+    "work.final_total": 4
+  },
+  "resources": {},
+  "commands": [],
+  "notes": [
+    "segment 2 neither completed nor was rejected within 2 s; cancelling the scope to obtain terminal evidence"
+  ],
+  "command": "/workspace/Astro CS Database/validation/runtime/build/work01",
+  "exit_code": 0,
+  "stderr_tail": "[ok] work.open_command_ok\n[ok] work.first_segment_started\n[ok] work.first_consumed_4\n[FAIL] work.second_decided_before_first_release expected=terminal within 20 ms while segment 1 still reserves actual=state=1\n[FAIL] work.second_rejected_resource_exhausted expected=resource_exhausted actual=cancelled(cancelled:runtime.pool:the command was cancelled or drained) detail=4 consumed + 6 held + 6 requested exceeds max_work=10\n[ok] work.first_ok\n[ok] work.after_first_consumed_4\n[FAIL] work.third_admitted_after_return expected=ok within 5 s actual=cancelled(cancelled:runtime.task:cancel requested before submission) detail=admission 4 + 6 <= 10 proves the unused 2 were returned\n[FAIL] work.third_consumed_3 expected=consume_work(3) == ok actual=0\n[FAIL] work.total_consumed_7 expected=7 actual=4\n[ok] work.total_within_budget\n[ok] work.close_command_ok\n",
+  "timed_out": false
+}

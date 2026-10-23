@@ -1,0 +1,93 @@
+{
+  "case": "order01",
+  "title": "ordered pipe slot=1: a higher ready key cannot take the reserved minimum-key slot",
+  "milestone": "M2",
+  "contract_refs": [
+    "SCHEDULER.md S-ORDER",
+    "FOUNDATION_API.md ordered pipe"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/order01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/order01",
+    "log": "validation/runtime/build/order01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/order01",
+  "status": "fail",
+  "reason": "required checks not attempted: order.first_receive_is_low_key, order.high_key_send_ok_after_credit, order.second_receive_is_high_key, order.no_unbounded_reorder, order.close_pipe_ok, order.close_command_ok; required checks failed: order.low_key_send_ok, order.region_body_ok; attempts 5 < min_attempts 11; harness reports failures: [\"order.low_key_send_ok\", \"order.region_body_ok\"]",
+  "exit_code": 0,
+  "attempts": 5,
+  "successes": 3,
+  "expected_success_count": 11,
+  "observed_success_count": 3,
+  "required_checks": 11,
+  "missing_checks": [
+    "order.first_receive_is_low_key",
+    "order.high_key_send_ok_after_credit",
+    "order.second_receive_is_high_key",
+    "order.no_unbounded_reorder",
+    "order.close_pipe_ok",
+    "order.close_command_ok"
+  ],
+  "failed_checks": [
+    "order.low_key_send_ok",
+    "order.region_body_ok"
+  ],
+  "failures": [
+    {
+      "check": "order.low_key_send_ok",
+      "expected": "ok",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pipe:the bounded pipe reorder window is full)",
+      "detail": ""
+    },
+    {
+      "check": "order.region_body_ok",
+      "expected": "ok",
+      "actual": "invalid_request",
+      "detail": ""
+    }
+  ],
+  "kernel_status": "fail",
+  "checks": [
+    {
+      "check": "order.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "order.make_pipe_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "order.high_key_does_not_take_reserved_slot",
+      "pass": true,
+      "expected": "high-key send still waiting for the minimum key",
+      "actual": "state=0",
+      "detail": ""
+    },
+    {
+      "check": "order.low_key_send_ok",
+      "pass": false,
+      "expected": "ok",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pipe:the bounded pipe reorder window is full)",
+      "detail": ""
+    },
+    {
+      "check": "order.region_body_ok",
+      "pass": false,
+      "expected": "ok",
+      "actual": "invalid_request",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "order.allocated_while_high_pending": 0
+  },
+  "resources": {}
+}

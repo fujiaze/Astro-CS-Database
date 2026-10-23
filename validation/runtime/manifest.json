@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-10-23T15:40:12.175142+00:00",
+  "git_commit": "33804ef6abd1608e946888dd4382f783e5a534c1",
+  "build_dir": "/tmp/acsd-build",
+  "independence": "only include/acsd/** public headers; no src/ include",
+  "cases": [
+    {
+      "case": "cal01",
+      "status": "fail",
+      "milestone": "M4",
+      "attempts": 0,
+      "successes": 0,
+      "failures": [],
+      "reason": "case did not emit JSON evidence: Expecting value: line 1 column 1 (char 0)",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/cal01"
+    }
+  ]
+}

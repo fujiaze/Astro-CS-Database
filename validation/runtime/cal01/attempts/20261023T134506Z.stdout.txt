@@ -1,0 +1,48 @@
+[ok] cal.cal1_ok
+[ok] cal.cal1_exact_values
+[ok] cal.cal1_negative_not_clipped
+[ok] cal.cal1_interval_contains_exact
+[ok] cal.cal1_dq_clean
+[ok] cal.cal1_frame_preserved
+[ok] cal.cal1_context_preserved
+[ok] cal.cal1_work_not_double_counted
+[ok] cal.cal2_ok
+[ok] cal.cal2_exact_values
+[ok] cal.dq_zero_flat_ok
+[ok] cal.dq_zero_flat_nan
+[ok] cal.dq_zero_flat_dq_flag
+[ok] cal.dq_zero_flat_named_issue
+[ok] cal.dq_zero_flat_no_silent_repair
+[ok] cal.dq_nan_conflict_rejected
+[ok] cal.dq_nan_conflict_no_native
+{
+  "case": "cal01",
+  "source": "validation/runtime/cal01/cal01.cpp",
+  "status": "ran",
+  "attempts": 17,
+  "successes": 17,
+  "failures": [],
+  "checks": [
+    {"check": "cal.cal1_ok", "pass": true, "expected": "ok + NativeObservation", "actual": "ok", "detail": ""},
+    {"check": "cal.cal1_exact_values", "pass": true, "expected": "[4,14,-8]", "actual": "[4,14,-8]", "detail": ""},
+    {"check": "cal.cal1_negative_not_clipped", "pass": true, "expected": "-8", "actual": "-8", "detail": ""},
+    {"check": "cal.cal1_interval_contains_exact", "pass": true, "expected": "lower <= exact <= upper for all three samples", "actual": "recorded in values", "detail": ""},
+    {"check": "cal.cal1_dq_clean", "pass": true, "expected": "all DQ zero", "actual": "recorded", "detail": ""},
+    {"check": "cal.cal1_frame_preserved", "pass": true, "expected": "frame0", "actual": "frame0", "detail": ""},
+    {"check": "cal.cal1_context_preserved", "pass": true, "expected": "2457500.5", "actual": "2457500.5", "detail": ""},
+    {"check": "cal.cal1_work_not_double_counted", "pass": true, "expected": "0 (public free function) or 3 (M4 process kernel)", "actual": "0", "detail": "the per-sample consume_work(1) is the M4 process-kernel contract; the free function currently consumes no work"},
+    {"check": "cal.cal2_ok", "pass": true, "expected": "ok + NativeObservation", "actual": "ok", "detail": ""},
+    {"check": "cal.cal2_exact_values", "pass": true, "expected": "[0,10,-12]", "actual": "[0,10,-12]", "detail": "the dark branch must not reuse the dark_contains_bias formula"},
+    {"check": "cal.dq_zero_flat_ok", "pass": true, "expected": "ok + NativeObservation with a missing sample", "actual": "ok", "detail": ""},
+    {"check": "cal.dq_zero_flat_nan", "pass": true, "expected": "values[2] is NaN", "actual": "nan", "detail": ""},
+    {"check": "cal.dq_zero_flat_dq_flag", "pass": true, "expected": "nonzero DQ at the zero flat", "actual": "1", "detail": ""},
+    {"check": "cal.dq_zero_flat_named_issue", "pass": true, "expected": ">=1 named Issue on the Native or the Result", "actual": "native=[invalid_model:calibrate_observation:a non-positive or non-finite flat was not repaired numerically | unavailable:calibrate_observation:the complete noise variance is unknown; the signal is still valid] result=[]", "detail": ""},
+    {"check": "cal.dq_zero_flat_no_silent_repair", "pass": true, "expected": "no value repaired to flat=1", "actual": "NaN retained", "detail": ""},
+    {"check": "cal.dq_nan_conflict_rejected", "pass": true, "expected": "invalid_model", "actual": "invalid_model(invalid_model:calibrate_observation:a non-finite raw value conflicts with the valid data quality bits)", "detail": ""},
+    {"check": "cal.dq_nan_conflict_no_native", "pass": true, "expected": "no NativeObservation", "actual": "no value", "detail": ""}
+  ],
+  "values": {"cal.cal1_work_delta": 0, "cal.cal1_lower0": 3.9999999999999964, "cal.cal1_upper0": 4.0000000000000044},
+  "resources": {},
+  "commands": [],
+  "notes": ["M4 gate: the typed observation.calibrate process/registry binding is not implemented; this case proves the shared public kernel only and the comparison marks the process gate pending."]
+}

@@ -1,7 +1,7 @@
 {
   "artifacts": {
     "response_file": "/workspace/Astro CS Database/validation/u01/observed/contract_u01.json",
-    "response_sha256": "43ba040afad835e2131492927109310cb832f62f687ee09dd8fb50b05e1741e0"
+    "response_sha256": "30a153ef183b998b0e5acb941386485eef69095936be2ce62b65df7836b76c89"
   },
   "binary_identity": {
     "path": "/workspace/Astro CS Database/build/science/acsd-contract",
@@ -17,7 +17,7 @@
   ],
   "exit_code": 0,
   "missing_entry_points": [],
-  "peak_rss_bytes": 104808448,
+  "peak_rss_bytes": 104701952,
   "reason": "",
   "response": {
     "algorithm_set": [
@@ -401,7 +401,7 @@
     "resources": {
       "byte_budget": 8388608,
       "bytes": 8388608,
-      "elapsed_seconds": 0.00026401,
+      "elapsed_seconds": 0.000265797,
       "peak_payload_bytes": 0,
       "read_bytes": 0,
       "spill_bytes": 0,
@@ -435,7 +435,7 @@
       "code": "ok",
       "dependencies": [],
       "usage": {
-        "elapsed_seconds": 6.12e-07,
+        "elapsed_seconds": 5.45e-07,
         "peak_payload_bytes": 0,
         "read_bytes": 0,
         "spill_bytes": 0,
@@ -468,5 +468,5 @@
   "status": "ok",
   "stderr": "",
   "stdout": "",
-  "wall_seconds": 0.008342427900061011
+  "wall_seconds": 0.008349829935468733
 }

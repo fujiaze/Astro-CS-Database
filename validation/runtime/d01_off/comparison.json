@@ -1,0 +1,54 @@
+{
+  "case": "d01_off",
+  "title": "ACSD_DEV_MODE=0: macros evaluate no argument (undeclared identifiers compile, runtime counters stay 0)",
+  "milestone": "M3",
+  "contract_refs": [
+    "VERIFICATION.md D01",
+    "FOUNDATION_API.md#性能与中间数据入口"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/d01_off.o -L /tmp/acsd-build -Wl,--start-group -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/d01_off",
+    "log": "validation/runtime/build/d01_off.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/d01_off",
+  "status": "pass",
+  "reason": "all required checks passed",
+  "exit_code": 0,
+  "attempts": 3,
+  "successes": 3,
+  "expected_success_count": 3,
+  "observed_success_count": 3,
+  "required_checks": 3,
+  "missing_checks": [],
+  "failed_checks": [],
+  "failures": [],
+  "kernel_status": "pass",
+  "checks": [
+    {
+      "check": "d01_off.compiled_with_off",
+      "pass": true,
+      "expected": "ACSD_DEV_MODE=0",
+      "actual": "off",
+      "detail": ""
+    },
+    {
+      "check": "d01_off.ctx_not_evaluated",
+      "pass": true,
+      "expected": "0 ctx evaluations",
+      "actual": "0",
+      "detail": "the OFF macro must not evaluate its ctx argument"
+    },
+    {
+      "check": "d01_off.payload_not_constructed",
+      "pass": true,
+      "expected": "0 payload constructions",
+      "actual": "0",
+      "detail": "a payload constructor that aborts must never run"
+    }
+  ],
+  "values": {},
+  "resources": {}
+}

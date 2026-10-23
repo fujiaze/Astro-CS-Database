@@ -1,0 +1,186 @@
+{
+  "case": "b01",
+  "source": "validation/runtime/b01/b01.cpp",
+  "status": "ran",
+  "attempts": 24,
+  "successes": 24,
+  "failures": [],
+  "checks": [
+    {
+      "check": "b01.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.reserve_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.begin_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.eight_appends_cumulative",
+      "pass": true,
+      "expected": "each append returns (i+1)*1 MiB",
+      "actual": "8 appends ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.seal_ok",
+      "pass": true,
+      "expected": "ok + ArrayRef",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.sealed_shape",
+      "pass": true,
+      "expected": "8388608 elements",
+      "actual": "8388608",
+      "detail": ""
+    },
+    {
+      "check": "b01.readback_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.readback_matches_input",
+      "pass": true,
+      "expected": "first 1 MiB byte-identical",
+      "actual": "identical",
+      "detail": ""
+    },
+    {
+      "check": "b01.append_after_seal_rejected",
+      "pass": true,
+      "expected": "invalid_request or invalid_model",
+      "actual": "invalid_request(invalid_request:runtime.storage.append:writer is not open for append)",
+      "detail": ""
+    },
+    {
+      "check": "b01.abort_sealed_noop_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.empty_writer_seal_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.seal:seal requires exactly the declared element count)",
+      "detail": ""
+    },
+    {
+      "check": "b01.empty_writer_abort_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.contiguous_first_append_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.gap_allocate_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.non_contiguous_append_rejected",
+      "pass": true,
+      "expected": "invalid_model or invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.append:append range is not contiguous)",
+      "detail": ""
+    },
+    {
+      "check": "b01.failed_writer_cannot_seal",
+      "pass": true,
+      "expected": "invalid_model or invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.seal:seal requires exactly the declared element count)",
+      "detail": ""
+    },
+    {
+      "check": "b01.abort_after_failure_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.abort_idempotent_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_first_append_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_allocate_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_append_terminal_named",
+      "pass": true,
+      "expected": "cancelled or ok",
+      "actual": "cancelled",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_no_half_product",
+      "pass": true,
+      "expected": "seal does not deliver an ArrayRef",
+      "actual": "cancelled(cancelled:runtime.storage.seal:append I/O failed)",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_abort_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {},
+  "resources": {},
+  "commands": [],
+  "notes": [],
+  "command": "/workspace/Astro CS Database/validation/runtime/build/b01",
+  "exit_code": 0,
+  "stderr_tail": "[ok] b01.open_command_ok\n[ok] b01.reserve_ok\n[ok] b01.begin_ok\n[ok] b01.eight_appends_cumulative\n[ok] b01.seal_ok\n[ok] b01.sealed_shape\n[ok] b01.readback_ok\n[ok] b01.readback_matches_input\n[ok] b01.append_after_seal_rejected\n[ok] b01.abort_sealed_noop_ok\n[ok] b01.empty_writer_seal_rejected\n[ok] b01.empty_writer_abort_ok\n[ok] b01.contiguous_first_append_ok\n[ok] b01.gap_allocate_ok\n[ok] b01.non_contiguous_append_rejected\n[ok] b01.failed_writer_cannot_seal\n[ok] b01.abort_after_failure_ok\n[ok] b01.abort_idempotent_ok\n[ok] b01.cancel_first_append_ok\n[ok] b01.cancel_allocate_ok\n[ok] b01.cancel_append_terminal_named\n[ok] b01.cancel_no_half_product\n[ok] b01.cancel_abort_ok\n[ok] b01.close_command_ok\n",
+  "timed_out": false
+}

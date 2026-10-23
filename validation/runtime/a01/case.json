@@ -1,0 +1,48 @@
+{
+  "case": "a01",
+  "title": "child scope attribution: A reports 50 MiB/10 work, parent does not double bill, Lease keeps its domain",
+  "milestone": "M1",
+  "contract_refs": [
+    "VERIFICATION.md A01",
+    "SCHEDULER.md 共享Lease/峰值"
+  ],
+  "fixed_configuration": {
+    "history_peak": "100 MiB (child B, released)",
+    "child_A": {
+      "peak": "50 MiB",
+      "work": 10
+    },
+    "child_B_work": 100,
+    "pinned": "8 MiB pinned inside 32 MiB host claim"
+  },
+  "required_checks": [
+    "a01.open_command_ok",
+    "a01.child_b_scope_ok",
+    "a01.child_b_reserve_100mib_ok",
+    "a01.child_b_allocate_100mib_ok",
+    "a01.child_b_peak_100mib",
+    "a01.child_a_scope_ok",
+    "a01.child_a_reserve_50mib_ok",
+    "a01.child_a_allocate_50mib_ok",
+    "a01.child_a_freeze_ok",
+    "a01.child_a_consume_10_ok",
+    "a01.child_a_peak_50mib",
+    "a01.child_a_work_10",
+    "a01.child_b_consume_100_ok",
+    "a01.parent_peak_not_double_counted",
+    "a01.parent_work_110",
+    "a01.lease_keeps_original_domain",
+    "a01.lease_release_returns_to_domain",
+    "a01.child_p_scope_ok",
+    "a01.pinned_subset_reserve_ok",
+    "a01.pinned_claim_within_host_ok",
+    "a01.pinned_gt_host_rejected",
+    "a01.pinned_reserve_gt_host_rejected",
+    "a01.close_command_ok"
+  ],
+  "min_attempts": 23,
+  "expected_success_count": 23,
+  "tolerance": "exact byte/work values; parent peak delta in [100,116] MiB",
+  "link": "default",
+  "timeout_seconds": 120
+}

@@ -1,0 +1,254 @@
+{
+  "case": "cal01",
+  "title": "C-CAL-1/2/DQ/ROOT through the full Host/registry chain (make_services -> generated registry -> ProcessHost.invoke)",
+  "milestone": "M4",
+  "contract_refs": [
+    "docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md#引导、调用与事件顺序",
+    "docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md#固定验收输入与故障矩阵",
+    "docs/engineering/rebuild/standards/FOUNDATION_API.md#计划、注册和Host"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/cal01.o -L /tmp/acsd-build -Wl,--start-group -lacsd_builtin -lcodec -lobservation -lcoordinates -lcatalogue -lsources -lresponse -lphotometry -lgeometry -loperators -luncertainty -linformation -lsky -lcoadd -lprojection -lworkflows -lstorage -lresources -lnumerics -lmodel -lruntime -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/cal01",
+    "log": "validation/runtime/build/cal01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/cal01",
+  "status": "fail",
+  "reason": "required checks not attempted: cal.cal1_exact_values, cal.cal1_negative_not_clipped, cal.cal1_interval_contains_exact, cal.cal1_dq_clean, cal.cal1_frame_context, cal.cal1_usage_work, cal.cal2_exact_values, cal.dq_zero_flat_nan, cal.dq_zero_flat_flag, cal.dq_zero_flat_named_issue, cal.root_no_per_call_random_root; required checks failed: cal.cal1_host_ok, cal.cal2_host_ok, cal.dq_zero_flat_host_ok, cal.root_both_frames_ok, cal.root_shared_dependencies; attempts 24 < min_attempts 35; harness reports failures: [\"cal.cal1_host_ok\", \"cal.cal2_host_ok\", \"cal.dq_zero_flat_host_ok\", \"cal.root_both_frames_ok\", \"cal.root_shared_dependencies\"]",
+  "exit_code": 0,
+  "attempts": 24,
+  "successes": 19,
+  "expected_success_count": 35,
+  "observed_success_count": 19,
+  "required_checks": 35,
+  "missing_checks": [
+    "cal.cal1_exact_values",
+    "cal.cal1_negative_not_clipped",
+    "cal.cal1_interval_contains_exact",
+    "cal.cal1_dq_clean",
+    "cal.cal1_frame_context",
+    "cal.cal1_usage_work",
+    "cal.cal2_exact_values",
+    "cal.dq_zero_flat_nan",
+    "cal.dq_zero_flat_flag",
+    "cal.dq_zero_flat_named_issue",
+    "cal.root_no_per_call_random_root"
+  ],
+  "failed_checks": [
+    "cal.cal1_host_ok",
+    "cal.cal2_host_ok",
+    "cal.dq_zero_flat_host_ok",
+    "cal.root_both_frames_ok",
+    "cal.root_shared_dependencies"
+  ],
+  "failures": [
+    {
+      "check": "cal.cal1_host_ok",
+      "expected": "ok + NativeObservation",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal2_host_ok",
+      "expected": "ok + NativeObservation",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_zero_flat_host_ok",
+      "expected": "ok + NativeObservation with a missing sample",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_both_frames_ok",
+      "expected": "both ok",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)/invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_shared_dependencies",
+      "expected": ">=1 identical dependency id across the two frames",
+      "actual": "0",
+      "detail": "a per-call random root would make the shared master ids differ"
+    }
+  ],
+  "kernel_status": "fail",
+  "checks": [
+    {
+      "check": "cal.services_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.register_builtin_types_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.register_processes_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.freeze_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.make_host_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.adu_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.bias_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dark_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.flat_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal1_host_ok",
+      "pass": false,
+      "expected": "ok + NativeObservation",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal2_host_ok",
+      "pass": false,
+      "expected": "ok + NativeObservation",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_flat_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_zero_flat_host_ok",
+      "pass": false,
+      "expected": "ok + NativeObservation with a missing sample",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_nan_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_nan_conflict_rejected",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_nan_conflict_no_native",
+      "pass": true,
+      "expected": "no NativeObservation",
+      "actual": "no value",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_second_adu_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_both_frames_ok",
+      "pass": false,
+      "expected": "both ok",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)/invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_shared_arrays_unchanged",
+      "pass": true,
+      "expected": "the same bias/dark ArrayRefs feed both frames",
+      "actual": "same objects",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_shared_dependencies",
+      "pass": false,
+      "expected": ">=1 identical dependency id across the two frames",
+      "actual": "0",
+      "detail": "a per-call random root would make the shared master ids differ"
+    },
+    {
+      "check": "cal.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.host_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "cal.root_deps1": 0,
+    "cal.root_deps2": 0
+  },
+  "resources": {}
+}

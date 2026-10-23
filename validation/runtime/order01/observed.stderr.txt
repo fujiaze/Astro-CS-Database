@@ -1,0 +1,11 @@
+[ok] order.open_command_ok
+[ok] order.make_pipe_ok
+[ok] order.high_key_does_not_take_reserved_slot
+[ok] order.low_key_send_ok
+[ok] order.first_receive_is_low_key
+[ok] order.high_key_send_ok_after_credit
+[ok] order.second_receive_is_high_key
+[ok] order.no_unbounded_reorder
+[ok] order.close_pipe_ok
+[ok] order.region_body_ok
+[ok] order.close_command_ok

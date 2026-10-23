@@ -1,0 +1,74 @@
+{
+  "case": "multi01",
+  "title": "weighted round robin: weight 1:2 dispatch ratio, no pool/command oversubscription, no starvation",
+  "milestone": "M2",
+  "contract_refs": [
+    "SCHEDULER.md S-MULTI",
+    "SCHEDULER.md#多command分配与公平性"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/multi01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/multi01",
+    "log": "validation/runtime/build/multi01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/multi01",
+  "status": "fail",
+  "reason": "required checks not attempted: multi.backlog_submitted, multi.sample_reached, multi.no_starvation, multi.ratio_1_to_2, multi.round_ratio_not_starved, multi.pool_concurrency_within_threads, multi.command_concurrency_within_ceiling, multi.backlog_drained, multi.close_weight1_ok, multi.close_weight2_ok; required checks failed: multi.open_weight1_ok, multi.open_weight2_ok; attempts 2 < min_attempts 12; successes == 0 (a case may not pass without a successful check); harness reports failures: [\"multi.open_weight1_ok\", \"multi.open_weight2_ok\"]",
+  "exit_code": 0,
+  "attempts": 2,
+  "successes": 0,
+  "expected_success_count": 12,
+  "observed_success_count": 0,
+  "required_checks": 12,
+  "missing_checks": [
+    "multi.backlog_submitted",
+    "multi.sample_reached",
+    "multi.no_starvation",
+    "multi.ratio_1_to_2",
+    "multi.round_ratio_not_starved",
+    "multi.pool_concurrency_within_threads",
+    "multi.command_concurrency_within_ceiling",
+    "multi.backlog_drained",
+    "multi.close_weight1_ok",
+    "multi.close_weight2_ok"
+  ],
+  "failed_checks": [
+    "multi.open_weight1_ok",
+    "multi.open_weight2_ok"
+  ],
+  "failures": [
+    {
+      "check": "multi.open_weight1_ok",
+      "expected": "ok",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pool:resource_exhausted: the command CPU ceiling exceeds the unique pool)",
+      "detail": ""
+    },
+    {
+      "check": "multi.open_weight2_ok",
+      "expected": "ok",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pool:resource_exhausted: the command CPU ceiling exceeds the unique pool)",
+      "detail": ""
+    }
+  ],
+  "kernel_status": "fail",
+  "checks": [
+    {
+      "check": "multi.open_weight1_ok",
+      "pass": false,
+      "expected": "ok",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pool:resource_exhausted: the command CPU ceiling exceeds the unique pool)",
+      "detail": ""
+    },
+    {
+      "check": "multi.open_weight2_ok",
+      "pass": false,
+      "expected": "ok",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pool:resource_exhausted: the command CPU ceiling exceeds the unique pool)",
+      "detail": ""
+    }
+  ],
+  "values": {},
+  "resources": {}
+}

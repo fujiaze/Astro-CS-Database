@@ -1,0 +1,37 @@
+{
+  "case": "d01_on",
+  "title": "ACSD_DEV_MODE=1: unselected probes are no-ops; science code/value/usage unchanged",
+  "milestone": "M3",
+  "contract_refs": [
+    "VERIFICATION.md D01",
+    "FOUNDATION_API.md#性能与中间数据入口"
+  ],
+  "fixed_configuration": {
+    "dev_mode": 1,
+    "probe": "validation.d01.snapshot",
+    "selected": false,
+    "invocations": 2
+  },
+  "required_checks": [
+    "d01_on.register_process_ok",
+    "d01_on.freeze_ok",
+    "d01_on.make_host_ok",
+    "d01_on.open_command_ok",
+    "d01_on.unselected_probe_false",
+    "d01_on.try_entries_noexcept",
+    "d01_on.baseline_invoke_ok",
+    "d01_on.unselected_payload_not_constructed",
+    "d01_on.repeat_invoke_ok",
+    "d01_on.science_code_unchanged",
+    "d01_on.science_value_unchanged",
+    "d01_on.science_usage_unchanged",
+    "d01_on.span_ids_allocated",
+    "d01_on.run_calls",
+    "d01_on.close_command_ok"
+  ],
+  "min_attempts": 15,
+  "expected_success_count": 15,
+  "tolerance": "identical Code/value/work across probe/no-probe invocations",
+  "link": "default",
+  "timeout_seconds": 120
+}

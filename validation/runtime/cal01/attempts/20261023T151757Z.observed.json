@@ -1,0 +1,220 @@
+{
+  "case": "cal01",
+  "source": "validation/runtime/cal01/cal01.cpp",
+  "status": "ran",
+  "attempts": 24,
+  "successes": 19,
+  "failures": [
+    {
+      "check": "cal.cal1_host_ok",
+      "expected": "ok + NativeObservation",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal2_host_ok",
+      "expected": "ok + NativeObservation",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_zero_flat_host_ok",
+      "expected": "ok + NativeObservation with a missing sample",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_both_frames_ok",
+      "expected": "both ok",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)/invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_shared_dependencies",
+      "expected": ">=1 identical dependency id across the two frames",
+      "actual": "0",
+      "detail": "a per-call random root would make the shared master ids differ"
+    }
+  ],
+  "checks": [
+    {
+      "check": "cal.services_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.register_builtin_types_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.register_processes_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.freeze_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.make_host_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.adu_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.bias_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dark_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.flat_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal1_host_ok",
+      "pass": false,
+      "expected": "ok + NativeObservation",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal2_host_ok",
+      "pass": false,
+      "expected": "ok + NativeObservation",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_flat_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_zero_flat_host_ok",
+      "pass": false,
+      "expected": "ok + NativeObservation with a missing sample",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_nan_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_nan_conflict_rejected",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_nan_conflict_no_native",
+      "pass": true,
+      "expected": "no NativeObservation",
+      "actual": "no value",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_second_adu_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_both_frames_ok",
+      "pass": false,
+      "expected": "both ok",
+      "actual": "invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)/invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_shared_arrays_unchanged",
+      "pass": true,
+      "expected": "the same bias/dark ArrayRefs feed both frames",
+      "actual": "same objects",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_shared_dependencies",
+      "pass": false,
+      "expected": ">=1 identical dependency id across the two frames",
+      "actual": "0",
+      "detail": "a per-call random root would make the shared master ids differ"
+    },
+    {
+      "check": "cal.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.host_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "cal.root_deps1": 0,
+    "cal.root_deps2": 0
+  },
+  "resources": {},
+  "commands": [],
+  "notes": [],
+  "command": "/workspace/Astro CS Database/validation/runtime/build/cal01",
+  "exit_code": 0,
+  "stderr_tail": "[ok] cal.services_ok\n[ok] cal.open_command_ok\n[ok] cal.register_builtin_types_ok\n[ok] cal.register_processes_ok\n[ok] cal.freeze_ok\n[ok] cal.make_host_ok\n[ok] cal.adu_array_ok\n[ok] cal.dq_array_ok\n[ok] cal.bias_array_ok\n[ok] cal.dark_array_ok\n[ok] cal.flat_array_ok\n[FAIL] cal.cal1_host_ok expected=ok + NativeObservation actual=invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)\n[FAIL] cal.cal2_host_ok expected=ok + NativeObservation actual=invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)\n[ok] cal.dq_flat_array_ok\n[FAIL] cal.dq_zero_flat_host_ok expected=ok + NativeObservation with a missing sample actual=invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)\n[ok] cal.dq_nan_array_ok\n[ok] cal.dq_nan_conflict_rejected\n[ok] cal.dq_nan_conflict_no_native\n[ok] cal.root_second_adu_ok\n[FAIL] cal.root_both_frames_ok expected=both ok actual=invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)/invalid_model(invalid_model:observation.calibrate:the raw quality array must be dimensionless)\n[ok] cal.root_shared_arrays_unchanged\n[FAIL] cal.root_shared_dependencies expected=>=1 identical dependency id across the two frames actual=0 detail=a per-call random root would make the shared master ids differ\n[ok] cal.close_command_ok\n[ok] cal.host_close_ok\n",
+  "timed_out": false
+}

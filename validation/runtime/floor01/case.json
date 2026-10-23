@@ -1,0 +1,44 @@
+{
+  "case": "floor01",
+  "title": "progress floor F=24 (input8+output8+scratch8) completes, 23 rejected before run",
+  "milestone": "M2",
+  "contract_refs": [
+    "SCHEDULER.md S-FLOOR",
+    "SCHEDULER.md#从计划算出可保证进展的容量"
+  ],
+  "fixed_configuration": {
+    "R": 8,
+    "F": 24,
+    "exact_command_ceiling": 32,
+    "insufficient_command_ceiling": 31,
+    "run_allocations": [
+      8,
+      8,
+      8
+    ]
+  },
+  "required_checks": [
+    "floor.register_process_ok",
+    "floor.freeze_ok",
+    "floor.make_host_ok",
+    "floor.open_exact_command_ok",
+    "floor.exact_32_ok",
+    "floor.exact_run_called",
+    "floor.progress_arena_present",
+    "floor.exact_allocated_24",
+    "floor.peak_covers_24",
+    "floor.held_allocated_separate",
+    "floor.close_exact_command_ok",
+    "floor.open_small_command_ok",
+    "floor.small_31_rejected_resource_exhausted",
+    "floor.small_31_before_run",
+    "floor.small_31_no_value",
+    "floor.close_small_command_ok",
+    "floor.host_close_ok"
+  ],
+  "min_attempts": 17,
+  "expected_success_count": 17,
+  "tolerance": "exact byte counts; rejection Code must be resource_exhausted",
+  "link": "default",
+  "timeout_seconds": 120
+}

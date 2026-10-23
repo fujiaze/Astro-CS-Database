@@ -1,0 +1,35 @@
+{
+  "case": "order01",
+  "title": "ordered pipe slot=1: a higher ready key cannot take the reserved minimum-key slot",
+  "milestone": "M2",
+  "contract_refs": [
+    "SCHEDULER.md S-ORDER",
+    "FOUNDATION_API.md ordered pipe"
+  ],
+  "fixed_configuration": {
+    "edge": 10,
+    "window": "max_items=1, max_queued_bytes=64 (payload Item=40 B)",
+    "send_order": [
+      "key item=1",
+      "key item=0"
+    ]
+  },
+  "required_checks": [
+    "order.open_command_ok",
+    "order.make_pipe_ok",
+    "order.high_key_does_not_take_reserved_slot",
+    "order.low_key_send_ok",
+    "order.first_receive_is_low_key",
+    "order.high_key_send_ok_after_credit",
+    "order.second_receive_is_high_key",
+    "order.no_unbounded_reorder",
+    "order.close_pipe_ok",
+    "order.region_body_ok",
+    "order.close_command_ok"
+  ],
+  "min_attempts": 11,
+  "expected_success_count": 11,
+  "tolerance": "delivery keys strictly increasing; high-key send not terminal within 25 ms",
+  "link": "default",
+  "timeout_seconds": 120
+}

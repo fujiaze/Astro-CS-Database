@@ -1,0 +1,15 @@
+[ok] work.open_command_ok
+[ok] work.first_segment_started
+[ok] work.first_consumed_4
+[ok] work.second_not_running_concurrently
+[ok] work.second_waits_for_resources
+[ok] work.second_not_double_reserved
+[ok] work.upper_gt_budget_rejected
+[ok] work.first_ok
+[ok] work.after_first_at_most_10
+[ok] work.second_readmitted_after_release
+[ok] work.second_ran_once
+[ok] work.second_consumed_6
+[ok] work.total_consumed_10
+[ok] work.total_within_budget
+[ok] work.close_command_ok

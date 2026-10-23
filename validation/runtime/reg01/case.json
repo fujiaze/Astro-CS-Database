@@ -1,0 +1,67 @@
+{
+  "case": "reg01",
+  "title": "registry: two typed processes freeze and invoke; every ambiguous/wrong call rejected by name",
+  "milestone": "M0",
+  "contract_refs": [
+    "VERIFICATION.md REG01",
+    "FOUNDATION_API.md#计划、注册和Host"
+  ],
+  "fixed_configuration": {
+    "processes": [
+      "validation.reg.alpha",
+      "validation.reg.beta"
+    ],
+    "positive": {
+      "alpha": 42,
+      "beta": 700
+    },
+    "negatives": [
+      "duplicate process",
+      "duplicate operation",
+      "missing codec",
+      "empty schema",
+      "TypeId/C++ mismatch",
+      "empty document",
+      "dependency cycle",
+      "unfrozen host",
+      "unknown process",
+      "unknown operation",
+      "wrong Request type"
+    ]
+  },
+  "required_checks": [
+    "reg.alpha_process_registered",
+    "reg.beta_process_registered",
+    "reg.freeze_ok",
+    "reg.manifest_nonempty",
+    "reg.make_host_ok",
+    "reg.open_command_ok",
+    "reg.invoke_alpha_ok",
+    "reg.invoke_alpha_value",
+    "reg.invoke_alpha_ran_once",
+    "reg.invoke_beta_ok",
+    "reg.invoke_beta_value",
+    "reg.unknown_process_unsupported",
+    "reg.unknown_operation_unsupported",
+    "reg.wrong_request_invalid_request",
+    "reg.wrong_request_before_run",
+    "reg.close_command_ok",
+    "reg.host_close_async_ok",
+    "reg.unfrozen_type_register_ok",
+    "reg.unfrozen_make_host_rejected",
+    "reg.duplicate_process_rejected",
+    "reg.duplicate_operation.first_add_ok",
+    "reg.duplicate_operation_rejected",
+    "reg.no_codec.add_ok",
+    "reg.missing_codec_rejected",
+    "reg.missing_schema_rejected",
+    "reg.typeid_cpp_mismatch_rejected",
+    "reg.missing_document_rejected",
+    "reg.dependency_cycle_rejected"
+  ],
+  "min_attempts": 28,
+  "expected_success_count": 28,
+  "tolerance": "exact integer values; Codes compared by name",
+  "link": "default",
+  "timeout_seconds": 120
+}

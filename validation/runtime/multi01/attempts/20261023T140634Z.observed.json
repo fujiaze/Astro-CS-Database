@@ -1,0 +1,45 @@
+{
+  "case": "multi01",
+  "source": "validation/runtime/multi01/multi01.cpp",
+  "status": "ran",
+  "attempts": 2,
+  "successes": 0,
+  "failures": [
+    {
+      "check": "multi.open_weight1_ok",
+      "expected": "ok",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pool:resource_exhausted: the command CPU ceiling exceeds the unique pool)",
+      "detail": ""
+    },
+    {
+      "check": "multi.open_weight2_ok",
+      "expected": "ok",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pool:resource_exhausted: the command CPU ceiling exceeds the unique pool)",
+      "detail": ""
+    }
+  ],
+  "checks": [
+    {
+      "check": "multi.open_weight1_ok",
+      "pass": false,
+      "expected": "ok",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pool:resource_exhausted: the command CPU ceiling exceeds the unique pool)",
+      "detail": ""
+    },
+    {
+      "check": "multi.open_weight2_ok",
+      "pass": false,
+      "expected": "ok",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pool:resource_exhausted: the command CPU ceiling exceeds the unique pool)",
+      "detail": ""
+    }
+  ],
+  "values": {},
+  "resources": {},
+  "commands": [],
+  "notes": [],
+  "command": "/workspace/Astro CS Database/validation/runtime/build/multi01",
+  "exit_code": 0,
+  "stderr_tail": "[FAIL] multi.open_weight1_ok expected=ok actual=resource_exhausted(resource_exhausted:runtime.pool:resource_exhausted: the command CPU ceiling exceeds the unique pool)\n[FAIL] multi.open_weight2_ok expected=ok actual=resource_exhausted(resource_exhausted:runtime.pool:resource_exhausted: the command CPU ceiling exceeds the unique pool)\n",
+  "timed_out": false
+}

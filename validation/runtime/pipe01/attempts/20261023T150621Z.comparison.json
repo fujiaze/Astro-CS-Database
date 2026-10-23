@@ -1,0 +1,215 @@
+{
+  "case": "pipe01",
+  "title": "bounded pipe: backpressure, cancel wake-up, EOF/failed/cancelled tri-state, ordered reduce",
+  "milestone": "M2",
+  "contract_refs": [
+    "VERIFICATION.md PIPE01",
+    "FOUNDATION_API.md#Pipe与广播"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/pipe01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/pipe01",
+    "log": "validation/runtime/build/pipe01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/pipe01",
+  "status": "fail",
+  "reason": "required checks not attempted: pipe.full_first_send_ok, pipe.full_first_received, pipe.full_second_send_after_consume_ok, pipe.full_second_received, pipe.full_close_command_ok, pipe.cancel_wakes_receive, pipe.cancel_receive_terminal_named, pipe.cancel_receive_close_command_ok, pipe.cancel_send_fill_ok, pipe.cancel_wakes_send, pipe.cancel_send_terminal_named, pipe.cancel_send_close_command_ok, pipe.order_make_pipe_ok, pipe.order_send_high_first_ok, pipe.order_send_low_ok, pipe.order_reduces_by_key, pipe.order_close_command_ok; required checks failed: pipe.full_second_send_backpressured; attempts 21 < min_attempts 37; harness reports failures: [\"pipe.full_second_send_backpressured\", \"pipe.full_send_named_state\"]",
+  "exit_code": 0,
+  "attempts": 21,
+  "successes": 19,
+  "expected_success_count": 37,
+  "observed_success_count": 19,
+  "required_checks": 37,
+  "missing_checks": [
+    "pipe.full_first_send_ok",
+    "pipe.full_first_received",
+    "pipe.full_second_send_after_consume_ok",
+    "pipe.full_second_received",
+    "pipe.full_close_command_ok",
+    "pipe.cancel_wakes_receive",
+    "pipe.cancel_receive_terminal_named",
+    "pipe.cancel_receive_close_command_ok",
+    "pipe.cancel_send_fill_ok",
+    "pipe.cancel_wakes_send",
+    "pipe.cancel_send_terminal_named",
+    "pipe.cancel_send_close_command_ok",
+    "pipe.order_make_pipe_ok",
+    "pipe.order_send_high_first_ok",
+    "pipe.order_send_low_ok",
+    "pipe.order_reduces_by_key",
+    "pipe.order_close_command_ok"
+  ],
+  "failed_checks": [
+    "pipe.full_second_send_backpressured"
+  ],
+  "failures": [
+    {
+      "check": "pipe.full_second_send_backpressured",
+      "expected": "send task still waiting with a full queue",
+      "actual": "state=6",
+      "detail": ""
+    },
+    {
+      "check": "pipe.full_send_named_state",
+      "expected": "a queued send waits for credit; a failed send is a named defect",
+      "actual": "first state=0 second state=6",
+      "detail": "the first/second send failed instead of waiting; later checks skipped"
+    }
+  ],
+  "kernel_status": "fail",
+  "checks": [
+    {
+      "check": "pipe.open_reject_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "pipe.zero_items_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": ""
+    },
+    {
+      "check": "pipe.zero_bytes_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": ""
+    },
+    {
+      "check": "pipe.unknown_edge_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": ""
+    },
+    {
+      "check": "pipe.unknown_region_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": ""
+    },
+    {
+      "check": "pipe.close_reject_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "pipe.eof_make_pipe_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "pipe.eof_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "pipe.eof_distinct",
+      "pass": true,
+      "expected": "PipeEnd{eof}",
+      "actual": "end=0",
+      "detail": ""
+    },
+    {
+      "check": "pipe.send_after_close_invalid_request",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.pipe:the pipe is already closed)",
+      "detail": ""
+    },
+    {
+      "check": "pipe.eof_close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "pipe.failed_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "pipe.failed_distinct",
+      "pass": true,
+      "expected": "PipeEnd{failed}",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "pipe.failed_keeps_issue",
+      "pass": true,
+      "expected": "original Issue reason preserved",
+      "actual": "validation.pipe.failed.reason",
+      "detail": ""
+    },
+    {
+      "check": "pipe.failed_close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "pipe.cancelled_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "pipe.cancelled_distinct",
+      "pass": true,
+      "expected": "PipeEnd{cancelled}",
+      "actual": "2",
+      "detail": ""
+    },
+    {
+      "check": "pipe.cancelled_close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "pipe.full_make_pipe_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "pipe.full_second_send_backpressured",
+      "pass": false,
+      "expected": "send task still waiting with a full queue",
+      "actual": "state=6",
+      "detail": ""
+    },
+    {
+      "check": "pipe.full_send_named_state",
+      "pass": false,
+      "expected": "a queued send waits for credit; a failed send is a named defect",
+      "actual": "first state=0 second state=6",
+      "detail": "the first/second send failed instead of waiting; later checks skipped"
+    }
+  ],
+  "values": {
+    "pipe.first_send_terminal_before_consume": false
+  },
+  "resources": {}
+}

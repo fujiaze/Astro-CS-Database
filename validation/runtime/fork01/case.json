@@ -1,0 +1,42 @@
+{
+  "case": "fork01",
+  "title": "broadcast: one physical 8-byte block, two logical branch credits, slow branch not lost",
+  "milestone": "M2",
+  "contract_refs": [
+    "SCHEDULER.md S-FORK",
+    "FOUNDATION_API.md#Pipe与广播"
+  ],
+  "fixed_configuration": {
+    "block_bytes": 8,
+    "edges": [
+      10,
+      11
+    ],
+    "window": "max_items=1, max_queued_bytes=8",
+    "slow_branch_delay_ms": 30
+  },
+  "required_checks": [
+    "fork.open_command_ok",
+    "fork.pipe_a_ok",
+    "fork.pipe_b_ok",
+    "fork.reserve_arena_ok",
+    "fork.allocate_8_ok",
+    "fork.freeze_ok",
+    "fork.broadcast_ok",
+    "fork.one_physical_8b",
+    "fork.branch_a_receives",
+    "fork.slow_branch_not_lost",
+    "fork.both_branches_same_bytes",
+    "fork.both_branches_same_lease",
+    "fork.join_not_early",
+    "fork.close_a_ok",
+    "fork.close_b_ok",
+    "fork.region_body_ok",
+    "fork.close_command_ok"
+  ],
+  "min_attempts": 17,
+  "expected_success_count": 17,
+  "tolerance": "allocated delta exactly 8 bytes; Lease owner pointers identical",
+  "link": "default",
+  "timeout_seconds": 120
+}

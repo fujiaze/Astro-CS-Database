@@ -1,0 +1,17 @@
+[ok] floor.register_process_ok
+[ok] floor.freeze_ok
+[ok] floor.make_host_ok
+[ok] floor.open_exact_command_ok
+[ok] floor.exact_32_ok
+[ok] floor.exact_run_called
+[ok] floor.progress_arena_present
+[ok] floor.exact_allocated_24
+[ok] floor.peak_covers_24
+[ok] floor.held_allocated_separate
+[ok] floor.close_exact_command_ok
+[ok] floor.open_small_command_ok
+[ok] floor.small_31_rejected_resource_exhausted
+[ok] floor.small_31_before_run
+[ok] floor.small_31_no_value
+[ok] floor.close_small_command_ok
+[ok] floor.host_close_ok

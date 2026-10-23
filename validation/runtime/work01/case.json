@@ -1,0 +1,53 @@
+{
+  "case": "work01",
+  "title": "work_upper is an atomic ancestor reservation: upper=6+6 under max_work=10 is rejected, unused 2 return",
+  "milestone": "M1",
+  "contract_refs": [
+    "SCHEDULER.md#资源账本的原子操作",
+    "SCHEDULER.md S-WORK"
+  ],
+  "fixed_configuration": {
+    "max_work": 10,
+    "segment1": {
+      "upper": 6,
+      "consumes": 4,
+      "holds": true
+    },
+    "segment2": {
+      "upper": 6,
+      "submitted_while_1_holds": true,
+      "expected": "waits, never runs"
+    },
+    "segment3": {
+      "upper": 11,
+      "expected": "resource_exhausted"
+    },
+    "segment4": {
+      "upper": 1,
+      "after_consumed_10": true,
+      "expected": "resource_exhausted"
+    }
+  },
+  "required_checks": [
+    "work.open_command_ok",
+    "work.first_segment_started",
+    "work.first_consumed_4",
+    "work.second_not_running_concurrently",
+    "work.second_waits_for_resources",
+    "work.second_not_double_reserved",
+    "work.upper_gt_budget_rejected",
+    "work.first_ok",
+    "work.second_readmitted_after_release",
+    "work.after_first_at_most_10",
+    "work.second_ran_once",
+    "work.second_consumed_6",
+    "work.total_consumed_10",
+    "work.total_within_budget",
+    "work.close_command_ok"
+  ],
+  "min_attempts": 15,
+  "expected_success_count": 15,
+  "tolerance": "exact work unit counts; error Code compared by name",
+  "link": "default",
+  "timeout_seconds": 120
+}

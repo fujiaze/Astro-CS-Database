@@ -1,0 +1,157 @@
+{
+  "case": "floor01",
+  "title": "progress floor F=24 (input8+output8+scratch8) completes, 23 rejected before run",
+  "milestone": "M2",
+  "contract_refs": [
+    "SCHEDULER.md S-FLOOR",
+    "SCHEDULER.md#从计划算出可保证进展的容量"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/floor01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/floor01",
+    "log": "validation/runtime/build/floor01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/floor01",
+  "status": "pass",
+  "reason": "all required checks passed",
+  "exit_code": 0,
+  "attempts": 17,
+  "successes": 17,
+  "expected_success_count": 17,
+  "observed_success_count": 17,
+  "required_checks": 17,
+  "missing_checks": [],
+  "failed_checks": [],
+  "failures": [],
+  "kernel_status": "pass",
+  "checks": [
+    {
+      "check": "floor.register_process_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "floor.freeze_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "floor.make_host_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "floor.open_exact_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "floor.exact_32_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "floor.exact_run_called",
+      "pass": true,
+      "expected": "1",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "floor.progress_arena_present",
+      "pass": true,
+      "expected": "ctx.progress != null",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "floor.exact_allocated_24",
+      "pass": true,
+      "expected": "24",
+      "actual": "24",
+      "detail": ""
+    },
+    {
+      "check": "floor.peak_covers_24",
+      "pass": true,
+      "expected": "peak_allocated.host_bytes >= 24",
+      "actual": "24",
+      "detail": ""
+    },
+    {
+      "check": "floor.held_allocated_separate",
+      "pass": true,
+      "expected": "held >= allocated",
+      "actual": "0 >= 0",
+      "detail": "the plan's R is held even when it is not physically committed"
+    },
+    {
+      "check": "floor.close_exact_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "floor.open_small_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "floor.small_31_rejected_resource_exhausted",
+      "pass": true,
+      "expected": "resource_exhausted",
+      "actual": "resource_exhausted(resource_exhausted:host.invoke:R+F cannot be admitted at the declared minimum block size and placement; the plan must reduce its working set or the request must fail before run)",
+      "detail": ""
+    },
+    {
+      "check": "floor.small_31_before_run",
+      "pass": true,
+      "expected": "1 run calls",
+      "actual": "1",
+      "detail": "the progress floor may never be silently shrunk"
+    },
+    {
+      "check": "floor.small_31_no_value",
+      "pass": true,
+      "expected": "no value",
+      "actual": "no value",
+      "detail": ""
+    },
+    {
+      "check": "floor.close_small_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "floor.host_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "floor.held": 0,
+    "floor.claimed": 0,
+    "floor.allocated": 0,
+    "floor.peak": 24
+  },
+  "resources": {}
+}

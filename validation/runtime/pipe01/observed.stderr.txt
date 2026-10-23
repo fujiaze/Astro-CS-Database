@@ -1,0 +1,28 @@
+[ok] pipe.open_reject_command_ok
+[ok] pipe.zero_items_rejected
+[ok] pipe.zero_bytes_rejected
+[ok] pipe.unknown_edge_rejected
+[ok] pipe.unknown_region_rejected
+[ok] pipe.close_reject_command_ok
+[ok] pipe.eof_make_pipe_ok
+[ok] pipe.eof_close_ok
+[ok] pipe.eof_distinct
+[ok] pipe.send_after_close_invalid_request
+[ok] pipe.eof_close_command_ok
+[ok] pipe.failed_close_ok
+[ok] pipe.failed_distinct
+[ok] pipe.failed_keeps_issue
+[ok] pipe.failed_close_command_ok
+[ok] pipe.cancelled_close_ok
+[ok] pipe.cancelled_distinct
+[ok] pipe.cancelled_close_command_ok
+[ok] pipe.full_make_pipe_ok
+[ok] pipe.full_second_send_backpressured
+[ok] pipe.full_first_received
+[ok] pipe.full_first_send_ok
+[ok] pipe.full_second_send_after_consume_ok
+[ok] pipe.full_second_received
+[ok] pipe.full_close_command_ok
+[ok] pipe.order_make_pipe_ok
+
+timeout after 120 s

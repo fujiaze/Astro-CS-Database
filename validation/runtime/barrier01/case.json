@@ -1,0 +1,48 @@
+{
+  "case": "barrier01",
+  "title": "E=0 barrier: two cohort contributions, F=max(region floors) not the sum",
+  "milestone": "M2",
+  "contract_refs": [
+    "SCHEDULER.md S-BARRIER",
+    "FOUNDATION_API.md#重规划、region与清理"
+  ],
+  "fixed_configuration": {
+    "R": 24,
+    "region_floors": [
+      24,
+      16
+    ],
+    "max_F": 24,
+    "sum_F": 40,
+    "exact_ceiling": 48,
+    "insufficient_ceiling": 47,
+    "elastic": 0
+  },
+  "required_checks": [
+    "barrier.register_process_ok",
+    "barrier.freeze_ok",
+    "barrier.make_host_ok",
+    "barrier.plan_floor_is_max",
+    "barrier.elastic_zero",
+    "barrier.open_exact_command_ok",
+    "barrier.exact_R_plus_max_admitted",
+    "barrier.run_called",
+    "barrier.two_contributions",
+    "barrier.barrier_sees_two_contributions",
+    "barrier.region0_calls",
+    "barrier.region1_calls",
+    "barrier.run_region_binds_region",
+    "barrier.unknown_region_invalid_request",
+    "barrier.close_exact_command_ok",
+    "barrier.open_insufficient_command_ok",
+    "barrier.R_plus_max_minus_1_rejected",
+    "barrier.rejected_before_run",
+    "barrier.close_insufficient_command_ok",
+    "barrier.host_close_ok"
+  ],
+  "min_attempts": 20,
+  "expected_success_count": 20,
+  "tolerance": "exact byte counts; admission uses max region floor",
+  "link": "default",
+  "timeout_seconds": 120
+}
