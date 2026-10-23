@@ -6,15 +6,36 @@
 // NaN/DQ consistency and the per-value flat range are checked by the CPU
 // stage after the block hash, in calibrate_block.
 //
-// The plan is the fixed resource model of CALIBRATION_WALKTHROUGH.md:
+// The plan is the fixed resource model of CALIBRATION_WALKTHROUGH.md, with two
+// deliberate corrections after review (P1-8):
+//
+//   * the region is serial: the current composition (stream_map_ordered) does
+//     not use rt::make_pipe/permit/credit, so the plan declares NO pipe edges
+//     and restricts PlanOptions.window to 1.  Declaring an edge we never use
+//     would overstate the scheduler capability; a future pipe integration adds
+//     the edges together with the real credit handling.
+//   * S is a function of n (storage staging + encode buffer + fixed codec
+//     state), not a 1 MiB constant; the allocator measurement of cal_host is
+//     recorded as support, not as a proof of the peak.
+//
 //   n = block_elements, N = elements, cohorts = ceil(N/n)
-//   one stream region (id 0) with stages 0 read, 1 calibrate, 2 write
-//   edges 0->1 and 1->2, window = PlanOptions.window (default 1)
+//   one stream region (id 0) with serial stages 0 read, 1 calibrate, 2 write
 //   input payload per cohort  raw+bias+dark+flat (4 x 8n) + raw DQ 2n = 34n
 //   output payload per cohort value+lower+upper (3 x 8n) + DQ 2n = 26n
-//   progress_floor F = 60n + S + control
+//   progress_floor F = 60n + S(n) + control
 //   persistent R = final output (memory placement) + final NoiseModel arrays
-//                   + ErrorRecord/metadata/control
+//                   + unaccounted frame materialization + metadata/control
+//
+// Unaccounted std::vector materialization (NOT arena-metered, charged
+// conservatively to R; this is an upper estimate, not a measured peak):
+//   synchronous calibrate_observation:
+//     raw 8N, DQ 2N, bias 8N, dark 8N, flat 8N, value/lower/upper 24N, DQ 2N,
+//     inverse_flat 8N, assembly flat copy 8N, raw copy 8N, bias copy 8N
+//     = 92N (kFrameMaterializationBytesPerElement)
+//   runtime finish_native reads back value 8N, DQ 2N, flat 8N, raw 8N and bias
+//   8N and the shared assembly copies flat/raw/bias/inverse_flat (another 32N),
+//   = 66N, i.e. below the same 92N term.  The noise-model weight vectors and
+//   the LinearAction diagonal copies are counted in noise_model_bytes().
 #include <algorithm>
 #include <cstdint>
 #include <limits>
@@ -35,12 +56,25 @@ namespace {
 
 constexpr const char* kOrigin = "observation.calibrate";
 
-// The provisional conservative upper bound of the CPU/Storage working set of
-// one cohort (interval primitive scratch, hashing and codec state).  The
-// implementation must replace it with the measured/allocated upper bound from
-// the numerics/Storage workspace entry once those services expose it; until
-// then it is deliberately larger than the actual per-sample workspace.
-constexpr U64 kStorageWorkspaceUpper = 1ull << 20;  // 1 MiB
+// The storage working set of one cohort that is not one of the explicit input/
+// output payloads:
+//   * one canonical I/O block staging buffer and its decompression buffer
+//     (the 1 MiB canonical array block of OBJECTS.md), read one array at a
+//     time;
+//   * the append encode vector (one block, 8n bytes worst case), which the
+//     runtime allocates as an unmanaged std::vector;
+//   * fixed hash/zstd/control state.
+// The function is linear in n and is charged in F; the cal_host allocator
+// measurement is recorded as support, not as a peak proof.
+constexpr U64 kCanonicalIoBlockBytes = 1ull << 20;   // 1 MiB
+constexpr U64 kStorageFixedWorkspace = 64ull << 10;  // 64 KiB
+constexpr U64 kFrameMaterializationBytesPerElement = 92;
+
+// One native sample = one work unit of the calibration stage.  Storage work is
+// 1 + bytes/4096 (runtime.storage work_units), and begin/append/seal each
+// consume their own share; see the helpers below.
+constexpr U64 kBeginWorkPerWriter = 16;
+constexpr U64 kSealWorkPerWriter = 16;
 
 // Fixed control-node budget of one cohort plan and of the final assembly.
 constexpr U64 kCohortControlBytes = 4ull << 10;    // 4 KiB
@@ -51,7 +85,8 @@ constexpr U64 kCleanupBytes = 64ull << 10;         // 4 writer states + nodes
 constexpr U64 kCleanupWorkUpper = 64;
 
 constexpr U64 kDefaultBlockElements = 65536;
-constexpr U32 kMaxWindow = 4;
+// The serial composition declares exactly one window: no pipe credit exists.
+constexpr U32 kSerialWindow = 1;
 
 U64 saturating_mul(U64 a, U64 b) {
   if (a == 0 || b == 0) return 0;
@@ -62,6 +97,33 @@ U64 saturating_mul(U64 a, U64 b) {
 U64 saturating_add(U64 a, U64 b) {
   if (a > std::numeric_limits<U64>::max() - b) return std::numeric_limits<U64>::max();
   return a + b;
+}
+
+U64 work_units(U64 bytes) { return 1 + bytes / 4096; }
+
+U64 storage_workspace_upper(U64 n) {
+  return saturating_add(
+      saturating_mul(2, kCanonicalIoBlockBytes),
+      saturating_add(saturating_mul(n, 8), kStorageFixedWorkspace));
+}
+
+U64 frame_materialization_upper(U64 elements) {
+  return saturating_mul(elements, kFrameMaterializationBytesPerElement);
+}
+
+// The reservations of the read stage: up to five input arrays (raw f64, raw
+// u16, bias, dark, flat), each read_async reserves 64 + work_units(8n) (the
+// runtime uses the f64 byte count even for the u16 DQ array).
+U64 read_work_upper(U64 n) {
+  return saturating_mul(5, saturating_add(64, work_units(saturating_mul(n, 8))));
+}
+
+// The write stage: four begin, four append-encode and four seal segments.
+U64 write_work_upper(U64 n) {
+  return saturating_add(
+      saturating_mul(4, kBeginWorkPerWriter),
+      saturating_add(saturating_mul(4, work_units(saturating_mul(n, 8))),
+                     saturating_mul(4, kSealWorkPerWriter)));
 }
 
 std::string hex_id(const std::string& text) {
@@ -83,187 +145,12 @@ std::string array_text(const ArrayRef& array) {
   return text;
 }
 
-// The declared root identity of a noise model: every concatenated root must
-// carry a complete SharedId and a factor, otherwise the shared/cross term
-// cannot be merged later.
-Result<Done> validate_noise_model_metadata(const Ref<NoiseModel>& model, const char* label) {
-  if (!model) return model::ok_result(Done{});
-  const std::size_t roots = model->innovations.size() + model->shared_factors.size();
-  if (model->influence.size() < roots) {
-    return model::fail<Done>(Code::invalid_model,
-                             std::string("the ") + label +
-                                 " noise model has fewer influences than roots",
-                             kOrigin, "the calibration cannot be planned");
-  }
-  auto check_root = [&](const Ref<NoiseRoot>& root, const char* what) -> Result<Done> {
-    if (!root || !root->factor) {
-      return model::fail<Done>(Code::invalid_model,
-                               std::string("the ") + label + " " + what +
-                                   " root has no factor",
-                               kOrigin, "the noise model cannot be merged");
-    }
-    const SharedId& id = root->shared_id;
-    if (id.external_namespace.empty() || id.entity.empty() || id.model_revision.empty() ||
-        id.component.empty()) {
-      return model::fail<Done>(Code::invalid_model,
-                               std::string("the ") + label + " " + what +
-                                   " root has an incomplete shared identity",
-                               kOrigin, "the noise root cannot be merged by identity");
-    }
-    return model::ok_result(Done{});
-  };
-  for (const Ref<NoiseRoot>& root : model->innovations) {
-    Result<Done> check = check_root(root, "innovation");
-    if (!ok(check)) return check;
-  }
-  for (const Ref<NoiseRoot>& root : model->shared_factors) {
-    Result<Done> check = check_root(root, "shared");
-    if (!ok(check)) return check;
-  }
-  // A shared root must appear once: two identical identities would be counted
-  // as two independent random roots.
-  for (std::size_t i = 0; i < model->shared_factors.size(); ++i) {
-    for (std::size_t j = i + 1; j < model->shared_factors.size(); ++j) {
-      const SharedId& a = model->shared_factors[i]->shared_id;
-      const SharedId& b = model->shared_factors[j]->shared_id;
-      if (a.external_namespace == b.external_namespace && a.entity == b.entity &&
-          a.model_revision == b.model_revision && a.component == b.component) {
-        return model::fail<Done>(Code::invalid_model,
-                                 std::string("the ") + label +
-                                     " noise model lists the same shared root twice",
-                                 kOrigin, "the cross term would be counted twice");
-      }
-    }
-  }
-  return model::ok_result(Done{});
-}
-
-Result<Done> check_array_metadata(const ArrayRef& array, U64 count, DType dtype,
-                                  const char* label, bool check_dimensionless) {
-  if (!array) return model::ok_result(Done{});
-  if (array->dtype != dtype) {
-    return model::fail<Done>(Code::invalid_model,
-                             std::string("the ") + label + " array has the wrong dtype",
-                             kOrigin, "the calibration cannot be planned");
-  }
-  if (array->index_id.empty()) {
-    return model::fail<Done>(Code::invalid_model,
-                             std::string("the ") + label + " array has no index", kOrigin,
-                             "the calibration cannot be planned");
-  }
-  if (!observation::array_has_count(*array, count)) {
-    return model::fail<Done>(Code::invalid_model,
-                             std::string("the ") + label + " array does not match the frame",
-                             kOrigin, "the calibration cannot be planned");
-  }
-  if (array->unit.scale.empty()) {
-    return model::fail<Done>(Code::invalid_model,
-                             std::string("the ") + label + " array has no unit", kOrigin,
-                             "the calibration cannot be planned");
-  }
-  if (check_dimensionless && (array->unit.scale != "1" || array->unit.linear_power != 0)) {
-    return model::fail<Done>(Code::invalid_model,
-                             std::string("the ") + label + " array must be dimensionless", kOrigin,
-                             "the data quality flags are not a physical quantity");
-  }
-  return model::ok_result(Done{});
-}
-
-// Metadata validation shared by validate/bounds/plan.
-Result<Done> validate_metadata(const Ref<RawObservation>& raw, const Calibration& request) {
-  if (!raw) {
-    return model::fail<Done>(Code::invalid_request, "no raw observation supplied", kOrigin,
-                             "the observation cannot be calibrated");
-  }
-  if (!raw->adu || !raw->dq) {
-    return model::fail<Done>(Code::invalid_model,
-                             "the raw observation has no data or quality array", kOrigin,
-                             "the observation cannot be calibrated");
-  }
-  if (!raw->source_index) {
-    return model::fail<Done>(Code::invalid_model, "the raw observation has no source index",
-                             kOrigin, "the observation cannot be calibrated");
-  }
-  if (raw->width == 0 || raw->height == 0) {
-    return model::fail<Done>(Code::invalid_model, "the frame has no samples", kOrigin,
-                             "the observation cannot be calibrated");
-  }
-  if (raw->width > std::numeric_limits<U64>::max() / raw->height) {
-    return model::fail<Done>(Code::invalid_model, "the frame size overflows", kOrigin,
-                             "the observation cannot be calibrated");
-  }
-  const U64 count = raw->width * raw->height;
-  if (raw->source_index->size != count) {
-    return model::fail<Done>(Code::invalid_model, "the source index does not cover the frame",
-                             kOrigin, "the observation cannot be calibrated");
-  }
-  Result<Done> adu =
-      check_array_metadata(raw->adu, count, DType::f64, "raw data", false);
-  if (!ok(adu)) return adu;
-  Result<Done> dq = check_array_metadata(raw->dq, count, DType::u16, "raw quality", true);
-  if (!ok(dq)) return dq;
-
-  Result<Done> bias = check_array_metadata(request.bias, count, DType::f64, "bias", false);
-  if (!ok(bias)) return bias;
-  Result<Done> dark = check_array_metadata(request.dark, count, DType::f64, "dark", false);
-  if (!ok(dark)) return dark;
-  Result<Done> flat = check_array_metadata(request.flat, count, DType::f64, "flat", false);
-  if (!ok(flat)) return flat;
-
-  if (raw->frame.empty()) {
-    return model::fail<Done>(Code::invalid_model, "the frame has no identity", kOrigin,
-                             "the calibrated observation cannot keep the frame");
-  }
-  if (!raw->footprints) {
-    return model::fail<Done>(Code::unavailable, "the frame has no detector footprint", kOrigin,
-                             "the footprint capability is missing");
-  }
-
-  if (!std::isfinite(request.exposure_seconds) || !(request.exposure_seconds > 0.0)) {
-    return model::fail<Done>(Code::invalid_model,
-                             "the exposure time must be finite and positive", kOrigin,
-                             "the observation cannot be calibrated");
-  }
-  if (!request.flat) {
-    // An absent flat is the explicit normalisation 1, never a 0 that silently
-    // becomes "no flat".
-    if (request.flat_normalization != 1.0) {
-      return model::fail<Done>(Code::invalid_model,
-                               "an absent flat requires the explicit normalisation 1", kOrigin,
-                               "the calibration cannot be planned");
-    }
-  } else {
-    if (!std::isfinite(request.flat_normalization) || !(request.flat_normalization > 0.0)) {
-      return model::fail<Done>(Code::invalid_model,
-                               "the flat normalisation must be finite and positive", kOrigin,
-                               "the observation cannot be calibrated");
-    }
-  }
-  if (request.dark) {
-    if (!std::isfinite(request.dark_exposure_seconds) || !(request.dark_exposure_seconds > 0.0)) {
-      return model::fail<Done>(Code::invalid_model,
-                               "the dark exposure time must be positive when a dark is used",
-                               kOrigin, "the observation cannot be calibrated");
-    }
-    const double ratio = request.exposure_seconds / request.dark_exposure_seconds;
-    if (!std::isfinite(ratio) || !(ratio > 0.0)) {
-      return model::fail<Done>(Code::invalid_model, "the exposure ratio must be positive", kOrigin,
-                               "the observation cannot be calibrated");
-    }
-  }
-  Result<Done> raw_noise = validate_noise_model_metadata(request.raw_noise, "raw");
-  if (!ok(raw_noise)) return raw_noise;
-  Result<Done> master_noise = validate_noise_model_metadata(request.master_noise, "master");
-  if (!ok(master_noise)) return master_noise;
-  return model::ok_result(Done{});
-}
-
 Result<Done> require_input(const Ref<CalibrateInput>& input) {
   if (!input) {
     return model::fail<Done>(Code::invalid_request, "no calibration input supplied", kOrigin,
                              "the observation cannot be calibrated");
   }
-  return validate_metadata(input->raw, input->request);
+  return observation::validate_calibration_input(input->raw, input->request);
 }
 
 U64 element_count(const Ref<RawObservation>& raw) {
@@ -317,7 +204,7 @@ Result<rt::PlanBounds> bounds_calibration(rt::InvocationContext, Ref<CalibrateIn
   bounds.min_block_elements = 1;
   bounds.max_block_elements = std::min(elements, kDefaultBlockElements);
   if (bounds.max_block_elements == 0) bounds.max_block_elements = 1;
-  bounds.max_window = kMaxWindow;
+  bounds.max_window = kSerialWindow;
   bounds.allow_spill = true;
   return model::ok_result(bounds);
 }
@@ -335,10 +222,11 @@ Result<rt::InvocationPlan> plan_calibration(rt::InvocationContext, Ref<Calibrate
                                            "the block size is outside the legal range", kOrigin,
                                            "the calibration cannot be planned");
   }
-  if (options.window == 0 || options.window > kMaxWindow) {
-    return model::fail<rt::InvocationPlan>(Code::invalid_request,
-                                           "the window is outside the legal range", kOrigin,
-                                           "the calibration cannot be planned");
+  if (options.window != kSerialWindow) {
+    return model::fail<rt::InvocationPlan>(
+        Code::invalid_request,
+        "the serial plan only accepts window 1; the pipe credit path is not declared", kOrigin,
+        "the calibration cannot be planned with an unsupported window");
   }
   if (options.placement == rt::Placement::spill) {
     // Spill is allowed: the bounds advertise it and the four arrays have the
@@ -355,7 +243,7 @@ Result<rt::InvocationPlan> plan_calibration(rt::InvocationContext, Ref<Calibrate
 
   const U64 input_payload = saturating_mul(34, n);   // 4 maps * 8n + DQ 2n
   const U64 output_payload = saturating_mul(26, n);  // 3 values * 8n + DQ 2n
-  const U64 workspace = kStorageWorkspaceUpper;
+  const U64 workspace = storage_workspace_upper(n);
   const U64 progress_bytes =
       saturating_add(saturating_add(input_payload, output_payload),
                      saturating_add(workspace, kCohortControlBytes));
@@ -363,9 +251,10 @@ Result<rt::InvocationPlan> plan_calibration(rt::InvocationContext, Ref<Calibrate
   const U64 final_arrays =
       options.placement == rt::Placement::memory ? saturating_mul(26, elements) : 0;
   const U64 model_bytes = noise_model_bytes(input->request, elements);
-  const U64 persistent_bytes =
-      saturating_add(saturating_add(final_arrays, model_bytes),
-                     saturating_add(kFinalMetadataBytes, kPlanControlBytes));
+  const U64 materialization = frame_materialization_upper(elements);
+  const U64 persistent_bytes = saturating_add(
+      saturating_add(saturating_add(final_arrays, model_bytes), materialization),
+      saturating_add(kFinalMetadataBytes, kPlanControlBytes));
   if (persistent_bytes == std::numeric_limits<U64>::max() ||
       progress_bytes == std::numeric_limits<U64>::max()) {
     return model::fail<rt::InvocationPlan>(Code::resource_exhausted,
@@ -413,7 +302,8 @@ Result<rt::InvocationPlan> plan_calibration(rt::InvocationContext, Ref<Calibrate
   read_stage.id = 0;
   read_stage.output_upper.host_bytes = input_payload;
   read_stage.control_bytes = kStageControlBytes;
-  read_stage.work_upper = 0;
+  // Covers the reservations/consumption of up to five correlated reads.
+  read_stage.work_upper = read_work_upper(n);
 
   rt::StageSpec calibrate_stage;
   calibrate_stage.id = 1;
@@ -428,29 +318,16 @@ Result<rt::InvocationPlan> plan_calibration(rt::InvocationContext, Ref<Calibrate
   write_stage.id = 2;
   write_stage.predecessors = {1};
   write_stage.control_bytes = kStageControlBytes;
-  write_stage.work_upper = 0;
+  // Four begin + four append-encode + four seal segments.
+  write_stage.work_upper = write_work_upper(n);
 
   region.stages = {read_stage, calibrate_stage, write_stage};
 
-  rt::EdgeSpec read_edge;
-  read_edge.id = 0;
-  read_edge.from = 0;
-  read_edge.to = 1;
-  read_edge.max_block_bytes = input_payload;
-  read_edge.window.max_items = options.window;
-  read_edge.window.max_queued_bytes = saturating_mul(input_payload, options.window);
-  read_edge.window.order = rt::PipeOrder::ordered;
-
-  rt::EdgeSpec write_edge;
-  write_edge.id = 1;
-  write_edge.from = 1;
-  write_edge.to = 2;
-  write_edge.max_block_bytes = output_payload;
-  write_edge.window.max_items = options.window;
-  write_edge.window.max_queued_bytes = saturating_mul(output_payload, options.window);
-  write_edge.window.order = rt::PipeOrder::ordered;
-
-  region.edges = {read_edge, write_edge};
+  // No edges: the current composition is serial and uses no pipe/permit
+  // credit.  Adding edges here without make_pipe in stream_map_ordered would
+  // overstate the scheduler capability (P1-8c).  Stages keep their precedence
+  // for diagnostics only.
+  region.edges.clear();
   plan.regions = {region};
   plan.region_edges.clear();
   return model::ok_result(plan);

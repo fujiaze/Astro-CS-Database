@@ -34,41 +34,20 @@ constexpr const char* kOrigin = "calibrate_observation";
 
 Result<Ref<NativeObservation>> calibrate_observation(Context& context, Ref<RawObservation> raw,
                                                      const Calibration& request) {
-  if (!raw) {
-    return model::fail<Ref<NativeObservation>>(Code::invalid_request,
-                                               "no raw observation supplied", kOrigin,
+  // The metadata verdict is not duplicated here: the synchronous entry point
+  // and the typed validate/bounds/plan hooks all call the single shared
+  // validation of the module, so the same RawObservation/Calibration cannot
+  // produce two different conclusions (P1-4).
+  const Result<rt::Done> metadata = observation::validate_calibration_input(raw, request);
+  if (!ok(metadata)) {
+    const std::string reason =
+        metadata.assessment.issues.empty()
+            ? std::string("the calibration input is invalid")
+            : metadata.assessment.issues.front().reason;
+    return model::fail<Ref<NativeObservation>>(metadata.code, reason, kOrigin,
                                                "the observation cannot be calibrated");
-  }
-  if (!raw->adu || !raw->dq) {
-    return model::fail<Ref<NativeObservation>>(Code::invalid_model,
-                                               "the raw observation has no data or quality array",
-                                               kOrigin, "the observation cannot be calibrated");
-  }
-  if (!raw->source_index) {
-    return model::fail<Ref<NativeObservation>>(Code::invalid_model,
-                                               "the raw observation has no source index", kOrigin,
-                                               "the observation cannot be calibrated");
-  }
-  if (raw->width == 0 || raw->height == 0) {
-    return model::fail<Ref<NativeObservation>>(Code::invalid_model, "the frame has no samples",
-                                               kOrigin, "the observation cannot be calibrated");
-  }
-  if (raw->width > (~0ull) / raw->height) {
-    return model::fail<Ref<NativeObservation>>(Code::invalid_model, "the frame size overflows",
-                                               kOrigin, "the observation cannot be calibrated");
   }
   const U64 count = raw->width * raw->height;
-  if (raw->source_index->size != count) {
-    return model::fail<Ref<NativeObservation>>(
-        Code::invalid_model, "the source index does not cover the frame", kOrigin,
-        "the observation cannot be calibrated");
-  }
-  if (!observation::array_has_count(*raw->adu, count) ||
-      !observation::array_has_count(*raw->dq, count)) {
-    return model::fail<Ref<NativeObservation>>(Code::invalid_model,
-                                               "the raw arrays do not match the frame shape", kOrigin,
-                                               "the observation cannot be calibrated");
-  }
 
   Result<std::vector<double>> adu = observation::read_f64_values(context, raw->adu);
   if (!ok(adu)) {
@@ -88,11 +67,6 @@ Result<Ref<NativeObservation>> calibrate_observation(Context& context, Ref<RawOb
   std::vector<double> dark;
   std::vector<double> flat;
   if (has_bias) {
-    if (!observation::array_has_count(*request.bias, count)) {
-      return model::fail<Ref<NativeObservation>>(Code::invalid_model,
-                                                 "the bias map does not match the frame", kOrigin,
-                                                 "the observation cannot be calibrated");
-    }
     Result<std::vector<double>> values = observation::read_f64_values(context, request.bias);
     if (!ok(values)) {
       return model::fail<Ref<NativeObservation>>(values.code, "the bias map cannot be read", kOrigin,
@@ -101,11 +75,6 @@ Result<Ref<NativeObservation>> calibrate_observation(Context& context, Ref<RawOb
     bias = val(values);
   }
   if (has_dark) {
-    if (!observation::array_has_count(*request.dark, count)) {
-      return model::fail<Ref<NativeObservation>>(Code::invalid_model,
-                                                 "the dark map does not match the frame", kOrigin,
-                                                 "the observation cannot be calibrated");
-    }
     Result<std::vector<double>> values = observation::read_f64_values(context, request.dark);
     if (!ok(values)) {
       return model::fail<Ref<NativeObservation>>(values.code, "the dark map cannot be read", kOrigin,
@@ -114,45 +83,12 @@ Result<Ref<NativeObservation>> calibrate_observation(Context& context, Ref<RawOb
     dark = val(values);
   }
   if (has_flat) {
-    if (!observation::array_has_count(*request.flat, count)) {
-      return model::fail<Ref<NativeObservation>>(Code::invalid_model,
-                                                 "the flat map does not match the frame", kOrigin,
-                                                 "the observation cannot be calibrated");
-    }
     Result<std::vector<double>> values = observation::read_f64_values(context, request.flat);
     if (!ok(values)) {
       return model::fail<Ref<NativeObservation>>(values.code, "the flat map cannot be read", kOrigin,
                                                  "the observation cannot be calibrated");
     }
     flat = val(values);
-  }
-
-  if (!std::isfinite(request.exposure_seconds) || request.exposure_seconds < 0.0) {
-    return model::fail<Ref<NativeObservation>>(Code::invalid_model, "the exposure time is invalid",
-                                               kOrigin, "the observation cannot be calibrated");
-  }
-  if (!std::isfinite(request.flat_normalization)) {
-    return model::fail<Ref<NativeObservation>>(Code::invalid_model,
-                                               "the flat normalisation is not finite", kOrigin,
-                                               "the observation cannot be calibrated");
-  }
-  if (has_flat && !(request.flat_normalization > 0.0)) {
-    return model::fail<Ref<NativeObservation>>(Code::invalid_model,
-                                               "the flat normalisation must be positive", kOrigin,
-                                               "the observation cannot be calibrated");
-  }
-  if (has_dark) {
-    if (!std::isfinite(request.dark_exposure_seconds) || !(request.dark_exposure_seconds > 0.0)) {
-      return model::fail<Ref<NativeObservation>>(
-          Code::invalid_model, "the dark exposure time must be positive", kOrigin,
-          "the observation cannot be calibrated");
-    }
-    const double exposure_ratio = request.exposure_seconds / request.dark_exposure_seconds;
-    if (!std::isfinite(exposure_ratio) || !(exposure_ratio > 0.0)) {
-      return model::fail<Ref<NativeObservation>>(Code::invalid_model,
-                                                 "the exposure ratio must be positive", kOrigin,
-                                                 "the observation cannot be calibrated");
-    }
   }
 
   // ---------------------------------------------------------------------

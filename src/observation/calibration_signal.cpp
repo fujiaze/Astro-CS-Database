@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -19,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include "model/array.hpp"
 #include "model/result.hpp"
 #include "runtime/internal.hpp"
 #include "model/units.hpp"
@@ -568,7 +570,190 @@ rt::Task<rt::Done> abort_signal(rt::InvocationContext context, SignalWriter writ
       });
 }
 
+namespace {
+
+// One array that finish_native needs in the runtime block store.  A sealed
+// spill array lives only in its canonical disk blocks, so the bridge storage
+// cannot read it; the materialization below performs one admitted asynchronous
+// read per array and registers the exact bytes under the same content id.
+struct FinishArray {
+  ArrayRef array;
+  U64 elements = 0;
+  std::size_t item_bytes = 0;
+  bool u16 = false;
+};
+
+struct FinishMaterializationOwner {
+  rt::ArenaRef arena;  // keeps the reserved capacity charged while the bytes live
+};
+
+bool finish_array_shape(const ArrayRef& array, U64& elements, std::size_t& item_bytes) {
+  if (!array) return false;
+  elements = 1;
+  for (U64 extent : array->shape) {
+    if (extent == 0) {
+      elements = 0;
+      break;
+    }
+    if (elements > std::numeric_limits<U64>::max() / extent) return false;
+    elements *= extent;
+  }
+  item_bytes = model::dtype_size(array->dtype);
+  return item_bytes != 0;
+}
+
+bool finish_array_in_store(const rt::InvocationContext& context, const ArrayRef& array,
+                           U64 bytes) {
+  if (!context.services || !context.services->blocks || !array) return false;
+  std::shared_ptr<const std::vector<std::byte>> stored =
+      context.services->blocks->find(array->identity.object_id);
+  return stored && stored->size() >= bytes;
+}
+
+rt::Task<rt::Done> materialize_chain(
+    rt::InvocationContext context, std::shared_ptr<std::vector<FinishArray>> pending,
+    std::shared_ptr<FinishMaterializationOwner> owner, std::size_t position);
+
+template <class T>
+rt::Task<rt::Done> materialize_typed(rt::InvocationContext context, FinishArray item,
+                                     std::shared_ptr<std::vector<FinishArray>> pending,
+                                     std::shared_ptr<FinishMaterializationOwner> owner,
+                                     std::size_t position) {
+  return rt::then(
+      context,
+      rt::read_async<T>(context, owner->arena, item.array,
+                        BlockRequest{0, item.elements}),
+      [context, item, pending, owner, position](rt::Block<T> block) -> rt::Task<rt::Done> {
+        if (block.values.size() != item.elements) {
+          return rt::ready<rt::Done>(
+              context, make_failure(Code::corrupt_product,
+                                    "the sealed array read back a short block",
+                                    "the finish assembly cannot read the array"));
+        }
+        const std::size_t bytes =
+            static_cast<std::size_t>(item.elements) * item.item_bytes;
+        auto data = std::make_shared<std::vector<std::byte>>(bytes);
+        if (bytes != 0)
+          std::memcpy(data->data(), block.values.data(), bytes);
+        Lease lease;
+        lease.owner = std::static_pointer_cast<const void>(owner);
+        context.services->blocks->register_array(item.array->identity.object_id, data,
+                                                 item.array->dtype, item.array->shape,
+                                                 std::move(lease));
+        return materialize_chain(context, pending, owner, position + 1);
+      });
+}
+
+rt::Task<rt::Done> materialize_chain(
+    rt::InvocationContext context, std::shared_ptr<std::vector<FinishArray>> pending,
+    std::shared_ptr<FinishMaterializationOwner> owner, std::size_t position) {
+  if (!pending || position >= pending->size()) {
+    return rt::ready<rt::Done>(context, model::ok_result(rt::Done{}));
+  }
+  const FinishArray item = (*pending)[position];
+  if (item.u16)
+    return materialize_typed<std::uint16_t>(context, item, pending, owner, position);
+  return materialize_typed<double>(context, item, pending, owner, position);
+}
+
+// Reads back exactly the arrays finish_native reads through the science bridge.
+// The read is an admitted asynchronous task (read_async -> I/O lane), never a
+// blocking syscall on a CPU worker.  The returned bytes are charged to the
+// current scope through one reservation and kept alive by the block store lease,
+// so the capacity lives exactly as long as the registered bytes.
+rt::Task<rt::Done> materialize_finish_arrays(rt::InvocationContext context,
+                                             Ref<CalibrateInput> input,
+                                             const SignalArrays& arrays) {
+  auto pending = std::make_shared<std::vector<FinishArray>>();
+  auto add = [&](ArrayRef array) {
+    if (!array) return;
+    U64 elements = 0;
+    std::size_t item = 0;
+    if (!finish_array_shape(array, elements, item)) return;
+    if (elements == 0) return;
+    const U64 bytes = elements * static_cast<U64>(item);
+    if (finish_array_in_store(context, array, bytes)) return;
+    for (const FinishArray& known : *pending)
+      if (known.array && known.array->identity.object_id == array->identity.object_id)
+        return;
+    FinishArray entry;
+    entry.array = std::move(array);
+    entry.elements = elements;
+    entry.item_bytes = item;
+    entry.u16 = entry.array->dtype == DType::u16;
+    pending->push_back(std::move(entry));
+  };
+  add(arrays.value);
+  add(arrays.lower);
+  add(arrays.upper);
+  add(arrays.dq);
+  if (input) {
+    add(input->request.flat);
+    const bool has_gain = input->request.gain_e_per_adu.has_value() &&
+                          std::isfinite(*input->request.gain_e_per_adu) &&
+                          *input->request.gain_e_per_adu > 0.0;
+    const bool has_read = input->request.read_rms_e.has_value() &&
+                          std::isfinite(*input->request.read_rms_e) &&
+                          *input->request.read_rms_e >= 0.0;
+    if (input->raw && !input->request.raw_noise && has_gain && has_read) {
+      add(input->raw->adu);
+      add(input->request.bias);
+    }
+  }
+  if (pending->empty()) {
+    return rt::ready<rt::Done>(context, model::ok_result(rt::Done{}));
+  }
+  if (!context.services || !context.scope) {
+    return rt::ready<rt::Done>(
+        context, make_failure(Code::invalid_request,
+                              "the finish readback needs a runtime command scope",
+                              "the finish assembly cannot read the sealed arrays"));
+  }
+  U64 total = 0;
+  U64 largest = 0;
+  for (const FinishArray& item : *pending) {
+    const U64 bytes = item.elements * static_cast<U64>(item.item_bytes);
+    total += bytes;
+    if (bytes > largest) largest = bytes;
+  }
+  if (total == 0 || total > std::numeric_limits<U64>::max() - largest) {
+    return rt::ready<rt::Done>(
+        context, make_failure(Code::invalid_model, "the finish readback size overflows",
+                              "the finish assembly cannot read the sealed arrays"));
+  }
+  rt::ResourceVector capacity;
+  capacity.host_bytes = total + largest;  // copies + the largest live read buffer
+  Result<rt::ArenaRef> reserved = rt::reserve(context, capacity);
+  if (!ok(reserved)) {
+    return rt::ready<rt::Done>(
+        context, make_failure<rt::Done>(reserved.code,
+                                        "the finish readback capacity is not admissible",
+                                        "the finish assembly cannot read the sealed arrays"));
+  }
+  auto owner = std::make_shared<FinishMaterializationOwner>();
+  owner->arena = *reserved.value;
+  return materialize_chain(context, std::move(pending), std::move(owner), 0);
+}
+
+}  // namespace
+
+static rt::Task<NativeRef> finish_native_from_store(rt::InvocationContext context,
+                                                    Ref<CalibrateInput> input,
+                                                    SignalArrays arrays);
+
+// The sealed arrays may live in canonical spill blocks; materialize the ones the
+// finish assembly actually reads before the bridge sees them.  This only copies
+// already written bytes back; it re-runs no pixel kernel and changes no value.
 rt::Task<NativeRef> finish_native(rt::InvocationContext context, Ref<CalibrateInput> input,
+                                  SignalArrays arrays) {
+  return rt::then(
+      context, materialize_finish_arrays(context, input, arrays),
+      [context, input, arrays](rt::Done) -> rt::Task<NativeRef> {
+        return finish_native_from_store(context, input, arrays);
+      });
+}
+
+static rt::Task<NativeRef> finish_native_from_store(rt::InvocationContext context, Ref<CalibrateInput> input,
                                   SignalArrays arrays) {
   if (!input || !input->raw || !input->raw->source_index) {
     return rt::ready<NativeRef>(

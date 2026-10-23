@@ -1,0 +1,1240 @@
+{
+  "case": "cal.dev_compare",
+  "command": "validation/process/calibration-faults/run_dev_compare.sh",
+  "off_build": "/tmp/acsd-build",
+  "on_build": "/tmp/acsd-build-dev",
+  "off": {
+    "case": "cal_host",
+    "source": "validation/runtime/calibration/cal_host.cpp",
+    "status": "ran",
+    "attempts": 33,
+    "successes": 33,
+    "failures": [],
+    "checks": [
+      {
+        "check": "cal.host.services",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "one Services instance"
+      },
+      {
+        "check": "cal.host.command",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the driver command scope"
+      },
+      {
+        "check": "cal.host.arena",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the driver input-array arena"
+      },
+      {
+        "check": "cal.host.input_arrays",
+        "pass": true,
+        "expected": "all input arrays are registered",
+        "actual": "some array is null",
+        "detail": "Storage writers produced the input blocks"
+      },
+      {
+        "check": "cal.host.builtin_types",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "generated register_builtin_types"
+      },
+      {
+        "check": "cal.host.register_processes",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "generated register_processes calls the module"
+      },
+      {
+        "check": "cal.host.freeze",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the frozen registry"
+      },
+      {
+        "check": "cal.host.registered",
+        "pass": true,
+        "expected": "observation.calibrate/calibrate_observation present",
+        "actual": "not found",
+        "detail": "the module registration replaced the M0 shell"
+      },
+      {
+        "check": "cal.host.make_host",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the ProcessHost"
+      },
+      {
+        "check": "cal.host.plan_numbers",
+        "pass": true,
+        "expected": "R=33170, F=2166988",
+        "actual": "R=33170, F=2166988",
+        "detail": "the frozen plan formula of the walkthrough"
+      },
+      {
+        "check": "cal.host.c_cal_1",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the typed invocation returns a NativeObservation"
+      },
+      {
+        "check": "cal.host.c_cal_1_metadata",
+        "pass": true,
+        "expected": "frame/context/index/physical/NoiseModel/ErrorRecord/regrouping preserved",
+        "actual": "some field is missing",
+        "detail": "the shared finish assembly through the bridge"
+      },
+      {
+        "check": "cal.host.c_cal_1_identity",
+        "pass": true,
+        "expected": "the identity the synchronous calibrate_observation computes",
+        "actual": "same",
+        "detail": "same values and DQ => same NativeObservation content identity"
+      },
+      {
+        "check": "cal.host.c_cal_1_values",
+        "pass": true,
+        "expected": "[4,14,-8]",
+        "actual": "[4,14,-8]",
+        "detail": "the Host path returns the same kernel output"
+      },
+      {
+        "check": "cal.host.c_cal_1_enclosure",
+        "pass": true,
+        "expected": "lower <= exact <= upper",
+        "actual": "contained",
+        "detail": "the outward enclosure survives the block pipeline"
+      },
+      {
+        "check": "cal.host.c_cal_1_dq",
+        "pass": true,
+        "expected": "0",
+        "actual": "0",
+        "detail": "DQ is preserved through append/seal"
+      },
+      {
+        "check": "cal.host.c_cal_2",
+        "pass": true,
+        "expected": "[0,10,-12]",
+        "actual": "[0,10,-12]",
+        "detail": "dark without bias is scaled directly through the same kernel"
+      },
+      {
+        "check": "cal.host.c_cal_dq",
+        "pass": true,
+        "expected": "NaN value + bad flag + named flat Issue",
+        "actual": "behaved",
+        "detail": "a non-positive flat is never repaired through the pipeline"
+      },
+      {
+        "check": "cal.host.c_cal_root",
+        "pass": true,
+        "expected": "both invocations keep the same shared Identity and one influence",
+        "actual": "same root",
+        "detail": "two process invocations do not create new random roots"
+      },
+      {
+        "check": "cal.host.dev_off_deterministic",
+        "pass": true,
+        "expected": "same NativeObservation identity",
+        "actual": "same",
+        "detail": "ACSD_DEV_MODE=0 evaluated no probe and changed no science result"
+      },
+      {
+        "check": "cal.host.c_cal_h_plan",
+        "pass": true,
+        "expected": "4 cohorts, n=65536, R=26832768, F=6623232",
+        "actual": "c=4, n=65536",
+        "detail": "the serial plan with S(n), work bounds and no pipe edges"
+      },
+      {
+        "check": "cal.host.c_cal_h_work_covered",
+        "pass": true,
+        "expected": "measured work <= declared stage work totals",
+        "actual": "measured=201906 declared=268580",
+        "detail": "the plan work_upper covers read/write/assembly work (P1-8b)"
+      },
+      {
+        "check": "cal.host.c_cal_h_materialization_covered",
+        "pass": true,
+        "expected": "unmanaged heap peak within materialization bound + 8 MiB overhead",
+        "actual": "peak=14849164 declared=18400000",
+        "detail": "allocator measurement supports the unaccounted term; not a peak proof"
+      },
+      {
+        "check": "cal.host.c_cal_h",
+        "pass": true,
+        "expected": "N=200000 values exact across 65536/65536/65536/3392 blocks",
+        "actual": "N=200000",
+        "detail": "tail block and block boundaries"
+      },
+      {
+        "check": "cal.host.c_cal_order_window_not_declared",
+        "pass": true,
+        "expected": "invalid_request",
+        "actual": "invalid_request",
+        "detail": "a window without pipe credit is rejected"
+      },
+      {
+        "check": "cal.host.c_cal_order_serial_declared",
+        "pass": true,
+        "expected": "one serial region, 3 cohorts, no pipe edge",
+        "actual": "serial",
+        "detail": "the plan does not advertise unused pipes"
+      },
+      {
+        "check": "cal.host.p1_4_dq_not_dimensionless",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_exposure_zero",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_absent_flat_zero_normalization",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_missing_footprints",
+        "pass": true,
+        "expected": "unavailable",
+        "actual": "unavailable/unavailable",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_shape_mismatch",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.close_command",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the command scope drains"
+      },
+      {
+        "check": "cal.host.close_host",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the host closes after draining"
+      }
+    ],
+    "values": {
+      "host.registration_linked": true,
+      "plan.R": 33170,
+      "plan.F": 2166988,
+      "host.c_cal_1.issues": "",
+      "host.c_cal_1.x0": 4,
+      "host.c_cal_1.x1": 14,
+      "host.c_cal_1.x2": -8,
+      "host.c_cal_1.identity": "acsd.NativeObservation:5ebea39ffb9039d44e3cc4f82142f010ed40edff318e5fb50162aaa898554106",
+      "host.c_cal_2.x0": 0,
+      "host.c_cal_2.x1": 10,
+      "host.c_cal_2.x2": -12,
+      "host.c_cal_dq.value1": "nan",
+      "host.root.shared_id": "master_flat",
+      "host.root.influences": 1,
+      "host.dev_off_identity": "acsd.NativeObservation:5ebea39ffb9039d44e3cc4f82142f010ed40edff318e5fb50162aaa898554106",
+      "host.c_cal_h.plan_R": 26832768,
+      "host.c_cal_h.plan_F": 6623232,
+      "host.c_cal_h.declared_work": 268580,
+      "host.c_cal_h.declared_materialization": 18400000,
+      "host.c_cal_h.measured_work": 201906,
+      "host.c_cal_h.unaccounted_heap_peak": 14849164,
+      "host.c_cal_h.code": "ok",
+      "host.c_cal_h.issues": "",
+      "host.c_cal_h.last": 50999.75,
+      "host.c_cal_h.block_boundary": 17384,
+      "host.order.window2_code": "invalid_request",
+      "host.order.serial_edges": 0,
+      "host.p1_4.dq_not_dimensionless.typed": "invalid_model",
+      "host.p1_4.dq_not_dimensionless.host": "invalid_model",
+      "host.p1_4.exposure_zero.typed": "invalid_model",
+      "host.p1_4.exposure_zero.host": "invalid_model",
+      "host.p1_4.absent_flat_zero_normalization.typed": "invalid_model",
+      "host.p1_4.absent_flat_zero_normalization.host": "invalid_model",
+      "host.p1_4.missing_footprints.typed": "unavailable",
+      "host.p1_4.missing_footprints.host": "unavailable",
+      "host.p1_4.shape_mismatch.typed": "invalid_model",
+      "host.p1_4.shape_mismatch.host": "invalid_model"
+    },
+    "resources": {
+      "peak_host_bytes": 10000690,
+      "work": 204132,
+      "read_bytes": 0,
+      "written_bytes": 7200708,
+      "checks": 33,
+      "successes": 33
+    },
+    "commands": [],
+    "notes": [
+      "C-CAL-ORDER: serial plan (window=1, no edge); real pipe credit is future work",
+      "C-CAL-CLEAN/C-CAL-WRITE need injected cancellation/short writes; they are covered by the runtime verification cases, not fabricated here"
+    ]
+  },
+  "selected": {
+    "case": "cal_host",
+    "source": "validation/runtime/calibration/cal_host.cpp",
+    "status": "ran",
+    "attempts": 33,
+    "successes": 33,
+    "failures": [],
+    "checks": [
+      {
+        "check": "cal.host.services",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "one Services instance"
+      },
+      {
+        "check": "cal.host.command",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the driver command scope"
+      },
+      {
+        "check": "cal.host.arena",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the driver input-array arena"
+      },
+      {
+        "check": "cal.host.input_arrays",
+        "pass": true,
+        "expected": "all input arrays are registered",
+        "actual": "some array is null",
+        "detail": "Storage writers produced the input blocks"
+      },
+      {
+        "check": "cal.host.builtin_types",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "generated register_builtin_types"
+      },
+      {
+        "check": "cal.host.register_processes",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "generated register_processes calls the module"
+      },
+      {
+        "check": "cal.host.freeze",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the frozen registry"
+      },
+      {
+        "check": "cal.host.registered",
+        "pass": true,
+        "expected": "observation.calibrate/calibrate_observation present",
+        "actual": "not found",
+        "detail": "the module registration replaced the M0 shell"
+      },
+      {
+        "check": "cal.host.make_host",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the ProcessHost"
+      },
+      {
+        "check": "cal.host.plan_numbers",
+        "pass": true,
+        "expected": "R=33170, F=2166988",
+        "actual": "R=33170, F=2166988",
+        "detail": "the frozen plan formula of the walkthrough"
+      },
+      {
+        "check": "cal.host.c_cal_1",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the typed invocation returns a NativeObservation"
+      },
+      {
+        "check": "cal.host.c_cal_1_metadata",
+        "pass": true,
+        "expected": "frame/context/index/physical/NoiseModel/ErrorRecord/regrouping preserved",
+        "actual": "some field is missing",
+        "detail": "the shared finish assembly through the bridge"
+      },
+      {
+        "check": "cal.host.c_cal_1_identity",
+        "pass": true,
+        "expected": "the identity the synchronous calibrate_observation computes",
+        "actual": "same",
+        "detail": "same values and DQ => same NativeObservation content identity"
+      },
+      {
+        "check": "cal.host.c_cal_1_values",
+        "pass": true,
+        "expected": "[4,14,-8]",
+        "actual": "[4,14,-8]",
+        "detail": "the Host path returns the same kernel output"
+      },
+      {
+        "check": "cal.host.c_cal_1_enclosure",
+        "pass": true,
+        "expected": "lower <= exact <= upper",
+        "actual": "contained",
+        "detail": "the outward enclosure survives the block pipeline"
+      },
+      {
+        "check": "cal.host.c_cal_1_dq",
+        "pass": true,
+        "expected": "0",
+        "actual": "0",
+        "detail": "DQ is preserved through append/seal"
+      },
+      {
+        "check": "cal.host.c_cal_2",
+        "pass": true,
+        "expected": "[0,10,-12]",
+        "actual": "[0,10,-12]",
+        "detail": "dark without bias is scaled directly through the same kernel"
+      },
+      {
+        "check": "cal.host.c_cal_dq",
+        "pass": true,
+        "expected": "NaN value + bad flag + named flat Issue",
+        "actual": "behaved",
+        "detail": "a non-positive flat is never repaired through the pipeline"
+      },
+      {
+        "check": "cal.host.c_cal_root",
+        "pass": true,
+        "expected": "both invocations keep the same shared Identity and one influence",
+        "actual": "same root",
+        "detail": "two process invocations do not create new random roots"
+      },
+      {
+        "check": "cal.host.dev_off_deterministic",
+        "pass": true,
+        "expected": "same NativeObservation identity",
+        "actual": "same",
+        "detail": "ACSD_DEV_MODE=0 evaluated no probe and changed no science result"
+      },
+      {
+        "check": "cal.host.c_cal_h_plan",
+        "pass": true,
+        "expected": "4 cohorts, n=65536, R=26832768, F=6623232",
+        "actual": "c=4, n=65536",
+        "detail": "the serial plan with S(n), work bounds and no pipe edges"
+      },
+      {
+        "check": "cal.host.c_cal_h_work_covered",
+        "pass": true,
+        "expected": "measured work <= declared stage work totals",
+        "actual": "measured=201906 declared=268580",
+        "detail": "the plan work_upper covers read/write/assembly work (P1-8b)"
+      },
+      {
+        "check": "cal.host.c_cal_h_materialization_covered",
+        "pass": true,
+        "expected": "unmanaged heap peak within materialization bound + 8 MiB overhead",
+        "actual": "peak=14849164 declared=18400000",
+        "detail": "allocator measurement supports the unaccounted term; not a peak proof"
+      },
+      {
+        "check": "cal.host.c_cal_h",
+        "pass": true,
+        "expected": "N=200000 values exact across 65536/65536/65536/3392 blocks",
+        "actual": "N=200000",
+        "detail": "tail block and block boundaries"
+      },
+      {
+        "check": "cal.host.c_cal_order_window_not_declared",
+        "pass": true,
+        "expected": "invalid_request",
+        "actual": "invalid_request",
+        "detail": "a window without pipe credit is rejected"
+      },
+      {
+        "check": "cal.host.c_cal_order_serial_declared",
+        "pass": true,
+        "expected": "one serial region, 3 cohorts, no pipe edge",
+        "actual": "serial",
+        "detail": "the plan does not advertise unused pipes"
+      },
+      {
+        "check": "cal.host.p1_4_dq_not_dimensionless",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_exposure_zero",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_absent_flat_zero_normalization",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_missing_footprints",
+        "pass": true,
+        "expected": "unavailable",
+        "actual": "unavailable/unavailable",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_shape_mismatch",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.close_command",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the command scope drains"
+      },
+      {
+        "check": "cal.host.close_host",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the host closes after draining"
+      }
+    ],
+    "values": {
+      "host.registration_linked": true,
+      "plan.R": 33170,
+      "plan.F": 2166988,
+      "host.c_cal_1.issues": "",
+      "host.c_cal_1.x0": 4,
+      "host.c_cal_1.x1": 14,
+      "host.c_cal_1.x2": -8,
+      "host.c_cal_1.identity": "acsd.NativeObservation:5ebea39ffb9039d44e3cc4f82142f010ed40edff318e5fb50162aaa898554106",
+      "host.c_cal_2.x0": 0,
+      "host.c_cal_2.x1": 10,
+      "host.c_cal_2.x2": -12,
+      "host.c_cal_dq.value1": "nan",
+      "host.root.shared_id": "master_flat",
+      "host.root.influences": 1,
+      "host.dev_off_identity": "acsd.NativeObservation:5ebea39ffb9039d44e3cc4f82142f010ed40edff318e5fb50162aaa898554106",
+      "host.c_cal_h.plan_R": 26832768,
+      "host.c_cal_h.plan_F": 6623232,
+      "host.c_cal_h.declared_work": 268580,
+      "host.c_cal_h.declared_materialization": 18400000,
+      "host.c_cal_h.measured_work": 201906,
+      "host.c_cal_h.unaccounted_heap_peak": 14849164,
+      "host.c_cal_h.code": "ok",
+      "host.c_cal_h.issues": "",
+      "host.c_cal_h.last": 50999.75,
+      "host.c_cal_h.block_boundary": 17384,
+      "host.order.window2_code": "invalid_request",
+      "host.order.serial_edges": 0,
+      "host.p1_4.dq_not_dimensionless.typed": "invalid_model",
+      "host.p1_4.dq_not_dimensionless.host": "invalid_model",
+      "host.p1_4.exposure_zero.typed": "invalid_model",
+      "host.p1_4.exposure_zero.host": "invalid_model",
+      "host.p1_4.absent_flat_zero_normalization.typed": "invalid_model",
+      "host.p1_4.absent_flat_zero_normalization.host": "invalid_model",
+      "host.p1_4.missing_footprints.typed": "unavailable",
+      "host.p1_4.missing_footprints.host": "unavailable",
+      "host.p1_4.shape_mismatch.typed": "invalid_model",
+      "host.p1_4.shape_mismatch.host": "invalid_model"
+    },
+    "resources": {
+      "peak_host_bytes": 10000690,
+      "work": 204132,
+      "read_bytes": 0,
+      "written_bytes": 7200708,
+      "checks": 33,
+      "successes": 33
+    },
+    "commands": [],
+    "notes": [
+      "C-CAL-ORDER: serial plan (window=1, no edge); real pipe credit is future work",
+      "C-CAL-CLEAN/C-CAL-WRITE need injected cancellation/short writes; they are covered by the runtime verification cases, not fabricated here"
+    ]
+  },
+  "dropped": {
+    "case": "cal_host",
+    "source": "validation/runtime/calibration/cal_host.cpp",
+    "status": "ran",
+    "attempts": 33,
+    "successes": 33,
+    "failures": [],
+    "checks": [
+      {
+        "check": "cal.host.services",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "one Services instance"
+      },
+      {
+        "check": "cal.host.command",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the driver command scope"
+      },
+      {
+        "check": "cal.host.arena",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the driver input-array arena"
+      },
+      {
+        "check": "cal.host.input_arrays",
+        "pass": true,
+        "expected": "all input arrays are registered",
+        "actual": "some array is null",
+        "detail": "Storage writers produced the input blocks"
+      },
+      {
+        "check": "cal.host.builtin_types",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "generated register_builtin_types"
+      },
+      {
+        "check": "cal.host.register_processes",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "generated register_processes calls the module"
+      },
+      {
+        "check": "cal.host.freeze",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the frozen registry"
+      },
+      {
+        "check": "cal.host.registered",
+        "pass": true,
+        "expected": "observation.calibrate/calibrate_observation present",
+        "actual": "not found",
+        "detail": "the module registration replaced the M0 shell"
+      },
+      {
+        "check": "cal.host.make_host",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the ProcessHost"
+      },
+      {
+        "check": "cal.host.plan_numbers",
+        "pass": true,
+        "expected": "R=33170, F=2166988",
+        "actual": "R=33170, F=2166988",
+        "detail": "the frozen plan formula of the walkthrough"
+      },
+      {
+        "check": "cal.host.c_cal_1",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the typed invocation returns a NativeObservation"
+      },
+      {
+        "check": "cal.host.c_cal_1_metadata",
+        "pass": true,
+        "expected": "frame/context/index/physical/NoiseModel/ErrorRecord/regrouping preserved",
+        "actual": "some field is missing",
+        "detail": "the shared finish assembly through the bridge"
+      },
+      {
+        "check": "cal.host.c_cal_1_identity",
+        "pass": true,
+        "expected": "the identity the synchronous calibrate_observation computes",
+        "actual": "same",
+        "detail": "same values and DQ => same NativeObservation content identity"
+      },
+      {
+        "check": "cal.host.c_cal_1_values",
+        "pass": true,
+        "expected": "[4,14,-8]",
+        "actual": "[4,14,-8]",
+        "detail": "the Host path returns the same kernel output"
+      },
+      {
+        "check": "cal.host.c_cal_1_enclosure",
+        "pass": true,
+        "expected": "lower <= exact <= upper",
+        "actual": "contained",
+        "detail": "the outward enclosure survives the block pipeline"
+      },
+      {
+        "check": "cal.host.c_cal_1_dq",
+        "pass": true,
+        "expected": "0",
+        "actual": "0",
+        "detail": "DQ is preserved through append/seal"
+      },
+      {
+        "check": "cal.host.c_cal_2",
+        "pass": true,
+        "expected": "[0,10,-12]",
+        "actual": "[0,10,-12]",
+        "detail": "dark without bias is scaled directly through the same kernel"
+      },
+      {
+        "check": "cal.host.c_cal_dq",
+        "pass": true,
+        "expected": "NaN value + bad flag + named flat Issue",
+        "actual": "behaved",
+        "detail": "a non-positive flat is never repaired through the pipeline"
+      },
+      {
+        "check": "cal.host.c_cal_root",
+        "pass": true,
+        "expected": "both invocations keep the same shared Identity and one influence",
+        "actual": "same root",
+        "detail": "two process invocations do not create new random roots"
+      },
+      {
+        "check": "cal.host.dev_off_deterministic",
+        "pass": true,
+        "expected": "same NativeObservation identity",
+        "actual": "same",
+        "detail": "ACSD_DEV_MODE=0 evaluated no probe and changed no science result"
+      },
+      {
+        "check": "cal.host.c_cal_h_plan",
+        "pass": true,
+        "expected": "4 cohorts, n=65536, R=26832768, F=6623232",
+        "actual": "c=4, n=65536",
+        "detail": "the serial plan with S(n), work bounds and no pipe edges"
+      },
+      {
+        "check": "cal.host.c_cal_h_work_covered",
+        "pass": true,
+        "expected": "measured work <= declared stage work totals",
+        "actual": "measured=201906 declared=268580",
+        "detail": "the plan work_upper covers read/write/assembly work (P1-8b)"
+      },
+      {
+        "check": "cal.host.c_cal_h_materialization_covered",
+        "pass": true,
+        "expected": "unmanaged heap peak within materialization bound + 8 MiB overhead",
+        "actual": "peak=14849164 declared=18400000",
+        "detail": "allocator measurement supports the unaccounted term; not a peak proof"
+      },
+      {
+        "check": "cal.host.c_cal_h",
+        "pass": true,
+        "expected": "N=200000 values exact across 65536/65536/65536/3392 blocks",
+        "actual": "N=200000",
+        "detail": "tail block and block boundaries"
+      },
+      {
+        "check": "cal.host.c_cal_order_window_not_declared",
+        "pass": true,
+        "expected": "invalid_request",
+        "actual": "invalid_request",
+        "detail": "a window without pipe credit is rejected"
+      },
+      {
+        "check": "cal.host.c_cal_order_serial_declared",
+        "pass": true,
+        "expected": "one serial region, 3 cohorts, no pipe edge",
+        "actual": "serial",
+        "detail": "the plan does not advertise unused pipes"
+      },
+      {
+        "check": "cal.host.p1_4_dq_not_dimensionless",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_exposure_zero",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_absent_flat_zero_normalization",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_missing_footprints",
+        "pass": true,
+        "expected": "unavailable",
+        "actual": "unavailable/unavailable",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_shape_mismatch",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.close_command",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the command scope drains"
+      },
+      {
+        "check": "cal.host.close_host",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the host closes after draining"
+      }
+    ],
+    "values": {
+      "host.registration_linked": true,
+      "plan.R": 33170,
+      "plan.F": 2166988,
+      "host.c_cal_1.issues": "",
+      "host.c_cal_1.x0": 4,
+      "host.c_cal_1.x1": 14,
+      "host.c_cal_1.x2": -8,
+      "host.c_cal_1.identity": "acsd.NativeObservation:5ebea39ffb9039d44e3cc4f82142f010ed40edff318e5fb50162aaa898554106",
+      "host.c_cal_2.x0": 0,
+      "host.c_cal_2.x1": 10,
+      "host.c_cal_2.x2": -12,
+      "host.c_cal_dq.value1": "nan",
+      "host.root.shared_id": "master_flat",
+      "host.root.influences": 1,
+      "host.dev_off_identity": "acsd.NativeObservation:5ebea39ffb9039d44e3cc4f82142f010ed40edff318e5fb50162aaa898554106",
+      "host.c_cal_h.plan_R": 26832768,
+      "host.c_cal_h.plan_F": 6623232,
+      "host.c_cal_h.declared_work": 268580,
+      "host.c_cal_h.declared_materialization": 18400000,
+      "host.c_cal_h.measured_work": 201906,
+      "host.c_cal_h.unaccounted_heap_peak": 14849164,
+      "host.c_cal_h.code": "ok",
+      "host.c_cal_h.issues": "",
+      "host.c_cal_h.last": 50999.75,
+      "host.c_cal_h.block_boundary": 17384,
+      "host.order.window2_code": "invalid_request",
+      "host.order.serial_edges": 0,
+      "host.p1_4.dq_not_dimensionless.typed": "invalid_model",
+      "host.p1_4.dq_not_dimensionless.host": "invalid_model",
+      "host.p1_4.exposure_zero.typed": "invalid_model",
+      "host.p1_4.exposure_zero.host": "invalid_model",
+      "host.p1_4.absent_flat_zero_normalization.typed": "invalid_model",
+      "host.p1_4.absent_flat_zero_normalization.host": "invalid_model",
+      "host.p1_4.missing_footprints.typed": "unavailable",
+      "host.p1_4.missing_footprints.host": "unavailable",
+      "host.p1_4.shape_mismatch.typed": "invalid_model",
+      "host.p1_4.shape_mismatch.host": "invalid_model"
+    },
+    "resources": {
+      "peak_host_bytes": 10000690,
+      "work": 204132,
+      "read_bytes": 0,
+      "written_bytes": 7200708,
+      "checks": 33,
+      "successes": 33
+    },
+    "commands": [],
+    "notes": [
+      "C-CAL-ORDER: serial plan (window=1, no edge); real pipe credit is future work",
+      "C-CAL-CLEAN/C-CAL-WRITE need injected cancellation/short writes; they are covered by the runtime verification cases, not fabricated here"
+    ]
+  },
+  "diagnostics_failed": {
+    "case": "cal_host",
+    "source": "validation/runtime/calibration/cal_host.cpp",
+    "status": "ran",
+    "attempts": 33,
+    "successes": 33,
+    "failures": [],
+    "checks": [
+      {
+        "check": "cal.host.services",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "one Services instance"
+      },
+      {
+        "check": "cal.host.command",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the driver command scope"
+      },
+      {
+        "check": "cal.host.arena",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the driver input-array arena"
+      },
+      {
+        "check": "cal.host.input_arrays",
+        "pass": true,
+        "expected": "all input arrays are registered",
+        "actual": "some array is null",
+        "detail": "Storage writers produced the input blocks"
+      },
+      {
+        "check": "cal.host.builtin_types",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "generated register_builtin_types"
+      },
+      {
+        "check": "cal.host.register_processes",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "generated register_processes calls the module"
+      },
+      {
+        "check": "cal.host.freeze",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the frozen registry"
+      },
+      {
+        "check": "cal.host.registered",
+        "pass": true,
+        "expected": "observation.calibrate/calibrate_observation present",
+        "actual": "not found",
+        "detail": "the module registration replaced the M0 shell"
+      },
+      {
+        "check": "cal.host.make_host",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the ProcessHost"
+      },
+      {
+        "check": "cal.host.plan_numbers",
+        "pass": true,
+        "expected": "R=33170, F=2166988",
+        "actual": "R=33170, F=2166988",
+        "detail": "the frozen plan formula of the walkthrough"
+      },
+      {
+        "check": "cal.host.c_cal_1",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the typed invocation returns a NativeObservation"
+      },
+      {
+        "check": "cal.host.c_cal_1_metadata",
+        "pass": true,
+        "expected": "frame/context/index/physical/NoiseModel/ErrorRecord/regrouping preserved",
+        "actual": "some field is missing",
+        "detail": "the shared finish assembly through the bridge"
+      },
+      {
+        "check": "cal.host.c_cal_1_identity",
+        "pass": true,
+        "expected": "the identity the synchronous calibrate_observation computes",
+        "actual": "same",
+        "detail": "same values and DQ => same NativeObservation content identity"
+      },
+      {
+        "check": "cal.host.c_cal_1_values",
+        "pass": true,
+        "expected": "[4,14,-8]",
+        "actual": "[4,14,-8]",
+        "detail": "the Host path returns the same kernel output"
+      },
+      {
+        "check": "cal.host.c_cal_1_enclosure",
+        "pass": true,
+        "expected": "lower <= exact <= upper",
+        "actual": "contained",
+        "detail": "the outward enclosure survives the block pipeline"
+      },
+      {
+        "check": "cal.host.c_cal_1_dq",
+        "pass": true,
+        "expected": "0",
+        "actual": "0",
+        "detail": "DQ is preserved through append/seal"
+      },
+      {
+        "check": "cal.host.c_cal_2",
+        "pass": true,
+        "expected": "[0,10,-12]",
+        "actual": "[0,10,-12]",
+        "detail": "dark without bias is scaled directly through the same kernel"
+      },
+      {
+        "check": "cal.host.c_cal_dq",
+        "pass": true,
+        "expected": "NaN value + bad flag + named flat Issue",
+        "actual": "behaved",
+        "detail": "a non-positive flat is never repaired through the pipeline"
+      },
+      {
+        "check": "cal.host.c_cal_root",
+        "pass": true,
+        "expected": "both invocations keep the same shared Identity and one influence",
+        "actual": "same root",
+        "detail": "two process invocations do not create new random roots"
+      },
+      {
+        "check": "cal.host.dev_off_deterministic",
+        "pass": true,
+        "expected": "same NativeObservation identity",
+        "actual": "same",
+        "detail": "ACSD_DEV_MODE=0 evaluated no probe and changed no science result"
+      },
+      {
+        "check": "cal.host.c_cal_h_plan",
+        "pass": true,
+        "expected": "4 cohorts, n=65536, R=26832768, F=6623232",
+        "actual": "c=4, n=65536",
+        "detail": "the serial plan with S(n), work bounds and no pipe edges"
+      },
+      {
+        "check": "cal.host.c_cal_h_work_covered",
+        "pass": true,
+        "expected": "measured work <= declared stage work totals",
+        "actual": "measured=201906 declared=268580",
+        "detail": "the plan work_upper covers read/write/assembly work (P1-8b)"
+      },
+      {
+        "check": "cal.host.c_cal_h_materialization_covered",
+        "pass": true,
+        "expected": "unmanaged heap peak within materialization bound + 8 MiB overhead",
+        "actual": "peak=14849164 declared=18400000",
+        "detail": "allocator measurement supports the unaccounted term; not a peak proof"
+      },
+      {
+        "check": "cal.host.c_cal_h",
+        "pass": true,
+        "expected": "N=200000 values exact across 65536/65536/65536/3392 blocks",
+        "actual": "N=200000",
+        "detail": "tail block and block boundaries"
+      },
+      {
+        "check": "cal.host.c_cal_order_window_not_declared",
+        "pass": true,
+        "expected": "invalid_request",
+        "actual": "invalid_request",
+        "detail": "a window without pipe credit is rejected"
+      },
+      {
+        "check": "cal.host.c_cal_order_serial_declared",
+        "pass": true,
+        "expected": "one serial region, 3 cohorts, no pipe edge",
+        "actual": "serial",
+        "detail": "the plan does not advertise unused pipes"
+      },
+      {
+        "check": "cal.host.p1_4_dq_not_dimensionless",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_exposure_zero",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_absent_flat_zero_normalization",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_missing_footprints",
+        "pass": true,
+        "expected": "unavailable",
+        "actual": "unavailable/unavailable",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.p1_4_shape_mismatch",
+        "pass": true,
+        "expected": "invalid_model",
+        "actual": "invalid_model/invalid_model",
+        "detail": "sync and typed metadata validation are one verdict"
+      },
+      {
+        "check": "cal.host.close_command",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the command scope drains"
+      },
+      {
+        "check": "cal.host.close_host",
+        "pass": true,
+        "expected": "ok",
+        "actual": "ok",
+        "detail": "the host closes after draining"
+      }
+    ],
+    "values": {
+      "host.registration_linked": true,
+      "plan.R": 33170,
+      "plan.F": 2166988,
+      "host.c_cal_1.issues": "",
+      "host.c_cal_1.x0": 4,
+      "host.c_cal_1.x1": 14,
+      "host.c_cal_1.x2": -8,
+      "host.c_cal_1.identity": "acsd.NativeObservation:5ebea39ffb9039d44e3cc4f82142f010ed40edff318e5fb50162aaa898554106",
+      "host.c_cal_2.x0": 0,
+      "host.c_cal_2.x1": 10,
+      "host.c_cal_2.x2": -12,
+      "host.c_cal_dq.value1": "nan",
+      "host.root.shared_id": "master_flat",
+      "host.root.influences": 1,
+      "host.dev_off_identity": "acsd.NativeObservation:5ebea39ffb9039d44e3cc4f82142f010ed40edff318e5fb50162aaa898554106",
+      "host.c_cal_h.plan_R": 26832768,
+      "host.c_cal_h.plan_F": 6623232,
+      "host.c_cal_h.declared_work": 268580,
+      "host.c_cal_h.declared_materialization": 18400000,
+      "host.c_cal_h.measured_work": 201906,
+      "host.c_cal_h.unaccounted_heap_peak": 14849164,
+      "host.c_cal_h.code": "ok",
+      "host.c_cal_h.issues": "",
+      "host.c_cal_h.last": 50999.75,
+      "host.c_cal_h.block_boundary": 17384,
+      "host.order.window2_code": "invalid_request",
+      "host.order.serial_edges": 0,
+      "host.p1_4.dq_not_dimensionless.typed": "invalid_model",
+      "host.p1_4.dq_not_dimensionless.host": "invalid_model",
+      "host.p1_4.exposure_zero.typed": "invalid_model",
+      "host.p1_4.exposure_zero.host": "invalid_model",
+      "host.p1_4.absent_flat_zero_normalization.typed": "invalid_model",
+      "host.p1_4.absent_flat_zero_normalization.host": "invalid_model",
+      "host.p1_4.missing_footprints.typed": "unavailable",
+      "host.p1_4.missing_footprints.host": "unavailable",
+      "host.p1_4.shape_mismatch.typed": "invalid_model",
+      "host.p1_4.shape_mismatch.host": "invalid_model"
+    },
+    "resources": {
+      "peak_host_bytes": 10000690,
+      "work": 204132,
+      "read_bytes": 0,
+      "written_bytes": 7200708,
+      "checks": 33,
+      "successes": 33
+    },
+    "commands": [],
+    "notes": [
+      "C-CAL-ORDER: serial plan (window=1, no edge); real pipe credit is future work",
+      "C-CAL-CLEAN/C-CAL-WRITE need injected cancellation/short writes; they are covered by the runtime verification cases, not fabricated here"
+    ]
+  },
+  "exit_codes": {
+    "off": 0,
+    "selected": 0,
+    "dropped": 0,
+    "diagnostics_failed": 0
+  },
+  "probe_summaries": {
+    "selected": {
+      "schema": "acsd.dev-summary/0",
+      "non_scientific_product": true,
+      "perf_enabled": true,
+      "snapshots_enabled": true,
+      "selected": 11,
+      "not_selected": 52,
+      "not_registered": 0,
+      "written": 11,
+      "perf_records": 0,
+      "snapshots": 11,
+      "dropped": 0,
+      "skipped_budget": 0,
+      "io_errors": 0,
+      "bytes_written": 5218371,
+      "flush_wall_ns": 4817913,
+      "queue_peak": 1,
+      "construction_failed": 0,
+      "queue_bytes": 0,
+      "queue_depth": 0
+    },
+    "dropped": {
+      "schema": "acsd.dev-summary/0",
+      "non_scientific_product": true,
+      "perf_enabled": true,
+      "snapshots_enabled": true,
+      "selected": 11,
+      "not_selected": 21,
+      "not_registered": 0,
+      "written": 40,
+      "perf_records": 30,
+      "snapshots": 10,
+      "dropped": 15,
+      "skipped_budget": 1,
+      "io_errors": 0,
+      "bytes_written": 5227235,
+      "flush_wall_ns": 8963627,
+      "queue_peak": 1,
+      "construction_failed": 0,
+      "queue_bytes": 0,
+      "queue_depth": 0
+    },
+    "diagnostics_failed": null
+  },
+  "checks": {
+    "same_science_checks_and_values": true,
+    "same_success_exit_and_no_failures": true,
+    "selected_counters_real": true,
+    "dropped_counter_real": true,
+    "diagnostics_failure_did_not_change_science": true,
+    "off_and_on_same_identity": true
+  },
+  "failures": [],
+  "note": "an all-unselected run cannot be observed through summary.json because no probe enqueue schedules a flush and the Host path does not destroy the sink before process exit; the selected/dropped runs report the real selected, not_selected and dropped counters instead",
+  "status": "pass"
+}

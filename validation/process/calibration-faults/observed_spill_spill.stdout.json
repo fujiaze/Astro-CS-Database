@@ -1,0 +1,9 @@
+PASS: make_services
+PASS: open_command
+PASS: input arena
+PASS: fixture input arrays
+PASS: calibration ok
+PASS: at least two canonical blocks per array
+PASS: finish read the sealed spill blocks through the I/O lane
+PASS: finish materialized the arrays it reads
+{"placement":"spill","n":200000,"block_elements":65536,"case":"cal.spill_readback","blocks_per_array":2,"readback_bytes":680273,"materialized_bytes":10000000,"identity":"acsd.NativeObservation:0b4635cc60b03bf16af32a6c289393a7464421d13c4d15b6323d01e2d33ba8a2","content_hash":"sha256:0b4635cc60b03bf16af32a6c289393a7464421d13c4d15b6323d01e2d33ba8a2","code":0,"failures":0,"samples":[{"i":0,"value":144.000000,"dq":0},{"i":1,"value":144.100000,"dq":0},{"i":65535,"value":6697.500000,"dq":0},{"i":131072,"value":13251.200000,"dq":0},{"i":199999,"value":20143.900000,"dq":1}]}

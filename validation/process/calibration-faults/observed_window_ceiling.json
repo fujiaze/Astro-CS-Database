@@ -1,0 +1,71 @@
+{
+  "case": "m2.window_ceiling",
+  "command": "validation/process/calibration-faults/run_window_ceiling.sh",
+  "submitted": 100000,
+  "accepted": 10,
+  "refused": 99990,
+  "other": 0,
+  "max_active": 1,
+  "ready_window": "2P ready + 8P deferred (P=1 => at most 10)",
+  "control_ceiling": "control work spends one command CPU token (P=2, ceiling=1 => max_active 1)",
+  "checks": [
+    {
+      "name": "make_services",
+      "pass": true
+    },
+    {
+      "name": "open_command",
+      "pass": true
+    },
+    {
+      "name": "gated blocker completes",
+      "pass": true
+    },
+    {
+      "name": "every submission reached a terminal state",
+      "pass": true
+    },
+    {
+      "name": "at most 2P ready + 8P deferred tasks were accepted",
+      "pass": true
+    },
+    {
+      "name": "the burst beyond the window was refused",
+      "pass": true
+    },
+    {
+      "name": "refusals carry the named resource_exhausted code",
+      "pass": true
+    },
+    {
+      "name": "close_command after the burst",
+      "pass": true
+    },
+    {
+      "name": "control: make_services",
+      "pass": true
+    },
+    {
+      "name": "control: open_command",
+      "pass": true
+    },
+    {
+      "name": "control continuation completes",
+      "pass": true
+    },
+    {
+      "name": "scientific task completes",
+      "pass": true
+    },
+    {
+      "name": "control lane and science never exceed the command CPU ceiling",
+      "pass": true
+    },
+    {
+      "name": "control: close_command",
+      "pass": true
+    }
+  ],
+  "failures": [],
+  "status": "pass"
+}

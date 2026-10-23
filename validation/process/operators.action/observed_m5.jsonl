@@ -1,0 +1,16 @@
+{"process":"operators.action","operation":"make_action","field":"negative_code","value":"invalid_request"}
+{"process":"operators.action","operation":"apply","field":"negative_code","value":"invalid_request"}
+{"process":"operators.action","operation":"transpose_apply","field":"negative_code","value":"invalid_request"}
+{"process":"operators.action","operation":"compose","field":"negative_code","value":"invalid_request"}
+{"process":"operators.action","operation":"action.dependency_blocks","field":"negative_code","value":"invalid_request"}
+{"process":"operators.action","operation":"action.serialize_recipe","field":"negative_code","value":"invalid_request"}
+{"process":"operators.action","operation":"action.row_enclosure","field":"negative_code","value":"invalid_request"}
+{"process":"operators.action","operation":"apply","field":"values","value":[3.000000,3.000000]}
+{"process":"operators.action","operation":"transpose_apply","field":"run_code","value":"ok"}
+{"process":"operators.action","operation":"compose","field":"run_code","value":"ok"}
+{"process":"operators.action","operation":"action.dependency_blocks","field":"blocks","value":3}
+{"process":"operators.action","operation":"action.serialize_recipe","field":"run_code","value":"ok"}
+{"process":"operators.action","operation":"action.row_enclosure","field":"run_code","value":"ok"}
+{"process":"operators.action","operation":"apply","field":"plan_r_bytes","value":1088}
+{"process":"operators.action","operation":"apply","field":"plan_f_bytes","value":65648}
+{"process":"operators.action","operation":"apply","field":"plan_work","value":3}

@@ -24,6 +24,10 @@
 
 namespace acsd::modules {
 
+// Defined by <acsd/modules/generated/inputs.hpp>; only a forward declaration is
+// needed here so that the generated header can include this module header.
+struct RegroupObservationInput;
+
 // Counters of one signal block / one full frame that the finish assembly needs
 // for the assessment issues.  They are module-side bookkeeping, never a wire
 // field of the scientific result.
@@ -122,6 +126,16 @@ rt::Task<Ref<NativeObservation>> validate_native(rt::InvocationContext,
 // of CalibrateInput and of the shared NativeObservation are registered by
 // register_builtin_types, so this function never registers a TypeId itself.
 Result<rt::Done> register_calibration(rt::RegistryBuilder& builder);
+
+// The unique typed registration of observation.regroup.  The operation keeps
+// the unique regroup_observation implementation; this declaration only exposes
+// the registration to the generated assembly and to the process test driver.
+Result<rt::Done> register_regroup(rt::RegistryBuilder& builder);
+
+// Plan introspection for validation/process/observation.regroup.
+Result<rt::InvocationPlan> plan_regroup_op(rt::InvocationContext,
+                                           Ref<RegroupObservationInput>,
+                                           rt::PlanOptions);
 
 // Copies the original code/assessment/usage/dependencies of a failed task and
 // clears the value: a cleanup failure never rewrites the scientific failure.

@@ -1,0 +1,15 @@
+PASS: make_services
+PASS: open_command
+PASS: gated blocker completes
+PASS: every submission reached a terminal state
+PASS: at most 2P ready + 8P deferred tasks were accepted
+PASS: the burst beyond the window was refused
+PASS: refusals carry the named resource_exhausted code
+PASS: close_command after the burst
+PASS: control: make_services
+PASS: control: open_command
+PASS: control continuation completes
+PASS: scientific task completes
+PASS: control lane and science never exceed the command CPU ceiling
+PASS: control: close_command
+{"case":"m2.window_ceiling","submitted":100000,"accepted":10,"refused":99990,"other":0,"max_active":1,"failures":0}

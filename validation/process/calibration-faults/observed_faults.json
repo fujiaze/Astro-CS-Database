@@ -1,0 +1,111 @@
+{
+  "case": "cal.faults",
+  "command": "validation/process/calibration-faults/run_faults.sh",
+  "checks": [
+    {
+      "name": "short write: four private writers created",
+      "pass": true
+    },
+    {
+      "name": "short write: append reports a failure",
+      "pass": true
+    },
+    {
+      "name": "short write: the failure is io_error",
+      "pass": true
+    },
+    {
+      "name": "short write: abort drains all writers",
+      "pass": true
+    },
+    {
+      "name": "short write: private spools removed",
+      "pass": true
+    },
+    {
+      "name": "seal failure: four private writers created",
+      "pass": true
+    },
+    {
+      "name": "seal failure: append succeeded before injection",
+      "pass": true
+    },
+    {
+      "name": "seal failure: seal reports a failure",
+      "pass": true
+    },
+    {
+      "name": "seal failure: no ArrayRef product is delivered",
+      "pass": true
+    },
+    {
+      "name": "seal failure: abort drains all writers",
+      "pass": true
+    },
+    {
+      "name": "seal failure: private spools removed",
+      "pass": true
+    },
+    {
+      "name": "cancel: four private writers created",
+      "pass": true
+    },
+    {
+      "name": "cancel: the spool still existed when abort was requested",
+      "pass": true
+    },
+    {
+      "name": "cancel: abort returns ok after the cancelled write",
+      "pass": true
+    },
+    {
+      "name": "cancel: private spools removed after the real write",
+      "pass": true
+    },
+    {
+      "name": "cancel: no product is delivered",
+      "pass": true
+    }
+  ],
+  "failures": [],
+  "cases": [
+    {
+      "case": "short_write",
+      "append_code": 21,
+      "seal_code": 0,
+      "abort_code": 0,
+      "spools_after_begin": 4,
+      "spools_before_abort": 4,
+      "spools_after_abort": 0,
+      "product": false,
+      "deferred_abort": false,
+      "note": "short append I/O failed with io_error; all four writers drained"
+    },
+    {
+      "case": "seal_failure",
+      "append_code": 0,
+      "seal_code": 21,
+      "abort_code": 0,
+      "spools_after_begin": 4,
+      "spools_before_abort": 0,
+      "spools_after_abort": 0,
+      "product": false,
+      "deferred_abort": false,
+      "note": "canonical seal finalize failed after the spool disappeared"
+    },
+    {
+      "case": "cancel_after_submit",
+      "append_code": 22,
+      "seal_code": 0,
+      "abort_code": 0,
+      "spools_after_begin": 4,
+      "spools_before_abort": 4,
+      "spools_after_abort": 0,
+      "product": false,
+      "deferred_abort": true,
+      "note": "cancelled command; abort waited for the real write and cleaned"
+    }
+  ],
+  "status": "pass",
+  "limitation": "cleanup-only secondary issues cannot be injected through the public Storage API: private-spool removal is best effort and has no public failure switch"
+}

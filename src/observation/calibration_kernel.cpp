@@ -19,6 +19,9 @@
 #include "observation/observation.hpp"
 
 namespace acsd::observation {
+
+using rt::Done;
+
 namespace {
 
 constexpr const char* kOrigin = "calibrate_observation";
@@ -530,6 +533,185 @@ Result<Ref<NativeObservation>> assemble_calibrated_native(
       "acsd");
 
   return model::ok_result(std::shared_ptr<const NativeObservation>(observation_model));
+}
+
+
+// ---------------------------------------------------------------------------
+// The single metadata validation of the process (P1-4).  It is called by the
+// synchronous calibrate_observation and by the typed validate/bounds/plan
+// hooks, so the same RawObservation/Calibration can never produce two
+// different metadata verdicts.  It reads no payload: the NaN/DQ consistency
+// and the per-value flat range stay in the CPU stage after the block hash.
+// ---------------------------------------------------------------------------
+namespace {
+
+// The declared root identity of a noise model: every concatenated root must
+// carry a complete SharedId and a factor, otherwise the shared/cross term
+// cannot be merged later.
+Result<Done> validate_noise_model_metadata(const Ref<NoiseModel>& model, const char* label) {
+  if (!model) return model::ok_result(Done{});
+  const std::size_t roots = model->innovations.size() + model->shared_factors.size();
+  if (model->influence.size() < roots) {
+    return model::fail<Done>(Code::invalid_model,
+                             std::string("the ") + label +
+                                 " noise model has fewer influences than roots",
+                             kOrigin, "the calibration cannot be planned");
+  }
+  auto check_root = [&](const Ref<NoiseRoot>& root, const char* what) -> Result<Done> {
+    if (!root || !root->factor) {
+      return model::fail<Done>(Code::invalid_model,
+                               std::string("the ") + label + " " + what +
+                                   " root has no factor",
+                               kOrigin, "the noise model cannot be merged");
+    }
+    const SharedId& id = root->shared_id;
+    if (id.external_namespace.empty() || id.entity.empty() || id.model_revision.empty() ||
+        id.component.empty()) {
+      return model::fail<Done>(Code::invalid_model,
+                               std::string("the ") + label + " " + what +
+                                   " root has an incomplete shared identity",
+                               kOrigin, "the noise root cannot be merged by identity");
+    }
+    return model::ok_result(Done{});
+  };
+  for (const Ref<NoiseRoot>& root : model->innovations) {
+    Result<Done> check = check_root(root, "innovation");
+    if (!ok(check)) return check;
+  }
+  for (const Ref<NoiseRoot>& root : model->shared_factors) {
+    Result<Done> check = check_root(root, "shared");
+    if (!ok(check)) return check;
+  }
+  for (std::size_t i = 0; i < model->shared_factors.size(); ++i) {
+    for (std::size_t j = i + 1; j < model->shared_factors.size(); ++j) {
+      const SharedId& a = model->shared_factors[i]->shared_id;
+      const SharedId& b = model->shared_factors[j]->shared_id;
+      if (a.external_namespace == b.external_namespace && a.entity == b.entity &&
+          a.model_revision == b.model_revision && a.component == b.component) {
+        return model::fail<Done>(Code::invalid_model,
+                                 std::string("the ") + label +
+                                     " noise model lists the same shared root twice",
+                                 kOrigin, "the cross term would be counted twice");
+      }
+    }
+  }
+  return model::ok_result(Done{});
+}
+
+Result<Done> check_array_metadata(const ArrayRef& array, U64 count, DType dtype,
+                                  const char* label, bool check_dimensionless) {
+  if (!array) return model::ok_result(Done{});
+  if (array->dtype != dtype) {
+    return model::fail<Done>(Code::invalid_model,
+                             std::string("the ") + label + " array has the wrong dtype",
+                             kOrigin, "the calibration cannot be planned");
+  }
+  if (array->index_id.empty()) {
+    return model::fail<Done>(Code::invalid_model,
+                             std::string("the ") + label + " array has no index", kOrigin,
+                             "the calibration cannot be planned");
+  }
+  if (!array_has_count(*array, count)) {
+    return model::fail<Done>(Code::invalid_model,
+                             std::string("the ") + label + " array does not match the frame",
+                             kOrigin, "the calibration cannot be planned");
+  }
+  if (array->unit.scale.empty()) {
+    return model::fail<Done>(Code::invalid_model,
+                             std::string("the ") + label + " array has no unit", kOrigin,
+                             "the calibration cannot be planned");
+  }
+  if (check_dimensionless && (array->unit.scale != "1" || array->unit.linear_power != 0)) {
+    return model::fail<Done>(Code::invalid_model,
+                             std::string("the ") + label + " array must be dimensionless", kOrigin,
+                             "the data quality flags are not a physical quantity");
+  }
+  return model::ok_result(Done{});
+}
+
+}  // namespace
+
+Result<rt::Done> validate_calibration_input(Ref<RawObservation> raw, const Calibration& request) {
+  if (!raw) {
+    return model::fail<rt::Done>(Code::invalid_request, "no raw observation supplied", kOrigin,
+                                 "the observation cannot be calibrated");
+  }
+  if (!raw->adu || !raw->dq) {
+    return model::fail<rt::Done>(Code::invalid_model,
+                                 "the raw observation has no data or quality array", kOrigin,
+                                 "the observation cannot be calibrated");
+  }
+  if (!raw->source_index) {
+    return model::fail<rt::Done>(Code::invalid_model, "the raw observation has no source index",
+                                 kOrigin, "the observation cannot be calibrated");
+  }
+  if (raw->width == 0 || raw->height == 0) {
+    return model::fail<rt::Done>(Code::invalid_model, "the frame has no samples", kOrigin,
+                                 "the observation cannot be calibrated");
+  }
+  if (raw->width > std::numeric_limits<U64>::max() / raw->height) {
+    return model::fail<rt::Done>(Code::invalid_model, "the frame size overflows", kOrigin,
+                                 "the observation cannot be calibrated");
+  }
+  const U64 count = raw->width * raw->height;
+  if (raw->source_index->size != count) {
+    return model::fail<rt::Done>(Code::invalid_model, "the source index does not cover the frame",
+                                 kOrigin, "the observation cannot be calibrated");
+  }
+  Result<rt::Done> adu =
+      check_array_metadata(raw->adu, count, DType::f64, "raw data", false);
+  if (!ok(adu)) return adu;
+  Result<rt::Done> dq = check_array_metadata(raw->dq, count, DType::u16, "raw quality", true);
+  if (!ok(dq)) return dq;
+  Result<rt::Done> bias = check_array_metadata(request.bias, count, DType::f64, "bias", false);
+  if (!ok(bias)) return bias;
+  Result<rt::Done> dark = check_array_metadata(request.dark, count, DType::f64, "dark", false);
+  if (!ok(dark)) return dark;
+  Result<rt::Done> flat = check_array_metadata(request.flat, count, DType::f64, "flat", false);
+  if (!ok(flat)) return flat;
+  if (raw->frame.empty()) {
+    return model::fail<rt::Done>(Code::invalid_model, "the frame has no identity", kOrigin,
+                                 "the calibrated observation cannot keep the frame");
+  }
+  if (!raw->footprints) {
+    return model::fail<rt::Done>(Code::unavailable, "the frame has no detector footprint", kOrigin,
+                                 "the footprint capability is missing");
+  }
+  if (!std::isfinite(request.exposure_seconds) || !(request.exposure_seconds > 0.0)) {
+    return model::fail<rt::Done>(Code::invalid_model,
+                                 "the exposure time must be finite and positive", kOrigin,
+                                 "the observation cannot be calibrated");
+  }
+  if (!request.flat) {
+    if (request.flat_normalization != 1.0) {
+      return model::fail<rt::Done>(Code::invalid_model,
+                                   "an absent flat requires the explicit normalisation 1", kOrigin,
+                                   "the calibration cannot be planned");
+    }
+  } else {
+    if (!std::isfinite(request.flat_normalization) || !(request.flat_normalization > 0.0)) {
+      return model::fail<rt::Done>(Code::invalid_model,
+                                   "the flat normalisation must be finite and positive", kOrigin,
+                                   "the observation cannot be calibrated");
+    }
+  }
+  if (request.dark) {
+    if (!std::isfinite(request.dark_exposure_seconds) || !(request.dark_exposure_seconds > 0.0)) {
+      return model::fail<rt::Done>(Code::invalid_model,
+                                   "the dark exposure time must be positive when a dark is used",
+                                   kOrigin, "the observation cannot be calibrated");
+    }
+    const double ratio = request.exposure_seconds / request.dark_exposure_seconds;
+    if (!std::isfinite(ratio) || !(ratio > 0.0)) {
+      return model::fail<rt::Done>(Code::invalid_model, "the exposure ratio must be positive",
+                                   kOrigin, "the observation cannot be calibrated");
+    }
+  }
+  Result<rt::Done> raw_noise = validate_noise_model_metadata(request.raw_noise, "raw");
+  if (!ok(raw_noise)) return raw_noise;
+  Result<rt::Done> master_noise = validate_noise_model_metadata(request.master_noise, "master");
+  if (!ok(master_noise)) return master_noise;
+  return model::ok_result(rt::Done{});
 }
 
 }  // namespace acsd::observation

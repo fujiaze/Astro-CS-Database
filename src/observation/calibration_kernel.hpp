@@ -74,6 +74,16 @@ struct CalibratedSample {
 // dark is used, positive flat normalisation when a flat is used).
 CalibrationSampleParameters calibration_parameters(const Calibration& request);
 
+// The single metadata validation of the process.  It reads no payload and is
+// called by BOTH the synchronous public entry point (calibrate_observation)
+// and the typed hooks (validate_calibration / bounds_calibration /
+// plan_calibration), so the same RawObservation/Calibration can never produce
+// two different verdicts.  The payload-level NaN/DQ conflict and the flat range
+// stay in the CPU stage after the block hash, because validate must not do
+// payload I/O.
+Result<rt::Done> validate_calibration_input(Ref<RawObservation> raw,
+                                            const Calibration& request);
+
 // The unique per-sample calibration and its outward numerical enclosure.
 //
 // A non-finite raw value whose data-quality flags claim the sample is valid is

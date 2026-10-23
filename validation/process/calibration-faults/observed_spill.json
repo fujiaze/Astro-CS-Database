@@ -1,0 +1,102 @@
+{
+  "case": "cal.spill_readback",
+  "command": "validation/process/calibration-faults/run_spill_readback.sh",
+  "n": 200000,
+  "block_elements": 65536,
+  "blocks_per_array": 2,
+  "readback_bytes": 680273,
+  "materialized_bytes": 10000000,
+  "memory": {
+    "placement": "memory",
+    "n": 200000,
+    "block_elements": 65536,
+    "case": "cal.spill_readback",
+    "blocks_per_array": 2,
+    "readback_bytes": 0,
+    "materialized_bytes": 0,
+    "identity": "acsd.NativeObservation:0b4635cc60b03bf16af32a6c289393a7464421d13c4d15b6323d01e2d33ba8a2",
+    "content_hash": "sha256:0b4635cc60b03bf16af32a6c289393a7464421d13c4d15b6323d01e2d33ba8a2",
+    "code": 0,
+    "failures": 0,
+    "samples": [
+      {
+        "i": 0,
+        "value": 144.0,
+        "dq": 0
+      },
+      {
+        "i": 1,
+        "value": 144.1,
+        "dq": 0
+      },
+      {
+        "i": 65535,
+        "value": 6697.5,
+        "dq": 0
+      },
+      {
+        "i": 131072,
+        "value": 13251.2,
+        "dq": 0
+      },
+      {
+        "i": 199999,
+        "value": 20143.9,
+        "dq": 1
+      }
+    ]
+  },
+  "spill": {
+    "placement": "spill",
+    "n": 200000,
+    "block_elements": 65536,
+    "case": "cal.spill_readback",
+    "blocks_per_array": 2,
+    "readback_bytes": 680273,
+    "materialized_bytes": 10000000,
+    "identity": "acsd.NativeObservation:0b4635cc60b03bf16af32a6c289393a7464421d13c4d15b6323d01e2d33ba8a2",
+    "content_hash": "sha256:0b4635cc60b03bf16af32a6c289393a7464421d13c4d15b6323d01e2d33ba8a2",
+    "code": 0,
+    "failures": 0,
+    "samples": [
+      {
+        "i": 0,
+        "value": 144.0,
+        "dq": 0
+      },
+      {
+        "i": 1,
+        "value": 144.1,
+        "dq": 0
+      },
+      {
+        "i": 65535,
+        "value": 6697.5,
+        "dq": 0
+      },
+      {
+        "i": 131072,
+        "value": 13251.2,
+        "dq": 0
+      },
+      {
+        "i": 199999,
+        "value": 20143.9,
+        "dq": 1
+      }
+    ]
+  },
+  "checks": {
+    "memory_ok": true,
+    "spill_ok": true,
+    "same_identity": true,
+    "same_content_hash": true,
+    "same_samples": true,
+    "memory_no_readback": true,
+    "spill_readback_ran": true,
+    "spill_materialized_bytes": true,
+    "two_blocks_per_array": true
+  },
+  "failures": [],
+  "status": "pass"
+}
