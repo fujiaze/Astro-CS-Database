@@ -1,0 +1,119 @@
+{
+  "case": "cal_kernel",
+  "title": "observation.calibrate: unique per-sample kernel, outward enclosure, DQ rules, fixed plan and metadata-only validate",
+  "milestone": "M4",
+  "contract_refs": [
+    "docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md (C-CAL-1/2/DQ, 60n+S, plan fields)",
+    "docs/engineering/rebuild/processes/observation.calibrate.md (algorithm and DQ rules)",
+    "docs/engineering/rebuild/standards/FOUNDATION_API.md (validate reads metadata only)"
+  ],
+  "fixed_configuration": {
+    "c_cal_1": {
+      "raw": [
+        10,
+        20,
+        -2
+      ],
+      "bias": 2,
+      "dark": 4,
+      "dark_contains_bias": true,
+      "exposure_seconds": 2,
+      "dark_exposure_seconds": 1,
+      "flat": 2,
+      "flat_normalization": 2,
+      "expected": [
+        4,
+        14,
+        -8
+      ]
+    },
+    "c_cal_2": {
+      "same_maps": true,
+      "dark_contains_bias": false,
+      "expected": [
+        0,
+        10,
+        -12
+      ]
+    },
+    "c_cal_dq": {
+      "flat": [
+        2,
+        0,
+        2
+      ],
+      "nan_with_valid_dq": "invalid_model",
+      "nan_with_missing_dq": "accepted without a value"
+    },
+    "plan_small": {
+      "elements": 3,
+      "block_elements": 3,
+      "cohorts": 1,
+      "progress_floor_bytes": 1052852,
+      "persistent_bytes": 32894
+    },
+    "plan_large": {
+      "elements": 200000,
+      "block_elements": 65536,
+      "cohorts": 4,
+      "progress_floor_bytes": 4984832,
+      "persistent_bytes": 8432768
+    },
+    "plan_constants": {
+      "storage_workspace_bytes": 1048576,
+      "cohort_control_bytes": 4096,
+      "final_metadata_bytes": 16384,
+      "plan_control_bytes": 16384
+    },
+    "bounds": {
+      "min_block_elements": 1,
+      "max_block_elements": 10000,
+      "max_window": 4,
+      "allow_spill": true
+    }
+  },
+  "required_checks": [
+    "cal.c_cal_1_x",
+    "cal.c_cal_1_enclosure",
+    "cal.c_cal_1_dq",
+    "cal.c_cal_2_x",
+    "cal.c_cal_dq_flat_zero",
+    "cal.c_cal_dq_flat_zero_keeps_existing_dq",
+    "cal.c_cal_dq_nan_metadata_ok",
+    "cal.c_cal_dq_nan_valid_dq_rejected",
+    "cal.c_cal_dq_nan_missing_accepted",
+    "cal.c_cal_dq_overflow_not_repaired",
+    "cal.plan_small_ok",
+    "cal.plan_small_structure",
+    "cal.plan_small_floor",
+    "cal.plan_small_persistent",
+    "cal.plan_small_edges",
+    "cal.plan_large_cohorts",
+    "cal.plan_large_block",
+    "cal.plan_large_floor",
+    "cal.plan_large_persistent",
+    "cal.plan_large_work",
+    "cal.bounds_ok",
+    "cal.bounds_range",
+    "cal.plan_block_out_of_range",
+    "cal.plan_block_zero",
+    "cal.plan_window_zero",
+    "cal.validate_ok",
+    "cal.validate_absent_flat",
+    "cal.validate_absent_flat_zero_rejected",
+    "cal.validate_exposure",
+    "cal.validate_dark_exposure",
+    "cal.validate_flat_normalization",
+    "cal.validate_shape",
+    "cal.validate_dtype",
+    "cal.validate_dq_unit",
+    "cal.validate_footprints",
+    "cal.validate_missing_input"
+  ],
+  "min_attempts": 36,
+  "expected_success_count": 36,
+  "tolerance": "exact FP64 values for the nominal samples ([4,14,-8] and [0,10,-12]); the enclosure must contain the nominal value; plan byte counts are exact integers of the frozen formula",
+  "link": "science",
+  "timeout_seconds": 120,
+  "gate": "the full driver -> registry -> pool/Storage -> Native chain is the separate cal_host case; it stays pending until the runtime link and the generated registration are in place"
+}

@@ -1,0 +1,108 @@
+{
+  "case": "cal_host",
+  "title": "observation.calibrate end-to-end: driver -> generated registry -> ProcessHost -> Storage -> NativeObservation",
+  "milestone": "M4",
+  "contract_refs": [
+    "docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md (input, plan, composition, C-CAL matrix)",
+    "docs/engineering/rebuild/processes/observation.calibrate.md (N1 algorithm, DQ, NoiseModel root rules)",
+    "docs/engineering/rebuild/standards/FOUNDATION_API.md (typed invoke, Host state machine, Storage writers)"
+  ],
+  "fixed_configuration": {
+    "c_cal_1": {
+      "raw": [
+        10,
+        20,
+        -2
+      ],
+      "bias": 2,
+      "dark": 4,
+      "dark_contains_bias": true,
+      "exposure_seconds": 2,
+      "dark_exposure_seconds": 1,
+      "flat": 2,
+      "flat_normalization": 2,
+      "expected": [
+        4,
+        14,
+        -8
+      ],
+      "expected_identity": "acsd.NativeObservation:5ebea39ffb9039d44e3cc4f82142f010ed40edff318e5fb50162aaa898554106"
+    },
+    "c_cal_2": {
+      "dark_contains_bias": false,
+      "expected": [
+        0,
+        10,
+        -12
+      ]
+    },
+    "c_cal_dq": {
+      "flat": [
+        2,
+        0,
+        2
+      ],
+      "expected": "value[1] is NaN, bad flag set, named invalid_model flat issue"
+    },
+    "c_cal_h": {
+      "width": 400,
+      "height": 500,
+      "elements": 200000,
+      "blocks": "65536,65536,65536,3392",
+      "plan_R": 8432768,
+      "plan_F": 4984832
+    },
+    "c_cal_root": {
+      "master_shared_id": "acsd.native/master_flat/1/amplitude",
+      "invocations": 2
+    },
+    "c_cal_dev": {
+      "mode": "OFF (ACSD_DEV_MODE=0)",
+      "invocations": 2,
+      "expect": "same NativeObservation identity"
+    },
+    "c_cal_order": {
+      "composition": "direct modules::stream_map_ordered (Host admission fixes window=1)",
+      "elements": 3,
+      "block_elements": 1,
+      "window": 2,
+      "expected": [
+        4,
+        14,
+        -8
+      ]
+    }
+  },
+  "required_checks": [
+    "cal.host.services",
+    "cal.host.command",
+    "cal.host.arena",
+    "cal.host.input_arrays",
+    "cal.host.builtin_types",
+    "cal.host.register_processes",
+    "cal.host.freeze",
+    "cal.host.registered",
+    "cal.host.make_host",
+    "cal.host.plan_numbers",
+    "cal.host.c_cal_1",
+    "cal.host.c_cal_1_metadata",
+    "cal.host.c_cal_1_identity",
+    "cal.host.c_cal_1_values",
+    "cal.host.c_cal_1_enclosure",
+    "cal.host.c_cal_1_dq",
+    "cal.host.c_cal_2",
+    "cal.host.c_cal_dq",
+    "cal.host.c_cal_root",
+    "cal.host.dev_off_deterministic",
+    "cal.host.c_cal_h_plan",
+    "cal.host.c_cal_h",
+    "cal.host.c_cal_order_window2",
+    "cal.host.close_command",
+    "cal.host.close_host"
+  ],
+  "min_attempts": 25,
+  "expected_success_count": 25,
+  "tolerance": "exact FP64 nominal values; the enclosure must contain the nominal value; plan byte counts exact; Codes by name",
+  "link": "science+runtime+generated",
+  "timeout_seconds": 240
+}

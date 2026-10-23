@@ -1,0 +1,296 @@
+{
+  "case": "cal_kernel",
+  "status": "pass",
+  "reason": "all required checks passed",
+  "attempts": 36,
+  "successes": 36,
+  "expected_success_count": 36,
+  "observed_success_count": 36,
+  "required_checks": 36,
+  "missing_checks": [],
+  "failed_checks": [],
+  "failures": [],
+  "checks": [
+    {
+      "check": "cal.c_cal_1_x",
+      "pass": true,
+      "expected": "[4,14,-8]",
+      "actual": "[4,14,-8]",
+      "detail": "x = (raw - b - beta*(D-b))/f with beta=2, f=2/2"
+    },
+    {
+      "check": "cal.c_cal_1_enclosure",
+      "pass": true,
+      "expected": "lower <= exact <= upper",
+      "actual": "contained",
+      "detail": "the same outward expression encloses its nominal value"
+    },
+    {
+      "check": "cal.c_cal_1_dq",
+      "pass": true,
+      "expected": "0",
+      "actual": "0",
+      "detail": "a legal sample keeps its data quality flags"
+    },
+    {
+      "check": "cal.c_cal_2_x",
+      "pass": true,
+      "expected": "[0,10,-12]",
+      "actual": "[0,10,-12]",
+      "detail": "the dark without bias is scaled directly, not through D-b"
+    },
+    {
+      "check": "cal.c_cal_dq_flat_zero",
+      "pass": true,
+      "expected": "NaN value, bad flag, flat unusable",
+      "actual": "NaN+bad",
+      "detail": "flat<=0 is not repaired numerically"
+    },
+    {
+      "check": "cal.c_cal_dq_flat_zero_keeps_existing_dq",
+      "pass": true,
+      "expected": "missing stays missing (no extra bad bit)",
+      "actual": "8",
+      "detail": "an already disqualifying sample is not rewritten"
+    },
+    {
+      "check": "cal.c_cal_dq_nan_metadata_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the kernel of a legal sample is ok"
+    },
+    {
+      "check": "cal.c_cal_dq_nan_valid_dq_rejected",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model",
+      "detail": "a NaN raw value with valid DQ conflicts with the flags"
+    },
+    {
+      "check": "cal.c_cal_dq_nan_missing_accepted",
+      "pass": true,
+      "expected": "ok, NaN value, unchanged missing flag",
+      "actual": "ok",
+      "detail": "a NaN raw value with a disqualifying flag is accepted without a value"
+    },
+    {
+      "check": "cal.c_cal_dq_overflow_not_repaired",
+      "pass": true,
+      "expected": "NaN value, bad flag",
+      "actual": "NaN+bad",
+      "detail": "an overflow is not clipped and dares not be reported as a width of 0"
+    },
+    {
+      "check": "cal.plan_small_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the fixed small frame plans"
+    },
+    {
+      "check": "cal.plan_small_structure",
+      "pass": true,
+      "expected": "region0 stream, cohorts1, stages3, edges2, adaptive=false",
+      "actual": "structure differs",
+      "detail": "fixed plan of the walkthrough"
+    },
+    {
+      "check": "cal.plan_small_floor",
+      "pass": true,
+      "expected": "1052852",
+      "actual": "1052852",
+      "detail": "F = 60n + S + control"
+    },
+    {
+      "check": "cal.plan_small_persistent",
+      "pass": true,
+      "expected": "32894",
+      "actual": "32894",
+      "detail": "R = 26N + 16N (unknown noise placeholder) + final metadata + control"
+    },
+    {
+      "check": "cal.plan_small_edges",
+      "pass": true,
+      "expected": "edges 0->1, 1->2",
+      "actual": "different edges",
+      "detail": "fixed stage graph"
+    },
+    {
+      "check": "cal.plan_large_cohorts",
+      "pass": true,
+      "expected": "4",
+      "actual": "4",
+      "detail": "ceil(200000/65536)"
+    },
+    {
+      "check": "cal.plan_large_block",
+      "pass": true,
+      "expected": "65536",
+      "actual": "65536",
+      "detail": "the initial block elements"
+    },
+    {
+      "check": "cal.plan_large_floor",
+      "pass": true,
+      "expected": "4984832",
+      "actual": "4984832",
+      "detail": "F = 60n + S + control"
+    },
+    {
+      "check": "cal.plan_large_persistent",
+      "pass": true,
+      "expected": "8432768",
+      "actual": "8432768",
+      "detail": "R includes the full output and the final model arrays"
+    },
+    {
+      "check": "cal.plan_large_work",
+      "pass": true,
+      "expected": "65536",
+      "actual": "65536",
+      "detail": "one work unit per native sample of the cohort"
+    },
+    {
+      "check": "cal.bounds_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "bounds of a 10000 sample frame"
+    },
+    {
+      "check": "cal.bounds_range",
+      "pass": true,
+      "expected": "min=1, max=N, window>=2, spill allowed",
+      "actual": "different bounds",
+      "detail": "PlanBounds contract"
+    },
+    {
+      "check": "cal.plan_block_out_of_range",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": "block > N is rejected"
+    },
+    {
+      "check": "cal.plan_block_zero",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": "block = 0 is rejected"
+    },
+    {
+      "check": "cal.plan_window_zero",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": "window = 0 is rejected"
+    },
+    {
+      "check": "cal.validate_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the metadata of C-CAL-1 is valid"
+    },
+    {
+      "check": "cal.validate_absent_flat",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "an absent flat is the explicit normalisation 1"
+    },
+    {
+      "check": "cal.validate_absent_flat_zero_rejected",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model",
+      "detail": "absent flat with normalisation 0 is rejected"
+    },
+    {
+      "check": "cal.validate_exposure",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model",
+      "detail": "exposure must be positive"
+    },
+    {
+      "check": "cal.validate_dark_exposure",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model",
+      "detail": "dark exposure must be positive when a dark is used"
+    },
+    {
+      "check": "cal.validate_flat_normalization",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model",
+      "detail": "flat normalisation must be positive when a flat is used"
+    },
+    {
+      "check": "cal.validate_shape",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model",
+      "detail": "the raw array shape must cover the frame"
+    },
+    {
+      "check": "cal.validate_dtype",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model",
+      "detail": "the raw data array must be f64"
+    },
+    {
+      "check": "cal.validate_dq_unit",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model",
+      "detail": "the data quality array must be dimensionless"
+    },
+    {
+      "check": "cal.validate_footprints",
+      "pass": true,
+      "expected": "unavailable",
+      "actual": "unavailable",
+      "detail": "the footprint capability is missing"
+    },
+    {
+      "check": "cal.validate_missing_input",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": "a null input is invalid_request"
+    }
+  ],
+  "values": {
+    "c_cal_1.x0": 4,
+    "c_cal_1.lower0": 3.9999999999999964,
+    "c_cal_1.upper0": 4.000000000000004,
+    "c_cal_1.x1": 14,
+    "c_cal_1.lower1": 13.999999999999991,
+    "c_cal_1.upper1": 14.000000000000007,
+    "c_cal_1.x2": -8,
+    "c_cal_1.lower2": -8.000000000000007,
+    "c_cal_1.upper2": -7.9999999999999964,
+    "c_cal_2.x0": 0,
+    "c_cal_2.x1": 10,
+    "c_cal_2.x2": -12,
+    "plan.small.elements": 3,
+    "plan.small.block": 3,
+    "plan.small.cohorts": 1,
+    "plan.small.f": 1052852,
+    "plan.small.r": 32894,
+    "plan.large.elements": 200000,
+    "plan.large.block": 65536,
+    "plan.large.cohorts": 4,
+    "plan.large.f": 4984832,
+    "plan.large.r": 8432768,
+    "plan.large.stage1_work": 65536
+  },
+  "resources": {
+    "checks": 36,
+    "successes": 36
+  }
+}

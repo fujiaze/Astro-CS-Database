@@ -1,0 +1,229 @@
+{
+  "case": "cal_host",
+  "source": "validation/runtime/calibration/cal_host.cpp",
+  "status": "ran",
+  "attempts": 25,
+  "successes": 25,
+  "failures": [],
+  "checks": [
+    {
+      "check": "cal.host.services",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "one Services instance"
+    },
+    {
+      "check": "cal.host.command",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the driver command scope"
+    },
+    {
+      "check": "cal.host.arena",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the driver input-array arena"
+    },
+    {
+      "check": "cal.host.input_arrays",
+      "pass": true,
+      "expected": "all input arrays are registered",
+      "actual": "some array is null",
+      "detail": "Storage writers produced the input blocks"
+    },
+    {
+      "check": "cal.host.builtin_types",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "generated register_builtin_types"
+    },
+    {
+      "check": "cal.host.register_processes",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "generated register_processes calls the module"
+    },
+    {
+      "check": "cal.host.freeze",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the frozen registry"
+    },
+    {
+      "check": "cal.host.registered",
+      "pass": true,
+      "expected": "observation.calibrate/calibrate_observation present",
+      "actual": "not found",
+      "detail": "the module registration replaced the M0 shell"
+    },
+    {
+      "check": "cal.host.make_host",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the ProcessHost"
+    },
+    {
+      "check": "cal.host.plan_numbers",
+      "pass": true,
+      "expected": "R=32894, F=1052852",
+      "actual": "R=32894, F=1052852",
+      "detail": "the frozen plan formula of the walkthrough"
+    },
+    {
+      "check": "cal.host.c_cal_1",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the typed invocation returns a NativeObservation"
+    },
+    {
+      "check": "cal.host.c_cal_1_metadata",
+      "pass": true,
+      "expected": "frame/context/index/physical/NoiseModel/ErrorRecord/regrouping preserved",
+      "actual": "some field is missing",
+      "detail": "the shared finish assembly through the bridge"
+    },
+    {
+      "check": "cal.host.c_cal_1_identity",
+      "pass": true,
+      "expected": "the identity the synchronous calibrate_observation computes",
+      "actual": "same",
+      "detail": "same values and DQ => same NativeObservation content identity"
+    },
+    {
+      "check": "cal.host.c_cal_1_values",
+      "pass": true,
+      "expected": "[4,14,-8]",
+      "actual": "[4,14,-8]",
+      "detail": "the Host path returns the same kernel output"
+    },
+    {
+      "check": "cal.host.c_cal_1_enclosure",
+      "pass": true,
+      "expected": "lower <= exact <= upper",
+      "actual": "contained",
+      "detail": "the outward enclosure survives the block pipeline"
+    },
+    {
+      "check": "cal.host.c_cal_1_dq",
+      "pass": true,
+      "expected": "0",
+      "actual": "0",
+      "detail": "DQ is preserved through append/seal"
+    },
+    {
+      "check": "cal.host.c_cal_2",
+      "pass": true,
+      "expected": "[0,10,-12]",
+      "actual": "[0,10,-12]",
+      "detail": "dark without bias is scaled directly through the same kernel"
+    },
+    {
+      "check": "cal.host.c_cal_dq",
+      "pass": true,
+      "expected": "NaN value + bad flag + named flat Issue",
+      "actual": "behaved",
+      "detail": "a non-positive flat is never repaired through the pipeline"
+    },
+    {
+      "check": "cal.host.c_cal_root",
+      "pass": true,
+      "expected": "both invocations keep the same shared Identity and one influence",
+      "actual": "same root",
+      "detail": "two process invocations do not create new random roots"
+    },
+    {
+      "check": "cal.host.dev_off_deterministic",
+      "pass": true,
+      "expected": "same NativeObservation identity",
+      "actual": "same",
+      "detail": "ACSD_DEV_MODE=0 evaluated no probe and changed no science result"
+    },
+    {
+      "check": "cal.host.c_cal_h_plan",
+      "pass": true,
+      "expected": "4 cohorts, n=65536, R=8432768, F=4984832",
+      "actual": "c=4, n=65536",
+      "detail": "the frozen plan formula at the canonical boundary"
+    },
+    {
+      "check": "cal.host.c_cal_h",
+      "pass": true,
+      "expected": "N=200000 values exact across 65536/65536/65536/3392 blocks",
+      "actual": "N=200000",
+      "detail": "tail block and block boundaries"
+    },
+    {
+      "check": "cal.host.c_cal_order_window2",
+      "pass": true,
+      "expected": "window=2 over 3 single-element cohorts gives [4,14,-8]",
+      "actual": "ordered composition correct",
+      "detail": "two expanded cohorts, the sink consumes the lowest key first"
+    },
+    {
+      "check": "cal.host.close_command",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the command scope drains"
+    },
+    {
+      "check": "cal.host.close_host",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the host closes after draining"
+    }
+  ],
+  "values": {
+    "host.registration_linked": true,
+    "plan.R": 32894,
+    "plan.F": 1052852,
+    "host.c_cal_1.issues": "",
+    "host.c_cal_1.x0": 4,
+    "host.c_cal_1.x1": 14,
+    "host.c_cal_1.x2": -8,
+    "host.c_cal_1.identity": "acsd.NativeObservation:5ebea39ffb9039d44e3cc4f82142f010ed40edff318e5fb50162aaa898554106",
+    "host.c_cal_2.x0": 0,
+    "host.c_cal_2.x1": 10,
+    "host.c_cal_2.x2": -12,
+    "host.c_cal_dq.value1": "nan",
+    "host.root.shared_id": "master_flat",
+    "host.root.influences": 1,
+    "host.dev_off_identity": "acsd.NativeObservation:5ebea39ffb9039d44e3cc4f82142f010ed40edff318e5fb50162aaa898554106",
+    "host.c_cal_h.code": "ok",
+    "host.c_cal_h.issues": "",
+    "host.c_cal_h.last": 50999.75,
+    "host.c_cal_h.block_boundary": 17384,
+    "host.c_cal_h.plan_R": 8432768,
+    "host.c_cal_h.plan_F": 4984832,
+    "host.order.code": "ok",
+    "host.order.cohorts": 3,
+    "host.order.window": 2
+  },
+  "resources": {
+    "peak_host_bytes": 10000714,
+    "work": 204258,
+    "read_bytes": 3600924,
+    "written_bytes": 7200780,
+    "checks": 25,
+    "successes": 25
+  },
+  "commands": [],
+  "notes": [
+    "C-CAL-ORDER runs as a direct module composition because the Host admission fixes window=1 by contract",
+    "C-CAL-ORDER: the Host admission uses window=1 by contract; the window>1 overlap path of stream_map_ordered is not exercised by this case",
+    "C-CAL-CLEAN/C-CAL-WRITE need injected cancellation/short writes; they are covered by the runtime verification cases, not fabricated here"
+  ],
+  "command": "validation/runtime/calibration/run_cal_host.sh",
+  "exit_code": 0,
+  "stderr_tail": "",
+  "timed_out": false
+}
