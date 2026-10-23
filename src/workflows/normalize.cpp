@@ -437,6 +437,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
   std::vector<Ref<SourceMeasurements>> measurements;
   std::vector<FrameOutcome> outcomes(request.frames.size());
   std::vector<Ref<Response>> responses;
+  std::vector<Id> photometry_frames;
   std::vector<std::vector<U64>> source_ids_per_frame;
 
   for (std::size_t i = 0; i < request.frames.size(); ++i) {
@@ -673,7 +674,10 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
 
     observations.push_back(observation);
     measurements.push_back(value_of(measured));
-    if (frame.response) responses.push_back(frame.response);
+    if (frame.response) {
+      responses.push_back(frame.response);
+      photometry_frames.push_back(frame.frame);
+    }
     std::vector<U64> ids;
     for (const StarFlux& star : value_of(measured)->stars) ids.push_back(star.gaia_source_id);
     source_ids_per_frame.push_back(ids);
@@ -689,31 +693,35 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     }
     std::sort(all_ids.begin(), all_ids.end());
     all_ids.erase(std::unique(all_ids.begin(), all_ids.end()), all_ids.end());
-    auto id_ref = std::make_shared<const std::vector<U64>>(all_ids);
-    auto lookup_input = std::make_shared<const CatalogueLookupInput>(
-        CatalogueLookupInput{
-            std::shared_ptr<const CatalogueProvider>(&catalogue, [](const CatalogueProvider*) {}),
-            id_ref});
-    Result<rt::InvocationPlan> lookup_plan =
-        plan_catalogue_lookup_op(runtime->command, lookup_input, runtime->options);
-    Result<std::vector<CatalogueStar>> stars_result =
-        rt::wait_external(runtime->host->invoke<CatalogueLookupInput,
-                                                std::vector<CatalogueStar>>(
-            runtime->command, "catalogue.access", "catalogue.lookup", lookup_input));
-    record("all", "catalogue_lookup", "catalogue.access", "catalogue.lookup", lookup_plan,
-           stars_result.code, Id{});
+    // catalogue.lookup is a provider method of the storage service (WORKFLOWS:
+    // provider methods are not per-call process nodes).  Keeping it on the
+    // workflow Context is also what makes the returned stars carry their XP
+    // coefficient arrays; a Host-invoked lookup would have to re-read the
+    // provider's private column arrays through the science bridge.
+    Result<std::vector<CatalogueStar>> stars_result = catalogue.lookup(context, all_ids);
+    record("all", "catalogue_lookup", "catalogue.access", "catalogue.lookup",
+           Result<rt::InvocationPlan>{}, stars_result.code, Id{});
     if (!ok(stars_result)) {
       return fail<NormalizeResult>(stars_result.code, "the catalogue cannot be read", "normalize",
                                     "no frame was published");
     }
     std::vector<CatalogueStar> stars = value_of(stars_result);
+    std::size_t xp_present = 0;
+    std::size_t xp_block = 0;
     for (const CatalogueStar& star : stars) {
+      if (star.xp_coefficients) ++xp_present;
       Result<Done> star_ingest = ingest_star(context, *runtime, star);
       if (!star_ingest.value) {
         return fail<NormalizeResult>(star_ingest.code, "the catalogue stars cannot be served",
                                       "normalize", "no frame was published");
       }
+      if (star.xp_coefficients &&
+          runtime->services->blocks->find(star.xp_coefficients->identity.object_id))
+        ++xp_block;
     }
+    if (trace.is_open())
+      trace << "{\"step\":\"catalogue_lookup\",\"code\":\"ok\",\"xp_present\":" << xp_present
+            << ",\"xp_blocks\":" << xp_block << ",\"stars\":" << stars.size() << "}\n";
     const Ref<SpectralBasis> basis = stars.empty() ? nullptr : stars.front().xp_basis;
     std::vector<Ref<SpectralPrediction>> predictions;
     for (const Ref<Response>& response : responses) {
@@ -758,6 +766,19 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       }
       predictions.push_back(value_of(prediction));
     }
+    if (responses.size() != measurements.size()) {
+      // A measured frame without a response cannot enter the joint fit; the
+      // fit request stays consistent instead of reporting a length conflict.
+      for (FrameOutcome& outcome : outcomes) {
+        if (outcome.failed || outcome.unsolved || outcome.cancelled) continue;
+        outcome.failed = true;
+        outcome.code = Code::unavailable;
+        outcome.reason = "a measured frame has no response for the joint photometry";
+      }
+    } else {
+    PhotometryRequest fit_request = request.photometry;
+    fit_request.frames = photometry_frames;
+    fit_request.responses = responses;
     auto measurements_ref =
         std::make_shared<const std::vector<Ref<SourceMeasurements>>>(measurements);
     auto stars_ref = std::make_shared<const std::vector<CatalogueStar>>(stars);
@@ -796,7 +817,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       }
     }
     auto fit_input = std::make_shared<const FitPhotometryInput>(
-        FitPhotometryInput{measurements_ref, stars_ref, predictions_ref, request.photometry});
+        FitPhotometryInput{measurements_ref, stars_ref, predictions_ref, fit_request});
     Result<rt::InvocationPlan> fit_plan =
         plan_photometry_fit(runtime->command, fit_input, runtime->options);
     Result<Ref<PhotoSolution>> solution =
@@ -816,6 +837,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       }
     } else {
       for (std::size_t i = 0; i < measurements.size(); ++i) solutions[i] = value_of(solution);
+    }
     }
   }
 

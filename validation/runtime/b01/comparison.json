@@ -10,18 +10,18 @@
     "built": true,
     "status": "built",
     "classification": "ok",
-    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/b01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/b01",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/b01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -fsanitize=address -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/b01",
     "log": "validation/runtime/build/b01.build.log"
   },
   "command": "/workspace/Astro CS Database/validation/runtime/build/b01",
   "status": "pass",
   "reason": "all required checks passed",
   "exit_code": 0,
-  "attempts": 24,
-  "successes": 24,
-  "expected_success_count": 24,
-  "observed_success_count": 24,
-  "required_checks": 24,
+  "attempts": 30,
+  "successes": 30,
+  "expected_success_count": 28,
+  "observed_success_count": 30,
+  "required_checks": 28,
   "missing_checks": [],
   "failed_checks": [],
   "failures": [],
@@ -178,11 +178,53 @@
       "check": "b01.cancel_no_half_product",
       "pass": true,
       "expected": "seal does not deliver an ArrayRef",
-      "actual": "cancelled(cancelled:runtime.storage.seal:append I/O failed)",
+      "actual": "cancelled(cancelled:runtime.storage.seal:work budget exhausted)",
       "detail": ""
     },
     {
       "check": "b01.cancel_abort_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.bits_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.bits_reserve_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.bits_seals_ok",
+      "pass": true,
+      "expected": "all five one-element arrays seal",
+      "actual": "recorded",
+      "detail": ""
+    },
+    {
+      "check": "b01.sign_zero_hash_distinct",
+      "pass": true,
+      "expected": "+0.0 and -0.0 have different content_hash",
+      "actual": "distinct",
+      "detail": "OBJECTS:140 preserves the sign bit of zero"
+    },
+    {
+      "check": "b01.nan_canonicalised",
+      "pass": true,
+      "expected": "payload NaN and signalling NaN hash as +quiet canonical NaN",
+      "actual": "payload=same signalling=same",
+      "detail": "OBJECTS:140 canonicalises NaN to +quiet"
+    },
+    {
+      "check": "b01.bits_close_ok",
       "pass": true,
       "expected": "ok",
       "actual": "ok",
@@ -196,6 +238,15 @@
       "detail": ""
     }
   ],
-  "values": {},
+  "values": {
+    "b01.bits_pos_stage": "",
+    "b01.bits_neg_stage": "",
+    "b01.bits_payload_stage": "",
+    "b01.bits_canonical_stage": "",
+    "b01.bits_snan_stage": "",
+    "b01.pos_zero_hash": "sha256:6abd2014ca8e07828d21f775108fe8b9be5d3045399037d65a62823e1252e326",
+    "b01.neg_zero_hash": "sha256:f561e1f26ed0b12c83625762e21f0756242209e771aa3cd05ffc8672c5a08b3b",
+    "b01.nan_canonical_hash": "sha256:f5ac244342219ab0c7be3f54a47f6f60d3864e5d1deddcc20f3bb0f48d4f815b"
+  },
   "resources": {}
 }

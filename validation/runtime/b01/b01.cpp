@@ -84,6 +84,59 @@ Result<rt::WriterRef> open_writer(const rt::InvocationContext& ctx, const rt::Ar
   return begin_writer(ctx, arena, layout);
 }
 
+// Seal a one-element f64 array from raw IEEE-754 bits.  OBJECTS:140 requires
+// the sign of zero to survive and NaN to be canonicalised to +quiet.
+Result<acsd::ArrayRef> seal_f64_bits(const rt::InvocationContext& ctx,
+                                     const rt::ArenaRef& arena, std::uint64_t bits,
+                                     const acsd::Unit& unit,
+                                     const acsd::Ref<acsd::Index>& index,
+                                     std::string* stage = nullptr) {
+  Result<acsd::ArrayRef> failure;
+  failure.code = Code::internal;
+  rt::ArrayLayout layout;
+  layout.dtype = acsd::DType::f64;
+  layout.shape = {1};
+  layout.unit = unit;
+  layout.index = index;
+  rt::BuildSpec spec;
+  spec.layout = layout;
+  spec.placement = rt::Placement::spill;
+  spec.buffer_bytes = 1ull << 20;
+  spec.metadata_bytes = 4096;
+  auto writer = rt::wait_external(rt::begin_async(ctx, arena, spec));
+  if (writer.code != Code::ok || !writer.value) {
+    if (stage) *stage = "begin:" + vrt::code_of(writer);
+    return failure;
+  }
+  auto buffer = rt::allocate<double>(ctx, arena, acsd::BlockRequest{0, 1}, index, unit,
+                                     vrt::zero_hash());
+  if (buffer.code != Code::ok || !buffer.value) {
+    if (stage) *stage = "allocate:" + vrt::code_of(buffer);
+    return failure;
+  }
+  std::memcpy(buffer.value->values.data(), &bits, sizeof(bits));
+  auto block = rt::freeze(std::move(*buffer.value));
+  if (block.code != Code::ok || !block.value) {
+    if (stage) *stage = "freeze:" + vrt::code_of(block);
+    return failure;
+  }
+  auto appended = rt::wait_external(
+      rt::append_async<double>(ctx, *writer.value, std::move(*block.value)));
+  if (appended.code != Code::ok) {
+    if (stage) *stage = "append:" + vrt::code_of(appended);
+    return failure;
+  }
+  auto sealed = rt::wait_external(rt::seal_async(ctx, *writer.value));
+  if (sealed.code != Code::ok || !sealed.value) {
+    if (stage) *stage = "seal:" + vrt::code_of(sealed);
+    return failure;
+  }
+  Result<acsd::ArrayRef> out;
+  out.code = Code::ok;
+  out.value = *sealed.value;
+  return out;
+}
+
 }  // namespace
 
 int main() {
@@ -282,6 +335,69 @@ int main() {
       }
       (*arena.value)->close();
     }
+  }
+
+  // --- E. N-2: -0 keeps its bit, NaN is canonicalised to +quiet. ----------
+  {
+    // Fresh command: section D cancelled its scope, and a cancelled context
+    // cannot admit new work.
+    auto bits_command = rt::open_command(*services.value, "validation.b01.bits",
+                                         vrt::limits(240 * kMiB, 1000000, 8192, 1, 2));
+    recorder.expect_code("b01.bits_open_ok", "ok", bits_command);
+    if (bits_command.code != Code::ok) return recorder.finish();
+    const rt::InvocationContext ctx = *bits_command.value;
+    auto arena = rt::reserve(ctx, vrt::bytes(2 * kMiB));
+    recorder.expect_code("b01.bits_reserve_ok", "ok", arena);
+    if (arena.code == Code::ok && arena.value) {
+      const acsd::Unit unit = vrt::adu_unit();
+      const auto index = vrt::make_index(1, "validation.b01.bits");
+      const std::uint64_t pos_zero = 0x0000000000000000ull;
+      const std::uint64_t neg_zero = 0x8000000000000000ull;
+      const std::uint64_t canonical_nan = 0x7ff8000000000000ull;
+      const std::uint64_t payload_nan = 0x7ff8000000000001ull;
+      const std::uint64_t signalling_nan = 0x7ff0000000000001ull;
+      std::string pos_stage, neg_stage, payload_stage, canonical_stage, snan_stage;
+      auto pos = seal_f64_bits(ctx, *arena.value, pos_zero, unit, index, &pos_stage);
+      auto neg = seal_f64_bits(ctx, *arena.value, neg_zero, unit, index, &neg_stage);
+      auto nan_payload = seal_f64_bits(ctx, *arena.value, payload_nan, unit, index, &payload_stage);
+      auto nan_canonical = seal_f64_bits(ctx, *arena.value, canonical_nan, unit, index, &canonical_stage);
+      auto snan = seal_f64_bits(ctx, *arena.value, signalling_nan, unit, index, &snan_stage);
+      recorder.value("b01.bits_pos_stage", pos_stage);
+      recorder.value("b01.bits_neg_stage", neg_stage);
+      recorder.value("b01.bits_payload_stage", payload_stage);
+      recorder.value("b01.bits_canonical_stage", canonical_stage);
+      recorder.value("b01.bits_snan_stage", snan_stage);
+      recorder.check("b01.bits_seals_ok",
+                     pos.code == Code::ok && neg.code == Code::ok &&
+                         nan_payload.code == Code::ok && nan_canonical.code == Code::ok &&
+                         snan.code == Code::ok,
+                     "all five one-element arrays seal", "recorded");
+      if (pos.code == Code::ok && neg.code == Code::ok) {
+        const std::string pos_hash = (*pos.value)->identity.content_hash;
+        const std::string neg_hash = (*neg.value)->identity.content_hash;
+        recorder.value("b01.pos_zero_hash", pos_hash);
+        recorder.value("b01.neg_zero_hash", neg_hash);
+        recorder.check("b01.sign_zero_hash_distinct", pos_hash != neg_hash,
+                       "+0.0 and -0.0 have different content_hash",
+                       pos_hash == neg_hash ? "identical" : "distinct",
+                       "OBJECTS:140 preserves the sign bit of zero");
+      }
+      if (nan_payload.code == Code::ok && nan_canonical.code == Code::ok &&
+          snan.code == Code::ok) {
+        const std::string canonical_hash = (*nan_canonical.value)->identity.content_hash;
+        const bool payload_same = (*nan_payload.value)->identity.content_hash == canonical_hash;
+        const bool snan_same = (*snan.value)->identity.content_hash == canonical_hash;
+        recorder.value("b01.nan_canonical_hash", canonical_hash);
+        recorder.check("b01.nan_canonicalised", payload_same && snan_same,
+                       "payload NaN and signalling NaN hash as +quiet canonical NaN",
+                       "payload=" + std::string(payload_same ? "same" : "different") +
+                           " signalling=" + std::string(snan_same ? "same" : "different"),
+                       "OBJECTS:140 canonicalises NaN to +quiet");
+      }
+      (*arena.value)->close();
+    }
+    auto bits_closed = rt::wait_external(rt::close_command(ctx));
+    recorder.expect_code("b01.bits_close_ok", "ok", bits_closed);
   }
 
   auto closed = rt::wait_external(rt::close_command(ctx));

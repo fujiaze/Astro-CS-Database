@@ -127,8 +127,17 @@ Result<Ref<FramesProvider>> make_frames_provider(Context& context,
                                        "the frame " + descriptions[i]->frame + " is declared twice",
                                        "make_frames_provider", "the provider cannot be built");
     }
-    if (descriptions[i]->index && signals[i]->index_id != descriptions[i]->index->identity.object_id &&
-        !signals[i]->index_id.empty()) {
+    // An array's index_id may be written either as the Index object_id or as
+    // its content hash (producers use the content hash when the Index is
+    // serialized).  Both name the same index; a different id still fails.
+    const Id& expected_index = descriptions[i]->index
+                                   ? descriptions[i]->index->identity.object_id
+                                   : Id{};
+    const Id& expected_content = descriptions[i]->index
+                                     ? descriptions[i]->index->identity.content_hash
+                                     : Id{};
+    if (descriptions[i]->index && !signals[i]->index_id.empty() &&
+        signals[i]->index_id != expected_index && signals[i]->index_id != expected_content) {
       return fail<Ref<FramesProvider>>(Code::identity_conflict,
                                        "the signal of the frame " + descriptions[i]->frame +
                                            " does not share its index",

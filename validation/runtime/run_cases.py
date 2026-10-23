@@ -136,7 +136,7 @@ def run_case(case, criteria, build_status):
     os.makedirs(scratch, exist_ok=True)
     environment = dict(os.environ)
     environment["ACSD_SCRATCH"] = os.path.join(BUILD, "scratch")
-    if case == "life01":
+    if case in ("life01", "io01", "b01"):
         environment["ASAN_OPTIONS"] = "detect_leaks=0:abort_on_error=1:halt_on_error=1"
     timeout = int(criteria.get("timeout_seconds", 120))
     try:

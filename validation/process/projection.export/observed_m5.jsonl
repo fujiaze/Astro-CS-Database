@@ -1,6 +1,6 @@
 {"process":"projection.export","operation":"build_export","field":"negative_code","value":"invalid_request"}
 {"process":"projection.export","operation":"build_export","field":"plan_r_bytes","value":12369}
-{"process":"projection.export","operation":"build_export","field":"plan_f_bytes","value":65667}
+{"process":"projection.export","operation":"build_export","field":"plan_f_bytes","value":262507}
 {"process":"projection.export","operation":"build_export","field":"plan_work","value":20000}
 {"process":"projection.export","operation":"build_export","field":"run_code","value":"ok"}
 {"process":"projection.export","operation":"build_export","field":"output_elements","value":4}

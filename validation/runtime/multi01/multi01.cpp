@@ -3,25 +3,25 @@
 // ceilings are exceeded, and neither command starves.
 //
 // Normative reading (SCHEDULER.md "多command分配与公平性"):
-//   * "只有ready且资源可行的command参与" -> the executor is work-conserving;
-//     it must NOT idle-wait for a weighted command that currently has no ready
-//     item.  A command that cannot supply its full weight loses the unused
-//     credit ("每轮未用credit不跨轮累积").
-//   * "每完整可行轮dispatch比例1:2" -> the 1:2 ratio is owed only for rounds
-//     where BOTH commands are ready and resource-feasible with their full
-//     weight (1 ready item for weight 1, 2 ready items for weight 2).
-//   * A P=1 pool has a 2P=2 ready window: it cannot hold 1+2 ready items at
-//     once, so a P=1 fixture cannot create a complete feasible round; it
-//     measures "who happens to be ready", not the weights.  This case therefore
-//     uses P=2 (ready window 2P=4) and maintains per-command ready quotas
-//     (weight1 >= 1, weight2 >= 2) so every counted round is a complete round.
-//   * The runtime bounds in-flight work (ready 2P + deferred 8P = 20 for P=2);
-//     submissions stay inside a rolling window of 12 and are never rejected.
+//   * "只有ready且资源可行的command参与" -> the executor is work-conserving and
+//     must not idle-wait for a weighted command without a ready item.
+//   * "每轮未用credit不跨轮累积" -> a command that cannot supply its full weight
+//     loses the unused credit.
+//   * "每完整可行轮dispatch比例1:2" -> the ratio is owed per complete feasible
+//     round: a round of three dispatches whose start has weight1 ready>=1 and
+//     weight2 ready>=2.  Every such round must dispatch exactly {w1,w2,w2}.
+//   * P=1 has a 2P=2 ready window, too small to hold 1+2 ready items, so a P=1
+//     fixture cannot form a complete feasible round and only measures "who is
+//     ready".  This case uses P=2 (ready window 2P=4), keeps per-command ready
+//     quotas (weight1>=1, weight2>=2) and a rolling in-flight window of 12
+//     (contract: ready 2P + deferred 8P = 20).
 //
-// The measured ratio is over 300 completed unit segments; the tolerance is
-// declared here because the standard promises bounded execution-segment counts,
-// not exact CPU seconds.  The ready-occupancy fraction is recorded and must be
-// high, so a ratio is only judged inside a complete-round environment.
+// Dispatch credits are measured at the unit callable entry (dispatch start),
+// not at completion: with P>=2 completions lag dispatches and a completion
+// count is not a credit count.  Readiness before each dispatch is derived from
+// the per-command submitted/started/completed counters.  Five consecutive quiet
+// runs are required (5/5); every run contributes its own attempts, and a run
+// with one violating round stays a failed attempt.
 #include <acsd/contracts.hpp>
 
 #include <atomic>
@@ -40,17 +40,23 @@ namespace {
 namespace rt = acsd::rt;
 using acsd::Code;
 using acsd::Result;
+using acsd::U32;
 using acsd::U64;
 
-constexpr int kThreads = 2;         // P=2 -> ready window 2P=4
-constexpr int kWindow = 12;         // <= ready 2P + deferred 8P = 20
-constexpr int kSample = 300;        // completed unit segments
-constexpr int kUnitsPerCommand = 400;
-constexpr int kQuotaOne = 2;        // weight-1 command keeps >=2 outstanding
-constexpr int kQuotaTwo = 4;        // weight-2 command keeps >=4 outstanding
+constexpr int kThreads = 2;             // P=2 -> ready window 2P=4
+constexpr U32 kCommandCpuCeiling = 2;   // per-command ceiling.cpu_tokens
+constexpr int kWindow = 12;             // <= ready 2P + deferred 8P = 20
+constexpr int kDispatchesPerRun = 330;  // enough for >=100 complete rounds
+constexpr int kMinCompleteRounds = 100;
+constexpr int kRuns = 5;
+constexpr int kUnitsPerCommand = 600;
+constexpr int kQuotaOne = 2;
+constexpr int kQuotaTwo = 4;
+constexpr int kMaxDispatch = 512;
 
 struct CommandState {
   std::atomic<int> submitted{0};
+  std::atomic<int> started{0};
   std::atomic<int> completed{0};
   std::atomic<int> running{0};
   std::atomic<int> max_running{0};
@@ -63,10 +69,38 @@ struct PoolState {
   std::atomic<int> max_in_flight{0};
 };
 
-struct OrderLog {
-  std::vector<int> commands;
+struct DispatchLog {
+  std::atomic<int> commands[kMaxDispatch];
+  std::atomic<int> ready_one[kMaxDispatch];
+  std::atomic<int> ready_two[kMaxDispatch];
   std::atomic<int> next{0};
-  explicit OrderLog(int size) : commands(static_cast<std::size_t>(size), 0) {}
+  DispatchLog() {
+    for (int i = 0; i < kMaxDispatch; ++i) {
+      commands[i].store(0);
+      ready_one[i].store(0);
+      ready_two[i].store(0);
+    }
+  }
+};
+
+struct RunResult {
+  int dispatches = 0;
+  int complete_rounds = 0;
+  int violations = 0;
+  int skipped = 0;
+  int ones_ok = 0;
+  int twos_ok = 0;
+  int both_ok = 0;
+  std::string snapshot_prefix;
+  std::string round_prefix;
+  int total_one = 0;
+  int total_two = 0;
+  int window_rejections = 0;
+  int max_in_flight = 0;
+  int max_running_one = 0;
+  int max_running_two = 0;
+  bool all_units_ok = true;
+  double ratio = 0.0;
 };
 
 void note_concurrency(std::atomic<int>& counter, std::atomic<int>& peak) {
@@ -77,14 +111,14 @@ void note_concurrency(std::atomic<int>& counter, std::atomic<int>& peak) {
 }
 
 rt::Task<rt::Done> submit_unit(const rt::InvocationContext& ctx, U64 ordinal,
-                               int command_id, CommandState& state, PoolState& pool,
-                               OrderLog& dispatch_order) {
+                               int command_id, CommandState& own, CommandState& other,
+                               PoolState& pool, DispatchLog& log) {
   rt::TaskSpec spec;
   spec.key = rt::Key{0, 0, 0, ordinal};
   spec.running.cpu_tokens = 1;
   spec.work_upper = 1;
   spec.semantic = "validation.multi.unit";
-  state.submitted.fetch_add(1);
+  own.submitted.fetch_add(1);
   pool.in_flight.fetch_add(1);
   int previous = pool.max_in_flight.load();
   int now = pool.in_flight.load();
@@ -92,25 +126,24 @@ rt::Task<rt::Done> submit_unit(const rt::InvocationContext& ctx, U64 ordinal,
   }
   return rt::submit_cpu<rt::Done>(
       ctx, spec,
-      [&state, &pool, &dispatch_order, command_id](rt::InvocationContext task) -> Result<rt::Done> {
-        // Dispatch event: the unit starts on a CPU token.  Counting starts (not
-        // completions) measures the dispatch credits themselves.
-        {
-          const int slot = dispatch_order.next.fetch_add(1);
-          if (slot < static_cast<int>(dispatch_order.commands.size()))
-            dispatch_order.commands[static_cast<std::size_t>(slot)] = command_id;
-        }
+      [&own, &other, &pool, &log, command_id](rt::InvocationContext task) -> Result<rt::Done> {
+        // Dispatch start: count the credit.  The readiness before each
+        // dispatch is recorded by the main thread from the real Task::state()
+        // (see the polling loop in run_once).
+        own.started.fetch_add(1);
+        const int index = log.next.fetch_add(1);
+        if (index < kMaxDispatch) log.commands[index].store(command_id);
         (void)rt::consume_work(task, 1);
-        note_concurrency(state.running, state.max_running);
+        note_concurrency(own.running, own.max_running);
         note_concurrency(pool.running, pool.max_running);
-        state.completed.fetch_add(1);
         const auto until =
             std::chrono::steady_clock::now() + std::chrono::milliseconds(1);
         while (std::chrono::steady_clock::now() < until) {
         }
-        state.running.fetch_sub(1);
+        own.running.fetch_sub(1);
         pool.running.fetch_sub(1);
         pool.in_flight.fetch_sub(1);
+        own.completed.fetch_add(1);
         Result<rt::Done> out;
         out.code = Code::ok;
         out.value = rt::Done{};
@@ -125,148 +158,216 @@ int count_state(const std::vector<rt::Task<rt::Done>>& tasks, rt::TaskState want
   return count;
 }
 
+RunResult analyse(const DispatchLog& log) {
+  RunResult result;
+  result.dispatches = log.next.load();
+  const int rounds = result.dispatches / 3;
+  // A round is a fixed group of three dispatch events (0..2, 3..5, ...).  A
+  // round is a complete feasible round when its start had weight1 ready>=1 and
+  // weight2 ready>=2.  Sampling starts at the first complete round.
+  int first_round = -1;
+  for (int r = 0; r < rounds; ++r) {
+    const int i = r * 3;
+    const bool o = log.ready_one[i].load() >= 1;
+    const bool t = log.ready_two[i].load() >= 2;
+    result.ones_ok += o ? 1 : 0;
+    result.twos_ok += t ? 1 : 0;
+    result.both_ok += (o && t) ? 1 : 0;
+    if (o && t && first_round < 0) first_round = r;
+  }
+  if (first_round < 0) return result;
+  int count_one = 0;
+  int count_two = 0;
+  for (int r = first_round; r < rounds; ++r) {
+    const int i = r * 3;
+    if (log.ready_one[i].load() < 1 || log.ready_two[i].load() < 2) {
+      ++result.skipped;
+      continue;
+    }
+    const int a = log.commands[i].load();
+    const int b = log.commands[i + 1].load();
+    const int c = log.commands[i + 2].load();
+    ++result.complete_rounds;
+    const int ones = (a == 1) + (b == 1) + (c == 1);
+    const int twos = (a == 2) + (b == 2) + (c == 2);
+    if (ones != 1 || twos != 2) ++result.violations;
+    count_one += ones;
+    count_two += twos;
+  }
+  result.ratio = count_one > 0 ? static_cast<double>(count_two) / count_one : 0.0;
+  int total_one = 0;
+  int total_two = 0;
+  for (int i = 0; i < result.dispatches; ++i) {
+    total_one += log.commands[i].load() == 1 ? 1 : 0;
+    total_two += log.commands[i].load() == 2 ? 1 : 0;
+  }
+  result.total_one = total_one;
+  result.total_two = total_two;
+  for (int r = 0; r < 12 && r * 3 + 2 < result.dispatches; ++r) {
+    if (r) result.round_prefix += "|";
+    result.round_prefix += std::to_string(log.commands[r * 3].load()) +
+                           std::to_string(log.commands[r * 3 + 1].load()) +
+                           std::to_string(log.commands[r * 3 + 2].load());
+  }
+  return result;
+}
+
+RunResult run_once(std::shared_ptr<rt::Services> services, int run, vrt::Recorder& recorder) {
+  RunResult result;
+  auto command_one = rt::open_command(services, "validation.multi.run" + std::to_string(run) + ".w1",
+                                      vrt::limits(64ull << 20, 1000000, 4096,
+                                                  kCommandCpuCeiling, 2), 1);
+  auto command_two = rt::open_command(services, "validation.multi.run" + std::to_string(run) + ".w2",
+                                      vrt::limits(64ull << 20, 1000000, 4096,
+                                                  kCommandCpuCeiling, 2), 2);
+  recorder.check("multi.run" + std::to_string(run) + "_open_ok",
+                 command_one.code == Code::ok && command_two.code == Code::ok, "ok",
+                 vrt::code_of(command_one) + "/" + vrt::code_of(command_two));
+  if (command_one.code != Code::ok || command_two.code != Code::ok) return result;
+
+  CommandState one;
+  CommandState two;
+  PoolState pool;
+  DispatchLog log;
+  std::vector<rt::Task<rt::Done>> tasks_one;
+  std::vector<rt::Task<rt::Done>> tasks_two;
+  U64 ordinal = 0;
+  int seen = 0;
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+  while (log.next.load() < kDispatchesPerRun &&
+         std::chrono::steady_clock::now() < deadline) {
+    // Real ready-queue occupancy from the public Task state.  The snapshot is
+    // taken just after detecting the dispatches of this iteration, so the
+    // pre-dispatch count is the measured count plus the units that just left
+    // the ready set for that command.
+    const int ready_one = count_state(tasks_one, rt::TaskState::ready);
+    const int ready_two = count_state(tasks_two, rt::TaskState::ready);
+    const int now = log.next.load();
+    for (int index = seen; index < now && index < kMaxDispatch; ++index) {
+      const int command = log.commands[index].load();
+      log.ready_one[index].store(ready_one + (command == 1 ? 1 : 0));
+      log.ready_two[index].store(ready_two + (command == 2 ? 1 : 0));
+    }
+    seen = now;
+    if (pool.in_flight.load() < kWindow &&
+        one.submitted.load() - one.started.load() < kQuotaOne &&
+        one.submitted.load() < kUnitsPerCommand) {
+      auto task = submit_unit(*command_one.value, ordinal++, 1, one, two, pool, log);
+      if (!task.valid()) ++result.window_rejections;
+      tasks_one.push_back(std::move(task));
+    }
+    if (pool.in_flight.load() < kWindow &&
+        two.submitted.load() - two.started.load() < kQuotaTwo &&
+        two.submitted.load() < kUnitsPerCommand) {
+      auto task = submit_unit(*command_two.value, ordinal++, 2, two, one, pool, log);
+      if (!task.valid()) ++result.window_rejections;
+      tasks_two.push_back(std::move(task));
+    }
+    std::this_thread::sleep_for(std::chrono::microseconds(50));
+  }
+  for (auto& task : tasks_one) {
+    auto r = rt::wait_external(std::move(task));
+    if (r.code == Code::resource_exhausted) ++result.window_rejections;
+    result.all_units_ok = result.all_units_ok && (r.code == Code::ok || r.code == Code::cancelled);
+  }
+  for (auto& task : tasks_two) {
+    auto r = rt::wait_external(std::move(task));
+    if (r.code == Code::resource_exhausted) ++result.window_rejections;
+    result.all_units_ok = result.all_units_ok && (r.code == Code::ok || r.code == Code::cancelled);
+  }
+  result.max_in_flight = pool.max_in_flight.load();
+  result.max_running_one = one.max_running.load();
+  result.max_running_two = two.max_running.load();
+  const RunResult analysed = analyse(log);
+  result.dispatches = analysed.dispatches;
+  result.complete_rounds = analysed.complete_rounds;
+  result.violations = analysed.violations;
+  result.skipped = analysed.skipped;
+  result.ones_ok = analysed.ones_ok;
+  result.twos_ok = analysed.twos_ok;
+  result.both_ok = analysed.both_ok;
+  result.snapshot_prefix = analysed.snapshot_prefix;
+  result.round_prefix = analysed.round_prefix;
+  result.total_one = analysed.total_one;
+  result.total_two = analysed.total_two;
+  result.ratio = analysed.ratio;
+
+  auto closed_one = rt::wait_external(rt::close_command(*command_one.value));
+  auto closed_two = rt::wait_external(rt::close_command(*command_two.value));
+  recorder.check("multi.run" + std::to_string(run) + "_close_ok",
+                 closed_one.code == Code::ok && closed_two.code == Code::ok, "ok",
+                 vrt::code_of(closed_one) + "/" + vrt::code_of(closed_two));
+  return result;
+}
+
 }  // namespace
 
 int main() {
   vrt::Recorder recorder("multi01", "validation/runtime/multi01/multi01.cpp");
 
-  // P=2: ready window 2P=4 can hold 1 weight-1 + 2 weight-2 ready items.
-  auto services = vrt::start_services(256ull << 20, 1000000, kThreads, 2, 2,
+  auto services = vrt::start_services(512ull << 20, 2000000, kThreads, 2, 2,
                                       vrt::scratch_root("multi01"));
   if (services.code != Code::ok || !services.value) {
     recorder.check("multi.services", false, "ok", vrt::code_of(services));
     return recorder.finish();
   }
 
-  auto command_one = rt::open_command(*services.value, "validation.multi.weight1",
-                                      vrt::limits(64ull << 20, 1000000, 4096, kThreads, 2), 1);
-  auto command_two = rt::open_command(*services.value, "validation.multi.weight2",
-                                      vrt::limits(64ull << 20, 1000000, 4096, kThreads, 2), 2);
-  recorder.expect_code("multi.open_weight1_ok", "ok", command_one);
-  recorder.expect_code("multi.open_weight2_ok", "ok", command_two);
-  if (command_one.code != Code::ok || command_two.code != Code::ok)
-    return recorder.finish();
-
-  CommandState state_one;
-  CommandState state_two;
-  PoolState pool;
-  OrderLog dispatch_order(kSample + 64);
-  std::vector<rt::Task<rt::Done>> tasks_one;
-  std::vector<rt::Task<rt::Done>> tasks_two;
-  tasks_one.reserve(kUnitsPerCommand);
-  tasks_two.reserve(kUnitsPerCommand);
-  int window_rejections = 0;
-  U64 ordinal = 0;
-  long long environment_samples = 0;
-  long long complete_round_samples = 0;
-
-  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);
-  while (dispatch_order.next.load() < kSample &&
-         std::chrono::steady_clock::now() < deadline) {
-    // Ready-occupancy evidence: the ratio is only meaningful when both commands
-    // are simultaneously ready with their full weight (1 + 2 items).
-    const int ready_one = count_state(tasks_one, rt::TaskState::ready);
-    const int ready_two = count_state(tasks_two, rt::TaskState::ready);
-    ++environment_samples;
-    if (ready_one >= 1 && ready_two >= 2) ++complete_round_samples;
-
-    // Refill each command to its quota, staying inside the rolling window.
-    const bool can_submit = pool.in_flight.load() < kWindow;
-    if (can_submit && state_one.submitted.load() - state_one.completed.load() < kQuotaOne &&
-        state_one.submitted.load() < kUnitsPerCommand) {
-      auto task = submit_unit(*command_one.value, ordinal++, 1, state_one, pool, dispatch_order);
-      if (!task.valid()) ++window_rejections;
-      tasks_one.push_back(std::move(task));
-    }
-    if (pool.in_flight.load() < kWindow &&
-        state_two.submitted.load() - state_two.completed.load() < kQuotaTwo &&
-        state_two.submitted.load() < kUnitsPerCommand) {
-      auto task = submit_unit(*command_two.value, ordinal++, 2, state_two, pool, dispatch_order);
-      if (!task.valid()) ++window_rejections;
-      tasks_two.push_back(std::move(task));
-    }
-    std::this_thread::sleep_for(std::chrono::microseconds(50));
+  bool all_runs_pass = true;
+  for (int run = 0; run < kRuns; ++run) {
+    const RunResult result = run_once(*services.value, run, recorder);
+    const std::string prefix = "multi.run" + std::to_string(run);
+    recorder.value(prefix + "_dispatches", static_cast<long long>(result.dispatches));
+    recorder.value(prefix + "_complete_rounds", static_cast<long long>(result.complete_rounds));
+    recorder.value(prefix + "_violations", static_cast<long long>(result.violations));
+    recorder.value(prefix + "_skipped_rounds", static_cast<long long>(result.skipped));
+    recorder.value(prefix + "_rounds_with_w1_ready", static_cast<long long>(result.ones_ok));
+    recorder.value(prefix + "_rounds_with_w2_ready", static_cast<long long>(result.twos_ok));
+    recorder.value(prefix + "_rounds_with_both_ready", static_cast<long long>(result.both_ok));
+    recorder.value(prefix + "_snapshot_prefix", result.snapshot_prefix);
+    recorder.value(prefix + "_round_prefix", result.round_prefix);
+    recorder.value(prefix + "_total_one", static_cast<long long>(result.total_one));
+    recorder.value(prefix + "_total_two", static_cast<long long>(result.total_two));
+    recorder.value(prefix + "_ratio_info", result.ratio);
+    recorder.value(prefix + "_max_in_flight", static_cast<long long>(result.max_in_flight));
+    recorder.check(prefix + "_dispatches",
+                   result.dispatches >= kDispatchesPerRun, ">= 330 dispatch starts",
+                   std::to_string(result.dispatches));
+    recorder.check(prefix + "_complete_rounds",
+                   result.complete_rounds >= kMinCompleteRounds,
+                   ">= 100 complete feasible rounds",
+                   std::to_string(result.complete_rounds));
+    recorder.check(prefix + "_violations_zero",
+                   result.violations == 0,
+                   "0 rounds whose multiset != {w1,w2,w2}",
+                   std::to_string(result.violations) + " violations");
+    recorder.check(prefix + "_window_ok",
+                   result.window_rejections == 0 && result.max_in_flight <= kWindow,
+                   "no resource_exhausted; in-flight <= 12 (contract 20)",
+                   "max_in_flight=" + std::to_string(result.max_in_flight) +
+                       " rejections=" + std::to_string(result.window_rejections));
+    recorder.check(prefix + "_command_concurrency",
+                   result.max_running_one <= static_cast<int>(kCommandCpuCeiling) &&
+                       result.max_running_two <= static_cast<int>(kCommandCpuCeiling),
+                   "each command <= ceiling.cpu_tokens=2",
+                   std::to_string(result.max_running_one) + "/" +
+                       std::to_string(result.max_running_two));
+    recorder.check(prefix + "_units_ok", result.all_units_ok,
+                   "all submitted units complete", result.all_units_ok ? "ok" : "failed");
+    all_runs_pass = all_runs_pass && result.violations == 0 &&
+                    result.complete_rounds >= kMinCompleteRounds &&
+                    result.window_rejections == 0 && result.all_units_ok &&
+                    result.max_running_one <= static_cast<int>(kCommandCpuCeiling) &&
+                    result.max_running_two <= static_cast<int>(kCommandCpuCeiling);
   }
-  const bool sampled = dispatch_order.next.load() >= kSample;
-  recorder.check("multi.sample_reached", sampled, "300 dispatch events within 60 s",
-                 std::to_string(dispatch_order.next.load()) + " dispatches");
-  if (!sampled) return recorder.finish();
-
-  bool all_units_ok = true;
-  for (auto& task : tasks_one) {
-    auto result = rt::wait_external(std::move(task));
-    if (result.code == Code::resource_exhausted) ++window_rejections;
-    all_units_ok = all_units_ok && (result.code == Code::ok || result.code == Code::cancelled);
-  }
-  for (auto& task : tasks_two) {
-    auto result = rt::wait_external(std::move(task));
-    if (result.code == Code::resource_exhausted) ++window_rejections;
-    all_units_ok = all_units_ok && (result.code == Code::ok || result.code == Code::cancelled);
-  }
-
-  const double environment = environment_samples > 0
-                                ? static_cast<double>(complete_round_samples) / environment_samples
-                                : 0.0;
-  recorder.value("multi.environment_samples", environment_samples);
-  recorder.value("multi.complete_round_samples", complete_round_samples);
-  recorder.value("multi.complete_round_fraction", environment);
-  recorder.check("multi.complete_round_environment", environment >= 0.90,
-                 ">=90% of samples have weight1 ready>=1 and weight2 ready>=2",
-                 vrt::number(environment, 4),
-                 "a P=1 / 2P=2 ready window cannot hold 1+2 ready items; this fixture "
-                 "uses P=2 and keeps both commands at their full weight");
-
-  int count_one = 0;
-  int count_two = 0;
-  for (int i = 0; i < kSample; ++i) {
-    if (dispatch_order.commands[static_cast<std::size_t>(i)] == 1) ++count_one;
-    if (dispatch_order.commands[static_cast<std::size_t>(i)] == 2) ++count_two;
-  }
-  std::string prefix;
-  for (int i = 0; i < kSample && i < 36; ++i) {
-    if (i) prefix += ",";
-    prefix += std::to_string(dispatch_order.commands[static_cast<std::size_t>(i)]);
-  }
-  recorder.value("multi.order_prefix", prefix);
-  recorder.value("multi.sample_count_weight1", count_one);
-  recorder.value("multi.sample_count_weight2", count_two);
-  const double ratio = count_one > 0 ? static_cast<double>(count_two) / count_one : 0.0;
-  recorder.value("multi.sample_ratio", ratio);
-  recorder.value("multi.window", kWindow);
-  recorder.value("multi.window_rejections", window_rejections);
-  recorder.value("multi.max_in_flight", pool.max_in_flight.load());
-  recorder.check("multi.window_contract_respected",
-                 window_rejections == 0 && pool.max_in_flight.load() <= kWindow,
-                 "no resource_exhausted and in-flight <= 12 (ready+deferred=20)",
-                 "max_in_flight=" + std::to_string(pool.max_in_flight.load()) +
-                     " rejections=" + std::to_string(window_rejections));
-  recorder.check("multi.all_units_ok", all_units_ok, "all submitted units complete",
-                 all_units_ok ? "ok" : "failed unit");
-  recorder.check("multi.no_starvation", count_one > 0 && count_two > 0,
-                 "both commands dispatched in the sample",
-                 std::to_string(count_one) + "/" + std::to_string(count_two));
-  recorder.check("multi.ratio_1_to_2_complete_rounds",
-                 count_two >= 2 * count_one - 5 && count_two <= 2 * count_one + 5,
-                 "2*count1-5 <= count2 <= 2*count1+5 over 300 dispatch events",
-                 std::to_string(2 * count_one - 5) + " <= " + std::to_string(count_two) +
-                     " <= " + std::to_string(2 * count_one + 5) + " (ratio=" +
-                     vrt::number(ratio, 4) + ")",
-                 "tolerance is +/-5 credits on 300 bounded execution segments; the "
-                 "complete-round environment is checked above");
-  recorder.resource("multi.max_running_pool", pool.max_running.load());
-  recorder.resource("multi.max_running_weight1", state_one.max_running.load());
-  recorder.resource("multi.max_running_weight2", state_two.max_running.load());
-  recorder.check("multi.pool_concurrency_within_threads", pool.max_running.load() <= kThreads,
-                 "<= 2", std::to_string(pool.max_running.load()));
-  recorder.check("multi.command_concurrency_within_ceiling",
-                 state_one.max_running.load() <= kThreads &&
-                     state_two.max_running.load() <= kThreads,
-                 "each <= 2", std::to_string(state_one.max_running.load()) + "/" +
-                                   std::to_string(state_two.max_running.load()));
-
-  auto closed_one = rt::wait_external(rt::close_command(*command_one.value));
-  auto closed_two = rt::wait_external(rt::close_command(*command_two.value));
-  recorder.expect_code("multi.close_weight1_ok", "ok", closed_one);
-  recorder.expect_code("multi.close_weight2_ok", "ok", closed_two);
+  recorder.check("multi.stability_5_of_5", all_runs_pass,
+                 "5/5 quiet runs: complete rounds>=100, violations=0, window ok",
+                 all_runs_pass ? "5/5" : "at least one run failed",
+                 "each run records its own attempts; an occasional violating round "
+                 "keeps the case failed");
+  recorder.note("per complete feasible round criterion: at the start of a round, "
+                "weight1 must have >=1 ready item and weight2 >=2 ready items; the "
+                "three dispatches of that round must be exactly {w1,w2,w2}.  P=2 is "
+                "required because the P=1 ready window 2P=2 cannot hold 1+2 items; "
+                "dispatch starts (not completions) are counted.");
   return recorder.finish();
 }

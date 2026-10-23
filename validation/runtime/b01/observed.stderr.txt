@@ -21,4 +21,10 @@
 [ok] b01.cancel_append_terminal_named
 [ok] b01.cancel_no_half_product
 [ok] b01.cancel_abort_ok
+[ok] b01.bits_open_ok
+[ok] b01.bits_reserve_ok
+[ok] b01.bits_seals_ok
+[ok] b01.sign_zero_hash_distinct
+[ok] b01.nan_canonicalised
+[ok] b01.bits_close_ok
 [ok] b01.close_command_ok

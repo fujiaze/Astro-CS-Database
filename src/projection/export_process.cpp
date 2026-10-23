@@ -213,10 +213,16 @@ Result<rt::InvocationPlan> plan_build_export(rt::InvocationContext,
   // R: the target WCS, build/closure identity and the shared leaf/Q metadata.
   const U64 r = wcs_metadata_bytes(input->request.target.model) +
                 product_bytes(graph) + sat_mul(leaves, 24) + 4096;
-  // F: the target pixel workspace (signal, bounds, support) and the per-leaf
-  // projection spool.
-  const U64 f = sat_mul(pixels, sizeof(double) * 3) +
-                sat_mul(leaves, sizeof(double) * 4 + 3) + 64 * 1024;
+  // F: the target pixel workspace (signal, lower/upper bounds), the sparse
+  // target row Q itself (offsets + one index/value entry per touched
+  // pixel/leaf pair, worst case pixels x leaves) and the support spool.  The
+  // Q arrays are produced inside the invocation and stay alive until publish,
+  // so they are part of the admitted capacity, not an external input.
+  const U64 q_entries = sat_mul(pixels, leaves);
+  const U64 f = sat_mul(pixels, sizeof(double) * 8) +
+                sat_mul(q_entries, sizeof(double) + sizeof(U64)) +
+                sat_mul(leaves, sizeof(double) * 4 + sizeof(U64) + 3) +
+                256 * 1024;
   return model::ok_result(plan_of(
       options, work, r, f,
       digest({"build_export",

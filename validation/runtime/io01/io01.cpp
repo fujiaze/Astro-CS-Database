@@ -351,14 +351,18 @@ int main() {
           recorder.check("io.seal_completed", sealed && seal_result.code == Code::ok,
                          "ok within 30 s", vrt::code_of(seal_result));
           recorder.value("io.written_ledger_at_seal", static_cast<long long>(written + spilled));
-          recorder.check("io.write_ledger_recorded", written + spilled >= bytes,
-                         "written_bytes + spill_written_bytes >= 8 MiB",
-                         std::to_string(written) + " + " + std::to_string(spilled),
-                         "the storage finish_append path records the real write in the "
-                         "scope ledger");
-          recorder.note("write ledger recorded " + std::to_string(written) +
-                        " written / " + std::to_string(spilled) +
-                        " spill bytes; the sealed array also reads back byte-identical.");
+          // EXECUTION:97: written_bytes is the physically stored byte count;
+          // spill_written_bytes is the spill view of the same write.  They are
+          // recorded separately and must not be added.
+          recorder.check("io.write_ledger_recorded", written >= bytes,
+                         "written_bytes >= 8 MiB (physical stored bytes)",
+                         std::to_string(written),
+                         "spill_written_bytes is the spill view of the same write and is "
+                         "recorded separately, never summed with written_bytes");
+          recorder.note("write ledger: written_bytes=" + std::to_string(written) +
+                        " (physical), spill_written_bytes=" + std::to_string(spilled) +
+                        " (spill view of the same write); sealed array reads back "
+                        "byte-identical.");
           bool readback_ok = false;
           std::string readback_detail = "read not attempted";
           if (seal_result.code == Code::ok && seal_result.value) {

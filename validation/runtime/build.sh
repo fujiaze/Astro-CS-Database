@@ -118,6 +118,8 @@ fi
 for case_id in "${SELECTED[@]}"; do
   case "$case_id" in
     life01) build_case life01 "-g -fsanitize=address" "$default_libs" "-fsanitize=address" ;;
+    io01) build_case io01 "-g -fsanitize=address" "$default_libs" "-fsanitize=address" ;;
+    b01) build_case b01 "-g -fsanitize=address" "$default_libs" "-fsanitize=address" ;;
     d01_off) build_case d01_off "-DACSD_DEV_MODE=0" "" "" ;;
     d01_on) build_case d01_on "-DACSD_DEV_MODE=1" "$dev_libs" "" "$DEV_BUILD" ;;
     cal01) build_case cal01 "" "$science_libs" "" ;;

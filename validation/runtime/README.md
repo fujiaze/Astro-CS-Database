@@ -75,10 +75,10 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 | `fork01` | S-FORK | 一个 8 B 只读 Block 广播到两分支（slot=1），一分支延迟消费 | 物理分配 8 B（非 16 B）、两分支同一 Lease、慢分支不丢；join 前不消费 | **实跑 pass 17/17**（修复后） |
 | `order01` | S-ORDER | key1 先 ready、key0 最小 key 后到，slot=1，H 仅够 F | key1 不能占保底 slot；最小 key 的 send 必须能进入保留 slot，receive 顺序 key0→key1 | **实跑 pass 11/11**（窗口修正后） |
 | `barrier01` | S-BARRIER | E=0；stream 两 cohort 贡献 2 次 → barrier；F=max(region F) 非求和 | R+max(F)=48 准入、47 拒绝；R+sum(F)=64 的错账会被抓到；两贡献后 barrier 才看到 2；未知 region 拒绝 | **实跑 pass 20/20** |
-| `multi01` | S-MULTI | P=2（ready 窗口 2P=4 可同时容纳 1+2 个 ready 项）；滚动 in-flight 12≤20；weight1/2 的 ready 配额 ≥1/≥2；采样 300 次 **dispatch start** | 完整可行轮（两 command 都 ready 且满权重）上判 1:2（±5 credit/300）；窗口内不得 resource_exhausted；池/command 并发不超限；complete-round 环境占比 ≥90% | **实跑 pass（required 12/12；observed 12/12）**：dispatch 100/200（ratio 2.000）、环境占比 0.998、窗口 0 拒绝、并发 ≤2 |
+| `multi01` | S-MULTI | P=2（ready 窗口 2P=4 可容纳 1+2 个 ready 项）；滚动 in-flight ≤12；每 command 的 ready 配额 ≥1/≥2；5 次安静运行，每次 330 次 **dispatch start** | **逐完整可行轮**：轮起点 ready1≥1 且 ready2≥2 时，该轮 3 次 dispatch 必须恰为 `{w1,w2,w2}`；违规轮=0、完整轮≥100；5/5 运行；窗口 0 拒绝；per-command 并发 ≤ `ceiling.cpu_tokens=2` | **实跑 pass（required 41/41；observed 41/41）**：每 run 完整轮 109、违规 0、ratio_info=2.0、窗口 0 拒绝、并发 ≤2 |
 | `pipe01` | PIPE01 | max_items=1 的有序 pipe；满队列、取消、EOF/failed/cancelled 三态 | 满队列 send 背压等待；consume 后完成；cancel 唤醒 receive/send；三态 PipeEnd 保原 Issue；close 后 send 拒绝；0 容量具名拒绝 | **实跑 pass 37/37**（窗口修正后） |
-| `io01` | S-IO / ASYNC01 | P=1，32 MiB read + ready 计算、3×8 MiB 并行压缩、8 MiB spill append+seal | read 未终态时 compute 已执行；压缩 CPU/wall≈0.98（≤1.5）；写账本记录真实写量；seal 后 8 MiB 逐字节读回 | **实跑 pass（required 15/15；observed 17/17）** |
-| `b01` | B01 | spill writer，1 MiB buffer，8×1 MiB append（按 64× 比例从 32 MiB/256 MiB 缩小） | 8 次 append 累计元素数；seal 尺寸/读回；非连续/失败 writer 不能 seal；取消中途 abort 无半成品；seal 后不可改；空 writer seal 拒绝 | **实跑 pass 24/24** |
+| `io01` | S-IO / ASYNC01 | P=1，32 MiB read + ready 计算、3×8 MiB 并行压缩、8 MiB spill append+seal | read 未终态时 compute 已执行；压缩 CPU/wall≈0.98（≤1.5）；**`written_bytes` 单独 ≥ payload（实测 8,388,872），`spill_written_bytes` 作为同一写的 spill 视图分开记录、不相加**；seal 后 8 MiB 逐字节读回 | **实跑 pass（required 15/15；observed 17/17）**，ASan 构建 |
+| `b01` | B01 | spill writer，1 MiB buffer，8×1 MiB append；另含 N-2 的 +0/−0 与 NaN 位模式 seal | 8 次 append 累计元素数；seal 尺寸/读回；失败/取消无半成品；**`seal(+0.0)` 与 `seal(-0.0)` content_hash 必须不同，payload/signalling NaN 必须按 +quiet 规范化** | **实跑 pass（required 28/28；observed 30/30）**，ASan 构建 |
 | `d01_off` | D01 | `ACSD_DEV_MODE=0`，宏参数为**本构建不存在的表达式/标识符**，ctx 表达式带副作用计数 | 编译通过（零求值）；运行时 ctx/payload 计数器为 0 | **实跑 pass 3/3** |
 | `d01_on` | D01 | `ACSD_DEV_MODE=1`，未选 probe + 合法 PerfRecord/SnapshotPayload，D 未配置 | 未选时 probe_selected=false 且不构造 payload；try_* noexcept；两次 invoke 的 Code/value/work 相同；span id 非 0 | **实跑 pass 15/15**（对 `ACSD_DEV_MODE=1` 的 `/tmp/acsd-build-dev` 构建） |
 | `cal01` | M4 C-CAL-1/2/DQ/ROOT | Host 全链；固定 raw/bias/dark/flat；两帧共享 bias/dark + 共享 `master_noise` NoiseRoot；`modules::plan_calibration` 的真实 work 上界 | C-CAL-1/2 数值、DQ NaN/Issue、NaN 冲突拒绝；`usage.work ∈ [samples, plan-declared]`；两帧必须给出共享依赖或共享 noise root 证据 | **实跑 pass（required 37/37；observed 41/41）**：`usage.work=140 ≤ plan-declared 524`；ROOT 输出 `noise.shared_factors[0].shared_id=master_flat`、influence 1/1（共享 NoiseModel 根） |
@@ -91,7 +91,7 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 
 构建：`ACSD_BUILD=/tmp/acsd-build bash validation/runtime/build.sh`（15/15 built；
 `d01_on` 另用 `ACSD_BUILD=/tmp/acsd-build-dev`，该目录以 `-DACSD_DEV_MODE=1` 构建）。
-运行：`python3 validation/runtime/run_cases.py --no-build` → **15/15 pass**。
+运行：`python3 validation/runtime/run_cases.py --no-build` → **15/15 pass**；`life01/io01/b01` 以 `-fsanitize=address` 构建并运行（seal/abort 路径无 ASan 报告）。manifest 的 `git_commit` 记录本次运行的 HEAD（N-3）。
 逐 case 证据：`<case>/observed.json`、`comparison.json`、`observed.stdout.txt`、
 `observed.stderr.txt`；汇总 `manifest.json`。
 
@@ -105,10 +105,10 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 | fork01 | pass 17/17 | 一份 8 B 物理 Lease、两分支同值、慢分支不丢 |
 | order01 | pass 11/11 | slot=1 下最小 key 先出、高 key 后出 |
 | barrier01 | pass 20/20 | R+max(F)=48 准入、47 拒绝；两贡献后 barrier 见 2 |
-| multi01 | pass（required 12/12；observed 12/12） | 300 次 dispatch start = 100/200（ratio 2.000）；complete-round 环境 0.998；窗口 0 拒绝；并发 ≤2 |
+| multi01 | pass（required 41/41；observed 41/41） | 5/5 runs；每 run 完整轮 109–112、违规轮 0、round 序列 `122/212/...`、ratio_info 2.0；窗口 0 拒绝、并发 ≤2 |
 | pipe01 | pass 37/37 | 满队列背压、三态 PipeEnd、取消唤醒、按 key 归约 |
-| io01 | pass（required 15/15；observed 17/17） | read 未终态时 compute 已跑；压缩 CPU/wall≈0.98；写账本 written=8 MiB/spill_written=8 MiB；seal 后逐字节读回 |
-| b01 | pass 24/24 | 8×append 累计值、seal/读回、失败/取消无半成品、abort 幂等 |
+| io01 | pass（required 15/15；observed 17/17） | read 未终态时 compute 已跑；压缩 CPU/wall≈0.98；written_bytes=8,388,872 单独判定、spill_written 分开记录（不相加）；seal 后逐字节读回 |
+| b01 | pass（required 28/28；observed 30/30） | 8×append、seal/读回、失败/取消无半成品；+0/−0 hash 不同、NaN 规范化为 +quiet |
 | d01_off | pass 3/3 | OFF 宏零求值（未声明标识符可编译、运行时计数 0） |
 | d01_on | pass 15/15 | ON 构建下 span id=5/6；探针前后 Code/value/work 相同 |
 | cal01 | pass（required 37/37；observed 41/41） | 数值 C-CAL-1/2、DQ 全过；`usage.work=140` 在 plan-declared `524` 内；C-CAL-ROOT 用共享 `master_noise` 证明 `shared_id=master_flat`、influence 1/1 |
@@ -133,23 +133,22 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
    （`validation/runtime/reg01/docs/<process_id>.md`）且至少 1 个 operation；
    负例（duplicate/missing schema 等）也补齐 operation，使拒绝原因仍是被测规则本身。
 
-### S-MULTI 的判据与测量（P=2 完整可行轮）
+### S-MULTI 的判据与测量（P=2 逐完整可行轮，5/5）
 
 正本（SCHEDULER「多command分配与公平性」）的读法：
 
-* **不要求空转等待**："只有ready且资源可行的command参与" 要求执行器 work-conserving；
-  某个权重 command 当下没有 ready 项时不得为保比例而空转；"每轮未用credit不跨轮累积"
-  表示它失去该轮未用的 credit。
-* **1:2 只欠"完整可行轮"**：两个 command 同时 ready 且都能用满自身 weight
-  （weight1 至少 1 个 ready、weight2 至少 2 个 ready）的轮次。
-* **P=1 无法构成完整轮**：ready 窗口为 2P=2，容纳不下 1+2 个 ready 项，测到的是
-  "谁当下 ready"，不是权重。因此 fixture 必须 P≥2；本 case 用 P=2（窗口 4），
-  并维持 weight1/weight2 的 ready 配额 ≥1/≥2。
-* **必须量 dispatch 而不是 completion**：P≥2 时两个执行段并发，completion 顺序与
-  dispatch 顺序不一致（早期用 completion 计数会得到 2.61 的假偏差）。本 case 在
-  单元 callable 入口记录 dispatch start，300 次采样直接量 credit：实测 **100/200 =
-  1:2**，complete-round 环境占比 **0.998**，窗口 max_in_flight≤12（合同 20）、
-  0 次 resource_exhausted、池/command 并发 ≤2。
+* **不要求空转等待**：“只有ready且资源可行的command参与”要求执行器 work-conserving；
+  某权重 command 当下没有 ready 项时不参与该轮，“每轮未用credit不跨轮累积”。
+* **1:2 只欠“完整可行轮”**：轮起点同时满足 weight1 ready≥1、weight2 ready≥2 的轮次。
+* **P=1 无法构成完整轮**：ready 窗口 2P=2 容纳不下 1+2 个 ready 项，测到的是
+  “谁当下 ready”；因此 fixture 用 P=2（窗口 4）。
+* **量 dispatch start，不量 completion**：P≥2 时 completion 顺序滞后于 dispatch；
+  dispatch 在 unit callable 入口计数，轮起点的 ready 数由主线程对公开
+  `Task::state()==ready` 轮询并与新 dispatch 事件对齐（约 50 µs 精度）。
+* **逐轮判据**：完整轮的三次 dispatch 必须恰为 `{w1,w2,w2}`；违规轮=0、
+  完整轮≥100；连续 5 次安静运行要求 5/5（每次运行独立计数并入 attempts）。
+  实测每 run 完整轮 109、违规 0、round 前缀 `122/212/212…`、窗口 0 拒绝、
+  per-command 并发 ≤ `ceiling.cpu_tokens=2`。
 
 ### 实现侧已定位并修正的观察（复跑确认）
 

@@ -11,7 +11,8 @@
     "output_bytes": 8388608,
     "appends": 8,
     "placement": "spill",
-    "scaled_from": "H=32MiB/output=256MiB row scaled to 1MiB/8MiB (same 64x ratio and failure paths)"
+    "scaled_from": "H=32MiB/output=256MiB row scaled to 1MiB/8MiB (same 64x ratio and failure paths)",
+    "n2_sign_zero_nan": "seal(+0.0) != seal(-0.0) content_hash; payload/signalling NaN hash as +quiet canonical NaN"
   },
   "required_checks": [
     "b01.open_command_ok",
@@ -37,10 +38,14 @@
     "b01.cancel_append_terminal_named",
     "b01.cancel_no_half_product",
     "b01.cancel_abort_ok",
-    "b01.close_command_ok"
+    "b01.close_command_ok",
+    "b01.bits_reserve_ok",
+    "b01.bits_seals_ok",
+    "b01.sign_zero_hash_distinct",
+    "b01.nan_canonicalised"
   ],
-  "min_attempts": 24,
-  "expected_success_count": 24,
+  "min_attempts": 28,
+  "expected_success_count": 28,
   "tolerance": "cumulative append values exact; sealed element count exact; byte-identical read-back",
   "link": "default",
   "timeout_seconds": 180

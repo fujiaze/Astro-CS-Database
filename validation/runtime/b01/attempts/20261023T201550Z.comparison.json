@@ -1,0 +1,233 @@
+{
+  "case": "b01",
+  "title": "streaming output: many appends + seal, failed/cancelled writer leaves no half product",
+  "milestone": "M3",
+  "contract_refs": [
+    "VERIFICATION.md B01",
+    "FOUNDATION_API.md#资源与数组所有权"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/b01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/b01",
+    "log": "validation/runtime/build/b01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/b01",
+  "status": "fail",
+  "reason": "required checks not attempted: b01.sign_zero_hash_distinct, b01.nan_canonicalised; required checks failed: b01.bits_seals_ok; attempts 26 < min_attempts 28; harness reports failures: [\"b01.bits_seals_ok\"]",
+  "exit_code": 0,
+  "attempts": 26,
+  "successes": 25,
+  "expected_success_count": 28,
+  "observed_success_count": 25,
+  "required_checks": 28,
+  "missing_checks": [
+    "b01.sign_zero_hash_distinct",
+    "b01.nan_canonicalised"
+  ],
+  "failed_checks": [
+    "b01.bits_seals_ok"
+  ],
+  "failures": [
+    {
+      "check": "b01.bits_seals_ok",
+      "expected": "all five one-element arrays seal",
+      "actual": "recorded",
+      "detail": ""
+    }
+  ],
+  "kernel_status": "fail",
+  "checks": [
+    {
+      "check": "b01.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.reserve_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.begin_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.eight_appends_cumulative",
+      "pass": true,
+      "expected": "each append returns (i+1)*1 MiB",
+      "actual": "8 appends ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.seal_ok",
+      "pass": true,
+      "expected": "ok + ArrayRef",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.sealed_shape",
+      "pass": true,
+      "expected": "8388608 elements",
+      "actual": "8388608",
+      "detail": ""
+    },
+    {
+      "check": "b01.readback_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.readback_matches_input",
+      "pass": true,
+      "expected": "first 1 MiB byte-identical",
+      "actual": "identical",
+      "detail": ""
+    },
+    {
+      "check": "b01.append_after_seal_rejected",
+      "pass": true,
+      "expected": "invalid_request or invalid_model",
+      "actual": "invalid_request(invalid_request:runtime.storage.append:writer is not open for append)",
+      "detail": ""
+    },
+    {
+      "check": "b01.abort_sealed_noop_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.empty_writer_seal_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.seal:seal requires exactly the declared element count)",
+      "detail": ""
+    },
+    {
+      "check": "b01.empty_writer_abort_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.contiguous_first_append_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.gap_allocate_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.non_contiguous_append_rejected",
+      "pass": true,
+      "expected": "invalid_model or invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.append:append range is not contiguous)",
+      "detail": ""
+    },
+    {
+      "check": "b01.failed_writer_cannot_seal",
+      "pass": true,
+      "expected": "invalid_model or invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.seal:seal requires exactly the declared element count)",
+      "detail": ""
+    },
+    {
+      "check": "b01.abort_after_failure_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.abort_idempotent_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_first_append_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_allocate_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_append_terminal_named",
+      "pass": true,
+      "expected": "cancelled or ok",
+      "actual": "cancelled",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_no_half_product",
+      "pass": true,
+      "expected": "seal does not deliver an ArrayRef",
+      "actual": "cancelled(cancelled:runtime.storage.seal:append I/O failed)",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_abort_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.bits_reserve_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.bits_seals_ok",
+      "pass": false,
+      "expected": "all five one-element arrays seal",
+      "actual": "recorded",
+      "detail": ""
+    },
+    {
+      "check": "b01.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "b01.bits_pos_code": "internal",
+    "b01.bits_neg_code": "internal",
+    "b01.bits_payload_nan_code": "internal",
+    "b01.bits_canonical_nan_code": "internal",
+    "b01.bits_snan_code": "internal"
+  },
+  "resources": {}
+}

@@ -17,116 +17,370 @@
   "status": "pass",
   "reason": "all required checks passed",
   "exit_code": 0,
-  "attempts": 12,
-  "successes": 12,
-  "expected_success_count": 12,
-  "observed_success_count": 12,
-  "required_checks": 12,
+  "attempts": 41,
+  "successes": 41,
+  "expected_success_count": 41,
+  "observed_success_count": 41,
+  "required_checks": 41,
   "missing_checks": [],
   "failed_checks": [],
   "failures": [],
   "kernel_status": "pass",
   "checks": [
     {
-      "check": "multi.open_weight1_ok",
+      "check": "multi.run0_open_ok",
       "pass": true,
       "expected": "ok",
-      "actual": "ok",
+      "actual": "ok/ok",
       "detail": ""
     },
     {
-      "check": "multi.open_weight2_ok",
+      "check": "multi.run0_close_ok",
       "pass": true,
       "expected": "ok",
-      "actual": "ok",
+      "actual": "ok/ok",
       "detail": ""
     },
     {
-      "check": "multi.sample_reached",
+      "check": "multi.run0_dispatches",
       "pass": true,
-      "expected": "300 dispatch events within 60 s",
-      "actual": "300 dispatches",
+      "expected": ">= 330 dispatch starts",
+      "actual": "335",
       "detail": ""
     },
     {
-      "check": "multi.complete_round_environment",
+      "check": "multi.run0_complete_rounds",
       "pass": true,
-      "expected": ">=90% of samples have weight1 ready>=1 and weight2 ready>=2",
-      "actual": "0.9975",
-      "detail": "a P=1 / 2P=2 ready window cannot hold 1+2 ready items; this fixture uses P=2 and keeps both commands at their full weight"
+      "expected": ">= 100 complete feasible rounds",
+      "actual": "109",
+      "detail": ""
     },
     {
-      "check": "multi.window_contract_respected",
+      "check": "multi.run0_violations_zero",
       "pass": true,
-      "expected": "no resource_exhausted and in-flight <= 12 (ready+deferred=20)",
+      "expected": "0 rounds whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted; in-flight <= 12 (contract 20)",
       "actual": "max_in_flight=8 rejections=0",
       "detail": ""
     },
     {
-      "check": "multi.all_units_ok",
+      "check": "multi.run0_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "1/2",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_units_ok",
       "pass": true,
       "expected": "all submitted units complete",
       "actual": "ok",
       "detail": ""
     },
     {
-      "check": "multi.no_starvation",
+      "check": "multi.run1_open_ok",
       "pass": true,
-      "expected": "both commands dispatched in the sample",
-      "actual": "100/200",
+      "expected": "ok",
+      "actual": "ok/ok",
       "detail": ""
     },
     {
-      "check": "multi.ratio_1_to_2_complete_rounds",
+      "check": "multi.run1_close_ok",
       "pass": true,
-      "expected": "2*count1-5 <= count2 <= 2*count1+5 over 300 dispatch events",
-      "actual": "195 <= 200 <= 205 (ratio=2)",
-      "detail": "tolerance is +/-5 credits on 300 bounded execution segments; the complete-round environment is checked above"
-    },
-    {
-      "check": "multi.pool_concurrency_within_threads",
-      "pass": true,
-      "expected": "<= 2",
-      "actual": "2",
+      "expected": "ok",
+      "actual": "ok/ok",
       "detail": ""
     },
     {
-      "check": "multi.command_concurrency_within_ceiling",
+      "check": "multi.run1_dispatches",
       "pass": true,
-      "expected": "each <= 2",
+      "expected": ">= 330 dispatch starts",
+      "actual": "335",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_complete_rounds",
+      "pass": true,
+      "expected": ">= 100 complete feasible rounds",
+      "actual": "109",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_violations_zero",
+      "pass": true,
+      "expected": "0 rounds whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted; in-flight <= 12 (contract 20)",
+      "actual": "max_in_flight=8 rejections=0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
       "actual": "1/2",
       "detail": ""
     },
     {
-      "check": "multi.close_weight1_ok",
+      "check": "multi.run1_units_ok",
       "pass": true,
-      "expected": "ok",
+      "expected": "all submitted units complete",
       "actual": "ok",
       "detail": ""
     },
     {
-      "check": "multi.close_weight2_ok",
+      "check": "multi.run2_open_ok",
       "pass": true,
       "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_dispatches",
+      "pass": true,
+      "expected": ">= 330 dispatch starts",
+      "actual": "335",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_complete_rounds",
+      "pass": true,
+      "expected": ">= 100 complete feasible rounds",
+      "actual": "109",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_violations_zero",
+      "pass": true,
+      "expected": "0 rounds whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted; in-flight <= 12 (contract 20)",
+      "actual": "max_in_flight=8 rejections=0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "1/2",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
       "actual": "ok",
       "detail": ""
+    },
+    {
+      "check": "multi.run3_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_dispatches",
+      "pass": true,
+      "expected": ">= 330 dispatch starts",
+      "actual": "335",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_complete_rounds",
+      "pass": true,
+      "expected": ">= 100 complete feasible rounds",
+      "actual": "109",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_violations_zero",
+      "pass": true,
+      "expected": "0 rounds whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted; in-flight <= 12 (contract 20)",
+      "actual": "max_in_flight=8 rejections=0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "1/2",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_dispatches",
+      "pass": true,
+      "expected": ">= 330 dispatch starts",
+      "actual": "335",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_complete_rounds",
+      "pass": true,
+      "expected": ">= 100 complete feasible rounds",
+      "actual": "109",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_violations_zero",
+      "pass": true,
+      "expected": "0 rounds whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted; in-flight <= 12 (contract 20)",
+      "actual": "max_in_flight=8 rejections=0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "1/2",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.stability_5_of_5",
+      "pass": true,
+      "expected": "5/5 quiet runs: complete rounds>=100, violations=0, window ok",
+      "actual": "5/5",
+      "detail": "each run records its own attempts; an occasional violating round keeps the case failed"
     }
   ],
   "values": {
-    "multi.environment_samples": 1219,
-    "multi.complete_round_samples": 1216,
-    "multi.complete_round_fraction": 0.9975389663658737,
-    "multi.order_prefix": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
-    "multi.sample_count_weight1": 100,
-    "multi.sample_count_weight2": 200,
-    "multi.sample_ratio": 2,
-    "multi.window": 12,
-    "multi.window_rejections": 0,
-    "multi.max_in_flight": 8
+    "multi.run0_dispatches": 335,
+    "multi.run0_complete_rounds": 109,
+    "multi.run0_violations": 0,
+    "multi.run0_skipped_rounds": 1,
+    "multi.run0_rounds_with_w1_ready": 110,
+    "multi.run0_rounds_with_w2_ready": 109,
+    "multi.run0_rounds_with_both_ready": 109,
+    "multi.run0_snapshot_prefix": "",
+    "multi.run0_round_prefix": "122|212|212|212|212|212|212|212|212|212|212|212",
+    "multi.run0_total_one": 112,
+    "multi.run0_total_two": 223,
+    "multi.run0_ratio_info": 2,
+    "multi.run0_max_in_flight": 8,
+    "multi.run1_dispatches": 335,
+    "multi.run1_complete_rounds": 109,
+    "multi.run1_violations": 0,
+    "multi.run1_skipped_rounds": 1,
+    "multi.run1_rounds_with_w1_ready": 110,
+    "multi.run1_rounds_with_w2_ready": 109,
+    "multi.run1_rounds_with_both_ready": 109,
+    "multi.run1_snapshot_prefix": "",
+    "multi.run1_round_prefix": "122|212|212|212|212|212|212|212|212|212|212|212",
+    "multi.run1_total_one": 112,
+    "multi.run1_total_two": 223,
+    "multi.run1_ratio_info": 2,
+    "multi.run1_max_in_flight": 8,
+    "multi.run2_dispatches": 335,
+    "multi.run2_complete_rounds": 109,
+    "multi.run2_violations": 0,
+    "multi.run2_skipped_rounds": 1,
+    "multi.run2_rounds_with_w1_ready": 109,
+    "multi.run2_rounds_with_w2_ready": 109,
+    "multi.run2_rounds_with_both_ready": 109,
+    "multi.run2_snapshot_prefix": "",
+    "multi.run2_round_prefix": "212|212|212|212|212|212|212|212|212|212|212|212",
+    "multi.run2_total_one": 112,
+    "multi.run2_total_two": 223,
+    "multi.run2_ratio_info": 2,
+    "multi.run2_max_in_flight": 8,
+    "multi.run3_dispatches": 335,
+    "multi.run3_complete_rounds": 109,
+    "multi.run3_violations": 0,
+    "multi.run3_skipped_rounds": 1,
+    "multi.run3_rounds_with_w1_ready": 109,
+    "multi.run3_rounds_with_w2_ready": 109,
+    "multi.run3_rounds_with_both_ready": 109,
+    "multi.run3_snapshot_prefix": "",
+    "multi.run3_round_prefix": "212|212|212|212|212|212|212|212|212|212|212|212",
+    "multi.run3_total_one": 112,
+    "multi.run3_total_two": 223,
+    "multi.run3_ratio_info": 2,
+    "multi.run3_max_in_flight": 8,
+    "multi.run4_dispatches": 335,
+    "multi.run4_complete_rounds": 109,
+    "multi.run4_violations": 0,
+    "multi.run4_skipped_rounds": 1,
+    "multi.run4_rounds_with_w1_ready": 109,
+    "multi.run4_rounds_with_w2_ready": 109,
+    "multi.run4_rounds_with_both_ready": 109,
+    "multi.run4_snapshot_prefix": "",
+    "multi.run4_round_prefix": "212|212|212|212|212|212|212|212|212|212|212|212",
+    "multi.run4_total_one": 112,
+    "multi.run4_total_two": 223,
+    "multi.run4_ratio_info": 2,
+    "multi.run4_max_in_flight": 8
   },
-  "resources": {
-    "multi.max_running_pool": 2,
-    "multi.max_running_weight1": 1,
-    "multi.max_running_weight2": 2
-  }
+  "resources": {}
 }
