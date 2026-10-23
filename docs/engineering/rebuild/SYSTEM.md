@@ -144,7 +144,7 @@ GPU扩展点在批次executor与ArrayBacking，不在每个process继承CUDA类�
 | acsd_model / src/model | C++20；身份、单位、数组索引及 action recipe 数据，不含 I/O |
 | acsd_numerics / src/numerics | model、Eigen、MPFR/GMP；区间、求积、QR/SVD/LSMR、PSD/QP |
 | acsd_coordinates / src/coordinates | model、numerics、WCSLIB、ERFA；规范 WCS、历元、曲边 |
-| acsd_observation / src/observation | model、operators、uncertainty、numerics；校准和G |
+| acsd_observation / src/observation | model、operators、uncertainty、numerics、runtime；校准和G（模块组合走同一虚拟计算池的 science Context 桥） |
 | acsd_catalogue / src/catalogue | model、coordinates、uncertainty；只读本地索引，Gaia/XP 解码 |
 | acsd_sources / src/sources | observation、coordinates、catalogue、uncertainty、numerics；盲解、PSF、科学源 |
 | acsd_response / src/response | model、numerics；响应基积分 |

@@ -39,6 +39,10 @@ struct WireRequest {
 
 struct WireResponse {
   Id request_id, process, operation, invocation;
+  // Resolved identity of the decoded request and of the plan the response was
+  // produced from; the normative wire section requires both in the response.
+  Id input_hash, request_hash;
+  std::string backend;  // actual backend that ran the binding ("cpu" today)
   TypeId output_type;
   Code result_code = Code::internal;
   Assessment assessment;
@@ -106,7 +110,8 @@ struct ErasedCodec {
                                                    WireObjects&)>
       decode;
   std::function<Result<std::string>(InvocationContext,
-                                    std::shared_ptr<const void>)>
+                                    std::shared_ptr<const void>,
+                                    WireObjects&)>
       encode;
 };
 
@@ -180,6 +185,8 @@ class ProcessRegistration {
   explicit ProcessRegistration(std::shared_ptr<Impl> impl) noexcept;
   std::shared_ptr<Impl> impl_;
   friend class RegistryBuilder;
+  friend Result<std::shared_ptr<ProcessRegistration>> detail::begin_process(
+      std::shared_ptr<detail::BuilderCore>, ProcessDescriptor);
   friend Result<Done> detail::add_operation_erased(
       std::shared_ptr<detail::BuilderCore>,
       std::shared_ptr<ProcessRegistration>, detail::ErasedOperation);
@@ -200,9 +207,8 @@ class Registry {
   std::string manifest_json() const;
 
  private:
-  struct Impl;
-  explicit Registry(std::shared_ptr<const Impl> impl) noexcept;
-  std::shared_ptr<const Impl> impl_;
+  explicit Registry(std::shared_ptr<const detail::RegistryCore> core) noexcept;
+  std::shared_ptr<const detail::RegistryCore> core_;
   friend class ProcessHost;
   friend Result<std::shared_ptr<const Registry>> detail::freeze_registry(
       std::shared_ptr<detail::BuilderCore>);
@@ -227,6 +233,13 @@ class RegistryBuilder {
     erased.schema_json = std::string(codec.schema_json);
     auto decode = codec.decode;
     auto encode = codec.encode;
+    if (!decode || !encode) {
+      // A registered operation without a codec must be rejected by freeze;
+      // do not manufacture an empty-thunk codec.
+      Result<Done> failure;
+      failure.code = Code::invalid_model;
+      return failure;
+    }
     erased.decode = [decode](InvocationContext ctx, std::string_view text,
                              WireObjects& objects)
         -> Result<std::shared_ptr<const void>> {
@@ -247,14 +260,9 @@ class RegistryBuilder {
       return out;
     };
     erased.encode = [encode](InvocationContext ctx,
-                             std::shared_ptr<const void> value)
-        -> Result<std::string> {
-      if (!encode) {
-        Result<std::string> failure;
-        failure.code = Code::unsupported;
-        return failure;
-      }
-      return encode(ctx, *std::static_pointer_cast<const T>(value));
+                             std::shared_ptr<const void> value,
+                             WireObjects& objects) -> Result<std::string> {
+      return encode(ctx, *std::static_pointer_cast<const T>(value), objects);
     };
     return detail::register_type_erased(core_, std::move(erased));
   }
@@ -271,52 +279,65 @@ class RegistryBuilder {
     erased.output_type = shared->output_type;
     erased.input_cookie = detail::type_cookie<In>();
     erased.output_cookie = detail::type_cookie<Out>();
-    erased.validate = [shared](InvocationContext ctx,
+    if (shared->validate)
+      erased.validate = [shared](InvocationContext ctx,
+                                 std::shared_ptr<const void> input) {
+        return shared->validate(ctx, std::static_pointer_cast<const In>(input));
+      };
+    if (shared->bounds)
+      erased.bounds = [shared](InvocationContext ctx,
                                std::shared_ptr<const void> input) {
-      return shared->validate(ctx, std::static_pointer_cast<const In>(input));
-    };
-    erased.bounds = [shared](InvocationContext ctx,
-                             std::shared_ptr<const void> input) {
-      return shared->bounds(ctx, std::static_pointer_cast<const In>(input));
-    };
-    erased.plan = [shared](InvocationContext ctx,
-                           std::shared_ptr<const void> input,
-                           PlanOptions options) {
-      return shared->plan(ctx, std::static_pointer_cast<const In>(input),
-                          options);
-    };
-    erased.run = [shared](InvocationContext ctx,
-                          std::shared_ptr<const void> input,
-                          Ref<InvocationPlan> plan)
+        return shared->bounds(ctx, std::static_pointer_cast<const In>(input));
+      };
+    if (shared->plan)
+      erased.plan = [shared](InvocationContext ctx,
+                             std::shared_ptr<const void> input,
+                             PlanOptions options) {
+        return shared->plan(ctx, std::static_pointer_cast<const In>(input),
+                            options);
+      };
+    if (shared->run)
+      erased.run = [shared](InvocationContext ctx,
+                            std::shared_ptr<const void> input,
+                            Ref<InvocationPlan> plan)
         -> Task<std::shared_ptr<const void>> {
-      return rt::then(
+      return rt::settle(
           ctx,
           shared->run(ctx, std::static_pointer_cast<const In>(input), plan),
-          [ctx](Out value) -> Task<std::shared_ptr<const void>> {
+          [ctx](Result<Out> result) -> Task<std::shared_ptr<const void>> {
             Result<std::shared_ptr<const void>> out;
-            out.code = Code::ok;
-            out.value = detail::box_owned<Out>(std::move(value));
+            out.code = result.code;
+            out.assessment = std::move(result.assessment);
+            out.usage = std::move(result.usage);
+            out.dependencies = std::move(result.dependencies);
+            if (result.value)
+              out.value = detail::box_owned<Out>(std::move(*result.value));
             return rt::ready<std::shared_ptr<const void>>(ctx, std::move(out));
           });
     };
-    erased.finalize = [shared](
-                          InvocationContext ctx,
-                          std::shared_ptr<const void> input,
-                          Ref<InvocationPlan> plan,
-                          Result<std::shared_ptr<const void>> partial)
+    if (shared->finalize)
+      erased.finalize = [shared](
+                            InvocationContext ctx,
+                            std::shared_ptr<const void> input,
+                            Ref<InvocationPlan> plan,
+                            Result<std::shared_ptr<const void>> partial)
         -> Task<std::shared_ptr<const void>> {
-      Result<Out> typed = detail::remap_failure<std::shared_ptr<const void>, Out>(
-          partial);
-      if (partial.code == Code::ok && partial.value)
-        typed.value = *std::static_pointer_cast<const Out>(partial.value);
-      return rt::then(
+      Result<Out> typed =
+          detail::remap_failure<std::shared_ptr<const void>, Out>(partial);
+      if (partial.value)
+        typed.value = *std::static_pointer_cast<const Out>(*partial.value);
+      return rt::settle(
           ctx,
-          shared->finalize(ctx, std::static_pointer_cast<const In>(input),
-                           plan, std::move(typed)),
-          [ctx](Out value) -> Task<std::shared_ptr<const void>> {
+          shared->finalize(ctx, std::static_pointer_cast<const In>(input), plan,
+                           std::move(typed)),
+          [ctx](Result<Out> result) -> Task<std::shared_ptr<const void>> {
             Result<std::shared_ptr<const void>> out;
-            out.code = Code::ok;
-            out.value = detail::box_owned<Out>(std::move(value));
+            out.code = result.code;
+            out.assessment = std::move(result.assessment);
+            out.usage = std::move(result.usage);
+            out.dependencies = std::move(result.dependencies);
+            if (result.value)
+              out.value = detail::box_owned<Out>(std::move(*result.value));
             return rt::ready<std::shared_ptr<const void>>(ctx, std::move(out));
           });
     };
@@ -346,16 +367,17 @@ class ProcessHost {
         core_, ctx, std::move(process), std::move(operation),
         std::static_pointer_cast<const void>(input),
         detail::type_cookie<In>(), detail::type_cookie<Out>());
-    return rt::then(
+    return rt::settle(
         ctx, std::move(erased),
-        [ctx](std::shared_ptr<const void> value) -> Task<Out> {
+        [ctx](Result<std::shared_ptr<const void>> result) -> Task<Out> {
           Result<Out> out;
-          if (!value) {
-            out.code = Code::internal;
-            return rt::ready<Out>(ctx, std::move(out));
-          }
-          out.code = Code::ok;
-          out.value = *std::static_pointer_cast<const Out>(value);
+          out.code = result.code;
+          out.assessment = std::move(result.assessment);
+          out.usage = std::move(result.usage);
+          out.dependencies = std::move(result.dependencies);
+          if (result.value)
+            out.value = *std::static_pointer_cast<const Out>(*result.value);
+          if (out.code == Code::ok && !out.value) out.code = Code::internal;
           return rt::ready<Out>(ctx, std::move(out));
         });
   }
@@ -384,8 +406,14 @@ class WireObjects {
     if (found.code != Code::ok || !found.value)
       return detail::remap_failure<std::shared_ptr<const void>, Ref<T>>(found);
     Result<Ref<T>> out;
+    if (cookie_erased(alias_or_hash) != detail::type_cookie<T>()) {
+      // A resolved object of a different C++ type is an invalid request, never
+      // a silent reinterpretation.
+      out.code = Code::invalid_request;
+      return out;
+    }
     out.code = Code::ok;
-    out.value = std::static_pointer_cast<const T>(found.value);
+    out.value = std::static_pointer_cast<const T>(*found.value);
     return out;
   }
   template <class T>
@@ -399,11 +427,22 @@ class WireObjects {
     return intern_erased(std::static_pointer_cast<const void>(object),
                          detail::type_cookie<T>());
   }
+  // Returns the request-local alias a producer already bound for this exact
+  // (object pointer, interface type) pair.  It never canonicalises and never
+  // creates an alias: a missing binding is missing_dependency.
+  template <class T>
+  Result<Id> alias_for(Ref<T> object) const {
+    return alias_for_erased(std::static_pointer_cast<const void>(object),
+                            detail::type_cookie<T>());
+  }
 
  private:
   Result<std::shared_ptr<const void>> resolve_erased(Id) const;
+  // The type cookie the object was bound with (null when unknown).
+  const void* cookie_erased(Id) const;
   Result<Done> bind_erased(Id, std::shared_ptr<const void>, const void*);
   Result<Id> intern_erased(std::shared_ptr<const void>, const void*);
+  Result<Id> alias_for_erased(std::shared_ptr<const void>, const void*) const;
   std::shared_ptr<detail::WireObjectTable> table_;
   friend Result<std::shared_ptr<WireObjects>> make_wire_objects(
       InvocationContext, std::shared_ptr<const Registry>, Ref<WireRequest>);

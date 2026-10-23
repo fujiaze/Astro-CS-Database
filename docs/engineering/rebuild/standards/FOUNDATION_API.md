@@ -290,6 +290,8 @@ struct WireRequest {
 };
 struct WireResponse {
   Id request_id, process, operation, invocation;
+  Id input_hash, request_hash;      // resolved identity of the decoded request
+  std::string backend;              // actual backend, "cpu" today
   TypeId output_type;
   Code result_code;
   Assessment assessment;
@@ -399,6 +401,8 @@ scope状态固定accepting→stopping→draining→closed。停止/取消/科学
 abort/seal失败清理/close由runtime私有cleanup节点执行，service在内部取不可伪造cleanup权限，模块不提供公开submit_cleanup。cleanup仅允许排空已在途、abort/unlink/归还和记录secondary Issue，不提交新科学计算，不重置science work。其节点/缓冲在plan.cleanup_bytes中预留并计R，cleanup_work_upper按已知私有文件数/在途节点界计数；CPU/I/O仍用唯一pool token，在stopping/draining中继续准入。budget耗尽/取消也不能挡住这些清理节点。
 
 cleanup的unlink只试一次；失败留下具名orphan记录与其磁盘占用，不伪报空间已释放。Storage可由下次显式清理回收，不能无限重试拖住退出。真实DMA/write仍须等完成，不能为了返回取消提前释放buffer。cleanup-only故障仅追加次要Issue，不参加主计算错误优先级排序，保持原科学/取消Code；实际科学读写的io_error仍按硬失败优先。close_command/Host.close_async均等待清理队列排空后closed。
+
+wire绑定固定规则：同一 concrete provider/interface 对象若出现在多个 interface 字段，producer 必须按“字段 alias”分别 bind（不复制字节）；输出规范对象仍用 `intern<T>`；输入 interface 字段编码用 `alias_for<T>` 精确反查 `(指针, interface 类型)`，无匹配即 missing_dependency，绝不回退到 intern 制造第二身份。TypeId 的稳定文本为 `acsd.input.<InputStruct>` 与 `acsd.<OutputType>`（revision 由 TypeId.revision 表达），生成器与唯一头声明保持一一对应。
 
 TypeCodec登记把TypeId和模板T的进程内类型cookie一一绑定；cookie只用于本进程类型核验，不进入wire/hash。相同TypeId不同T、缺schema/encode/decode、Operation的In/Out与已登记codec不一致在freeze失败。构建生成register_builtin_types(builder)，先登记共享model codec，再登记各Input wrapper；校准例显式调用该入口。WireObjects是当前请求/响应的局部引用解析表，由driver创建，保存已有Model/Array的强引用和block根；不依赖全局registry模型会话。encode/decode遵API的JSON规则、单位/index另由validate检查。
 

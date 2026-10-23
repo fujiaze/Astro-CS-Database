@@ -11,6 +11,14 @@
 
 namespace acsd::rt {
 
+namespace detail {
+struct ArenaImpl;
+struct ClaimImpl;
+struct ArenaAccess;
+struct ClaimAccess;
+Result<ArenaRef> make_arena(const ScopeRef&, ResourceVector);
+}  // namespace detail
+
 template <class T>
 struct Buffer;
 template <class T>
@@ -34,10 +42,10 @@ class Claim {
   ResourceVector bytes() const noexcept;
 
  private:
-  struct Impl;
-  explicit Claim(std::shared_ptr<Impl> impl) noexcept;
-  std::shared_ptr<Impl> impl_;
+  explicit Claim(std::shared_ptr<detail::ClaimImpl> impl) noexcept;
+  std::shared_ptr<detail::ClaimImpl> impl_;
   friend class Arena;
+  friend struct detail::ClaimAccess;
   template <class T>
   friend Result<Buffer<T>> allocate(InvocationContext, ArenaRef, BlockRequest,
                                     Ref<Index>, Unit, Id);
@@ -57,11 +65,12 @@ class Arena {
   void close() noexcept;
 
  private:
-  struct Impl;
-  explicit Arena(std::shared_ptr<Impl> impl) noexcept;
-  std::shared_ptr<Impl> impl_;
+  explicit Arena(std::shared_ptr<detail::ArenaImpl> impl) noexcept;
+  std::shared_ptr<detail::ArenaImpl> impl_;
   friend Result<ArenaRef> reserve(InvocationContext, ResourceVector);
   friend class Claim;
+  friend struct detail::ArenaAccess;
+  friend Result<ArenaRef> detail::make_arena(const ScopeRef&, ResourceVector);
 };
 
 template <class T>

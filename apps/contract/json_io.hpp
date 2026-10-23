@@ -13,6 +13,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "codec/value_codec.hpp"
+
 #include "acsd/contracts.hpp"
 
 namespace acsd::contract {
@@ -69,10 +71,10 @@ class DecodeContext {
 // Value level helpers
 // ---------------------------------------------------------------------------
 
-json encode_unit(const Unit& unit);
-Unit decode_unit(const json& node);
-json encode_code(Code code);
-Code decode_code(const json& node);
+using codec::encode_unit;
+using codec::decode_unit;
+using codec::encode_code;
+using codec::decode_code;
 json encode_identity(const Identity& identity);
 json encode_assessment(const Assessment& assessment);
 // The typed payload of a world coordinate model.  The object table of the
@@ -85,11 +87,11 @@ json encode_footprint_provider(const WcsModel& wcs);
 // The typed payload of an overlap result: the contributions of the leaves.
 json encode_overlaps(const Overlaps& overlaps);
 json encode_usage(const Usage& usage);
-json encode_condition(const Condition& condition);
+using codec::encode_condition;
 json encode_index(const Index& index);
 json encode_array(const Array& array, const std::vector<double>& values);
 json encode_variance(const Variance& variance);
-json encode_header_fields(const HeaderFields& fields);
+using codec::encode_header_fields;
 json encode_support_map(const SupportMap& support);
 // The typed payload of a signal estimate.
 json encode_signal_estimate(const SignalEstimate& estimate);
@@ -101,35 +103,35 @@ json encode_effective_psf(const EffectivePSF& kernel);
 json encode_source_measurements(const SourceMeasurements& measurements);
 
 // Decoders for the plain (non model) contract types.
-Interval decode_interval(const json& node);
-ExactInterval decode_exact_interval(const json& node);
-Box decode_box(const json& node);
-PixelCenter0 decode_pixel_center(const json& node);
-PixelEdge0 decode_pixel_edge(const json& node);
-FitsPixel1 decode_fits_pixel(const json& node);
-SkyICRS decode_sky(const json& node);
-HealpixLeaf decode_leaf(const json& node);
-Tolerance decode_tolerance(const json& node);
-Arithmetic decode_arithmetic(const json& node);
+using codec::decode_interval;
+using codec::decode_exact_interval;
+using codec::decode_box;
+using codec::decode_pixel_center;
+using codec::decode_pixel_edge;
+using codec::decode_fits_pixel;
+using codec::decode_sky;
+using codec::decode_leaf;
+using codec::decode_tolerance;
+using codec::decode_arithmetic;
 // The estimator of a signal: the identifier, the quantity, the unit and the
 // condition.
 
-json encode_arithmetic(const Arithmetic& arithmetic);
-NumericBudget decode_numeric_budget(const json& node);
-SolvePolicy decode_solve_policy(const json& node);
-AstrometricContext decode_astrometric_context(const json& node);
-HeaderFields decode_header_fields(const json& node);
-BlockRequest decode_block_request(const json& node);
-Limits decode_limits(const json& node);
+using codec::encode_arithmetic;
+using codec::decode_numeric_budget;
+using codec::decode_solve_policy;
+using codec::decode_astrometric_context;
+using codec::decode_header_fields;
+using codec::decode_block_request;
+using codec::decode_limits;
 
 // Canonical JSON text: keys sorted (nlohmann keeps objects ordered), no
 // whitespace, no duplicate keys.
-std::string canonical_json(const json& node);
-Id canonical_hash(const json& node);
+using codec::canonical_json;
+using codec::canonical_hash;
 
 // Converts a double into the canonical hexadecimal binary64 representation.
-json encode_f64(double value);
+using codec::encode_f64;
 // Reads a double either from a JSON number or from {"f64": "<16 hex>"}.
-double decode_f64(const json& node);
+using codec::decode_f64;
 
 }  // namespace acsd::contract

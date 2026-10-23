@@ -59,6 +59,15 @@ if(ACSD_BUILD_SCIENCE)
   endfunction()
 
   acsd_add_library(model)
+  # The single owner of the flat value-level JSON codecs; the contract driver
+  # and the generated runtime codecs both link it, so a value has one encoder.
+  acsd_add_library(codec)
+  acsd_link(codec model)
+  if(ACSD_codec_IS_STATIC)
+    target_link_libraries(codec PUBLIC nlohmann_json::nlohmann_json)
+  else()
+    target_link_libraries(codec INTERFACE nlohmann_json::nlohmann_json)
+  endif()
   acsd_add_library(numerics)
   acsd_link(numerics model)
 
@@ -70,6 +79,34 @@ if(ACSD_BUILD_SCIENCE)
   # acsd::rt::Services; modules never create a second pool.
   acsd_add_library(runtime)
   acsd_link(runtime model numerics Threads::Threads PkgConfig::ZSTD)
+  if(ACSD_runtime_IS_STATIC)
+    target_compile_definitions(runtime PRIVATE
+      ACSD_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
+    # manifest_main.cpp is an application entry point, never part of the
+    # runtime archive.
+    get_target_property(acsd_runtime_sources runtime SOURCES)
+    if(acsd_runtime_sources)
+      list(FILTER acsd_runtime_sources EXCLUDE REGEX "manifest_main\\.cpp$")
+      # The generated assembly links the science modules, so it is not part of
+      # the runtime archive; acsd_builtin owns it.
+      list(FILTER acsd_runtime_sources EXCLUDE REGEX "/generated/")
+      set_target_properties(runtime PROPERTIES SOURCES "${acsd_runtime_sources}")
+    endif()
+  endif()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/runtime/registry/host_lifecycle.cpp AND ACSD_runtime_IS_STATIC)
+    add_executable(acsd_host_lifecycle
+      validation/runtime/registry/host_lifecycle.cpp)
+    target_link_libraries(acsd_host_lifecycle PRIVATE runtime)
+    add_test(NAME host_lifecycle COMMAND acsd_host_lifecycle
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  endif()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/runtime/registry/registry_negative.cpp AND ACSD_runtime_IS_STATIC)
+    add_executable(acsd_registry_negative
+      validation/runtime/registry/registry_negative.cpp)
+    target_link_libraries(acsd_registry_negative PRIVATE runtime)
+    add_test(NAME registry_negative COMMAND acsd_registry_negative
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  endif()
   if(ACSD_runtime_IS_STATIC)
     target_compile_definitions(runtime PUBLIC ACSD_DEV_MODE=$<BOOL:${ACSD_DEV_MODE}>)
   else()
@@ -89,7 +126,7 @@ if(ACSD_BUILD_SCIENCE)
   acsd_link(coordinates model numerics)
 
   acsd_add_library(observation)
-  acsd_link(observation model numerics operators uncertainty)
+  acsd_link(observation model numerics operators uncertainty runtime)
 
   acsd_add_library(catalogue)
   acsd_link(catalogue model coordinates numerics uncertainty)
@@ -148,10 +185,47 @@ if(ACSD_BUILD_SCIENCE)
   add_library(acsd_science INTERFACE)
   target_link_libraries(acsd_science INTERFACE workflows)
 
+  # The generated typed assembly: 22 process descriptors + 57 typed bindings,
+  # codecs and the builtin registration.  It links the science modules, so it is
+  # a separate aggregate target, never part of the runtime archive.
+  set(ACSD_GENERATED_ASSEMBLY
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/generated/builtin_processes.cpp)
+  if(EXISTS ${ACSD_GENERATED_ASSEMBLY})
+    file(GLOB ACSD_GENERATED_SOURCES
+         ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/generated/*.cpp)
+    add_library(acsd_builtin STATIC ${ACSD_GENERATED_SOURCES})
+    target_include_directories(acsd_builtin PUBLIC
+      ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(acsd_builtin PUBLIC runtime codec acsd_science
+                          nlohmann_json::nlohmann_json)
+    target_compile_definitions(acsd_builtin PUBLIC
+                               ACSD_HAS_GENERATED_ASSEMBLY=1)
+  endif()
+
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/manifest_main.cpp AND EXISTS ${ACSD_GENERATED_ASSEMBLY})
+    add_executable(acsd-runtime-manifest src/runtime/manifest_main.cpp)
+    target_link_libraries(acsd-runtime-manifest PRIVATE acsd_builtin)
+    # The frozen manifest is a build product; keep it next to the binaries so
+    # the coverage check never depends on a hand-run command.
+    add_custom_target(process_manifest
+      COMMAND acsd-runtime-manifest --output
+              ${CMAKE_BINARY_DIR}/process-manifest.json
+      DEPENDS acsd-runtime-manifest
+      COMMENT "Exporting the frozen process manifest")
+  endif()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/runtime/registry/typed_smoke.cpp AND TARGET acsd_builtin)
+    add_executable(acsd_typed_smoke
+      validation/runtime/registry/typed_smoke.cpp)
+    target_link_libraries(acsd_typed_smoke PRIVATE acsd_builtin)
+    add_test(NAME typed_smoke COMMAND acsd_typed_smoke
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  endif()
+
   if(ACSD_BUILD_CONTRACT_DRIVER AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/apps/contract/main.cpp)
     add_executable(acsd-contract apps/contract/main.cpp apps/contract/driver.cpp
                            apps/contract/json_io.cpp)
-    target_link_libraries(acsd-contract PRIVATE acsd_science nlohmann_json::nlohmann_json)
+    target_link_libraries(acsd-contract PRIVATE acsd_science codec
+                          nlohmann_json::nlohmann_json)
     target_include_directories(acsd-contract PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
   endif()
 

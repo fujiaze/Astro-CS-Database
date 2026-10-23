@@ -7,6 +7,7 @@
 // are fixed by docs/engineering/rebuild/standards/FOUNDATION_API.md.
 #include <acsd/runtime/types.hpp>
 
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -66,7 +67,9 @@ Result<T> take_result(const std::shared_ptr<TaskNode>& node) {
   r.assessment = node_assessment(node);
   r.usage = node_usage(node);
   r.dependencies = node_dependencies(node);
-  if (r.code == Code::ok) r.value = take_value<T>(node);
+  // A non-ok scientific stop may still carry the API-allowed partial value;
+  // only nodes without a payload stay valueless.
+  if (node_peek_value(node)) r.value = take_value<T>(node);
   return r;
 }
 struct TaskAccess;
@@ -131,8 +134,7 @@ template <class T>
 Task<T> ready(InvocationContext ctx, Result<T> result) {
   auto node = detail::make_node(ctx, TaskSpec{});
   std::shared_ptr<void> box;
-  if (result.code == Code::ok && result.value)
-    box = detail::box_value<T>(std::move(*result.value));
+  if (result.value) box = detail::box_value<T>(std::move(*result.value));
   auto code = result.code;
   if (code == Code::ok && !box) code = Code::internal;
   detail::node_complete(node, code, std::move(result.assessment),
@@ -149,8 +151,7 @@ Task<T> submit_cpu(InvocationContext ctx, TaskSpec spec,
                       [node, work = std::move(work)](InvocationContext task) {
                         Result<T> r = work(task);
                         std::shared_ptr<void> box;
-                        if (r.code == Code::ok && r.value)
-                          box = detail::box_value<T>(std::move(*r.value));
+                        if (r.value) box = detail::box_value<T>(std::move(*r.value));
                         auto code = r.code;
                         if (code == Code::ok && !box) code = Code::internal;
                         detail::node_complete(node, code,
@@ -179,7 +180,13 @@ auto then(InvocationContext ctx, Task<T>&& source, F f)
   detail::node_set_continuation(
       src, [ctx, src, out, f = std::move(f)]() mutable {
         if (detail::node_code(src) != Code::ok) {
-          detail::node_complete_from(out, src);
+          // The source payload has type T and the continuation result has type
+          // U; only the Result metadata crosses this boundary.  A partial
+          // value is preserved by settle(), not by then().
+          detail::node_complete(out, detail::node_code(src),
+                                detail::node_assessment(src),
+                                detail::node_usage(src),
+                                detail::node_dependencies(src), nullptr);
           return;
         }
         try {
@@ -240,41 +247,45 @@ template <class T>
 Task<std::vector<T>> when_all(InvocationContext ctx,
                               std::vector<Task<T>> tasks) {
   struct State {
-    std::size_t remaining = 0;
+    std::atomic<std::size_t> remaining{0};
     std::vector<std::optional<T>> values;
-    std::vector<std::pair<Code, Assessment>> failures;
+    std::vector<std::optional<std::pair<Code, Assessment>>> failures;
     std::shared_ptr<detail::TaskNode> out;
     InvocationContext ctx;
   };
   auto state = std::make_shared<State>();
   state->out = detail::make_node(ctx, TaskSpec{});
   state->ctx = ctx;
-  state->remaining = tasks.size();
+  state->remaining.store(tasks.size());
   state->values.resize(tasks.size());
+  state->failures.resize(tasks.size());
   if (tasks.empty()) {
     detail::node_complete(state->out, Code::ok, Assessment{}, Usage{}, {},
                           detail::box_value(std::vector<T>{}));
-    return wrap_task<std::vector<T>>(std::move(state->out));
+    auto out = state->out;
+    return wrap_task<std::vector<T>>(std::move(out));
   }
   for (std::size_t i = 0; i < tasks.size(); ++i) {
     auto node = detail::TaskAccess::release<T>(std::move(tasks[i]));
     if (!node) {
-      if (--state->remaining == 0) {
+      if (state->remaining.fetch_sub(1) == 1) {
         detail::node_complete(state->out, Code::invalid_request, Assessment{},
                               Usage{}, {}, nullptr);
       }
       continue;
     }
     detail::node_set_continuation(node, [state, node, i]() {
-      if (detail::node_code(node) == Code::ok) {
+      if (detail::node_code(node) == Code::ok &&
+          detail::node_peek_value(node)) {
         state->values[i] = detail::take_value<T>(node);
       } else {
-        state->failures.emplace_back(detail::node_code(node),
-                                     detail::node_assessment(node));
+        state->failures[i] = std::make_pair(
+            detail::node_code(node), detail::node_assessment(node));
       }
-      if (--state->remaining != 0) return;
-      if (!state->failures.empty()) {
-        auto [code, assessment] = state->failures.front();
+      if (state->remaining.fetch_sub(1) != 1) return;
+      for (auto& failure : state->failures) {
+        if (!failure) continue;
+        auto [code, assessment] = *failure;
         detail::node_complete(state->out, code, std::move(assessment),
                               Usage{}, {}, nullptr);
         return;
@@ -286,32 +297,34 @@ Task<std::vector<T>> when_all(InvocationContext ctx,
                             detail::box_value(std::move(values)));
     });
   }
-  return wrap_task<std::vector<T>>(std::move(state->out));
+  auto out = state->out;
+  return wrap_task<std::vector<T>>(std::move(out));
 }
 
 template <class T>
 Task<std::vector<Result<T>>> settle_all(InvocationContext ctx,
                                         std::vector<Task<T>> tasks) {
   struct State {
-    std::size_t remaining = 0;
+    std::atomic<std::size_t> remaining{0};
     std::vector<Result<T>> results;
     std::shared_ptr<detail::TaskNode> out;
   };
   auto state = std::make_shared<State>();
   state->out = detail::make_node(ctx, TaskSpec{});
-  state->remaining = tasks.size();
+  state->remaining.store(tasks.size());
   state->results.resize(tasks.size());
   if (tasks.empty()) {
     detail::node_complete(
         state->out, Code::ok, Assessment{}, Usage{}, {},
         detail::box_value(std::vector<Result<T>>{}));
-    return wrap_task<std::vector<Result<T>>>(std::move(state->out));
+    auto out = state->out;
+    return wrap_task<std::vector<Result<T>>>(std::move(out));
   }
   for (std::size_t i = 0; i < tasks.size(); ++i) {
     auto node = detail::TaskAccess::release<T>(std::move(tasks[i]));
     if (!node) {
       state->results[i].code = Code::invalid_request;
-      if (--state->remaining == 0) {
+      if (state->remaining.fetch_sub(1) == 1) {
         detail::node_complete(
             state->out, Code::ok, Assessment{}, Usage{}, {},
             detail::box_value(std::move(state->results)));
@@ -320,18 +333,25 @@ Task<std::vector<Result<T>>> settle_all(InvocationContext ctx,
     }
     detail::node_set_continuation(node, [state, node, i]() {
       state->results[i] = detail::take_result<T>(node);
-      if (--state->remaining != 0) return;
+      if (state->remaining.fetch_sub(1) != 1) return;
       detail::node_complete(state->out, Code::ok, Assessment{}, Usage{}, {},
                             detail::box_value(std::move(state->results)));
     });
   }
-  return wrap_task<std::vector<Result<T>>>(std::move(state->out));
+  auto out = state->out;
+  return wrap_task<std::vector<Result<T>>>(std::move(out));
 }
 
 template <class T>
 Result<T> wait_external(Task<T>&& task) {
+  Result<T> r;
+  if (detail::on_executor_thread()) {
+    // wait_external is an external entry point only; a CPU/I/O worker must not
+    // block the pool it is running on.
+    r.code = Code::invalid_request;
+    return r;
+  }
   if (!task.valid()) {
-    Result<T> r;
     r.code = Code::invalid_request;
     return r;
   }

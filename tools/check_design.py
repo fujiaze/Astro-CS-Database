@@ -97,6 +97,22 @@ for folder in ['lib', 'eng', 'run', 'config', 'testdata']:
     if root.exists() and any(p.is_file() for p in root.rglob('*')):
         warnings.append(f'untracked legacy leftovers present in {folder} (not part of the tree)')
 
+# Process coverage is a build product check: the whitelist in
+# docs/engineering/rebuild/processes/README.md is compared with the frozen
+# registry manifest.  A tree without a built manifest is not silently accepted;
+# it is reported and the check is skipped so document-only builds still work.
+process_manifest = ROOT / 'build' / 'process-manifest.json'
+if process_manifest.is_file():
+    coverage = subprocess.run(
+        [sys.executable, str(ROOT / 'tools/check_process_coverage.py'),
+         '--manifest', str(process_manifest), '--source-root', str(ROOT)],
+        cwd=ROOT, capture_output=True, text=True, check=False)
+    if coverage.returncode != 0:
+        errors.append('process coverage:\n' +
+                      (coverage.stdout or coverage.stderr).strip())
+else:
+    warnings.append('process coverage not checked: build/process-manifest.json is absent (build acsd-runtime-manifest)')
+
 if warnings:
     print('\n'.join(warnings))
 if errors:
