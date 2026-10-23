@@ -5,6 +5,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(ACSD_BUILD_SCIENCE "Build the ACSD v2 science implementation" OFF)
+# The single internal-development diagnostics switch.  OFF must evaluate no
+# probe argument at all; ON enables bounded, asynchronous probes only.
+option(ACSD_DEV_MODE "Enable ACSD internal development probes" OFF)
 option(ACSD_BUILD_CONTRACT_DRIVER "Build the acsd-contract driver" ON)
 
 add_library(acsd_contracts INTERFACE)
@@ -61,6 +64,17 @@ if(ACSD_BUILD_SCIENCE)
 
   acsd_add_library(resources)
   acsd_link(resources model Threads::Threads)
+
+  # Fixed runtime: one ledger, one CPU pool, bounded tasks/pipes, asynchronous
+  # Storage and the ProcessHost/registry.  This target is the only owner of
+  # acsd::rt::Services; modules never create a second pool.
+  acsd_add_library(runtime)
+  acsd_link(runtime model numerics Threads::Threads PkgConfig::ZSTD)
+  if(ACSD_runtime_IS_STATIC)
+    target_compile_definitions(runtime PUBLIC ACSD_DEV_MODE=$<BOOL:${ACSD_DEV_MODE}>)
+  else()
+    target_compile_definitions(runtime INTERFACE ACSD_DEV_MODE=$<BOOL:${ACSD_DEV_MODE}>)
+  endif()
 
   acsd_add_library(storage)
   acsd_link(storage model PkgConfig::ZSTD)

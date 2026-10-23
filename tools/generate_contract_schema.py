@@ -9,7 +9,7 @@ import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-text = (ROOT / 'include/acsd/contracts.hpp').read_text(encoding='utf-8')
+text = (ROOT / 'include/acsd/model.hpp').read_text(encoding='utf-8')
 text = re.sub(r'//[^\n]*', '', text)
 definitions = {}
 structs = {}
@@ -222,7 +222,7 @@ for operation, args in {
 
 schema = {'$schema': 'https://json-schema.org/draft/2020-12/schema',
     '$id': 'https://acsd.invalid/schema/science-input/2',
-    'description': 'Generated from include/acsd/contracts.hpp. Input shape only; science invariants still require validation.',
+    'description': 'Generated from include/acsd/model.hpp (aggregated by include/acsd/contracts.hpp). Input shape only; science invariants still require validation.',
     '$defs': definitions, 'oneOf': operations,
     'properties': {'input_objects': {'type': 'object', 'additionalProperties': {'anyOf': [
         {'$ref': '#/$defs/' + name + 'Ref'} for name in structs if name not in nonwire]}}}}

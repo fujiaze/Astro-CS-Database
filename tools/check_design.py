@@ -74,7 +74,7 @@ for path in (ROOT / 'examples').glob('*.request.json'):
             require(len(raw) == descriptor['raw_bytes'] == descriptor['stored_bytes'], f'{path.name}: block byte mismatch')
             require('sha256:' + hashlib.sha256(raw).hexdigest() == descriptor['raw_sha256'], f'{path.name}: block hash mismatch')
 
-header = (ROOT / 'include/acsd/contracts.hpp').read_text(encoding='utf-8')
+header = (ROOT / 'include/acsd/model.hpp').read_text(encoding='utf-8')
 require('Result<NormalizeResult> normalize(' in header, 'missing public normalize workflow')
 require('Result<ProductLocation> mosaic(' in header, 'missing public mosaic workflow')
 require('Result<ProductLocation> export_image(' in header, 'missing public export workflow')

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://acsd.invalid/schema/science-input/2",
-  "description": "Generated from include/acsd/contracts.hpp. Input shape only; science invariants still require validation.",
+  "description": "Generated from include/acsd/model.hpp (aggregated by include/acsd/contracts.hpp). Input shape only; science invariants still require validation.",
   "$defs": {
     "Interval": {
       "type": "object",
