@@ -1095,51 +1095,67 @@ bool Services::take_runnable(std::shared_ptr<detail::TaskNode>& node) {
     }
   }
 
-  // 2) Weighted round-robin over ready scientific work.  Only commands with
-  //    ready work and a free per-command CPU token participate; unused credit
-  //    never accumulates into the next round.
+  // 2) Weighted deficit round-robin over ready scientific work.  When no
+  //    ready command has positive deficit, every ready command receives one
+  //    quantum equal to its weight (capped at its weight, so an idle command
+  //    cannot accumulate a burst).  The command with the largest deficit wins;
+  //    ties rotate.  This keeps the 1:2 share under a continuously ready pair
+  //    and remains work-conserving when one queue is momentarily empty.
   if (!shutdown_.load()) {
     std::lock_guard<std::mutex> lock(commands_mutex_);
-    if (!commands_.empty()) {
-      const std::size_t count = commands_.size();
-      for (int pass = 0; pass < 2; ++pass) {
-        for (std::size_t step = 0; step < count; ++step) {
-          const std::size_t index = (rr_index_ + step) % count;
-          auto command = commands_[index];
-          if (detail::scope_status(command->scope) != ScopeStatus::accepting)
-            continue;
-          U32 ceiling = command->scope->limits.ceiling.cpu_tokens;
-          if (ceiling == 0) ceiling = cpu_threads_;
-          std::lock_guard<std::mutex> command_lock(command->mutex);
-          if (!command->accept_new || command->draining) continue;
-          if (command->ready.empty() || command->credit == 0) continue;
-          if (command->cpu_running >= ceiling) continue;
-          node = command->ready.front();
-          command->ready.pop_front();
-          --command->credit;
-          ++command->cpu_running;
-          if (command->credit == 0)
-            rr_index_ = (index + 1) % count;
-          else
-            rr_index_ = index;
-          if (hub) {
-            hub->science_since_control.fetch_add(1);
-            hub->ready_count.fetch_sub(1, std::memory_order_acq_rel);
-          }
-          return true;
-        }
-        // No command could dispatch: start a new round for every command that
-        // actually has ready work, then scan once more.  Commands without
-        // ready work are not granted credit.
-        bool any_ready = false;
+    bool any_ready = false;
+    bool any_positive = false;
+    for (auto& command : commands_) {
+      std::lock_guard<std::mutex> command_lock(command->mutex);
+      if (!command->accept_new || command->draining) continue;
+      if (detail::scope_status(command->scope) != ScopeStatus::accepting)
+        continue;
+      if (command->ready.empty()) continue;
+      any_ready = true;
+      if (command->deficit > 0) any_positive = true;
+    }
+    if (any_ready) {
+      if (!any_positive) {
         for (auto& command : commands_) {
-          std::lock_guard<std::mutex> lock(command->mutex);
-          if (!command->ready.empty()) {
-            command->credit = command->weight;
-            any_ready = true;
-          }
+          std::lock_guard<std::mutex> command_lock(command->mutex);
+          if (command->ready.empty()) continue;
+          command->deficit += static_cast<std::int32_t>(command->weight);
+          if (command->deficit > static_cast<std::int32_t>(command->weight))
+            command->deficit = static_cast<std::int32_t>(command->weight);
         }
-        if (!any_ready) break;
+      }
+      const std::size_t count = commands_.size();
+      std::size_t best = count;
+      std::int32_t best_deficit = 0;
+      for (std::size_t step = 0; step < count; ++step) {
+        const std::size_t index = (rr_index_ + step) % count;
+        auto command = commands_[index];
+        std::lock_guard<std::mutex> command_lock(command->mutex);
+        if (!command->accept_new || command->draining) continue;
+        if (detail::scope_status(command->scope) != ScopeStatus::accepting)
+          continue;
+        if (command->ready.empty() || command->deficit <= 0) continue;
+        U32 ceiling = command->scope->limits.ceiling.cpu_tokens;
+        if (ceiling == 0) ceiling = cpu_threads_;
+        if (command->cpu_running >= ceiling) continue;
+        if (best == count || command->deficit > best_deficit) {
+          best = index;
+          best_deficit = command->deficit;
+        }
+      }
+      if (best != count) {
+        auto command = commands_[best];
+        std::lock_guard<std::mutex> command_lock(command->mutex);
+        node = command->ready.front();
+        command->ready.pop_front();
+        --command->deficit;
+        ++command->cpu_running;
+        rr_index_ = (best + 1) % count;
+        if (hub) {
+          hub->science_since_control.fetch_add(1);
+          hub->ready_count.fetch_sub(1, std::memory_order_acq_rel);
+        }
+        return true;
       }
     }
   }

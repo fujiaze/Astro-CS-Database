@@ -240,7 +240,8 @@ struct CommandState {
   std::mutex mutex;
   std::deque<std::shared_ptr<TaskNode>> ready;
   std::deque<std::shared_ptr<TaskNode>> waiting;  // waiting_resources retry
-  U32 credit = 1;      // dispatch credit in the current round
+  U32 credit = 1;      // dispatch credit in the current round (kept for wire)
+  std::int32_t deficit = 0;  // deficit round-robin credit (weighted share)
   U32 cpu_running = 0; // CPU tokens held by running nodes of this command
   U32 in_flight = 0;   // admitted nodes not yet terminal
   bool draining = false;
