@@ -1,0 +1,137 @@
+{
+  "case": "life01",
+  "source": "validation/runtime/life01/life01.cpp",
+  "status": "ran",
+  "attempts": 14,
+  "successes": 13,
+  "failures": [
+    {
+      "check": "life.allocate_write_buffer_ok",
+      "expected": "ok",
+      "actual": "resource_exhausted",
+      "detail": ""
+    }
+  ],
+  "checks": [
+    {
+      "check": "life.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.reserve_arena_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.allocate_block_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.freeze_block_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.surviving_lease_still_billed",
+      "pass": true,
+      "expected": "allocated delta == 4096 after arena close",
+      "actual": "4096",
+      "detail": ""
+    },
+    {
+      "check": "life.close_returns_unclaimed_only",
+      "pass": true,
+      "expected": "held delta == allocated delta (nothing unclaimed remains)",
+      "actual": "held=4096 allocated=4096",
+      "detail": ""
+    },
+    {
+      "check": "life.peak_is_history",
+      "pass": true,
+      "expected": "peak_allocated grows by >= 4096 while the Block lives",
+      "actual": "4096",
+      "detail": ""
+    },
+    {
+      "check": "life.release_after_close_once",
+      "pass": true,
+      "expected": "allocated returns to baseline",
+      "actual": "0",
+      "detail": "a closed arena must return a released committed claim to the ancestor"
+    },
+    {
+      "check": "life.peak_history_preserved",
+      "pass": true,
+      "expected": "peak_allocated keeps its history after release",
+      "actual": "4096",
+      "detail": ""
+    },
+    {
+      "check": "life.reserve_write_arena_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.begin_writer_ok",
+      "pass": true,
+      "expected": "ok + writer",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.allocate_write_buffer_ok",
+      "pass": false,
+      "expected": "ok",
+      "actual": "resource_exhausted",
+      "detail": ""
+    },
+    {
+      "check": "life.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.no_double_billing_after_close",
+      "pass": true,
+      "expected": "final allocated < 16 MiB",
+      "actual": "0",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "life.allocated_before_close": 4096,
+    "life.held_before_close": 4096,
+    "life.allocated_after_close": 4096,
+    "life.held_after_close": 4096,
+    "life.allocated_after_lease_release": 0
+  },
+  "resources": {
+    "life.baseline_held": 0,
+    "life.baseline_allocated": 0,
+    "arena.close_allocated": 4096,
+    "arena.close_held": 4096,
+    "life.final_allocated": 0
+  },
+  "commands": [
+    "validation/runtime/build.sh builds this case with -fsanitize=address"
+  ],
+  "notes": [],
+  "command": "/workspace/Astro CS Database/validation/runtime/build/life01",
+  "exit_code": 0,
+  "stderr_tail": "[ok] life.open_command_ok\n[ok] life.reserve_arena_ok\n[ok] life.allocate_block_ok\n[ok] life.freeze_block_ok\n[ok] life.surviving_lease_still_billed\n[ok] life.close_returns_unclaimed_only\n[ok] life.peak_is_history\n[ok] life.release_after_close_once\n[ok] life.peak_history_preserved\n[ok] life.reserve_write_arena_ok\n[ok] life.begin_writer_ok\n[FAIL] life.allocate_write_buffer_ok expected=ok actual=resource_exhausted\n[ok] life.close_command_ok\n[ok] life.no_double_billing_after_close\n",
+  "timed_out": false
+}

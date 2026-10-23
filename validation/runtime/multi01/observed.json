@@ -31,7 +31,7 @@
       "check": "multi.complete_round_environment",
       "pass": true,
       "expected": ">=90% of samples have weight1 ready>=1 and weight2 ready>=2",
-      "actual": "0.9976",
+      "actual": "0.9975",
       "detail": "a P=1 / 2P=2 ready window cannot hold 1+2 ready items; this fixture uses P=2 and keeps both commands at their full weight"
     },
     {
@@ -92,9 +92,9 @@
     }
   ],
   "values": {
-    "multi.environment_samples": 1270,
-    "multi.complete_round_samples": 1267,
-    "multi.complete_round_fraction": 0.9976377952755906,
+    "multi.environment_samples": 1219,
+    "multi.complete_round_samples": 1216,
+    "multi.complete_round_fraction": 0.9975389663658737,
     "multi.order_prefix": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
     "multi.sample_count_weight1": 100,
     "multi.sample_count_weight2": 200,

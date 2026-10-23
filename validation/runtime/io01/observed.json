@@ -52,7 +52,7 @@
       "check": "io.compression_within_one_cpu",
       "pass": true,
       "expected": "process CPU / wall <= 1.5 with cpu_threads=1",
-      "actual": "1.016",
+      "actual": "1.011",
       "detail": "a multi-threaded compressor would exceed the one-token quota"
     },
     {
@@ -130,9 +130,9 @@
     "io.read_attempt_0_bytes": 33554432,
     "io.read_attempt_0_pending_at_compute": true,
     "io.read_concurrency_attempts": 1,
-    "io.compression_wall_seconds": 0.18707640503998846,
-    "io.compression_cpu_seconds": 0.19001884999999996,
-    "io.compression_cpu_ratio": 1.0157285733568728,
+    "io.compression_wall_seconds": 0.2627569029573351,
+    "io.compression_cpu_seconds": 0.26562431500000006,
+    "io.compression_cpu_ratio": 1.0109127943372453,
     "io.seal_charged_during_append": 8388608,
     "io.written_bytes_at_seal": 8388872,
     "io.spill_written_bytes_at_seal": 8388872,

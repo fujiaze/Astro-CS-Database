@@ -363,3 +363,160 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 - 没有修改任何实现、头文件、验证用例或 git 历史；只在 `/tmp` 写探针与本报告。
 - 没有把“测试通过/编译通过”当作语义通过的替代；每条 P0/P1 都给了文件行号、构型、期望/实际和复现。
 - 没有复核未提交的工作树改动；没有覆盖 M5/M6、Windows、真实数据、GPU。
+
+---
+
+# 追记：修复后定向复核（2026-10-24 02:45）
+
+> 本节是同一审核者对修复提交的**定向复核**，不改写 §1—§10 的历史结论（历史 REJECT 保留在原锚点 `d404c99f7`）。
+> 复核锚点：`5329987b4`（HEAD；相对 `d4ccc8fa6` 只改 `docs/audit/m0-implementation-matrix.md`）。
+> 运行时/科学代码自 `d4ccc8fa6` 起未变（`git diff d4ccc8fa6..HEAD -- src include` 为空）；M0—M4 相关代码在 `5b64e5cb0..d4ccc8fa6` 也无改动（只改 `validation/runtime`）。工作树在复核期间有未提交的 M5 改动（`src/coadd/*`、`src/catalogue/*` 等），**不在本追记范围**。
+> 隔离复现：`git archive 5b64e5cb0 → /tmp/review-5b6`，用 `d4ccc8fa6` 的 `validation/` 覆盖（`src/include` 两提交相同），`cmake -G Ninja` 分别在 `ACSD_DEV_MODE=OFF/ON` 构建；`ctest` **19/19**；`validation/runtime` 全量 15 case；`cal_kernel`/`cal_equivalence`/`cal_host`/`calibration-faults` 脚本在 `/tmp` 树内运行。
+
+## 追记 A：逐项关闭状态（原编号）
+
+| 原编号 | 原严重度 | 复核状态 | 复验证据（隔离构建，锚点 `5329987b4`） |
+|---|---|---|---|
+| M0-1 模块/生成 descriptor 两套且缺 `runtime` 依赖 | P2 | **OPEN** | 导出的 manifest 仍为 `observation.calibrate.dependencies=[model,numerics,operators,uncertainty]`（生成表含 `runtime`）；M5 的 `descriptor_for` 未用于该 process |
+| M0-2 零 operation process 可 freeze | P2 | **CLOSED** | `/tmp/probe_empty_process` → `freeze=invalid_model`；`reg01` 隔离构建 29/29 pass |
+| M0-3 `then` 不要求 value / 非法 Task 报 success | P2 | **OPEN** | `task.hpp` 相关分支未改 |
+| M0-4 `when_all` 失败合并不按 Code/Key 优先级 | P2 | **OPEN** | `task.hpp:286-292` 仍按输入序取第一个失败 |
+| M0-5 共享 document 可 freeze | P2 | **CLOSED** | `/tmp/probe_dup_doc` → `freeze=identity_conflict`；`registry_negative` 112 checks（含两项新负例） |
+| M1-1 `work_upper=0` 越 `max_work` | P1 | **CLOSED** | `/tmp/repro_work0`（隔离库）→ `consume_work(11)=resource_exhausted`、`scope.work=0` |
+| M1-2 claim 的 arena/祖先进账非同一原子事务 | P2 | **OPEN** | 代码结构未变 |
+| M1-3 `cpu_ns` 永空 / `metadata_bytes` 不计 | P2 | **PARTIAL** | 仍未计 metadata；cpu_ns 仍 null |
+| M2-1 `when_all` 非法 Task UB/伪造成功 | P0 | **CLOSED** | `/tmp/audit/when_all_probe`（隔离库）→ `state=failed, code=1, size=0`；不再崩/不再伪造值 |
+| M2-2 ordered pipe 跨 cohort 永久 stall | P1 | **CLOSED-WITH-CAVEAT** | `/tmp/repro_pipe_expect`：跨 cohort 先 park（有界），`detail::pipe_expect` 后按序投递；close(failed) 唤醒 parked sender（code=22）+ 接收端 `PipeEnd failed`。**但 FOUNDATION_API/SCHEDULER 正本未写 `pipe_expect/next_required_key`**（`git log` 最后一次改动仍是 `0a5dbfff3`）；契约只在 `pipe.hpp` 头注释，且仓库无执行器 fixture（Lead 已列为未验证项） |
+| M2-3 无 2P ready window | P1 | **CLOSED** | `/tmp/repro_ready_window`（P=1 提交 100000）→ `pending=11, ok=11, resource_exhausted=99989, still_pending=0`；分批可行负载 8/8 ok |
+| M2-4 broadcast 重复分支/组信用非原子 | P2 | **OPEN** | `/tmp/audit/broadcast_probe`：`broadcast(k,v,{p,p})` 仍让 1-slot pipe 产出两份；8 MiB DTO 仍过 64 B 窗口 |
+| M2-5 metadata 不生效 / 未观察失败不记日志 | P2 | **OPEN** | `pool.cpp` task scope `metadata_bytes=0` 未改；`~TaskNode` 仍 default |
+| M2-6 control 绕过 command CPU ceiling | P2 | **CLOSED（代码审读）** | `take_control` 已按 `command->cpu_running >= ceiling` 跳过并计 token |
+| M2-7 I/O slot 不按 `min(P,4)`/2 clamp | P2 | **OPEN** | `read_slots_/write_slots_` 仍直接照抄 config |
+| M2-8 重复 close 只比 kind+issue 数量 | P2 | **OPEN** | `pipe.cpp:531-532` 未改 |
+| M2-9 无 `bounded_size` 登记，DTO 按 `sizeof` 计费 | P2 | **OPEN** | `pipe.hpp` 未改 |
+| M2 S-MULTI 1:2 | P1 | **PARTIAL（证据不稳定）** | 见追记 B：隔离环境 16 次运行中 2 次 `98/202`（超 ±5 上界 201），14 次 `100/200`；安静环境 10 连跑全过。DRR 本身工作（dispatch 比例基本 2.0），判据/采样需修 |
+| M3-1 seal 在 abort 后成功交付半成品 | P0 | **CLOSED** | `/tmp/repro_seal_abort` ×5：`abort=ok, seal=22(cancelled)`，无 `complete` 产品 |
+| M3-2 abort 不排空在途 seal 写/UAF | P1 | **CLOSED** | 同 spill 变体 ×10：0 次崩溃；`abort=ok, seal=cancelled`；无 spool 残留 |
+| M3-3 未 sealed writer 析构不清理 | P1 | **CLOSED** | `/tmp/repro_storage_life` A：spill writer 直接 drop → `after_drop_dirs=0`（begin 时 1） |
+| M3-4 `buffer_bytes`/metadata 不计费、staging 不分块 | P1 | **OPEN（未实现）** | 同探针 B：spill `begin` 声明 `buffer=1 MiB, metadata=1 MiB` → `claimed_delta=0, allocated_delta=0`；`storage.cpp:1351-1352` 只保存字段，spill 分支只 `mkdir`（:1372-1381）。提交说明中的 “buffer/metadata staging claim” 未落地 |
+| M3-5 sealed 数组被 BlockStore 永久钉住 | P1 | **CLOSED** | `/tmp/repro_pin`：丢弃 ArrayRef+`close_command` 后 `allocated=0, held=0`（`add_ref`/`release_ref` + Array deleter 生效） |
+| M3-6 写账本按未压缩 payload / cache 命中记 read | P2 | **CLOSED** | `io01` 17/17：spill `written=spill=8,388,872`（stored bytes）；cache 命中分支已删除 read_bytes 记账（`storage.cpp:1054-1056`）。**测试仍把 written+spilled 相加**（`io01.cpp:354`），违反 EXECUTION:97（见 N-6） |
+| M3-7 dyadic 无读路径 | P2 | **OPEN** | `storage.cpp:1015-1018` 仍 unsupported；无 `read_async<Dyadic>`/`allocate<Dyadic>` 实例化 |
+| M3-8 append 不校验 `model_hash` | P2 | **CLOSED** | `storage.cpp:1459-1462` 绑定首个 model_hash，后续不一致拒绝 |
+| M3-9 NaN payload 未规范化 | P2 | **PARTIAL / 回归** | NaN payload 已规范化；但 `-0.0` 被折叠成 `+0.0`（见 N-2），违反 OBJECTS:140 “保-0 位” |
+| M3-10 同 id 覆盖丢旧 Lease | P2 | **WITHDRAWN** | 复核为 content-addressed 去重：物理只留一份、最后引用释放清账，不构成“存活输出提前回收”；原判过重 |
+| M3-11 `total*itemsize` 溢出不检查 | P2 | **OPEN** | `storage.cpp:1361` 未改 |
+| M4-1 同步/Host 校验分歧 | P1 | **CLOSED** | 唯一 `observation::validate_calibration_input`（`calibration_kernel.cpp:634`）；`cal_equivalence` 8/8（隔离重跑）；`/tmp/repro_sync_host` → 两端 `invalid_model`，`DIVERGENT=no` |
+| M4-2 plan work/R/F 漏计 | P1 | **CLOSED-WITH-CAVEAT** | `plan_calibration`：N=3 → `R=33170, F=2166988, work=460`；N=200000 → `R=26832768, F=6623232, Σwork=268580`；`edges=0`、`window=2 → invalid_request`；`cal01` usage=140 ∈ [3,524]。**92N 物化向量只在 R 预留、不经 arena 计费**；`S(n)` 为公式上界，allocator 实测 14,849,040 B 只是支撑不是证明（evidence.md §3/§7 已声明） |
+| M4-3 C-CAL-WRITE/CLEAN 未跑 | P1 | **CLOSED-WITH-CAVEAT** | `validation/process/calibration-faults` 隔离重跑 **16/16**（短写 io_error、seal 失败 io_error、写后取消 cancelled+deferred abort、spool 归零、无产品）。**M4 的 evidence.md:121 仍把 C-CAL-WRITE/CLEAN 列为未跑**（未同步）；注入在 runtime writer 组，校准 adapter 的 `begin_signal/seal_signal` 组合路径仍未直接故障注入 |
+| M4-4 plan 声明未使用 pipe edge | P2 | **CLOSED** | edges=0、window>1 拒绝；`stream_map_ordered` 诚实串行 |
+| M4-5 C-CAL-ROOT 证据构造性必真 | P2 | **PARTIAL** | `cal01` 现在传真实共享 `master_noise`（`shared_id=master_flat`, influence 1/1），但两帧仍传**同一个** NoiseModel 对象；等价的两次独立对象未测，P2 保留 |
+| E-1 d404 的 cal01 失败/挂起与“M4 完成”矛盾 | P1 | **CLOSED** | 隔离套件 `cal01` 41/41 pass（严格判据、usage 140≤524、共享根）；`d4ccc` 提交快照 15/15 |
+| E-2 README/comparison/manifest 三方不一致 | P1 | **PARTIAL** | README/comparison/manifest 现均为 15/15，但 `manifest.json.git_commit=5b64e5cb0`（比所在提交 `d4ccc8fa6` 落后一个），见 N-3 |
+| E-3 cal01 判据被放宽 | P1 | **CLOSED** | `d4ccc` 恢复严格 required（37 checks）；`usage.work ∈ [3, plan-declared]` 是比 `>=` 更强的判据；未再删失败项 |
+| 旧 7 pass / 4 pending baseline | — | **PRESERVED** | `validation/run_summary.json` 在 `ea984cdb` 与 `5329987b4` 的 case 状态/functional 逐项相同（只改 wall time） |
+| M0 计数 | — | **REPRODUCED** | `registry_negative` 112、`typed_smoke` 1255（22/57/102 TypeId）、`host_lifecycle` 66、`ctest` 19/19、`design_integrity` pass |
+| BigInt 符号修复（`ff6407689`） | — | **VERIFIED（范围内）** | 隔离 `ctest` 的 `numerics_selftest` pass，含 `dyadic_to_double(exact_point(-0.5))` 回归 |
+
+## 追记 B：multi01 / S-MULTI 的判据建议（回答 Lead）
+
+**事实**：隔离构建（与 `5329987b4` 的 M0—M4 代码相同）共运行 multi01 **16 次**：14 次 `count1=100,count2=200`（ratio 2.0）通过；**2 次为 `98/202`（ratio 2.061）**，后者 `202 > 2*98+5 = 201` 失败。两次离群都出现在我并行构建刚结束、机器有负载时；安静环境 10 连跑全过。提交的 observed 只保留通过的那一次。
+
+**判断**：deficit RR 本身没有退回 1:1（14/16 精确 2.0），所以不是原 S-MULTI 缺陷复现；但当前 fixture **不能稳定证明**“每完整可行轮 1:2”，且判据与自身声明不一致：
+- `case.json` 的 `tolerance` 字段写 `|count2-2*count1|<=8`，实际 check 用 `±5`；
+- 判据是 **300 次 dispatch 的累计**比例，不是逐“完整可行轮”；累计窗口可能从/到非轮边界，允许个别轮次偏差被平均掉（也可能因边界被误判）；
+- `observed` 只存 36 条 `order_prefix`，没有完整 300 条序列，无法独立复算“每轮 1:2”。
+
+**建议（不放宽 S-MULTI）**：
+1. **逐轮判据**：记录完整 dispatch 序列（300/更多条）；对每个“完整可行轮”（该轮 3 次 dispatch 前 `ready1>=1 && ready2>=2`）要求 multiset 恰为 `{w1,w2,w2}`；要求**违规轮次 = 0**、完整轮数 ≥100。这是 SCHEDULER“每完整可行轮 dispatch 比例 1:2”的直接检验，比累计 ±5 更严。
+2. **采样对齐**：从首个完整轮开始、到最后一个完整轮结束，去掉预热与截断的半轮；或显式按轮累计（每轮 3 次）而不是“前 300 次”。
+3. **重复性**：同一 fixture 在安静环境连续跑 **5 次**并要求 5/5（或至少 9/10），把每次计数保留在 attempts；单次 100/200 不能作为稳定证据。若保留累计判据，用已声明的 `±8`（相对 2.7%，仍比旧 `±4/120=3.3%` 更紧），不要为一次通过选 `±5`。
+4. **P=2 合法性**：S-MULTI 未规定 P；P=2 使 2P=4 能容纳 1+2 个 ready，是合法可行环境，不算放宽。请在 `case.json` 写明“P=2 是判据的可行环境；P=1 的 2P 容纳不下完整轮，故不在 P=1 判权重”，并修掉 `tolerance`（±8）与 check（±5）的不一致。
+5. **command ceiling**：`multi.command_concurrency_within_ceiling` 现在只断言两条 command 的并发 ≤`kThreads`(2)，应改为逐 command 记录 `ScopeLimits.ceiling.cpu_tokens` 并断言 ≤各自 ceiling（S-MULTI“单command同时运行不得超自己的cpu/io ceiling”）。
+6. 若不做逐轮判据，则至少把 multi01 的“15/15”改为“稳定复现的通过次数/总次数”，不要以单次运行写 15/15。
+
+## 追记 C：新发现（修复引入/仍存）
+
+**N-1（P1，原 M3-4 未实现）spill 的 `buffer_bytes`/metadata 仍不计费、staging 不分块。**
+- 位置：`src/runtime/storage.cpp:1351-1352`（只存字段）、`:1372-1381`（spill 只 `mkdir`）、`:1361`（memory 才 charge 全量）。
+- 构型/实际：`reserve` 后 `begin` spill `buffer_bytes=1 MiB, metadata_bytes=1 MiB` → `claimed_delta=0, allocated_delta=0`；一次 append 仍整段 staging。
+- 期望：`SCHEDULER.md:14`（I/O chunk ≤8 MiB）、`OBJECTS.md:142`（spill 受实际缓冲额度约束）、`EXECUTION.md:91`（staging/vector 计入准入）。
+- 最小修订：begin 时 claim `buffer_bytes+metadata_bytes`，seal/abort 释放；append 按已预留 chunk 分块。
+
+**N-2（P2，修复引入）`-0.0` 在封存身份中被折叠成 `+0.0`。**
+- 位置：`src/runtime/storage.cpp:139-140`（f64；f32 在 `:150-151`）：`if ((bits & 0x7fff...) == 0) bits = 0;`。
+- 构型/实际：seal `{+0.0}` 与 `{-0.0}` → 相同 `content_hash`（探针 `C +0==-0:1`）。
+- 期望：`OBJECTS.md:140`“浮点保 -0 位”；旧实现保留 -0，本次 NaN 规范化把它一起折叠了。
+- 最小修订：只规范化 NaN payload，保留 ±0 的原始位（删掉 zero 分支或把 `-0` 映射回 `0x8000…`）；并确认 `-NaN` 是否允许带符号（当前 `0xfff8…`，与“统一 quiet 位 `0x7ff8…`”的措辞需对齐）。
+- 说明：科学值本身未被改写（只影响 hash/身份），影响面窄但属显式格式条款。
+
+**N-3（P2）committed manifest 的 `git_commit` 落后一个提交。**
+- `d4ccc8fa6` 提交的 `validation/runtime/manifest.json` 写 `git_commit=5b64e5cb0`（生成于 02:27，早于该提交）；读者会把它当成旧提交的证据。建议在提交前重新导出，或由 `run_cases.py` 在生成时记录 `HEAD` 并在提交前校验。
+
+**N-4（P2）M4 evidence.md 未同步 C-CAL-WRITE/CLEAN。**
+- `validation/runtime/calibration/evidence.md:121` 仍写“need injected failures… not exercised”；实际 `validation/process/calibration-faults` 16/16 通过。请把该证据链接进 M4 evidence，并注明注入在 runtime writer 组、adapter 组合路径未注入。
+
+**N-5（P2）FOUNDATION_API/SCHEDULER 未写执行器 frontier 契约。**
+- `pipe_expect` 只在 `include/acsd/runtime/pipe.hpp` 的 `detail` 命名空间 + 头注释；`FOUNDATION_API.md:231` 仍只说“ordered 返回 next_required_key”。M2-2 的正本条件未满足（见追记 A）。
+
+**N-6（P2）io01 的写账本断言把 written 与 spill 相加。**
+- `validation/runtime/io01/io01.cpp:354`：`written + spilled >= bytes`；`EXECUTION.md:97` 明确“spill_bytes 为累计写 spill 字节，written_bytes 包括它，不能相加当总写量”。当前实现 `written==spill==stored bytes`（一致），但断言本身是错的度量，会掩盖未来的重复计费。
+
+**N-7（P2，范围外提示）19/19 ctest 只覆盖 12 个 driver。**
+- `ctest -N`：3 个 calibration-faults + 9 个 process driver + `host_lifecycle`/`registry_negative` + 5 个核心测试（typed_smoke/numerics/operators/covariance/design）= 19。`geometry.drizzle`、`projection.export` 等目录只有 `observed_m5.jsonl`+README，不是 ctest 目标；M5 未关闭项与 Lead 的 Appendix B 一致，但“driver 全部进 ctest”应表述为“已存在的 12 个 driver 全部进 ctest”。
+
+## 追记 D：判定更新（只针对 M0—M4；历史 REJECT 保留）
+
+| 里程碑 | 原判定（d404） | 复核后（5329987b4） |
+|---|---|---|
+| M0 公共合同与登记 | ACCEPT（P2） | **ACCEPT**（剩 P2：M0-1 依赖、M0-3/M0-4 语义） |
+| M1 账本/所有权 | ACCEPT-WITH-CAVEATS | **ACCEPT**（P2：claim 原子性、metadata/cpu_ns） |
+| M2 Task/pool/pipe | REJECT | **ACCEPT-WITH-CAVEATS**（P0/P1 机制已闭；multi01 证据稳定性、pipe 正本未更新、P2 批次） |
+| M3 异步 Storage/诊断 | REJECT | **未关闭**（P1 N-1 buffer/metadata 计费；P2 N-2 -0、M3-7 dyadic、M3-11 溢出；M3-6 测试度量） |
+| M4 observation.calibrate | REJECT（作为“完成”） | **ACCEPT-WITH-CAVEATS**（P2：C-CAL evidence 未同步、adapter 级注入、C-CAL-ROOT 仍同对象、W_module 未 allocator 实测） |
+
+**总体：ACCEPT-WITH-CAVEATS。** P0 已全部清零；唯一实质阻塞是 N-1（P1），N-2 属显式身份条款的 P2。若要求“所有里程碑 ACCEPT”，则 M3 保持 **REJECT**，直到 N-1 修复、N-2 修正并重新跑 `io01`/`b01`/`life01`/`cal_host` 与隔离 ASan 的 seal/abort 构型；M2 的 multi01 按追记 B 的逐轮判据 + 5 次重复通过后可去掉 caveat。
+
+**建议的最小收尾顺序**：N-1（begin claim + staging 分块）→ N-2（-0 保留）→ N-3/N-4/N-5 文档/身份 → multi01 逐轮判据 + 重复运行 → 重跑 15 case、ctest、cal_* 与旧 7/4 baseline。完成后可给 M0—M4 **ACCEPT**。
+
+## 追记 E：本轮复现命令（隔离，全部在 /tmp）
+
+```bash
+# 隔离树与构建（锚点 5329987b4 的 M0—M4 代码）
+mkdir -p /tmp/review-5b6 && git archive 5b64e5cb0 | tar -x -C /tmp/review-5b6
+git archive d4ccc8fa6 validation/runtime validation/process | tar -x -C /tmp/review-5b6
+cmake -S /tmp/review-5b6 -B /tmp/review-5b6-build -G Ninja -DACSD_BUILD_SCIENCE=ON -DACSD_DEV_MODE=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build /tmp/review-5b6-build -j 8 && (cd /tmp/review-5b6-build && ctest)
+cmake -S /tmp/review-5b6 -B /tmp/review-5b6-dev -G Ninja -DACSD_BUILD_SCIENCE=ON -DACSD_DEV_MODE=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build /tmp/review-5b6-dev -j 8 --target runtime model numerics storage
+cd /tmp/review-5b6 && ACSD_BUILD=/tmp/review-5b6-build ACSD_DEV_BUILD=/tmp/review-5b6-dev \
+  bash validation/runtime/build.sh && ACSD_BUILD=/tmp/review-5b6-build ACSD_DEV_BUILD=/tmp/review-5b6-dev \
+  python3 validation/runtime/run_cases.py --no-build
+# 定向探针（隔离库）
+INC="-I /tmp/review-5b6/include"
+RT="-L/tmp/review-5b6-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -lresources -lcodec -Wl,--end-group -lpthread -lzstd"
+g++ -std=c++20 -O2 $INC /tmp/audit/when_all_probe.cpp $RT -o /tmp/f_wa && /tmp/f_wa
+g++ -std=c++20 -O2 $INC /tmp/repro_work0.cpp $RT -o /tmp/f_w0 && /tmp/f_w0
+g++ -std=c++20 -O2 $INC /tmp/repro_pin.cpp $RT -o /tmp/f_pin && /tmp/f_pin
+g++ -std=c++20 -O2 $INC /tmp/repro_pipe_expect.cpp $RT -o /tmp/f_pe && /tmp/f_pe
+g++ -std=c++20 -O2 $INC /tmp/repro_ready_window.cpp $RT -o /tmp/f_rw && /tmp/f_rw
+g++ -std=c++20 -O2 $INC /tmp/repro_storage_life.cpp $RT -o /tmp/f_sl && /tmp/f_sl
+g++ -std=c++20 -O2 $INC /tmp/repro_seal_abort.cpp $RT -o /tmp/f_sa && /tmp/f_sa
+g++ -std=c++20 -O1 -g $INC /tmp/repro_seal_abort_spill.cpp $RT -o /tmp/f_sas && /tmp/f_sas
+# M4
+SCI="-L/tmp/review-5b6-build -Wl,--start-group -lacsd_builtin -lruntime -lcodec -lworkflows -lphotometry -lsources -lcoadd -lsky -linformation -lprojection -lgeometry -lresponse -lresources -lstorage -lobservation -lcatalogue -luncertainty -loperators -lcoordinates -lnumerics -lmodel -Wl,--end-group -lpthread -lzstd"
+g++ -std=c++20 -O2 -I /tmp/review-5b6/include -I /tmp/review-5b6/src /tmp/repro_sync_host.cpp $SCI -o /tmp/f_sync && /tmp/f_sync
+g++ -std=c++20 -O2 -I /tmp/review-5b6/include -I /tmp/review-5b6/src /tmp/repro_plan_numbers.cpp \
+  -L/tmp/review-5b6-build -Wl,--start-group -lobservation -loperators -luncertainty -lnumerics -lmodel -Wl,--end-group -lpthread -lzstd -o /tmp/f_plan && /tmp/f_plan
+cd /tmp/review-5b6 && export ACSD_BUILD=/tmp/review-5b6-build
+bash validation/runtime/calibration/run_cal_equivalence.sh   # 8/8
+bash validation/runtime/calibration/run_cal_kernel.sh       # 37/37
+bash validation/runtime/calibration/run_cal_host.sh         # 33/33
+g++ -std=c++20 -O2 -I include validation/process/calibration-faults/calibration_faults.cpp $RT -o /tmp/f_faults && /tmp/f_faults  # 16/16
+# multi01 重复运行（示例 10 次，安静环境）
+for i in $(seq 1 10); do timeout 180 validation/runtime/build/multi01; done
+```
+
+---
+
+**追记签署**：reviewer-m0m4（未参与实现）。本追记只记录复核证据与建议，不修改实现/验证用例，不 commit/push；历史 §1—§10 的 REJECT 仍是对 `d404c99f7` 的结论。

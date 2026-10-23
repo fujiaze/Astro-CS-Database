@@ -9,7 +9,7 @@
     {"check": "multi.open_weight1_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "multi.open_weight2_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "multi.sample_reached", "pass": true, "expected": "300 dispatch events within 60 s", "actual": "300 dispatches", "detail": ""},
-    {"check": "multi.complete_round_environment", "pass": true, "expected": ">=90% of samples have weight1 ready>=1 and weight2 ready>=2", "actual": "0.9976", "detail": "a P=1 / 2P=2 ready window cannot hold 1+2 ready items; this fixture uses P=2 and keeps both commands at their full weight"},
+    {"check": "multi.complete_round_environment", "pass": true, "expected": ">=90% of samples have weight1 ready>=1 and weight2 ready>=2", "actual": "0.9975", "detail": "a P=1 / 2P=2 ready window cannot hold 1+2 ready items; this fixture uses P=2 and keeps both commands at their full weight"},
     {"check": "multi.window_contract_respected", "pass": true, "expected": "no resource_exhausted and in-flight <= 12 (ready+deferred=20)", "actual": "max_in_flight=8 rejections=0", "detail": ""},
     {"check": "multi.all_units_ok", "pass": true, "expected": "all submitted units complete", "actual": "ok", "detail": ""},
     {"check": "multi.no_starvation", "pass": true, "expected": "both commands dispatched in the sample", "actual": "100/200", "detail": ""},
@@ -19,7 +19,7 @@
     {"check": "multi.close_weight1_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "multi.close_weight2_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""}
   ],
-  "values": {"multi.environment_samples": 1270, "multi.complete_round_samples": 1267, "multi.complete_round_fraction": 0.9976377952755906, "multi.order_prefix": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2", "multi.sample_count_weight1": 100, "multi.sample_count_weight2": 200, "multi.sample_ratio": 2, "multi.window": 12, "multi.window_rejections": 0, "multi.max_in_flight": 8},
+  "values": {"multi.environment_samples": 1219, "multi.complete_round_samples": 1216, "multi.complete_round_fraction": 0.99753896636587369, "multi.order_prefix": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2", "multi.sample_count_weight1": 100, "multi.sample_count_weight2": 200, "multi.sample_ratio": 2, "multi.window": 12, "multi.window_rejections": 0, "multi.max_in_flight": 8},
   "resources": {"multi.max_running_pool": 2, "multi.max_running_weight1": 1, "multi.max_running_weight2": 2},
   "commands": [],
   "notes": []

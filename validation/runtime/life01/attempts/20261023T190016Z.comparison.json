@@ -1,0 +1,160 @@
+{
+  "case": "life01",
+  "title": "closed arena still bills a surviving Lease; cancel does not free an in-flight write; no UAF",
+  "milestone": "M1",
+  "contract_refs": [
+    "SCHEDULER.md#资源账本的原子操作",
+    "SCHEDULER.md S-LIFE",
+    "VERIFICATION.md LIFE01"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/life01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -fsanitize=address -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/life01",
+    "log": "validation/runtime/build/life01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/life01",
+  "status": "fail",
+  "reason": "required checks not attempted: life.freeze_write_block_ok, life.cancel_write_in_flight, life.cancel_write_not_released_early, life.cancel_append_terminal_named, life.abort_after_cancel_ok, life.cancel_write_released_after_real_completion; required checks failed: life.allocate_write_buffer_ok; attempts 14 < min_attempts 20; harness reports failures: [\"life.allocate_write_buffer_ok\"]",
+  "exit_code": 0,
+  "attempts": 14,
+  "successes": 13,
+  "expected_success_count": 20,
+  "observed_success_count": 13,
+  "required_checks": 20,
+  "missing_checks": [
+    "life.freeze_write_block_ok",
+    "life.cancel_write_in_flight",
+    "life.cancel_write_not_released_early",
+    "life.cancel_append_terminal_named",
+    "life.abort_after_cancel_ok",
+    "life.cancel_write_released_after_real_completion"
+  ],
+  "failed_checks": [
+    "life.allocate_write_buffer_ok"
+  ],
+  "failures": [
+    {
+      "check": "life.allocate_write_buffer_ok",
+      "expected": "ok",
+      "actual": "resource_exhausted",
+      "detail": ""
+    }
+  ],
+  "kernel_status": "fail",
+  "checks": [
+    {
+      "check": "life.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.reserve_arena_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.allocate_block_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.freeze_block_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.surviving_lease_still_billed",
+      "pass": true,
+      "expected": "allocated delta == 4096 after arena close",
+      "actual": "4096",
+      "detail": ""
+    },
+    {
+      "check": "life.close_returns_unclaimed_only",
+      "pass": true,
+      "expected": "held delta == allocated delta (nothing unclaimed remains)",
+      "actual": "held=4096 allocated=4096",
+      "detail": ""
+    },
+    {
+      "check": "life.peak_is_history",
+      "pass": true,
+      "expected": "peak_allocated grows by >= 4096 while the Block lives",
+      "actual": "4096",
+      "detail": ""
+    },
+    {
+      "check": "life.release_after_close_once",
+      "pass": true,
+      "expected": "allocated returns to baseline",
+      "actual": "0",
+      "detail": "a closed arena must return a released committed claim to the ancestor"
+    },
+    {
+      "check": "life.peak_history_preserved",
+      "pass": true,
+      "expected": "peak_allocated keeps its history after release",
+      "actual": "4096",
+      "detail": ""
+    },
+    {
+      "check": "life.reserve_write_arena_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.begin_writer_ok",
+      "pass": true,
+      "expected": "ok + writer",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.allocate_write_buffer_ok",
+      "pass": false,
+      "expected": "ok",
+      "actual": "resource_exhausted",
+      "detail": ""
+    },
+    {
+      "check": "life.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "life.no_double_billing_after_close",
+      "pass": true,
+      "expected": "final allocated < 16 MiB",
+      "actual": "0",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "life.allocated_before_close": 4096,
+    "life.held_before_close": 4096,
+    "life.allocated_after_close": 4096,
+    "life.held_after_close": 4096,
+    "life.allocated_after_lease_release": 0
+  },
+  "resources": {
+    "life.baseline_held": 0,
+    "life.baseline_allocated": 0,
+    "arena.close_allocated": 4096,
+    "arena.close_held": 4096,
+    "life.final_allocated": 0
+  }
+}
