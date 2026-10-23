@@ -1,0 +1,77 @@
+{
+  "case": "storage01",
+  "title": "LocalStorage row-read regression: a [7,3] array accepts read(BlockRequest{6,3}) (begin>count, begin+count<=total) byte-exactly; out-of-range stays a named rejection",
+  "milestone": "M3",
+  "contract_refs": [
+    "docs/engineering/rebuild/standards/FOUNDATION_API.md#Storage:异步数组read/append/seal/abort",
+    "docs/engineering/rebuild/VERIFICATION.md#固定基建与逐process验收 (B01/Storage)"
+  ],
+  "fixed_configuration": {
+    "shape": [
+      7,
+      3
+    ],
+    "total_elements": 21,
+    "regression_range": {
+      "begin": 6,
+      "count": 3,
+      "begin_plus_count": 9,
+      "why": "begin(6) > count(3) but the half-open range is inside the 21 elements; the old LocalStorage compared begin with count"
+    },
+    "valid_extra_ranges": [
+      {
+        "begin": 0,
+        "count": 21
+      },
+      {
+        "begin": 2,
+        "count": 10
+      }
+    ],
+    "negative_ranges": [
+      {
+        "begin": 6,
+        "count": 20
+      },
+      {
+        "begin": 22,
+        "count": 1
+      },
+      {
+        "begin": 0,
+        "count": 22
+      },
+      {
+        "begin": "UINT64_MAX-1",
+        "count": 3,
+        "why": "begin+count overflow must be rejected"
+      }
+    ],
+    "dtypes": [
+      "u64",
+      "f64"
+    ]
+  },
+  "required_checks": [
+    "storage.services_ok",
+    "storage.open_command_ok",
+    "storage.u64_seal_ok",
+    "storage.f64_seal_ok",
+    "storage.u64_row_read_ok",
+    "storage.u64_row_bytes_exact",
+    "storage.f64_row_read_ok",
+    "storage.f64_row_bytes_exact",
+    "storage.full_read_ok",
+    "storage.cross_row_read_ok",
+    "storage.oob_begin_plus_count_rejected",
+    "storage.oob_begin_rejected",
+    "storage.oob_full_rejected",
+    "storage.oob_overflow_rejected",
+    "storage.close_command_ok"
+  ],
+  "min_attempts": 15,
+  "expected_success_count": 15,
+  "tolerance": "exact element equality (byte-identical values) for valid ranges; out-of-range must be invalid_request, never a silent truncation",
+  "link": "default",
+  "timeout_seconds": 120
+}

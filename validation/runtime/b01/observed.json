@@ -157,7 +157,7 @@
       "check": "b01.cancel_no_half_product",
       "pass": true,
       "expected": "seal does not deliver an ArrayRef",
-      "actual": "cancelled(cancelled:runtime.storage.seal:work budget exhausted)",
+      "actual": "cancelled(cancelled:runtime.storage.seal:append I/O failed)",
       "detail": ""
     },
     {

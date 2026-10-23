@@ -33,9 +33,9 @@
 [ok] multi.run4_open_ok
 [ok] multi.run4_close_ok
 [ok] multi.run4_dispatches
-[ok] multi.run4_complete_rounds
+[FAIL] multi.run4_complete_rounds expected=>= 100 complete feasible rounds actual=74
 [ok] multi.run4_violations_zero
 [ok] multi.run4_window_ok
 [ok] multi.run4_command_concurrency
 [ok] multi.run4_units_ok
-[ok] multi.stability_5_of_5
+[FAIL] multi.stability_5_of_5 expected=5/5 quiet runs: complete rounds>=100, violations=0, window ok actual=at least one run failed detail=each run records its own attempts; an occasional violating round keeps the case failed

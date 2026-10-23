@@ -29,7 +29,7 @@ BUILD = os.path.join(HERE, "build")
 ORDER = [
     "reg01", "life01", "work01", "a01",
     "floor01", "fork01", "order01", "barrier01", "multi01", "pipe01",
-    "io01", "b01", "d01_off", "d01_on", "cal01",
+    "io01", "b01", "storage01", "d01_off", "d01_on", "cal01",
 ]
 
 

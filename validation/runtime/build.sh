@@ -110,7 +110,7 @@ if [ -n "$missing_libs" ]; then
   echo "[build] missing libraries in $BUILD: $missing_libs" >&2
 fi
 
-ALL_CASES=(reg01 life01 work01 a01 floor01 fork01 order01 barrier01 multi01 pipe01 io01 b01 d01_off d01_on cal01)
+ALL_CASES=(reg01 life01 work01 a01 floor01 fork01 order01 barrier01 multi01 pipe01 io01 b01 storage01 d01_off d01_on cal01)
 SELECTED=("$@")
 if [ ${#SELECTED[@]} -eq 0 ]; then
   SELECTED=("${ALL_CASES[@]}")

@@ -1,0 +1,15 @@
+[ok] storage.services_ok
+[ok] storage.open_command_ok
+[ok] storage.u64_seal_ok
+[ok] storage.f64_seal_ok
+[ok] storage.u64_row_read_ok
+[ok] storage.u64_row_bytes_exact
+[ok] storage.f64_row_read_ok
+[ok] storage.f64_row_bytes_exact
+[ok] storage.full_read_ok
+[ok] storage.cross_row_read_ok
+[ok] storage.oob_begin_plus_count_rejected
+[ok] storage.oob_begin_rejected
+[ok] storage.oob_full_rejected
+[ok] storage.oob_overflow_rejected
+[ok] storage.close_command_ok

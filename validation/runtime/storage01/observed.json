@@ -1,0 +1,123 @@
+{
+  "case": "storage01",
+  "source": "validation/runtime/storage01/storage01.cpp",
+  "status": "ran",
+  "attempts": 15,
+  "successes": 15,
+  "failures": [],
+  "checks": [
+    {
+      "check": "storage.services_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.u64_seal_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.f64_seal_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.u64_row_read_ok",
+      "pass": true,
+      "expected": "ok + 3 elements",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.u64_row_bytes_exact",
+      "pass": true,
+      "expected": "elements 6..8 byte-identical",
+      "actual": "identical",
+      "detail": "a valid begin>count range must not be rejected or truncated"
+    },
+    {
+      "check": "storage.f64_row_read_ok",
+      "pass": true,
+      "expected": "ok + 3 elements",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.f64_row_bytes_exact",
+      "pass": true,
+      "expected": "elements 6..8 byte-identical",
+      "actual": "identical",
+      "detail": ""
+    },
+    {
+      "check": "storage.full_read_ok",
+      "pass": true,
+      "expected": "21 elements",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.cross_row_read_ok",
+      "pass": true,
+      "expected": "begin=2 count=10 reads 10 elements",
+      "actual": "identical",
+      "detail": ""
+    },
+    {
+      "check": "storage.oob_begin_plus_count_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.read:block request is out of range)",
+      "detail": ""
+    },
+    {
+      "check": "storage.oob_begin_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.read:block request is out of range)",
+      "detail": ""
+    },
+    {
+      "check": "storage.oob_full_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.read:block request is out of range)",
+      "detail": ""
+    },
+    {
+      "check": "storage.oob_overflow_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.read:block request is out of range)",
+      "detail": "begin+count overflow must be rejected, not wrapped"
+    },
+    {
+      "check": "storage.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {},
+  "resources": {},
+  "commands": [],
+  "notes": [],
+  "command": "/workspace/Astro CS Database/validation/runtime/build/storage01",
+  "exit_code": 0,
+  "stderr_tail": "[ok] storage.services_ok\n[ok] storage.open_command_ok\n[ok] storage.u64_seal_ok\n[ok] storage.f64_seal_ok\n[ok] storage.u64_row_read_ok\n[ok] storage.u64_row_bytes_exact\n[ok] storage.f64_row_read_ok\n[ok] storage.f64_row_bytes_exact\n[ok] storage.full_read_ok\n[ok] storage.cross_row_read_ok\n[ok] storage.oob_begin_plus_count_rejected\n[ok] storage.oob_begin_rejected\n[ok] storage.oob_full_rejected\n[ok] storage.oob_overflow_rejected\n[ok] storage.close_command_ok\n",
+  "timed_out": false
+}

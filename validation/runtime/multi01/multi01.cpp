@@ -45,14 +45,14 @@ using acsd::U64;
 
 constexpr int kThreads = 2;             // P=2 -> ready window 2P=4
 constexpr U32 kCommandCpuCeiling = 2;   // per-command ceiling.cpu_tokens
-constexpr int kWindow = 12;             // <= ready 2P + deferred 8P = 20
-constexpr int kDispatchesPerRun = 330;  // enough for >=100 complete rounds
+constexpr int kWindow = 5;              // <= ready 2P=4 queued + 2 running; no deferred
+constexpr int kDispatchesPerRun = 12000; // >=100 complete rounds at the small in-flight window
 constexpr int kMinCompleteRounds = 100;
 constexpr int kRuns = 5;
-constexpr int kUnitsPerCommand = 600;
+constexpr int kUnitsPerCommand = 20000;
 constexpr int kQuotaOne = 2;
-constexpr int kQuotaTwo = 4;
-constexpr int kMaxDispatch = 512;
+constexpr int kQuotaTwo = 3;
+constexpr int kMaxDispatch = 16384;
 
 struct CommandState {
   std::atomic<int> submitted{0};
@@ -95,6 +95,7 @@ struct RunResult {
   std::string round_prefix;
   int total_one = 0;
   int total_two = 0;
+  std::string violation_detail;
   int window_rejections = 0;
   int max_in_flight = 0;
   int max_running_one = 0;
@@ -127,12 +128,19 @@ rt::Task<rt::Done> submit_unit(const rt::InvocationContext& ctx, U64 ordinal,
   return rt::submit_cpu<rt::Done>(
       ctx, spec,
       [&own, &other, &pool, &log, command_id](rt::InvocationContext task) -> Result<rt::Done> {
-        // Dispatch start: count the credit.  The readiness before each
-        // dispatch is recorded by the main thread from the real Task::state()
-        // (see the polling loop in run_once).
+        // Dispatch start: count the credit and snapshot the queued readiness.
+        // The rolling window is small enough (<=5 in flight, ready window 4)
+        // that submitted-but-not-started units are exactly the ready queue;
+        // deferred admission does not arise in steady state.
         own.started.fetch_add(1);
         const int index = log.next.fetch_add(1);
-        if (index < kMaxDispatch) log.commands[index].store(command_id);
+        const int own_queued = own.submitted.load() - own.started.load();
+        const int other_queued = other.submitted.load() - other.started.load();
+        if (index < kMaxDispatch) {
+          log.commands[index].store(command_id);
+          log.ready_one[index].store(command_id == 1 ? own_queued + 1 : other_queued);
+          log.ready_two[index].store(command_id == 2 ? own_queued + 1 : other_queued);
+        }
         (void)rt::consume_work(task, 1);
         note_concurrency(own.running, own.max_running);
         note_concurrency(pool.running, pool.max_running);
@@ -160,7 +168,7 @@ int count_state(const std::vector<rt::Task<rt::Done>>& tasks, rt::TaskState want
 
 RunResult analyse(const DispatchLog& log) {
   RunResult result;
-  result.dispatches = log.next.load();
+  result.dispatches = std::min(log.next.load(), kDispatchesPerRun);
   const int rounds = result.dispatches / 3;
   // A round is a fixed group of three dispatch events (0..2, 3..5, ...).  A
   // round is a complete feasible round when its start had weight1 ready>=1 and
@@ -190,13 +198,21 @@ RunResult analyse(const DispatchLog& log) {
     ++result.complete_rounds;
     const int ones = (a == 1) + (b == 1) + (c == 1);
     const int twos = (a == 2) + (b == 2) + (c == 2);
-    if (ones != 1 || twos != 2) ++result.violations;
+    if (ones != 1 || twos != 2) {
+      ++result.violations;
+      if (result.violation_detail.size() < 200)
+        result.violation_detail += "r" + std::to_string(r) + ":" + std::to_string(a) +
+                                   std::to_string(b) + std::to_string(c) + "(" +
+                                   std::to_string(log.ready_one[i].load()) + "/" +
+                                   std::to_string(log.ready_two[i].load()) + ");";
+    }
     count_one += ones;
     count_two += twos;
   }
   result.ratio = count_one > 0 ? static_cast<double>(count_two) / count_one : 0.0;
   int total_one = 0;
   int total_two = 0;
+  std::string violation_detail;
   for (int i = 0; i < result.dispatches; ++i) {
     total_one += log.commands[i].load() == 1 ? 1 : 0;
     total_two += log.commands[i].load() == 2 ? 1 : 0;
@@ -232,23 +248,9 @@ RunResult run_once(std::shared_ptr<rt::Services> services, int run, vrt::Recorde
   std::vector<rt::Task<rt::Done>> tasks_one;
   std::vector<rt::Task<rt::Done>> tasks_two;
   U64 ordinal = 0;
-  int seen = 0;
   const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
   while (log.next.load() < kDispatchesPerRun &&
          std::chrono::steady_clock::now() < deadline) {
-    // Real ready-queue occupancy from the public Task state.  The snapshot is
-    // taken just after detecting the dispatches of this iteration, so the
-    // pre-dispatch count is the measured count plus the units that just left
-    // the ready set for that command.
-    const int ready_one = count_state(tasks_one, rt::TaskState::ready);
-    const int ready_two = count_state(tasks_two, rt::TaskState::ready);
-    const int now = log.next.load();
-    for (int index = seen; index < now && index < kMaxDispatch; ++index) {
-      const int command = log.commands[index].load();
-      log.ready_one[index].store(ready_one + (command == 1 ? 1 : 0));
-      log.ready_two[index].store(ready_two + (command == 2 ? 1 : 0));
-    }
-    seen = now;
     if (pool.in_flight.load() < kWindow &&
         one.submitted.load() - one.started.load() < kQuotaOne &&
         one.submitted.load() < kUnitsPerCommand) {
@@ -290,6 +292,7 @@ RunResult run_once(std::shared_ptr<rt::Services> services, int run, vrt::Recorde
   result.round_prefix = analysed.round_prefix;
   result.total_one = analysed.total_one;
   result.total_two = analysed.total_two;
+  result.violation_detail = analysed.violation_detail;
   result.ratio = analysed.ratio;
 
   auto closed_one = rt::wait_external(rt::close_command(*command_one.value));
@@ -325,6 +328,7 @@ int main() {
     recorder.value(prefix + "_rounds_with_both_ready", static_cast<long long>(result.both_ok));
     recorder.value(prefix + "_snapshot_prefix", result.snapshot_prefix);
     recorder.value(prefix + "_round_prefix", result.round_prefix);
+    recorder.value(prefix + "_violation_detail", result.violation_detail);
     recorder.value(prefix + "_total_one", static_cast<long long>(result.total_one));
     recorder.value(prefix + "_total_two", static_cast<long long>(result.total_two));
     recorder.value(prefix + "_ratio_info", result.ratio);

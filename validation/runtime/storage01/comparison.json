@@ -1,0 +1,138 @@
+{
+  "case": "storage01",
+  "title": "LocalStorage row-read regression: a [7,3] array accepts read(BlockRequest{6,3}) (begin>count, begin+count<=total) byte-exactly; out-of-range stays a named rejection",
+  "milestone": "M3",
+  "contract_refs": [
+    "docs/engineering/rebuild/standards/FOUNDATION_API.md#Storage:异步数组read/append/seal/abort",
+    "docs/engineering/rebuild/VERIFICATION.md#固定基建与逐process验收 (B01/Storage)"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/storage01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/storage01",
+    "log": "validation/runtime/build/storage01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/storage01",
+  "status": "pass",
+  "reason": "all required checks passed",
+  "exit_code": 0,
+  "attempts": 15,
+  "successes": 15,
+  "expected_success_count": 15,
+  "observed_success_count": 15,
+  "required_checks": 15,
+  "missing_checks": [],
+  "failed_checks": [],
+  "failures": [],
+  "kernel_status": "pass",
+  "checks": [
+    {
+      "check": "storage.services_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.u64_seal_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.f64_seal_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.u64_row_read_ok",
+      "pass": true,
+      "expected": "ok + 3 elements",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.u64_row_bytes_exact",
+      "pass": true,
+      "expected": "elements 6..8 byte-identical",
+      "actual": "identical",
+      "detail": "a valid begin>count range must not be rejected or truncated"
+    },
+    {
+      "check": "storage.f64_row_read_ok",
+      "pass": true,
+      "expected": "ok + 3 elements",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.f64_row_bytes_exact",
+      "pass": true,
+      "expected": "elements 6..8 byte-identical",
+      "actual": "identical",
+      "detail": ""
+    },
+    {
+      "check": "storage.full_read_ok",
+      "pass": true,
+      "expected": "21 elements",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "storage.cross_row_read_ok",
+      "pass": true,
+      "expected": "begin=2 count=10 reads 10 elements",
+      "actual": "identical",
+      "detail": ""
+    },
+    {
+      "check": "storage.oob_begin_plus_count_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.read:block request is out of range)",
+      "detail": ""
+    },
+    {
+      "check": "storage.oob_begin_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.read:block request is out of range)",
+      "detail": ""
+    },
+    {
+      "check": "storage.oob_full_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.read:block request is out of range)",
+      "detail": ""
+    },
+    {
+      "check": "storage.oob_overflow_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.read:block request is out of range)",
+      "detail": "begin+count overflow must be rejected, not wrapped"
+    },
+    {
+      "check": "storage.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {},
+  "resources": {}
+}

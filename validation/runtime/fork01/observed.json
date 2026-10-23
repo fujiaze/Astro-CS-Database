@@ -94,7 +94,7 @@
       "check": "fork.both_branches_same_lease",
       "pass": true,
       "expected": "all three Lease owners identical",
-      "actual": "a/b/reference owners 94592207588336/94592207588336/94592207588336",
+      "actual": "a/b/reference owners 94137073548272/94137073548272/94137073548272",
       "detail": ""
     },
     {
