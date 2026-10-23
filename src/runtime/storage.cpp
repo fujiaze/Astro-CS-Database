@@ -27,6 +27,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -131,10 +132,26 @@ void append_le(std::vector<std::byte>& out, T value) {
   } else if constexpr (sizeof(T) == 8) {
     std::uint64_t bits = 0;
     std::memcpy(&bits, &value, sizeof(bits));
+    if constexpr (std::is_floating_point_v<T>) {
+      // Canonical payload: -0.0 and +0.0 hash identically; every NaN maps to the
+      // one quiet NaN of its sign.  The scientific value itself is untouched.
+      const std::uint64_t sign = bits & (1ull << 63);
+      if ((bits & 0x7fffffffffffffffull) == 0)
+        bits = 0;
+      else if (std::isnan(value))
+        bits = sign | 0x7ff8000000000000ull;
+    }
     model::append_u64_le(out, bits);
   } else if constexpr (sizeof(T) == 4) {
     std::uint32_t bits = 0;
     std::memcpy(&bits, &value, sizeof(bits));
+    if constexpr (std::is_floating_point_v<T>) {
+      const std::uint32_t sign = bits & 0x80000000u;
+      if ((bits & 0x7fffffffu) == 0)
+        bits = 0;
+      else if (std::isnan(value))
+        bits = sign | 0x7fc00000u;
+    }
     model::append_u32_le(out, bits);
   } else if constexpr (sizeof(T) == 2) {
     std::uint16_t bits = 0;
@@ -337,6 +354,8 @@ std::shared_ptr<const std::vector<std::byte>> alias_bytes(
 // Writer state
 // ---------------------------------------------------------------------------
 
+void cleanup_writer(struct WriterState& writer) noexcept;
+
 struct WriterState {
   std::mutex mutex;
   InvocationContext ctx;
@@ -356,9 +375,21 @@ struct WriterState {
   enum class Status { open, failed, sealed, aborted } status = Status::open;
   Code failure_code = Code::internal;
   std::string failure_reason;
+  Id model_hash;
+  bool model_hash_set = false;
   bool append_in_flight = false;
+  bool seal_in_flight = false;
   bool abort_requested = false;
   std::vector<std::shared_ptr<detail::TaskNode>> abort_waiters;
+
+  // A writer that dies before seal is equivalent to an abort: its private spool
+  // and its charged bytes are reclaimed (OBJECTS.md).
+  ~WriterState() {
+    if (status != Status::sealed && status != Status::aborted) {
+      status = Status::aborted;
+      cleanup_writer(*this);
+    }
+  }
 
   // open canonical block
   bool block_open = false;
@@ -453,6 +484,20 @@ void fail_writer_locked(WriterState& writer, Code code, std::string reason) {
   writer.failure_code = code;
   writer.failure_reason = std::move(reason);
   release_zstd(writer);
+}
+
+// The single abort rendezvous: any operation that ends while abort_requested
+// is set calls this under the writer mutex, performs cleanup outside the lock
+// and completes the abort waiters.  A writer is never both sealed and aborted.
+std::vector<std::shared_ptr<detail::TaskNode>> mark_aborted_locked(
+    WriterState& writer) {
+  writer.status = WriterState::Status::aborted;
+  writer.seal_in_flight = false;
+  writer.append_in_flight = false;
+  release_zstd(writer);
+  std::vector<std::shared_ptr<detail::TaskNode>> waiters;
+  waiters.swap(writer.abort_waiters);
+  return waiters;
 }
 
 TaskSpec stage_spec(std::uint64_t sequence, std::string semantic, U64 work) {
@@ -807,7 +852,8 @@ void complete_abort_waiters(std::vector<std::shared_ptr<detail::TaskNode>> waite
 // Finalises one append: publishes the new element offset or records failure.
 // Returns the completed cumulative element count on success.
 Result<U64> finish_append(const std::shared_ptr<WriterState>& state,
-                          Result<Done> io_result, U64 appended) {
+                          Result<Done> io_result, U64 appended,
+                          U64 accounted_bytes) {
   std::vector<std::shared_ptr<detail::TaskNode>> waiters;
   bool cleanup = false;
   Code code = io_result.code;
@@ -818,9 +864,10 @@ Result<U64> finish_append(const std::shared_ptr<WriterState>& state,
     if (code == Code::ok) {
       state->next_element += appended;
       if (appended != 0 && state->ctx.scope) {
-        const U64 bytes = appended * std::max<U64>(state->itemsize, 1);
-        const U64 spill = state->placement == Placement::spill ? bytes : 0;
-        detail::ledger_account_bytes(state->ctx.scope, 0, bytes, spill);
+        const U64 spill =
+            state->placement == Placement::spill ? accounted_bytes : 0;
+        detail::ledger_account_bytes(state->ctx.scope, 0, accounted_bytes,
+                                     spill);
       }
     } else {
       if (state->status == WriterState::Status::open) {
@@ -833,8 +880,7 @@ Result<U64> finish_append(const std::shared_ptr<WriterState>& state,
     state->append_in_flight = false;
     published = state->next_element;
     if (state->abort_requested) {
-      state->status = WriterState::Status::aborted;
-      waiters.swap(state->abort_waiters);
+      waiters = mark_aborted_locked(*state);
       cleanup = true;
     }
   }
@@ -1004,7 +1050,8 @@ Result<Done> prepare_read(InvocationContext task,
       const U64 byte_count = state->range.count * itemsize;
       std::memcpy(state->target.values.data(), cached->data() + byte_begin,
                   static_cast<std::size_t>(byte_count));
-      detail::ledger_account_bytes(state->ctx.scope, byte_count, 0, 0);
+      // A cache hit reads no bytes from the I/O lane; only the copy work is
+      // charged (usage compute), not read_bytes.
       auto accounted = consume(task, work_units(byte_count));
       if (accounted.code != Code::ok) return accounted;
       state->done = true;
@@ -1409,6 +1456,13 @@ Task<U64> append_async(InvocationContext ctx, WriterRef writer, Block<T> block) 
         return failure_task(Code::invalid_model,
                             "block index does not match the writer");
       }
+      if (!state->model_hash_set) {
+        state->model_hash = block.model_hash;
+        state->model_hash_set = true;
+      } else if (block.model_hash != state->model_hash) {
+        return failure_task(Code::invalid_model,
+                            "block model hash differs from the writer model");
+      }
       if (block.range.begin != state->next_element) {
         return failure_task(Code::invalid_request,
                             "append range is not contiguous");
@@ -1437,7 +1491,7 @@ Task<U64> append_async(InvocationContext ctx, WriterRef writer, Block<T> block) 
         ctx, std::move(encode_task),
         [ctx, state, count](Result<AppendBatch> batch) -> Task<U64> {
           if (batch.code != Code::ok || !batch.value) {
-            auto finished = finish_append(state, Result<Done>{batch.code}, 0);
+            auto finished = finish_append(state, Result<Done>{batch.code}, 0, 0);
             Result<U64> failure;
             failure.code = batch.code;
             return ready<U64>(ctx, std::move(failure));
@@ -1446,7 +1500,9 @@ Task<U64> append_async(InvocationContext ctx, WriterRef writer, Block<T> block) 
             Result<Done> ok;
             ok.code = Code::ok;
             ok.value = Done{};
-            auto finished = finish_append(state, std::move(ok), count);
+            auto finished = finish_append(
+                state, std::move(ok), count,
+                count * std::max<U64>(state->itemsize, 1));
             if (finished.code != Code::ok) {
               Result<U64> failure;
               failure.code = finished.code;
@@ -1454,6 +1510,9 @@ Task<U64> append_async(InvocationContext ctx, WriterRef writer, Block<T> block) 
             }
             return ready<U64>(ctx, std::move(finished));
           }
+          U64 stored_bytes = 0;
+          for (const WriteSegment& segment : batch.value->segments)
+            stored_bytes += segment.payload_bytes;
           auto segments =
               std::make_shared<std::vector<WriteSegment>>(
                   std::move(*batch.value).segments);
@@ -1461,8 +1520,9 @@ Task<U64> append_async(InvocationContext ctx, WriterRef writer, Block<T> block) 
               submit_write_batch(ctx, ctx.services, std::move(segments));
           return settle<Done>(
               ctx, std::move(io_task),
-              [ctx, state, count](Result<Done> io) -> Task<U64> {
-                auto finished = finish_append(state, std::move(io), count);
+              [ctx, state, count, stored_bytes](Result<Done> io) -> Task<U64> {
+                auto finished = finish_append(state, std::move(io), count,
+                                              stored_bytes);
                 if (finished.code != Code::ok) {
                   Result<U64> failure;
                   failure.code = finished.code;
@@ -1502,10 +1562,17 @@ Task<ArrayRef> seal_async(InvocationContext ctx, WriterRef writer) {
       return failure_task(Code::invalid_request,
                           "seal while an append is in flight");
     }
+    if (state->seal_in_flight) {
+      return failure_task(Code::invalid_request,
+                          "another seal is already in flight");
+    }
     if (state->next_element != state->total_elements) {
       return failure_task(Code::invalid_request,
                           "seal requires exactly the declared element count");
     }
+    // Freeze the writer: seal becomes the only in-flight terminal operation;
+    // abort from now on only requests the abort and is completed by this seal.
+    state->seal_in_flight = true;
   }
   const std::uint64_t sequence = state->stage_sequence.fetch_add(1);
   auto prepare = submit_cpu<SealPrep>(
@@ -1542,55 +1609,101 @@ Task<ArrayRef> seal_async(InvocationContext ctx, WriterRef writer) {
       ctx, std::move(prepare),
       [ctx, state](Result<SealPrep> prep) -> Task<ArrayRef> {
         if (prep.code != Code::ok || !prep.value) {
+          std::vector<std::shared_ptr<detail::TaskNode>> waiters;
+          bool cleanup = false;
+          {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            state->seal_in_flight = false;
+            if (state->abort_requested) {
+              waiters = mark_aborted_locked(*state);
+              cleanup = true;
+            }
+          }
+          if (cleanup) {
+            cleanup_writer(*state);
+            complete_abort_waiters(std::move(waiters));
+          }
           Result<ArrayRef> failure;
-          failure.code = prep.code;
+          failure.code = cleanup ? Code::cancelled : prep.code;
           return ready<ArrayRef>(ctx, std::move(failure));
         }
         auto finalize = [ctx, state](Result<Done> io) -> Task<ArrayRef> {
-          std::lock_guard<std::mutex> lock(state->mutex);
-          if (state->status == WriterState::Status::failed) {
-            return storage_failure<ArrayRef>(ctx, state->failure_code);
-          }
-          if (io.code != Code::ok) {
-            fail_writer_locked(*state, io.code, "seal write failed");
-            return storage_failure<ArrayRef>(ctx, io.code);
-          }
-          const std::string hex = state->array_hash.hex();
-          state->status = WriterState::Status::sealed;
-          release_zstd(*state);
-          if (state->placement == Placement::memory) {
-            if (auto alias = alias_bytes(state->memory)) {
-              auto array_id = model::make_identity(
-                  "acsd.Array", 2, 0, hex, "acsd");
-              Lease lease;
-              if (state->memory && state->memory->allocation)
-                lease.owner = std::static_pointer_cast<const void>(
-                    state->memory->allocation);
-              ctx.services->blocks->register_array(
-                  array_id.object_id, alias, state->dtype,
-                  state->layout.shape, std::move(lease));
+          std::vector<std::shared_ptr<detail::TaskNode>> waiters;
+          bool cleanup = false;
+          bool aborted = false;
+          Code failure_code = Code::ok;
+          ArrayRef sealed_array;
+          {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            state->seal_in_flight = false;
+            if (state->abort_requested) {
+              waiters = mark_aborted_locked(*state);
+              cleanup = true;
+              aborted = true;
+            } else if (state->status == WriterState::Status::failed) {
+              failure_code = state->failure_code;
+            } else if (state->status != WriterState::Status::open) {
+              failure_code = Code::invalid_request;
+            } else if (io.code != Code::ok) {
+              fail_writer_locked(*state, io.code, "seal write failed");
+              failure_code = io.code;
+            } else {
+              const std::string hex = state->array_hash.hex();
+              auto identity =
+                  model::make_identity("acsd.Array", 2, 0, hex, "acsd");
+              if (state->placement == Placement::memory) {
+                if (auto alias = alias_bytes(state->memory)) {
+                  Lease lease;
+                  if (state->memory && state->memory->allocation)
+                    lease.owner = std::static_pointer_cast<const void>(
+                        state->memory->allocation);
+                  ctx.services->blocks->register_array(
+                      identity.object_id, alias, state->dtype,
+                      state->layout.shape, std::move(lease));
+                }
+              }
+              ctx.services->blocks->register_blocks(identity.object_id,
+                                                    state->blocks);
+              // Exactly one reference per sealed ArrayRef; the custom deleter
+              // releases it so the entry (and its Lease) is never pinned.
+              ctx.services->blocks->add_ref(identity.object_id);
+              release_zstd(*state);
+              state->status = WriterState::Status::sealed;
+              Array array;
+              array.identity = identity;
+              array.assessment = model::make_assessment(Code::ok);
+              array.assessment.complete = true;
+              array.assessment.execution = ExecutionState::complete;
+              array.dtype = state->dtype;
+              array.shape = state->layout.shape;
+              array.unit = state->layout.unit;
+              array.index_id = state->layout.index
+                                   ? state->layout.index->identity.content_hash
+                                   : Id{};
+              array.block_ids = state->block_ids;
+              struct ArrayReaper {
+                std::weak_ptr<Services> services;
+                Id id;
+                void operator()(const Array* value) const {
+                  delete value;
+                  if (auto owner = services.lock())
+                    if (owner->blocks) owner->blocks->release_ref(id);
+                }
+              };
+              sealed_array = ArrayRef(
+                  new Array(std::move(array)),
+                  ArrayReaper{ctx.services, identity.object_id});
             }
           }
-          auto identity = model::make_identity("acsd.Array", 2, 0, hex, "acsd");
-          if (ctx.services) {
-            ctx.services->blocks->register_blocks(identity.object_id,
-                                                   state->blocks);
+          if (cleanup) {
+            cleanup_writer(*state);
+            complete_abort_waiters(std::move(waiters));
+            return storage_failure<ArrayRef>(ctx, Code::cancelled);
           }
-          Array array;
-          array.identity = identity;
-          array.assessment = model::make_assessment(Code::ok);
-          array.assessment.complete = true;
-          array.assessment.execution = ExecutionState::complete;
-          array.dtype = state->dtype;
-          array.shape = state->layout.shape;
-          array.unit = state->layout.unit;
-          array.index_id = state->layout.index
-                               ? state->layout.index->identity.content_hash
-                               : Id{};
-          array.block_ids = state->block_ids;
-          return ready<ArrayRef>(
-              ctx, model::ok_result(std::shared_ptr<const Array>(
-                       std::make_shared<Array>(std::move(array)))));
+          if (failure_code != Code::ok)
+            return storage_failure<ArrayRef>(ctx, failure_code);
+          (void)aborted;
+          return ready<ArrayRef>(ctx, model::ok_result(std::move(sealed_array)));
         };
         if (!prep.value->needs_io) {
           Result<Done> ok;
@@ -1630,7 +1743,7 @@ Task<Done> abort_async(InvocationContext ctx, WriterRef writer) {
                             detail::box_value<Done>(Done{}));
       return wrap_task<Done>(std::move(out));
     }
-    if (state->append_in_flight) {
+    if (state->append_in_flight || state->seal_in_flight) {
       state->abort_requested = true;
       state->abort_waiters.push_back(out);
       deferred = true;
@@ -1731,6 +1844,23 @@ void BlockStore::register_array(
   entry.shape = std::move(shape);
   // The entry keeps the capacity Lease alive as long as the stored bytes do.
   entry.lease = std::move(lease);
+}
+
+void BlockStore::add_ref(const Id& id) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  entries_[id].refs += 1;
+}
+
+bool BlockStore::release_ref(const Id& id) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  auto it = entries_.find(id);
+  if (it == entries_.end()) return true;
+  if (it->second.refs > 1) {
+    it->second.refs -= 1;
+    return false;
+  }
+  entries_.erase(it);
+  return true;
 }
 
 void BlockStore::register_blocks(const Id& array_id,

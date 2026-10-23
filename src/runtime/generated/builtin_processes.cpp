@@ -17,6 +17,27 @@
 #include <vector>
 
 #include <acsd/modules/observation.hpp>
+#include <acsd/modules/observation.hpp>
+#include <acsd/modules/coordinates.hpp>
+#include <acsd/modules/catalogue.hpp>
+#include <acsd/modules/sources.hpp>
+#include <acsd/modules/sources.hpp>
+#include <acsd/modules/sources.hpp>
+#include <acsd/modules/response.hpp>
+#include <acsd/modules/geometry.hpp>
+#include <acsd/modules/geometry.hpp>
+#include <acsd/modules/operators.hpp>
+#include <acsd/modules/uncertainty.hpp>
+#include <acsd/modules/projection.hpp>
+#include <acsd/modules/photometry.hpp>
+#include <acsd/modules/photometry.hpp>
+#include <acsd/modules/information.hpp>
+#include <acsd/modules/information.hpp>
+#include <acsd/modules/sky.hpp>
+#include <acsd/modules/sky.hpp>
+#include <acsd/modules/coadd.hpp>
+#include <acsd/modules/coadd.hpp>
+#include <acsd/modules/coadd.hpp>
 
 namespace acsd::generated {
 
@@ -167,6 +188,27 @@ const std::vector<IntegratedProcess>& integrated_processes() {
   static const std::vector<IntegratedProcess> value = {
       // Empty when no process is integrated yet.
       {"observation.calibrate", &acsd::modules::register_calibration},
+      {"observation.regroup", &acsd::modules::register_regroup},
+      {"coordinates.wcs", &acsd::modules::register_wcs},
+      {"catalogue.access", &acsd::modules::register_catalogue_access},
+      {"sources.astrometry", &acsd::modules::register_astrometry},
+      {"sources.psf", &acsd::modules::register_psf},
+      {"sources.measure", &acsd::modules::register_measure},
+      {"response.integrate", &acsd::modules::register_integrate_response},
+      {"geometry.overlap", &acsd::modules::register_geometry_overlap},
+      {"geometry.drizzle", &acsd::modules::register_geometry_drizzle},
+      {"operators.action", &acsd::modules::register_operators_action},
+      {"uncertainty.covariance", &acsd::modules::register_uncertainty_covariance},
+      {"projection.export", &acsd::modules::register_projection_export},
+      {"photometry.fit", &acsd::modules::register_photometry_fit},
+      {"photometry.apply", &acsd::modules::register_photometry_apply},
+      {"information.reference", &acsd::modules::register_information_reference},
+      {"information.scene", &acsd::modules::register_information_scene},
+      {"sky.controls", &acsd::modules::register_sky_controls},
+      {"sky.fit", &acsd::modules::register_sky_fit},
+      {"coadd.select", &acsd::modules::register_coadd_select},
+      {"coadd.weights", &acsd::modules::register_coadd_weights},
+      {"coadd.integrate", &acsd::modules::register_coadd_integrate},
   };
   return value;
 }

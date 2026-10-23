@@ -351,6 +351,44 @@ Result<std::shared_ptr<PipeCore>> make_pipe_core(InvocationContext ctx,
   return result;
 }
 
+Result<Done> pipe_expect_core(PipeCore& pipe, Key key) {
+  Result<Done> result;
+  std::vector<std::shared_ptr<TaskNode>> completed_sends;
+  std::vector<std::shared_ptr<TaskNode>> receiver_nodes;
+  std::vector<ErasedDelivery> deliveries;
+  std::vector<std::shared_ptr<TaskNode>> end_nodes;
+  {
+    std::lock_guard<std::mutex> lock(pipe.mutex);
+    if (pipe.closed) {
+      result.code = Code::invalid_request;
+      return result;
+    }
+    if (pipe.spec.order == PipeOrder::unordered) {
+      result.code = Code::invalid_request;
+      return result;
+    }
+    if (!pipe.have_expected || pipe.expected < key) {
+      pipe.expected = key;
+      pipe.have_expected = true;
+    }
+    pipe.promote(completed_sends);
+    pipe.dispatch(receiver_nodes, deliveries, end_nodes);
+  }
+  for (auto& node : completed_sends)
+    complete_node(node, Code::ok, box_value<Done>(Done{}));
+  for (std::size_t i = 0; i < receiver_nodes.size(); ++i)
+    complete_delivery(receiver_nodes[i], std::move(deliveries[i]));
+  for (auto& node : end_nodes) {
+    ErasedDelivery end;
+    end.has_end = true;
+    end.end = pipe.end;
+    complete_delivery(node, std::move(end));
+  }
+  result.code = Code::ok;
+  result.value = Done{};
+  return result;
+}
+
 U32 pipe_region(const PipeCore& pipe) noexcept { return pipe.region_id; }
 U32 pipe_edge(const PipeCore& pipe) noexcept { return pipe.edge_id; }
 

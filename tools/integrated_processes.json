@@ -2,9 +2,27 @@
   "protocol": "acsd.integrated-processes/1",
   "comment": "Processes whose real typed Operation is supplied by a module registration function. The build assembly calls these strongly and the generated M0 shell is not registered for the process. Add one entry per integrated process after its plan/run evidence lands.",
   "processes": {
-    "observation.calibrate": {
-      "header": "acsd/modules/observation.hpp",
-      "symbol": "acsd::modules::register_calibration"
-    }
+    "observation.calibrate": {"header": "acsd/modules/observation.hpp", "symbol": "acsd::modules::register_calibration"},
+    "observation.regroup": {"header": "acsd/modules/observation.hpp", "symbol": "acsd::modules::register_regroup"},
+    "coordinates.wcs": {"header": "acsd/modules/coordinates.hpp", "symbol": "acsd::modules::register_wcs"},
+    "catalogue.access": {"header": "acsd/modules/catalogue.hpp", "symbol": "acsd::modules::register_catalogue_access"},
+    "sources.astrometry": {"header": "acsd/modules/sources.hpp", "symbol": "acsd::modules::register_astrometry"},
+    "sources.psf": {"header": "acsd/modules/sources.hpp", "symbol": "acsd::modules::register_psf"},
+    "sources.measure": {"header": "acsd/modules/sources.hpp", "symbol": "acsd::modules::register_measure"},
+    "response.integrate": {"header": "acsd/modules/response.hpp", "symbol": "acsd::modules::register_integrate_response"},
+    "geometry.overlap": {"header": "acsd/modules/geometry.hpp", "symbol": "acsd::modules::register_geometry_overlap"},
+    "geometry.drizzle": {"header": "acsd/modules/geometry.hpp", "symbol": "acsd::modules::register_geometry_drizzle"},
+    "operators.action": {"header": "acsd/modules/operators.hpp", "symbol": "acsd::modules::register_operators_action"},
+    "uncertainty.covariance": {"header": "acsd/modules/uncertainty.hpp", "symbol": "acsd::modules::register_uncertainty_covariance"},
+    "projection.export": {"header": "acsd/modules/projection.hpp", "symbol": "acsd::modules::register_projection_export"},
+    "photometry.fit": {"header": "acsd/modules/photometry.hpp", "symbol": "acsd::modules::register_photometry_fit"},
+    "photometry.apply": {"header": "acsd/modules/photometry.hpp", "symbol": "acsd::modules::register_photometry_apply"},
+    "information.reference": {"header": "acsd/modules/information.hpp", "symbol": "acsd::modules::register_information_reference"},
+    "information.scene": {"header": "acsd/modules/information.hpp", "symbol": "acsd::modules::register_information_scene"},
+    "sky.controls": {"header": "acsd/modules/sky.hpp", "symbol": "acsd::modules::register_sky_controls"},
+    "sky.fit": {"header": "acsd/modules/sky.hpp", "symbol": "acsd::modules::register_sky_fit"},
+    "coadd.select": {"header": "acsd/modules/coadd.hpp", "symbol": "acsd::modules::register_coadd_select"},
+    "coadd.weights": {"header": "acsd/modules/coadd.hpp", "symbol": "acsd::modules::register_coadd_weights"},
+    "coadd.integrate": {"header": "acsd/modules/coadd.hpp", "symbol": "acsd::modules::register_coadd_integrate"}
   }
 }

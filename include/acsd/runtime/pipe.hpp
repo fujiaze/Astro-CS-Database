@@ -26,6 +26,9 @@ struct PipeEnd {
 template <class T>
 using Delivery = std::variant<T, PipeEnd>;
 
+template <class T>
+class Pipe;
+
 namespace detail {
 
 class PipeCore;
@@ -61,6 +64,20 @@ Task<Done> pipe_close_erased(InvocationContext, std::shared_ptr<PipeCore>,
 Task<Done> pipe_broadcast_erased(InvocationContext, Key,
                                  std::shared_ptr<const void> value, U64 bytes,
                                  std::vector<std::shared_ptr<PipeCore>>);
+
+// Ordered pipes are producer-ordered from the minimum key of the first
+// (epoch, cohort, stage) group (item 0).  A higher key that arrives first is
+// parked without taking the reserved slot; it is delivered only after the
+// minimum key.  When a stream is not contiguous from item 0 (a new cohort, or
+// the executor declaring a frontier after a gap), the publication permit
+// holder - not the pipe - must announce the next required key with
+// pipe_expect(); otherwise the pipe cannot distinguish a gap from an
+// out-of-order item and will wait (bounded backpressure, never reordering).
+// The direct producer API is therefore for contiguous ordered streams; an
+// executor that owns the plan window declares the frontier.
+Result<Done> pipe_expect_core(PipeCore&, Key);
+template <class T>
+Result<Done> pipe_expect(const std::shared_ptr<Pipe<T>>& pipe, Key key);
 
 }  // namespace detail
 
@@ -135,7 +152,22 @@ class Pipe {
   template <class U>
   friend Task<Done> broadcast(InvocationContext, Key, U,
                               std::vector<std::shared_ptr<Pipe<U>>>);
+  template <class U>
+  friend Result<Done> detail::pipe_expect(const std::shared_ptr<Pipe<U>>&,
+                                          Key);
 };
+
+namespace detail {
+template <class T>
+Result<Done> pipe_expect(const std::shared_ptr<Pipe<T>>& pipe, Key key) {
+  if (!pipe || !pipe->impl_) {
+    Result<Done> failure;
+    failure.code = Code::invalid_request;
+    return failure;
+  }
+  return pipe_expect_core(*pipe->impl_, key);
+}
+}  // namespace detail
 
 template <class T>
 Result<std::shared_ptr<Pipe<T>>> make_pipe(InvocationContext ctx,

@@ -213,11 +213,18 @@ void node_complete(const std::shared_ptr<TaskNode>& node, Code code,
                    std::vector<Id> dependencies, std::shared_ptr<void> value) {
   if (!node) return;
   std::function<void()> continuation;
+  std::function<void(InvocationContext)> abandoned_body;
   std::shared_ptr<ClaimImpl> claim;
   {
     std::lock_guard<std::mutex> lock(node->mutex);
     if (node->terminal.load(std::memory_order_acquire)) return;
     node->terminal.store(true, std::memory_order_release);
+    // A submitted but never executed body captures its own node (the typed
+    // wrapper keeps the TaskNode alive).  Clearing it here breaks that
+    // self-reference; otherwise every rejected/cancelled queued node would leak
+    // its command and the whole Services instance.
+    abandoned_body = std::move(node->body);
+    node->body = nullptr;
 
     // A successful Result must always carry a value (Done for Task<Done>).
     if (code == Code::ok && !value) code = Code::internal;
@@ -247,8 +254,10 @@ void node_complete(const std::shared_ptr<TaskNode>& node, Code code,
     node->continuation_attached = false;
     claim = std::move(node->running_claim);
   }
-  // Releasing the execution ticket must not happen under the node mutex: the
-  // ledger takes its own locks and may notify parked tasks.
+  // Releasing the execution ticket and destroying an abandoned body must not
+  // happen under the node mutex: the ledger takes its own locks and a body
+  // destructor may release the last reference to captured objects.
+  abandoned_body = nullptr;
   claim.reset();
   node->cv.notify_all();
   if (continuation) schedule_continuation(node, std::move(continuation));

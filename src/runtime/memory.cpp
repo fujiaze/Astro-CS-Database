@@ -500,7 +500,7 @@ Result<Done> consume_work(InvocationContext ctx, U64 units) {
     result.code = Code::cancelled;
     return result;
   }
-  if (ctx.scope->work_upper != 0 &&
+  if (ctx.scope->work_upper_enforced &&
       ctx.scope->own_work + units > ctx.scope->work_upper) {
     result.code = Code::resource_exhausted;
     return result;

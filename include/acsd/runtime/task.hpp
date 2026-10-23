@@ -268,6 +268,7 @@ Task<std::vector<T>> when_all(InvocationContext ctx,
   for (std::size_t i = 0; i < tasks.size(); ++i) {
     auto node = detail::TaskAccess::release<T>(std::move(tasks[i]));
     if (!node) {
+      state->failures[i] = std::make_pair(Code::invalid_request, Assessment{});
       if (state->remaining.fetch_sub(1) == 1) {
         detail::node_complete(state->out, Code::invalid_request, Assessment{},
                               Usage{}, {}, nullptr);
@@ -286,13 +287,21 @@ Task<std::vector<T>> when_all(InvocationContext ctx,
       for (auto& failure : state->failures) {
         if (!failure) continue;
         auto [code, assessment] = *failure;
+        if (code == Code::ok) code = Code::internal;
         detail::node_complete(state->out, code, std::move(assessment),
                               Usage{}, {}, nullptr);
         return;
       }
       std::vector<T> values;
       values.reserve(state->values.size());
-      for (auto& v : state->values) values.push_back(std::move(*v));
+      for (auto& v : state->values) {
+        if (!v) {
+          detail::node_complete(state->out, Code::internal, Assessment{},
+                                Usage{}, {}, nullptr);
+          return;
+        }
+        values.push_back(std::move(*v));
+      }
       detail::node_complete(state->out, Code::ok, Assessment{}, Usage{}, {},
                             detail::box_value(std::move(values)));
     });

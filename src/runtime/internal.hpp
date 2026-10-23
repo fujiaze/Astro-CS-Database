@@ -96,6 +96,9 @@ struct ScopeState {
   U64 work_reserved = 0;
   U64 own_work = 0;
   U64 work_upper = 0;
+  // Set on the task sub-scope of an admitted execution segment: work_upper is
+  // then a hard cap, including the explicit zero.
+  bool work_upper_enforced = false;
   U64 read_bytes = 0, written_bytes = 0, spill_written_bytes = 0;
   U64 cleanup_work = 0;
   U64 metadata_bytes = 0;
@@ -265,6 +268,13 @@ class BlockStore {
   // charge lives as long as the stored bytes do.
   void retain(const Id& id, Lease lease);
   Lease lease_of(const Id& id) const;
+  // Lifetime of a stored array.  register_array starts at one reference; a
+  // caller that hands out an additional Array handle adds one and releases it
+  // from the Array's deleter.  release_ref erases the entry and returns its
+  // Lease exactly when the last reference dies, so an array is never pinned by
+  // the cache after every ArrayRef is gone.
+  void add_ref(const Id& id);
+  bool release_ref(const Id& id);
 
  private:
   mutable std::mutex mutex_;
@@ -274,6 +284,7 @@ class BlockStore {
     std::vector<U64> shape;
     std::vector<BlockDescriptor> blocks;
     Lease lease;
+    U32 refs = 0;
   };
   mutable std::unordered_map<Id, Entry> entries_;
   mutable std::unordered_map<Id, BlockDescriptor> block_index_;

@@ -15,6 +15,18 @@ namespace acsd::rt {
 namespace detail {
 namespace {
 
+// Releases the BlockStore reference exactly once, when the last Array handle
+// dies; the entry (and its capacity Lease) is erased at that point.
+struct BridgeArrayReaper {
+  std::weak_ptr<Services> services;
+  Id id;
+  void operator()(const Array* array) const {
+    delete array;
+    if (auto owner = services.lock())
+      if (owner->blocks) owner->blocks->release_ref(id);
+  }
+};
+
 // Releases the physical bytes before the capacity ticket, so the ledger never
 // reports a committed allocation that has already been freed.
 struct ArrayOwner {
@@ -80,8 +92,10 @@ class BridgeStorage final : public Storage {
     array.index_id = index;
     services_->blocks->register_array(array.identity.object_id, data, dtype,
                                       shape_vec, lease);
+    services_->blocks->add_ref(array.identity.object_id);
     result.code = Code::ok;
-    result.value = std::shared_ptr<const Array>(new Array(array));
+    result.value = std::shared_ptr<const Array>(
+        new Array(array), BridgeArrayReaper{services_, array.identity.object_id});
     return result;
   }
 

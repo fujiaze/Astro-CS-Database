@@ -123,19 +123,19 @@ if(ACSD_BUILD_SCIENCE)
   acsd_link(uncertainty operators numerics)
 
   acsd_add_library(coordinates)
-  acsd_link(coordinates model numerics)
+  acsd_link(coordinates model numerics runtime)
 
   acsd_add_library(observation)
   acsd_link(observation model numerics operators uncertainty runtime)
 
   acsd_add_library(catalogue)
-  acsd_link(catalogue model coordinates numerics uncertainty)
+  acsd_link(catalogue model coordinates numerics uncertainty runtime)
 
   acsd_add_library(response)
-  acsd_link(response model numerics)
+  acsd_link(response model numerics runtime)
 
   acsd_add_library(sources)
-  acsd_link(sources observation coordinates catalogue uncertainty numerics)
+  acsd_link(sources observation coordinates catalogue uncertainty numerics runtime)
 
   acsd_add_library(photometry)
   acsd_link(photometry sources response uncertainty numerics)

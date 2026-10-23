@@ -9,6 +9,7 @@
 #include "internal.hpp"
 
 #include <algorithm>
+#include <cstdio>
 #include <atomic>
 #include <chrono>
 #include <deque>
@@ -91,6 +92,19 @@ struct PoolHub {
   std::mutex close_mutex;
   std::condition_variable close_cv;
   std::map<Id, U32> control_pending;
+
+  // SCHEDULER: the whole process keeps at most 2P ready queue items; the rest
+  // wait in a finite, already-admitted deferred window.  A submission beyond
+  // both bounds is rejected with a named resource_exhausted instead of growing
+  // an unbounded future set.
+  U32 ready_capacity = 2;
+  U32 deferred_capacity = 8;
+  U32 control_capacity = 64;
+  std::atomic<U32> ready_count{0};
+  std::atomic<U64> rejected_ready_window{0};
+  std::mutex deferred_mutex;
+  std::deque<std::shared_ptr<detail::TaskNode>> deferred;
+  std::atomic<U32> deferred_peak{0};
 };
 
 std::mutex g_registry_mutex;
@@ -201,6 +215,108 @@ void cancel_pending_node(const Services* services,
   if (auto hub = hub_of(services)) hub->close_cv.notify_all();
 }
 
+// Bounded ready window (SCHEDULER).  A node is admitted to the ready queues
+// only while the process-wide ready count is below 2P; beyond that it waits in a
+// finite deferred window and the submission's lifetime is bounded.  A node that
+// does not fit either bound completes with a named resource_exhausted.
+enum class PlacementResult { ready, deferred, rejected_accepting, rejected_window };
+
+PlacementResult place_admitted_node(
+    const Services* services, const std::shared_ptr<PoolHub>& hub,
+    const std::shared_ptr<detail::CommandState>& command,
+    const std::shared_ptr<detail::TaskNode>& node, Code failure_code,
+    const Assessment& window_failure) {
+  if (!command) return PlacementResult::rejected_accepting;
+  if (!hub) {
+    std::lock_guard<std::mutex> lock(command->mutex);
+    if (!command->accept_new || command->draining)
+      return PlacementResult::rejected_accepting;
+    node->state.store(TaskState::ready, std::memory_order_release);
+    command->ready.push_back(node);
+    ++command->in_flight;
+    return PlacementResult::ready;
+  }
+  // Ready slot: reserve atomically, then publish under the command lock.
+  const U32 slot = hub->ready_count.fetch_add(1, std::memory_order_acq_rel);
+  if (slot < hub->ready_capacity) {
+    std::lock_guard<std::mutex> lock(command->mutex);
+    if (command->accept_new && !command->draining) {
+      node->state.store(TaskState::ready, std::memory_order_release);
+      command->ready.push_back(node);
+      ++command->in_flight;
+      return PlacementResult::ready;
+    }
+    hub->ready_count.fetch_sub(1, std::memory_order_acq_rel);
+    return PlacementResult::rejected_accepting;
+  }
+  hub->ready_count.fetch_sub(1, std::memory_order_acq_rel);
+  // Deferred window: bounded, already admitted (claim + work reservation held).
+  {
+    std::lock_guard<std::mutex> deferred_lock(hub->deferred_mutex);
+    if (hub->deferred.size() < hub->deferred_capacity) {
+      std::lock_guard<std::mutex> command_lock(command->mutex);
+      if (!command->accept_new || command->draining)
+        return PlacementResult::rejected_accepting;
+      node->state.store(TaskState::ready, std::memory_order_release);
+      hub->deferred.push_back(node);
+      const U32 depth = static_cast<U32>(hub->deferred.size());
+      U32 peak = hub->deferred_peak.load(std::memory_order_relaxed);
+      while (depth > peak &&
+             !hub->deferred_peak.compare_exchange_weak(peak, depth))
+        ;
+      ++command->in_flight;
+      return PlacementResult::deferred;
+    }
+  }
+  (void)services;
+  hub->rejected_ready_window.fetch_add(1, std::memory_order_relaxed);
+  // The ticket is already admitted; return it before completing the failure.
+  release_execution(node);
+  detail::node_complete(node, failure_code, window_failure, Usage{}, {},
+                        nullptr);
+  return PlacementResult::rejected_window;
+}
+
+// Moves admitted deferred nodes into command ready queues as slots free up.
+// Called without the scheduler locks (the caller is a worker between
+// dispatches), so it can take the command locks in the normal order.
+void promote_deferred_nodes(const Services* services,
+                            const std::shared_ptr<PoolHub>& hub) {
+  if (!hub) return;
+  for (;;) {
+    if (hub->ready_count.load(std::memory_order_acquire) >= hub->ready_capacity)
+      break;
+    std::shared_ptr<detail::TaskNode> node;
+    {
+      std::lock_guard<std::mutex> lock(hub->deferred_mutex);
+      if (hub->deferred.empty()) break;
+      node = hub->deferred.front();
+      hub->deferred.pop_front();
+    }
+    const U32 slot = hub->ready_count.fetch_add(1, std::memory_order_acq_rel);
+    if (slot >= hub->ready_capacity) {
+      hub->ready_count.fetch_sub(1, std::memory_order_acq_rel);
+      std::lock_guard<std::mutex> lock(hub->deferred_mutex);
+      hub->deferred.push_front(std::move(node));
+      break;
+    }
+    auto command = find_command(services, node->context.ids.command);
+    bool queued = false;
+    if (command) {
+      std::lock_guard<std::mutex> lock(command->mutex);
+      if (command->accept_new && !command->draining) {
+        node->state.store(TaskState::ready, std::memory_order_release);
+        command->ready.push_back(node);
+        queued = true;
+      }
+    }
+    if (!queued) {
+      hub->ready_count.fetch_sub(1, std::memory_order_acq_rel);
+      cancel_pending_node(services, node);
+    }
+  }
+}
+
 bool units_can_ever_fit(const ScopeRef& scope, U64 units) {
   for (auto& item : detail::scope_chain(scope)) {
     std::lock_guard<std::mutex> lock(item->mutex);
@@ -305,6 +421,7 @@ AdmitOutcome admit_task(Services& services,
 
   node->work_upper = spec.work_upper;
   node->task_scope->work_upper = spec.work_upper;
+  node->task_scope->work_upper_enforced = true;
   outcome.result = AdmitResult::ok;
   outcome.code = Code::ok;
   outcome.reason = "";
@@ -371,6 +488,9 @@ std::shared_ptr<Services> Services::create(const PoolConfig& config,
   services->blocks = std::make_shared<detail::BlockStore>();
 
   auto hub = std::make_shared<PoolHub>();
+  hub->ready_capacity = std::max<U32>(1, 2 * services->cpu_threads_);
+  hub->deferred_capacity = std::max<U32>(4, 8 * services->cpu_threads_);
+  hub->control_capacity = std::max<U32>(64, 8 * services->cpu_threads_);
   {
     std::lock_guard<std::mutex> lock(g_registry_mutex);
     g_hubs[services.get()] = hub;
@@ -397,12 +517,11 @@ std::shared_ptr<Services> Services::create(const PoolConfig& config,
   try {
     services->workers_.reserve(services->cpu_threads_ + io_total);
     for (U32 i = 0; i < services->cpu_threads_; ++i)
-      services->workers_.emplace_back([services] { services->worker_loop(); });
+      services->workers_.emplace_back([raw = services.get()] { raw->worker_loop(); });
     for (U32 i = 0; i < services->read_slots_; ++i)
-      services->workers_.emplace_back(
-          [services] { services->io_loop(false); });
+      services->workers_.emplace_back([raw = services.get()] { raw->io_loop(false); });
     for (U32 i = 0; i < services->write_slots_; ++i)
-      services->workers_.emplace_back([services] { services->io_loop(true); });
+      services->workers_.emplace_back([raw = services.get()] { raw->io_loop(true); });
   } catch (...) {
     error = "internal: failed to start the executor threads";
     services->shutdown();
@@ -443,6 +562,12 @@ void Services::shutdown() {
       if (command->cancel) command->cancel->request();
     }
     if (auto hub = hub_of(this)) {
+      std::deque<std::shared_ptr<detail::TaskNode>> deferred;
+      {
+        std::lock_guard<std::mutex> lock(hub->deferred_mutex);
+        deferred.swap(hub->deferred);
+      }
+      for (auto& queued : deferred) cancel_pending_node(this, queued);
       hub->capacity_event.store(true);
       {
         std::lock_guard<std::mutex> lock(hub->mutex);
@@ -728,16 +853,27 @@ void Services::submit(const std::shared_ptr<detail::TaskNode>& node,
 
   {
     std::lock_guard<std::mutex> lock(command->mutex);
-    if (!command->accept_new || command->draining) {
-      rejected = true;
-    } else {
-      node->state.store(TaskState::ready, std::memory_order_release);
-      command->ready.push_back(node);
-      ++command->in_flight;
-    }
+    rejected = !command->accept_new || command->draining;
   }
   if (rejected) {
     cancel_pending_node(this, node);
+    return;
+  }
+  Assessment window_failure = failure_assessment(
+      Code::resource_exhausted,
+      "the process-wide 2P ready window and its finite deferred window are "
+      "full; the submission is refused instead of growing an unbounded future "
+      "set");
+  const PlacementResult placed = place_admitted_node(
+      this, hub_of(this), command, node, Code::resource_exhausted,
+      window_failure);
+  if (placed == PlacementResult::rejected_accepting) {
+    cancel_pending_node(this, node);
+    return;
+  }
+  if (placed == PlacementResult::deferred) {
+    // The deferred node is admitted and accounted; no worker may run it until a
+    // ready slot frees.
     return;
   }
   ready_cv_.notify_all();
@@ -764,6 +900,21 @@ void Services::schedule_control(const std::shared_ptr<detail::TaskNode>& node,
   if (hub && !command_id.empty()) {
     std::lock_guard<std::mutex> lock(hub->close_mutex);
     ++hub->control_pending[command_id];
+  }
+  bool control_overflow = false;
+  {
+    std::lock_guard<std::mutex> lock(control_mutex_);
+    const U32 cap = hub ? hub->control_capacity : 64;
+    control_overflow = control_.size() >= cap;
+  }
+  if (control_overflow) {
+    // Bounded control lane: overflow is executed on the completing thread
+    // (completion callbacks are short); it is never queued without bound.
+    try {
+      if (body) body(node->context);
+    } catch (...) {
+    }
+    return;
   }
   auto inner = std::move(body);
   node->body = [hub, command_id, inner = std::move(inner)](
@@ -830,6 +981,37 @@ void Services::release_work(const ScopeRef& scope, U64 units) {
 
 bool Services::take_runnable(std::shared_ptr<detail::TaskNode>& node) {
   auto hub = hub_of(this);
+  promote_deferred_nodes(this, hub);
+
+  // Control work still occupies one CPU token of its command (P2): it is not
+  // scientific ready-window work, but it never exceeds the command ceiling.
+  auto control_ceiling_reached = [](const std::shared_ptr<detail::TaskNode>& candidate) {
+    auto command = candidate ? candidate->command : nullptr;
+    if (!command) return false;
+    U32 ceiling = 0;
+    if (command->scope) ceiling = command->scope->limits.ceiling.cpu_tokens;
+    if (ceiling == 0) return false;
+    std::lock_guard<std::mutex> lock(command->mutex);
+    return command->cpu_running >= ceiling;
+  };
+  auto take_control = [&](std::shared_ptr<detail::TaskNode>& out) -> bool {
+    std::lock_guard<std::mutex> lock(control_mutex_);
+    if (control_.empty()) return false;
+    auto candidate = control_.front();
+    auto command = candidate->command;
+    if (command) {
+      U32 ceiling = command->scope ? command->scope->limits.ceiling.cpu_tokens : 0;
+      if (ceiling != 0) {
+        std::lock_guard<std::mutex> command_lock(command->mutex);
+        if (command->cpu_running >= ceiling) return false;
+        ++command->cpu_running;
+      }
+    }
+    out = candidate;
+    control_.pop_front();
+    if (hub) hub->science_since_control.store(0);
+    return true;
+  };
 
   // 0) Retry tasks parked in waiting_resources.  This is throttled so a dispatch
   //    loop cannot become a busy retry loop, and forced after any capacity
@@ -885,17 +1067,15 @@ bool Services::take_runnable(std::shared_ptr<detail::TaskNode>& node) {
           command->waiting.push_back(parked);
           continue;
         }
-        bool queued = false;
-        {
-          std::lock_guard<std::mutex> lock(command->mutex);
-          if (command->accept_new && !command->draining) {
-            parked->state.store(TaskState::ready, std::memory_order_release);
-            command->ready.push_back(parked);
-            ++command->in_flight;
-            queued = true;
-          }
-        }
-        if (!queued) cancel_pending_node(this, parked);
+        Assessment window_failure = failure_assessment(
+            Code::resource_exhausted,
+            "the process-wide 2P ready window and its finite deferred window "
+            "are full; the retried task is refused");
+        const PlacementResult placed = place_admitted_node(
+            this, hub, command, parked, Code::resource_exhausted,
+            window_failure);
+        if (placed == PlacementResult::rejected_accepting)
+          cancel_pending_node(this, parked);
       }
     }
   }
@@ -911,13 +1091,7 @@ bool Services::take_runnable(std::shared_ptr<detail::TaskNode>& node) {
     const U32 since =
         hub ? hub->science_since_control.load(std::memory_order_relaxed) : 0;
     if (since >= kControlStarvationThreshold) {
-      std::lock_guard<std::mutex> lock(control_mutex_);
-      if (!control_.empty()) {
-        node = control_.front();
-        control_.pop_front();
-        if (hub) hub->science_since_control.store(0);
-        return true;
-      }
+      if (take_control(node)) return true;
     }
   }
 
@@ -948,7 +1122,10 @@ bool Services::take_runnable(std::shared_ptr<detail::TaskNode>& node) {
             rr_index_ = (index + 1) % count;
           else
             rr_index_ = index;
-          if (hub) hub->science_since_control.fetch_add(1);
+          if (hub) {
+            hub->science_since_control.fetch_add(1);
+            hub->ready_count.fetch_sub(1, std::memory_order_acq_rel);
+          }
           return true;
         }
         // No command could dispatch: start a new round for every command that
@@ -968,15 +1145,7 @@ bool Services::take_runnable(std::shared_ptr<detail::TaskNode>& node) {
   }
 
   // 3) Control work when no scientific work can run.
-  {
-    std::lock_guard<std::mutex> lock(control_mutex_);
-    if (!control_.empty()) {
-      node = control_.front();
-      control_.pop_front();
-      if (hub) hub->science_since_control.store(0);
-      return true;
-    }
-  }
+  if (take_control(node)) return true;
   return false;
 }
 
@@ -994,6 +1163,15 @@ void Services::run_node(std::shared_ptr<detail::TaskNode> node) {
         body(node->context);
       } catch (...) {
       }
+    }
+    // A completion callback is dispatched with a command CPU token exactly like
+    // scientific work; the terminal carrier must return it.
+    if (auto command = node->command) {
+      {
+        std::lock_guard<std::mutex> lock(command->mutex);
+        if (command->cpu_running > 0) --command->cpu_running;
+      }
+      command->drained_cv.notify_all();
     }
     return;
   }
@@ -1026,11 +1204,11 @@ void Services::run_node(std::shared_ptr<detail::TaskNode> node) {
   }
   cpu_in_use_.fetch_sub(1, std::memory_order_relaxed);
   release_execution(node);
-  if (command && !control) {
+  if (command) {
     {
       std::lock_guard<std::mutex> lock(command->mutex);
       if (command->cpu_running > 0) --command->cpu_running;
-      if (command->in_flight > 0) --command->in_flight;
+      if (!control && command->in_flight > 0) --command->in_flight;
     }
     command->drained_cv.notify_all();
   }
@@ -1056,17 +1234,21 @@ void Services::worker_loop() {
         commands = commands_;
       }
       std::vector<std::shared_ptr<detail::TaskNode>> pending;
+      U32 ready_drained = 0;
       for (auto& command : commands) {
         std::lock_guard<std::mutex> lock(command->mutex);
         while (!command->ready.empty()) {
           pending.push_back(std::move(command->ready.front()));
           command->ready.pop_front();
+          ++ready_drained;
         }
         while (!command->waiting.empty()) {
           pending.push_back(std::move(command->waiting.front()));
           command->waiting.pop_front();
         }
       }
+      if (hub && ready_drained != 0)
+        hub->ready_count.fetch_sub(ready_drained, std::memory_order_acq_rel);
       if (!pending.empty()) {
         for (auto& queued : pending) cancel_pending_node(this, queued);
         continue;
@@ -1264,23 +1446,42 @@ Task<Done> close_command(InvocationContext context) {
   detail::set_scope_status(command->scope, ScopeStatus::stopping);
   services->remove_command(command);
 
+  auto hub = hub_of(services.get());
   std::vector<std::shared_ptr<detail::TaskNode>> pending;
+  U32 ready_drained = 0;
   {
     std::lock_guard<std::mutex> lock(command->mutex);
     while (!command->ready.empty()) {
       pending.push_back(std::move(command->ready.front()));
       command->ready.pop_front();
+      ++ready_drained;
     }
     while (!command->waiting.empty()) {
       pending.push_back(std::move(command->waiting.front()));
       command->waiting.pop_front();
     }
   }
+  if (hub) {
+    if (ready_drained != 0)
+      hub->ready_count.fetch_sub(ready_drained, std::memory_order_acq_rel);
+    std::deque<std::shared_ptr<detail::TaskNode>> deferred;
+    {
+      std::lock_guard<std::mutex> lock(hub->deferred_mutex);
+      for (auto it = hub->deferred.begin(); it != hub->deferred.end();) {
+        if ((*it)->context.ids.command == command->id) {
+          deferred.push_back(std::move(*it));
+          it = hub->deferred.erase(it);
+        } else {
+          ++it;
+        }
+      }
+    }
+    for (auto& queued : deferred) pending.push_back(std::move(queued));
+  }
   for (auto& queued : pending) cancel_pending_node(services.get(), queued);
   services->notify_capacity();
 
   auto out = detail::make_node(context, TaskSpec{});
-  auto hub = hub_of(services.get());
   const Id command_id = command->id;
   auto drained = [services, command, command_id, hub, out]() -> bool {
     bool idle = false;
@@ -1294,7 +1495,9 @@ Task<Done> close_command(InvocationContext context) {
       auto it = hub->control_pending.find(command_id);
       if (it != hub->control_pending.end()) pending_control = it->second;
     }
-    if (!idle || pending_control != 0) return false;
+    if (!idle || pending_control != 0) {
+      return false;
+    }
     detail::set_scope_status(command->scope, ScopeStatus::draining);
     detail::close_scope(command->scope);
     if (!out->terminal.load(std::memory_order_acquire)) {

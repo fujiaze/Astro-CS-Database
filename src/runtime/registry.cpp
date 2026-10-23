@@ -377,7 +377,18 @@ Result<Done> validate_types(const std::vector<ErasedCodec>& types,
 
 Result<Done> validate_descriptors(const std::vector<ProcessDescriptor>& processes,
                                   const std::set<Id>& process_ids) {
+  std::map<Id, Id> document_owner;
   for (const ProcessDescriptor& descriptor : processes) {
+    if (!descriptor.document.empty()) {
+      auto [slot, inserted] =
+          document_owner.emplace(descriptor.document, descriptor.process_id);
+      if (!inserted)
+        return registry_failure<Done>(
+            Code::identity_conflict, "registry.freeze",
+            "process '" + descriptor.process_id + "' and process '" +
+                slot->second + "' share document '" + descriptor.document +
+                "'; a process owns one unique document");
+    }
     if (descriptor.module.empty())
       return registry_failure<Done>(
           Code::invalid_model, "registry.freeze",
@@ -436,6 +447,26 @@ Result<Done> validate_descriptors(const std::vector<ProcessDescriptor>& processe
               "'; legal modules are the CMake targets in SYSTEM.md plus "
               "\"service.*\" and registered process ids");
     }
+  }
+  return Result<Done>{Code::ok, Done{}, {}, {}, {}};
+}
+
+Result<Done> validate_process_operation_coverage(
+    const std::vector<ProcessDescriptor>& processes,
+    const std::vector<BuilderCore::RegisteredOperation>& operations) {
+  for (const ProcessDescriptor& descriptor : processes) {
+    bool any = false;
+    for (const auto& record : operations)
+      if (record.process == descriptor.process_id) {
+        any = true;
+        break;
+      }
+    if (!any)
+      return registry_failure<Done>(
+          Code::invalid_model, "registry.freeze",
+          "process '" + descriptor.process_id +
+              "' registers no operation; an empty process is not a scientific "
+              "step");
   }
   return Result<Done>{Code::ok, Done{}, {}, {}, {}};
 }
@@ -592,6 +623,9 @@ Result<std::shared_ptr<const Registry>> freeze_registry(
   step = validate_types(builder->types, codecs);
   if (step.code != Code::ok) return fail(step);
   step = validate_descriptors(builder->processes, process_ids);
+  if (step.code != Code::ok) return fail(step);
+  step = validate_process_operation_coverage(builder->processes,
+                                             builder->operations);
   if (step.code != Code::ok) return fail(step);
   step = validate_probe_owners(builder->processes);
   if (step.code != Code::ok) return fail(step);
