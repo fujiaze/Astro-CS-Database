@@ -133,24 +133,17 @@ void append_le(std::vector<std::byte>& out, T value) {
     std::uint64_t bits = 0;
     std::memcpy(&bits, &value, sizeof(bits));
     if constexpr (std::is_floating_point_v<T>) {
-      // Canonical payload: -0.0 and +0.0 hash identically; every NaN maps to the
-      // one quiet NaN of its sign.  The scientific value itself is untouched.
-      const std::uint64_t sign = bits & (1ull << 63);
-      if ((bits & 0x7fffffffffffffffull) == 0)
-        bits = 0;
-      else if (std::isnan(value))
-        bits = sign | 0x7ff8000000000000ull;
+      // Canonical payload: the -0 bit is preserved (OBJECTS:140); every NaN
+      // maps to the one canonical quiet NaN.  The scientific value itself is
+      // untouched.
+      if (std::isnan(value)) bits = 0x7ff8000000000000ull;
     }
     model::append_u64_le(out, bits);
   } else if constexpr (sizeof(T) == 4) {
     std::uint32_t bits = 0;
     std::memcpy(&bits, &value, sizeof(bits));
     if constexpr (std::is_floating_point_v<T>) {
-      const std::uint32_t sign = bits & 0x80000000u;
-      if ((bits & 0x7fffffffu) == 0)
-        bits = 0;
-      else if (std::isnan(value))
-        bits = sign | 0x7fc00000u;
+      if (std::isnan(value)) bits = 0x7fc00000u;
     }
     model::append_u32_le(out, bits);
   } else if constexpr (sizeof(T) == 2) {
@@ -369,6 +362,10 @@ struct WriterState {
   U64 next_element = 0;
   U64 buffer_bytes = 0;
   U64 metadata_bytes = 0;
+  // Reserved while the writer lives: one staging chunk (<=8 MiB) and the
+  // metadata/builder working set declared by the build spec.
+  std::shared_ptr<detail::ClaimImpl> staging_claim;
+  std::shared_ptr<detail::ClaimImpl> metadata_claim;
   bool use_zstd = false;
   std::atomic<std::uint64_t> stage_sequence{1};
 
@@ -1350,6 +1347,24 @@ Task<WriterRef> begin_async(InvocationContext ctx, ArenaRef arena,
         writer->total_elements = total;
         writer->buffer_bytes = spec.buffer_bytes;
         writer->metadata_bytes = spec.metadata_bytes;
+        const U64 staging_bytes =
+            std::min<U64>(spec.buffer_bytes, 8ull << 20);
+        auto staging_claim = detail::claim_capacity(
+            arena, ResourceVector{staging_bytes, 0, 0, 0, 0, 0});
+        if (staging_claim.code != Code::ok || !staging_claim.value)
+          return model::fail<WriterRef>(staging_claim.code,
+                                        "staging buffer is not reserved",
+                                        "runtime.storage.begin");
+        writer->staging_claim = *staging_claim.value;
+        if (spec.metadata_bytes > 0) {
+          auto metadata_claim = detail::claim_capacity(
+              arena, ResourceVector{spec.metadata_bytes, 0, 0, 0, 0, 0});
+          if (metadata_claim.code != Code::ok || !metadata_claim.value)
+            return model::fail<WriterRef>(metadata_claim.code,
+                                          "metadata is not reserved",
+                                          "runtime.storage.begin");
+          writer->metadata_claim = *metadata_claim.value;
+        }
         writer->use_zstd = spec.buffer_bytes >= 256u * 1024u && itemsize > 0;
         if (itemsize > 0) {
           writer->canonical_elements =

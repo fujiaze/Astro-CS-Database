@@ -127,7 +127,7 @@ bool setup_case(CaseEnv& out, const std::string& scratch, const std::string& com
       rt::open_command(out.services, command_id, config.process, 1);
   if (command.code != Code::ok || !command.value) return false;
   out.context = *command.value;
-  Result<rt::ArenaRef> arena = rt::reserve(out.context, rt::ResourceVector{64ull << 10});
+  Result<rt::ArenaRef> arena = rt::reserve(out.context, rt::ResourceVector{1ull << 20});
   if (arena.code != Code::ok || !arena.value) return false;
   out.arena = *arena.value;
   out.context.persistent = out.arena;

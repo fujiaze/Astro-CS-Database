@@ -139,7 +139,7 @@ int main() {
   //    until the real write and the abort have drained.
   // -------------------------------------------------------------------------
   constexpr acsd::U64 kPayload = 16ull << 20;  // 16 MiB > 1 MiB buffer
-  auto write_arena = rt::reserve(ctx, vrt::bytes(kPayload + (1ull << 20)));
+  auto write_arena = rt::reserve(ctx, vrt::bytes(kPayload + (2ull << 20)));
   recorder.expect_code("life.reserve_write_arena_ok", "ok", write_arena);
   if (write_arena.code == Code::ok && write_arena.value) {
     rt::BuildSpec spec;

@@ -200,6 +200,25 @@ int main() {
     }
   }
 
+  // Regression: an underdetermined least-squares problem (fewer rows than
+  // columns) must report converged=false, never index the triangular factor
+  // out of range.  A WCS fit with too few matches depends on this.
+  {
+    acsd::numerics::Matrix a(2, 4);
+    a(0, 0) = 1.0; a(0, 1) = 0.0; a(0, 2) = 1.0; a(0, 3) = 0.0;
+    a(1, 0) = 0.0; a(1, 1) = 1.0; a(1, 2) = 0.0; a(1, 3) = 1.0;
+    const std::vector<double> rhs{1.0, 2.0};
+    const acsd::numerics::LeastSquaresResult out =
+        acsd::numerics::least_squares(a, rhs, 1e-12);
+    if (!out.converged && out.rank == 2 && out.solution.size() == 4) {
+      std::printf("ok     underdetermined least squares reports no unique solution\n");
+    } else {
+      std::printf("FAIL   underdetermined least squares converged=%d rank=%zu\n",
+                  out.converged ? 1 : 0, out.rank);
+      ++failures;
+    }
+  }
+
   // Regression: the exact/dyadic conversion must keep the sign.  A negative
   // exact point that silently becomes positive makes floor/ceil loops walk
   // ~2^52 ulp (the geometry footprint hang).

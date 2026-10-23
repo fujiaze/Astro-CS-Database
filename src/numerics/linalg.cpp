@@ -281,7 +281,8 @@ QrFactor householder_qr(const Matrix& a) {
 
   factor.reflectors.assign(n, {});
   factor.taus.assign(n, 0.0);
-  for (std::size_t k = 0; k < n; ++k) {
+  const std::size_t steps = std::min(m, n);
+  for (std::size_t k = 0; k < steps; ++k) {
     // Column pivoting.
     std::size_t pivot = k;
     for (std::size_t j = k + 1; j < n; ++j)
@@ -326,10 +327,11 @@ QrFactor householder_qr(const Matrix& a) {
       factor.r(i, j) = (i <= j) ? work(i, j) : 0.0;
 
   double rnorm = 0.0;
-  for (std::size_t j = 0; j < n; ++j) rnorm = std::max(rnorm, std::fabs(factor.r(j, j)));
+  for (std::size_t j = 0; j < std::min(m, n); ++j)
+    rnorm = std::max(rnorm, std::fabs(factor.r(j, j)));
   const double tol = (m > 0 && n > 0) ? static_cast<double>(std::max(m, n)) * kEps * rnorm : 0.0;
   factor.rank = 0;
-  for (std::size_t j = 0; j < n; ++j)
+  for (std::size_t j = 0; j < std::min(m, n); ++j)
     if (std::fabs(factor.r(j, j)) > tol) ++factor.rank;
   factor.singular_values.resize(n);
   for (std::size_t j = 0; j < n; ++j) factor.singular_values[j] = std::fabs(factor.r(j, j));
@@ -343,6 +345,17 @@ LeastSquaresResult least_squares(const Matrix& a, const std::vector<double>& rhs
   LeastSquaresResult out;
   const std::size_t m = a.rows, n = a.cols;
   if (m == 0 || n == 0) return out;
+  if (m < n) {
+    // Underdetermined: no unique solution.  Report the identifiable rank and
+    // converged=false instead of indexing the triangular factor out of range
+    // (or silently returning an arbitrary minimum-norm answer).
+    out.solution.assign(n, 0.0);
+    out.solutions.assign(1, out.solution);
+    out.rank = m;
+    out.converged = false;
+    out.rank_certified = false;
+    return out;
+  }
   const QrFactor factor = householder_qr(a);
 
   // Apply the reflectors to the right hand side: Q^T b.

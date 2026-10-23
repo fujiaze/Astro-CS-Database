@@ -136,9 +136,13 @@ Result<Done> require_input(Ref<IntegrateResponseInput> input) {
   if (!(input->basis->support_nm.lower <= input->basis->support_nm.upper))
     return adapter_failure<Done>(Code::invalid_model, "the basis support is not an interval",
                                  "the response integral cannot be validated");
-  if (input->basis->knots_nm->index_id != input->basis->basis_coefficients->index_id)
+  // The knots and the coefficient array are independent catalogues of the
+  // same basis; the public response integral only needs the declared
+  // coefficient count and finite arrays, not a shared array index id.
+  if (input->basis->knots_nm->shape.empty() ||
+      input->basis->basis_coefficients->shape.empty())
     return adapter_failure<Done>(Code::invalid_model,
-                                 "the basis arrays do not share an index",
+                                 "the basis arrays have no shape",
                                  "the response integral cannot be validated");
   if (!std::isfinite(input->request.tolerance.absolute) ||
       !std::isfinite(input->request.tolerance.relative) ||

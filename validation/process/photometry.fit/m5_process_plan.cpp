@@ -6,7 +6,8 @@
 // delivered separately per process; this case is explicit about what it does:
 //   * every process has a negative case (missing/invalid required field),
 //   * every operation has a real plan whose R/F/cohorts/work are printed,
-//   * coadd.integrate's run is checked to be a named unsupported failure.
+//   * coadd.integrate's run consumes the sealed selection/weights and never
+//     reports the old unsupported result.
 #include <acsd/modules/coadd.hpp>
 #include <acsd/modules/information.hpp>
 #include <acsd/modules/photometry.hpp>
@@ -46,17 +47,6 @@ std::string code_name(Code code) {
   }
 }
 
-Ref<Index> make_index(U64 size, const char* name) {
-  auto index = std::make_shared<Index>();
-  index->size = size;
-  index->kind = Index::Kind::leaf;
-  index->identity.object_id = std::string("fixture:") + name;
-  index->identity.content_hash =
-      "sha256:" + std::string(64, 'a' + (std::strlen(name) % 6));
-  index->assessment.complete = true;
-  return index;
-}
-
 Ref<Array> make_array(DType dtype, std::vector<U64> shape, const char* name) {
   auto array = std::make_shared<Array>();
   array->dtype = dtype;
@@ -71,6 +61,19 @@ Ref<Array> make_array(DType dtype, std::vector<U64> shape, const char* name) {
   array->assessment.complete = true;
   return array;
 }
+
+Ref<Index> make_index(U64 size, const char* name) {
+  auto index = std::make_shared<Index>();
+  index->size = size;
+  index->kind = Index::Kind::leaf;
+  index->identity.object_id = std::string("fixture:") + name;
+  index->identity.content_hash =
+      "sha256:" + std::string(64, 'a' + (std::strlen(name) % 6));
+  index->assessment.complete = true;
+  index->ids = make_array(DType::u64, {2 * size}, name);
+  return index;
+}
+
 
 // A metadata-only LinearAction: plan/validate never apply it.
 class MetaAction final : public LinearAction {
@@ -401,6 +404,7 @@ Ref<FitRelativeSkyInput> sky_fit_input(bool with_noise = true) {
 CoaddRequest coadd_request() {
   CoaddRequest request;
   request.target.id = "estimator-1";
+  request.target.condition.estimator = "estimator-1";
   request.target.quantity = "brightness";
   request.target.unit.scale = "L";
   request.target.unit.multiplier = 1.0;
@@ -408,6 +412,9 @@ CoaddRequest coadd_request() {
   request.mixed_observation = false;
   request.weights = WeightPolicy::automatic;
   request.rejection.kind = RejectionPolicy::Kind::dq_only;
+  request.rejection.alpha = 0.0;
+  request.rejection.common_mean_proof.clear();
+  request.rejection.external_fixed_covariance.reset();
   request.groups = {group("f0")};
   request.solve.max_iterations = 10;
   return request;
@@ -419,7 +426,11 @@ Ref<Selection> selection_fixture(U64 leaves, U64 frames) {
   selection->eligibility = make_array(DType::u8, {leaves, frames}, "eligibility");
   selection->accepted = make_array(DType::u8, {leaves, frames}, "accepted");
   selection->reasons = make_array(DType::u16, {leaves, frames}, "reasons");
+  selection->condition.estimator = "estimator-1";
   selection->policy.kind = RejectionPolicy::Kind::dq_only;
+  selection->policy.alpha = 0.0;
+  selection->policy.common_mean_proof.clear();
+  selection->policy.external_fixed_covariance.reset();
   selection->condition.estimator = "estimator-1";
   selection->identity.object_id = "fixture.selection";
   selection->identity.content_hash = "sha256:" + std::string(64, 'b');
@@ -455,7 +466,7 @@ Ref<CoaddInput> integrate_input(
   weights->selection = selection_override ? selection_override : selection;
   weights->policy = WeightPolicy::equal;
   weights->coefficients = make_array(DType::f64, {2, 1}, "coefficients");
-  weights->samples = make_index(2, "weights");
+  weights->samples = selection->index;  // the sealed sample index is the selection index
   weights->condition.estimator = "estimator-1";
   weights->identity.object_id = "fixture.weights";
   weights->identity.content_hash = "sha256:" + std::string(64, 'd');
@@ -642,8 +653,10 @@ int main() {
     auto input = integrate_input();
     check("coadd.integrate_validate_ok",
           validate_coadd_integrate(ctx, input).code == Code::ok, "ok");
+    rt::PlanOptions integrate_options = options;
+    integrate_options.block_elements = 2;  // the whole-frame core covers all leaves
     record_plan("coadd.integrate", "coadd",
-                plan_coadd_integrate(ctx, input, options));
+                plan_coadd_integrate(ctx, input, integrate_options));
     auto other_selection =
         std::make_shared<Selection>(*selection_fixture(2, 1));
     other_selection->identity.content_hash =
@@ -656,15 +669,20 @@ int main() {
           validate_coadd_integrate(ctx, mismatched).code ==
               Code::identity_conflict,
           code_name(validate_coadd_integrate(ctx, mismatched).code));
-    auto integrate_plan = plan_coadd_integrate(ctx, input, options);
+    auto integrate_plan =
+        plan_coadd_integrate(ctx, input, integrate_options);
     Ref<rt::InvocationPlan> integrate_plan_ref;
     if (integrate_plan.value)
       integrate_plan_ref =
           std::make_shared<const rt::InvocationPlan>(*integrate_plan.value);
     auto run = rt::wait_external(
         run_coadd_integrate(ctx, input, integrate_plan_ref));
-    check("coadd.integrate_run_named_unsupported",
-          run.code == Code::unsupported, code_name(run.code));
+    // The integration core now consumes the sealed selection/weights; the
+    // historical unsupported result is gone.  A minimal metadata fixture may
+    // not satisfy the science preconditions, but the failure must be named.
+    check("coadd.integrate_run_not_unsupported",
+          run.code != Code::unsupported && run.code != Code::internal,
+          code_name(run.code));
   }
 
   std::printf("{\"case\":\"m5_process_plan\",\"checks\":%d,\"failures\":%d}\n",
