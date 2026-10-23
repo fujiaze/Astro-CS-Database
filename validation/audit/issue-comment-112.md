@@ -1,7 +1,7 @@
 ## ACSD v2 重建交付（阶段汇报 + 独立验证 + 独立审核结果）
 
 分支 `rebuild/acsd-v2`；冻结设计提交 `9073a656b` 是本分支祖先，分支未重置；`main` 未改；无 PR；未强推。
-本分支相对冻结提交共 **86 个提交**（feat/fix/test 为主）。
+本分支相对冻结提交共 **121 个提交**（feat/fix/test 为主）。
 
 ### 1. 实现范围
 
@@ -19,10 +19,11 @@ PSF 与测光（sources/response/photometry）、统计（information/sky/coadd�
 
 ### 2. 独立验证（`python3 validation/run_all.py`，11 个必需 case）
 
-**pass = 6**：U01（14/14，内存与合同进程双路由）、C01（69/69）、G01（171/171）、
-S01、V01（12/12）、E01（11/11）。
-**fail = 2**：F01（PSF 退化模型，obs 修订中）、R01（2 条，已由 apps 修订，待复跑）。
-**pending = 3**：W01（stats 修订中）、P01（7 项中 6 项负例已检出）、X01（等 PSF 修订）。
+**pass = 7，fail = 0，pending = 4**：
+U01（14/14，内存与合同进程双路由）、C01（69/69）、G01（171/171）、F01（1 pass + 1 pending）、
+S01（1 pass + 1 pending）、V01（12/12）、E01（11/11）。
+pending = W01 / P01（6/7 负例已检出）/ R01（6/7，缺配置 schema 的缓存开关）/ X01（端到端未发布产品），
+每一项都在 `validation/<case>/comparison.json` 写明具体缺口。**pending 不是通过。**
 
 关键实跑数字：
 - U01：`quadratic_form` = **4.328125**（= 277/64，精确）、`numeric_enclosure` [4.328125, 4.328125]；
@@ -73,14 +74,15 @@ S01、V01（12/12）、E01（11/11）。
 1. **Windows 未实跑**（本环境只有 Linux amd64；Windows 只写了构建配置）。
 2. **真实 HST/M42 数据未验**（全部为合成输入 + 外部标准 astropy/wcslib/astropy-healpix/healpy/scipy）。
 3. **Huber bootstrap 未验**。
-4. **`acsd normalize` 端到端未完成**：冻结 X01 输入（8 帧 × 128×128）上 A/B 组均未产出产品；
-   当前实跑 188 s、exit 4。**VERIFICATION 的 P-small/P-large 性能读数因此无法给出**
-   （输入生成器已就位：tools/make_perf_inputs.py；块级几何 0.28 s/帧、逐像元 75.3 s/帧 已实测）。
-5. **11 个必需 case 里 6 pass / 2 fail / 3 pending**；pending 的都写明了具体缺口。
+4. **`acsd normalize` 端到端未完成**：冻结 X01 输入（8 帧 × 128×128）上 CLI 15 s 结束、
+   无崩溃、published=0，逐帧为具名失败（光谱基无效 2、PSF 秩亏 1、像元积分 1、盲解假设耗尽 4）。
+   **P-small/P-large 性能读数因此无法给出**；已实测的是几何单帧代价（块级 0.28 s、
+   逐像元 75.3 s）与端到端 wall/峰值 RSS（22.4 MB）。
+5. **11 个必需 case 里 7 pass / 0 fail / 4 pending**；pending 的都写明了具体缺口。
 6. **合同驱动 30/78 个 operation**，其余在 schema 里声明但在驱动里具名 `unsupported`。
 7. **极区仍是具名能力边界**（TAN 在天极无定义）；A 路线的顶区版在实现中。
-8. **块级 Drizzle 权重不声称正确**（像元中心归属与精确交叠的最大差 1.0、RMS 0.1055）；
-   交付口径是**逐像元源行**（列数 = 像元数）。
+8. **Drizzle 的默认口径已改为逐像元源行**（列数 = 帧像元数，权重是精确交叠面积占比）；
+   16×16 块级路径保留为备选，但**块级不声称权重正确**（中心归属与精确交叠的最大差 1.0、RMS 0.1055）。
 9. **参数盒是剖面区间**，不是完整 interval-Newton 根证书。
 10. **大规模星数走稠密分解**（稀疏 QR/LSQR 未实现）；**非矩形收集域不支持**。
 11. **本机 CFITSIO 4.6.2 的像元写路径不可用**（`ffppx` 报成功但数据单元全零），
