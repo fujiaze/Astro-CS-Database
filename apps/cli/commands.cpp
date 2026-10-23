@@ -838,16 +838,40 @@ Result<Ref<CatalogueProvider>> load_catalogue(Context& context, const std::files
     basis_width = row.is_array() ? row.size() : 0;
     for (const json& item : row) coefficient_values.push_back(item.get<double>());
   }
+  // OBJECTS:117 stores basis_coefficients[d,K,degree+1] (one polynomial per
+  // knot segment).  A catalogue may give one [degree+1] row per basis function;
+  // expand it across the K segments instead of rejecting or silently
+  // reinterpreting the layout.
+  const U64 basis_degree = u64_field(basis, "degree", 0);
+  const U64 basis_functions =
+      std::max<U64>(1, u64_field(basis, "coefficient_count",
+                                 basis_coefficients.size()));
+  const U64 segments = knot_values.size() > 1 ? knot_values.size() - 1 : 1;
+  const U64 expected = basis_functions * segments * (basis_degree + 1);
+  if (coefficient_values.size() != expected &&
+      basis_coefficients.size() == basis_functions &&
+      basis_width == basis_degree + 1 && segments > 1) {
+    std::vector<double> expanded;
+    expanded.reserve(expected);
+    for (const json& row : basis_coefficients)
+      for (U64 segment = 0; segment < segments; ++segment)
+        for (const json& item : row) expanded.push_back(item.get<double>());
+    coefficient_values = std::move(expanded);
+    basis_width = basis_degree + 1;
+  }
   Result<ArrayRef> knot_array =
       context.storage.copy(context, DType::f64, model::encode_f64(knot_values),
                            std::vector<U64>{static_cast<U64>(knot_values.size())}, model::unit_nm(),
                            "acsd.catalogue.knots");
   Result<ArrayRef> coefficient_basis =
-      context.storage.copy(context, DType::f64, model::encode_f64(coefficient_values),
-                           std::vector<U64>{static_cast<U64>(coefficient_values.size() /
-                                                             std::max<U64>(1, basis_width)),
-                                             basis_width},
-                           model::unit_dimensionless(), "acsd.catalogue.basis");
+      context.storage.copy(
+          context, DType::f64, model::encode_f64(coefficient_values),
+          coefficient_values.size() == expected
+              ? std::vector<U64>{basis_functions, segments, basis_degree + 1}
+              : std::vector<U64>{static_cast<U64>(coefficient_values.size() /
+                                                  std::max<U64>(1, basis_width)),
+                                 basis_width},
+          model::unit_dimensionless(), "acsd.catalogue.basis");
   if (!ok(knot_array) || !ok(coefficient_basis)) {
     return fail<Ref<CatalogueProvider>>(Code::io_error, "the spectral basis cannot be stored",
                                         "cli.catalogue", "the command cannot run");

@@ -64,6 +64,13 @@ Result<ArrayRef> store_f64(Context& context, const std::vector<double>& values, 
   return context.storage.copy(context, DType::f64, bytes, shape, unit, index_id);
 }
 
+Result<ArrayRef> store_u64(Context& context, const std::vector<U64>& values,
+                           const std::vector<U64>& shape, const Id& index_id) {
+  const std::vector<std::byte> bytes = model::encode_u64(values);
+  return context.storage.copy(context, DType::u64, bytes, shape,
+                              model::unit_dimensionless(), index_id);
+}
+
 Result<ArrayRef> store_u8(Context& context, const std::vector<std::uint8_t>& values,
                           const Id& index_id) {
   const std::vector<std::byte> bytes = model::encode_u8(values);
@@ -245,7 +252,26 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
                                "no target leaf has a positive support");
   }
 
-  const Id leaf_index_id = "acsd.drizzle.leaves";
+  // The leaf index owns its [N,2] (order,ipix) identifiers (OBJECTS:104) and
+  // the arrays it orders reference that one identity; a hard-coded index id
+  // made the product unusable for mosaic/export.
+  auto leaf_index =
+      std::make_shared<Index>(model::make_leaf_index(leaves));
+  std::vector<U64> leaf_ids;
+  leaf_ids.reserve(leaves.size() * 2);
+  for (const HealpixLeaf& leaf : leaves) {
+    leaf_ids.push_back(leaf.order);
+    leaf_ids.push_back(leaf.ipix);
+  }
+  const Id leaf_index_id = leaf_index->identity.content_hash;
+  Result<ArrayRef> ids_array = store_u64(
+      context, leaf_ids,
+      {static_cast<U64>(leaves.size()), static_cast<U64>(2)}, leaf_index_id);
+  if (!ok(ids_array)) {
+    return fail<DrizzleResult>(ids_array.code, "leaf_ids_store_failed",
+                               "build_drizzle");
+  }
+  leaf_index->ids = val(ids_array);
   Result<ArrayRef> normalizer_array =
       store_f64(context, normalizer, model::unit_sr(), leaf_index_id);
   if (!ok(normalizer_array)) {
@@ -297,7 +323,7 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
   // The support map.
   auto support = std::make_shared<SupportMap>();
   support->kind = SupportMap::Kind::primitives;
-  support->index = std::make_shared<const Index>(model::make_leaf_index(leaves));
+  support->index = leaf_index;
   support->primitives.push_back(overlaps->primitives ? overlaps->primitives->identity.object_id : "");
   support->states = val(states_array);
   support->area_lower_sr = val(area_lower_array);

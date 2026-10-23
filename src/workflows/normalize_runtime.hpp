@@ -33,7 +33,7 @@ using rt::PlanOptions;
 using rt::Registry;
 using rt::Services;
 
-struct NormalizeRuntime {
+struct WorkflowRuntime {
   std::shared_ptr<rt::Services> services;
   std::shared_ptr<const rt::Registry> registry;
   InvocationContext command;
@@ -57,7 +57,7 @@ inline U64 runtime_element_count(const std::vector<U64>& shape) {
 // Copies one immutable array into the runtime BlockStore.  The identity of the
 // array is unchanged: downstream science reads the same bytes under the same
 // object id, so a second formula or a second identity is impossible.
-inline Result<Done> ingest_array(Context& source, NormalizeRuntime& runtime,
+inline Result<Done> ingest_array(Context& source, WorkflowRuntime& runtime,
                                  const ArrayRef& array) {
   if (!array) return model::ok_result(Done{});
   const Id id = array->identity.object_id;
@@ -83,13 +83,13 @@ inline Result<Done> ingest_array(Context& source, NormalizeRuntime& runtime,
   return model::ok_result(Done{});
 }
 
-inline Result<Done> ingest_index(Context& source, NormalizeRuntime& runtime,
+inline Result<Done> ingest_index(Context& source, WorkflowRuntime& runtime,
                                  const Ref<Index>& index) {
   if (!index) return model::ok_result(Done{});
   return ingest_array(source, runtime, index->ids);
 }
 
-inline Result<Done> ingest_noise(Context& source, NormalizeRuntime& runtime,
+inline Result<Done> ingest_noise(Context& source, WorkflowRuntime& runtime,
                                  const Ref<NoiseModel>& model) {
   if (!model) return model::ok_result(Done{});
   for (const auto& root : model->innovations) {
@@ -106,14 +106,14 @@ inline Result<Done> ingest_noise(Context& source, NormalizeRuntime& runtime,
 }
 
 inline Result<Done> ingest_covariance(Context& source,
-                                      NormalizeRuntime& runtime,
+                                      WorkflowRuntime& runtime,
                                       const Ref<CovarianceAction>& covariance) {
   if (!covariance) return model::ok_result(Done{});
   return ingest_noise(source, runtime, covariance->model);
 }
 
 inline Result<Done> ingest_pixel_response(Context& source,
-                                          NormalizeRuntime& runtime,
+                                          WorkflowRuntime& runtime,
                                           const Ref<PixelResponse>& response) {
   if (!response) return model::ok_result(Done{});
   Result<Done> step = ingest_array(source, runtime, response->gains);
@@ -122,7 +122,7 @@ inline Result<Done> ingest_pixel_response(Context& source,
 }
 
 inline Result<Done> ingest_footprints(Context& source,
-                                      NormalizeRuntime& runtime,
+                                      WorkflowRuntime& runtime,
                                       const Ref<FootprintSet>& footprints) {
   if (!footprints) return model::ok_result(Done{});
   Result<Done> step = ingest_index(source, runtime, footprints->index);
@@ -155,7 +155,7 @@ inline Result<Done> ingest_footprints(Context& source,
   return model::ok_result(Done{});
 }
 
-inline Result<Done> ingest_raw(Context& source, NormalizeRuntime& runtime,
+inline Result<Done> ingest_raw(Context& source, WorkflowRuntime& runtime,
                                const Ref<RawObservation>& raw) {
   if (!raw) return model::ok_result(Done{});
   Result<Done> step = ingest_array(source, runtime, raw->adu);
@@ -168,7 +168,7 @@ inline Result<Done> ingest_raw(Context& source, NormalizeRuntime& runtime,
 }
 
 inline Result<Done> ingest_calibration(Context& source,
-                                       NormalizeRuntime& runtime,
+                                       WorkflowRuntime& runtime,
                                        const Calibration& calibration) {
   Result<Done> step = ingest_array(source, runtime, calibration.bias);
   if (!step.value) return step;
@@ -181,7 +181,7 @@ inline Result<Done> ingest_calibration(Context& source,
   return ingest_noise(source, runtime, calibration.master_noise);
 }
 
-inline Result<Done> ingest_response(Context& source, NormalizeRuntime& runtime,
+inline Result<Done> ingest_response(Context& source, WorkflowRuntime& runtime,
                                     const Ref<Response>& response) {
   if (!response) return model::ok_result(Done{});
   Result<Done> step = ingest_array(source, runtime, response->wavelength_nm);
@@ -191,7 +191,7 @@ inline Result<Done> ingest_response(Context& source, NormalizeRuntime& runtime,
   return ingest_noise(source, runtime, response->shape_noise);
 }
 
-inline Result<Done> ingest_spectrum(Context& source, NormalizeRuntime& runtime,
+inline Result<Done> ingest_spectrum(Context& source, WorkflowRuntime& runtime,
                                     const Ref<Spectrum>& spectrum) {
   if (!spectrum) return model::ok_result(Done{});
   Result<Done> step = ingest_array(source, runtime, spectrum->wavelength_nm);
@@ -201,7 +201,7 @@ inline Result<Done> ingest_spectrum(Context& source, NormalizeRuntime& runtime,
   return ingest_covariance(source, runtime, spectrum->noise);
 }
 
-inline Result<Done> ingest_basis(Context& source, NormalizeRuntime& runtime,
+inline Result<Done> ingest_basis(Context& source, WorkflowRuntime& runtime,
                                  const Ref<SpectralBasis>& basis) {
   if (!basis) return model::ok_result(Done{});
   Result<Done> step = ingest_array(source, runtime, basis->knots_nm);
@@ -209,7 +209,7 @@ inline Result<Done> ingest_basis(Context& source, NormalizeRuntime& runtime,
   return ingest_array(source, runtime, basis->basis_coefficients);
 }
 
-inline Result<Done> ingest_star(Context& source, NormalizeRuntime& runtime,
+inline Result<Done> ingest_star(Context& source, WorkflowRuntime& runtime,
                                 const CatalogueStar& star) {
   Result<Done> step = ingest_array(source, runtime, star.xp_coefficients);
   if (!step.value) return step;
@@ -221,7 +221,7 @@ inline Result<Done> ingest_star(Context& source, NormalizeRuntime& runtime,
 }
 
 inline Result<Done> ingest_information(Context& source,
-                                       NormalizeRuntime& runtime,
+                                       WorkflowRuntime& runtime,
                                        const InformationRequest& request) {
   Result<Done> step = ingest_array(source, runtime, request.h);
   if (!step.value) return step;
@@ -233,6 +233,9 @@ inline Result<Done> ingest_information(Context& source,
   }
   return model::ok_result(Done{});
 }
+
+// Backwards-compatible name used by the normalize entry point.
+using NormalizeRuntime = WorkflowRuntime;
 
 // A Storage view for publishing: arrays produced inside the Host are read from
 // the runtime BlockStore, everything else is the workflow's original storage.
@@ -286,5 +289,153 @@ class WorkflowStorage final : public Storage {
   Storage& base_;
   std::shared_ptr<rt::Services> services_;
 };
+
+
+// Opens the one runtime used by a fixed workflow: frozen registry, one command
+// scope, one host.  The pool/ledger lives exactly as long as the returned
+// object; callers use it for every operation of the entry point.
+inline Result<std::shared_ptr<WorkflowRuntime>> open_workflow_runtime(
+    const Id& name, U64 host_bytes = 1ull << 30, U64 max_work = 4000000000ull,
+    U32 cpu_tokens = 2, PlanOptions options = PlanOptions{1, 1, rt::Placement::memory}) {
+  rt::PoolConfig pool;
+  pool.cpu_threads = 2;
+  pool.read_slots = 1;
+  pool.write_slots = 1;
+  pool.process.ceiling.host_bytes = host_bytes;
+  pool.process.ceiling.cpu_tokens = cpu_tokens;
+  pool.process.max_work = max_work;
+  Result<std::shared_ptr<rt::Services>> services = rt::make_services(pool);
+  if (!ok(services))
+    return model::fail<std::shared_ptr<WorkflowRuntime>>(
+        services.code == Code::ok ? Code::internal : services.code,
+        "the workflow runtime cannot be created", "workflow.runtime",
+        "the workflow cannot run");
+  auto runtime = std::make_shared<WorkflowRuntime>();
+  runtime->services = *services.value;
+  rt::RegistryBuilder builder;
+  Result<Done> registered = generated::register_builtin_types(builder);
+  if (!registered.value)
+    return model::fail<std::shared_ptr<WorkflowRuntime>>(
+        registered.code, "the runtime type codecs cannot be registered",
+        "workflow.runtime", "the workflow cannot run");
+  registered = generated::register_processes(builder);
+  if (!registered.value)
+    return model::fail<std::shared_ptr<WorkflowRuntime>>(
+        registered.code, "the runtime processes cannot be registered",
+        "workflow.runtime", "the workflow cannot run");
+  Result<std::shared_ptr<const rt::Registry>> frozen = builder.freeze();
+  if (!frozen.value)
+    return model::fail<std::shared_ptr<WorkflowRuntime>>(
+        frozen.code, "the runtime registry cannot be frozen", "workflow.runtime",
+        "the workflow cannot run");
+  runtime->registry = *frozen.value;
+  rt::ScopeLimits limits;
+  limits.ceiling.host_bytes = host_bytes;
+  limits.ceiling.cpu_tokens = cpu_tokens;
+  limits.max_work = max_work;
+  Result<InvocationContext> command = rt::open_command(runtime->services, name, limits, 1);
+  if (!command.value)
+    return model::fail<std::shared_ptr<WorkflowRuntime>>(
+        command.code, "the workflow command scope cannot be opened",
+        "workflow.runtime", "the workflow cannot run");
+  runtime->command = *command.value;
+  Result<std::shared_ptr<rt::ProcessHost>> host =
+      rt::make_host(runtime->services, runtime->registry);
+  if (!host.value)
+    return model::fail<std::shared_ptr<WorkflowRuntime>>(
+        host.code, "the process host cannot be created", "workflow.runtime",
+        "the workflow cannot run");
+  runtime->host = *host.value;
+  runtime->options = options;
+  return model::ok_result(runtime);
+}
+
+inline Result<Done> ingest_support(Context& source, WorkflowRuntime& runtime,
+                                   const Ref<SupportMap>& support) {
+  if (!support) return model::ok_result(Done{});
+  Result<Done> step = ingest_index(source, runtime, support->index);
+  if (!step.value) return step;
+  for (const ArrayRef& array :
+       {support->states, support->area_lower_sr, support->area_upper_sr,
+        support->cell_face, support->cell_depth, support->cell_x, support->cell_y,
+        support->cell_state, support->normalization_states,
+        support->observational_states}) {
+    step = ingest_array(source, runtime, array);
+    if (!step.value) return step;
+  }
+  return model::ok_result(Done{});
+}
+
+inline Result<Done> ingest_signal(Context& source, WorkflowRuntime& runtime,
+                                  const Ref<SignalEstimate>& estimate) {
+  if (!estimate) return model::ok_result(Done{});
+  Result<Done> step = ingest_array(source, runtime, estimate->signal);
+  if (!step.value) return step;
+  step = ingest_array(source, runtime, estimate->numerical_lower);
+  if (!step.value) return step;
+  step = ingest_array(source, runtime, estimate->numerical_upper);
+  if (!step.value) return step;
+  step = ingest_support(source, runtime, estimate->support);
+  if (!step.value) return step;
+  step = ingest_covariance(source, runtime, estimate->noise);
+  if (!step.value) return step;
+  if (estimate->effective_response) {
+    const auto& response = *estimate->effective_response;
+    for (const ArrayRef& array : {response.weights, response.reference_factors}) {
+      step = ingest_array(source, runtime, array);
+      if (!step.value) return step;
+    }
+    for (const Ref<Response>& item : response.responses) {
+      step = ingest_response(source, runtime, item);
+      if (!step.value) return step;
+    }
+  }
+  return model::ok_result(Done{});
+}
+
+inline Result<Done> ingest_product_graph(Context& source, WorkflowRuntime& runtime,
+                                         const Ref<ProductGraph>& graph) {
+  if (!graph) return model::ok_result(Done{});
+  return ingest_signal(source, runtime, graph->signal);
+}
+
+
+inline Result<Done> ingest_frame_description(Context& source, WorkflowRuntime& runtime,
+                                             const Ref<FrameDescription>& description) {
+  if (!description) return model::ok_result(Done{});
+  Result<Done> step = ingest_index(source, runtime, description->index);
+  if (!step.value) return step;
+  step = ingest_support(source, runtime, description->support);
+  if (!step.value) return step;
+  step = ingest_covariance(source, runtime, description->noise);
+  if (!step.value) return step;
+  if (description->response) {
+    const auto& response = *description->response;
+    for (const ArrayRef& array : {response.weights, response.reference_factors}) {
+      step = ingest_array(source, runtime, array);
+      if (!step.value) return step;
+    }
+  }
+  return model::ok_result(Done{});
+}
+
+inline Result<Done> ingest_frame_inputs(Context& source, WorkflowRuntime& runtime,
+                                        const std::vector<Ref<FrameDescription>>& descriptions,
+                                        const std::vector<ArrayRef>& signals,
+                                        const std::vector<ArrayRef>& dq) {
+  for (const Ref<FrameDescription>& description : descriptions) {
+    Result<Done> step = ingest_frame_description(source, runtime, description);
+    if (!step.value) return step;
+  }
+  for (const ArrayRef& signal : signals) {
+    Result<Done> step = ingest_array(source, runtime, signal);
+    if (!step.value) return step;
+  }
+  for (const ArrayRef& item : dq) {
+    Result<Done> step = ingest_array(source, runtime, item);
+    if (!step.value) return step;
+  }
+  return model::ok_result(Done{});
+}
 
 }  // namespace acsd::workflows
