@@ -216,6 +216,8 @@ if(ACSD_BUILD_SCIENCE)
   if(TARGET acsd_builtin)
     file(GLOB_RECURSE ACSD_PROCESS_DRIVERS
          ${CMAKE_CURRENT_SOURCE_DIR}/validation/process/*/*.cpp)
+    # *._evidence.cpp is a standalone report binary, not a ctest driver.
+    list(FILTER ACSD_PROCESS_DRIVERS EXCLUDE REGEX "_evidence\\.cpp$")
     foreach(ACSD_DRIVER ${ACSD_PROCESS_DRIVERS})
       file(RELATIVE_PATH ACSD_DRIVER_REL
            ${CMAKE_CURRENT_SOURCE_DIR}/validation/process ${ACSD_DRIVER})
@@ -247,14 +249,14 @@ if(ACSD_BUILD_SCIENCE)
   if(ACSD_BUILD_CONTRACT_DRIVER AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/apps/contract/main.cpp)
     add_executable(acsd-contract apps/contract/main.cpp apps/contract/driver.cpp
                            apps/contract/json_io.cpp)
-    target_link_libraries(acsd-contract PRIVATE acsd_science codec
+    target_link_libraries(acsd-contract PRIVATE acsd_science "-Wl,--whole-archive" acsd_builtin "-Wl,--no-whole-archive" codec
                           nlohmann_json::nlohmann_json)
     target_include_directories(acsd-contract PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
   endif()
 
   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/apps/cli/main.cpp)
   add_executable(acsd apps/cli/main.cpp apps/cli/config.cpp apps/cli/events.cpp apps/cli/commands.cpp)
-  target_link_libraries(acsd PRIVATE acsd_science nlohmann_json::nlohmann_json PkgConfig::CFITSIO)
+  target_link_libraries(acsd PRIVATE acsd_science "-Wl,--whole-archive" acsd_builtin "-Wl,--no-whole-archive" nlohmann_json::nlohmann_json PkgConfig::CFITSIO)
   target_include_directories(acsd PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
   endif()
 endif()
