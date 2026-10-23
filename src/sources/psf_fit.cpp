@@ -103,6 +103,22 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
   std::vector<PixelCenter0> positions;
   std::vector<U64> source_ids;
   for (const CatalogueStar& star : stars) {
+    // The catalogue position has to be at the observation epoch.  The
+    // catalogue module owns the propagation (the pmRA*cosDec convention, the
+    // parallax and the radial velocity); the PSF path uses the position that
+    // the catalogue provider delivered for the requested epoch.  A star that
+    // is not at the observation epoch and carries a proper motion is refused
+    // instead of being propagated a second time.
+    const double epoch_gap = std::fabs(observation->context.epoch_julian_year - star.epoch_year);
+    if (epoch_gap > 1.0e-6 &&
+        (star.pmra_cosdec_rad_year != 0.0 || star.pmdec_rad_year != 0.0)) {
+      return model::fail<Ref<EffectivePSF>>(
+          Code::invalid_model,
+          "the catalogue position is not at the observation epoch; the catalogue provider has to "
+          "deliver the position of the requested epoch (the pmRA*cosDec propagation with the "
+          "parallax and the radial velocity belongs to the catalogue module)",
+          kOrigin, "the fit cannot be built");
+    }
     Result<PixelCenter0> position = sources::psfmodel::detector_position(context, wcs, star, observation->context,
                                                              request.budget);
     if (!ok(position)) continue;
@@ -266,6 +282,16 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
 
   const double tolerance =
       request.budget.tolerance.absolute > 0.0 ? request.budget.tolerance.absolute : 1.0e-10;
+  // The stopping thresholds of EXECUTION.md: the score of the scaled columns
+  // and the predicted step, both in the natural units of the parameters.  The
+  // defaults of the specification are used when the budget names no absolute
+  // tolerance.
+  const double gradient_tolerance =
+      request.budget.tolerance.absolute > 0.0 ? request.budget.tolerance.absolute : 1.0e-8;
+  const double step_tolerance =
+      request.budget.tolerance.absolute > 0.0 ? request.budget.tolerance.absolute : 1.0e-10;
+  // The radius of the trust region in the natural units of the parameters.
+  const double trust_radius = 1.0;
   const U32 max_iterations = request.budget.max_iterations > 0 ? request.budget.max_iterations : 100;
 
   double objective = 0.0;
@@ -273,11 +299,23 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
   U32 iterations = 0;
   bool converged = false;
   bool local_minimum = false;
+  bool zero_step_convergence = false;
+  bool precision_exhausted = false;
+  bool trust_region_applied = false;
+  bool domain_constrained = false;
+  bool damped_step_used = false;
+  double damping_used = 0.0;
   std::string failure;
   numerics::SvdResult svd;
   std::vector<double> step(parameter_count, 0.0);
 
   for (U32 iteration = 0; iteration < max_iterations; ++iteration) {
+    // The cancellation is checked in every iteration of the fit; a cancelled
+    // fit returns no kernel at all.
+    if (context.cancellation.requested()) {
+      return model::fail<Ref<EffectivePSF>>(Code::cancelled, "cancelled", kOrigin,
+                                            "the PSF fit was cancelled");
+    }
     iterations = iteration + 1;
     const std::size_t rows = fit_rows.size();
     // The current positions of the sources are part of the model.
@@ -291,8 +329,13 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
         context, request.family, shape_coefficients(theta), basis, current_positions, footprints,
         fit_rows, tolerance);
     if (!ok(nominal)) {
-      return model::fail<Ref<EffectivePSF>>(nominal.code, "the pixel integral cannot be built", kOrigin,
-                                            "the fit cannot be built");
+      // The reason of the builder is kept: a model outside of its valid
+      // domain is a domain failure, not an unidentified design.
+      return model::fail<Ref<EffectivePSF>>(nominal.code,
+                                            nominal.assessment.issues.empty()
+                                                ? "the pixel integral cannot be built"
+                                                : nominal.assessment.issues.front().reason,
+                                            kOrigin, "the fit cannot be built");
     }
     const sources::psfmodel::TemplateBlock& block = val(nominal);
     // The residuals.
@@ -310,6 +353,20 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
     objective = 0.0;
     for (double r : residuals) objective += 0.5 * r * r;
 
+    // The model has to have support on the fit samples.  A template without
+    // any mass is a degenerate model, and the rank of such a design says
+    // nothing about the estimability of the parameters.
+    {
+      double mass = 0.0;
+      for (double value : block.values) mass += std::fabs(value);
+      if (!(mass > 0.0)) {
+        return model::fail<Ref<EffectivePSF>>(
+            Code::nonconverged,
+            "the model has no support on the fit samples; the design matrix of a degenerate model "
+            "cannot be used to judge the estimability of the parameters",
+            kOrigin, "the fit cannot be built");
+      }
+    }
     // The Jacobian.
     // The Jacobian carries the derivative of the model, so the Gauss-Newton
     // step solves J delta = residual.
@@ -422,39 +479,97 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
     }
     gradient = 0.0;
     for (double value : score) gradient = std::max(gradient, std::fabs(value));
-    if (gradient <= tolerance) {
-      converged = true;
+    if (!std::isfinite(objective)) {
+      // The likelihood has to be finite and valid before anything else.
+      failure = "the objective is not a finite likelihood";
       break;
     }
     // The step in the scaled space: delta = J^+ residual, so the residual
     // itself is the right hand side of the least squares problem.
     step = sources::psfmodel::solve_scaled(svd, residuals, column_scale);
-    // The Gauss-Newton step is kept inside a trust region in the natural
-    // units of the parameters: one e-fold of the width, one pixel of the
-    // position and the scale of the data for the flux and the background.
-    // Without it the linearisation of the profile is not valid far from the
-    // solution and the step leaves the region where the model can be
-    // approximated.  The Armijo backtracking still starts at the full step.
+    // The natural units of the parameters: one e-fold of the width, one
+    // pixel of the position and the scale of the data for the flux and the
+    // background.  The scale is used twice: the trust region limits the step
+    // before the line search, and the step tolerance is compared with the
+    // step in the same units.
+    std::vector<double> natural_scale(parameter_count, 1.0);
+    for (std::size_t s = 0; s < sources; ++s) {
+      natural_scale[shape_count + 3 * s + 2] =
+          std::max(1.0, std::fabs(theta[shape_count + 3 * s + 2]));
+    }
+    natural_scale[parameter_count - 1] = std::max(1.0, std::fabs(theta[parameter_count - 1]));
+    // The Gauss-Newton step is kept inside the trust region.  Without it the
+    // linearisation of the profile is not valid far from the solution and the
+    // step leaves the region where the model can be approximated.  The
+    // Armijo backtracking still starts at the full step.
     {
-      std::vector<double> natural_scale(parameter_count, 1.0);
-      for (std::size_t s = 0; s < sources; ++s) {
-        natural_scale[shape_count + 3 * s + 2] =
-            std::max(1.0, std::fabs(theta[shape_count + 3 * s + 2]));
-      }
-      natural_scale[parameter_count - 1] =
-          std::max(1.0, std::fabs(theta[parameter_count - 1]));
       double largest = 0.0;
       for (std::size_t c = 0; c < parameter_count; ++c) {
         largest = std::max(largest, std::fabs(step[c]) / natural_scale[c]);
       }
-      if (largest > 1.0) {
-        for (std::size_t c = 0; c < parameter_count; ++c) step[c] /= largest;
+      if (largest > trust_radius) {
+        for (std::size_t c = 0; c < parameter_count; ++c) step[c] *= trust_radius / largest;
+        trust_region_applied = true;
       }
     }
+    // The step may not walk into a parameter region that does not describe a
+    // density.  The margin of every local parameter bounds the change that
+    // keeps the model valid, and the step is scaled down to that bound.  Every
+    // step of the fit goes through this constraint, the pure one and the
+    // damped one.
+    auto constrain_to_valid_domain = [&](std::vector<double>& candidate) {
+      double limit = 1.0;
+      for (std::size_t s = 0; s < sources; ++s) {
+        const std::vector<double> local = local_of(theta, current_positions[s], s);
+        const std::vector<double> basis_vector = sources::psfmodel::basis_values(
+            basis, request.spatial_degree, current_positions[s].x, current_positions[s].y);
+        for (std::size_t r = 0; r < local.size(); ++r) {
+          const double margin = sources::psfmodel::local_parameter_margin(request.family, local, r);
+          // The step acts on the coefficients of the spatial polynomial, so
+          // the change of the local parameter is the weighted sum of the
+          // changes of its coefficients.
+          double change = 0.0;
+          for (std::size_t k = 0; k < basis_vector.size() && r * term_count + k < parameter_count;
+               ++k) {
+            change += std::fabs(candidate[r * term_count + k] * basis_vector[k]);
+          }
+          if (change > margin && change > 0.0) {
+            // A parameter that sits on the boundary leaves no room for a step
+            // in that direction.  The step is shortened, never frozen: when
+            // every margin is exhausted the fit still moves by a fixed
+            // fraction, and the line search rejects the trial if it leaves the
+            // domain, so the iteration can never deadlock on the boundary.
+            const double allowed = margin > 0.0 ? margin / change : 0.5;
+            limit = std::min(limit, allowed);
+          }
+        }
+      }
+      if (limit < 1.0) {
+        for (std::size_t c = 0; c < parameter_count; ++c) candidate[c] *= limit;
+        domain_constrained = true;
+      }
+    };
+    constrain_to_valid_domain(step);
+    // The step in the natural units of the parameters: this is the step that
+    // is compared with the step tolerance.
     double step_norm = 0.0;
-    for (double value : step) step_norm = std::max(step_norm, std::fabs(value));
-    if (step_norm <= tolerance) {
+    for (std::size_t c = 0; c < parameter_count; ++c) {
+      step_norm = std::max(step_norm, std::fabs(step[c]) / natural_scale[c]);
+    }
+    // The stationarity of the current point is checked before the line
+    // search: the score and the predicted step both have to reach the
+    // requested thresholds, then a zero step is a convergence.  When the step
+    // is rounded to zero but the score is still large, the precision of the
+    // model is exhausted and the fit has to be escalated.
+    if (gradient <= gradient_tolerance && step_norm <= step_tolerance) {
       converged = true;
+      zero_step_convergence = true;
+      break;
+    }
+    if (step_norm <= step_tolerance) {
+      failure = "the step is rounded to zero while the score is still larger than the gradient "
+                "tolerance; the precision of the model is exhausted";
+      precision_exhausted = true;
       break;
     }
     // The reduction the linear model predicts for the full step.  It is the
@@ -476,10 +591,22 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
       std::vector<double> trial = theta;
       for (std::size_t c = 0; c < parameter_count; ++c) trial[c] += lambda * step[c];
       // The trial objective.
+      // The trial parameters have to describe a density.  A trial outside the
+      // valid domain is an infeasible trial of the line search, not a failure
+      // of the fit: the step is shortened until the model is a density again.
+      std::vector<PixelCenter0> trial_positions = positions;
+      for (std::size_t s = 0; s < sources; ++s) {
+        trial_positions[s].x = trial[shape_count + 3 * s];
+        trial_positions[s].y = trial[shape_count + 3 * s + 1];
+      }
       Result<sources::psfmodel::TemplateBlock> trial_block = sources::psfmodel::build_templates(
-          context, request.family, shape_coefficients(trial), basis, positions, footprints, fit_rows,
-          tolerance);
+          context, request.family, shape_coefficients(trial), basis, trial_positions, footprints,
+          fit_rows, tolerance);
       if (!ok(trial_block)) {
+        if (trial_block.code == Code::domain) {
+          lambda *= 0.5;
+          continue;
+        }
         return model::fail<Ref<EffectivePSF>>(trial_block.code, "the pixel integral cannot be built",
                                               kOrigin, "the fit cannot be built");
       }
@@ -512,6 +639,7 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
       for (U32 attempt = 0; attempt < 12 && !accepted; ++attempt, damping *= 10.0) {
         std::vector<double> damped =
             sources::psfmodel::solve_damped(svd, residuals, column_scale, damping);
+        constrain_to_valid_domain(damped);
         std::vector<double> trial = theta;
         for (std::size_t c = 0; c < parameter_count; ++c) trial[c] += damped[c];
         std::vector<PixelCenter0> trial_positions = positions;
@@ -523,6 +651,7 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
             context, request.family, shape_coefficients(trial), basis, trial_positions, footprints,
             fit_rows, tolerance);
         if (!ok(trial_block)) {
+          if (trial_block.code == Code::domain) continue;
           return model::fail<Ref<EffectivePSF>>(trial_block.code,
                                                 "the pixel integral cannot be built", kOrigin,
                                                 "the fit cannot be built");
@@ -544,6 +673,8 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
           next_objective = trial_objective;
           accepted = true;
           step = damped;
+          damped_step_used = true;
+          damping_used = damping;
         }
       }
       if (!accepted) {
@@ -575,7 +706,8 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
     failure = "the iteration limit is reached before the score is small enough";
   }
   if (!converged) {
-    return model::fail<Ref<EffectivePSF>>(Code::nonconverged, failure, kOrigin,
+    const Code code = precision_exhausted ? Code::precision_exhausted : Code::nonconverged;
+    return model::fail<Ref<EffectivePSF>>(code, failure, kOrigin,
                                           "the PSF fit did not converge");
   }
 
@@ -660,10 +792,40 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
   fitted->assessment.science = ScienceState::conditional;
   model::set_included(fitted->assessment, "gauss_newton_with_armijo_backtracking");
   model::set_omitted(fitted->assessment, "the_parameter_box_is_conditional_on_the_gauss_newton_hessian");
+  // The order of the steps is part of the record: the scale check of the
+  // columns comes first, the trust region limits the step, and only then the
+  // Armijo backtracking starts at the full step.
+  model::set_included(
+      fitted->assessment,
+      "the_column_scale_check_precedes_the_trust_region_and_the_armijo_backtracking; the trust "
+      "region radius is one natural unit (one e-fold of the width, one pixel of the position, the "
+      "scale of the data for the flux and the background) and it was " +
+          std::string(trust_region_applied ? "active" : "not active") + " in the last step");
+  // The kind of step that was used in the last iteration.
+  if (damped_step_used) {
+    model::set_included(fitted->assessment,
+                        "the last accepted step was a damped Gauss-Newton step (Levenberg-"
+                        "Marquardt, damping " +
+                            std::to_string(damping_used) +
+                            "), because the pure Gauss-Newton step could not decrease the objective");
+  } else {
+    model::set_included(fitted->assessment, "the last accepted step was a pure Gauss-Newton step");
+  }
+  if (zero_step_convergence) {
+    model::set_included(fitted->assessment,
+                        "the fit converged with a zero step: the score and the predicted step both "
+                        "reached the requested thresholds");
+  }
   if (local_minimum) {
-    model::add_issue(fitted->assessment, Code::unavailable,
-                      "the fit stopped at a local minimum of the objective", kOrigin,
-                      "the parameter box is conditional on that minimum");
+    // The reason has to be specific and reviewable, and the fit must not claim
+    // that the requested accuracy was reached.
+    model::add_issue(
+        fitted->assessment, Code::unavailable,
+        "the achieved decrease of the objective was at most a tenth of the decrease the linear "
+        "model predicted, so the linearisation is not certified on that interval; the fit stopped "
+        "at a local minimum of the objective and the requested accuracy is not claimed",
+        kOrigin, "the parameter box is conditional on that local minimum");
+    model::set_omitted(fitted->assessment, "the_requested_fit_accuracy_is_not_certified");
   }
   model::set_omitted(fitted->assessment, "chromatic_psf_is_not_modelled");
   fitted->identity = model::make_identity(

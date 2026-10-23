@@ -63,6 +63,13 @@ double rectangle_estimate(const std::function<double(double, double)>& f, double
   return sum * hx * hy;
 }
 
+// The hard limit on the number of panels of one two dimensional integral.
+// The bisection below is four-way, so a depth limit alone allows 4^depth
+// panels: with depth 18 that is 6.8e10, which is not a termination guarantee.
+// A starved integral returns converged = false together with the bound it has,
+// and the caller refuses to certify the template.
+constexpr std::size_t kMaximumPanels = 4096;
+
 // The adaptive block quadrature.  Every block carries its own error estimate;
 // the total error is the sum of the block errors.
 Integral adaptive_block(const std::function<double(double, double)>& f, double x0, double x1,
@@ -72,7 +79,19 @@ Integral adaptive_block(const std::function<double(double, double)>& f, double x
   const double coarse = rectangle_estimate(f, x0, x1, y0, y1, coarse_rule());
   const double error = std::fabs(fine - coarse);
   ++panels;
-  if (error <= tolerance || depth >= max_depth) {
+  // A non-finite value cannot be refined: the block is returned as is, not
+  // converged, and the error is reported as infinite so that no caller can
+  // mistake it for a certified integral.
+  if (!std::isfinite(fine) || !std::isfinite(coarse)) {
+    Integral out;
+    out.value = 0.0;
+    out.error = std::numeric_limits<double>::infinity();
+    out.converged = false;
+    out.panels = panels;
+    return out;
+  }
+  if (error <= tolerance || depth >= max_depth ||
+      static_cast<std::size_t>(panels) >= kMaximumPanels) {
     Integral out;
     out.value = fine;
     out.error = error;
@@ -160,10 +179,106 @@ std::vector<double> local_parameters(PsfRequest::Family family,
   return local;
 }
 
+namespace {
+
+// The bounds of the local parameters: the width of the profile in pixels, the
+// correlation through atanh and the exponent of the Moffat.
+constexpr double kLogWidthLower = -6.907755278982137;   // log(1e-3)
+constexpr double kLogWidthUpper = 6.907755278982137;    // log(1e3)
+constexpr double kCorrelationLimit = 9.0;                // tanh(9) is below one
+constexpr double kLogExponentLower = -6.907755278982137;
+constexpr double kLogExponentUpper = 6.907755278982137;
+
+}  // namespace
+
+bool local_parameters_valid(PsfRequest::Family family, const std::vector<double>& local,
+                            std::string& reason) {
+  if (local.empty()) {
+    reason = "the model has no local parameters";
+    return false;
+  }
+  if (!std::isfinite(local[0])) {
+    reason = "the width of the profile is not a finite number";
+    return false;
+  }
+  if (family == PsfRequest::Family::airy) {
+    if (!(std::exp(local[0]) > 0.0) || !std::isfinite(std::exp(local[0]))) {
+      reason = "the first dark ring radius of the Airy pattern is not positive";
+      return false;
+    }
+    return true;
+  }
+  if (local.size() < 3) {
+    reason = "the model has too few local parameters";
+    return false;
+  }
+  if (!(std::exp(local[0]) > 0.0) || !std::isfinite(std::exp(local[0]))) {
+    reason = "the width of the profile along x is not positive and finite";
+    return false;
+  }
+  if (!(std::exp(local[1]) > 0.0) || !std::isfinite(std::exp(local[1]))) {
+    reason = "the width of the profile along y is not positive and finite";
+    return false;
+  }
+  if (!std::isfinite(local[2])) {
+    reason = "the correlation of the profile is not a finite number";
+    return false;
+  }
+  // The correlation is the hyperbolic tangent of the parameter, so the
+  // parameter itself may be large; the tangent saturates at one, and a
+  // correlation of one is not a density.
+  const double rho = std::tanh(local[2]);
+  if (!(std::fabs(rho) < 1.0)) {
+    reason = "the correlation of the profile reaches one, so the model is not a density";
+    return false;
+  }
+  if (family == PsfRequest::Family::moffat) {
+    if (local.size() < 4) {
+      reason = "the Moffat model has too few local parameters";
+      return false;
+    }
+    if (!(std::exp(local[3]) > 0.0) || !std::isfinite(std::exp(local[3]))) {
+      reason = "the exponent of the Moffat profile is not positive and finite";
+      return false;
+    }
+  }
+  return true;
+}
+
+double local_parameter_margin(PsfRequest::Family family, const std::vector<double>& local,
+                              std::size_t parameter) {
+  if (family == PsfRequest::Family::airy) {
+    if (parameter == 0) {
+      const double value = local[0];
+      return std::max(kLogWidthUpper - value, value - kLogWidthLower);
+    }
+    return 0.0;
+  }
+  // The margin is the distance to the nearest bound of the valid domain.
+  if (parameter == 0) {
+    return std::min(kLogWidthUpper - local[0], local[0] - kLogWidthLower);
+  }
+  if (parameter == 1) {
+    return std::min(kLogWidthUpper - local[1], local[1] - kLogWidthLower);
+  }
+  if (parameter == 2) {
+    return std::min(kCorrelationLimit - local[2], local[2] + kCorrelationLimit);
+  }
+  if (parameter == 3) {
+    return std::min(kLogExponentUpper - local[3], local[3] - kLogExponentLower);
+  }
+  return 0.0;
+}
+
 double density(PsfRequest::Family family, const std::vector<double>& local, double dx, double dy) {
+  // An invalid parameter does not describe a density.  The value is poisoned
+  // so that a caller that skipped the check cannot use a zero as if it were
+  // a computed density; the builders check the parameters first and report a
+  // named domain failure.
+  const double invalid = std::numeric_limits<double>::quiet_NaN();
   if (family == PsfRequest::Family::airy) {
     const double r0 = std::exp(local[0]);
-    if (!(r0 > 0.0)) return 0.0;
+    if (!(r0 > 0.0)) return invalid;
     const double k = numerics::bessel_j1_first_zero() / r0;
     const double r = std::sqrt(dx * dx + dy * dy);
     if (r <= 0.0) return k * k / (4.0 * kPi);
@@ -174,16 +289,16 @@ double density(PsfRequest::Family family, const std::vector<double>& local, doub
   const double sx = std::exp(local[0]);
   const double sy = std::exp(local[1]);
   const double rho = std::tanh(local[2]);
-  if (!(sx > 0.0) || !(sy > 0.0) || !(1.0 - rho * rho > 0.0)) return 0.0;
+  if (!(sx > 0.0) || !(sy > 0.0) || !(1.0 - rho * rho > 0.0)) return invalid;
   const double cross = rho * sx * sy;
   const double determinant = sx * sx * sy * sy - cross * cross;
-  if (!(determinant > 0.0)) return 0.0;
+  if (!(determinant > 0.0)) return invalid;
   const double ixx = sy * sy / determinant;
   const double iyy = sx * sx / determinant;
   const double ixy = -cross / determinant;
   const double m2 = ixx * dx * dx + 2.0 * ixy * dx * dy + iyy * dy * dy;
   if (family == PsfRequest::Family::gaussian) {
-    if (m2 < 0.0) return 0.0;
+    if (m2 < 0.0) return invalid;
     return std::exp(-0.5 * m2) / (2.0 * kPi * std::sqrt(determinant));
   }
   const double beta_minus_one = std::exp(local[3]);
@@ -259,6 +374,41 @@ Integral integrate_rectangle(PsfRequest::Family family, const std::vector<double
     out.converged = true;
     out.panels = 1;
     return out;
+  }
+  if (family == PsfRequest::Family::gaussian) {
+    // A correlated Gaussian is still integrable in one dimension: the
+    // conditional distribution of y given x is Gaussian, so the integral over
+    // the rectangle is
+    //   int_{x0}^{x1} N_x(x) [Phi((y1 - mu(x))/s) - Phi((y0 - mu(x))/s)] dx
+    // with the marginal N_x, the conditional mean mu(x) = py + rho sy dx / sx
+    // and the conditional width s = sy sqrt(1 - rho^2).  This is exact up to
+    // the one dimensional quadrature, and it is far cheaper than refining a
+    // near singular two dimensional integrand; the two dimensional path stays
+    // for the profiles that have no such reduction (Moffat, Airy).
+    const double sx = std::exp(local[0]);
+    const double sy = std::exp(local[1]);
+    const double rho = std::tanh(local[2]);
+    const double conditional = sy * std::sqrt(std::max(0.0, 1.0 - rho * rho));
+    if (conditional > 0.0 && std::isfinite(conditional) && sx > 0.0) {
+      const double tolerance = std::max(absolute_tolerance, 1.0e-14);
+      const std::function<double(double)> integrand = [&](double x) {
+        const double dx = x - px;
+        const double marginal = std::exp(-0.5 * dx * dx / (sx * sx)) / (std::sqrt(2.0 * kPi) * sx);
+        const double mean = py + rho * (sy / sx) * dx;
+        const double upper = 0.5 * (1.0 + numerics::erf((y1 - mean) / (std::sqrt(2.0) * conditional)));
+        const double lower = 0.5 * (1.0 + numerics::erf((y0 - mean) / (std::sqrt(2.0) * conditional)));
+        return marginal * (upper - lower);
+      };
+      const numerics::QuadratureResult quadrature =
+          numerics::adaptive_integrate(integrand, x0, x1, tolerance, 0.0, 200);
+      Integral out;
+      out.value = quadrature.value;
+      out.error = std::isfinite(quadrature.absolute_error) ? quadrature.absolute_error
+                                                           : std::numeric_limits<double>::infinity();
+      out.converged = quadrature.converged;
+      out.panels = quadrature.panels;
+      return out;
+    }
   }
   int panels = 0;
   const double tolerance = std::max(absolute_tolerance, 1.0e-14);
@@ -388,9 +538,27 @@ Result<TemplateBlock> build_templates_from_local(Context& context, PsfRequest::F
                                        "sources.psf", "the template cannot be built");
   }
   for (std::size_t s = 0; s < sources; ++s) {
+    // The cancellation is checked for every source and for every block of
+    // samples: a cancelled build returns no partial template.
+    if (context.cancellation.requested()) {
+      return model::fail<TemplateBlock>(Code::cancelled, "cancelled", "sources.psf",
+                                        "the template cannot be built");
+    }
     const std::vector<double>& local = locals[s];
+    // The parameters have to describe a density.  An invalid parameter is a
+    // named domain failure, never a template of zeros.
+    std::string reason;
+    if (!local_parameters_valid(family, local, reason)) {
+      return model::fail<TemplateBlock>(Code::domain, reason, "sources.psf",
+                                        "the model is not a density and the template cannot be "
+                                        "built");
+    }
     double mass = 0.0;
     for (std::size_t k = 0; k < samples; ++k) {
+      if ((k & 0x3F) == 0 && context.cancellation.requested()) {
+        return model::fail<TemplateBlock>(Code::cancelled, "cancelled", "sources.psf",
+                                          "the template cannot be built");
+      }
       const SampleFootprint footprint = sample_footprint(footprints, rows[k]);
       if (!footprint.valid) continue;
       Integral integral;
@@ -474,23 +642,16 @@ std::vector<double> solve_damped(const numerics::SvdResult& svd, const std::vect
   return solution;
 }
 
-SkyICRS propagate_star(const CatalogueStar& star, const AstrometricContext& context) {
-  double ra = star.ra_rad;
-  double dec = star.dec_rad;
-  if (std::isfinite(star.epoch_year) && std::isfinite(context.epoch_julian_year)) {
-    const double dt = context.epoch_julian_year - star.epoch_year;
-    ra += star.pmra_cosdec_rad_year * dt;
-    dec += star.pmdec_rad_year * dt;
-  }
-  const double cos_dec = std::cos(dec);
-  return SkyICRS{cos_dec * std::cos(ra), cos_dec * std::sin(ra), std::sin(dec)};
-}
-
 Result<PixelCenter0> detector_position(Context& context, Ref<WcsModel> wcs,
                                         const CatalogueStar& star,
                                         const AstrometricContext& context_epoch,
                                         const NumericBudget& budget) {
-  const SkyICRS sky = propagate_star(star, context_epoch);
+  // The catalogue module owns the propagation to the observation epoch (the
+  // pmRA*cosDec convention, the parallax and the radial velocity).  The
+  // sources module never propagates a second time: the position of the star
+  // is used as the catalogue provider delivered it.
+  const SkyICRS sky{std::cos(star.dec_rad) * std::cos(star.ra_rad),
+                    std::cos(star.dec_rad) * std::sin(star.ra_rad), std::sin(star.dec_rad)};
   Result<InverseResult> inverted = inverse(context, wcs, sky, budget);
   if (!ok(inverted)) {
     return model::fail<PixelCenter0>(inverted.code,
