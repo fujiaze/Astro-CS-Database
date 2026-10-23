@@ -1,0 +1,88 @@
+{
+  "case": "coadd_integrate",
+  "title": "coadd.integrate: sealed Selection/WeightSolution consumed by the unique core; no second select/weights",
+  "milestone": "M5",
+  "contract_refs": [
+    "docs/engineering/rebuild/processes/coadd.integrate.md (只消费已封存 Selection/WeightSolution；不调用 select/weights)",
+    "docs/engineering/rebuild/standards/COMPUTE_MODULES.md (coadd.integrate Input/Output)",
+    "docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md (module composition and failure codes)"
+  ],
+  "fixed_configuration": {
+    "frames": 2,
+    "leaves_per_frame": 2,
+    "leaf_order": 3,
+    "leaves": "(3,10),(3,11)",
+    "signals": {
+      "frame0": [
+        10,
+        20
+      ],
+      "frame1": [
+        30,
+        45
+      ]
+    },
+    "weights_policy": "equal",
+    "rejection": "dq_only",
+    "mixed_observation": false,
+    "expected_signal": [
+      20,
+      32.5
+    ],
+    "old_coadd_provider_calls": {
+      "list_frames": 3,
+      "describe": 6,
+      "read_leaf": 6
+    },
+    "sealed_core_provider_calls": {
+      "list_frames": 1,
+      "describe": 2,
+      "read_leaf": 2
+    },
+    "negative_codes": {
+      "selection_identity": "identity_conflict",
+      "missing_weights": "invalid_request",
+      "coefficient_dimension": "invalid_request",
+      "weight_policy": "identity_conflict",
+      "rejection_policy": "identity_conflict"
+    },
+    "plan": {
+      "R": 73744,
+      "F": 1056860,
+      "work": 1088,
+      "edges": 0,
+      "cohorts": 1
+    },
+    "typed_negative_codes": {
+      "selection_identity": "identity_conflict",
+      "missing_weights": "invalid_request",
+      "coefficient_dimension": "invalid_request"
+    }
+  },
+  "required_checks": [
+    "cal.coadd_old_ok",
+    "coadd.select_ok",
+    "coadd.weights_ok",
+    "coadd.core_ok",
+    "coadd.no_second_selection",
+    "coadd.no_second_weights",
+    "coadd.bit_identical",
+    "coadd.negative_selection_identity",
+    "coadd.negative_missing_weights",
+    "coadd.negative_dimension",
+    "coadd.negative_policy",
+    "coadd.negative_rejection",
+    "coadd.process_validate",
+    "coadd.process_bounds",
+    "coadd.plan_numbers",
+    "coadd.process_negative_selection",
+    "coadd.process_negative_missing_weights",
+    "coadd.process_negative_dimension",
+    "coadd.process_run"
+  ],
+  "min_attempts": 19,
+  "expected_success_count": 19,
+  "tolerance": "signal values compared by exact FP64 bits; provider call counts exact; Codes by name",
+  "link": "coadd",
+  "timeout_seconds": 120
+}

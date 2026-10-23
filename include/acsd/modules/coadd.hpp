@@ -5,12 +5,11 @@
 // coadd.weights   / solve_weights  -> WeightSolution
 // coadd.integrate / coadd          -> CoaddResult
 //
-// select/weights call the existing implementations.  integrate is the one
-// blocked operation: the current coadd() free function still calls
-// select_samples and solve_weights internally, so it cannot consume sealed
-// Selection/WeightSolution without a refactor of the unique implementation.
-// Its run hook is a named unsupported failure (never a silent recomputation);
-// the minimal counterexample and the refactor are recorded in
+// select/weights call the existing implementations.  integrate consumes the
+// already sealed Selection/WeightSolution through the unique core
+// acsd::coadd_with_inputs(); it never calls select_samples/solve_weights.  The
+// compatibility coadd() entry still runs select+weights once and then delegates
+// to that same core.  The evidence and the negative cases are recorded in
 // validation/process/coadd.integrate/.
 // Break the generated inputs.hpp <-> observation.hpp include cycle (the
 // observation header uses this generated type before inputs.hpp defines it).

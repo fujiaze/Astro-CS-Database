@@ -1,0 +1,171 @@
+{
+  "case": "coadd_integrate",
+  "status": "pass",
+  "reason": "all required checks passed",
+  "attempts": 19,
+  "successes": 19,
+  "expected_success_count": 19,
+  "observed_success_count": 19,
+  "required_checks": 19,
+  "missing_checks": [],
+  "failed_checks": [],
+  "failures": [],
+  "checks": [
+    {
+      "check": "cal.coadd_old_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the historical coadd() entry still works"
+    },
+    {
+      "check": "coadd.select_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the selection is sealed once"
+    },
+    {
+      "check": "coadd.weights_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the weights are solved once"
+    },
+    {
+      "check": "coadd.core_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the sealed core returns a result"
+    },
+    {
+      "check": "coadd.no_second_selection",
+      "pass": true,
+      "expected": "1 list_frames, 2 describe, 2 read_leaf_block",
+      "actual": "list=1 describe=2 read=2",
+      "detail": "select_samples/solve_weights would each add a full list+read pass"
+    },
+    {
+      "check": "coadd.no_second_weights",
+      "pass": true,
+      "expected": "the old path lists at least twice, the sealed core once",
+      "actual": "old=3 new=1",
+      "detail": "counters show the frozen inputs are consumed, not recomputed"
+    },
+    {
+      "check": "coadd.bit_identical",
+      "pass": true,
+      "expected": "the sealed core equals the historical coadd() signal and identity",
+      "actual": "bit identical",
+      "detail": "equal policy / dq_only rejection in both paths"
+    },
+    {
+      "check": "coadd.negative_selection_identity",
+      "pass": true,
+      "expected": "identity_conflict",
+      "actual": "identity_conflict/identity_conflict",
+      "detail": "the weights solve for a different Selection identity"
+    },
+    {
+      "check": "coadd.negative_missing_weights",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": "a missing WeightSolution is invalid_request"
+    },
+    {
+      "check": "coadd.negative_dimension",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": "the coefficient matrix dimension does not match leaves x frames"
+    },
+    {
+      "check": "coadd.negative_policy",
+      "pass": true,
+      "expected": "identity_conflict",
+      "actual": "identity_conflict",
+      "detail": "the requested weight policy differs from the sealed policy"
+    },
+    {
+      "check": "coadd.negative_rejection",
+      "pass": true,
+      "expected": "identity_conflict",
+      "actual": "identity_conflict",
+      "detail": "the sealed selection rejection policy differs from the request"
+    },
+    {
+      "check": "coadd.process_validate",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": "the sealed typed input validates"
+    },
+    {
+      "check": "coadd.process_bounds",
+      "pass": true,
+      "expected": "min=max=2, window=1, no spill",
+      "actual": "2",
+      "detail": "the whole-frame core fixes the legal block"
+    },
+    {
+      "check": "coadd.plan_numbers",
+      "pass": true,
+      "expected": "R=73744, F=1056860, work=1088, no edge",
+      "actual": "R=73744 F=1056860",
+      "detail": "the conservative whole-frame plan"
+    },
+    {
+      "check": "coadd.process_negative_selection",
+      "pass": true,
+      "expected": "identity_conflict",
+      "actual": "identity_conflict",
+      "detail": "the typed validate keeps the identity conflict"
+    },
+    {
+      "check": "coadd.process_negative_missing_weights",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": "a missing WeightSolution is invalid_request"
+    },
+    {
+      "check": "coadd.process_negative_dimension",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request",
+      "detail": "a wrong coefficient dimension is invalid_request"
+    },
+    {
+      "check": "coadd.process_run",
+      "pass": true,
+      "expected": "[16,32.5], one list/read pass through the real run hook",
+      "actual": "ok",
+      "detail": "run_coadd_integrate consumes the sealed inputs"
+    }
+  ],
+  "values": {
+    "coadd.old.list_frames_calls": 3,
+    "coadd.old.describe_calls": 6,
+    "coadd.old.read_leaf_calls": 6,
+    "coadd.new.list_frames_calls": 1,
+    "coadd.new.describe_calls": 2,
+    "coadd.new.read_leaf_calls": 2,
+    "coadd.estimate.identity": "sha256:022064cbfac22b68323cd22524c9fe80a2c541e5e91f6dff5b6c37c25d90bcd8",
+    "coadd.signal0": 20,
+    "coadd.signal1": 32.5,
+    "coadd.plan.R": 73744,
+    "coadd.plan.F": 1056860,
+    "coadd.plan.work": 1088,
+    "coadd.plan.edges": 0,
+    "coadd.run.list_frames_calls": 1,
+    "coadd.run.read_leaf_calls": 2,
+    "coadd.run.signal0": 20,
+    "coadd.run.signal1": 32.5
+  },
+  "resources": {
+    "checks": 19,
+    "successes": 19
+  }
+}

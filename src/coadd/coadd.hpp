@@ -14,6 +14,32 @@
 #include "numerics/linalg.hpp"
 #include "operators/linear_action.hpp"
 
+namespace acsd {
+
+// The inputs of the one combination implementation.  The frames provider is a
+// borrowed reference for the duration of the call; the frozen sky fit, the
+// sealed Selection and the sealed WeightSolution are strong references.
+struct CoaddInputs {
+  const FramesProvider* frames = nullptr;
+  Ref<SkyFit> sky;
+  Ref<Selection> selection;
+  Ref<WeightSolution> weights;
+  CoaddRequest request;
+};
+
+// Metadata-only validation of the sealed inputs.  It reads no payload, so the
+// typed validate/plan hooks can use it; the payload-level leaf order and the
+// coefficient matrix are checked by coadd_with_inputs after the read.
+Result<rt::Done> validate_coadd_inputs(const CoaddInputs& inputs);
+
+// The unique combination core: it consumes the sealed Selection/WeightSolution
+// and never calls select_samples()/solve_weights().  coadd() delegates here
+// after producing its selection and weights with the same functions, and the
+// coadd.integrate run hook delegates here with the already sealed objects.
+Result<CoaddResult> coadd_with_inputs(Context& context, const CoaddInputs& inputs);
+
+}  // namespace acsd
+
 namespace acsd::coadd_internal {
 
 

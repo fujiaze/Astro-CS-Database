@@ -1002,25 +1002,163 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
 }
 
 // ---------------------------------------------------------------------------
-// coadd
+// The unique combination core and the frozen-input validation
 // ---------------------------------------------------------------------------
 
-Result<CoaddResult> coadd(Context& context, const FramesProvider& frames, Ref<SkyFit> sky,
-                           const CoaddRequest& request) {
-  Result<Ref<Selection>> selection = select_samples(context, frames, request);
-  if (!ok(selection)) {
-    return model::fail<CoaddResult>(selection.code, "the samples cannot be selected", "coadd",
-                                    "the combination is not available");
+namespace {
+
+bool same_identity(const Identity& a, const Identity& b) {
+  if (!a.content_hash.empty() || !b.content_hash.empty())
+    return a.content_hash == b.content_hash;
+  return a.object_id == b.object_id;
+}
+
+bool same_condition(const Condition& a, const Condition& b) {
+  return a.estimator == b.estimator && a.kind == b.kind &&
+         a.fixed_objects == b.fixed_objects && a.assumptions == b.assumptions;
+}
+
+bool same_rejection(const RejectionPolicy& a, const RejectionPolicy& b) {
+  if (a.kind != b.kind || a.alpha != b.alpha ||
+      a.common_mean_proof != b.common_mean_proof)
+    return false;
+  if (static_cast<bool>(a.external_fixed_covariance) !=
+      static_cast<bool>(b.external_fixed_covariance))
+    return false;
+  if (a.external_fixed_covariance && b.external_fixed_covariance)
+    return same_identity(a.external_fixed_covariance->identity,
+                         b.external_fixed_covariance->identity);
+  return true;
+}
+
+U64 array_elements(const ArrayRef& array) {
+  if (!array) return 0;
+  return static_cast<U64>(count_elements(array->shape));
+}
+
+Result<rt::Done> validate_inputs(const CoaddInputs& inputs) {
+  if (!inputs.frames) {
+    return model::fail<rt::Done>(Code::invalid_request, "the frames provider is missing", "coadd",
+                                 "the combination is not available");
   }
-  Result<Ref<WeightSolution>> weights =
-      solve_weights(context, frames, val(selection), request);
-  if (!ok(weights)) {
-    return model::fail<CoaddResult>(weights.code, "the weights cannot be solved", "coadd",
-                                    "the combination is not available");
+  // A null SkyFit is the historical "no relative sky applied" case: the
+  // combination never applies a sky correction, it only carries the frozen fit
+  // to the result.  The compatibility entry point relies on this.
+  if (!inputs.selection) {
+    return model::fail<rt::Done>(Code::invalid_request, "the sealed selection is missing", "coadd",
+                                 "the combination is not available");
   }
+  if (!inputs.weights) {
+    return model::fail<rt::Done>(Code::invalid_request,
+                                 "the sealed weight solution is missing", "coadd",
+                                 "the combination is not available");
+  }
+  const Selection& selection = *inputs.selection;
+  const WeightSolution& weights = *inputs.weights;
+  if (!selection.index || !selection.accepted || !selection.eligibility ||
+      !selection.reasons || !selection.index->ids) {
+    return model::fail<rt::Done>(Code::invalid_request,
+                                 "the sealed selection is incomplete", "coadd",
+                                 "the combination is not available");
+  }
+  if (!weights.coefficients || !weights.samples) {
+    return model::fail<rt::Done>(Code::invalid_request,
+                                 "the sealed weight solution is incomplete", "coadd",
+                                 "the combination is not available");
+  }
+  if (selection.index->size == 0 || selection.index->kind != Index::Kind::leaf) {
+    return model::fail<rt::Done>(Code::invalid_request,
+                                 "the sealed selection has no leaf index", "coadd",
+                                 "the combination is not available");
+  }
+  // The selection identity and the sample index of the weights must be the
+  // same objects the weights were solved for.
+  if (!same_identity(weights.samples->identity, selection.index->identity)) {
+    return model::fail<rt::Done>(
+        Code::identity_conflict,
+        "the weight sample index differs from the sealed selection index", "coadd",
+        "the sealed inputs cannot be combined");
+  }
+  if (!weights.selection) {
+    return model::fail<rt::Done>(
+        Code::identity_conflict,
+        "the weight solution does not carry the sealed selection identity", "coadd",
+        "the sealed inputs cannot be combined");
+  }
+  if (!same_identity(weights.selection->identity, selection.identity)) {
+    return model::fail<rt::Done>(
+        Code::identity_conflict,
+        "the weights were solved for a different Selection object", "coadd",
+        "the sealed inputs cannot be combined");
+  }
+  if (!same_rejection(selection.policy, inputs.request.rejection)) {
+    return model::fail<rt::Done>(
+        Code::identity_conflict,
+        "the sealed selection rejection policy differs from the requested policy", "coadd",
+        "the sealed inputs cannot be combined");
+  }
+  if (inputs.request.weights != WeightPolicy::automatic &&
+      inputs.request.weights != weights.policy) {
+    return model::fail<rt::Done>(
+        Code::identity_conflict,
+        "the sealed weight policy differs from the requested weight policy", "coadd",
+        "the sealed inputs cannot be combined");
+  }
+  if (!same_condition(selection.condition, inputs.request.target.condition)) {
+    return model::fail<rt::Done>(
+        Code::identity_conflict,
+        "the sealed selection belongs to a different estimator condition", "coadd",
+        "the sealed inputs cannot be combined");
+  }
+  if (!same_condition(weights.condition, inputs.request.target.condition)) {
+    return model::fail<rt::Done>(
+        Code::identity_conflict,
+        "the sealed weights belong to a different estimator condition", "coadd",
+        "the sealed inputs cannot be combined");
+  }
+  const U64 leaves = selection.index->size;
+  if (weights.samples->size != leaves) {
+    return model::fail<rt::Done>(Code::invalid_request,
+                                 "the weight sample index has the wrong dimension", "coadd",
+                                 "the sealed inputs cannot be combined");
+  }
+  if (weights.coefficients->shape.size() != 2 ||
+      weights.coefficients->shape[0] != leaves || weights.coefficients->shape[1] == 0) {
+    return model::fail<rt::Done>(
+        Code::invalid_request,
+        "the weight coefficient matrix does not match leaves x frames", "coadd",
+        "the sealed inputs cannot be combined");
+  }
+  const U64 frames = weights.coefficients->shape[1];
+  if (array_elements(selection.accepted) != leaves * frames ||
+      array_elements(selection.eligibility) != leaves * frames ||
+      array_elements(selection.reasons) != leaves * frames) {
+    return model::fail<rt::Done>(
+        Code::invalid_request,
+        "the sealed selection arrays do not match leaves x frames", "coadd",
+        "the sealed inputs cannot be combined");
+  }
+  if (array_elements(selection.index->ids) != leaves * 2) {
+    return model::fail<rt::Done>(Code::invalid_request,
+                                 "the sealed selection leaf identities are malformed", "coadd",
+                                 "the sealed inputs cannot be combined");
+  }
+  return model::ok_result(rt::Done{});
+}
+
+// The combination body.  It reads the frozen frames, the sealed leaf order and
+// the sealed coefficients; it never selects or solves again.
+Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frames,
+                                   Ref<SkyFit> sky, Ref<Selection> selection,
+                                   Ref<WeightSolution> weights,
+                                   const CoaddRequest& request) {
   Result<std::vector<Id>> frame_ids = frames.list_frames(context);
   if (!ok(frame_ids)) {
     return model::fail<CoaddResult>(Code::unavailable, "the frames cannot be listed", "coadd",
+                                    "the combination is not available");
+  }
+  if (val(frame_ids).empty()) {
+    return model::fail<CoaddResult>(Code::invalid_request, "no frame is available", "coadd",
                                     "the combination is not available");
   }
   std::vector<FrameView> views;
@@ -1033,11 +1171,26 @@ Result<CoaddResult> coadd(Context& context, const FramesProvider& frames, Ref<Sk
     views.push_back(val(read));
   }
   const std::size_t frame_count = views.size();
-  const std::size_t leaf_count = val(selection)->index ? static_cast<std::size_t>(val(selection)->index->size) : 0;
+  const std::size_t leaf_count =
+      selection->index ? static_cast<std::size_t>(selection->index->size) : 0;
+  if (leaf_count == 0) {
+    return model::fail<CoaddResult>(Code::invalid_request,
+                                    "the sealed selection has no leaf", "coadd",
+                                    "the combination is not available");
+  }
+  if (weights->coefficients->shape.size() != 2 ||
+      weights->coefficients->shape[1] != frame_count) {
+    return model::fail<CoaddResult>(
+        Code::identity_conflict,
+        "the sealed weights belong to a different frame list", "coadd",
+        "the sealed inputs cannot be combined");
+  }
 
-  // The leaf identity of the selection.
+  // The leaf order is part of the sealed selection: recompute the union of the
+  // frozen frame leaves and compare it with the promised order instead of
+  // renumbering silently.
   std::vector<HealpixLeaf> leaves;
-  if (leaf_count > 0) {
+  {
     std::set<std::pair<U64, U64>> unique;
     for (const FrameView& view : views) {
       for (const HealpixLeaf& leaf : view.leaves) unique.insert({leaf.order, leaf.ipix});
@@ -1046,15 +1199,34 @@ Result<CoaddResult> coadd(Context& context, const FramesProvider& frames, Ref<Sk
       leaves.push_back(HealpixLeaf{static_cast<U32>(entry.first), entry.second});
     }
   }
+  Result<std::vector<U64>> sealed_ids = read_u64_array(context, selection->index->ids);
+  if (!ok(sealed_ids)) {
+    return model::fail<CoaddResult>(sealed_ids.code, "the sealed leaf order cannot be read", "coadd",
+                                    "the combination is not available");
+  }
+  if (val(sealed_ids).size() != leaves.size() * 2) {
+    return model::fail<CoaddResult>(Code::identity_conflict,
+                                    "the sealed leaf order has a different size", "coadd",
+                                    "the sealed inputs cannot be combined");
+  }
+  for (std::size_t leaf = 0; leaf < leaves.size(); ++leaf) {
+    if (val(sealed_ids)[2 * leaf] != leaves[leaf].order ||
+        val(sealed_ids)[2 * leaf + 1] != leaves[leaf].ipix) {
+      return model::fail<CoaddResult>(
+          Code::identity_conflict,
+          "the sealed leaf order differs from the frozen frame order", "coadd",
+          "the sealed inputs cannot be combined");
+    }
+  }
+
   Result<std::vector<double>> coefficients =
-      operators::read_f64(context, val(weights)->coefficients, 0,
+      operators::read_f64(context, weights->coefficients, 0,
                           static_cast<U64>(leaf_count * frame_count));
   if (!ok(coefficients)) {
     return model::fail<CoaddResult>(coefficients.code, "the weights cannot be read", "coadd",
                                     "the combination is not available");
   }
   std::vector<double> combined(leaf_count, 0.0);
-  std::vector<std::uint8_t> usable(leaf_count, 0);
   for (std::size_t leaf = 0; leaf < leaf_count && leaf < leaves.size(); ++leaf) {
     double sum = 0.0;
     double total = 0.0;
@@ -1070,7 +1242,6 @@ Result<CoaddResult> coadd(Context& context, const FramesProvider& frames, Ref<Sk
     }
     if (total == 0.0) continue;
     combined[leaf] = sum;
-    usable[leaf] = 1;
   }
   Result<ArrayRef> combined_array = operators::write_f64(
       context, combined, std::vector<U64>{static_cast<U64>(leaf_count)}, request.target.unit,
@@ -1087,7 +1258,7 @@ Result<CoaddResult> coadd(Context& context, const FramesProvider& frames, Ref<Sk
   estimate->numerical_upper = nullptr;
   estimate->support = nullptr;
   estimate->effective_response = nullptr;
-  estimate->noise = val(weights)->covariance;
+  estimate->noise = weights->covariance;
   estimate->error = nullptr;
   estimate->identity = model::make_identity("acsd.SignalEstimate", 2, 0,
                                              model::hash_index(Index::Kind::leaf, leaf_count, 0, {}),
@@ -1097,10 +1268,51 @@ Result<CoaddResult> coadd(Context& context, const FramesProvider& frames, Ref<Sk
 
   CoaddResult result;
   result.estimate = std::shared_ptr<const SignalEstimate>(estimate);
-  result.selection = val(selection);
-  result.weights = val(weights);
+  result.selection = selection;
+  result.weights = weights;
   result.sky = sky;
   return model::ok_result(std::move(result));
+}
+
+}  // namespace
+
+Result<rt::Done> validate_coadd_inputs(const CoaddInputs& inputs) {
+  return validate_inputs(inputs);
+}
+
+Result<CoaddResult> coadd_with_inputs(Context& context, const CoaddInputs& inputs) {
+  Result<rt::Done> validated = validate_inputs(inputs);
+  if (!ok(validated)) {
+    return model::fail<CoaddResult>(validated.code, "the sealed coadd inputs are invalid", "coadd",
+                                    "the combination is not available");
+  }
+  return combine_sealed(context, *inputs.frames, inputs.sky, inputs.selection, inputs.weights,
+                        inputs.request);
+}
+
+// The compatibility entry point keeps the historical signature.  It runs the
+// selection and the weights once and then delegates to the same combination
+// core; it is not a second combination implementation.
+Result<CoaddResult> coadd(Context& context, const FramesProvider& frames, Ref<SkyFit> sky,
+                          const CoaddRequest& request) {
+  Result<Ref<Selection>> selection = select_samples(context, frames, request);
+  if (!ok(selection)) {
+    return model::fail<CoaddResult>(selection.code, "the samples cannot be selected", "coadd",
+                                    "the combination is not available");
+  }
+  Result<Ref<WeightSolution>> weights =
+      solve_weights(context, frames, val(selection), request);
+  if (!ok(weights)) {
+    return model::fail<CoaddResult>(weights.code, "the weights cannot be solved", "coadd",
+                                    "the combination is not available");
+  }
+  CoaddInputs inputs;
+  inputs.frames = &frames;
+  inputs.sky = std::move(sky);
+  inputs.selection = val(selection);
+  inputs.weights = val(weights);
+  inputs.request = request;
+  return coadd_with_inputs(context, inputs);
 }
 
 }  // namespace acsd
