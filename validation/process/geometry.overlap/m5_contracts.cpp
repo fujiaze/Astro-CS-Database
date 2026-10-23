@@ -473,12 +473,34 @@ void geometry_checks(Harness& harness) {
 
   auto footprint_input = std::make_shared<const FootprintInput>(
       FootprintInput{*provider.value, *detector.value, 1.0, budget});
-  // footprint()/boundary_interval() positive is not claimed here: the curved
-  // boundary request did not return within the fixed test budget in this
-  // session (it was left running, not marked as pass).  It stays a known
-  // unvalidated positive for M5 follow-up; the operation itself is registered,
-  // plan-checked and negative-checked above.
-  check(true, "geometry: footprint positive pending (not claimed)");
+  Result<Ref<CurvedBoundary>> boundary =
+      invoke<FootprintInput, Ref<CurvedBoundary>>(harness, process, "footprint",
+                                                  footprint_input);
+  check(good(boundary), "geometry positive: footprint",
+        code_name(boundary.code));
+  observe(process, "footprint", "run_code",
+          "\"" + std::string(code_name(boundary.code)) + "\"");
+  if (good(boundary))
+    observe(process, "footprint", "curved_edges",
+            std::to_string((*boundary.value)->rings.empty()
+                               ? 0
+                               : (*boundary.value)->rings.front().size()));
+  if (good(boundary) && !(*boundary.value)->rings.empty() &&
+      !(*boundary.value)->rings.front().empty()) {
+    auto boundary_input =
+        std::make_shared<const FootprintBoundaryIntervalInput>(
+            FootprintBoundaryIntervalInput{*provider.value,
+                                           (*boundary.value)->rings.front().front(),
+                                           Interval(0.0, 1.0)});
+    Result<EnclosedSkyRegion> enclosed =
+        invoke<FootprintBoundaryIntervalInput, EnclosedSkyRegion>(
+            harness, process, "footprint.boundary_interval", boundary_input);
+    check(good(enclosed), "geometry positive: boundary_interval",
+          code_name(enclosed.code));
+    observe(process, "footprint.boundary_interval", "run_code",
+            "\"" + std::string(code_name(enclosed.code)) + "\"");
+  }
+
   auto overlap_input = std::make_shared<const ComputeOverlapInput>(
       ComputeOverlapInput{*provider.value, *detector.value, 0, 1.0, budget});
   Result<Ref<Overlaps>> overlaps =
@@ -532,6 +554,61 @@ void geometry_checks(Harness& harness) {
           "\"" + std::string(code_name(refined2.code)) + "\"");
 }
 
+
+
+Ref<Index> make_leaf_index(Harness& harness, U32 order, U64 ipix) {
+  auto index = std::make_shared<Index>();
+  index->identity = model::make_identity("acsd.Index", 2, 0,
+                                         harness.id("leaf-index").substr(7),
+                                         "acsd.m5");
+  index->assessment = model::make_assessment(Code::ok);
+  index->assessment.complete = true;
+  index->size = 1;
+  index->kind = Index::Kind::leaf;
+  index->order = order;
+  index->namespace_id = "acsd.m5";
+  index->ids = make_array(harness, DType::u64, {2}, bytes_u64({order, ipix}),
+                          unit_dimensionless(), "acsd.m5.ids");
+  return index;
+}
+
+class TestProductProvider final : public ProductProvider {
+ public:
+  explicit TestProductProvider(Ref<ProductGraph> graph) : graph_(std::move(graph)) {}
+  Ref<ProductGraph> graph() const override { return graph_; }
+
+  Result<std::vector<Id>> list_frames(Context&) const override { return unsupported<std::vector<Id>>(); }
+  Result<Ref<FrameDescription>> describe_frame(Context&, Id) const override {
+    return unsupported<Ref<FrameDescription>>();
+  }
+  Result<LeafBlock> read_leaf_block(Context&, const FrameReadRequest&) const override {
+    return unsupported<LeafBlock>();
+  }
+  Result<std::vector<ArrayRef>> read_native_dependencies(
+      Context&, std::span<const SourceIdentity>) const override {
+    return unsupported<std::vector<ArrayRef>>();
+  }
+  Result<Ref<LinearAction>> open_action(Context&, Id) const override {
+    return unsupported<Ref<LinearAction>>();
+  }
+  Result<Ref<SupportMap>> query_support(Context&, Id, Ref<Index>) const override {
+    return unsupported<Ref<SupportMap>>();
+  }
+  Result<Ref<RefinableGeometryProvider>> open_refinable_geometry(Context&, Id) const override {
+    return unsupported<Ref<RefinableGeometryProvider>>();
+  }
+  Result<ArrayView> read_array(Context&, ArrayRef, BlockRequest) const override {
+    return unsupported<ArrayView>();
+  }
+
+ private:
+  template <class T>
+  static Result<T> unsupported() {
+    return model::fail<T>(Code::unsupported, "the test product does not provide this capability",
+                          "m5.product", "the fixture only exposes graph()");
+  }
+  Ref<ProductGraph> graph_;
+};
 
 std::vector<double> read_f64_values(Harness& harness, const ArrayRef& array) {
   std::vector<double> values;
@@ -780,16 +857,57 @@ void uncertainty_checks(Harness& harness) {
   observe(process, "geometry_covariance_bound", "run_code",
           "\"" + std::string(code_name(bound.code)) + "\"");
 
-  auto control_input = std::make_shared<const ControlCovarianceInput>(
-      ControlCovarianceInput{*covariance.value, identity});
-  Result<Ref<CovarianceAction>> control =
-      invoke<ControlCovarianceInput, Ref<CovarianceAction>>(
-          harness, process, "control_covariance", control_input);
-  check(control.code == Code::unsupported,
-        "uncertainty: control_covariance reports the missing implementation",
-        code_name(control.code));
-  observe(process, "control_covariance", "run_code",
-          "\"" + std::string(code_name(control.code)) + "\"");
+  Ref<LinearAction> csr = make_csr_action(harness);
+  check(csr != nullptr, "uncertainty: control action fixture");
+  if (csr) {
+    auto control_input = std::make_shared<const ControlCovarianceInput>(
+        ControlCovarianceInput{*covariance.value, csr});
+    Result<Ref<CovarianceAction>> control =
+        invoke<ControlCovarianceInput, Ref<CovarianceAction>>(
+            harness, process, "control_covariance", control_input);
+    check(good(control), "uncertainty positive: control_covariance",
+          code_name(control.code));
+    observe(process, "control_covariance", "run_code",
+            "\"" + std::string(code_name(control.code)) + "\"");
+    if (good(control)) {
+      // C = I and T = [[1,2],[0,3]], so T C T^T = [[5,6],[6,9]].
+      auto e0 = make_array(harness, DType::f64, {2}, bytes_f64({1.0, 0.0}),
+                           model::unit_dimensionless(), "index:m5");
+      auto quadratic_controlled =
+          std::make_shared<const QuadraticFormInput>(
+              QuadraticFormInput{*control.value, e0});
+      Result<Variance> controlled_variance =
+          invoke<QuadraticFormInput, Variance>(
+              harness, process, "quadratic_form", quadratic_controlled);
+      check(good(controlled_variance),
+            "uncertainty: controlled quadratic_form runs",
+            code_name(controlled_variance.code));
+      if (good(controlled_variance) && controlled_variance.value->value) {
+        observe(process, "control_covariance", "quadratic_e0",
+                std::to_string(*controlled_variance.value->value));
+        check(std::fabs(*controlled_variance.value->value - 5.0) < 1e-15,
+              "uncertainty: T C T^T quadratic form on e0 is 5");
+      }
+      auto applied_controlled =
+          std::make_shared<const CovarianceApplyInput>(
+              CovarianceApplyInput{*control.value, e0});
+      Result<ArrayRef> controlled_array =
+          invoke<CovarianceApplyInput, ArrayRef>(
+              harness, process, "covariance_apply", applied_controlled);
+      check(good(controlled_array), "uncertainty: controlled apply runs",
+            code_name(controlled_array.code));
+      if (good(controlled_array)) {
+        const std::vector<double> column =
+            read_f64_values(harness, *controlled_array.value);
+        check(column.size() == 2 && std::fabs(column[0] - 5.0) < 1e-15 &&
+                  std::fabs(column[1] - 6.0) < 1e-15,
+              "uncertainty: (T C T^T) e0 is [5,6]");
+        observe(process, "control_covariance", "column_e0",
+                "[" + std::to_string(column.empty() ? 0.0 : column[0]) + "," +
+                    std::to_string(column.size() > 1 ? column[1] : 0.0) + "]");
+      }
+    }
+  }
 
   Result<rt::InvocationPlan> plan = plan_uncertainty_covariance_quadratic_form(
       harness.command, quadratic_input, PlanOptions{2, 1, rt::Placement::memory});
@@ -804,54 +922,187 @@ void uncertainty_checks(Harness& harness) {
 }
 
 void drizzle_export_registration_checks(Harness& harness) {
-  // drizzle/export need a full product/overlap fixture; their probe requests
-  // are rejected before run, and the plan numbers are recorded here.
-  negative<BuildDrizzleInput, DrizzleResult>(harness, "geometry.drizzle",
-                                             "build_drizzle");
-  negative<BuildExportInput, ExportResult>(harness, "projection.export",
-                                           "build_export");
+  // ---------------------------------------------------------------- drizzle
+  {
+    const char* process = "geometry.drizzle";
+    negative<BuildDrizzleInput, DrizzleResult>(harness, process, "build_drizzle");
+    auto overlaps = std::make_shared<Overlaps>();
+    overlaps->identity = model::make_identity("acsd.Overlaps", 2, 0,
+                                              "m5-overlaps", "acsd.m5");
+    overlaps->assessment = model::make_assessment(Code::ok);
+    OverlapContribution contribution;
+    contribution.source = SourceIdentity{"m5", "exposure", "detector", "channel", 0};
+    contribution.leaf = HealpixLeaf{0, 0};
+    contribution.native_area = SphericalAreaInterval{1.0, 1.1};
+    contribution.drop_area = SphericalAreaInterval{1.0, 1.0};
+    contribution.overlap_area = SphericalAreaInterval{0.5, 0.6};
+    overlaps->contributions.push_back(contribution);
+    auto observation = std::make_shared<NativeObservation>();
+    observation->identity = model::make_identity("acsd.NativeObservation", 2, 0,
+                                                 "m5-native", "acsd.m5");
+    observation->assessment = model::make_assessment(Code::ok);
+    observation->integrated_values =
+        make_array(harness, DType::f64, {1}, bytes_f64({2.0}), unit_adu(),
+                   "index:m5");
+    observation->native_index = make_index(harness, 1);
+    DrizzleRequest drizzle_request;
+    drizzle_request.order = 0;
+    drizzle_request.pixfrac = 1.0;
+    drizzle_request.budget.max_work = 2000;
+    drizzle_request.budget.max_depth = 8;
+    drizzle_request.budget.area_absolute_sr = 1e-9;
+    drizzle_request.budget.arithmetic.initial_bits = 64;
+    drizzle_request.budget.arithmetic.max_bits = 256;
+    auto drizzle_input = std::make_shared<const BuildDrizzleInput>(
+        BuildDrizzleInput{overlaps, observation, drizzle_request});
+    Result<rt::InvocationPlan> drizzle_plan = plan_geometry_drizzle_build_drizzle(
+        harness.command, drizzle_input, PlanOptions{1, 1, rt::Placement::memory});
+    check(good(drizzle_plan), "drizzle: plan", code_name(drizzle_plan.code));
+    if (good(drizzle_plan)) {
+      observe(process, "build_drizzle", "plan_r_bytes",
+              std::to_string(drizzle_plan.value->persistent.host_bytes));
+      observe(process, "build_drizzle", "plan_f_bytes",
+              std::to_string(drizzle_plan.value->progress_floor.host_bytes));
+      observe(process, "build_drizzle", "plan_work",
+              std::to_string(drizzle_plan.value->elements));
+    }
+    Result<DrizzleResult> drizzle =
+        invoke<BuildDrizzleInput, DrizzleResult>(harness, process,
+                                                 "build_drizzle", drizzle_input);
+    check(good(drizzle), "drizzle positive: build_drizzle",
+          code_name(drizzle.code));
+    if (!good(drizzle) && !drizzle.assessment.issues.empty())
+      std::cerr << "  drizzle reason: " << drizzle.assessment.issues.front().reason
+                << std::endl;
+    observe(process, "build_drizzle", "run_code",
+            "\"" + std::string(code_name(drizzle.code)) + "\"");
+    if (good(drizzle) && drizzle.value->estimate) {
+      auto signal_bytes = harness.services->blocks->find(
+          drizzle.value->estimate->signal->identity.object_id);
+      std::vector<double> values;
+      if (signal_bytes && signal_bytes->size() == sizeof(double)) {
+        double v = 0.0;
+        std::memcpy(&v, signal_bytes->data(), sizeof(double));
+        values.push_back(v);
+        observe(process, "build_drizzle", "signal_sr_per_pixel",
+                std::to_string(v));
+        // One leaf, one source sample: w = overlap/drop = [0.5,0.6],
+        // numerator = w*x with x=2, normaliser = w*native_area with
+        // Omega=[1.0,1.1].  The published interval must therefore contain the
+        // nominal ratio x/Omega_mid = 2/1.05.
+        auto lower_bytes = harness.services->blocks->find(
+            drizzle.value->estimate->numerical_lower->identity.object_id);
+        auto upper_bytes = harness.services->blocks->find(
+            drizzle.value->estimate->numerical_upper->identity.object_id);
+        double lower = 0.0;
+        double upper = 0.0;
+        if (lower_bytes && lower_bytes->size() == sizeof(double) &&
+            upper_bytes && upper_bytes->size() == sizeof(double)) {
+          std::memcpy(&lower, lower_bytes->data(), sizeof(double));
+          std::memcpy(&upper, upper_bytes->data(), sizeof(double));
+          observe(process, "build_drizzle", "signal_interval",
+                  "[" + std::to_string(lower) + "," + std::to_string(upper) + "]");
+          const double nominal = 2.0 / 1.05;
+          check(lower <= nominal && nominal <= upper,
+                "drizzle: same-leaf merge interval contains x/Omega");
+        }
+      }
+      observe(process, "build_drizzle", "leaves",
+              std::to_string(drizzle.value->op->rows->spaces.domain
+                                 ? drizzle.value->op->rows->spaces.domain->size
+                                 : 0));
+    }
+  }
 
-  auto overlaps = std::make_shared<Overlaps>();
-  overlaps->identity = model::make_identity("acsd.Overlaps", 2, 0,
-                                            "m5-overlaps", "acsd.m5");
-  overlaps->assessment = model::make_assessment(Code::ok);
-  auto observation = std::make_shared<NativeObservation>();
-  observation->identity = model::make_identity("acsd.NativeObservation", 2, 0,
-                                               "m5-native", "acsd.m5");
-  observation->assessment = model::make_assessment(Code::ok);
-  auto values = make_array(harness, DType::f64, {1}, bytes_f64({1.0}),
-                           unit_adu(), "index:m5");
-  observation->integrated_values = values;
-  observation->native_index = make_index(harness, 1);
-  auto drizzle_input = std::make_shared<const BuildDrizzleInput>(
-      BuildDrizzleInput{overlaps, observation, DrizzleRequest{0, 1.0, {}}});
-  Result<rt::InvocationPlan> drizzle_plan = plan_geometry_drizzle_build_drizzle(
-      harness.command, drizzle_input, PlanOptions{1, 1, rt::Placement::memory});
-  check(good(drizzle_plan), "drizzle: plan", code_name(drizzle_plan.code));
-  if (good(drizzle_plan))
-    observe("geometry.drizzle", "build_drizzle", "plan_r_bytes",
-            std::to_string(drizzle_plan.value->persistent.host_bytes));
+  // ----------------------------------------------------------------- export
+  {
+    const char* process = "projection.export";
+    negative<BuildExportInput, ExportResult>(harness, process, "build_export");
+    if (!harness.wcs) return;
+    auto leaf_index = make_leaf_index(harness, 0, 2);
+    auto support = std::make_shared<SupportMap>();
+    support->identity = model::make_identity("acsd.SupportMap", 2, 0,
+                                             "m5-support", "acsd.m5");
+    support->assessment = model::make_assessment(Code::ok);
+    support->kind = SupportMap::Kind::primitives;
+    support->index = leaf_index;
+    support->states = make_array(harness, DType::u8, {1}, bytes_u8({1}),
+                                 unit_dimensionless(), "acsd.m5.leaves");
+    support->area_lower_sr = make_array(harness, DType::f64, {1},
+                                        bytes_f64({1.0}), unit_sr(),
+                                        "acsd.m5.leaves");
+    support->area_upper_sr = make_array(harness, DType::f64, {1},
+                                        bytes_f64({1.1}), unit_sr(),
+                                        "acsd.m5.leaves");
+    auto signal = std::make_shared<SignalEstimate>();
+    signal->identity = model::make_identity("acsd.SignalEstimate", 2, 0,
+                                            "m5-signal", "acsd.m5");
+    signal->assessment = model::make_assessment(Code::ok);
+    signal->signal = make_array(harness, DType::f64, {1}, bytes_f64({2.0}),
+                                model::unit_sr_per_pixel(), "acsd.m5.leaves");
+    signal->unit = model::unit_sr_per_pixel();
+    signal->estimator.quantity = "surface_brightness";
+    signal->estimator.unit = model::unit_sr_per_pixel();
+    signal->support = support;
+    auto graph = std::make_shared<ProductGraph>();
+    graph->identity = model::make_identity("acsd.ProductGraph", 2, 0,
+                                           "m5-graph", "acsd.m5");
+    graph->assessment = model::make_assessment(Code::ok);
+    graph->stage = ProductGraph::Stage::export_image;
+    graph->signal = signal;
+    auto product = std::make_shared<TestProductProvider>(graph);
 
-  auto target_model = harness.wcs;
-  auto export_request = std::make_shared<ExportRequest>();
-  export_request->target.model = target_model;
-  export_request->target.width = 2;
-  export_request->target.height = 2;
-  export_request->quantity = ExportRequest::Quantity::supported_mean;
-  export_request->support_policy = SupportMap::Kind::full_leaf_approx;
-  export_request->output_dtype = DType::f64;
-  export_request->budget.max_work = 4096;
-  export_request->budget.arithmetic.max_bits = 256;
-  auto export_input = std::make_shared<const BuildExportInput>(
-      BuildExportInput{Ref<ProductProvider>{}, *export_request});
-  Result<rt::InvocationPlan> export_plan = plan_projection_export_build_export(
-      harness.command, export_input, PlanOptions{2, 1, rt::Placement::memory});
-  // plan does not dereference the product provider, so the requested target
-  // pixel count gives the real R/F numbers.
-  check(good(export_plan), "export: plan", code_name(export_plan.code));
-  if (good(export_plan))
-    observe("projection.export", "build_export", "plan_f_bytes",
-            std::to_string(export_plan.value->progress_floor.host_bytes));
+    ExportRequest request;
+    request.target.model = harness.wcs;
+    request.target.width = 2;
+    request.target.height = 2;
+    request.quantity = ExportRequest::Quantity::supported_mean;
+    request.support_policy = SupportMap::Kind::primitives;
+    request.output_dtype = DType::f64;
+    request.budget.max_work = 20000;
+    request.budget.max_depth = 16;
+    request.budget.area_absolute_sr = 1e-14;
+    request.budget.arithmetic.initial_bits = 64;
+    request.budget.arithmetic.max_bits = 256;
+    auto export_input = std::make_shared<const BuildExportInput>(
+        BuildExportInput{product, request});
+    Result<rt::InvocationPlan> export_plan = plan_projection_export_build_export(
+        harness.command, export_input, PlanOptions{2, 1, rt::Placement::memory});
+    check(good(export_plan), "export: plan", code_name(export_plan.code));
+    if (good(export_plan)) {
+      observe(process, "build_export", "plan_r_bytes",
+              std::to_string(export_plan.value->persistent.host_bytes));
+      observe(process, "build_export", "plan_f_bytes",
+              std::to_string(export_plan.value->progress_floor.host_bytes));
+      observe(process, "build_export", "plan_work",
+              std::to_string(export_plan.value->elements));
+    }
+    Result<ExportResult> exported = invoke<BuildExportInput, ExportResult>(
+        harness, process, "build_export", export_input);
+    check(good(exported), "export positive: build_export",
+          code_name(exported.code));
+    if (!good(exported) && !exported.assessment.issues.empty())
+      std::cerr << "  export reason: " << exported.assessment.issues.front().reason
+                << std::endl;
+    observe(process, "build_export", "run_code",
+            "\"" + std::string(code_name(exported.code)) + "\"");
+    if (good(exported) && exported.value->estimate &&
+        exported.value->estimate->signal) {
+      auto bytes = harness.services->blocks->find(
+          exported.value->estimate->signal->identity.object_id);
+      observe(process, "build_export", "output_elements",
+              std::to_string(bytes ? bytes->size() / sizeof(double) : 0));
+      check(bytes && bytes->size() == 4 * sizeof(double),
+            "export: output covers the four target pixels");
+      if (bytes) {
+        std::vector<double> values(bytes->size() / sizeof(double));
+        std::memcpy(values.data(), bytes->data(), bytes->size());
+        for (double v : values)
+          check(std::isfinite(v) || std::isnan(v),
+                "export: a target pixel is finite or an explicit NaN");
+      }
+    }
+  }
 }
 
 }  // namespace

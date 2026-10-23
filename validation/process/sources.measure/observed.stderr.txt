@@ -1,0 +1,14 @@
+[ok] start.services
+[ok] start.open_command
+[ok] start.register_builtin_types
+[ok] start.coordinates.wcs
+[ok] start.sources.measure
+[ok] start.freeze
+[ok] start.make_host
+[ok] fixture.wcs
+[ok] fixture.kernel
+[ok] measure.plan
+[ok] measure.named_result
+[ok] measure.run
+[ok] measure.finite_flux
+[ok] negative.empty_index

@@ -6,10 +6,13 @@ Driven by `validation/process/geometry.overlap/m5_contracts.cpp`; raw result in
 All five operations are registered and negative-checked.
 Positive through the registry: `make_covariance` (identity factor),
 `covariance_apply`, `quadratic_form` (C=I, t=[1,2] -> exact 5),
-`geometry_covariance_bound` (returns a named unavailable bound: the fixture
-covariance exposes neither an absolute factor nor a norm bound; that is the
-documented "unavailable", not zero).
-`control_covariance` is registered + validated but its run reports named
-`unsupported`: `src/uncertainty` currently has no implementation of the public
-`control_covariance` free function. This is a science-owner gap, not a mock pass.
-Plan example: `quadratic_form` R=6672 B, F=65600 B, work=2.
+`geometry_covariance_bound` (named unavailable: this covariance exposes neither
+an absolute factor bound nor a norm bound; unavailable is not zero) and
+`control_covariance`.
+
+`control_covariance` is now real: the unique implementation already exists in
+`src/information/information.cpp` (it composes T with every root influence,
+keeps the shared root identity and calls `make_covariance`); the typed adapter
+calls it and no second formula is added. Analytic check with
+C = I and T = [[1,2],[0,3]] (CSR): `(T C T^T) e0 = [5,6]` and
+`e0^T (T C T^T) e0 = 5`.

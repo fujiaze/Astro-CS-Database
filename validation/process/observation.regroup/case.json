@@ -1,0 +1,13 @@
+{
+  "case": "observation.regroup",
+  "title": "registration and contract negatives (positive blocked by the missing public action factory)",
+  "frozen_inputs": {
+    "native_observation": "3 samples [1,2,4] ADU, DQ 0",
+    "output_index": "3 samples"
+  },
+  "expected": {
+    "negative.missing_G": "invalid_request",
+    "negative.missing_G_plan": "invalid_request"
+  },
+  "blocked": "identity G requires a LinearAction; no public factory before operators.action integration"
+}

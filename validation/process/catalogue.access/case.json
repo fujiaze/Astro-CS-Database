@@ -1,0 +1,17 @@
+{
+  "case": "catalogue.access",
+  "title": "build_catalogue_index + provider + query/lookup/query_quads",
+  "frozen_inputs": {
+    "shard": "5 Gaia-like rows, source ids 101..105, epoch 2016, zero proper motion",
+    "build": "sky_order 3, max_stars_per_cell 8, neighbours 3, quads_per_anchor 4, baseline [1e-4,1e-2] rad",
+    "query": "cone centre (ra,dec)=(0.10,0.05) rad, radius 0.01 rad, page_size 8, epoch 2016",
+    "lookup": "ids [101,103,105]"
+  },
+  "expected": {
+    "build.run": "ok",
+    "provider.run": "ok",
+    "query.run": "ok",
+    "lookup.order": "[101,103,105]",
+    "negative.page_size_zero": "invalid_request"
+  }
+}

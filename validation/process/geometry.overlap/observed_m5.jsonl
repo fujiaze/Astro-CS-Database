@@ -18,6 +18,9 @@
 {"process":"geometry.overlap","operation":"measure","field":"upper_sr","value":0.000000}
 {"process":"geometry.overlap","operation":"footprint.forward_interval","field":"run_code","value":"ok"}
 {"process":"geometry.overlap","operation":"footprint.derivative_interval","field":"run_code","value":"ok"}
+{"process":"geometry.overlap","operation":"footprint","field":"run_code","value":"ok"}
+{"process":"geometry.overlap","operation":"footprint","field":"curved_edges","value":4}
+{"process":"geometry.overlap","operation":"footprint.boundary_interval","field":"run_code","value":"ok"}
 {"process":"geometry.overlap","operation":"compute_overlap","field":"run_code","value":"ok"}
 {"process":"geometry.overlap","operation":"compute_overlap","field":"contributions","value":1}
 {"process":"geometry.overlap","operation":"refinable.open","field":"run_code","value":"ok"}

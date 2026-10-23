@@ -1,0 +1,18 @@
+{
+  "case": "sources.psf",
+  "title": "fit_psf / evaluate_psf / bind_observation_model",
+  "frozen_inputs": {
+    "frame": "9x9 TAN, CRVAL=(10,20) deg, CRPIX=(5,5), CD=0.001 deg/pix",
+    "source": "one Gaussian at pixel (4,4), sigma 1.2, peak 100, zero background",
+    "fit": "gaussian family, spatial degree 0, window radius 3, budget 1e-8/512 iterations",
+    "kernel_fixture": "explicit EffectivePSF parameters [log 1.2, log 1.2, log 100] with the native footprint",
+    "response": "photon throughput 450..650 nm, flat unit response"
+  },
+  "expected": {
+    "fit.named_nonconverged": "nonconverged",
+    "evaluate.run": "ok",
+    "bind.run": "ok",
+    "negative.spatial_degree": "invalid_request"
+  },
+  "limitation": "the current fit_psf does not converge on this exact single-Gaussian example; it is reported as nonconverged, not as a pass"
+}

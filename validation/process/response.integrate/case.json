@@ -1,0 +1,14 @@
+{
+  "case": "response.integrate",
+  "title": "integrate_response over a two-function piecewise-constant basis",
+  "frozen_inputs": {
+    "basis": "knots [400,500,600,700] nm, degree 0, coefficient_count 2, coefficients all 1",
+    "response": "flat unit throughput at 450..650 nm, support 400..700 nm",
+    "budget": "1e-12, 64 iterations"
+  },
+  "expected": {
+    "integrate.run": "ok",
+    "integrate.values_finite": "2 finite columns",
+    "negative.coefficient_payload": "invalid_model"
+  }
+}

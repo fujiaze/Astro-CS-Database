@@ -271,41 +271,42 @@ rt::Task<ExportResult> finalize_build_export(
                              input->request.target.height);
   if (!result.estimate)
     checked = failure<Done>(Code::invalid_model,
-                            "the export estimate is null", "not publishable");
+                            "the export estimate is null (estimate)", "not publishable");
   else if (!result.estimate->signal)
     checked = failure<Done>(Code::invalid_model,
-                            "the export estimate carries no signal array",
+                            "the export estimate carries no signal array (signal)",
                             "not publishable");
   else if (!result.target.model)
     checked = failure<Done>(Code::invalid_model,
-                            "the export result has no target WCS",
+                            "the export result has no target WCS (target)",
                             "not publishable");
   else if (!result.Q)
     checked = failure<Done>(Code::invalid_model,
-                            "the export result has no projection action",
+                            "the export result has no projection action (Q)",
                             "not publishable");
   else if (element_count(result.estimate->signal->shape) != pixels)
     checked = failure<Done>(Code::invalid_model,
                             "the exported signal does not cover the target "
-                            "pixels",
+                            "pixels (pixels)",
                             "not publishable");
   else if (result.estimate->signal->unit.scale.empty())
     checked = failure<Done>(Code::invalid_model,
-                            "the exported signal has no unit", "not publishable");
+                            "the exported signal has no unit (unit)", "not publishable");
   else if (result.estimate->numerical_lower &&
            result.estimate->numerical_upper &&
            (element_count(result.estimate->numerical_lower->shape) != pixels ||
             element_count(result.estimate->numerical_upper->shape) != pixels))
     checked = failure<Done>(Code::invalid_model,
                             "the exported bounds do not cover the target "
-                            "pixels",
+                            "pixels (bounds)",
                             "not publishable");
   if (!ok(checked)) {
-    Result<ExportResult> failed =
-        failure<ExportResult>(checked.code,
-                              "the export result violates its immutable output "
-                              "contract",
-                              "the result is not published");
+    Result<ExportResult> failed = failure<ExportResult>(
+        checked.code,
+        checked.assessment.issues.empty()
+            ? "the export result violates its immutable output contract"
+            : checked.assessment.issues.front().reason,
+        "the result is not published");
     return rt::ready<ExportResult>(ctx, std::move(failed));
   }
   return rt::ready<ExportResult>(ctx, std::move(partial));

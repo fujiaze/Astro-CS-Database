@@ -1,0 +1,27 @@
+{
+  "case": "response.integrate",
+  "source": "validation/process/response.integrate/integrate.cpp",
+  "status": "ran",
+  "attempts": 13,
+  "successes": 13,
+  "failures": [],
+  "checks": [
+    {"check": "start.services", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.open_command", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.register_builtin_types", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.response.integrate", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.freeze", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.make_host", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fixture.response", "pass": true, "expected": "true", "actual": "true", "detail": ""},
+    {"check": "fixture.basis", "pass": true, "expected": "true", "actual": "true", "detail": ""},
+    {"check": "integrate.plan", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "integrate.run", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "integrate.basis_integrals", "pass": true, "expected": "true", "actual": "true", "detail": ""},
+    {"check": "integrate.values_finite", "pass": true, "expected": "2 finite columns", "actual": "2/2", "detail": ""},
+    {"check": "negative.coefficient_payload", "pass": true, "expected": "invalid_model", "actual": "invalid_model(invalid_model:integrate_response:the spectral basis is invalid)", "detail": ""}
+  ],
+  "values": {"integrate.plan.elements": 4, "integrate.plan.persistent_host_bytes": 49248, "integrate.plan.progress_floor_host_bytes": 1053936, "integrate.plan.work_upper": 15, "integrate.integral_0": 5.5375282242969764e+20, "integrate.integral_1": 5.5375282242969764e+20},
+  "resources": {},
+  "commands": [],
+  "notes": []
+}

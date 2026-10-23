@@ -1,0 +1,31 @@
+{
+  "case": "catalogue.access",
+  "source": "validation/process/catalogue.access/catalogue.cpp",
+  "status": "ran",
+  "attempts": 17,
+  "successes": 17,
+  "failures": [],
+  "checks": [
+    {"check": "start.services", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.open_command", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.register_builtin_types", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.catalogue.access", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.freeze", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.make_host", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fixture.columns", "pass": true, "expected": "true", "actual": "true", "detail": ""},
+    {"check": "build.plan", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "build.run", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "provider.run", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "query.plan", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "query.run", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "query.known_ids", "pass": true, "expected": "subset of the shard", "actual": "5 returned", "detail": ""},
+    {"check": "lookup.run", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "lookup.order", "pass": true, "expected": "[101,103,105]", "actual": "101,103,105", "detail": ""},
+    {"check": "quads.run", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "negative.page_size_zero", "pass": true, "expected": "invalid_request", "actual": "invalid_request(invalid_request:catalogue.access:the page size is outside 1..4096)", "detail": ""}
+  ],
+  "values": {"build.plan.elements": 5, "build.plan.persistent_host_bytes": 269544, "build.plan.progress_floor_host_bytes": 2104128, "build.star_count": 5, "query.plan.elements": 8, "query.plan.persistent_host_bytes": 264192, "query.plan.progress_floor_host_bytes": 2103296, "query.returned": 5},
+  "resources": {},
+  "commands": [],
+  "notes": []
+}

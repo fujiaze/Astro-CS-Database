@@ -1,10 +1,10 @@
 # geometry.overlap M5 validation
 
-Source: `m5_contracts.cpp` (this directory). The same binary also exercises the
-other four M5 processes so one frozen registry is shared; per-process raw output
-is `observed_m5.jsonl` in each process directory.
+Source: `m5_contracts.cpp` (this directory). The same binary exercises all five
+M5 processes on one frozen registry; each process directory has its own filtered
+`observed_m5.jsonl`.
 
-Command (from the repository root):
+Run from the repository root:
 
 ```bash
 g++ -std=c++20 -Iinclude -Isrc validation/process/geometry.overlap/m5_contracts.cpp \
@@ -16,16 +16,19 @@ g++ -std=c++20 -Iinclude -Isrc validation/process/geometry.overlap/m5_contracts.
   -Wl,--end-group -lpthread -lzstd -o /tmp/m5 && /tmp/m5 validation/process
 ```
 
-Result: `M5 five-process registry/lifecycle PASS: 95 checks`.
+Result: `M5 five-process registry/lifecycle PASS: 109 checks`.
 
-Every one of the eleven operations is registered from
-`acsd::generated::descriptor_for("geometry.overlap")`, gets a null-input negative
-request (`invalid_request`, rejected by validate) and a plan call.
+All eleven operations are registered from
+`acsd::generated::descriptor_for("geometry.overlap")`, receive a null-input
+negative (`invalid_request`) and a plan call. Positive through the registry:
+`make_footprint_provider`, `detector_footprint`, `measure` (interval ordered),
+`footprint` (4 curved edges), `footprint.boundary_interval`,
+`footprint.forward_interval`, `footprint.derivative_interval`,
+`compute_overlap` (1 contribution), `refine_geometry`, `refinable.open`,
+`refinable.refine`.
 
-Positive through the registry: `make_footprint_provider`, `detector_footprint`,
-`measure` (interval ordered), `footprint.forward_interval`,
-`footprint.derivative_interval`, `compute_overlap` (1 contribution),
-`refine_geometry`, `refinable.open`, `refinable.refine`.
-`footprint` + `footprint.boundary_interval` positive is **not claimed**: the
-curved-boundary request did not return within the fixed test budget in this
-session (it was left running; no pass is recorded). Negative + plan are covered.
+The earlier `footprint` hang was not geometric: `model::BigInt::to_double()`
+dropped the sign, so `Rational::to_double_floor()` walked ~2^52 ulps downwards
+for negative values. `dyadic_to_double(exact_point(-0.5))` was the minimal
+counterexample; the one-line sign fix in `src/model/exact.cpp` makes
+`footprint` return in <1 ms.

@@ -1,0 +1,28 @@
+{
+  "case": "sources.astrometry",
+  "source": "validation/process/sources.astrometry/astrometry.cpp",
+  "status": "ran",
+  "attempts": 14,
+  "successes": 14,
+  "failures": [],
+  "checks": [
+    {"check": "start.services", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.open_command", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.register_builtin_types", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.coordinates.wcs", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.catalogue.access", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.sources.astrometry", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.freeze", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.make_host", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fixture.wcs", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fixture.catalogue_build", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fixture.catalogue_provider", "pass": true, "expected": "true", "actual": "true", "detail": ""},
+    {"check": "astrometry.plan", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "astrometry.named_result", "pass": true, "expected": "a named scientific code", "actual": "unsolved", "detail": ""},
+    {"check": "negative.min_matches_zero", "pass": true, "expected": "invalid_request", "actual": "invalid_request(invalid_request:sources.astrometry:the match and the candidate budgets must be positive)", "detail": ""}
+  ],
+  "values": {"astrometry.plan.elements": 1024, "astrometry.plan.persistent_host_bytes": 526336, "astrometry.plan.progress_floor_host_bytes": 2210816, "astrometry.solved": false},
+  "resources": {},
+  "commands": [],
+  "notes": ["solve_astrometry returned the named code unsolved for the frozen synthetic field"]
+}

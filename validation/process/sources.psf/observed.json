@@ -1,0 +1,32 @@
+{
+  "case": "sources.psf",
+  "source": "validation/process/sources.psf/psf.cpp",
+  "status": "ran",
+  "attempts": 18,
+  "successes": 18,
+  "failures": [],
+  "checks": [
+    {"check": "start.services", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.open_command", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.register_builtin_types", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.coordinates.wcs", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.sources.psf", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.freeze", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.make_host", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fixture.wcs", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fit.plan", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fit.named_nonconverged", "pass": true, "expected": "nonconverged", "actual": "nonconverged(nonconverged:fit_psf:the iteration limit is reached before the score is small enough | nonconverged:fit_psf:the iteration limit is reached before the score is small enough)", "detail": ""},
+    {"check": "fixture.kernel_parameters", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "evaluate.plan", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "evaluate.run", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "fixture.response", "pass": true, "expected": "true", "actual": "true", "detail": ""},
+    {"check": "bind.plan", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "bind.run", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "bind.kernel", "pass": true, "expected": "true", "actual": "true", "detail": ""},
+    {"check": "negative.spatial_degree", "pass": true, "expected": "invalid_request", "actual": "invalid_request(invalid_request:sources.psf:the first release supports a spatial degree of at most two)", "detail": ""}
+  ],
+  "values": {"fit.plan.elements": 1, "fit.plan.persistent_host_bytes": 262208, "fit.plan.progress_floor_host_bytes": 2105162, "evaluate.plan.elements": 1, "evaluate.plan.persistent_host_bytes": 262168, "evaluate.plan.progress_floor_host_bytes": 2104402},
+  "resources": {},
+  "commands": [],
+  "notes": []
+}

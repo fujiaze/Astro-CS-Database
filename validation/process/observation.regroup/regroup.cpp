@@ -32,10 +32,6 @@ int main() {
   if (started.chain.code != Code::ok || !started.chain.value) return recorder.finish();
   const vpf::Chain& chain = *started.chain.value;
 
-  recorder.check("registry.has_operation",
-                 true,  // the freeze below is the real assertion for coverage
-                 "regroup_observation", "registered by register_regroup");
-
   auto native = vpf::make_native(chain.command, {1.0, 2.0, 4.0}, {0, 0, 0}, 3, 1, "frame0", 2016.0);
   if (!native.observation) return recorder.finish();
   const auto output_index = vpf::make_index(3, "regrouped:frame0");
@@ -52,6 +48,14 @@ int main() {
   auto run = vpf::invoke<modules::RegroupObservationInput, Ref<NativeObservation>>(
       chain, "observation.regroup", "regroup_observation", missing);
   recorder.expect_code("negative.missing_G", "invalid_request", run);
+
+  // negative: an unknown operation of a registered process is refused by the
+  // Host (this is the coverage assertion; an unregistered regroup_observation
+  // would also fail negative.missing_G with unsupported instead of the typed
+  // invalid_request).
+  auto unknown = vpf::invoke<modules::RegroupObservationInput, Ref<NativeObservation>>(
+      chain, "observation.regroup", "not_an_operation", missing);
+  recorder.expect_code("negative.unknown_operation", "unsupported", unknown);
 
   // negative: a physical mean with no member count (also unreachable without G
   // in the public fixture, so the contract check on the request is the real

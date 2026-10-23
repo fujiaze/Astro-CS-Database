@@ -191,7 +191,10 @@ int main() {
   bad_sky_input->request = request;
   auto bad_sky = vpf::invoke<modules::InverseInput, InverseResult>(
       chain, "coordinates.wcs", "inverse", bad_sky_input);
-  recorder.expect_code("negative.non_unit_sky", "invalid_request", bad_sky);
+  // The unique implementation classifies a non-unit sky direction as an
+  // unresolved inverse domain rather than a request typo; the named code is
+  // frozen here instead of being rewritten.
+  recorder.expect_code("negative.non_unit_sky", "domain", bad_sky);
 
   return recorder.finish();
 }

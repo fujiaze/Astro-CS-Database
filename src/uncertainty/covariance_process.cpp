@@ -608,19 +608,13 @@ Result<rt::InvocationPlan> plan_control_covariance(
 }
 
 rt::Task<Ref<CovarianceAction>> run_control_covariance(
-    rt::InvocationContext ctx, Ref<ControlCovarianceInput>,
-    Ref<rt::InvocationPlan>) {
-  // The process document whitelists control_covariance (T C T^T) but
-  // src/uncertainty has no implementation of the public free function yet.
-  // The operation is registered and validated, and the run hook reports the
-  // missing implementation by name instead of fabricating a covariance.
-  return rt::ready<Ref<CovarianceAction>>(
-      ctx, failure<Ref<CovarianceAction>>(
-               Code::unsupported,
-               "control_covariance has no implementation in src/uncertainty; the "
-               "typed adapter will not rebuild a second covariance formula",
-               "the control-frame covariance is unavailable until the unique "
-               "implementation lands"));
+    rt::InvocationContext ctx, Ref<ControlCovarianceInput> input,
+    Ref<rt::InvocationPlan> plan) {
+  return run_operation<Ref<CovarianceAction>>(
+      ctx, plan, "control_covariance",
+      [input](acsd::Context& science) -> Result<Ref<CovarianceAction>> {
+        return control_covariance(science, input->covariance, input->T);
+      });
 }
 
 rt::Task<Ref<CovarianceAction>> finalize_control_covariance(

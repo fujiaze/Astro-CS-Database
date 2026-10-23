@@ -1,0 +1,16 @@
+{
+  "case": "coordinates.wcs",
+  "title": "make_wcs + forward/inverse/derivative/solid_angle/bind_wcs",
+  "frozen_inputs": {
+    "header": "RA---TAN/DEC--TAN, ICRS, CRVAL=(10,20) deg, CD=diag(-0.001,0.001) deg/pix, CRPIX=(1,1)",
+    "domain": "[-0.5,2.5] x [-0.5,2.5] detector pixels",
+    "request": "NumericBudget absolute=relative=1e-10, max_iterations=128, outward",
+    "native_observation": "3 native ADU samples with exact numerical bounds"
+  },
+  "expected": {
+    "forward.center0": "pixel (0,0) equals CRVAL within 1e-12 on the unit sphere",
+    "inverse": "round trip back to (0,0) within 1e-9 pixel",
+    "negative.inverted_domain": "invalid_request",
+    "negative.non_unit_sky": "domain"
+  }
+}

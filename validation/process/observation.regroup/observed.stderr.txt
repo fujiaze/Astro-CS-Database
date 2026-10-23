@@ -1,0 +1,10 @@
+[ok] start.services
+[ok] start.open_command
+[ok] start.register_builtin_types
+[ok] start.observation.regroup
+[ok] start.freeze
+[ok] start.make_host
+[ok] negative.missing_G_plan
+[ok] negative.missing_G
+[ok] negative.unknown_operation
+[ok] negative.zero_member_count_contract

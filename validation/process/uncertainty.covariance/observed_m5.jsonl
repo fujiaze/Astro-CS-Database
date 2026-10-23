@@ -8,7 +8,9 @@
 {"process":"uncertainty.covariance","operation":"quadratic_form","field":"variance","value":5.000000}
 {"process":"uncertainty.covariance","operation":"geometry_covariance_bound","field":"available","value":false}
 {"process":"uncertainty.covariance","operation":"geometry_covariance_bound","field":"run_code","value":"ok"}
-{"process":"uncertainty.covariance","operation":"control_covariance","field":"run_code","value":"unsupported"}
+{"process":"uncertainty.covariance","operation":"control_covariance","field":"run_code","value":"ok"}
+{"process":"uncertainty.covariance","operation":"control_covariance","field":"quadratic_e0","value":5.000000}
+{"process":"uncertainty.covariance","operation":"control_covariance","field":"column_e0","value":[5.000000,6.000000]}
 {"process":"uncertainty.covariance","operation":"quadratic_form","field":"plan_r_bytes","value":6672}
 {"process":"uncertainty.covariance","operation":"quadratic_form","field":"plan_f_bytes","value":65600}
 {"process":"uncertainty.covariance","operation":"quadratic_form","field":"plan_work","value":2}

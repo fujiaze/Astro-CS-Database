@@ -1,0 +1,15 @@
+{
+  "case": "sources.measure",
+  "title": "measure_science_sources with an explicit effective PSF fixture",
+  "frozen_inputs": {
+    "frame": "9x9 TAN as in sources.psf",
+    "source": "one Gaussian at pixel (4,4)",
+    "psf": "explicit EffectivePSF fixture",
+    "budget": "1e-8, 256 iterations"
+  },
+  "expected": {
+    "measure.run": "ok",
+    "measure.stars": "1",
+    "negative.empty_index": "invalid_model"
+  }
+}

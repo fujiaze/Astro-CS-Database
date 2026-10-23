@@ -1,0 +1,16 @@
+{
+  "case": "sources.astrometry",
+  "title": "solve_astrometry through a real catalogue provider",
+  "frozen_inputs": {
+    "image": "32x32 TAN with 5 Gaussian sources",
+    "catalogue": "5-row frozen shard, sky_order 3, quads_per_anchor 4",
+    "solver": "scale [1e-5,3e-5] rad/pix, max_candidates 32, max_hypotheses 200, min_matches 4, tolerance 0.02"
+  },
+  "expected": {
+    "fixture.catalogue_build": "ok",
+    "fixture.catalogue_provider": "ok",
+    "astrometry.named_result": "not internal",
+    "negative.min_matches_zero": "invalid_request"
+  },
+  "limitation": "the frozen synthetic field returns the named scientific result unsolved; no solution is fabricated"
+}

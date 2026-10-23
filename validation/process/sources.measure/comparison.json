@@ -1,0 +1,116 @@
+{
+  "case": "sources.measure",
+  "status": "pass",
+  "attempts": 14,
+  "successes": 14,
+  "failures": [],
+  "values": {
+    "measure.plan.elements": 1,
+    "measure.plan.persistent_host_bytes": 262240,
+    "measure.plan.progress_floor_host_bytes": 2105162,
+    "measure.stars": 1
+  },
+  "resources": {},
+  "notes": [],
+  "checks": [
+    {
+      "check": "start.services",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "start.open_command",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "start.register_builtin_types",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "start.coordinates.wcs",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "start.sources.measure",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "start.freeze",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "start.make_host",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "fixture.wcs",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "fixture.kernel",
+      "pass": true,
+      "expected": "true",
+      "actual": "true",
+      "detail": ""
+    },
+    {
+      "check": "measure.plan",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "measure.named_result",
+      "pass": true,
+      "expected": "a named scientific code",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "measure.run",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "measure.finite_flux",
+      "pass": true,
+      "expected": "finite",
+      "actual": "1 stars",
+      "detail": ""
+    },
+    {
+      "check": "negative.empty_index",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model(invalid_model:sources.measure:the native arrays do not match the native index)",
+      "detail": ""
+    }
+  ],
+  "source": "validation/process/sources.measure/measure.cpp"
+}

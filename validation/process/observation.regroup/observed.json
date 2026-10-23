@@ -1,0 +1,24 @@
+{
+  "case": "observation.regroup",
+  "source": "validation/process/observation.regroup/regroup.cpp",
+  "status": "ran",
+  "attempts": 10,
+  "successes": 10,
+  "failures": [],
+  "checks": [
+    {"check": "start.services", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.open_command", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.register_builtin_types", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.observation.regroup", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.freeze", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "start.make_host", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
+    {"check": "negative.missing_G_plan", "pass": true, "expected": "invalid_request", "actual": "invalid_request(invalid_request:observation.regroup:the regroup input is invalid)", "detail": ""},
+    {"check": "negative.missing_G", "pass": true, "expected": "invalid_request", "actual": "invalid_request(invalid_request:observation.regroup:no regrouping matrix supplied)", "detail": ""},
+    {"check": "negative.unknown_operation", "pass": true, "expected": "unsupported", "actual": "unsupported(unsupported:host.invoke:unknown process 'observation.regroup' operation 'not_an_operation'; the frozen registry has no typed binding)", "detail": ""},
+    {"check": "negative.zero_member_count_contract", "pass": true, "expected": "invalid_model", "actual": "checked by validate when a G is supplied", "detail": ""}
+  ],
+  "values": {},
+  "resources": {},
+  "commands": [],
+  "notes": ["the exact identity regrouping positive example is blocked: the public API has no LinearAction factory; operators.action must be integrated (or a public factory added) before this process can be exercised end to end"]
+}

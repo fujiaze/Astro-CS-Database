@@ -1,2 +1,8 @@
 {"process":"geometry.drizzle","operation":"build_drizzle","field":"negative_code","value":"invalid_request"}
-{"process":"geometry.drizzle","operation":"build_drizzle","field":"plan_r_bytes","value":8200}
+{"process":"geometry.drizzle","operation":"build_drizzle","field":"plan_r_bytes","value":8792}
+{"process":"geometry.drizzle","operation":"build_drizzle","field":"plan_f_bytes","value":65859}
+{"process":"geometry.drizzle","operation":"build_drizzle","field":"plan_work","value":2000}
+{"process":"geometry.drizzle","operation":"build_drizzle","field":"run_code","value":"ok"}
+{"process":"geometry.drizzle","operation":"build_drizzle","field":"signal_sr_per_pixel","value":1.957576}
+{"process":"geometry.drizzle","operation":"build_drizzle","field":"signal_interval","value":[1.515152,2.400000]}
+{"process":"geometry.drizzle","operation":"build_drizzle","field":"leaves","value":1}
