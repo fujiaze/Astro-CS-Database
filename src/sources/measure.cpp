@@ -40,7 +40,12 @@ Result<std::vector<double>> read_f64_array(Context& context, ArrayRef array) {
     return model::fail<std::vector<double>>(Code::invalid_model, "the array is missing", kOrigin,
                                             "the array cannot be read");
   }
-  const U64 count = array->shape.empty() ? 0 : array->shape[0];
+  // The block request is a flattened element range, so the count is every
+  // element of the array and not the first dimension: a [rows, sources]
+  // template is read whole.
+  U64 count = 1;
+  for (U64 extent : array->shape) count *= extent;
+  if (array->shape.empty()) count = 0;
   Result<ArrayView> view = context.storage.read(context, array, BlockRequest{0, count});
   if (!ok(view)) {
     return model::fail<std::vector<double>>(view.code, "the array cannot be read", kOrigin,
@@ -79,7 +84,7 @@ void psf_transfer(Context& context, Ref<NativeObservation> observation,
   Ref<NativeObservation> node = observation->native_parent;
   while (node) {
     Result<Ref<LinearAction>> chained =
-        observation::compose_actions(context, node->regrouping, transfer);
+        acsd::compose(context, node->regrouping, transfer);
     if (!ok(chained)) return;
     transfer = val(chained);
     detector_samples = node->footprints;
@@ -161,6 +166,10 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
     // The saturation mask: the samples around the source must be usable.
     bool saturated = false;
     for (U64 row = 0; row < sample_count && !saturated; ++row) {
+      if ((row & 0x3F) == 0 && context.cancellation.requested()) {
+        return model::fail<Ref<SourceMeasurements>>(Code::cancelled, "cancelled", kOrigin,
+                                                    "the measurement was cancelled");
+      }
       const sources::psfmodel::SampleFootprint footprint =
           sources::psfmodel::sample_footprint(footprints, row);
       if (!footprint.valid) continue;
@@ -205,6 +214,10 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
 
   std::vector<U64> window_rows;
   for (U64 row = 0; row < sample_count; ++row) {
+    if ((row & 0x3F) == 0 && context.cancellation.requested()) {
+      return model::fail<Ref<SourceMeasurements>>(Code::cancelled, "cancelled", kOrigin,
+                                                  "the measurement was cancelled");
+    }
     const sources::psfmodel::SampleFootprint footprint =
         sources::psfmodel::sample_footprint(footprints, row);
     if (!footprint.valid) continue;
@@ -236,22 +249,15 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
   Ref<FootprintSet> detector_samples;
   Ref<LinearAction> transfer;
   psf_transfer(context, observation, detector_samples, transfer);
-  Result<ActionRecipe> transfer_recipe =
-      transfer ? transfer->serialize_recipe() : model::ok_result(ActionRecipe());
-  if (!ok(transfer_recipe)) {
-    return model::fail<Ref<SourceMeasurements>>(transfer_recipe.code,
-                                                "the transfer cannot be described", kOrigin,
-                                                "the measurement cannot be built");
-  }
-  const bool identity_transfer = !transfer || val(transfer_recipe).kind == ActionRecipe::Kind::identity;
+  const bool identity_transfer = !transfer;
   U64 output_count = sample_count;
   if (transfer) {
-    if (!val(transfer_recipe).spaces.codomain) {
+    if (!transfer->spaces.codomain) {
       return model::fail<Ref<SourceMeasurements>>(Code::invalid_model,
                                                   "the transfer has no output index", kOrigin,
                                                   "the measurement cannot be built");
     }
-    output_count = val(transfer_recipe).spaces.codomain->size;
+    output_count = transfer->spaces.codomain->size;
   }
 
   std::vector<U64> measurement_rows;
@@ -381,15 +387,15 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
   if (rank_certified) {
     solution = sources::psfmodel::solve_scaled(svd, measurement, column_scale);
     // The pseudo inverse of the design: the influence of the native samples
-    // on the measured fluxes.
+    // on the measured fluxes.  The base assembles V S+ U^T of the scaled
+    // design; the design itself is the scaled one times the diagonal of the
+    // column scales, so the pseudo inverse of the design divides the scaled
+    // one by the column scale.
+    const Matrix pseudo = numerics::pseudo_inverse(svd, parameters, 1.0e-12);
     for (std::size_t c = 0; c < parameters; ++c) {
       const double scale = column_scale[c] > 0.0 ? column_scale[c] : 0.0;
-      for (std::size_t i = 0; i < parameters; ++i) {
-        const double sigma = svd.singular_values[i];
-        if (!(sigma > 0.0)) continue;
-        for (std::size_t k = 0; k < rows; ++k) {
-          inverse[k][c] += svd.u(k, i) * svd.v(c, i) / sigma * scale;
-        }
+      for (std::size_t k = 0; k < rows; ++k) {
+        inverse[k][c] = scale > 0.0 ? pseudo(c, k) / scale : 0.0;
       }
     }
   }
@@ -491,60 +497,35 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
       covariance->identity = model::make_identity("acsd.CovarianceAction", 2, 0,
                                                   model::sha256_hex("measure_science_sources"), "acsd");
       joint_noise = std::shared_ptr<const CovarianceAction>(covariance);
-      // The variance of the measured fluxes is the covariance of the native
-      // samples contracted with the influence of the samples on the fluxes:
-      // C_flux = sum_j (T e_j)(T e_j)^T C_native.  The contraction is only
-      // carried out for a moderate number of samples; otherwise the variance
-      // stays unknown instead of being approximated.
-      const std::size_t support_columns = indices.size();
-      if (support_columns <= 2048) {
-        auto native_covariance = std::make_shared<CovarianceAction>();
-        native_covariance->model = observation->noise;
-        native_covariance->input_output.domain = observation->native_index;
-        native_covariance->input_output.codomain = std::make_shared<Index>(flux_index);
-        native_covariance->input_output.input = observation->noise->variance_unit;
-        native_covariance->input_output.output = observation->noise->variance_unit;
-        native_covariance->assessment = model::make_assessment(Code::ok);
-        std::vector<double> matrix(parameters * parameters, 0.0);
-        bool complete = true;
-        for (std::size_t column : indices) {
-          std::vector<double> functional(parameters, 0.0);
-          for (std::size_t c = 0; c < parameters; ++c) {
-            // The influence of one native sample on the measured parameters.
-            for (std::size_t k = 0; k < rows; ++k) {
-              if (static_cast<U64>(k) != column) continue;
-              functional[c] = inverse[k][c];
-            }
-          }
-          const std::vector<U64> functional_shape{static_cast<U64>(parameters)};
-          Result<ArrayRef> functional_array =
-              write_f64_array(context, functional, functional_shape,
-                              model::unit_dimensionless(), flux_index.identity.object_id);
-          if (!ok(functional_array)) {
-            complete = false;
-            break;
-          }
-          Result<acsd::Variance> quadratic =
-              quadratic_form(context, native_covariance, val(functional_array));
-          // An unknown noise term makes the quadratic form unavailable: the
-          // variance stays unknown and is never filled with zero.
-          if (!ok(quadratic) || !val(quadratic).value.has_value()) {
-            complete = false;
-            break;
-          }
-          for (std::size_t a = 0; a < parameters; ++a) {
-            for (std::size_t b = 0; b < parameters; ++b) {
-              matrix[a * parameters + b] +=
-                  *val(quadratic).value * functional[a] * functional[b];
-            }
-          }
+      // The variance of the measured fluxes is the diagonal of the published
+      // covariance I C I^T, where I is the influence of the native samples on
+      // the measured parameters.  The base applies the whole chain, so the
+      // variance is read from the columns of the applied covariance.  A noise
+      // model with an unknown term makes the covariance unavailable: the
+      // variance then stays unknown and is never filled with zero.
+      for (std::size_t s = 0; s < sources; ++s) {
+        std::vector<double> functional(parameters, 0.0);
+        functional[s] = 1.0;
+        const std::vector<U64> functional_shape{static_cast<U64>(parameters)};
+        Result<ArrayRef> functional_array =
+            write_f64_array(context, functional, functional_shape, model::unit_dimensionless(),
+                            flux_index.identity.object_id);
+        if (!ok(functional_array)) {
+          variance_known = false;
+          break;
         }
-        if (complete) {
-          for (std::size_t s = 0; s < sources; ++s) {
-            flux_variance[s] = matrix[s * parameters + s];
-          }
-          variance_known = true;
+        Result<ArrayRef> column = covariance_apply(context, joint_noise, val(functional_array));
+        if (!ok(column)) {
+          variance_known = false;
+          break;
         }
+        Result<std::vector<double>> applied = read_f64_array(context, val(column));
+        if (!ok(applied) || val(applied).size() != parameters) {
+          variance_known = false;
+          break;
+        }
+        flux_variance[s] = val(applied)[s];
+        variance_known = true;
       }
     }
   }

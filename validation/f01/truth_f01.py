@@ -338,14 +338,25 @@ def main() -> int:
                              "actual": {"attempts": attempts, "successes": successes},
                              "reason": reason})
             status = "fail"
+        # The aperture flux is the integral of both sources over one aperture
+        # box.  measure_science_sources publishes the integrated flux of each
+        # source over its own PSF window, which is a different estimand: the
+        # sum of two window fluxes equals the aperture integral only when the
+        # windows coincide with the aperture and the tails vanish, and neither
+        # holds at the 1e-12 tolerance of this functional.  Reporting a pass
+        # because "a flux was produced" would be a pass on an empty comparison,
+        # so the functional stays pending until the driver measures the
+        # aperture integral itself.
         rows.append({"name": "two_source_aperture_flux", "kind": "value",
                      "truth": aperture_flux,
                      "tolerance": 1e-12 * abs(aperture_flux), "unit": "ADU",
-                     "status": "pending_implementation" if successes == 0 else "pass",
+                     "status": "pending_implementation",
                      "expected_success_count": 1,
-                     "observed_success_count": 0 if successes == 0 else 1,
-                     "reason": None if successes > 0 else
-                     "the measurement path did not produce a flux (see fit_psf_and_measure)"})
+                     "observed_success_count": 0,
+                     "reason": ("no observed aperture integral: the driver measures the "
+                                "integrated flux of each source over its PSF window, not the "
+                                "integral over the requested aperture box, so the truth of this "
+                                "functional is not comparable with the observation")})
 
     comparison = comparison_payload(
         case.name.upper(), status, rows, failures,

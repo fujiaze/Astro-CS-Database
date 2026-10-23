@@ -55,7 +55,12 @@ Result<std::vector<double>> read_f64_array(Context& context, ArrayRef array) {
     return model::fail<std::vector<double>>(Code::invalid_model, "the array is missing", kOrigin,
                                             "the array cannot be read");
   }
-  const U64 count = array->shape.empty() ? 0 : array->shape[0];
+  // The block request is a flattened element range, so the count is every
+  // element of the array and not the first dimension: a [rows, sources]
+  // template is read whole.
+  U64 count = 1;
+  for (U64 extent : array->shape) count *= extent;
+  if (array->shape.empty()) count = 0;
   Result<ArrayView> view = context.storage.read(context, array, BlockRequest{0, count});
   if (!ok(view)) {
     return model::fail<std::vector<double>>(view.code, "the array cannot be read", kOrigin,
@@ -88,6 +93,21 @@ Result<std::vector<double>> apply_vector(Context& context, Ref<LinearAction> act
   return read_f64_array(context, val(output));
 }
 
+// The absolute value of a dyadic endpoint.
+//
+// The conversion of a negative rational in the base walks towards positive
+// infinity instead of downwards, so the magnitude is converted and the sign
+// is taken from the decimal representation.  The defect is in the model
+// module and is reported there; the workaround keeps the row enclosure of a
+// signed transfer usable.
+double absolute_dyadic(const acsd::Dyadic& value) {
+  acsd::Dyadic magnitude = value;
+  if (!magnitude.signed_integer.empty() && magnitude.signed_integer.front() == '-') {
+    magnitude.signed_integer.erase(0, 1);
+  }
+  return std::fabs(model::dyadic_to_double(magnitude));
+}
+
 // The absolute coefficient bound of one output row, when the action exposes
 // it.  The result is empty when only a signed row is available.
 Result<std::vector<double>> absolute_row(Context& context, Ref<LinearAction> action, U64 row) {
@@ -95,9 +115,7 @@ Result<std::vector<double>> absolute_row(Context& context, Ref<LinearAction> act
   Result<std::vector<ExactInterval>> enclosure = action->row_enclosure(context, row);
   if (!ok(enclosure)) return model::ok_result(bound);
   for (const ExactInterval& interval : val(enclosure)) {
-    const double lower = model::dyadic_to_double(interval.lower);
-    const double upper = model::dyadic_to_double(interval.upper);
-    bound.push_back(std::max(std::fabs(lower), std::fabs(upper)));
+    bound.push_back(std::max(absolute_dyadic(interval.lower), absolute_dyadic(interval.upper)));
   }
   return model::ok_result(std::move(bound));
 }
@@ -160,13 +178,13 @@ Result<Ref<PsfEvaluation>> evaluate_psf(Context& context, Ref<EffectivePSF> psf,
   U64 output_count = native_count;
   bool identity_transfer = true;
   if (transfer) {
-    Result<ActionRecipe> recipe = transfer->serialize_recipe();
-    if (!ok(recipe)) {
-      return model::fail<Ref<PsfEvaluation>>(recipe.code,
-                                             "the transfer cannot be described", kOrigin,
-                                             "the evaluation cannot be built");
-    }
-    const DomainUnits& spaces = val(recipe).spaces;
+    // The declared domain of the transfer is the public member of the action.
+    const DomainUnits& spaces = transfer->spaces;
+    // The kind of the transfer is only described by its recipe; an identity
+    // transfer is the one that maps the samples onto themselves.
+    Result<ActionRecipe> transfer_recipe = transfer->serialize_recipe();
+    const bool identity_kind =
+        ok(transfer_recipe) && val(transfer_recipe).kind == ActionRecipe::Kind::identity;
     if (!spaces.domain || !spaces.codomain) {
       return model::fail<Ref<PsfEvaluation>>(Code::invalid_model,
                                              "the transfer has no declared domain", kOrigin,
@@ -179,7 +197,7 @@ Result<Ref<PsfEvaluation>> evaluate_psf(Context& context, Ref<EffectivePSF> psf,
     }
     output_base = spaces.codomain;
     output_count = spaces.codomain->size;
-    identity_transfer = val(recipe).kind == ActionRecipe::Kind::identity;
+    identity_transfer = identity_kind || spaces.domain == spaces.codomain;
   }
 
   // The requested output rows.
@@ -263,8 +281,13 @@ Result<Ref<PsfEvaluation>> evaluate_psf(Context& context, Ref<EffectivePSF> psf,
       sources::psfmodel::build_templates(context, psf->family, val(parameters), psf->spatial_basis,
                            request.source_positions, footprints, needed, tolerance);
   if (!ok(block)) {
-    return model::fail<Ref<PsfEvaluation>>(block.code, "the pixel integral cannot be built", kOrigin,
-                                           "the evaluation cannot be built");
+    // The reason of the builder is kept: a model outside of its valid domain
+    // is a domain failure and not a generic failure.
+    return model::fail<Ref<PsfEvaluation>>(
+        block.code,
+        block.assessment.issues.empty() ? "the pixel integral cannot be built"
+                                        : block.assessment.issues.front().reason,
+        kOrigin, "the evaluation cannot be built");
   }
   const sources::psfmodel::TemplateBlock& template_block = val(block);
   const std::size_t sources = request.source_positions.size();
@@ -328,9 +351,12 @@ Result<Ref<PsfEvaluation>> evaluate_psf(Context& context, Ref<EffectivePSF> psf,
           }
         }
         error = rigorous;
-      } else {
-        // Without an absolute coefficient bound the radius of a signed
-        // transfer cannot be certified.
+      }
+      // A transfer that is not the identity combines the native samples with
+      // signs.  The row enclosure of the action is an absolute coefficient
+      // bound, so the radius of the output row is a rigorous absolute bound
+      // but not the interval of the row.
+      if (!identity_transfer) {
         signed_transfer = true;
       }
       values[r * sources + s] = value;
@@ -406,6 +432,21 @@ Result<Ref<PsfEvaluation>> evaluate_psf(Context& context, Ref<EffectivePSF> psf,
   evaluation->assessment.validity = signed_transfer ? Validity::approximate : Validity::certified;
   model::set_included(evaluation->assessment, "psf_pixel_integral");
   model::set_omitted(evaluation->assessment, "the_window_is_not_renormalised_to_the_total_flux");
+  if (signed_transfer) {
+    // The reason is specific: the action exposes an absolute coefficient
+    // bound, so the radius of the output row is an absolute bound.  A per row
+    // interval needs the signed interval propagation of the transfer, which
+    // the action does not expose.
+    model::add_issue(
+        evaluation->assessment, Code::unavailable,
+        "the transfer is not the identity: the row enclosure of the action is an absolute "
+        "coefficient bound, so the radius of the output row is an absolute bound and not the "
+        "interval of the row; a per row interval needs the signed interval propagation of the "
+        "transfer, which the action does not expose",
+        kOrigin, "the numerical enclosure of the output row is conditional");
+    model::set_omitted(evaluation->assessment, "the_per_row_interval_of_a_signed_transfer_is_not_available");
+    evaluation->assessment.science = ScienceState::conditional;
+  }
   evaluation->identity = model::make_identity(
       "acsd.PsfEvaluation", 2, 0,
       model::sha256_hex(std::to_string(rows.size()) + ":" + std::to_string(sources)), "acsd");

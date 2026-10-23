@@ -41,7 +41,12 @@ using valsupport::unit_variance_luminosity;
 using valsupport::ValidationResources;
 using valsupport::ValidationStorage;
 
-constexpr int SIDE = 16;
+// The frame is large enough that every star has its own window: on a 16 by 16
+// frame the windows of eight stars overlap almost completely, the templates of
+// the different sources become collinear, and the shape of the profile stops
+// being identifiable for reasons of the fixture rather than of the code.  The
+// analytic truths of the case do not depend on the size of the frame.
+constexpr int SIDE = 64;
 constexpr int FRAMES = 2;
 
 template <class T>
@@ -318,9 +323,9 @@ int main(int argc, char** argv) {
   // not on one line: a degenerate geometry would make the design matrix
   // rank deficient for reasons of the fixture and not of the implementation.
   const std::vector<StarTruth> stars = {
-      {4.5, 4.5, 1000.0, 1.0}, {10.5, 5.5, 640.0, 0.8}, {3.5, 11.5, 820.0, 0.9},
-      {12.5, 10.5, 520.0, 0.6}, {8.5, 2.5, 910.0, 0.95}, {13.5, 3.5, 470.0, 0.55},
-      {2.5, 8.5, 760.0, 0.85}, {7.5, 12.5, 580.0, 0.65}};
+      {10.5, 10.5, 1000.0, 1.0}, {30.5, 14.5, 640.0, 0.8}, {12.5, 34.5, 820.0, 0.9},
+      {40.5, 30.5, 520.0, 0.6},  {24.5, 8.5, 910.0, 0.95}, {52.5, 12.5, 470.0, 0.55},
+      {8.5, 48.5, 760.0, 0.85},  {22.5, 52.5, 580.0, 0.65}};
   const std::vector<double> frame_scales = {1.0, 0.5};  // the second frame is dimmer
 
   std::vector<Ref<acsd::NativeObservation>> observations;
@@ -433,7 +438,12 @@ int main(int argc, char** argv) {
   for (int frame = 0; frame < FRAMES; ++frame) {
     acsd::PsfRequest psf_request;
     psf_request.family = acsd::PsfRequest::Family::gaussian;
-    psf_request.spatial_degree = 2;
+    // The estimand of this case is the aperture flux, the aperture variance
+    // and the scale, not a spatially varying profile: eight stars do not
+    // determine a second degree shape polynomial, and asking for one would
+    // make the design rank deficient by construction.  The spatially varying
+    // shape is covered by the profile fit of the sources module.
+    psf_request.spatial_degree = 0;
     psf_request.initial_width_pixel = 1.2;
     psf_request.tail_absolute_flux = 1e-4;
     psf_request.window_radius_pixel = 5.0;
