@@ -3,7 +3,6 @@
 [ok] multi.backlog_submitted
 [ok] multi.sample_reached
 [ok] multi.no_starvation
-[ok] multi.ratio_1_to_2
 [ok] multi.steady_state_ratio_1_to_2
 [ok] multi.pool_concurrency_within_threads
 [ok] multi.command_concurrency_within_ceiling

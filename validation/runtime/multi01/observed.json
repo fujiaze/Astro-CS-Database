@@ -2,8 +2,8 @@
   "case": "multi01",
   "source": "validation/runtime/multi01/multi01.cpp",
   "status": "ran",
-  "attempts": 12,
-  "successes": 12,
+  "attempts": 11,
+  "successes": 11,
   "failures": [],
   "checks": [
     {
@@ -40,13 +40,6 @@
       "expected": "both commands complete units before the sample",
       "actual": "42/78",
       "detail": ""
-    },
-    {
-      "check": "multi.ratio_1_to_2",
-      "pass": true,
-      "expected": "count(weight2)/count(weight1) in [1.5, 2.5]",
-      "actual": "1.857",
-      "detail": "P=1 serializes completion order; both queues stay backlogged"
     },
     {
       "check": "multi.steady_state_ratio_1_to_2",
@@ -118,10 +111,11 @@
   },
   "commands": [],
   "notes": [
+    "whole-window ratio 1.857 includes the admission transient; the pass/fail criterion is the complete-round split (30..120) below",
     "the first 30 dispatches include the admission transient (command one is admitted first); complete rounds are measured from dispatch 30 to 120"
   ],
   "command": "/workspace/Astro CS Database/validation/runtime/build/multi01",
   "exit_code": 0,
-  "stderr_tail": "[ok] multi.open_weight1_ok\n[ok] multi.open_weight2_ok\n[ok] multi.backlog_submitted\n[ok] multi.sample_reached\n[ok] multi.no_starvation\n[ok] multi.ratio_1_to_2\n[ok] multi.steady_state_ratio_1_to_2\n[ok] multi.pool_concurrency_within_threads\n[ok] multi.command_concurrency_within_ceiling\n[ok] multi.backlog_drained\n[ok] multi.close_weight1_ok\n[ok] multi.close_weight2_ok\n",
+  "stderr_tail": "[ok] multi.open_weight1_ok\n[ok] multi.open_weight2_ok\n[ok] multi.backlog_submitted\n[ok] multi.sample_reached\n[ok] multi.no_starvation\n[ok] multi.steady_state_ratio_1_to_2\n[ok] multi.pool_concurrency_within_threads\n[ok] multi.command_concurrency_within_ceiling\n[ok] multi.backlog_drained\n[ok] multi.close_weight1_ok\n[ok] multi.close_weight2_ok\n",
   "timed_out": false
 }

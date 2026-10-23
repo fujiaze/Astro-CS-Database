@@ -2,8 +2,8 @@
   "case": "work01",
   "source": "validation/runtime/work01/work01.cpp",
   "status": "ran",
-  "attempts": 15,
-  "successes": 15,
+  "attempts": 16,
+  "successes": 16,
   "failures": [],
   "checks": [
     {"check": "work.open_command_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
@@ -20,10 +20,11 @@
     {"check": "work.second_consumed_6", "pass": true, "expected": "6", "actual": "6", "detail": ""},
     {"check": "work.total_consumed_10", "pass": true, "expected": "10", "actual": "10", "detail": ""},
     {"check": "work.total_within_budget", "pass": true, "expected": "<= 10", "actual": "10", "detail": ""},
+    {"check": "work.consumed_exhausted_named_rejection", "pass": true, "expected": "resource_exhausted within 2 s (never a waiting task)", "actual": "resource_exhausted(resource_exhausted:runtime.pool:TaskSpec.work_upper exceeds the declared max_work budget)", "detail": "consumed=10 == max_work, so upper=1 can never be admitted; the scheduler must name the refusal, not park the task"},
     {"check": "work.close_command_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""}
   ],
-  "values": {"work.second_state_while_first_holds": "1", "work.after_first": 10, "work.final_total": 10, "work.consumed_exhaustion_behavior": "cancelled(cancelled:runtime.pool:the command was cancelled or drained)"},
+  "values": {"work.second_state_while_first_holds": "1", "work.after_first": 10, "work.final_total": 10, "work.consumed_exhaustion_behavior": "resource_exhausted(resource_exhausted:runtime.pool:TaskSpec.work_upper exceeds the declared max_work budget)"},
   "resources": {},
   "commands": [],
-  "notes": ["observed: after consumed=max_work, a new upper=1 task was still waiting after 2 s (scope cancelled to drain); SCHEDULER says an insufficient declared upper returns resource_exhausted, and no wait may be unbounded."]
+  "notes": []
 }

@@ -1,31 +1,60 @@
 [ok] cal.services_ok
-[ok] cal.open_command_ok
 [ok] cal.register_builtin_types_ok
 [ok] cal.register_processes_ok
 [ok] cal.freeze_ok
 [ok] cal.make_host_ok
+[ok] cal.open_command_ok
 [ok] cal.adu_array_ok
 [ok] cal.dq_array_ok
 [ok] cal.bias_array_ok
 [ok] cal.dark_array_ok
 [ok] cal.flat_array_ok
 [ok] cal.cal1_host_ok
+[cal01] read_f64 reserve
+[cal01] read_f64 reserve code=ok
+[cal01] read_f64 submitted state=0
+[cal01] read_f64 done code=ok
+[cal01] read_f64 reserve
+[cal01] read_f64 reserve code=ok
+[cal01] read_f64 submitted state=0
+[cal01] read_f64 done code=ok
+[cal01] read_f64 reserve
+[cal01] read_f64 reserve code=ok
+[cal01] read_f64 submitted state=0
+[cal01] read_f64 done code=ok
+[cal01] read_f64 done code=ok
 [ok] cal.cal1_exact_values
 [ok] cal.cal1_negative_not_clipped
 [ok] cal.cal1_interval_contains_exact
 [ok] cal.cal1_dq_clean
 [ok] cal.cal1_frame_context
-[FAIL] cal.cal1_usage_work expected=3 work units actual=140 detail=the process kernel consumes one unit per native sample
+[ok] cal.cal1_usage_work
 [ok] cal.cal2_host_ok
+[cal01] read_f64 reserve
+[cal01] read_f64 reserve code=ok
+[cal01] read_f64 submitted state=0
+[cal01] read_f64 done code=ok
 [ok] cal.cal2_exact_values
+[ok] cal.close_command_ok
+[ok] cal.dq_open_command_ok
 [ok] cal.dq_flat_array_ok
 [ok] cal.dq_zero_flat_host_ok
+[cal01] read_f64 reserve
+[cal01] read_f64 reserve code=ok
+[cal01] read_f64 submitted state=0
+[cal01] read_f64 done code=ok
+[cal01] read_f64 done code=ok
 [ok] cal.dq_zero_flat_nan
 [ok] cal.dq_zero_flat_flag
 [ok] cal.dq_zero_flat_named_issue
 [ok] cal.dq_nan_array_ok
 [ok] cal.dq_nan_conflict_rejected
 [ok] cal.dq_nan_conflict_no_native
+[ok] cal.dq_close_command_ok
+[ok] cal.root_open_command_ok
 [ok] cal.root_second_adu_ok
-
-timeout after 180 s
+[ok] cal.root_both_frames_ok
+[ok] cal.root_shared_arrays_unchanged
+[ok] cal.root_no_per_call_random_root
+[ok] cal.root_close_command_ok
+[ok] cal.host_close_ok

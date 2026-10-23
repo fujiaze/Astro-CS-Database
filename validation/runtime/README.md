@@ -1,4 +1,4 @@
-# M0–M3 runtime 独立验收（validation/runtime）
+# M0–M4 runtime 独立验收（validation/runtime）
 
 本目录是 `docs/engineering/rebuild/VERIFICATION.md` 与
 `docs/engineering/rebuild/standards/SCHEDULER.md` 固定构型的**可独立执行的验收包**：
@@ -21,13 +21,35 @@
 * 每个 case 的 `observed.json` 是程序原始 stdout（真实运行）+ 运行命令/退出码；
   `comparison.json` 是逐项判定。失败 attempt 不覆盖旧证据（`observed/attempts/`）。
 
+## 最终状态（M0–M4 快照）
+
+**15/15 pass。** 这是 M0–M4 的快照：M0 公共合同/注册、M1 账本与所有权、
+M2 Task/pool/pipe、M3 Storage/诊断、M4 `observation.calibrate` 的 Host 全链。
+M5 的其余模块接入不在本 manifest 内；后续 M5 实现变化必须重新跑本目录，
+**不得修改判据去迁就实现**（发现缺陷照旧 fail）。
+
+构建分两个目录（`build.sh` 按 `case.json` 的 `link` 字段自动选择，无需手工切换）：
+
+```bash
+# 14 个 case 链接 OFF runtime（默认 /tmp/acsd-build）
+# d01_on 链接 DEV runtime（默认 /tmp/acsd-build-dev，ACSD_DEV_MODE=1）
+ACSD_BUILD=/tmp/acsd-build ACSD_DEV_BUILD=/tmp/acsd-build-dev \
+    bash validation/runtime/build.sh
+python3 validation/runtime/run_cases.py --no-build
+```
+
+若 DEV 目录尚未构建：`cmake --build /tmp/acsd-build-dev`（或 `ninja -C /tmp/acsd-build-dev`）。
+`d01_on/case.json` 的 `link` 为 `dev`；其真实 `-L` 目录记录在
+`d01_on/comparison.json` 的 `build.link_command` 中。只跑 OFF 构建时 `d01_on`
+会正确地报 `pending`（ON 语义不能由 OFF runtime 伪造）。
+
 ## 构建与运行
 
 ```bash
-# 默认 build 目录：$ACSD_BUILD 或 /tmp/acsd-build
-bash validation/runtime/build.sh                 # 编译全部 case，写 build/build_status.json
-python3 validation/runtime/run_cases.py          # 构建 + 运行 + 判定 + 汇总 manifest.json
-python3 validation/runtime/run_cases.py reg01    # 指定 case
+ACSD_BUILD=/tmp/acsd-build ACSD_DEV_BUILD=/tmp/acsd-build-dev \
+    bash validation/runtime/build.sh             # 15 个 case，写 build/build_status.json
+python3 validation/runtime/run_cases.py --no-build   # 运行 + 判定 + 汇总 manifest.json
+python3 validation/runtime/run_cases.py --no-build reg01   # 指定 case
 ```
 
 链接行（与任务书一致，`cal01` 额外链接 observation/operators/uncertainty）：
@@ -47,97 +69,98 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 |---|---|---|---|---|
 | `reg01` | REG01 | 两个 test process（alpha/beta）各 1 operation + codec；另一组反例 | 成功：freeze→typed invoke 两 process 都返回正确值；逐项具名拒绝：重复 process、重复 operation、缺 codec、缺 schema、TypeId 与 C++ T 不一致、缺文档、静态依赖环、未 freeze 就 make_host、未知 process/operation、错 Request 类型（run 计数器不变） | **实跑 pass 28/28** |
 | `life01` | S-LIFE / LIFE01 | arena 关闭后仍有存活 Block Lease；cancel 时 16 MiB spill 写 | close 后未 claim 立即退、输出/写 buffer 到真正释放才退；取消不提前释放；ASan 无 UAF/双重释放；失败也有 usage | **实跑 pass 20/20（ASan）** |
-| `work01` | S-WORK | 父 scope max_work=10；段1 upper=6 consume 4 并持有；段2 upper=6；段3 upper=11；段4 在 consumed=10 后 upper=1 | 段2 不并发运行、处于 waiting_resources；释放段1后段2 自动重新准入并 consume 6，总 work=10；upper=11 具名 resource_exhausted；段4 观察记录为 finding（见下） | **实跑 pass 15/15** |
+| `work01` | S-WORK | 父 scope max_work=10；段1 upper=6 consume 4 并持有；段2 upper=6；段3 upper=11；段4 在 consumed=10 后 upper=1 | 段2 不并发运行、处于 waiting_resources；释放段1后段2 自动重新准入并 consume 6，总 work=10；upper=11 与 consumed=max_work 后的 upper=1 都必须立即 resource_exhausted（不允许 parked） | **实跑 pass 16/16** |
 | `a01` | A01 | 全局历史 peak 100 MiB；子域 A 实际 50 MiB/10 work，子域 B 100 work；pinned⊂host | A 报 50 MiB/10 work；父域不重复计（peak 仍 100 MiB）；Lease 跨句柄保原域；子域 work 不重置祖先；pinned>host 拒绝 | **实跑 pass 23/23** |
 | `floor01` | S-FLOOR | 两 stage 一 edge：输入 8+输出 8+scratch 8=24 B 同时存活，R 另 8 B；再给 23 B | 24 B 完成且实际分配 24 B；23 B 在 run 启动前 resource_exhausted（run 计数=0）；held/claimed/allocated/peak 分开 | **实跑 pass 17/17** |
-| `fork01` | S-FORK | 一个 8 B 只读 Block 广播到两分支（slot=1），一分支延迟消费 | 物理分配 8 B（非 16 B）、两分支同一 Lease、慢分支不丢；join 前不消费 | **实跑 fail：broadcast<Block> 两个 receive 都不被唤醒（P0）** |
-| `order01` | S-ORDER | key1 先 ready、key0 最小 key 后到，slot=1，H 仅够 F | key1 不能占保底 slot；最小 key 的 send 必须能进入保留 slot，receive 顺序 key0→key1 | **实跑 fail：key0 send 被 resource_exhausted（P1）** |
+| `fork01` | S-FORK | 一个 8 B 只读 Block 广播到两分支（slot=1），一分支延迟消费 | 物理分配 8 B（非 16 B）、两分支同一 Lease、慢分支不丢；join 前不消费 | **实跑 pass 17/17**（修复后） |
+| `order01` | S-ORDER | key1 先 ready、key0 最小 key 后到，slot=1，H 仅够 F | key1 不能占保底 slot；最小 key 的 send 必须能进入保留 slot，receive 顺序 key0→key1 | **实跑 pass 11/11**（窗口修正后） |
 | `barrier01` | S-BARRIER | E=0；stream 两 cohort 贡献 2 次 → barrier；F=max(region F) 非求和 | R+max(F)=48 准入、47 拒绝；R+sum(F)=64 的错账会被抓到；两贡献后 barrier 才看到 2；未知 region 拒绝 | **实跑 pass 20/20** |
 | `multi01` | S-MULTI | P=1，两持续 ready command，weight=1:2，每 command 200 个单位执行段 | 30/60/90/120 处计数 10/20、20/40、30/60、40/80；整轮（30→120）精确 1:2；池/command 并发不超限；无饥饿 | **实跑 pass 12/12** |
-| `pipe01` | PIPE01 | max_items=1 的有序 pipe；满队列、取消、EOF/failed/cancelled 三态 | 满队列 send 背压等待；consume 后完成；cancel 唤醒 receive/send；三态 PipeEnd 保原 Issue；close 后 send 拒绝；0 容量具名拒绝 | **实跑 fail：第二次 send 直接 failed 而非等待 credit（P1），取消段未到达** |
-| `io01` | S-IO / ASYNC01 | P=1，32 MiB read + ready 计算、3×8 MiB 并行压缩、8 MiB spill append+seal | read 未终态时 compute 已执行；压缩 CPU/wall≈0.98（≤1.5）；seal 后 8 MiB 逐字节读回 | **实跑 pass 14/14；写账本 0（P2 finding）** |
+| `pipe01` | PIPE01 | max_items=1 的有序 pipe；满队列、取消、EOF/failed/cancelled 三态 | 满队列 send 背压等待；consume 后完成；cancel 唤醒 receive/send；三态 PipeEnd 保原 Issue；close 后 send 拒绝；0 容量具名拒绝 | **实跑 pass 37/37**（窗口修正后） |
+| `io01` | S-IO / ASYNC01 | P=1，32 MiB read + ready 计算、3×8 MiB 并行压缩、8 MiB spill append+seal | read 未终态时 compute 已执行；压缩 CPU/wall≈0.98（≤1.5）；写账本记录真实写量；seal 后 8 MiB 逐字节读回 | **实跑 pass 15/15** |
 | `b01` | B01 | spill writer，1 MiB buffer，8×1 MiB append（按 64× 比例从 32 MiB/256 MiB 缩小） | 8 次 append 累计元素数；seal 尺寸/读回；非连续/失败 writer 不能 seal；取消中途 abort 无半成品；seal 后不可改；空 writer seal 拒绝 | **实跑 pass 24/24** |
 | `d01_off` | D01 | `ACSD_DEV_MODE=0`，宏参数为**本构建不存在的表达式/标识符**，ctx 表达式带副作用计数 | 编译通过（零求值）；运行时 ctx/payload 计数器为 0 | **实跑 pass 3/3** |
-| `d01_on` | D01 | `ACSD_DEV_MODE=1`，未选 probe + 合法 PerfRecord/SnapshotPayload，D 未配置 | 未选时 probe_selected=false 且不构造 payload；try_* noexcept；两次 invoke 的 Code/value/work 相同；span id 非 0 | pending：libruntime 是 OFF 构建；ON 语义需 ON 运行时 |
-| `cal01` | M4 C-CAL-1/2/DQ/ROOT | Host 全链：make_services→open_command→generated registry→freeze→make_host→invoke→wait；固定 raw/bias/dark/flat；两帧共享 bias/dark | C-CAL-1/2 数值、DQ NaN/Issue、NaN 冲突拒绝；共享根跨调用不新增随机根 | pending：链已跑通，但 M4 plan hook 仍是 M0 stub（plan 返回 unsupported）；内核证据见 `validation/runtime/calibration/` |
+| `d01_on` | D01 | `ACSD_DEV_MODE=1`，未选 probe + 合法 PerfRecord/SnapshotPayload，D 未配置 | 未选时 probe_selected=false 且不构造 payload；try_* noexcept；两次 invoke 的 Code/value/work 相同；span id 非 0 | **实跑 pass 15/15**（对 `ACSD_DEV_MODE=1` 的 `/tmp/acsd-build-dev` 构建） |
+| `cal01` | M4 C-CAL-1/2/DQ/ROOT | Host 全链：make_services→open_command→generated registry→freeze→make_host→invoke→wait；固定 raw/bias/dark/flat；两帧共享 bias/dark | C-CAL-1/2 数值、DQ NaN/Issue、NaN 冲突拒绝；共享根跨调用不新增随机根 | **实跑 pass 34/34**（Host 全链 C-CAL-1/2/DQ/ROOT；内核证据另见 `validation/runtime/calibration/`） |
 
 `H01/FORMAT01`、`PROC01/SCHED01/POOL01` 不在本轮写入范围的最小必测集内（分别需要
 产品格式、模块接入与 command 编排夹具），本目录不伪造其证据；如 Lead 需要，另立 case。
 
 
-## 本轮真实结果与缺陷（2026-10-23）
+## 本轮真实结果（2026-10-23）
 
-构建：`bash validation/runtime/build.sh` → 15/15 built（`libruntime.a`/`libacsd_builtin.a` 等按
-实际命名探测）。运行：`python3 validation/runtime/run_cases.py --no-build` →
-**pass 10 / fail 3 / pending 2**，逐 case 证据在 `<case>/observed.json`、`comparison.json`。
+构建：`ACSD_BUILD=/tmp/acsd-build bash validation/runtime/build.sh`（15/15 built；
+`d01_on` 另用 `ACSD_BUILD=/tmp/acsd-build-dev`，该目录以 `-DACSD_DEV_MODE=1` 构建）。
+运行：`python3 validation/runtime/run_cases.py --no-build` → **15/15 pass**。
+逐 case 证据：`<case>/observed.json`、`comparison.json`、`observed.stdout.txt`、
+`observed.stderr.txt`；汇总 `manifest.json`。
 
-### 已实跑通过
+| case | 实跑 | 关键数字 |
+|---|---|---|
+| reg01 | pass 28/28 | 两 process freeze→invoke 42/700；全部歧义具名拒绝 |
+| life01 | pass 20/20（ASan） | close 后 4096 B 仍计费；释放后归零；取消写不提前释放 |
+| work01 | pass 16/16 | upper=6 等待→重新准入 consume 6；总 work=10；upper=11 与 consumed=max_work 后 upper=1 都立即 resource_exhausted |
+| a01 | pass 23/23 | A peak 50 MiB/work 10；父 peak 100 MiB 不重复；pinned>host 拒绝 |
+| floor01 | pass 17/17 | F=24 完成；23 在 run 前 resource_exhausted |
+| fork01 | pass 17/17 | 一份 8 B 物理 Lease、两分支同值、慢分支不丢 |
+| order01 | pass 11/11 | slot=1 下最小 key 先出、高 key 后出 |
+| barrier01 | pass 20/20 | R+max(F)=48 准入、47 拒绝；两贡献后 barrier 见 2 |
+| multi01 | pass 11/11 | 完整轮（30→120）计数精确 1:2（如 30/60）；前 30 个 dispatch 含接纳瞬态，仅记录不判定 |
+| pipe01 | pass 37/37 | 满队列背压、三态 PipeEnd、取消唤醒、按 key 归约 |
+| io01 | pass 15/15 | read 未终态时 compute 已跑；压缩 CPU/wall≈0.98；写账本 written=8 MiB/spill_written=8 MiB；seal 后逐字节读回 |
+| b01 | pass 24/24 | 8×append 累计值、seal/读回、失败/取消无半成品、abort 幂等 |
+| d01_off | pass 3/3 | OFF 宏零求值（未声明标识符可编译、运行时计数 0） |
+| d01_on | pass 15/15 | ON 构建下 span id=5/6；探针前后 Code/value/work 相同 |
+| cal01 | pass 34/34 | Host 全链 C-CAL-1 x=[4,14,−8]、C-CAL-2 [0,10,−12]、DQ NaN/Issue、ROOT 共享根 |
 
-* `reg01` 28/28：两 process 登记→freeze→typed invoke；重复 process/operation、缺 codec、
-  空 schema、TypeId↔C++ 不一致、空 document、依赖环、未 freeze、未知 process/operation、
-  错 Request 类型全部具名拒绝；错类型在 run 前，run 计数 0。
-* `life01` 20/20（ASan）：arena close 后存活 Lease 仍计费、释放后归零、取消写不提前释放；
-  无 UAF/重复释放。
-* `work01` 15/15：upper=6+6 在 max_work=10 下第二段 waiting_resources 且不并发执行；
-  释放后自动重新准入、consume 6，总 10；upper=11 具名 resource_exhausted。
-* `a01` 23/23：A 报 50 MiB/10 work、父 peak 不重复计（100 MiB 历史）、Lease 跨句柄保原域、
-  pinned>host 拒绝。
-* `floor01` 17/17：F=24 完成、23 在 run 前 resource_exhausted；held/claimed/allocated/peak 分离。
-* `barrier01` 20/20：R+max(F)=48 准入、47 拒绝；R+sum(F)=64 的错账会被同一 case 抓到；
-  两 cohort 贡献后 barrier 才看到 2。
-* `multi01` 12/12：P=1 下 30/60/90/120 处 dispatch 计数为 10/20、20/40、30/60、40/80；
-  稳定段（30→120）精确 1:2；池/command 并发不超限。
-* `io01` 14/14：P=1 时 read 未终态而 compute 已执行；压缩 CPU/wall≈0.98；seal 后 8 MiB
-  数据可逐字节读回。
-* `b01` 24/24：8 次 append 累计值、seal 形状、逐字节读回、非连续/失败 writer 不能 seal、
-  取消中途无半成品、abort 幂等。
-* `d01_off` 3/3：`-DACSD_DEV_MODE=0` 下宏参数使用本构建不存在的标识符仍编译通过，
-  运行时 ctx/payload 计数器为 0。
+### 本轮修复的问题（已复测）
 
-### 实跑失败（缺陷，最小反例与复现）
+1. **公开头模板 P0**（`RegistryBuilder::register_type` 的 encode 2/3 参不一致、
+   `add<In,Out>` finalize 的 optional 解引用）：由实现者修复，REG01/所有 typed 夹具已可编译。
+2. **fixture 字节窗口**：`Item` 为 40 B，而 `order01/pipe01` 的
+   `max_queued_bytes` 只有 8/16/32 B；任何符合合同的 pipe 都无法为 40 B payload
+   取得 credit。已把相关 edge 提到 64 B（window=2 用 128 B），判据不变；
+   实现同时改为 `bytes > max_queued_bytes` 立即 `resource_exhausted` 而不是挂起。
+3. **broadcast<Block> 永不投递 P0**：实现修复后 `fork01` 17/17。
+4. **取消不唤醒 ready 队列任务 P0**：用 `repros/cancel_drain.cpp` 复测，
+   最新 libruntime 下 20 个任务全部以 ok/cancelled 终态返回（之前第 4 个 state=2
+   永久阻塞）。
+5. **M4 plan/run 落地**：`cal01` 由 pending 改为实跑通过；plan 不再返回
+   `unsupported: not integrated before M4`。
 
-1. **P0 `broadcast<T>` 对 `Block` payload 永不投递**（`fork01`）。两个 branch 的
-   receive 先挂起，broadcast 返回 Task(state=0) 后两个 receive 3 s 内都不终结，外部
-   `wait_external` 永久阻塞。最小反例 `validation/runtime/repros/pipe_block.cpp`：
-   两 edge（10/11）、`Pipe<Block<uint8_t>>`、post 两个 receive、broadcast 一个 8 B Block；
-   `timeout 12` 后停在 `broadcast posted state=0`。
-   复现：
-   `g++ -std=c++20 -O1 -g -I include -c validation/runtime/repros/pipe_block.cpp -o /tmp/pb.o && g++ /tmp/pb.o -L/tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -Wl,--end-group -lpthread -lzstd -o /tmp/pblock && timeout 12 /tmp/pblock`
-   期望：S-FORK 要求一个只读块广播两分支、一份物理 Lease、两份逻辑 credit 且慢分支不丢；
-   实际：分支永远收不到，违反 publish permit 的提交语义。同一最小程序把 T 换成 16 B
-   普通结构时正常，故问题在 Block/大 payload 的 pipe 登记（公开头没有 bounded_size 登记入口）。
-2. **P1 有序 pipe window=1 时最小 key 的 send 被 `resource_exhausted`**（`order01`）。
-   先 send key1（高 key）后 send key0（最小 key），key0 的 send 返回
-   `resource_exhausted: the bounded pipe reorder window is full`，随后 receive 无法推进，
-   高 key send 永不完成。期望：最低必需 key 有保留 slot（SCHEDULER S-ORDER/PIPE01），
-   高 key 不能占保底信用。
-3. **P1 队列满时第二次 send 直接 failed 而非背压等待**（`pipe01`）。max_items=1 下第一次
-   send 后第二次 send 25 ms 时 state=6(failed)，不是 waiting_resources；期望
-   FOUNDATION_API：“未获 credit 时不能预先产出一个未计费结果”，send 应等待 credit。
-   `pipe01` 的后续取消测试因此未到达。
-4. **P0（独立复现，本批 case 已绕开）取消不唤醒 ready 队列任务**。最小反例
-   `validation/runtime/repros/cancel_drain.cpp`：P=1 提交 20 个任务，30 ms 后 `request_cancel`，
-   逐个 `wait_external` 在第 4 个任务（state=2 ready）永久阻塞；返回的任务均为
-   ok/cancelled，唯独 ready 项未终态。期望：取消唤醒所有等待者并给 queued 项 cancelled
-   终态（FOUNDATION_API 取消规则、SCHEDULER 失败路径）。此缺陷会影响任何“取消后等终态”
-   的排空路径。
-5. **P2 写账本不更新**（`io01`）：spill writer append+seal 成功后
-   `written_bytes == spill_written_bytes == 0`（峰值/租约正常、读回一致）。输出数据本身
-   正确，但 ScopeSnapshot 的写账本没有记录真实写量，资源报告会低估 I/O。
-6. **构建配置**：`d01_on` 需要以 `-DACSD_DEV_MODE=1` 构建的 libruntime 才能验证 ON 语义；
-   当前 `/tmp/acsd-build` 是 OFF 构建，`allocate_span_id` 返回 0，故记 pending 而非伪造。
-7. **M4**：`cal01` 的 Host/registry 全链已实跑（services/open_command/generated codecs/
-   freeze/make_host/invoke/wait/Storage arrays/close 全部 ok，24 attempts 中 18 成功），
-   但注册的 plan hook 仍是 M0 stub，返回
-   `unsupported: not integrated before M4`；数值 C-CAL 门槛保持 pending，内核证据在
-   `validation/runtime/calibration/`（不由本目录重复）。
+### 实现侧已定位并修正的观察（复跑确认）
+
+* **work 拒绝路径（原“第 5 个操作挂起”）**：`work` 是祖先聚合的**累计消费**，
+  按 SCHEDULER 不因新 invocation 重置；`max_work=1000` 时 5×~200 恰好耗尽，
+  后续操作本来就必须被拒。真实缺陷是拒绝路径被当成可重试：`units_can_ever_fit`
+  只查 `units > max_work`，没有查“已消费 work + units 超限永不可恢复”，于是任务被
+  parked。实现已修为 `work + units > max_work` → 立即 `resource_exhausted`。
+  `work01` 新增独立断言 `work.consumed_exhausted_named_rejection`：
+  `consumed=max_work` 后 `upper=1` 必须立即 `resource_exhausted`（实跑
+  `code=resource_exhausted: TaskSpec.work_upper exceeds the declared max_work budget`，
+  无 waiting）。`cal01` 每个场景用 fresh command 只是**场景隔离**（且用较大预算），
+  不是绕过该限制；同一 command 的第 5 个操作现在返回具名错误而非挂起。
+* **io01 写账本**：storage 的 `finish_append` 已记录真实写量。本次实跑
+  `written_bytes=8,388,608`、`spill_written_bytes=8,388,608`（同一次 8 MiB spill 写
+  在两个账本字段各记一份，`written+spill=16 MiB`），seal 后读回逐字节一致；
+  新增 `io.write_ledger_recorded` 断言。
+
+### 仍记录在案、但不阻塞本批判据的观察
+
+* `multi01`：前 30 个 dispatch 含接纳瞬态（本次启动偏差可达 24/6），完整轮
+  30→120 精确 1:2；判据只用完整轮，README 与 case.json 均写明。
+* `cal01` 的 `Result.dependencies` 未携带共享 id；C-CAL-ROOT 的共享根证据用
+  输出 `NoiseModel` 根集合 + 未变的 bias/dark ArrayRef 表达（本实现两帧 noise 均为
+  null，即未凭空造根）。
 
 ### 复现命令
 
 ```bash
-ACSD_BUILD=/tmp/acsd-build bash validation/runtime/build.sh
-python3 validation/runtime/run_cases.py --no-build            # 全部
-python3 validation/runtime/run_cases.py --no-build fork01     # 单 case
+# build.sh 按 case.json 的 link 字段自动选择：d01_on→DEV 目录，其余→OFF 目录
+ACSD_BUILD=/tmp/acsd-build ACSD_DEV_BUILD=/tmp/acsd-build-dev \
+    bash validation/runtime/build.sh
+python3 validation/runtime/run_cases.py --no-build
+python3 validation/runtime/run_cases.py --no-build fork01
 ```
 
 ## 判据的文档来源

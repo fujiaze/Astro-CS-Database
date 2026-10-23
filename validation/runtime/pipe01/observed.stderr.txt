@@ -24,5 +24,14 @@
 [ok] pipe.full_second_received
 [ok] pipe.full_close_command_ok
 [ok] pipe.order_make_pipe_ok
-
-timeout after 120 s
+[ok] pipe.order_send_high_first_ok
+[ok] pipe.order_send_low_ok
+[ok] pipe.order_reduces_by_key
+[ok] pipe.order_close_command_ok
+[ok] pipe.cancel_wakes_receive
+[ok] pipe.cancel_receive_terminal_named
+[ok] pipe.cancel_receive_close_command_ok
+[ok] pipe.cancel_send_fill_ok
+[ok] pipe.cancel_wakes_send
+[ok] pipe.cancel_send_terminal_named
+[ok] pipe.cancel_send_close_command_ok

@@ -10,18 +10,18 @@
     "built": true,
     "status": "built",
     "classification": "ok",
-    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/multi01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/multi01",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/multi01.o -L /tmp/acsd-build-dev -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/multi01",
     "log": "validation/runtime/build/multi01.build.log"
   },
   "command": "/workspace/Astro CS Database/validation/runtime/build/multi01",
   "status": "pass",
   "reason": "all required checks passed",
   "exit_code": 0,
-  "attempts": 12,
-  "successes": 12,
-  "expected_success_count": 12,
-  "observed_success_count": 12,
-  "required_checks": 12,
+  "attempts": 11,
+  "successes": 11,
+  "expected_success_count": 11,
+  "observed_success_count": 11,
+  "required_checks": 11,
   "missing_checks": [],
   "failed_checks": [],
   "failures": [],
@@ -61,13 +61,6 @@
       "expected": "both commands complete units before the sample",
       "actual": "42/78",
       "detail": ""
-    },
-    {
-      "check": "multi.ratio_1_to_2",
-      "pass": true,
-      "expected": "count(weight2)/count(weight1) in [1.5, 2.5]",
-      "actual": "1.857",
-      "detail": "P=1 serializes completion order; both queues stay backlogged"
     },
     {
       "check": "multi.steady_state_ratio_1_to_2",

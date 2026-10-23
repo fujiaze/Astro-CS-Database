@@ -204,15 +204,16 @@ int main() {
   const bool exhausted_terminal = wait_until_terminal(exhausted, 2000);
   if (!exhausted_terminal) rt::request_cancel(ctx);
   auto exhausted_result = rt::wait_external(std::move(exhausted));
-  // Finding, not a required fixed-row check: after consumed=10 a further
-  // upper=1 stays waiting instead of returning resource_exhausted.  Recorded
-  // as evidence for the scheduler owners; the S-WORK fixed row above is the
-  // pass/fail criterion of this case.
+  // consumed == max_work is permanent: the reservation can never fit again, so
+  // the task must be refused immediately instead of waiting forever.
+  recorder.check("work.consumed_exhausted_named_rejection",
+                 exhausted_terminal &&
+                     exhausted_result.code == Code::resource_exhausted,
+                 "resource_exhausted within 2 s (never a waiting task)",
+                 vrt::code_of(exhausted_result),
+                 "consumed=10 == max_work, so upper=1 can never be admitted; "
+                 "the scheduler must name the refusal, not park the task");
   recorder.value("work.consumed_exhaustion_behavior", vrt::code_of(exhausted_result));
-  recorder.note("observed: after consumed=max_work, a new upper=1 task was "
-                + std::string(exhausted_terminal ? "terminated" : "still waiting after 2 s")
-                + " (scope cancelled to drain); SCHEDULER says an insufficient "
-                  "declared upper returns resource_exhausted, and no wait may be unbounded.");
 
   auto closed = rt::wait_external(rt::close_command(ctx));
   recorder.expect_code("work.close_command_ok", "ok", closed);

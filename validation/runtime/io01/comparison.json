@@ -17,11 +17,11 @@
   "status": "pass",
   "reason": "all required checks passed",
   "exit_code": 0,
-  "attempts": 16,
-  "successes": 16,
-  "expected_success_count": 14,
-  "observed_success_count": 16,
-  "required_checks": 14,
+  "attempts": 17,
+  "successes": 17,
+  "expected_success_count": 15,
+  "observed_success_count": 17,
+  "required_checks": 15,
   "missing_checks": [],
   "failed_checks": [],
   "failures": [],
@@ -73,7 +73,7 @@
       "check": "io.compression_within_one_cpu",
       "pass": true,
       "expected": "process CPU / wall <= 1.5 with cpu_threads=1",
-      "actual": "1.018",
+      "actual": "1.009",
       "detail": "a multi-threaded compressor would exceed the one-token quota"
     },
     {
@@ -119,6 +119,13 @@
       "detail": ""
     },
     {
+      "check": "io.write_ledger_recorded",
+      "pass": true,
+      "expected": "written_bytes + spill_written_bytes >= 8 MiB",
+      "actual": "8388608 + 8388608",
+      "detail": "the storage finish_append path records the real write in the scope ledger"
+    },
+    {
       "check": "io.seal_readback_matches",
       "pass": true,
       "expected": "sealed array reads back byte-identical after seal",
@@ -144,13 +151,13 @@
     "io.read_attempt_0_bytes": 33554432,
     "io.read_attempt_0_pending_at_compute": true,
     "io.read_concurrency_attempts": 1,
-    "io.compression_wall_seconds": 0.20216471899766475,
-    "io.compression_cpu_seconds": 0.20581632900000002,
-    "io.compression_cpu_ratio": 1.0180625483043728,
+    "io.compression_wall_seconds": 0.19834833405911922,
+    "io.compression_cpu_seconds": 0.20009714700000003,
+    "io.compression_cpu_ratio": 1.0088168773848112,
     "io.seal_charged_during_append": 8388608,
-    "io.written_bytes_at_seal": 0,
-    "io.spill_written_bytes_at_seal": 0,
-    "io.written_ledger_at_seal": 0
+    "io.written_bytes_at_seal": 8388608,
+    "io.spill_written_bytes_at_seal": 8388608,
+    "io.written_ledger_at_seal": 16777216
   },
   "resources": {}
 }

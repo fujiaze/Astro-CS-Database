@@ -12,4 +12,5 @@
 [ok] work.second_consumed_6
 [ok] work.total_consumed_10
 [ok] work.total_within_budget
+[ok] work.consumed_exhausted_named_rejection
 [ok] work.close_command_ok

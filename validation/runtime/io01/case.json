@@ -30,12 +30,13 @@
     "io.append_buffer_charged_until_write",
     "io.seal_append_ok",
     "io.seal_completed",
+    "io.write_ledger_recorded",
     "io.seal_readback_matches",
     "io.seal_array_size",
     "io.close_command_ok"
   ],
-  "min_attempts": 14,
-  "expected_success_count": 14,
+  "min_attempts": 15,
+  "expected_success_count": 15,
   "tolerance": "empirical CPU/wall <= 1.5; read-overlap observed in up to 3 attempts; written_bytes exact >= payload",
   "link": "default",
   "timeout_seconds": 300

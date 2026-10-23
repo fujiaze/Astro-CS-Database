@@ -11,6 +11,7 @@
 [ok] io.append_buffer_charged_until_write
 [ok] io.seal_append_ok
 [ok] io.seal_completed
+[ok] io.write_ledger_recorded
 [ok] io.seal_readback_matches
 [ok] io.seal_array_size
 [ok] io.close_command_ok

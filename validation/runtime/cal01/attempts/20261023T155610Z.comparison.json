@@ -1,0 +1,355 @@
+{
+  "case": "cal01",
+  "title": "C-CAL-1/2/DQ/ROOT through the full Host/registry chain (make_services -> generated registry -> ProcessHost.invoke)",
+  "milestone": "M4",
+  "contract_refs": [
+    "docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md#引导、调用与事件顺序",
+    "docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md#固定验收输入与故障矩阵",
+    "docs/engineering/rebuild/standards/FOUNDATION_API.md#计划、注册和Host"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/cal01.o -L /tmp/acsd-build -Wl,--start-group -lacsd_builtin -lcodec -lobservation -lcoordinates -lcatalogue -lsources -lresponse -lphotometry -lgeometry -loperators -luncertainty -linformation -lsky -lcoadd -lprojection -lworkflows -lstorage -lresources -lnumerics -lmodel -lruntime -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/cal01",
+    "log": "validation/runtime/build/cal01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/cal01",
+  "status": "fail",
+  "reason": "duplicate check names: cal.close_command_ok, cal.root_both_frames_ok, cal.root_no_per_call_random_root, cal.root_second_adu_ok, cal.root_shared_arrays_unchanged; required checks failed: cal.dq_zero_flat_nan, cal.dq_zero_flat_flag; successes does not match the number of passing checks; harness reports failures: [\"cal.dq_zero_flat_nan\", \"cal.dq_zero_flat_flag\"]",
+  "exit_code": 0,
+  "attempts": 42,
+  "successes": 40,
+  "expected_success_count": 34,
+  "observed_success_count": 35,
+  "required_checks": 34,
+  "missing_checks": [],
+  "failed_checks": [
+    "cal.dq_zero_flat_nan",
+    "cal.dq_zero_flat_flag"
+  ],
+  "failures": [
+    {
+      "check": "cal.dq_zero_flat_nan",
+      "expected": "NaN at the zero flat",
+      "actual": "missing",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_zero_flat_flag",
+      "expected": "nonzero DQ",
+      "actual": "missing",
+      "detail": ""
+    }
+  ],
+  "kernel_status": "fail",
+  "checks": [
+    {
+      "check": "cal.services_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.register_builtin_types_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.register_processes_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.freeze_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.make_host_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.adu_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.bias_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dark_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.flat_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal1_host_ok",
+      "pass": true,
+      "expected": "ok + NativeObservation",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal1_exact_values",
+      "pass": true,
+      "expected": "[4,14,-8]",
+      "actual": "[4,14,-8]",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal1_negative_not_clipped",
+      "pass": true,
+      "expected": "-8",
+      "actual": "-8",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal1_interval_contains_exact",
+      "pass": true,
+      "expected": "lower <= exact <= upper",
+      "actual": "recorded",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal1_dq_clean",
+      "pass": true,
+      "expected": "all DQ zero",
+      "actual": "recorded",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal1_frame_context",
+      "pass": true,
+      "expected": "frame0 + jd",
+      "actual": "frame0",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal1_usage_work",
+      "pass": true,
+      "expected": ">= 3 work units",
+      "actual": "140",
+      "detail": "process usage aggregates the admitted stages; the per-sample consume_work(1) is a lower bound, not the whole usage"
+    },
+    {
+      "check": "cal.cal2_host_ok",
+      "pass": true,
+      "expected": "ok + NativeObservation",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.cal2_exact_values",
+      "pass": true,
+      "expected": "[0,10,-12]",
+      "actual": "[0,10,-12]",
+      "detail": "the dark_contains_bias=false branch must not reuse D-b"
+    },
+    {
+      "check": "cal.root_second_adu_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_both_frames_ok",
+      "pass": true,
+      "expected": "both ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_shared_arrays_unchanged",
+      "pass": true,
+      "expected": "the same bias/dark ArrayRefs feed both frames",
+      "actual": "same objects",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_no_per_call_random_root",
+      "pass": true,
+      "expected": "identical shared root set (or both absent)",
+      "actual": "noise1=present noise2=present",
+      "detail": "C-CAL-ROOT: shared bias/master keeps one shared root"
+    },
+    {
+      "check": "cal.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_dq_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_second_adu_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_both_frames_ok",
+      "pass": true,
+      "expected": "both ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_shared_arrays_unchanged",
+      "pass": true,
+      "expected": "the same bias/dark ArrayRefs feed both frames",
+      "actual": "same objects",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_no_per_call_random_root",
+      "pass": true,
+      "expected": "identical shared root set (or both absent)",
+      "actual": "noise1=present noise2=present",
+      "detail": "C-CAL-ROOT: shared bias/master keeps one shared root"
+    },
+    {
+      "check": "cal.dq_flat_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_zero_flat_host_ok",
+      "pass": true,
+      "expected": "ok + NativeObservation with a missing sample",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_zero_flat_nan",
+      "pass": false,
+      "expected": "NaN at the zero flat",
+      "actual": "missing",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_zero_flat_flag",
+      "pass": false,
+      "expected": "nonzero DQ",
+      "actual": "missing",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_zero_flat_named_issue",
+      "pass": true,
+      "expected": ">=1 named Issue",
+      "actual": "invalid_model:calibrate_observation:a non-positive or non-finite flat was not repaired numerically | unavailable:calibrate_observation:the complete noise variance is unknown; the signal is still valid",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_nan_array_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_nan_conflict_rejected",
+      "pass": true,
+      "expected": "invalid_model",
+      "actual": "invalid_model(invalid_model:observation.calibrate:a non-finite raw value conflicts with the valid data quality bits)",
+      "detail": ""
+    },
+    {
+      "check": "cal.dq_nan_conflict_no_native",
+      "pass": true,
+      "expected": "no NativeObservation",
+      "actual": "no value",
+      "detail": ""
+    },
+    {
+      "check": "cal.root_close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "cal.host_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "cal.cal1_lower0": 3.9999999999999964,
+    "cal.cal1_upper0": 4.000000000000004,
+    "cal.root_deps1": 0,
+    "cal.root_deps2": 0,
+    "cal.root_shared_dependency_count": 0,
+    "cal.post_failure_invoke_state": 5,
+    "cal.post_failure_invoke_terminal": true,
+    "cal.post_failure_invoke_code": "ok",
+    "cal.dq_zero_flat_read_code": "cancelled(cancelled:runtime.task:cancel requested before submission)",
+    "cal.dq_zero_flat_read_detail": "count=3 array=set"
+  },
+  "resources": {}
+}

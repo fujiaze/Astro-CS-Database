@@ -32,6 +32,11 @@
   "min_attempts": 15,
   "expected_success_count": 15,
   "tolerance": "identical Code/value/work across probe/no-probe invocations",
-  "link": "default",
-  "timeout_seconds": 120
+  "link": "dev",
+  "timeout_seconds": 120,
+  "build_env": {
+    "ACSD_BUILD": "/tmp/acsd-build-dev",
+    "ACSD_DEV_MODE": 1
+  },
+  "build_command": "ACSD_BUILD=/tmp/acsd-build-dev bash validation/runtime/build.sh d01_on"
 }

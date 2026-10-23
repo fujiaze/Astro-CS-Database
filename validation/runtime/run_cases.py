@@ -277,6 +277,20 @@ def main():
         "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "git_commit": git_commit(),
         "build_dir": build_status.get("build_dir"),
+        "milestone_scope": "M0-M4 snapshot: runtime contracts (REG01/S-LIFE/S-WORK/A01/"
+                           "S-FLOOR/S-FORK/S-ORDER/S-BARRIER/S-MULTI/PIPE01/S-IO/B01/D01) "
+                           "and the observation.calibrate Host chain. M5 module integration "
+                           "is not part of this manifest.",
+        "build_note": "build.sh selects the build directory per case: d01_on/case.json has "
+                      "link=dev and links against $ACSD_DEV_BUILD (default "
+                      "/tmp/acsd-build-dev, ACSD_DEV_MODE=1); every other case links against "
+                      "$ACSD_BUILD (default /tmp/acsd-build, ACSD_DEV_MODE=0). The actual "
+                      "-L directory is recorded in each comparison.build.link_command.",
+        "commands": [
+            "ACSD_BUILD=/tmp/acsd-build ACSD_DEV_BUILD=/tmp/acsd-build-dev "
+            "bash validation/runtime/build.sh",
+            "python3 validation/runtime/run_cases.py --no-build",
+        ],
         "independence": "only include/acsd/** public headers; no src/ include",
         "cases": [
             {
@@ -292,7 +306,25 @@ def main():
             for comparison in comparisons
         ],
     }
-    write_json(os.path.join(HERE, "manifest.json"), summary)
+    manifest_path = os.path.join(HERE, "manifest.json")
+    if args.cases and os.path.exists(manifest_path):
+        # A single-case run must not erase the other cases from the manifest.
+        try:
+            previous = load_json(manifest_path)
+        except Exception:
+            previous = {}
+        updated = {entry["case"]: entry for entry in previous.get("cases", [])}
+        for entry in summary["cases"]:
+            updated[entry["case"]] = entry
+        order = {name: index for index, name in enumerate(ORDER)}
+        summary["cases"] = sorted(updated.values(),
+                                  key=lambda entry: order.get(entry["case"], 999))
+        for key, value in previous.items():
+            if key != "cases":
+                summary.setdefault(key, value)
+        summary["generated_at"] = datetime.datetime.now(
+            datetime.timezone.utc).isoformat()
+    write_json(manifest_path, summary)
 
     counts = {}
     for comparison in comparisons:

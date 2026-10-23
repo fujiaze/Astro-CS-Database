@@ -1,17 +1,163 @@
 {
-  "generated_at": "2026-10-23T15:40:12.175142+00:00",
-  "git_commit": "33804ef6abd1608e946888dd4382f783e5a534c1",
+  "generated_at": "2026-10-23T16:13:28.862877+00:00",
+  "git_commit": "f9c6f9b19d586b53071c6b0b38e395b4e204e7df",
   "build_dir": "/tmp/acsd-build",
+  "milestone_scope": "M0-M4 snapshot: runtime contracts (REG01/S-LIFE/S-WORK/A01/S-FLOOR/S-FORK/S-ORDER/S-BARRIER/S-MULTI/PIPE01/S-IO/B01/D01) and the observation.calibrate Host chain. M5 module integration is not part of this manifest.",
+  "build_note": "build.sh selects the build directory per case: d01_on/case.json has link=dev and links against $ACSD_DEV_BUILD (default /tmp/acsd-build-dev, ACSD_DEV_MODE=1); every other case links against $ACSD_BUILD (default /tmp/acsd-build, ACSD_DEV_MODE=0). The actual -L directory is recorded in each comparison.build.link_command.",
+  "commands": [
+    "ACSD_BUILD=/tmp/acsd-build ACSD_DEV_BUILD=/tmp/acsd-build-dev bash validation/runtime/build.sh",
+    "python3 validation/runtime/run_cases.py --no-build"
+  ],
   "independence": "only include/acsd/** public headers; no src/ include",
   "cases": [
     {
-      "case": "cal01",
-      "status": "fail",
-      "milestone": "M4",
-      "attempts": 0,
-      "successes": 0,
+      "case": "reg01",
+      "status": "pass",
+      "milestone": "M0",
+      "attempts": 28,
+      "successes": 28,
       "failures": [],
-      "reason": "case did not emit JSON evidence: Expecting value: line 1 column 1 (char 0)",
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/reg01"
+    },
+    {
+      "case": "life01",
+      "status": "pass",
+      "milestone": "M1",
+      "attempts": 20,
+      "successes": 20,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/life01"
+    },
+    {
+      "case": "work01",
+      "status": "pass",
+      "milestone": "M1",
+      "attempts": 16,
+      "successes": 16,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/work01"
+    },
+    {
+      "case": "a01",
+      "status": "pass",
+      "milestone": "M1",
+      "attempts": 23,
+      "successes": 23,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/a01"
+    },
+    {
+      "case": "floor01",
+      "status": "pass",
+      "milestone": "M2",
+      "attempts": 17,
+      "successes": 17,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/floor01"
+    },
+    {
+      "case": "fork01",
+      "status": "pass",
+      "milestone": "M2",
+      "attempts": 18,
+      "successes": 18,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/fork01"
+    },
+    {
+      "case": "order01",
+      "status": "pass",
+      "milestone": "M2",
+      "attempts": 11,
+      "successes": 11,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/order01"
+    },
+    {
+      "case": "barrier01",
+      "status": "pass",
+      "milestone": "M2",
+      "attempts": 20,
+      "successes": 20,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/barrier01"
+    },
+    {
+      "case": "multi01",
+      "status": "pass",
+      "milestone": "M2",
+      "attempts": 11,
+      "successes": 11,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/multi01"
+    },
+    {
+      "case": "pipe01",
+      "status": "pass",
+      "milestone": "M2",
+      "attempts": 37,
+      "successes": 37,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/pipe01"
+    },
+    {
+      "case": "io01",
+      "status": "pass",
+      "milestone": "M3",
+      "attempts": 17,
+      "successes": 17,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/io01"
+    },
+    {
+      "case": "b01",
+      "status": "pass",
+      "milestone": "M3",
+      "attempts": 24,
+      "successes": 24,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/b01"
+    },
+    {
+      "case": "d01_off",
+      "status": "pass",
+      "milestone": "M3",
+      "attempts": 3,
+      "successes": 3,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/d01_off"
+    },
+    {
+      "case": "d01_on",
+      "status": "pass",
+      "milestone": "M3",
+      "attempts": 15,
+      "successes": 15,
+      "failures": [],
+      "reason": "all required checks passed",
+      "command": "/workspace/Astro CS Database/validation/runtime/build/d01_on"
+    },
+    {
+      "case": "cal01",
+      "status": "pass",
+      "milestone": "M4",
+      "attempts": 38,
+      "successes": 38,
+      "failures": [],
+      "reason": "all required checks passed",
       "command": "/workspace/Astro CS Database/validation/runtime/build/cal01"
     }
   ]

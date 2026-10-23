@@ -3,15 +3,8 @@
   "source": "validation/runtime/d01_on/d01_on.cpp",
   "status": "ran",
   "attempts": 15,
-  "successes": 14,
-  "failures": [
-    {
-      "check": "d01_on.span_ids_allocated",
-      "expected": "two distinct non-zero span ids",
-      "actual": "0/0",
-      "detail": ""
-    }
-  ],
+  "successes": 15,
+  "failures": [],
   "checks": [
     {
       "check": "d01_on.register_process_ok",
@@ -99,9 +92,9 @@
     },
     {
       "check": "d01_on.span_ids_allocated",
-      "pass": false,
+      "pass": true,
       "expected": "two distinct non-zero span ids",
-      "actual": "0/0",
+      "actual": "5/6",
       "detail": ""
     },
     {
@@ -120,9 +113,9 @@
     }
   ],
   "values": {
-    "d01_on.span_a": 0,
-    "d01_on.span_b": 0,
-    "d01_on.dev_mode_consistent": false
+    "d01_on.span_a": 5,
+    "d01_on.span_b": 6,
+    "d01_on.dev_mode_consistent": true
   },
   "resources": {},
   "commands": [],
@@ -131,6 +124,6 @@
   ],
   "command": "/workspace/Astro CS Database/validation/runtime/build/d01_on",
   "exit_code": 0,
-  "stderr_tail": "[ok] d01_on.register_process_ok\n[ok] d01_on.freeze_ok\n[ok] d01_on.make_host_ok\n[ok] d01_on.open_command_ok\n[ok] d01_on.unselected_probe_false\n[ok] d01_on.try_entries_noexcept\n[ok] d01_on.baseline_invoke_ok\n[ok] d01_on.unselected_payload_not_constructed\n[ok] d01_on.repeat_invoke_ok\n[ok] d01_on.science_code_unchanged\n[ok] d01_on.science_value_unchanged\n[ok] d01_on.science_usage_unchanged\n[FAIL] d01_on.span_ids_allocated expected=two distinct non-zero span ids actual=0/0\n[ok] d01_on.run_calls\n[ok] d01_on.close_command_ok\n",
+  "stderr_tail": "[ok] d01_on.register_process_ok\n[ok] d01_on.freeze_ok\n[ok] d01_on.make_host_ok\n[ok] d01_on.open_command_ok\n[ok] d01_on.unselected_probe_false\n[ok] d01_on.try_entries_noexcept\n[ok] d01_on.baseline_invoke_ok\n[ok] d01_on.unselected_payload_not_constructed\n[ok] d01_on.repeat_invoke_ok\n[ok] d01_on.science_code_unchanged\n[ok] d01_on.science_value_unchanged\n[ok] d01_on.science_usage_unchanged\n[ok] d01_on.span_ids_allocated\n[ok] d01_on.run_calls\n[ok] d01_on.close_command_ok\n",
   "timed_out": false
 }

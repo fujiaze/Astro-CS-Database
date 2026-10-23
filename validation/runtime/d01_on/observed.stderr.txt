@@ -10,6 +10,6 @@
 [ok] d01_on.science_code_unchanged
 [ok] d01_on.science_value_unchanged
 [ok] d01_on.science_usage_unchanged
-[FAIL] d01_on.span_ids_allocated expected=two distinct non-zero span ids actual=0/0
+[ok] d01_on.span_ids_allocated
 [ok] d01_on.run_calls
 [ok] d01_on.close_command_ok

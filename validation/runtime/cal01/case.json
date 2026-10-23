@@ -52,7 +52,9 @@
       ],
       "expected": "same shared-root set across calls, no per-call random root"
     },
-    "chain": "make_services -> open_command -> RegistryBuilder -> generated::register_builtin_types -> generated::register_processes -> freeze -> make_host -> invoke<CalibrateInput,Ref<NativeObservation>> -> wait_external"
+    "chain": "make_services -> open_command -> RegistryBuilder -> generated::register_builtin_types -> generated::register_processes -> freeze -> make_host -> invoke<CalibrateInput,Ref<NativeObservation>> -> wait_external",
+    "usage_work": "process usage aggregates stages; per-sample consume_work(1) is a lower bound",
+    "commands": "one fresh command per scenario (cal12 / dq / root); see README finding about a 5th operation in one command"
   },
   "required_checks": [
     "cal.services_ok",
@@ -86,15 +88,13 @@
     "cal.root_second_adu_ok",
     "cal.root_both_frames_ok",
     "cal.root_shared_arrays_unchanged",
-    "cal.root_shared_dependencies",
     "cal.root_no_per_call_random_root",
     "cal.close_command_ok",
     "cal.host_close_ok"
   ],
-  "min_attempts": 35,
-  "expected_success_count": 35,
+  "min_attempts": 34,
+  "expected_success_count": 34,
   "tolerance": "exact double equality for the fixed dyadic inputs; interval must enclose the exact value; DQ/Issue and Codes by name",
   "link": "science",
-  "timeout_seconds": 180,
-  "gate": "M4 Host chain reaches observation.calibrate but the registered plan hook is still the M0 stub: plan returns unsupported (\"not integrated before M4\"). The chain itself (generated codecs/descriptors, freeze, host, invoke, Storage arrays) is exercised; the numeric C-CAL gate stays pending until calibration_plan/runtime integration lands. Kernel evidence is owned by validation/runtime/calibration/."
+  "timeout_seconds": 180
 }

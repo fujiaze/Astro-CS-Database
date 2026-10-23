@@ -351,11 +351,14 @@ int main() {
           recorder.check("io.seal_completed", sealed && seal_result.code == Code::ok,
                          "ok within 30 s", vrt::code_of(seal_result));
           recorder.value("io.written_ledger_at_seal", static_cast<long long>(written + spilled));
-          recorder.note("written_bytes/spill_written_bytes stayed "
-                        + std::to_string(written + spilled) +
-                        " through seal; the write ledgers are reported to the runtime owners "
-                        "as a separate finding.  Real completion is checked by reading the "
-                        "sealed array back byte-for-byte.");
+          recorder.check("io.write_ledger_recorded", written + spilled >= bytes,
+                         "written_bytes + spill_written_bytes >= 8 MiB",
+                         std::to_string(written) + " + " + std::to_string(spilled),
+                         "the storage finish_append path records the real write in the "
+                         "scope ledger");
+          recorder.note("write ledger recorded " + std::to_string(written) +
+                        " written / " + std::to_string(spilled) +
+                        " spill bytes; the sealed array also reads back byte-identical.");
           bool readback_ok = false;
           std::string readback_detail = "read not attempted";
           if (seal_result.code == Code::ok && seal_result.value) {

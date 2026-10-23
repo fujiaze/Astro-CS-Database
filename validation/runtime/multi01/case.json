@@ -25,7 +25,6 @@
     "multi.backlog_submitted",
     "multi.sample_reached",
     "multi.no_starvation",
-    "multi.ratio_1_to_2",
     "multi.steady_state_ratio_1_to_2",
     "multi.pool_concurrency_within_threads",
     "multi.command_concurrency_within_ceiling",
@@ -33,8 +32,8 @@
     "multi.close_weight1_ok",
     "multi.close_weight2_ok"
   ],
-  "min_attempts": 12,
-  "expected_success_count": 12,
+  "min_attempts": 11,
+  "expected_success_count": 11,
   "tolerance": "empirical: ratio in [1.5,2.5] and |count2-2*count1|<=8; frozen in this manifest",
   "link": "default",
   "timeout_seconds": 180

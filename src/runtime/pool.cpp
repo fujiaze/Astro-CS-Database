@@ -206,6 +206,9 @@ bool units_can_ever_fit(const ScopeRef& scope, U64 units) {
     std::lock_guard<std::mutex> lock(item->mutex);
     if (item->limits.max_work == 0) return false;  // zero budget is a real zero
     if (units > item->limits.max_work) return false;
+    // Consumed work is never returned, so an already-consumed budget cannot be
+    // regained by waiting for reserved work to be released.
+    if (item->work + units > item->limits.max_work) return false;
   }
   return true;
 }

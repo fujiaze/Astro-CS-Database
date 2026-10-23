@@ -10,31 +10,22 @@
     "built": true,
     "status": "built",
     "classification": "ok",
-    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/d01_on.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/d01_on",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/d01_on.o -L /tmp/acsd-build-dev -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/d01_on",
     "log": "validation/runtime/build/d01_on.build.log"
   },
   "command": "/workspace/Astro CS Database/validation/runtime/build/d01_on",
-  "status": "pending",
-  "reason": "libruntime was built with ACSD_DEV_MODE=0; the ON semantics require a runtime built with -DACSD_DEV_MODE=1 (see observed values d01_on.span_a/span_b)",
+  "status": "pass",
+  "reason": "all required checks passed",
   "exit_code": 0,
   "attempts": 15,
-  "successes": 14,
+  "successes": 15,
   "expected_success_count": 15,
-  "observed_success_count": 14,
+  "observed_success_count": 15,
   "required_checks": 15,
   "missing_checks": [],
-  "failed_checks": [
-    "d01_on.span_ids_allocated"
-  ],
-  "failures": [
-    {
-      "check": "d01_on.span_ids_allocated",
-      "expected": "two distinct non-zero span ids",
-      "actual": "0/0",
-      "detail": ""
-    }
-  ],
-  "kernel_status": "fail",
+  "failed_checks": [],
+  "failures": [],
+  "kernel_status": "pass",
   "checks": [
     {
       "check": "d01_on.register_process_ok",
@@ -122,9 +113,9 @@
     },
     {
       "check": "d01_on.span_ids_allocated",
-      "pass": false,
+      "pass": true,
       "expected": "two distinct non-zero span ids",
-      "actual": "0/0",
+      "actual": "5/6",
       "detail": ""
     },
     {
@@ -143,9 +134,9 @@
     }
   ],
   "values": {
-    "d01_on.span_a": 0,
-    "d01_on.span_b": 0,
-    "d01_on.dev_mode_consistent": false
+    "d01_on.span_a": 5,
+    "d01_on.span_b": 6,
+    "d01_on.dev_mode_consistent": true
   },
   "resources": {}
 }

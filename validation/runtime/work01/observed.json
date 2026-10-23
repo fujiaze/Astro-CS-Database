@@ -2,8 +2,8 @@
   "case": "work01",
   "source": "validation/runtime/work01/work01.cpp",
   "status": "ran",
-  "attempts": 15,
-  "successes": 15,
+  "attempts": 16,
+  "successes": 16,
   "failures": [],
   "checks": [
     {
@@ -105,6 +105,13 @@
       "detail": ""
     },
     {
+      "check": "work.consumed_exhausted_named_rejection",
+      "pass": true,
+      "expected": "resource_exhausted within 2 s (never a waiting task)",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pool:TaskSpec.work_upper exceeds the declared max_work budget)",
+      "detail": "consumed=10 == max_work, so upper=1 can never be admitted; the scheduler must name the refusal, not park the task"
+    },
+    {
       "check": "work.close_command_ok",
       "pass": true,
       "expected": "ok",
@@ -116,15 +123,13 @@
     "work.second_state_while_first_holds": "1",
     "work.after_first": 10,
     "work.final_total": 10,
-    "work.consumed_exhaustion_behavior": "cancelled(cancelled:runtime.pool:the command was cancelled or drained)"
+    "work.consumed_exhaustion_behavior": "resource_exhausted(resource_exhausted:runtime.pool:TaskSpec.work_upper exceeds the declared max_work budget)"
   },
   "resources": {},
   "commands": [],
-  "notes": [
-    "observed: after consumed=max_work, a new upper=1 task was still waiting after 2 s (scope cancelled to drain); SCHEDULER says an insufficient declared upper returns resource_exhausted, and no wait may be unbounded."
-  ],
+  "notes": [],
   "command": "/workspace/Astro CS Database/validation/runtime/build/work01",
   "exit_code": 0,
-  "stderr_tail": "[ok] work.open_command_ok\n[ok] work.first_segment_started\n[ok] work.first_consumed_4\n[ok] work.second_not_running_concurrently\n[ok] work.second_waits_for_resources\n[ok] work.second_not_double_reserved\n[ok] work.upper_gt_budget_rejected\n[ok] work.first_ok\n[ok] work.after_first_at_most_10\n[ok] work.second_readmitted_after_release\n[ok] work.second_ran_once\n[ok] work.second_consumed_6\n[ok] work.total_consumed_10\n[ok] work.total_within_budget\n[ok] work.close_command_ok\n",
+  "stderr_tail": "[ok] work.open_command_ok\n[ok] work.first_segment_started\n[ok] work.first_consumed_4\n[ok] work.second_not_running_concurrently\n[ok] work.second_waits_for_resources\n[ok] work.second_not_double_reserved\n[ok] work.upper_gt_budget_rejected\n[ok] work.first_ok\n[ok] work.after_first_at_most_10\n[ok] work.second_readmitted_after_release\n[ok] work.second_ran_once\n[ok] work.second_consumed_6\n[ok] work.total_consumed_10\n[ok] work.total_within_budget\n[ok] work.consumed_exhausted_named_rejection\n[ok] work.close_command_ok\n",
   "timed_out": false
 }

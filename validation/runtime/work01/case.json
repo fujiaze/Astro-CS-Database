@@ -43,10 +43,11 @@
     "work.second_consumed_6",
     "work.total_consumed_10",
     "work.total_within_budget",
-    "work.close_command_ok"
+    "work.close_command_ok",
+    "work.consumed_exhausted_named_rejection"
   ],
-  "min_attempts": 15,
-  "expected_success_count": 15,
+  "min_attempts": 16,
+  "expected_success_count": 16,
   "tolerance": "exact work unit counts; error Code compared by name",
   "link": "default",
   "timeout_seconds": 120

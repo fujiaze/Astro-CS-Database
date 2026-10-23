@@ -10,6 +10,7 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BUILD="${ACSD_BUILD:-/tmp/acsd-build}"
+DEV_BUILD="${ACSD_DEV_BUILD:-/tmp/acsd-build-dev}"
 OUT="$ROOT/validation/runtime/build"
 CXX="${CXX:-g++}"
 COMMON=(-std=c++20 -O2 -fno-fast-math -ffp-contract=off
@@ -17,18 +18,20 @@ COMMON=(-std=c++20 -O2 -fno-fast-math -ffp-contract=off
 mkdir -p "$OUT"
 : > "$OUT/build_results.tsv"
 
-lib_flag() {
-  local name="$1"
-  if [ -e "$BUILD/lib$name.a" ] || [ -e "$BUILD/lib$name.so" ]; then
+lib_flag_in() {
+  local dir="$1" name="$2"
+  if [ -e "$dir/lib$name.a" ] || [ -e "$dir/lib$name.so" ]; then
     printf -- '-l%s' "$name"
     return 0
   fi
-  if [ -e "$BUILD/libacsd_$name.a" ] || [ -e "$BUILD/libacsd_$name.so" ]; then
+  if [ -e "$dir/libacsd_$name.a" ] || [ -e "$dir/libacsd_$name.so" ]; then
     printf -- '-lacsd_%s' "$name"
     return 0
   fi
   return 1
 }
+
+lib_flag() { lib_flag_in "$BUILD" "$1"; }
 
 # The default link set is fixed by the task: runtime, model, numerics, storage,
 # pthread, zstd.  The "science" set is only for the C-CAL kernel case.
@@ -52,17 +55,26 @@ for name in builtin codec observation coordinates catalogue sources response pho
   fi
 done
 
+dev_libs=""
+for name in runtime model numerics storage; do
+  if flag="$(lib_flag_in "$DEV_BUILD" "$name")"; then
+    dev_libs+="$flag "
+  else
+    missing_libs+="dev:$name "
+  fi
+done
+
 record() {  # case status classification command
   printf '%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" >> "$OUT/build_results.tsv"
 }
 
 build_case() {
-  local case="$1" extra_flags="$2" libs="$3" link_extra="$4"
+  local case="$1" extra_flags="$2" libs="$3" link_extra="$4" build_dir="${5:-$BUILD}"
   local src="$ROOT/validation/runtime/$case/$case.cpp"
   local exe="$OUT/$case"
   local log="$OUT/$case.build.log"
   local compile_cmd=( "$CXX" "${COMMON[@]}" $extra_flags -c "$src" -o "$OUT/$case.o" )
-  local link_cmd=( "$CXX" "$OUT/$case.o" -L "$BUILD" -Wl,--start-group $libs -Wl,--end-group $link_extra -lpthread -lzstd -o "$exe" )
+  local link_cmd=( "$CXX" "$OUT/$case.o" -L "$build_dir" -Wl,--start-group $libs -Wl,--end-group $link_extra -lpthread -lzstd -o "$exe" )
   {
     echo "compile: ${compile_cmd[*]}"
     "${compile_cmd[@]}" 2>&1
@@ -107,6 +119,7 @@ for case_id in "${SELECTED[@]}"; do
   case "$case_id" in
     life01) build_case life01 "-g -fsanitize=address" "$default_libs" "-fsanitize=address" ;;
     d01_off) build_case d01_off "-DACSD_DEV_MODE=0" "" "" ;;
+    d01_on) build_case d01_on "-DACSD_DEV_MODE=1" "$dev_libs" "" "$DEV_BUILD" ;;
     cal01) build_case cal01 "" "$science_libs" "" ;;
     *) build_case "$case_id" "" "$default_libs" "" ;;
   esac

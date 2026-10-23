@@ -17,11 +17,11 @@
   "status": "pass",
   "reason": "all required checks passed",
   "exit_code": 0,
-  "attempts": 15,
-  "successes": 15,
-  "expected_success_count": 15,
-  "observed_success_count": 15,
-  "required_checks": 15,
+  "attempts": 16,
+  "successes": 16,
+  "expected_success_count": 16,
+  "observed_success_count": 16,
+  "required_checks": 16,
   "missing_checks": [],
   "failed_checks": [],
   "failures": [],
@@ -126,6 +126,13 @@
       "detail": ""
     },
     {
+      "check": "work.consumed_exhausted_named_rejection",
+      "pass": true,
+      "expected": "resource_exhausted within 2 s (never a waiting task)",
+      "actual": "resource_exhausted(resource_exhausted:runtime.pool:TaskSpec.work_upper exceeds the declared max_work budget)",
+      "detail": "consumed=10 == max_work, so upper=1 can never be admitted; the scheduler must name the refusal, not park the task"
+    },
+    {
       "check": "work.close_command_ok",
       "pass": true,
       "expected": "ok",
@@ -137,7 +144,7 @@
     "work.second_state_while_first_holds": "1",
     "work.after_first": 10,
     "work.final_total": 10,
-    "work.consumed_exhaustion_behavior": "cancelled(cancelled:runtime.pool:the command was cancelled or drained)"
+    "work.consumed_exhaustion_behavior": "resource_exhausted(resource_exhausted:runtime.pool:TaskSpec.work_upper exceeds the declared max_work budget)"
   },
   "resources": {}
 }
