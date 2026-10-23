@@ -1154,6 +1154,11 @@ const std::vector<Id>& input_type_ids();
 // descriptors.
 std::string operation_status_json();
 
+// The generated descriptor of one whitelisted process.  A module's integrated
+// registration uses this instead of copying the descriptor fields, so the
+// document/dependencies/probes stay owned by the single generated table.
+Result<rt::ProcessDescriptor> descriptor_for(Id process_id);
+
 }  // namespace acsd::generated
 """])
 
@@ -1587,7 +1592,15 @@ def _escape(text: str) -> str:
     return text.replace("\\", "\\\\").replace('"', '\\"')
 
 
+def _integrated_processes():
+    path = Path(__file__).resolve().parents[2] / "tools/integrated_processes.json"
+    if not path.is_file():
+        return {}
+    return pyjson.loads(path.read_text(encoding="utf-8")).get("processes", {})
+
+
 def emit_builtin_processes(metadata: list[ProcessMeta]) -> str:
+    integrated = _integrated_processes()
     descriptors = []
     assemblies = []
     for process in metadata:
@@ -1603,108 +1616,132 @@ def emit_builtin_processes(metadata: list[ProcessMeta]) -> str:
         add_name = "add_operations_" + process.process_id.replace(".", "_")
         assemblies.append(
             f'      {{"{process.process_id}", &detail::{add_name}}},')
-    return "\n".join([GENERATED_BANNER, """// The observation module owns the M4 calibration assembly.  It is declared
-// weak here so this M0 assembly keeps a freezable 22/57 registry when the
-// module is not linked yet; a linked strong definition takes over and the M0
-// shell for observation.calibrate is not registered (one process, one
-// registration).  This is the only optional assembly edge.
-#include <acsd/modules/generated/codecs.hpp>
-
-#include "codec/value_codec.hpp"
-#include "runtime/generated/generated_hooks.hpp"
-
-#include <memory>
-#include <string>
-#include <vector>
-
-// The production assembly (ACSD_HAS_GENERATED_ASSEMBLY, set by the acsd_builtin
-// target) links the science tree, so the observation module's registration is
-// always available: reference it strongly and let the linker pull the archive
-// member.  A link without the module keeps the weak fallback: an undefined
-// weak symbol never pulls an archive member, so the module must be requested
-// explicitly rather than guessed at link time.
-#if defined(ACSD_HAS_GENERATED_ASSEMBLY) || defined(ACSD_HAVE_CALIBRATION_REGISTRATION)
-#include <acsd/modules/observation.hpp>
-#else
-namespace acsd::modules {
-#if defined(__GNUC__) || defined(__clang__)
-__attribute__((weak))
-#endif
-Result<rt::Done> register_calibration(rt::RegistryBuilder& builder);
-}  // namespace acsd::modules
-#endif
-
-namespace acsd::generated {
-
-namespace {
-
-using codec::remap;
-
-using AddOperation = Result<rt::Done> (*)(
-    rt::RegistryBuilder&, std::shared_ptr<rt::ProcessRegistration>);
-
-struct Assembly {
-  Id process_id;
-  AddOperation add_operation;
-};
-
-const std::vector<rt::ProcessDescriptor>& descriptors() {
-  static const std::vector<rt::ProcessDescriptor> value = {
-""", "\n".join(descriptors), """
-  };
-  return value;
-}
-
-// Generated assembly table: one entry per whitelisted process.  There is no
-// algorithm switch in the Host and no string-to-function lookup at runtime.
-const std::vector<Assembly>& assemblies() {
-  static const std::vector<Assembly> value = {
-""", "\n".join(assemblies), """
-  };
-  return value;
-}
-
-// null only in the weak-reference fallback build; with
-// ACSD_HAVE_CALIBRATION_REGISTRATION this is a strong reference.
-Result<rt::Done> (*const calibration_registration)(rt::RegistryBuilder&) =
-    &acsd::modules::register_calibration;
-
-}  // namespace
-
-Result<rt::Done> register_processes(rt::RegistryBuilder& builder) {
-  for (const rt::ProcessDescriptor& descriptor : descriptors()) {
-    if (descriptor.process_id == "observation.calibrate" &&
-        calibration_registration != nullptr) {
-      Result<rt::Done> registered = calibration_registration(builder);
-      if (registered.code != Code::ok) return registered;
-      continue;
-    }
-    const AddOperation* add_operation = nullptr;
-    for (const Assembly& assembly : assemblies()) {
-      if (assembly.process_id == descriptor.process_id) {
-        add_operation = &assembly.add_operation;
-        break;
-      }
-    }
-    if (add_operation == nullptr) {
-      return codec::failure<rt::Done>(
-          Code::internal, "generated.register_processes",
-          "no generated operation assembly for process '" +
-              descriptor.process_id + "'");
-    }
-    Result<std::shared_ptr<rt::ProcessRegistration>> registration =
-        builder.begin(descriptor);
-    if (registration.code != Code::ok || !registration.value) {
-      return remap<rt::Done>(registration);
-    }
-    Result<rt::Done> added = (*add_operation)(builder, *registration.value);
-    if (added.code != Code::ok) return added;
-  }
-  return codec::ok<rt::Done>(rt::Done{});
-}
-
-}  // namespace acsd::generated
-"""])
+    integrated_includes = "\n".join(
+        f'#include <{entry["header"]}>' for entry in integrated.values())
+    integrated_rows = "\n".join(
+        f'      {{"{process_id}", &{entry["symbol"]}}},'
+        for process_id, entry in integrated.items())
+    q3 = '"' * 3
+    body = "\n".join([
+        GENERATED_BANNER,
+        "// Processes whose real typed Operation is supplied by a module are "
+        "listed in",
+        "// tools/integrated_processes.json and referenced strongly here: the "
+        "generated",
+        "// M0 shell is not registered for them, so one process has exactly "
+        "one",
+        "// registration.  Unintegrated processes keep the generated shell.",
+        "#include <acsd/modules/generated/codecs.hpp>",
+        "",
+        '#include "codec/value_codec.hpp"',
+        '#include "runtime/generated/generated_hooks.hpp"',
+        "",
+        "#include <memory>",
+        "#include <string>",
+        "#include <vector>",
+        "",
+        integrated_includes,
+        "",
+        "namespace acsd::generated {",
+        "",
+        "namespace {",
+        "",
+        "using codec::remap;",
+        "",
+        "using AddOperation = Result<rt::Done> (*)(",
+        "    rt::RegistryBuilder&, std::shared_ptr<rt::ProcessRegistration>);",
+        "",
+        "struct Assembly {",
+        "  Id process_id;",
+        "  AddOperation add_operation;",
+        "};",
+        "",
+        "struct IntegratedProcess {",
+        "  Id process_id;",
+        "  Result<rt::Done> (*registration)(rt::RegistryBuilder&);",
+        "};",
+        "",
+        "const std::vector<rt::ProcessDescriptor>& descriptors() {",
+        "  static const std::vector<rt::ProcessDescriptor> value = {",
+        "\n".join(descriptors),
+        "  };",
+        "  return value;",
+        "}",
+        "",
+        "// Generated assembly table: one entry per whitelisted process.  There "
+        "is no",
+        "// algorithm switch in the Host and no string-to-function lookup at "
+        "runtime.",
+        "const std::vector<Assembly>& assemblies() {",
+        "  static const std::vector<Assembly> value = {",
+        "\n".join(assemblies),
+        "  };",
+        "  return value;",
+        "}",
+        "",
+        "// Module-owned registrations: a process listed here is not registered "
+        "from the",
+        "// generated shell; the module owns its descriptors/plan/run evidence.",
+        "const std::vector<IntegratedProcess>& integrated_processes() {",
+        "  static const std::vector<IntegratedProcess> value = {",
+        "      // Empty when no process is integrated yet.",
+        integrated_rows,
+        "  };",
+        "  return value;",
+        "}",
+        "",
+        "}  // namespace",
+        "",
+        "Result<rt::Done> register_processes(rt::RegistryBuilder& builder) {",
+        "  for (const rt::ProcessDescriptor& descriptor : descriptors()) {",
+        "    bool handled = false;",
+        "    for (const IntegratedProcess& integrated : integrated_processes()) {",
+        "      if (integrated.process_id != descriptor.process_id) continue;",
+        "      Result<rt::Done> registered = integrated.registration(builder);",
+        "      if (registered.code != Code::ok) return registered;",
+        "      handled = true;",
+        "      break;",
+        "    }",
+        "    if (handled) continue;",
+        "    const AddOperation* add_operation = nullptr;",
+        "    for (const Assembly& assembly : assemblies()) {",
+        "      if (assembly.process_id == descriptor.process_id) {",
+        "        add_operation = &assembly.add_operation;",
+        "        break;",
+        "      }",
+        "    }",
+        "    if (add_operation == nullptr) {",
+        "      return codec::failure<rt::Done>(",
+        '          Code::internal, "generated.register_processes",',
+        '          "no generated operation assembly for process \'" +',
+        '              descriptor.process_id + "\'");',
+        "    }",
+        "    Result<std::shared_ptr<rt::ProcessRegistration>> registration =",
+        "        builder.begin(descriptor);",
+        "    if (registration.code != Code::ok || !registration.value) {",
+        "      return remap<rt::Done>(registration);",
+        "    }",
+        "    Result<rt::Done> added = (*add_operation)(builder, "
+        "*registration.value);",
+        "    if (added.code != Code::ok) return added;",
+        "  }",
+        "  return codec::ok<rt::Done>(rt::Done{});",
+        "}",
+        "",
+        "Result<rt::ProcessDescriptor> descriptor_for(Id process_id) {",
+        "  for (const rt::ProcessDescriptor& descriptor : descriptors())",
+        "    if (descriptor.process_id == process_id) return {Code::ok, descriptor,",
+        "                                                   Assessment{}, Usage{},",
+        "                                                   {}};",
+        "  Result<rt::ProcessDescriptor> missing;",
+        "  missing.code = Code::unsupported;",
+        "  return missing;",
+        "}",
+        "",
+        "}  // namespace acsd::generated",
+        "",
+    ])
+    return body
 
 
 def emit_status_cpp(specs: list[OpSpec], metadata: list[ProcessMeta],

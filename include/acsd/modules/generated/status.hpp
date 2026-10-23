@@ -38,4 +38,9 @@ const std::vector<Id>& input_type_ids();
 // descriptors.
 std::string operation_status_json();
 
+// The generated descriptor of one whitelisted process.  A module's integrated
+// registration uses this instead of copying the descriptor fields, so the
+// document/dependencies/probes stay owned by the single generated table.
+Result<rt::ProcessDescriptor> descriptor_for(Id process_id);
+
 }  // namespace acsd::generated

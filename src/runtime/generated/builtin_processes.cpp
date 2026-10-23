@@ -3,11 +3,10 @@
 // docs/engineering/rebuild/SYSTEM.md.  Do not edit by hand: change the
 // declaration or the process table and rerun the generator.
 
-// The observation module owns the M4 calibration assembly.  It is declared
-// weak here so this M0 assembly keeps a freezable 22/57 registry when the
-// module is not linked yet; a linked strong definition takes over and the M0
-// shell for observation.calibrate is not registered (one process, one
-// registration).  This is the only optional assembly edge.
+// Processes whose real typed Operation is supplied by a module are listed in
+// tools/integrated_processes.json and referenced strongly here: the generated
+// M0 shell is not registered for them, so one process has exactly one
+// registration.  Unintegrated processes keep the generated shell.
 #include <acsd/modules/generated/codecs.hpp>
 
 #include "codec/value_codec.hpp"
@@ -17,22 +16,7 @@
 #include <string>
 #include <vector>
 
-// The production assembly (ACSD_HAS_GENERATED_ASSEMBLY, set by the acsd_builtin
-// target) links the science tree, so the observation module's registration is
-// always available: reference it strongly and let the linker pull the archive
-// member.  A link without the module keeps the weak fallback: an undefined
-// weak symbol never pulls an archive member, so the module must be requested
-// explicitly rather than guessed at link time.
-#if defined(ACSD_HAS_GENERATED_ASSEMBLY) || defined(ACSD_HAVE_CALIBRATION_REGISTRATION)
 #include <acsd/modules/observation.hpp>
-#else
-namespace acsd::modules {
-#if defined(__GNUC__) || defined(__clang__)
-__attribute__((weak))
-#endif
-Result<rt::Done> register_calibration(rt::RegistryBuilder& builder);
-}  // namespace acsd::modules
-#endif
 
 namespace acsd::generated {
 
@@ -48,9 +32,13 @@ struct Assembly {
   AddOperation add_operation;
 };
 
+struct IntegratedProcess {
+  Id process_id;
+  Result<rt::Done> (*registration)(rt::RegistryBuilder&);
+};
+
 const std::vector<rt::ProcessDescriptor>& descriptors() {
   static const std::vector<rt::ProcessDescriptor> value = {
-
     rt::ProcessDescriptor{
         "observation.calibrate", "observation", "docs/engineering/rebuild/processes/observation.calibrate.md", 1,
         {"model", "operators", "uncertainty", "numerics", "runtime"},
@@ -139,7 +127,6 @@ const std::vector<rt::ProcessDescriptor>& descriptors() {
         "projection.export", "projection", "docs/engineering/rebuild/processes/projection.export.md", 1,
         {"geometry", "operators", "uncertainty"},
         {rt::ProbeDeclaration{"export.projection.overlaps", "snapshot_model", 1}, rt::ProbeDeclaration{"export.projection.block", "span", 1}}},
-
   };
   return value;
 }
@@ -148,7 +135,6 @@ const std::vector<rt::ProcessDescriptor>& descriptors() {
 // algorithm switch in the Host and no string-to-function lookup at runtime.
 const std::vector<Assembly>& assemblies() {
   static const std::vector<Assembly> value = {
-
       {"observation.calibrate", &detail::add_operations_observation_calibrate},
       {"observation.regroup", &detail::add_operations_observation_regroup},
       {"coordinates.wcs", &detail::add_operations_coordinates_wcs},
@@ -171,26 +157,33 @@ const std::vector<Assembly>& assemblies() {
       {"coadd.weights", &detail::add_operations_coadd_weights},
       {"coadd.integrate", &detail::add_operations_coadd_integrate},
       {"projection.export", &detail::add_operations_projection_export},
-
   };
   return value;
 }
 
-// null only in the weak-reference fallback build; with
-// ACSD_HAVE_CALIBRATION_REGISTRATION this is a strong reference.
-Result<rt::Done> (*const calibration_registration)(rt::RegistryBuilder&) =
-    &acsd::modules::register_calibration;
+// Module-owned registrations: a process listed here is not registered from the
+// generated shell; the module owns its descriptors/plan/run evidence.
+const std::vector<IntegratedProcess>& integrated_processes() {
+  static const std::vector<IntegratedProcess> value = {
+      // Empty when no process is integrated yet.
+      {"observation.calibrate", &acsd::modules::register_calibration},
+  };
+  return value;
+}
 
 }  // namespace
 
 Result<rt::Done> register_processes(rt::RegistryBuilder& builder) {
   for (const rt::ProcessDescriptor& descriptor : descriptors()) {
-    if (descriptor.process_id == "observation.calibrate" &&
-        calibration_registration != nullptr) {
-      Result<rt::Done> registered = calibration_registration(builder);
+    bool handled = false;
+    for (const IntegratedProcess& integrated : integrated_processes()) {
+      if (integrated.process_id != descriptor.process_id) continue;
+      Result<rt::Done> registered = integrated.registration(builder);
       if (registered.code != Code::ok) return registered;
-      continue;
+      handled = true;
+      break;
     }
+    if (handled) continue;
     const AddOperation* add_operation = nullptr;
     for (const Assembly& assembly : assemblies()) {
       if (assembly.process_id == descriptor.process_id) {
@@ -213,6 +206,16 @@ Result<rt::Done> register_processes(rt::RegistryBuilder& builder) {
     if (added.code != Code::ok) return added;
   }
   return codec::ok<rt::Done>(rt::Done{});
+}
+
+Result<rt::ProcessDescriptor> descriptor_for(Id process_id) {
+  for (const rt::ProcessDescriptor& descriptor : descriptors())
+    if (descriptor.process_id == process_id) return {Code::ok, descriptor,
+                                                   Assessment{}, Usage{},
+                                                   {}};
+  Result<rt::ProcessDescriptor> missing;
+  missing.code = Code::unsupported;
+  return missing;
 }
 
 }  // namespace acsd::generated

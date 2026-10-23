@@ -1,0 +1,10 @@
+{
+  "protocol": "acsd.integrated-processes/1",
+  "comment": "Processes whose real typed Operation is supplied by a module registration function. The build assembly calls these strongly and the generated M0 shell is not registered for the process. Add one entry per integrated process after its plan/run evidence lands.",
+  "processes": {
+    "observation.calibrate": {
+      "header": "acsd/modules/observation.hpp",
+      "symbol": "acsd::modules::register_calibration"
+    }
+  }
+}
