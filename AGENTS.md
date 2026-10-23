@@ -13,3 +13,7 @@
 未知误差不填零，数值包含不等于物理误差已知。科学矛盾给反例并修订科学正本。无实跑不声称算法通过。独立审核者不参与设计编写，修订后再独立复核。
 
 改文档运行tools/check_design.py；新process登记还须检查ID/operation唯一性、覆盖/类型映射与文档引用。改声明才做C++20检查，按VERIFICATION提供必要独立负例。sources/如存在为只读同步资料，不改名移动删除。许可证不发明，historical-notices只追溯。
+
+
+
+直接开发时必须读standards/FOUNDATION_API.md（目标接口已定稿）、SCHEDULER.md（具体首期CPU算法）、DEVELOPMENT.md（M0—M6交付门槛）及CALIBRATION_WALKTHROUGH.md。当前实际头未同步不意味着可以自行发明另一套接口；实施后公共头唯一拥有可编译声明，规范摘录由检查保持一致。类型/codec/计划重规划/region/cleanup都走同一合同。

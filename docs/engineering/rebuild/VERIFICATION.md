@@ -120,3 +120,10 @@ PROC01另须覆盖coadd三个typed阶段：已生成Selection/WeightSolution可�
 | COMPOSE01 函数组合 | 同一校准/action/数值模块直接调用、单process、管道组合与独立最小依赖包 | 同科学单位/index/共享根/误差/选择；Host无新增算法switch，未列依赖不得隐式读取原项目会话 |
 
 以上为后续CPU框架验收目标，本轮未实现或实跑。GPU只扩展同一pool/批次/内存位置与事件合同，不要求本期设备代码。参考类比不引入其它软件的实现或兼容义务。
+
+
+## 详细开发合同的新增门槛
+
+M0抽取FOUNDATION_API和COMPUTE_MODULES声明检查C++20，并对校准run/finalize/typed登记做拼接类型检查；这仅检查文档合同，不算服务实跑。实际实现须按DEVELOPMENT从M1起交S-WORK/FLOOR/FORK/ORDER/BARRIER/MULTI/IO/LIFE证据，并执行CALIBRATION_WALKTHROUGH的C-CAL冷磁盘validate、取消+science work耗尽仍可cleanup、四writer失败seal等固定case。
+
+注册负例必须包括TypeId与C++T不一致、缺codec/schema、make_pipe缺region/edge或重复绑定；重规划必须通过显式PlanOptions调用并重算非线性workspace，不能缩比例。allocator失败不增物理peak，close与commit竞争不漏记物理字节；cleanup-only故障只作次要Issue。未满足这些门槛不能把“可编译”报告成基建运行正确。

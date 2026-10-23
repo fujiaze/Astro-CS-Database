@@ -22,3 +22,9 @@
 ## 计算组合与可复制包
 
 列本process直接使用的公共计算模块及typed函数依赖、异步read/append的就绪/完成边界、pipe容量与最小可推进frontier。写清哪些步骤并行、哪些必须汇合/屏障；模块不调用future.get阻塞同一pool。提供最小CPU依赖包/独立小例，自动生成登记/schema/默认观测的接入步骤；GPU只声明未来能力，不要求本期实现。
+
+
+
+## 详细接口/资源检查
+
+实现FOUNDATION_API的Operation五hooks：validate、bounds、plan(显式PlanOptions)、run、finalize；先登记TypeId/schema/codec。plan包含region/跨region累加边、cleanup额度和物理claim/commit模型。给F生存期模拟及最坏workspace界、E窗口、PlanOptions缩块/spill反例；有全局barrier还须E=0多cohort可推进。不能只填函数名和“资源由框架管理”即声称可交付。

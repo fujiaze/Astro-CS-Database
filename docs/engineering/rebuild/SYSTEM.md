@@ -1,6 +1,6 @@
 # 固定基建框架
 
-本篇唯一拥有v2程序骨架：模块注册、typed调用边界、生命周期、调度、基建服务、扩展规则和构建装配。科学算法步骤由[各process](processes/README.md)各自拥有，固定命令的数据流在[WORKFLOWS](standards/WORKFLOWS.md)。本轮只改文档；下面ProcessDescriptor/InvocationPlan/ProcessContext等是待实施角色，当前头文件和程序尚未据此改造。
+本篇唯一拥有v2程序骨架：模块注册、typed调用边界、生命周期、调度、基建服务、扩展规则和构建装配。科学算法步骤由[各process](processes/README.md)各自拥有，固定命令的数据流在[WORKFLOWS](standards/WORKFLOWS.md)。本轮只改文档；ProcessDescriptor/InvocationPlan/InvocationContext及Task/Pipe的字段、签名已在[FOUNDATION_API](standards/FOUNDATION_API.md)定稿，调度实现步骤在[SCHEDULER](standards/SCHEDULER.md)；当前头文件和程序尚未据此改造。本文早期ProcessContext角色由定稿InvocationContext承接，不再定义第二种上下文。
 
 内部开发允许直接破坏式重构。只维护一套当前接口/对象/产品/配置格式，旧v1及早期v2产物无兼容或转换义务；格式不匹配具名拒绝并由原始输入重新生成。Git提交历史和原始科学证据保留；保存历史不要求保留旧运行接口。
 
@@ -188,3 +188,8 @@ Windows 科学 CLI 优先 MSYS2 UCRT64 GCC14+，MPFR/GMP 与库使用同一 CRT/
 框架首个可用增量必须能在同一Host中登记两个测试process、拒绝重复/错类型、独立调用与组合调用、共享资源计费、取消/异常清理、单/多线程同结果，并自动得到两者性能包围；科学模块随后逐个接入。本期只设计GPU边界，验收不要求GPU设备或SDK。
 
 当前阶段只交付上述设计；后续实施先修统一公开声明、VirtualComputePool/Task/Pipe及registry边界，再同步schema/decoder、CPU/Storage/诊断服务和逐模块接入。允许删除过时接口及重建内部产物，不增加兼容别名、双reader、版本转换器或历史产品迁移模块。
+
+
+## 直接开发入口
+
+按[DEVELOPMENT](standards/DEVELOPMENT.md)分配M0—M6任务；公共类型/函数以FOUNDATION_API定稿，scope/region/重规划/cleanup规则统一，算法实现只在所属process。完整calibration模块的文件、输入/精确公式、R/F/E、run/finalize/codec登记及故障测试见[实施例](standards/CALIBRATION_WALKTHROUGH.md)。不需要各开发者重新决定资源/注册/Task接口。

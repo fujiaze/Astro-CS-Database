@@ -17,3 +17,7 @@ python tools/check_design.py
 ```
 
 上述是现有设计检查入口，实际科学构建/运行状态依CMakePresets与冻结验证记录。[本次更正与复核](docs/audit/process-framework.md)记录文档范围和验证边界。继续在rebuild/acsd-v2追加提交，完整保留已有历史。
+
+
+
+直接开发从[任务书](docs/engineering/rebuild/standards/DEVELOPMENT.md)开始，依次读[定稿基建接口](docs/engineering/rebuild/standards/FOUNDATION_API.md)、[调度实施算法](docs/engineering/rebuild/standards/SCHEDULER.md)和[完整校准模块例](docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md)。它们规定具体字段/函数/资源和错误规则，当前实现接入状态仍按实际证据。

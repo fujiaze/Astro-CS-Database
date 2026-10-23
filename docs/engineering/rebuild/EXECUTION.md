@@ -158,6 +158,11 @@ publish_product只有required quantities均达标、所有必需closed graph存�
 
 I/O中的压缩/解压/hash/host复制也需同一CPU compute token；固定I/O worker只可执行有界阻塞syscall等待，不能成为超出计算配额的第二zstd/校验线程池。suspend/resume通过有界continuation回ready后重新准入；finalize/cleanup的异步等待同样不占CPU token，只有最外层同步invoke可阻塞等待真实完成。
 
-每command有配额，pool在可用CPU/I/O token内采用有界轮转/加权公平调度ready队列，同级按稳定task key打破平手；科学优先级来自已声明工作而非计时临时改模型。长任务主动分成有取消点的有界单元，不能假装OS能安全抢占任意MPFR调用。工作窃取只改变谁执行，不改变固定归约/选择次序。不同资源等待分队列，不能把磁盘等待顶在计算ready队列首部阻塞全部计算。
+每command有配额，pool在可用CPU/I/O token内按[SCHEDULER](standards/SCHEDULER.md)的加权轮转发放dispatch credit，同级按稳定task key打破平手；科学优先级来自已声明工作而非计时临时改模型。长任务主动分成有取消点的有界单元，不能假装OS能安全抢占任意MPFR调用。工作窃取只改变谁执行，不改变固定归约/选择次序。不同资源等待分队列，不能把磁盘等待顶在计算ready队列首部阻塞全部计算。
 
 管道信用、内存租约和可推进frontier的定义只在SYSTEM维护。具体策略可减少prefetch/并发/块、释放cache或spill；不能把空队列误认EOF，不能用无限缓冲换高并发。固定H下保证至少一条最小进展路径，做不到应明确resource_exhausted，不死锁。异步吞吐须包括read/write/hash/封存/同步和必要传输；首期CPU，无GPU吞吐声明。
+
+
+## 定稿实施细节
+
+资源物理计费以reserve→claim票据→allocation commit→release为准，区分held/claimed/allocated，allocator失败不制造物理高水位。Task work预留沿祖先登记，未消耗上限可归还，实际work不可重置。精确接口见[FOUNDATION_API](standards/FOUNDATION_API.md)，保底F模拟、PlanOptions重规划、region/barrier、原子广播、weighted轮转与cleanup准入见[SCHEDULER](standards/SCHEDULER.md)。早期角色说明若未区分这些阶段，以本段链接的定稿细则为具体含义，不可另写不同执行器。

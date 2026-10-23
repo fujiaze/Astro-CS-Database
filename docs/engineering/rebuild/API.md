@@ -4,7 +4,7 @@
 
 ## 本次工程目标与实施清单
 
-本次按负责人要求**只修改文档**；当前头文件、schema、CMake和实现保持原样。本文“现有”部分以实际contracts.hpp为准；下列新增名称是下一轮接口修订的目标角色/候选操作名，不是第二套可调用声明或当前wire字段。实施者必须先在唯一头文件落实签名/字段，再同步生成schema、集中decoder和消费者，不能靠私有helper假装公开合同已完成。
+本次按负责人要求**只修改文档**；当前头文件、schema、CMake和实现保持原样。本文“现有”部分以实际contracts.hpp为准；新增基建接口字段/签名已在[FOUNDATION_API](standards/FOUNDATION_API.md)定稿，本轮尚未写入源码；它们是下一轮必须落实的目标合同，不是当前已经可调用的声明或wire字段。实施者必须先在唯一头文件落实签名/字段，再同步生成schema、集中decoder和消费者，不能靠私有helper假装公开合同已完成。
 
 | 实施项 | 当前公开能力 | 必须落实的目标与顺序 |
 |---|---|---|
@@ -71,7 +71,7 @@ Result.code=ok 表示调用被完整处理且必要目标达标；partial value�
 
 ### 资源与Storage目标：资源子域与数组构建
 
-下述child/ResourceRequest/ReservationState/ArrayBuilder/ArrayBuildRequest等均为E01/E02目标角色，当前头文件尚未声明，最终签名由后续唯一头文件修订拥有。调用者先由进程Resources创建command子域，再为每次顶层API创建唯一operation子域，得到Context；嵌套科学函数复用该域，Result.usage是该域快照，父结果含子域但统计汇总不得重复相加。拒绝重复scope ID、超父限额或试图重置work；输出租约保计费域活着。Usage峰值逐次占用变化更新，CPU时间不可得为null，非零工作不能由空值填0。进程RSS只能由process_snapshot报告，不按调用/模块猜归因。
+下述child/ResourceRequest/ReservationState/ArrayBuilder/ArrayBuildRequest等均为E01/E02目标角色，当前头文件尚未声明，精确目标签名见FOUNDATION_API，实施时同步唯一公共头。调用者先由进程Resources创建command子域，再为每次顶层API创建唯一operation子域，得到Context；嵌套科学函数复用该域，Result.usage是该域快照，父结果含子域但统计汇总不得重复相加。拒绝重复scope ID、超父限额或试图重置work；输出租约保计费域活着。Usage峰值逐次占用变化更新，CPU时间不可得为null，非零工作不能由空值填0。进程RSS只能由process_snapshot报告，不按调用/模块猜归因。
 
 | 操作 | 完整契约 |
 |---|---|
