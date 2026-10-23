@@ -15,27 +15,18 @@
     "log": "validation/runtime/build/cal01.build.log"
   },
   "command": "/workspace/Astro CS Database/validation/runtime/build/cal01",
-  "status": "fail",
-  "reason": "required checks failed: cal.root_shared_dependencies; harness reports failures: [\"cal.root_shared_dependencies\"]",
+  "status": "pass",
+  "reason": "all required checks passed",
   "exit_code": 0,
   "attempts": 41,
-  "successes": 40,
+  "successes": 41,
   "expected_success_count": 37,
-  "observed_success_count": 40,
+  "observed_success_count": 41,
   "required_checks": 37,
   "missing_checks": [],
-  "failed_checks": [
-    "cal.root_shared_dependencies"
-  ],
-  "failures": [
-    {
-      "check": "cal.root_shared_dependencies",
-      "expected": ">=1 identical dependency id across the two frames",
-      "actual": "deps1=0 deps2=0 common=0",
-      "detail": "the shared bias/dark masters must be visible as a common dependency (or an equal output noise shared_id); empty dependencies cannot prove that the same source was reused"
-    }
-  ],
-  "kernel_status": "fail",
+  "failed_checks": [],
+  "failures": [],
+  "kernel_status": "pass",
   "checks": [
     {
       "check": "cal.services_ok",
@@ -298,10 +289,10 @@
     },
     {
       "check": "cal.root_shared_dependencies",
-      "pass": false,
-      "expected": ">=1 identical dependency id across the two frames",
-      "actual": "deps1=0 deps2=0 common=0",
-      "detail": "the shared bias/dark masters must be visible as a common dependency (or an equal output noise shared_id); empty dependencies cannot prove that the same source was reused"
+      "pass": true,
+      "expected": ">=1 identical dependency id or the same shared NoiseRoot SharedId/influence across the two frames",
+      "actual": "deps1=0 deps2=0 common=0; shared_id=master_flat influences=1/1",
+      "detail": "the shared master must be visible as a common dependency or an equal output noise shared_id; neither proves same-source reuse if absent"
     },
     {
       "check": "cal.root_no_per_call_random_root",
@@ -336,7 +327,8 @@
     "cal.dq_zero_flat_read_code": "ok",
     "cal.root_dep_count1": 0,
     "cal.root_dep_count2": 0,
-    "cal.root_dep_common": 0
+    "cal.root_dep_common": 0,
+    "cal.root_noise_evidence": "shared_id=master_flat influences=1/1"
   },
   "resources": {}
 }

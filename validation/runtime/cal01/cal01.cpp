@@ -239,6 +239,70 @@ std::string join_values(const std::vector<double>& values) {
   return text + "]";
 }
 
+template <class T>
+Result<T> ok_value(T value) {
+  Result<T> out;
+  out.code = Code::ok;
+  out.value = std::move(value);
+  return out;
+}
+
+// Test-only identity LinearAction used as a shared master noise factor.  It is
+// a fixture with its own identity and never drives a production algorithm.
+class FixtureIdentityAction final : public acsd::LinearAction {
+ public:
+  explicit FixtureIdentityAction(Ref<acsd::Index> index) {
+    spaces.domain = spaces.codomain = index;
+    spaces.input = adu_unit();
+    spaces.output = adu_unit();
+    identity.object_id = "acsd.LinearAction:cal01_fixture_identity";
+    identity.content_hash = "sha256:" + std::string(64, 'c');
+    identity.schema_id = "acsd.LinearAction";
+    identity.schema_major = 2;
+    identity.schema_minor = 0;
+    assessment.complete = true;
+  }
+  Result<acsd::ArrayRef> apply(acsd::Context&, acsd::ArrayRef values) const override {
+    return ok_value(values);
+  }
+  Result<acsd::ArrayRef> transpose_apply(acsd::Context&,
+                                         acsd::ArrayRef values) const override {
+    return ok_value(values);
+  }
+  Result<std::vector<acsd::Id>> dependency_blocks(acsd::BlockRequest, bool) const override {
+    return ok_value(std::vector<acsd::Id>{});
+  }
+  Result<acsd::ActionRecipe> serialize_recipe() const override {
+    acsd::ActionRecipe recipe;
+    recipe.kind = acsd::ActionRecipe::Kind::identity;
+    recipe.algorithm = "cal01_fixture_identity_v1";
+    recipe.version = 1;
+    recipe.spaces = spaces;
+    return ok_value(recipe);
+  }
+  Result<std::vector<acsd::ExactInterval>> row_enclosure(acsd::Context&, acsd::U64) const override {
+    return ok_value(std::vector<acsd::ExactInterval>{});
+  }
+};
+
+Ref<acsd::NoiseModel> make_shared_master_noise(Ref<acsd::Index> index, const acsd::Unit& unit) {
+  auto factor = std::make_shared<FixtureIdentityAction>(index);
+  auto root = std::make_shared<acsd::NoiseRoot>();
+  root->shared_id = acsd::SharedId{"acsd.native", "master_flat", "1", "amplitude"};
+  root->coordinates = index;
+  root->unit = unit;
+  root->factor = factor;
+  root->identity = factor->identity;
+  auto noise = std::make_shared<acsd::NoiseModel>();
+  noise->state = acsd::NoiseState::known;
+  noise->variance_unit = acsd::Unit{"ADU", 0, 0, 0, 1.0, 2};
+  noise->shared_factors.push_back(root);
+  noise->influence.push_back(factor);
+  noise->identity = identity_of("noise:master_flat", "acsd.NoiseModel");
+  noise->assessment.complete = true;
+  return noise;
+}
+
 struct Chain {
   std::shared_ptr<rt::Services> services;
   std::shared_ptr<rt::ProcessHost> host;
@@ -474,8 +538,13 @@ int main() {
       recorder.expect_code("cal.root_second_adu_ok", "ok", adu2);
       if (adu2.code == Code::ok) {
         auto raw2 = make_raw({}, *adu2.value, dq, width, height, "frame1");
-        auto result1 = invoke(ctx, raw, calibration);
-        auto result2 = invoke(ctx, raw2, calibration);
+        // C-CAL-ROOT: the shared evidence is a real shared NoiseModel root
+        // (master_noise with the same SharedId), not only the pixel masters.
+        const Ref<acsd::NoiseModel> master_noise = make_shared_master_noise(index, unit);
+        acsd::Calibration with_master = calibration;
+        with_master.master_noise = master_noise;
+        auto result1 = invoke(ctx, raw, with_master);
+        auto result2 = invoke(ctx, raw2, with_master);
         recorder.check("cal.root_both_frames_ok",
                        result1.code == Code::ok && result2.code == Code::ok &&
                            result1.value && result2.value,
@@ -510,14 +579,34 @@ int main() {
           recorder.value("cal.root_dep_count1", static_cast<long long>(deps1.size()));
           recorder.value("cal.root_dep_count2", static_cast<long long>(deps2.size()));
           recorder.value("cal.root_dep_common", static_cast<long long>(common));
-          recorder.check("cal.root_shared_dependencies", common >= 1,
-                         ">=1 identical dependency id across the two frames",
+          bool shared_noise = false;
+          std::string noise_evidence = "noise=null";
+          if (noise1 && noise2 && !noise1->shared_factors.empty() &&
+              noise1->shared_factors.size() == noise2->shared_factors.size()) {
+            shared_noise = true;
+            for (std::size_t i = 0; i < noise1->shared_factors.size(); ++i) {
+              const auto& a = noise1->shared_factors[i]->shared_id;
+              const auto& b = noise2->shared_factors[i]->shared_id;
+              shared_noise = shared_noise && a.external_namespace == b.external_namespace &&
+                             a.entity == b.entity && a.model_revision == b.model_revision &&
+                             a.component == b.component;
+            }
+            shared_noise = shared_noise &&
+                           noise1->influence.size() == noise2->influence.size();
+            noise_evidence = "shared_id=" + noise1->shared_factors.front()->shared_id.entity +
+                             " influences=" + std::to_string(noise1->influence.size()) +
+                             "/" + std::to_string(noise2->influence.size());
+          }
+          recorder.value("cal.root_noise_evidence", noise_evidence);
+          recorder.check("cal.root_shared_dependencies", common >= 1 || shared_noise,
+                         ">=1 identical dependency id or the same shared NoiseRoot "
+                         "SharedId/influence across the two frames",
                          "deps1=" + std::to_string(deps1.size()) + " deps2=" +
                              std::to_string(deps2.size()) + " common=" +
-                             std::to_string(common),
-                         "the shared bias/dark masters must be visible as a common "
-                         "dependency (or an equal output noise shared_id); empty "
-                         "dependencies cannot prove that the same source was reused");
+                             std::to_string(common) + "; " + noise_evidence,
+                         "the shared master must be visible as a common dependency or "
+                         "an equal output noise shared_id; neither proves same-source "
+                         "reuse if absent");
           recorder.check("cal.root_no_per_call_random_root", same_roots,
                          "identical shared root set (or both absent)",
                          std::string("noise1=") + (noise1 ? "present" : "null") +

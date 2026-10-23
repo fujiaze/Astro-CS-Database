@@ -3,15 +3,8 @@
   "source": "validation/runtime/cal01/cal01.cpp",
   "status": "ran",
   "attempts": 41,
-  "successes": 40,
-  "failures": [
-    {
-      "check": "cal.root_shared_dependencies",
-      "expected": ">=1 identical dependency id across the two frames",
-      "actual": "deps1=0 deps2=0 common=0",
-      "detail": "the shared bias/dark masters must be visible as a common dependency (or an equal output noise shared_id); empty dependencies cannot prove that the same source was reused"
-    }
-  ],
+  "successes": 41,
+  "failures": [],
   "checks": [
     {
       "check": "cal.services_ok",
@@ -274,10 +267,10 @@
     },
     {
       "check": "cal.root_shared_dependencies",
-      "pass": false,
-      "expected": ">=1 identical dependency id across the two frames",
-      "actual": "deps1=0 deps2=0 common=0",
-      "detail": "the shared bias/dark masters must be visible as a common dependency (or an equal output noise shared_id); empty dependencies cannot prove that the same source was reused"
+      "pass": true,
+      "expected": ">=1 identical dependency id or the same shared NoiseRoot SharedId/influence across the two frames",
+      "actual": "deps1=0 deps2=0 common=0; shared_id=master_flat influences=1/1",
+      "detail": "the shared master must be visible as a common dependency or an equal output noise shared_id; neither proves same-source reuse if absent"
     },
     {
       "check": "cal.root_no_per_call_random_root",
@@ -312,7 +305,8 @@
     "cal.dq_zero_flat_read_code": "ok",
     "cal.root_dep_count1": 0,
     "cal.root_dep_count2": 0,
-    "cal.root_dep_common": 0
+    "cal.root_dep_common": 0,
+    "cal.root_noise_evidence": "shared_id=master_flat influences=1/1"
   },
   "resources": {},
   "commands": [],
@@ -321,6 +315,6 @@
   ],
   "command": "/workspace/Astro CS Database/validation/runtime/build/cal01",
   "exit_code": 0,
-  "stderr_tail": "[ok] cal.services_ok\n[ok] cal.register_builtin_types_ok\n[ok] cal.register_processes_ok\n[ok] cal.freeze_ok\n[ok] cal.make_host_ok\n[ok] cal.open_command_ok\n[ok] cal.adu_array_ok\n[ok] cal.dq_array_ok\n[ok] cal.bias_array_ok\n[ok] cal.dark_array_ok\n[ok] cal.flat_array_ok\n[ok] cal.plan_bounds_ok\n[ok] cal.plan_ok\n[ok] cal.cal1_host_ok\n[cal01] read_f64 reserve\n[cal01] read_f64 reserve code=ok\n[cal01] read_f64 submitted state=0\n[cal01] read_f64 done code=ok\n[cal01] read_f64 reserve\n[cal01] read_f64 reserve code=ok\n[cal01] read_f64 submitted state=0\n[cal01] read_f64 done code=ok\n[cal01] read_f64 reserve\n[cal01] read_f64 reserve code=ok\n[cal01] read_f64 submitted state=0\n[cal01] read_f64 done code=ok\n[cal01] read_f64 done code=ok\n[ok] cal.cal1_exact_values\n[ok] cal.cal1_negative_not_clipped\n[ok] cal.cal1_interval_contains_exact\n[ok] cal.cal1_dq_clean\n[ok] cal.cal1_frame_context\n[ok] cal.cal1_usage_work\n[ok] cal.cal2_host_ok\n[cal01] read_f64 reserve\n[cal01] read_f64 reserve code=ok\n[cal01] read_f64 submitted state=0\n[cal01] read_f64 done code=ok\n[ok] cal.cal2_exact_values\n[ok] cal.close_command_ok\n[ok] cal.dq_open_command_ok\n[ok] cal.dq_flat_array_ok\n[ok] cal.dq_zero_flat_host_ok\n[cal01] read_f64 reserve\n[cal01] read_f64 reserve code=ok\n[cal01] read_f64 submitted state=0\n[cal01] read_f64 done code=ok\n[cal01] read_f64 done code=ok\n[ok] cal.dq_zero_flat_nan\n[ok] cal.dq_zero_flat_flag\n[ok] cal.dq_zero_flat_named_issue\n[ok] cal.dq_nan_array_ok\n[ok] cal.dq_nan_conflict_rejected\n[ok] cal.dq_nan_conflict_no_native\n[ok] cal.dq_close_command_ok\n[ok] cal.root_open_command_ok\n[ok] cal.root_second_adu_ok\n[ok] cal.root_both_frames_ok\n[ok] cal.root_shared_arrays_unchanged\n[FAIL] cal.root_shared_dependencies expected=>=1 identical dependency id across the two frames actual=deps1=0 deps2=0 common=0 detail=the shared bias/dark masters must be visible as a common dependency (or an equal output noise shared_id); empty dependencies cannot prove that the same source was reused\n[ok] cal.root_no_per_call_random_root\n[ok] cal.root_close_command_ok\n[ok] cal.host_close_ok\n",
+  "stderr_tail": "[ok] cal.services_ok\n[ok] cal.register_builtin_types_ok\n[ok] cal.register_processes_ok\n[ok] cal.freeze_ok\n[ok] cal.make_host_ok\n[ok] cal.open_command_ok\n[ok] cal.adu_array_ok\n[ok] cal.dq_array_ok\n[ok] cal.bias_array_ok\n[ok] cal.dark_array_ok\n[ok] cal.flat_array_ok\n[ok] cal.plan_bounds_ok\n[ok] cal.plan_ok\n[ok] cal.cal1_host_ok\n[cal01] read_f64 reserve\n[cal01] read_f64 reserve code=ok\n[cal01] read_f64 submitted state=0\n[cal01] read_f64 done code=ok\n[cal01] read_f64 reserve\n[cal01] read_f64 reserve code=ok\n[cal01] read_f64 submitted state=0\n[cal01] read_f64 done code=ok\n[cal01] read_f64 reserve\n[cal01] read_f64 reserve code=ok\n[cal01] read_f64 submitted state=0\n[cal01] read_f64 done code=ok\n[cal01] read_f64 done code=ok\n[ok] cal.cal1_exact_values\n[ok] cal.cal1_negative_not_clipped\n[ok] cal.cal1_interval_contains_exact\n[ok] cal.cal1_dq_clean\n[ok] cal.cal1_frame_context\n[ok] cal.cal1_usage_work\n[ok] cal.cal2_host_ok\n[cal01] read_f64 reserve\n[cal01] read_f64 reserve code=ok\n[cal01] read_f64 submitted state=0\n[cal01] read_f64 done code=ok\n[ok] cal.cal2_exact_values\n[ok] cal.close_command_ok\n[ok] cal.dq_open_command_ok\n[ok] cal.dq_flat_array_ok\n[ok] cal.dq_zero_flat_host_ok\n[cal01] read_f64 reserve\n[cal01] read_f64 reserve code=ok\n[cal01] read_f64 submitted state=0\n[cal01] read_f64 done code=ok\n[cal01] read_f64 done code=ok\n[ok] cal.dq_zero_flat_nan\n[ok] cal.dq_zero_flat_flag\n[ok] cal.dq_zero_flat_named_issue\n[ok] cal.dq_nan_array_ok\n[ok] cal.dq_nan_conflict_rejected\n[ok] cal.dq_nan_conflict_no_native\n[ok] cal.dq_close_command_ok\n[ok] cal.root_open_command_ok\n[ok] cal.root_second_adu_ok\n[ok] cal.root_both_frames_ok\n[ok] cal.root_shared_arrays_unchanged\n[ok] cal.root_shared_dependencies\n[ok] cal.root_no_per_call_random_root\n[ok] cal.root_close_command_ok\n[ok] cal.host_close_ok\n",
   "timed_out": false
 }

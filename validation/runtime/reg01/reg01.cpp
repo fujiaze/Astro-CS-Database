@@ -168,7 +168,9 @@ rt::ProcessDescriptor descriptor_for(const std::string& process_id,
   rt::ProcessDescriptor descriptor;
   descriptor.process_id = process_id;
   descriptor.module = "validation.runtime";
-  descriptor.document = "validation/runtime/README.md";
+  // Each process has its own document: the frozen registry rejects two
+  // processes that share one document (and processes with zero operations).
+  descriptor.document = "validation/runtime/reg01/docs/" + process_id + ".md";
   descriptor.semantic_revision = 1;
   descriptor.dependencies = std::move(dependencies);
   return descriptor;
@@ -385,11 +387,16 @@ int main() {
   // -------------------------------------------------------------------------
   {
     rt::RegistryBuilder duplicate;
+    auto dup_types = register_alpha_types(duplicate);
     auto first = duplicate.begin(descriptor_for("validation.reg.duplicate"));
     bool second_rejected = false;
-    if (first.code == Code::ok && first.value) {
+    if (dup_types.code == Code::ok && first.code == Code::ok && first.value) {
+      auto first_op = duplicate.add<AlphaIn, AlphaOut>(*first.value, alpha_operation("run"));
+      recorder.expect_code("reg.duplicate_process.first_add_ok", "ok", first_op);
       auto second = duplicate.begin(descriptor_for("validation.reg.duplicate"));
       second_rejected = rejected(second.code);
+      if (second.code == Code::ok && second.value)
+        duplicate.add<AlphaIn, AlphaOut>(*second.value, alpha_operation("run"));
       recorder.value("reg.duplicate_process.second_begin_code",
                      vrt::code_name(second.code));
     }
@@ -450,6 +457,13 @@ int main() {
         rt::TypeCodec<AlphaIn>{{"acsd.validation.alpha.in", 1}, "", &decode_value<AlphaIn>,
                                &encode_value<AlphaIn>});
     bool rejected_at_register = rejected(type.code);
+    auto out_type = empty_schema.register_type<AlphaOut>(
+        rt::TypeCodec<AlphaOut>{{"acsd.validation.alpha.out", 1},
+                                schema("acsd.validation.alpha.out"),
+                                &decode_value<AlphaOut>, &encode_value<AlphaOut>});
+    auto process = empty_schema.begin(descriptor_for("validation.reg.empty_schema"));
+    if (out_type.code == Code::ok && process.code == Code::ok && process.value)
+      empty_schema.add<AlphaIn, AlphaOut>(*process.value, alpha_operation("run"));
     auto frozen_empty = empty_schema.freeze();
     bool rejected_at_freeze = rejected(frozen_empty.code);
     recorder.check("reg.missing_schema_rejected", rejected_at_register || rejected_at_freeze,

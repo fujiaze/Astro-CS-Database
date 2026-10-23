@@ -23,7 +23,7 @@
 
 ## 最终状态（M0–M4 快照）
 
-**14 pass / 1 fail（cal01）。** 这是 M0–M4 的快照：M0 公共合同/注册、M1 账本与所有权、
+**14 pass / 1 fail（multi01）。** 这是 M0–M4 的快照：M0 公共合同/注册、M1 账本与所有权、
 M2 Task/pool/pipe、M3 Storage/诊断、M4 `observation.calibrate` 的 Host 全链。
 M5 的其余模块接入不在本 manifest 内；后续 M5 实现变化必须重新跑本目录，
 **不得修改判据去迁就实现**（发现缺陷照旧 fail）。
@@ -67,7 +67,7 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 
 | case | 合同 | 冻结构型 | 独立判据（摘要） | 当前状态 |
 |---|---|---|---|---|
-| `reg01` | REG01 | 两个 test process（alpha/beta）各 1 operation + codec；另一组反例 | 成功：freeze→typed invoke 两 process 都返回正确值；逐项具名拒绝：重复 process、重复 operation、缺 codec、缺 schema、TypeId 与 C++ T 不一致、缺文档、静态依赖环、未 freeze 就 make_host、未知 process/operation、错 Request 类型（run 计数器不变） | **实跑 pass 28/28** |
+| `reg01` | REG01 | 两个 test process（alpha/beta）各 1 operation + codec；另一组反例 | 成功：freeze→typed invoke 两 process 都返回正确值；逐项具名拒绝：重复 process、重复 operation、缺 codec、缺 schema、TypeId 与 C++ T 不一致、缺文档、静态依赖环、未 freeze 就 make_host、未知 process/operation、错 Request 类型（run 计数器不变） | **实跑 pass（required 28/28；observed 29/29）** |
 | `life01` | S-LIFE / LIFE01 | arena 关闭后仍有存活 Block Lease；cancel 时 16 MiB spill 写 | close 后未 claim 立即退、输出/写 buffer 到真正释放才退；取消不提前释放；ASan 无 UAF/双重释放；失败也有 usage | **实跑 pass 20/20（ASan）** |
 | `work01` | S-WORK | 父 scope max_work=10；段1 upper=6 consume 4 并持有；段2 upper=6；段3 upper=11；段4 在 consumed=10 后 upper=1 | 段2 不并发运行、处于 waiting_resources；释放段1后段2 自动重新准入并 consume 6，总 work=10；upper=11 与 consumed=max_work 后的 upper=1 都必须立即 resource_exhausted（不允许 parked） | **实跑 pass 16/16** |
 | `a01` | A01 | 全局历史 peak 100 MiB；子域 A 实际 50 MiB/10 work，子域 B 100 work；pinned⊂host | A 报 50 MiB/10 work；父域不重复计（peak 仍 100 MiB）；Lease 跨句柄保原域；子域 work 不重置祖先；pinned>host 拒绝 | **实跑 pass 23/23** |
@@ -75,13 +75,13 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 | `fork01` | S-FORK | 一个 8 B 只读 Block 广播到两分支（slot=1），一分支延迟消费 | 物理分配 8 B（非 16 B）、两分支同一 Lease、慢分支不丢；join 前不消费 | **实跑 pass 17/17**（修复后） |
 | `order01` | S-ORDER | key1 先 ready、key0 最小 key 后到，slot=1，H 仅够 F | key1 不能占保底 slot；最小 key 的 send 必须能进入保留 slot，receive 顺序 key0→key1 | **实跑 pass 11/11**（窗口修正后） |
 | `barrier01` | S-BARRIER | E=0；stream 两 cohort 贡献 2 次 → barrier；F=max(region F) 非求和 | R+max(F)=48 准入、47 拒绝；R+sum(F)=64 的错账会被抓到；两贡献后 barrier 才看到 2；未知 region 拒绝 | **实跑 pass 20/20** |
-| `multi01` | S-MULTI | P=1，两持续 ready command，weight=1:2，每 command 200 个单位执行段 | 30/60/90/120 处计数 10/20、20/40、30/60、40/80；整轮（30→120）精确 1:2；池/command 并发不超限；无饥饿 | **实跑 pass 12/12** |
+| `multi01` | S-MULTI | P=1；ready 窗口合同 2P+8P=10；滚动窗口 8 内持续补齐，两 command 各 200 单位；weight=1:2 | 前 120 次 dispatch 在完整轮上判 1:2（±4 credit）；窗口内不得 resource_exhausted；池/command 并发不超限 | **实跑 fail**：59/61（ratio 1.03），order 严格 1,2,1,2…；窗口 max_in_flight=8、0 次拒绝；P=2/ceiling2 诊断仍 60/60 → 权重未被调度器兑现（判据未放宽） |
 | `pipe01` | PIPE01 | max_items=1 的有序 pipe；满队列、取消、EOF/failed/cancelled 三态 | 满队列 send 背压等待；consume 后完成；cancel 唤醒 receive/send；三态 PipeEnd 保原 Issue；close 后 send 拒绝；0 容量具名拒绝 | **实跑 pass 37/37**（窗口修正后） |
-| `io01` | S-IO / ASYNC01 | P=1，32 MiB read + ready 计算、3×8 MiB 并行压缩、8 MiB spill append+seal | read 未终态时 compute 已执行；压缩 CPU/wall≈0.98（≤1.5）；写账本记录真实写量；seal 后 8 MiB 逐字节读回 | **实跑 pass 15/15** |
+| `io01` | S-IO / ASYNC01 | P=1，32 MiB read + ready 计算、3×8 MiB 并行压缩、8 MiB spill append+seal | read 未终态时 compute 已执行；压缩 CPU/wall≈0.98（≤1.5）；写账本记录真实写量；seal 后 8 MiB 逐字节读回 | **实跑 pass（required 15/15；observed 17/17）** |
 | `b01` | B01 | spill writer，1 MiB buffer，8×1 MiB append（按 64× 比例从 32 MiB/256 MiB 缩小） | 8 次 append 累计元素数；seal 尺寸/读回；非连续/失败 writer 不能 seal；取消中途 abort 无半成品；seal 后不可改；空 writer seal 拒绝 | **实跑 pass 24/24** |
 | `d01_off` | D01 | `ACSD_DEV_MODE=0`，宏参数为**本构建不存在的表达式/标识符**，ctx 表达式带副作用计数 | 编译通过（零求值）；运行时 ctx/payload 计数器为 0 | **实跑 pass 3/3** |
 | `d01_on` | D01 | `ACSD_DEV_MODE=1`，未选 probe + 合法 PerfRecord/SnapshotPayload，D 未配置 | 未选时 probe_selected=false 且不构造 payload；try_* noexcept；两次 invoke 的 Code/value/work 相同；span id 非 0 | **实跑 pass 15/15**（对 `ACSD_DEV_MODE=1` 的 `/tmp/acsd-build-dev` 构建） |
-| `cal01` | M4 C-CAL-1/2/DQ/ROOT | Host 全链；固定 raw/bias/dark/flat；两帧共享 bias/dark；`modules::plan_calibration` 的真实 work 上界 | C-CAL-1/2 数值、DQ NaN/Issue、NaN 冲突拒绝；`usage.work` 必须在 `[samples, plan-declared]`；两帧必须给出共享依赖/共享根证据 | **实跑 fail 39/41**：数值/DQ 全过；`usage.work=140 > plan-declared 67`；两帧 `dependencies` 均为空，无法证明同源复用（缺口见下，判据未放宽） |
+| `cal01` | M4 C-CAL-1/2/DQ/ROOT | Host 全链；固定 raw/bias/dark/flat；两帧共享 bias/dark + 共享 `master_noise` NoiseRoot；`modules::plan_calibration` 的真实 work 上界 | C-CAL-1/2 数值、DQ NaN/Issue、NaN 冲突拒绝；`usage.work ∈ [samples, plan-declared]`；两帧必须给出共享依赖或共享 noise root 证据 | **实跑 pass（required 37/37；observed 41/41）**：`usage.work=140 ≤ plan-declared 524`；ROOT 输出 `noise.shared_factors[0].shared_id=master_flat`、influence 1/1（共享 NoiseModel 根） |
 
 `H01/FORMAT01`、`PROC01/SCHED01/POOL01` 不在本轮写入范围的最小必测集内（分别需要
 产品格式、模块接入与 command 编排夹具），本目录不伪造其证据；如 Lead 需要，另立 case。
@@ -91,13 +91,13 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 
 构建：`ACSD_BUILD=/tmp/acsd-build bash validation/runtime/build.sh`（15/15 built；
 `d01_on` 另用 `ACSD_BUILD=/tmp/acsd-build-dev`，该目录以 `-DACSD_DEV_MODE=1` 构建）。
-运行：`python3 validation/runtime/run_cases.py --no-build` → **14 pass / 1 fail（cal01）**。
+运行：`python3 validation/runtime/run_cases.py --no-build` → **14 pass / 1 fail（multi01）**。
 逐 case 证据：`<case>/observed.json`、`comparison.json`、`observed.stdout.txt`、
 `observed.stderr.txt`；汇总 `manifest.json`。
 
 | case | 实跑 | 关键数字 |
 |---|---|---|
-| reg01 | pass 28/28 | 两 process freeze→invoke 42/700；全部歧义具名拒绝 |
+| reg01 | pass（required 28/28；observed 29/29） | 两 process freeze→invoke 42/700；全部歧义具名拒绝 |
 | life01 | pass 20/20（ASan） | close 后 4096 B 仍计费；释放后归零；取消写不提前释放 |
 | work01 | pass 16/16 | upper=6 等待→重新准入 consume 6；总 work=10；upper=11 与 consumed=max_work 后 upper=1 都立即 resource_exhausted |
 | a01 | pass 23/23 | A peak 50 MiB/work 10；父 peak 100 MiB 不重复；pinned>host 拒绝 |
@@ -105,13 +105,13 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 | fork01 | pass 17/17 | 一份 8 B 物理 Lease、两分支同值、慢分支不丢 |
 | order01 | pass 11/11 | slot=1 下最小 key 先出、高 key 后出 |
 | barrier01 | pass 20/20 | R+max(F)=48 准入、47 拒绝；两贡献后 barrier 见 2 |
-| multi01 | pass 11/11 | 完整轮（30→120）计数精确 1:2（如 30/60）；前 30 个 dispatch 含接纳瞬态，仅记录不判定 |
+| multi01 | **fail（attempts 11 / successes 10）** | 120 dispatch = 59/61（ratio 1.03）；order 前缀 1,2,1,2…；P=2/ceiling2 诊断 60/60；窗口 8 内 0 拒绝 |
 | pipe01 | pass 37/37 | 满队列背压、三态 PipeEnd、取消唤醒、按 key 归约 |
-| io01 | pass 15/15 | read 未终态时 compute 已跑；压缩 CPU/wall≈0.98；写账本 written=8 MiB/spill_written=8 MiB；seal 后逐字节读回 |
+| io01 | pass（required 15/15；observed 17/17） | read 未终态时 compute 已跑；压缩 CPU/wall≈0.98；写账本 written=8 MiB/spill_written=8 MiB；seal 后逐字节读回 |
 | b01 | pass 24/24 | 8×append 累计值、seal/读回、失败/取消无半成品、abort 幂等 |
 | d01_off | pass 3/3 | OFF 宏零求值（未声明标识符可编译、运行时计数 0） |
 | d01_on | pass 15/15 | ON 构建下 span id=5/6；探针前后 Code/value/work 相同 |
-| cal01 | **fail 39/41** | 数值 C-CAL-1 x=[4,14,−8]、C-CAL-2 [0,10,−12]、DQ NaN/Issue 全过；`usage.work=140 > plan-declared 67`；两帧 `dependencies` 空（0/0，common=0） |
+| cal01 | pass（required 37/37；observed 41/41） | 数值 C-CAL-1/2、DQ 全过；`usage.work=140` 在 plan-declared `524` 内；C-CAL-ROOT 用共享 `master_noise` 证明 `shared_id=master_flat`、influence 1/1 |
 
 ### 本轮修复的问题（已复测）
 
@@ -125,28 +125,25 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 4. **取消不唤醒 ready 队列任务 P0**：用 `repros/cancel_drain.cpp` 复测，
    最新 libruntime 下 20 个任务全部以 ok/cancelled 终态返回（之前第 4 个 state=2
    永久阻塞）。
-5. **M4 plan/run 落地**：plan 不再返回 `unsupported: not integrated before M4`，
-   Host 全链可运行、C-CAL-1/2/DQ 数值与 DQ 规则全过。但按冻结判据 `cal01` 仍为
-   **fail**（见下“当前失败”），需 cal-m4 修 plan/work 与共享依赖证据。
+5. **M4 plan/run 落地**：plan 不再返回 `unsupported: not integrated before M4`；
+   Host 全链可运行，C-CAL-1/2/DQ 数值与 DQ 规则全过；`plan_declared_work=524`
+   覆盖 `usage.work=140`。C-CAL-ROOT 用真实共享 `master_noise` NoiseRoot 证明
+   `shared_id=master_flat`、influence 1/1，`cal01` 41/41 pass。
+6. **REG01 fixture 对齐新 registry 合同**：每个 process 唯一 document
+   （`validation/runtime/reg01/docs/<process_id>.md`）且至少 1 个 operation；
+   负例（duplicate/missing schema 等）也补齐 operation，使拒绝原因仍是被测规则本身。
 
-### 当前失败（cal01，判据冻结，不迁就实现）
+### 当前失败（multi01，判据冻结，不迁就实现）
 
-`cal01` attempts 41 / successes 39，两个 required 失败：
+`multi01` attempts 11 / successes 10（required 11），唯一失败 `multi.ratio_1_to_2_complete_rounds`：
 
-1. `cal.cal1_usage_work`：`3 <= usage.work <= plan-declared`。用公开
-   `acsd::modules::bounds_calibration` + `plan_calibration` 取得真实 plan
-   （`block_elements=3, cohorts=1, regions=1`，stages/cleanup 合计
-   `declared_work=67`），Host 实跑 `usage.work=140`。即 **plan 的 work 上界
-   低于实际消费**（或 Host 记账超出 plan 声明），按 SCHEDULER 的
-   “work_upper 是本次执行段上限”判 fail；需 cal-m4 修 plan 的 work 模型
-   （或修正 Host 的 usage 归属），不能用放宽判据掩盖。
-2. `cal.root_shared_dependencies`：C-CAL-ROOT 两帧共享同一 bias/dark
-   ArrayRef，但两次 invoke 的 `Result.dependencies` 都是空
-   （deps1=0, deps2=0, common=0），输出 `NoiseModel` 也为 null。因此当前
-   **没有公开证据**证明“共享母版同源未被重造”；按冻结判据记 fail 并写明缺口
-   （需要 Host/process 把共享 Array/NoiseRoot 身份放进 dependencies，或输出
-   带相同 `SharedId` 的 noise 根）。`cal.root_no_per_call_random_root` 仍通过
-   （两帧均无 noise 根，属“未凭空造根”的必要非充分证据）。
+* 合同：P=1 时 ready 窗口 = 2P+8P = 10；本 case 用滚动窗口 8（`max_in_flight=8`、
+  `window_rejections=0`），两个 command 在整个 120 次采样期间都有 ready backlog。
+* 实测前 120 次 dispatch：weight1=59、weight2=61（ratio 1.03），完成顺序前缀为
+  `1,2,1,2,1,2,1,2,…`；P=2、command ceiling=2 的诊断运行同样 60/60。
+* 判定：weight=1 与 weight=2 的 command 未按 1:2 发放 dispatch credit（实际接近
+  1:1 的严格交替）。这是 S-MULTI 的实现缺陷；窗口合同、并发上限与无饥饿均通过，
+  判据保持不变。需要调度器实现加权轮转（每轮 weight1=1、weight2=2 credit）。
 
 ### 实现侧已定位并修正的观察（复跑确认）
 
@@ -167,8 +164,6 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 
 ### 仍记录在案、但不阻塞本批判据的观察
 
-* `multi01`：前 30 个 dispatch 含接纳瞬态（本次启动偏差可达 24/6），完整轮
-  30→120 精确 1:2；判据只用完整轮，README 与 case.json 均写明。
 * `cal01` 的 `Result.dependencies` 未携带共享 id；C-CAL-ROOT 的共享根证据用
   输出 `NoiseModel` 根集合 + 未变的 bias/dark ArrayRef 表达（本实现两帧 noise 均为
   null，即未凭空造根）。

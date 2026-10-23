@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-23T17:28:19.798502+00:00",
-  "git_commit": "6fe0c8aac049d52efbd99484d5e242e2c94107d1",
+  "generated_at": "2026-10-23T18:14:46.371141+00:00",
+  "git_commit": "8e5489c6bb35e1d021b55e1608e6c1247a681f73",
   "build_dir": "/tmp/acsd-build",
   "milestone_scope": "M0-M4 snapshot: runtime contracts (REG01/S-LIFE/S-WORK/A01/S-FLOOR/S-FORK/S-ORDER/S-BARRIER/S-MULTI/PIPE01/S-IO/B01/D01) and the observation.calibrate Host chain. M5 module integration is not part of this manifest.",
   "build_note": "build.sh selects the build directory per case: d01_on/case.json has link=dev and links against $ACSD_DEV_BUILD (default /tmp/acsd-build-dev, ACSD_DEV_MODE=1); every other case links against $ACSD_BUILD (default /tmp/acsd-build, ACSD_DEV_MODE=0). The actual -L directory is recorded in each comparison.build.link_command.",
@@ -12,14 +12,12 @@
   "cases": [
     {
       "case": "reg01",
-      "status": "fail",
+      "status": "pass",
       "milestone": "M0",
-      "attempts": 14,
-      "successes": 13,
-      "failures": [
-        "reg.freeze_ok"
-      ],
-      "reason": "required checks not attempted: reg.manifest_nonempty, reg.make_host_ok, reg.open_command_ok, reg.invoke_alpha_ok, reg.invoke_alpha_value, reg.invoke_alpha_ran_once, reg.invoke_beta_ok, reg.invoke_beta_value, reg.unknown_process_unsupported, reg.unknown_operation_unsupported, reg.wrong_request_invalid_request, reg.wrong_request_before_run, reg.close_command_ok, reg.host_close_async_ok; required checks failed: reg.freeze_ok; attempts 14 < min_attempts 28; harness reports failures: [\"reg.freeze_ok\"]",
+      "attempts": 29,
+      "successes": 29,
+      "failures": [],
+      "reason": "all required checks passed",
       "command": "/workspace/Astro CS Database/validation/runtime/build/reg01"
     },
     {
@@ -104,7 +102,7 @@
         "multi.steady_state_ratio_1_to_2",
         "multi.backlog_drained"
       ],
-      "reason": "required checks failed: multi.sample_reached, multi.no_starvation, multi.steady_state_ratio_1_to_2, multi.backlog_drained; harness reports failures: [\"multi.sample_reached\", \"multi.no_starvation\", \"multi.steady_state_ratio_1_to_2\", \"multi.backlog_drained\"]",
+      "reason": "required checks not attempted: multi.window_contract_respected, multi.all_units_ok, multi.ratio_1_to_2_complete_rounds; required checks failed: multi.sample_reached, multi.no_starvation; harness reports failures: [\"multi.sample_reached\", \"multi.no_starvation\", \"multi.steady_state_ratio_1_to_2\", \"multi.backlog_drained\"]",
       "command": "/workspace/Astro CS Database/validation/runtime/build/multi01"
     },
     {
@@ -159,14 +157,12 @@
     },
     {
       "case": "cal01",
-      "status": "fail",
+      "status": "pass",
       "milestone": "M4",
       "attempts": 41,
-      "successes": 40,
-      "failures": [
-        "cal.root_shared_dependencies"
-      ],
-      "reason": "required checks failed: cal.root_shared_dependencies; harness reports failures: [\"cal.root_shared_dependencies\"]",
+      "successes": 41,
+      "failures": [],
+      "reason": "all required checks passed",
       "command": "/workspace/Astro CS Database/validation/runtime/build/cal01"
     }
   ]

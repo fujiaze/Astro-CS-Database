@@ -2,16 +2,9 @@
   "case": "reg01",
   "source": "validation/runtime/reg01/reg01.cpp",
   "status": "ran",
-  "attempts": 14,
-  "successes": 13,
-  "failures": [
-    {
-      "check": "reg.freeze_ok",
-      "expected": "ok",
-      "actual": "identity_conflict(identity_conflict:registry.freeze:process 'validation.reg.beta' and process 'validation.reg.alpha' share document 'validation/runtime/README.md'; a process owns one unique document)",
-      "detail": ""
-    }
-  ],
+  "attempts": 29,
+  "successes": 29,
+  "failures": [],
   "checks": [
     {
       "check": "reg.alpha_process_registered",
@@ -29,9 +22,107 @@
     },
     {
       "check": "reg.freeze_ok",
-      "pass": false,
+      "pass": true,
       "expected": "ok",
-      "actual": "identity_conflict(identity_conflict:registry.freeze:process 'validation.reg.beta' and process 'validation.reg.alpha' share document 'validation/runtime/README.md'; a process owns one unique document)",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "reg.manifest_nonempty",
+      "pass": true,
+      "expected": "non-empty manifest",
+      "actual": "986 bytes",
+      "detail": ""
+    },
+    {
+      "check": "reg.make_host_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "reg.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "reg.invoke_alpha_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "reg.invoke_alpha_value",
+      "pass": true,
+      "expected": "42",
+      "actual": "42",
+      "detail": ""
+    },
+    {
+      "check": "reg.invoke_alpha_ran_once",
+      "pass": true,
+      "expected": "1",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "reg.invoke_beta_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "reg.invoke_beta_value",
+      "pass": true,
+      "expected": "700",
+      "actual": "700",
+      "detail": ""
+    },
+    {
+      "check": "reg.unknown_process_unsupported",
+      "pass": true,
+      "expected": "unsupported",
+      "actual": "unsupported(unsupported:host.invoke:unknown process 'validation.reg.unknown' operation 'run'; the frozen registry has no typed binding)",
+      "detail": ""
+    },
+    {
+      "check": "reg.unknown_operation_unsupported",
+      "pass": true,
+      "expected": "unsupported",
+      "actual": "unsupported(unsupported:host.invoke:unknown process 'validation.reg.alpha' operation 'unknown_operation'; the frozen registry has no typed binding)",
+      "detail": ""
+    },
+    {
+      "check": "reg.wrong_request_invalid_request",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:host.invoke:typed binding cookie mismatch for process 'validation.reg.alpha' operation 'run': the in-process call does not match the registered TypeId/C++ type pair)",
+      "detail": ""
+    },
+    {
+      "check": "reg.wrong_request_before_run",
+      "pass": true,
+      "expected": "0",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "reg.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "reg.host_close_async_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
       "detail": ""
     },
     {
@@ -47,6 +138,13 @@
       "expected": "non-ok",
       "actual": "invalid_request(invalid_request:make_host:make_host needs a live Services and a frozen Registry; modules must freeze the registry before creating the host)",
       "detail": "an unfrozen builder has no registry; make_host(nullptr) must fail"
+    },
+    {
+      "check": "reg.duplicate_process.first_add_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
     },
     {
       "check": "reg.duplicate_process_rejected",
@@ -108,19 +206,22 @@
       "check": "reg.dependency_cycle_rejected",
       "pass": true,
       "expected": "freeze rejects a static dependency cycle",
-      "actual": "identity_conflict",
+      "actual": "invalid_model",
       "detail": "A depends on B and B depends on A (ProcessDescriptor.dependencies)"
     }
   ],
   "values": {
     "services": "created",
+    "registry.has.alpha.run": true,
+    "registry.has.beta.run": true,
+    "manifest.length": 986,
     "reg.duplicate_process.second_begin_code": "ok",
     "reg.type_mismatch.add_code": "ok",
     "reg.no_document.add_code": "ok"
   },
   "resources": {
-    "checks": 14,
-    "successes": 13
+    "checks": 29,
+    "successes": 29
   },
   "commands": [
     "built by validation/runtime/build.sh; run by run_cases.py"
@@ -128,6 +229,6 @@
   "notes": [],
   "command": "/workspace/Astro CS Database/validation/runtime/build/reg01",
   "exit_code": 0,
-  "stderr_tail": "[ok] reg.alpha_process_registered\n[ok] reg.beta_process_registered\n[FAIL] reg.freeze_ok expected=ok actual=identity_conflict(identity_conflict:registry.freeze:process 'validation.reg.beta' and process 'validation.reg.alpha' share document 'validation/runtime/README.md'; a process owns one unique document)\n[ok] reg.unfrozen_type_register_ok\n[ok] reg.unfrozen_make_host_rejected\n[ok] reg.duplicate_process_rejected\n[ok] reg.duplicate_operation.first_add_ok\n[ok] reg.duplicate_operation_rejected\n[ok] reg.no_codec.add_ok\n[ok] reg.missing_codec_rejected\n[ok] reg.missing_schema_rejected\n[ok] reg.typeid_cpp_mismatch_rejected\n[ok] reg.missing_document_rejected\n[ok] reg.dependency_cycle_rejected\n",
+  "stderr_tail": "[ok] reg.alpha_process_registered\n[ok] reg.beta_process_registered\n[ok] reg.freeze_ok\n[ok] reg.manifest_nonempty\n[ok] reg.make_host_ok\n[ok] reg.open_command_ok\n[ok] reg.invoke_alpha_ok\n[ok] reg.invoke_alpha_value\n[ok] reg.invoke_alpha_ran_once\n[ok] reg.invoke_beta_ok\n[ok] reg.invoke_beta_value\n[ok] reg.unknown_process_unsupported\n[ok] reg.unknown_operation_unsupported\n[ok] reg.wrong_request_invalid_request\n[ok] reg.wrong_request_before_run\n[ok] reg.close_command_ok\n[ok] reg.host_close_async_ok\n[ok] reg.unfrozen_type_register_ok\n[ok] reg.unfrozen_make_host_rejected\n[ok] reg.duplicate_process.first_add_ok\n[ok] reg.duplicate_process_rejected\n[ok] reg.duplicate_operation.first_add_ok\n[ok] reg.duplicate_operation_rejected\n[ok] reg.no_codec.add_ok\n[ok] reg.missing_codec_rejected\n[ok] reg.missing_schema_rejected\n[ok] reg.typeid_cpp_mismatch_rejected\n[ok] reg.missing_document_rejected\n[ok] reg.dependency_cycle_rejected\n",
   "timed_out": false
 }

@@ -1,0 +1,3 @@
+# validation.reg.alpha
+
+Fixture document for the REG01 process `validation.reg.alpha`.

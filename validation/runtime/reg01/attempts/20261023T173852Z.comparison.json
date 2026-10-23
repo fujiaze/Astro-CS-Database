@@ -1,0 +1,170 @@
+{
+  "case": "reg01",
+  "title": "registry: two typed processes freeze and invoke; every ambiguous/wrong call rejected by name",
+  "milestone": "M0",
+  "contract_refs": [
+    "VERIFICATION.md REG01",
+    "FOUNDATION_API.md#计划、注册和Host"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/reg01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/reg01",
+    "log": "validation/runtime/build/reg01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/reg01",
+  "status": "fail",
+  "reason": "required checks not attempted: reg.manifest_nonempty, reg.make_host_ok, reg.open_command_ok, reg.invoke_alpha_ok, reg.invoke_alpha_value, reg.invoke_alpha_ran_once, reg.invoke_beta_ok, reg.invoke_beta_value, reg.unknown_process_unsupported, reg.unknown_operation_unsupported, reg.wrong_request_invalid_request, reg.wrong_request_before_run, reg.close_command_ok, reg.host_close_async_ok; required checks failed: reg.freeze_ok; attempts 15 < min_attempts 28; harness reports failures: [\"reg.freeze_ok\"]",
+  "exit_code": 0,
+  "attempts": 15,
+  "successes": 14,
+  "expected_success_count": 28,
+  "observed_success_count": 14,
+  "required_checks": 28,
+  "missing_checks": [
+    "reg.manifest_nonempty",
+    "reg.make_host_ok",
+    "reg.open_command_ok",
+    "reg.invoke_alpha_ok",
+    "reg.invoke_alpha_value",
+    "reg.invoke_alpha_ran_once",
+    "reg.invoke_beta_ok",
+    "reg.invoke_beta_value",
+    "reg.unknown_process_unsupported",
+    "reg.unknown_operation_unsupported",
+    "reg.wrong_request_invalid_request",
+    "reg.wrong_request_before_run",
+    "reg.close_command_ok",
+    "reg.host_close_async_ok"
+  ],
+  "failed_checks": [
+    "reg.freeze_ok"
+  ],
+  "failures": [
+    {
+      "check": "reg.freeze_ok",
+      "expected": "ok",
+      "actual": "missing_dependency(missing_dependency:registry.freeze:process 'validation.reg.alpha' document 'validation/runtime/reg01/docs/validation.reg.alpha.md' does not exist; every process needs its unique document)",
+      "detail": ""
+    }
+  ],
+  "kernel_status": "fail",
+  "checks": [
+    {
+      "check": "reg.alpha_process_registered",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "reg.beta_process_registered",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "reg.freeze_ok",
+      "pass": false,
+      "expected": "ok",
+      "actual": "missing_dependency(missing_dependency:registry.freeze:process 'validation.reg.alpha' document 'validation/runtime/reg01/docs/validation.reg.alpha.md' does not exist; every process needs its unique document)",
+      "detail": ""
+    },
+    {
+      "check": "reg.unfrozen_type_register_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "reg.unfrozen_make_host_rejected",
+      "pass": true,
+      "expected": "non-ok",
+      "actual": "invalid_request(invalid_request:make_host:make_host needs a live Services and a frozen Registry; modules must freeze the registry before creating the host)",
+      "detail": "an unfrozen builder has no registry; make_host(nullptr) must fail"
+    },
+    {
+      "check": "reg.duplicate_process.first_add_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "reg.duplicate_process_rejected",
+      "pass": true,
+      "expected": "begin or freeze rejects duplicate process_id",
+      "actual": "begin2=accepted, freeze=identity_conflict",
+      "detail": "VERIFICATION REG01: duplicate process must be a named rejection"
+    },
+    {
+      "check": "reg.duplicate_operation.first_add_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "reg.duplicate_operation_rejected",
+      "pass": true,
+      "expected": "add or freeze rejects duplicate operation_id",
+      "actual": "add2=ok, freeze=identity_conflict",
+      "detail": ""
+    },
+    {
+      "check": "reg.no_codec.add_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "reg.missing_codec_rejected",
+      "pass": true,
+      "expected": "freeze rejects an operation whose In/Out has no registered codec",
+      "actual": "missing_dependency",
+      "detail": ""
+    },
+    {
+      "check": "reg.missing_schema_rejected",
+      "pass": true,
+      "expected": "register_type or freeze rejects an empty schema_json",
+      "actual": "register=ok, freeze=invalid_model",
+      "detail": ""
+    },
+    {
+      "check": "reg.typeid_cpp_mismatch_rejected",
+      "pass": true,
+      "expected": "freeze rejects TypeId bound to a different C++ In type",
+      "actual": "missing_dependency",
+      "detail": ""
+    },
+    {
+      "check": "reg.missing_document_rejected",
+      "pass": true,
+      "expected": "begin or freeze rejects an empty ProcessDescriptor.document",
+      "actual": "invalid_model",
+      "detail": ""
+    },
+    {
+      "check": "reg.dependency_cycle_rejected",
+      "pass": true,
+      "expected": "freeze rejects a static dependency cycle",
+      "actual": "missing_dependency",
+      "detail": "A depends on B and B depends on A (ProcessDescriptor.dependencies)"
+    }
+  ],
+  "values": {
+    "services": "created",
+    "reg.duplicate_process.second_begin_code": "ok",
+    "reg.type_mismatch.add_code": "ok",
+    "reg.no_document.add_code": "ok"
+  },
+  "resources": {
+    "checks": 15,
+    "successes": 14
+  }
+}

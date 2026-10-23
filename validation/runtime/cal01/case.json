@@ -48,9 +48,19 @@
       "frames": 2,
       "shared": [
         "bias",
-        "dark"
+        "dark",
+        "master_noise shared NoiseRoot"
       ],
-      "expected": "same shared-root set across calls, no per-call random root"
+      "master_noise": {
+        "shared_id": {
+          "external_namespace": "acsd.native",
+          "entity": "master_flat",
+          "model_revision": "1",
+          "component": "amplitude"
+        },
+        "influence": 1
+      },
+      "expected": "two invocations keep the same shared NoiseRoot SharedId/influence; no per-call random root"
     },
     "chain": "make_services -> open_command -> RegistryBuilder -> generated::register_builtin_types -> generated::register_processes -> freeze -> make_host -> invoke<CalibrateInput,Ref<NativeObservation>> -> wait_external",
     "usage_work": "process usage aggregates stages; per-sample consume_work(1) is a lower bound",

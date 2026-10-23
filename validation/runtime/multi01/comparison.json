@@ -15,19 +15,21 @@
   },
   "command": "/workspace/Astro CS Database/validation/runtime/build/multi01",
   "status": "fail",
-  "reason": "required checks failed: multi.sample_reached, multi.no_starvation, multi.steady_state_ratio_1_to_2, multi.backlog_drained; harness reports failures: [\"multi.sample_reached\", \"multi.no_starvation\", \"multi.steady_state_ratio_1_to_2\", \"multi.backlog_drained\"]",
+  "reason": "required checks not attempted: multi.window_contract_respected, multi.all_units_ok, multi.ratio_1_to_2_complete_rounds; required checks failed: multi.sample_reached, multi.no_starvation; harness reports failures: [\"multi.sample_reached\", \"multi.no_starvation\", \"multi.steady_state_ratio_1_to_2\", \"multi.backlog_drained\"]",
   "exit_code": 0,
   "attempts": 11,
   "successes": 7,
   "expected_success_count": 11,
   "observed_success_count": 7,
   "required_checks": 11,
-  "missing_checks": [],
+  "missing_checks": [
+    "multi.window_contract_respected",
+    "multi.all_units_ok",
+    "multi.ratio_1_to_2_complete_rounds"
+  ],
   "failed_checks": [
     "multi.sample_reached",
-    "multi.no_starvation",
-    "multi.steady_state_ratio_1_to_2",
-    "multi.backlog_drained"
+    "multi.no_starvation"
   ],
   "failures": [
     {

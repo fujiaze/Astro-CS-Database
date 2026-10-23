@@ -1,0 +1,131 @@
+{
+  "case": "multi01",
+  "title": "weighted round robin: weight 1:2 dispatch ratio, no pool/command oversubscription, no starvation",
+  "milestone": "M2",
+  "contract_refs": [
+    "SCHEDULER.md S-MULTI",
+    "SCHEDULER.md#多command分配与公平性"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/multi01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/multi01",
+    "log": "validation/runtime/build/multi01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/multi01",
+  "status": "fail",
+  "reason": "required checks failed: multi.ratio_1_to_2_complete_rounds; harness reports failures: [\"multi.ratio_1_to_2_complete_rounds\"]",
+  "exit_code": 0,
+  "attempts": 11,
+  "successes": 10,
+  "expected_success_count": 11,
+  "observed_success_count": 10,
+  "required_checks": 11,
+  "missing_checks": [],
+  "failed_checks": [
+    "multi.ratio_1_to_2_complete_rounds"
+  ],
+  "failures": [
+    {
+      "check": "multi.ratio_1_to_2_complete_rounds",
+      "expected": "2*count1-4 <= count2 <= 2*count1+4 over 120 dispatches",
+      "actual": "118 <= 59 <= 126 (ratio=0.9672)",
+      "detail": "tolerance is +/-4 credits on complete rounds; both queues stay backlogged for the whole sample"
+    }
+  ],
+  "kernel_status": "fail",
+  "checks": [
+    {
+      "check": "multi.open_weight1_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.open_weight2_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.sample_reached",
+      "pass": true,
+      "expected": "120 completions within 60 s",
+      "actual": "120 completions",
+      "detail": ""
+    },
+    {
+      "check": "multi.window_contract_respected",
+      "pass": true,
+      "expected": "no resource_exhausted and in-flight <= 8 (ready+deferred=10)",
+      "actual": "max_in_flight=8 rejections=0",
+      "detail": ""
+    },
+    {
+      "check": "multi.all_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.no_starvation",
+      "pass": true,
+      "expected": "both commands dispatched in the sample",
+      "actual": "61/59",
+      "detail": ""
+    },
+    {
+      "check": "multi.ratio_1_to_2_complete_rounds",
+      "pass": false,
+      "expected": "2*count1-4 <= count2 <= 2*count1+4 over 120 dispatches",
+      "actual": "118 <= 59 <= 126 (ratio=0.9672)",
+      "detail": "tolerance is +/-4 credits on complete rounds; both queues stay backlogged for the whole sample"
+    },
+    {
+      "check": "multi.pool_concurrency_within_threads",
+      "pass": true,
+      "expected": "<= 1",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "multi.command_concurrency_within_ceiling",
+      "pass": true,
+      "expected": "each <= 1 (command ceiling 1 with P=1)",
+      "actual": "1/1",
+      "detail": ""
+    },
+    {
+      "check": "multi.close_weight1_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.close_weight2_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "multi.window": 8,
+    "multi.window_rejections": 0,
+    "multi.max_in_flight": 8,
+    "multi.order_prefix": "1,2,1,2,1,2,2,1,2,1,2,1,2,2,1,2,1,2,1,1,2,1,2,1,1,2,1,2,1,2,1,1,2,1,2,1",
+    "multi.sample_count_weight1": 61,
+    "multi.sample_count_weight2": 59,
+    "multi.sample_ratio": 0.9672131147540983
+  },
+  "resources": {
+    "multi.max_running_pool": 1,
+    "multi.max_running_weight1": 1,
+    "multi.max_running_weight2": 1
+  }
+}

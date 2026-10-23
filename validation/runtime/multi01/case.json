@@ -12,23 +12,22 @@
       2
     ],
     "cpu_threads": 1,
-    "units_per_command": 200,
-    "sample_size": 120,
-    "unit_cost_us": 200,
-    "method": "P=1 makes completion order equal dispatch order; sample after 30 completions",
-    "per_command_cpu_ceiling": 1,
-    "startup_transient": "first 30 dispatches excluded from the complete-round check"
+    "ready_window": "2P ready + 8P deferred = 10 in flight",
+    "rolling_window": 8,
+    "sample_dispatches": 120,
+    "units_available_per_command": 200,
+    "criterion": "2*count1-4 <= count2 <= 2*count1+4 over the first 120 dispatches; both queues stay backlogged; the window cap is a contract, not a relaxation"
   },
   "required_checks": [
     "multi.open_weight1_ok",
     "multi.open_weight2_ok",
-    "multi.backlog_submitted",
     "multi.sample_reached",
+    "multi.window_contract_respected",
+    "multi.all_units_ok",
     "multi.no_starvation",
-    "multi.steady_state_ratio_1_to_2",
+    "multi.ratio_1_to_2_complete_rounds",
     "multi.pool_concurrency_within_threads",
     "multi.command_concurrency_within_ceiling",
-    "multi.backlog_drained",
     "multi.close_weight1_ok",
     "multi.close_weight2_ok"
   ],
