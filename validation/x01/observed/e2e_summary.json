@@ -1,5 +1,17 @@
 {
  "status": "pass",
+ "git_commit": "cbd4bcc0cc9cd952260ce504d2341c8630164dc7",
+ "binary_sha256": "07fdb04c91d12b041b6f90a3ee0ede1af3c36d3450ebe67d2997904ee56293ab",
+ "frame_hashes": {
+  "frame_00_A.fits": "9f7bb23aeb7cf9115023ee19be0cae670bb96d77c3922441ae1ba1f8480fff75",
+  "frame_01_A.fits": "1bcbeed379b228b29fd5f42aa69318a0225e20b477b1ea2d7efc0b5bb858e2ca",
+  "frame_02_A.fits": "a5b6cbd90d00dd4413c1ac6c766608a2ac90518891bea7ebfcba23652855a4fe",
+  "frame_03_A.fits": "861cf908c8a71f098250318aa6c325bdde98fc836a9eff11b3c55dcf50faa349",
+  "frame_04_B.fits": "70fb1de890a174719b5e97c46f6601f3b5e9aa3930e325d7a74e889e6d60c2db",
+  "frame_05_B.fits": "4ea5059444aa6021fe5503f12dff5eef967487b29be8dc0548f7e1279c913fa5",
+  "frame_06_B.fits": "e3c6b7f375651344e4a059bc164e43d2a2d772d3c54a662ec75b5892111fb75c",
+  "frame_07_B.fits": "d524a393c2fc3093d70b145c9a099a19d02318540743c6bd5e4b3e4baa1c3789"
+ },
  "route": "the three commands of the acsd command line on the frozen frames",
  "binary": "build/science/acsd",
  "inputs": {
