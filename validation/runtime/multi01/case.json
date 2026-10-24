@@ -16,7 +16,7 @@
       "weight2": 2
     },
     "runs": 5,
-    "dispatches_per_run": 330,
+    "dispatches_per_run": 800,
     "min_complete_rounds_per_run": 100,
     "measurement": "dispatch starts ordered by ctx.dispatch_sequence (FOUNDATION_API: P>1 must not infer fairness from callable entry order); each dispatch records ready1/ready2/running1/running2 and ceiling",
     "criterion": "sliding windows: for every i, if all three dispatch starts i,i+1,i+2 satisfy ready1>=1 && running1<ceiling1 && ready2>=2 && running2<ceiling2, then commands[i..i+2] multiset must be {w1,w2,w2}. windows>=100, violations=0, 5/5 runs. No fixed three-element grouping (a skipped group must not shift phase).",
@@ -70,5 +70,5 @@
   "expected_success_count": 41,
   "tolerance": "every fully feasible sliding window must have multiset {w1,w2,w2}; violations=0; feasible windows>=100; 5/5 quiet runs. Infeasible windows (ready missing or command at ceiling at any of the three starts) are skipped, never counted as violations.",
   "link": "default",
-  "timeout_seconds": 180
+  "timeout_seconds": 300
 }

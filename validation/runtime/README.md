@@ -75,7 +75,7 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -I include -I validation/run
 | `fork01` | S-FORK | 一个 8 B 只读 Block 广播到两分支（slot=1），一分支延迟消费 | 物理分配 8 B（非 16 B）、两分支同一 Lease、慢分支不丢；join 前不消费 | **实跑 pass 17/17**（修复后） |
 | `order01` | S-ORDER | key1 先 ready、key0 最小 key 后到，slot=1，H 仅够 F | key1 不能占保底 slot；最小 key 的 send 必须能进入保留 slot，receive 顺序 key0→key1 | **实跑 pass 11/11**（窗口修正后） |
 | `barrier01` | S-BARRIER | E=0；stream 两 cohort 贡献 2 次 → barrier；F=max(region F) 非求和 | R+max(F)=48 准入、47 拒绝；R+sum(F)=64 的错账会被抓到；两贡献后 barrier 才看到 2；未知 region 拒绝 | **实跑 pass 20/20** |
-| `multi01` | S-MULTI | P=2；ready 窗口 4；in-flight ≤6 且 queued 硬上限 4（无 deferred，queued 即真实 ready）；weight1/2 配额 ≥1/≥2；5 次安静运行，每次 12000 次 **dispatch start** | **滑动窗口**：每个窗口 i,i+1,i+2 若三次起点都满足 ready1≥1、running1<ceiling1、ready2≥2、running2<ceiling2，则 `commands[i..i+2]` 多重集必须为 `{w1,w2,w2}`；可行窗口≥100、违规=0、5/5；不做固定三元分组 | **实跑 pass（required 41/41；observed 41/41）**：5/5 run；每 run 可行窗口 7,528–11,118、违规 0；窗口 0 拒绝、ratio_info≈2.0；per-command 并发 ≤ `ceiling.cpu_tokens=2` |
+| `multi01` | S-MULTI | P=2；`PoolConfig.dispatch_observer` 记录池派发前真实快照（sequence/command/ready/running/ceiling/control）；每 run 800 次 dispatch 事件 | 事件 i,i+1,i+2 的该 command 快照都满足可行条件时，`commands[i..i+2]` 多重集必须为 `{w1,w2,w2}`；窗口≥100、违规=0、5/5 | **实跑 pass（required 41/41；observed 42/42）**：5 次独立调用全部 5/5；每 run 可行窗口 497–757、违规 0、事件 800/run；hook 已接线（科学/控制 lane 均回调） |
 | `pipe01` | PIPE01 | max_items=1 的有序 pipe；满队列、取消、EOF/failed/cancelled 三态 | 满队列 send 背压等待；consume 后完成；cancel 唤醒 receive/send；三态 PipeEnd 保原 Issue；close 后 send 拒绝；0 容量具名拒绝 | **实跑 pass 37/37**（窗口修正后） |
 | `io01` | S-IO / ASYNC01 | P=1，32 MiB read + ready 计算、3×8 MiB 并行压缩、8 MiB spill append+seal | read 未终态时 compute 已执行；压缩 CPU/wall≈0.98（≤1.5）；**`written_bytes` 单独 ≥ payload（实测 8,388,872），`spill_written_bytes` 作为同一写的 spill 视图分开记录、不相加**；seal 后 8 MiB 逐字节读回 | **实跑 pass（required 15/15；observed 17/17）**，ASan 构建 |
 | `b01` | B01 | spill writer，1 MiB buffer，8×1 MiB append；另含 N-2 的 +0/−0 与 NaN 位模式 seal | 8 次 append 累计元素数；seal 尺寸/读回；失败/取消无半成品；**`seal(+0.0)` 与 `seal(-0.0)` content_hash 必须不同，payload/signalling NaN 必须按 +quiet 规范化** | **实跑 pass（required 28/28；observed 30/30）**，ASan 构建 |
@@ -112,7 +112,7 @@ the catalogue`），因此 mosaic 停在 `missing_dependency: the product direct
 | fork01 | pass 17/17 | 一份 8 B 物理 Lease、两分支同值、慢分支不丢 |
 | order01 | pass 11/11 | slot=1 下最小 key 先出、高 key 后出 |
 | barrier01 | pass 20/20 | R+max(F)=48 准入、47 拒绝；两贡献后 barrier 见 2 |
-| multi01 | pass（required 41/41；observed 41/41） | 5/5 run；每 run 可行滑动窗口 7,528–11,118、违规 0；sequence 排序、queued≤ready 窗口、window 0 拒绝、ratio_info≈2.0 |
+| multi01 | pass（required 41/41；observed 42/42） | 5 次调用 5/5；每 run 800 事件、可行窗口 497–757、违规 0；observer 真实快照 |
 | pipe01 | pass 37/37 | 满队列背压、三态 PipeEnd、取消唤醒、按 key 归约 |
 | io01 | pass（required 15/15；observed 17/17） | read 未终态时 compute 已跑；压缩 CPU/wall≈0.98；written_bytes=8,388,872 单独判定、spill_written 分开记录（不相加）；seal 后逐字节读回 |
 | b01 | pass（required 28/28；observed 30/30） | 8×append、seal/读回、失败/取消无半成品；+0/−0 hash 不同、NaN 规范化为 +quiet |
@@ -120,6 +120,13 @@ the catalogue`），因此 mosaic 停在 `missing_dependency: the product direct
 | d01_off | pass 3/3 | OFF 宏零求值（未声明标识符可编译、运行时计数 0） |
 | d01_on | pass 15/15 | ON 构建下 span id=5/6；探针前后 Code/value/work 相同 |
 | cal01 | pass（required 37/37；observed 41/41） | 数值 C-CAL-1/2、DQ 全过；`usage.work=140` 在 plan-declared `524` 内；C-CAL-ROOT 用共享 `master_noise` 证明 `shared_id=master_flat`、influence 1/1 |
+
+### 稳定性复跑（b01/life01/io01，5 次连续）
+
+在 HEAD b592d88e0 的安静环境（load≈5）下各 case 连续跑 5 次：b01 **5/5 pass**、
+life01 **5/5 pass**、io01 **5/5 pass**；`life01/io01/b01` 均为 `-fsanitize=address` 构建，seal/abort 路径无
+AddressSanitizer 报告。本轮同时覆盖 storage cleanup claim reset、append 按 buffer 分块、
+pipe_expect 回退 key 拒绝（HEAD a17b199c2）。
 
 ### 本轮修复的问题（已复测）
 
@@ -141,26 +148,62 @@ the catalogue`），因此 mosaic 停在 `missing_dependency: the product direct
    （`validation/runtime/reg01/docs/<process_id>.md`）且至少 1 个 operation；
    负例（duplicate/missing schema 等）也补齐 operation，使拒绝原因仍是被测规则本身。
 
-### S-MULTI 的判据与测量（P=2 滑动可行窗口；pass）
+### S-MULTI 的判据与测量（dispatch_observer；pass）
 
 判据（未降低 1:2）：
-* **滑动窗口，不做固定三元分组**：对每个 i，若 `i,i+1,i+2` 三次 dispatch 的起点都满足
-  `ready1>=1 && running1<ceiling1 && ready2>=2 && running2<ceiling2`，则
-  `commands[i..i+2]` 的多重集必须恰为 `{w1,w2,w2}`；可行窗口≥100、违规窗口=0、5/5。
-* 不可行窗口（缺 ready 或某 command 达 ceiling）skip 并计数，不当作违规。
-* 仍按 `ctx.dispatch_sequence` 排序（FOUNDATION_API：P>1 不得用 callable 入口顺序推断
-  公平轮），而不是墙钟入口顺序。
+* `PoolConfig.dispatch_observer` 记录池派发前的真实快照
+  `{sequence, command, ready, running, ceiling, control}`；科学/控制 lane 都回调。
+* 按 sequence 排序；滑动窗口 i,i+1,i+2 的三次事件快照都满足
+  `ready1>=1 && running1<ceiling1 && ready2>=2 && running2<ceiling2` 时，要求
+  `commands[i..i+2]` 多重集 == `{w1,w2,w2}`；窗口≥100、违规=0、5/5。
+* 不可行窗口（缺 ready 或某 command 达 ceiling）skip 并计数，不判违规；不做固定三元分组。
 
-测量侧修正：
-* in-flight ≤6，且 **queued 硬上限 = ready 窗口 4**，因此不存在 deferred；callable 入口的
-  `submitted - started` 就是真实 ready 数，避免把 deferred 误当 ready。
-* 滑动窗口避免“跳过不可行组后固定分组相位错位”把合法序列切成假 `222`。
-* 调度器当前为 capped deficit round-robin（每轮 credit=weight、上限不累积、tie 轮转），
-  `dispatch_sequence` 保留。
+实跑（HEAD b592d88e0，observer 已接线）：5 次独立调用 ×5 run 全部 5/5；每 run 800 个
+dispatch 事件、可行窗口 497–757、违规 0；窗口 0 拒绝、`ratio_info≈2.0`、per-command
+并发 ≤ `ceiling.cpu_tokens=2`。此前“hook 未接线/0 事件”的 fail 已由该提交修复。
 
-实跑（8ec1e947f）：5 次独立调用（25 个 run）+ 全量运行（5 个 run），全部 5/5；每 run 可行窗口
-7,528–11,118、违规 0、窗口 0 拒绝、`ratio_info≈2.0`。此前固定分组的 `222` 是相位/
-deferred 误计，不是 DRR 连续派 w2；修正判据后无违规。
+### 稳定性复跑（b01/life01/io01，5 次连续）
+
+在 HEAD b592d88e0 的安静环境（load≈5）下各 case 连续跑 5 次：b01 **5/5 pass**、
+life01 **5/5 pass**、io01 **5/5 pass**；`life01/io01/b01` 均为 `-fsanitize=address` 构建，seal/abort 路径无
+AddressSanitizer 报告。本轮同时覆盖 storage cleanup claim reset、append 按 buffer 分块、
+pipe_expect 回退 key 拒绝（HEAD a17b199c2）。
+
+### 本轮修复的问题（已复测）
+
+1. **公开头模板 P0**（`RegistryBuilder::register_type` 的 encode 2/3 参不一致、
+   `add<In,Out>` finalize 的 optional 解引用）：由实现者修复，REG01/所有 typed 夹具已可编译。
+2. **fixture 字节窗口**：`Item` 为 40 B，而 `order01/pipe01` 的
+   `max_queued_bytes` 只有 8/16/32 B；任何符合合同的 pipe 都无法为 40 B payload
+   取得 credit。已把相关 edge 提到 64 B（window=2 用 128 B），判据不变；
+   实现同时改为 `bytes > max_queued_bytes` 立即 `resource_exhausted` 而不是挂起。
+3. **broadcast<Block> 永不投递 P0**：实现修复后 `fork01` 17/17。
+4. **取消不唤醒 ready 队列任务 P0**：用 `repros/cancel_drain.cpp` 复测，
+   最新 libruntime 下 20 个任务全部以 ok/cancelled 终态返回（之前第 4 个 state=2
+   永久阻塞）。
+5. **M4 plan/run 落地**：plan 不再返回 `unsupported: not integrated before M4`；
+   Host 全链可运行，C-CAL-1/2/DQ 数值与 DQ 规则全过；`plan_declared_work=524`
+   覆盖 `usage.work=140`。C-CAL-ROOT 用真实共享 `master_noise` NoiseRoot 证明
+   `shared_id=master_flat`、influence 1/1，`cal01` 41/41 pass。
+6. **REG01 fixture 对齐新 registry 合同**：每个 process 唯一 document
+   （`validation/runtime/reg01/docs/<process_id>.md`）且至少 1 个 operation；
+   负例（duplicate/missing schema 等）也补齐 operation，使拒绝原因仍是被测规则本身。
+
+### S-MULTI 的判据与测量（dispatch_observer；当前被 hook 缺口阻塞）
+
+按 Lead 的公开 hook 判据实现：
+* `PoolConfig.dispatch_observer` 记录池派发前的真实快照 `{sequence, command, ready, running, ceiling}`；
+  不推断 callable 入口状态。
+* 按 sequence 排序；滑动窗口 i,i+1,i+2 三次事件的该 command 快照都满足
+  `ready1>=1 && running1<ceiling1 && ready2>=2 && running2<ceiling2` 时，要求
+  `commands[i..i+2]` 多重集 == `{w1,w2,w2}`；窗口≥100、违规=0、5/5。
+
+**当前阻塞（HEAD a17b199c2）**：`DispatchEvent` 在
+`src/runtime/pool.cpp:1153` 被构造，但源码中没有任何 `dispatch_observer` 的存储或调用
+（`grep -rn dispatch_observer src include` 只有头文件声明），因此 hook 永远不触发。
+multi01 每次 run 记录 `multi.runX_observer_delivered=false`、0 个事件，无法判定；保持 fail。
+此前基于 callable 入口 + queued 上限的滑动窗口曾 25/25 通过，但那不是 hook 证据，已被本次
+observer fixture 取代。需要 pool 在派发前调用 observer（控制 lane 也回调）后复跑。
 
 ### 实现侧已定位并修正的观察（复跑确认）
 

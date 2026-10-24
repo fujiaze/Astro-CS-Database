@@ -18,7 +18,7 @@
     {"check": "fork.slow_branch_not_lost", "pass": true, "expected": "ok + Block after 30 ms delay", "actual": "ok", "detail": ""},
     {"check": "fork.broadcast_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "fork.both_branches_same_bytes", "pass": true, "expected": "1..8 on both branches", "actual": "identical", "detail": ""},
-    {"check": "fork.both_branches_same_lease", "pass": true, "expected": "all three Lease owners identical", "actual": "a/b/reference owners 94105369574448/94105369574448/94105369574448", "detail": ""},
+    {"check": "fork.both_branches_same_lease", "pass": true, "expected": "all three Lease owners identical", "actual": "a/b/reference owners 94455649008688/94455649008688/94455649008688", "detail": ""},
     {"check": "fork.join_not_early", "pass": true, "expected": "both deliveries keep the full block range", "actual": "ok", "detail": ""},
     {"check": "fork.close_a_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "fork.close_b_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},

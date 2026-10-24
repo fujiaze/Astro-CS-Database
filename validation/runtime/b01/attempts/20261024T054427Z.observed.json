@@ -1,0 +1,237 @@
+{
+  "case": "b01",
+  "source": "validation/runtime/b01/b01.cpp",
+  "status": "ran",
+  "attempts": 29,
+  "successes": 28,
+  "failures": [
+    {
+      "check": "b01.gap_allocate_ok",
+      "expected": "ok",
+      "actual": "resource_exhausted",
+      "detail": ""
+    }
+  ],
+  "checks": [
+    {
+      "check": "b01.open_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.reserve_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.begin_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.eight_appends_cumulative",
+      "pass": true,
+      "expected": "each append returns (i+1)*1 MiB",
+      "actual": "8 appends ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.seal_ok",
+      "pass": true,
+      "expected": "ok + ArrayRef",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.sealed_shape",
+      "pass": true,
+      "expected": "8388608 elements",
+      "actual": "8388608",
+      "detail": ""
+    },
+    {
+      "check": "b01.readback_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.readback_matches_input",
+      "pass": true,
+      "expected": "first 1 MiB byte-identical",
+      "actual": "identical",
+      "detail": ""
+    },
+    {
+      "check": "b01.append_after_seal_rejected",
+      "pass": true,
+      "expected": "invalid_request or invalid_model",
+      "actual": "invalid_request(invalid_request:runtime.storage.append:writer is not open for append)",
+      "detail": ""
+    },
+    {
+      "check": "b01.abort_sealed_noop_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.empty_writer_seal_rejected",
+      "pass": true,
+      "expected": "invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.seal:seal requires exactly the declared element count)",
+      "detail": ""
+    },
+    {
+      "check": "b01.empty_writer_abort_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.contiguous_first_append_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.gap_allocate_ok",
+      "pass": false,
+      "expected": "ok",
+      "actual": "resource_exhausted",
+      "detail": ""
+    },
+    {
+      "check": "b01.failed_writer_cannot_seal",
+      "pass": true,
+      "expected": "invalid_model or invalid_request",
+      "actual": "invalid_request(invalid_request:runtime.storage.seal:seal requires exactly the declared element count)",
+      "detail": ""
+    },
+    {
+      "check": "b01.abort_after_failure_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.abort_idempotent_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_first_append_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_allocate_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_append_terminal_named",
+      "pass": true,
+      "expected": "cancelled or ok",
+      "actual": "cancelled",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_no_half_product",
+      "pass": true,
+      "expected": "seal does not deliver an ArrayRef",
+      "actual": "cancelled(cancelled:runtime.storage.seal:work budget exhausted)",
+      "detail": ""
+    },
+    {
+      "check": "b01.cancel_abort_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.bits_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.bits_reserve_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.bits_seals_ok",
+      "pass": true,
+      "expected": "all five one-element arrays seal",
+      "actual": "recorded",
+      "detail": ""
+    },
+    {
+      "check": "b01.sign_zero_hash_distinct",
+      "pass": true,
+      "expected": "+0.0 and -0.0 have different content_hash",
+      "actual": "distinct",
+      "detail": "OBJECTS:140 preserves the sign bit of zero"
+    },
+    {
+      "check": "b01.nan_canonicalised",
+      "pass": true,
+      "expected": "payload NaN and signalling NaN hash as +quiet canonical NaN",
+      "actual": "payload=same signalling=same",
+      "detail": "OBJECTS:140 canonicalises NaN to +quiet"
+    },
+    {
+      "check": "b01.bits_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "b01.close_command_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "b01.bits_pos_stage": "",
+    "b01.bits_neg_stage": "",
+    "b01.bits_payload_stage": "",
+    "b01.bits_canonical_stage": "",
+    "b01.bits_snan_stage": "",
+    "b01.pos_zero_hash": "sha256:6abd2014ca8e07828d21f775108fe8b9be5d3045399037d65a62823e1252e326",
+    "b01.neg_zero_hash": "sha256:f561e1f26ed0b12c83625762e21f0756242209e771aa3cd05ffc8672c5a08b3b",
+    "b01.nan_canonical_hash": "sha256:f5ac244342219ab0c7be3f54a47f6f60d3864e5d1deddcc20f3bb0f48d4f815b"
+  },
+  "resources": {},
+  "commands": [],
+  "notes": [],
+  "command": "/workspace/Astro CS Database/validation/runtime/build/b01",
+  "exit_code": 0,
+  "stderr_tail": "[ok] b01.open_command_ok\n[ok] b01.reserve_ok\n[ok] b01.begin_ok\n[ok] b01.eight_appends_cumulative\n[ok] b01.seal_ok\n[ok] b01.sealed_shape\n[ok] b01.readback_ok\n[ok] b01.readback_matches_input\n[ok] b01.append_after_seal_rejected\n[ok] b01.abort_sealed_noop_ok\n[ok] b01.empty_writer_seal_rejected\n[ok] b01.empty_writer_abort_ok\n[ok] b01.contiguous_first_append_ok\n[FAIL] b01.gap_allocate_ok expected=ok actual=resource_exhausted\n[ok] b01.failed_writer_cannot_seal\n[ok] b01.abort_after_failure_ok\n[ok] b01.abort_idempotent_ok\n[ok] b01.cancel_first_append_ok\n[ok] b01.cancel_allocate_ok\n[ok] b01.cancel_append_terminal_named\n[ok] b01.cancel_no_half_product\n[ok] b01.cancel_abort_ok\n[ok] b01.bits_open_ok\n[ok] b01.bits_reserve_ok\n[ok] b01.bits_seals_ok\n[ok] b01.sign_zero_hash_distinct\n[ok] b01.nan_canonicalised\n[ok] b01.bits_close_ok\n[ok] b01.close_command_ok\n",
+  "timed_out": false
+}

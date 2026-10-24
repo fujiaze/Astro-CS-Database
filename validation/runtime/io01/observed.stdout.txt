@@ -12,7 +12,7 @@
     {"check": "io.read_pending_while_compute_runs", "pass": true, "expected": "compute entered while the read task was still in flight", "actual": "observed", "detail": "P=1: an I/O wait must not hold the only CPU token"},
     {"check": "io.compression_jobs_prepared", "pass": true, "expected": "3 writers", "actual": "ok", "detail": ""},
     {"check": "io.compression_appends_ok", "pass": true, "expected": "all ok", "actual": "ok", "detail": ""},
-    {"check": "io.compression_within_one_cpu", "pass": true, "expected": "process CPU / wall <= 1.5 with cpu_threads=1", "actual": "1.006", "detail": "a multi-threaded compressor would exceed the one-token quota"},
+    {"check": "io.compression_within_one_cpu", "pass": true, "expected": "process CPU / wall <= 1.5 with cpu_threads=1", "actual": "1.126", "detail": "a multi-threaded compressor would exceed the one-token quota"},
     {"check": "io.seal_reserve_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "io.seal_begin_writer_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "io.seal_freeze_block_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
@@ -24,7 +24,7 @@
     {"check": "io.seal_array_size", "pass": true, "expected": "8388608 elements", "actual": "8388608", "detail": ""},
     {"check": "io.close_command_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""}
   ],
-  "values": {"io.read_attempt_0_bytes": 33554432, "io.read_attempt_0_pending_at_compute": true, "io.read_concurrency_attempts": 1, "io.compression_wall_seconds": 0.24333104502875358, "io.compression_cpu_seconds": 0.24479697199999984, "io.compression_cpu_ratio": 1.0060244140696188, "io.seal_charged_during_append": 8388608, "io.written_bytes_at_seal": 8388872, "io.spill_written_bytes_at_seal": 8388872, "io.written_ledger_at_seal": 16777744},
+  "values": {"io.read_attempt_0_bytes": 33554432, "io.read_attempt_0_pending_at_compute": true, "io.read_concurrency_attempts": 1, "io.compression_wall_seconds": 0.22964164614677429, "io.compression_cpu_seconds": 0.25851211000000007, "io.compression_cpu_ratio": 1.1257196346466414, "io.seal_charged_during_append": 8388608, "io.written_bytes_at_seal": 8388872, "io.spill_written_bytes_at_seal": 8388872, "io.written_ledger_at_seal": 16777744},
   "resources": {},
   "commands": [],
   "notes": ["write ledger: written_bytes=8388872 (physical), spill_written_bytes=8388872 (spill view of the same write); sealed array reads back byte-identical."]

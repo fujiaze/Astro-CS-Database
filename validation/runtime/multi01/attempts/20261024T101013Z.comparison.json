@@ -1,0 +1,478 @@
+{
+  "case": "multi01",
+  "title": "weighted round robin: weight 1:2 dispatch ratio, no pool/command oversubscription, no starvation",
+  "milestone": "M2",
+  "contract_refs": [
+    "SCHEDULER.md S-MULTI",
+    "SCHEDULER.md#多command分配与公平性"
+  ],
+  "build": {
+    "built": true,
+    "status": "built",
+    "classification": "ok",
+    "link_command": "g++ /workspace/Astro CS Database/validation/runtime/build/multi01.o -L /tmp/acsd-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -Wl,--end-group -lpthread -lzstd -o /workspace/Astro CS Database/validation/runtime/build/multi01",
+    "log": "validation/runtime/build/multi01.build.log"
+  },
+  "command": "/workspace/Astro CS Database/validation/runtime/build/multi01",
+  "status": "fail",
+  "reason": "required checks not attempted: multi.run0_close_ok, multi.run1_close_ok, multi.run2_close_ok, multi.run3_close_ok, multi.run4_close_ok; required checks failed: multi.stability_5_of_5, multi.run0_dispatches, multi.run0_complete_windows, multi.run1_dispatches, multi.run1_complete_windows, multi.run2_dispatches, multi.run2_complete_windows, multi.run3_dispatches, multi.run3_complete_windows, multi.run4_dispatches, multi.run4_complete_windows; harness reports failures: [\"multi.run0_observer_delivered\", \"multi.run0_dispatches\", \"multi.run0_complete_windows\", \"multi.run1_observer_delivered\", \"multi.run1_dispatches\", \"multi.run1_complete_windows\", \"multi.run2_observer_delivered\", \"multi.run2_dispatches\", \"multi.run2_complete_windows\", \"multi.run3_observer_delivered\", \"multi.run3_dispatches\", \"multi.run3_complete_windows\", \"multi.run4_observer_delivered\", \"multi.run4_dispatches\", \"multi.run4_complete_windows\", \"multi.stability_5_of_5\"]",
+  "exit_code": 0,
+  "attempts": 42,
+  "successes": 26,
+  "expected_success_count": 41,
+  "observed_success_count": 26,
+  "required_checks": 41,
+  "missing_checks": [
+    "multi.run0_close_ok",
+    "multi.run1_close_ok",
+    "multi.run2_close_ok",
+    "multi.run3_close_ok",
+    "multi.run4_close_ok"
+  ],
+  "failed_checks": [
+    "multi.stability_5_of_5",
+    "multi.run0_dispatches",
+    "multi.run0_complete_windows",
+    "multi.run1_dispatches",
+    "multi.run1_complete_windows",
+    "multi.run2_dispatches",
+    "multi.run2_complete_windows",
+    "multi.run3_dispatches",
+    "multi.run3_complete_windows",
+    "multi.run4_dispatches",
+    "multi.run4_complete_windows"
+  ],
+  "failures": [
+    {
+      "check": "multi.run0_observer_delivered",
+      "expected": "PoolConfig.dispatch_observer delivered events",
+      "actual": "0 events",
+      "detail": "the hook is declared in the header but never invoked by the pool"
+    },
+    {
+      "check": "multi.run0_dispatches",
+      "expected": ">= 12000 dispatch events",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_complete_windows",
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_observer_delivered",
+      "expected": "PoolConfig.dispatch_observer delivered events",
+      "actual": "0 events",
+      "detail": "the hook is declared in the header but never invoked by the pool"
+    },
+    {
+      "check": "multi.run1_dispatches",
+      "expected": ">= 12000 dispatch events",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_complete_windows",
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_observer_delivered",
+      "expected": "PoolConfig.dispatch_observer delivered events",
+      "actual": "0 events",
+      "detail": "the hook is declared in the header but never invoked by the pool"
+    },
+    {
+      "check": "multi.run2_dispatches",
+      "expected": ">= 12000 dispatch events",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_complete_windows",
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_observer_delivered",
+      "expected": "PoolConfig.dispatch_observer delivered events",
+      "actual": "0 events",
+      "detail": "the hook is declared in the header but never invoked by the pool"
+    },
+    {
+      "check": "multi.run3_dispatches",
+      "expected": ">= 12000 dispatch events",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_complete_windows",
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_observer_delivered",
+      "expected": "PoolConfig.dispatch_observer delivered events",
+      "actual": "0 events",
+      "detail": "the hook is declared in the header but never invoked by the pool"
+    },
+    {
+      "check": "multi.run4_dispatches",
+      "expected": ">= 12000 dispatch events",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_complete_windows",
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.stability_5_of_5",
+      "expected": "5/5 quiet runs: feasible windows>=100, violations=0",
+      "actual": "at least one run failed",
+      "detail": ""
+    }
+  ],
+  "kernel_status": "fail",
+  "checks": [
+    {
+      "check": "multi.services_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_observer_delivered",
+      "pass": false,
+      "expected": "PoolConfig.dispatch_observer delivered events",
+      "actual": "0 events",
+      "detail": "the hook is declared in the header but never invoked by the pool"
+    },
+    {
+      "check": "multi.run0_dispatches",
+      "pass": false,
+      "expected": ">= 12000 dispatch events",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_complete_windows",
+      "pass": false,
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_violations_zero",
+      "pass": true,
+      "expected": "0 windows whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted from the bounded window",
+      "actual": "0 rejections",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "0/0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_observer_delivered",
+      "pass": false,
+      "expected": "PoolConfig.dispatch_observer delivered events",
+      "actual": "0 events",
+      "detail": "the hook is declared in the header but never invoked by the pool"
+    },
+    {
+      "check": "multi.run1_dispatches",
+      "pass": false,
+      "expected": ">= 12000 dispatch events",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_complete_windows",
+      "pass": false,
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_violations_zero",
+      "pass": true,
+      "expected": "0 windows whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted from the bounded window",
+      "actual": "0 rejections",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "0/0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_observer_delivered",
+      "pass": false,
+      "expected": "PoolConfig.dispatch_observer delivered events",
+      "actual": "0 events",
+      "detail": "the hook is declared in the header but never invoked by the pool"
+    },
+    {
+      "check": "multi.run2_dispatches",
+      "pass": false,
+      "expected": ">= 12000 dispatch events",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_complete_windows",
+      "pass": false,
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_violations_zero",
+      "pass": true,
+      "expected": "0 windows whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted from the bounded window",
+      "actual": "0 rejections",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "0/0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_observer_delivered",
+      "pass": false,
+      "expected": "PoolConfig.dispatch_observer delivered events",
+      "actual": "0 events",
+      "detail": "the hook is declared in the header but never invoked by the pool"
+    },
+    {
+      "check": "multi.run3_dispatches",
+      "pass": false,
+      "expected": ">= 12000 dispatch events",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_complete_windows",
+      "pass": false,
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_violations_zero",
+      "pass": true,
+      "expected": "0 windows whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted from the bounded window",
+      "actual": "0 rejections",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "0/0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_observer_delivered",
+      "pass": false,
+      "expected": "PoolConfig.dispatch_observer delivered events",
+      "actual": "0 events",
+      "detail": "the hook is declared in the header but never invoked by the pool"
+    },
+    {
+      "check": "multi.run4_dispatches",
+      "pass": false,
+      "expected": ">= 12000 dispatch events",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_complete_windows",
+      "pass": false,
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_violations_zero",
+      "pass": true,
+      "expected": "0 windows whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted from the bounded window",
+      "actual": "0 rejections",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "0/0",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.stability_5_of_5",
+      "pass": false,
+      "expected": "5/5 quiet runs: feasible windows>=100, violations=0",
+      "actual": "at least one run failed",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "multi.run0_dispatches": 0,
+    "multi.run0_complete_windows": 0,
+    "multi.run0_violations": 0,
+    "multi.run0_skipped_windows": 0,
+    "multi.run0_ratio_info": 0,
+    "multi.run0_sample": "",
+    "multi.run0_violation_detail": "",
+    "multi.run1_dispatches": 0,
+    "multi.run1_complete_windows": 0,
+    "multi.run1_violations": 0,
+    "multi.run1_skipped_windows": 0,
+    "multi.run1_ratio_info": 0,
+    "multi.run1_sample": "",
+    "multi.run1_violation_detail": "",
+    "multi.run2_dispatches": 0,
+    "multi.run2_complete_windows": 0,
+    "multi.run2_violations": 0,
+    "multi.run2_skipped_windows": 0,
+    "multi.run2_ratio_info": 0,
+    "multi.run2_sample": "",
+    "multi.run2_violation_detail": "",
+    "multi.run3_dispatches": 0,
+    "multi.run3_complete_windows": 0,
+    "multi.run3_violations": 0,
+    "multi.run3_skipped_windows": 0,
+    "multi.run3_ratio_info": 0,
+    "multi.run3_sample": "",
+    "multi.run3_violation_detail": "",
+    "multi.run4_dispatches": 0,
+    "multi.run4_complete_windows": 0,
+    "multi.run4_violations": 0,
+    "multi.run4_skipped_windows": 0,
+    "multi.run4_ratio_info": 0,
+    "multi.run4_sample": "",
+    "multi.run4_violation_detail": ""
+  },
+  "resources": {}
+}

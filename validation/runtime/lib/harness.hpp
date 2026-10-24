@@ -435,8 +435,10 @@ inline std::string scratch_root(const std::string& case_id) {
 
 inline Result<std::shared_ptr<acsd::rt::Services>> start_services(
     U64 host_bytes, U64 max_work, U32 cpu_threads, U32 read_slots,
-    U32 write_slots, const std::string& scratch, U64 pinned_bytes = 0) {
+    U32 write_slots, const std::string& scratch, U64 pinned_bytes = 0,
+    acsd::rt::DispatchObserver dispatch_observer = nullptr) {
   acsd::rt::PoolConfig config;
+  config.dispatch_observer = std::move(dispatch_observer);
   config.process = limits(host_bytes, max_work, 1ull << 20, 0, 0, pinned_bytes);
   config.cpu_threads = cpu_threads;
   config.read_slots = read_slots;

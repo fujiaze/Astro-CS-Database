@@ -1,3 +1,4 @@
+[ok] multi.services_ok
 [ok] multi.run0_open_ok
 [ok] multi.run0_close_ok
 [ok] multi.run0_dispatches

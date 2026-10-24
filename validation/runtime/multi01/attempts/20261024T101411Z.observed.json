@@ -1,0 +1,417 @@
+{
+  "case": "multi01",
+  "source": "validation/runtime/multi01/multi01.cpp",
+  "status": "ran",
+  "attempts": 42,
+  "successes": 31,
+  "failures": [
+    {
+      "check": "multi.run0_dispatches",
+      "expected": ">= 12000 dispatch events",
+      "actual": "6",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_complete_windows",
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_dispatches",
+      "expected": ">= 12000 dispatch events",
+      "actual": "6",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_complete_windows",
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_dispatches",
+      "expected": ">= 12000 dispatch events",
+      "actual": "6",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_complete_windows",
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_dispatches",
+      "expected": ">= 12000 dispatch events",
+      "actual": "6",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_complete_windows",
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_dispatches",
+      "expected": ">= 12000 dispatch events",
+      "actual": "6",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_complete_windows",
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "multi.stability_5_of_5",
+      "expected": "5/5 quiet runs: feasible windows>=100, violations=0",
+      "actual": "at least one run failed",
+      "detail": ""
+    }
+  ],
+  "checks": [
+    {
+      "check": "multi.services_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_dispatches",
+      "pass": false,
+      "expected": ">= 12000 dispatch events",
+      "actual": "6",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_complete_windows",
+      "pass": false,
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_violations_zero",
+      "pass": true,
+      "expected": "0 windows whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted from the bounded window",
+      "actual": "0 rejections",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "1/2",
+      "detail": ""
+    },
+    {
+      "check": "multi.run0_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_dispatches",
+      "pass": false,
+      "expected": ">= 12000 dispatch events",
+      "actual": "6",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_complete_windows",
+      "pass": false,
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_violations_zero",
+      "pass": true,
+      "expected": "0 windows whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted from the bounded window",
+      "actual": "0 rejections",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "1/2",
+      "detail": ""
+    },
+    {
+      "check": "multi.run1_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_dispatches",
+      "pass": false,
+      "expected": ">= 12000 dispatch events",
+      "actual": "6",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_complete_windows",
+      "pass": false,
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_violations_zero",
+      "pass": true,
+      "expected": "0 windows whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted from the bounded window",
+      "actual": "0 rejections",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "1/2",
+      "detail": ""
+    },
+    {
+      "check": "multi.run2_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_dispatches",
+      "pass": false,
+      "expected": ">= 12000 dispatch events",
+      "actual": "6",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_complete_windows",
+      "pass": false,
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_violations_zero",
+      "pass": true,
+      "expected": "0 windows whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted from the bounded window",
+      "actual": "0 rejections",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "1/2",
+      "detail": ""
+    },
+    {
+      "check": "multi.run3_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_open_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_close_ok",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok/ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_dispatches",
+      "pass": false,
+      "expected": ">= 12000 dispatch events",
+      "actual": "6",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_complete_windows",
+      "pass": false,
+      "expected": ">= 100 feasible sliding windows",
+      "actual": "1",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_violations_zero",
+      "pass": true,
+      "expected": "0 windows whose multiset != {w1,w2,w2}",
+      "actual": "0 violations",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_window_ok",
+      "pass": true,
+      "expected": "no resource_exhausted from the bounded window",
+      "actual": "0 rejections",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_command_concurrency",
+      "pass": true,
+      "expected": "each command <= ceiling.cpu_tokens=2",
+      "actual": "1/2",
+      "detail": ""
+    },
+    {
+      "check": "multi.run4_units_ok",
+      "pass": true,
+      "expected": "all submitted units complete",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "multi.stability_5_of_5",
+      "pass": false,
+      "expected": "5/5 quiet runs: feasible windows>=100, violations=0",
+      "actual": "at least one run failed",
+      "detail": ""
+    }
+  ],
+  "values": {
+    "multi.run0_dispatches": 6,
+    "multi.run0_complete_windows": 1,
+    "multi.run0_violations": 0,
+    "multi.run0_skipped_windows": 3,
+    "multi.run0_ratio_info": 2,
+    "multi.run0_sample": "2,1,2,2,1,2",
+    "multi.run0_violation_detail": "",
+    "multi.run1_dispatches": 6,
+    "multi.run1_complete_windows": 1,
+    "multi.run1_violations": 0,
+    "multi.run1_skipped_windows": 3,
+    "multi.run1_ratio_info": 2,
+    "multi.run1_sample": "2,1,2,2,1,2",
+    "multi.run1_violation_detail": "",
+    "multi.run2_dispatches": 6,
+    "multi.run2_complete_windows": 1,
+    "multi.run2_violations": 0,
+    "multi.run2_skipped_windows": 3,
+    "multi.run2_ratio_info": 2,
+    "multi.run2_sample": "2,1,2,2,1,2",
+    "multi.run2_violation_detail": "",
+    "multi.run3_dispatches": 6,
+    "multi.run3_complete_windows": 1,
+    "multi.run3_violations": 0,
+    "multi.run3_skipped_windows": 3,
+    "multi.run3_ratio_info": 2,
+    "multi.run3_sample": "2,1,2,2,1,2",
+    "multi.run3_violation_detail": "",
+    "multi.run4_dispatches": 6,
+    "multi.run4_complete_windows": 1,
+    "multi.run4_violations": 0,
+    "multi.run4_skipped_windows": 3,
+    "multi.run4_ratio_info": 2,
+    "multi.run4_sample": "2,1,2,2,1,2",
+    "multi.run4_violation_detail": ""
+  },
+  "resources": {},
+  "commands": [],
+  "notes": [
+    "dispatch events come from PoolConfig.dispatch_observer (pool's own pre-dispatch snapshot), sorted by sequence; sliding windows are checked only when both commands are ready and below ceiling for all three events."
+  ],
+  "command": "/workspace/Astro CS Database/validation/runtime/build/multi01",
+  "exit_code": 0,
+  "stderr_tail": "[ok] multi.services_ok\n[ok] multi.run0_open_ok\n[ok] multi.run0_close_ok\n[FAIL] multi.run0_dispatches expected=>= 12000 dispatch events actual=6\n[FAIL] multi.run0_complete_windows expected=>= 100 feasible sliding windows actual=1\n[ok] multi.run0_violations_zero\n[ok] multi.run0_window_ok\n[ok] multi.run0_command_concurrency\n[ok] multi.run0_units_ok\n[ok] multi.run1_open_ok\n[ok] multi.run1_close_ok\n[FAIL] multi.run1_dispatches expected=>= 12000 dispatch events actual=6\n[FAIL] multi.run1_complete_windows expected=>= 100 feasible sliding windows actual=1\n[ok] multi.run1_violations_zero\n[ok] multi.run1_window_ok\n[ok] multi.run1_command_concurrency\n[ok] multi.run1_units_ok\n[ok] multi.run2_open_ok\n[ok] multi.run2_close_ok\n[FAIL] multi.run2_dispatches expected=>= 12000 dispatch events actual=6\n[FAIL] multi.run2_complete_windows expected=>= 100 feasible sliding windows actual=1\n[ok] multi.run2_violations_zero\n[ok] multi.run2_window_ok\n[ok] multi.run2_command_concurrency\n[ok] multi.run2_units_ok\n[ok] multi.run3_open_ok\n[ok] multi.run3_close_ok\n[FAIL] multi.run3_dispatches expected=>= 12000 dispatch events actual=6\n[FAIL] multi.run3_complete_windows expected=>= 100 feasible sliding windows actual=1\n[ok] multi.run3_violations_zero\n[ok] multi.run3_window_ok\n[ok] multi.run3_command_concurrency\n[ok] multi.run3_units_ok\n[ok] multi.run4_open_ok\n[ok] multi.run4_close_ok\n[FAIL] multi.run4_dispatches expected=>= 12000 dispatch events actual=6\n[FAIL] multi.run4_complete_windows expected=>= 100 feasible sliding windows actual=1\n[ok] multi.run4_violations_zero\n[ok] multi.run4_window_ok\n[ok] multi.run4_command_concurrency\n[ok] multi.run4_units_ok\n[FAIL] multi.stability_5_of_5 expected=5/5 quiet runs: feasible windows>=100, violations=0 actual=at least one run failed\n",
+  "timed_out": false
+}
