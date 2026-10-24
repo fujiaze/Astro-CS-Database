@@ -97,3 +97,65 @@ ACSD_BUILD=/tmp/review-m6-build ACSD_DEV_BUILD=/tmp/review-m6-dev python3 valida
 ```
 
 **复核签署**：reviewer-m0m4。仅记录证据与建议；未改仓库代码/用例，未 commit/push。
+
+---
+
+# 追记：整改后定点复核（2026-10-25 05:00，锚点 `2855a521b` / 代码 `cbd4bcc0c`）
+
+> 代码提交 `cbd4bcc0c`；`2855a521b` 只新增最终 e2e 证据与配置哈希。隔离重建 `/tmp/review-m6b`（`git archive 2855a521b`），`ctest` **20/20**（隔离构建；仓库 `build/science` 为 19/19，见 §4）、runtime suite **16/16**、`design_integrity` PASS。未改仓库代码/用例。
+
+## 1. P1-1 手性：**CLOSED**
+
+- `src/sources/astrometry.cpp:668-674` 的 `if (affine_det > 0.0) continue;` 已删除，改为“两种手性都是合法 WCS，由全源匹配决定”；与 `processes/sources.astrometry.md:46`（镜像均尝试）、`:78`、`coordinates.wcs.md:34`（镜像 CD 测试）一致。
+- **镜像 CD 复现**：把驱动副本 `CD1_1` 设为 `+0.0005`（同一冻结源场，catalogue 由同一 WCS 正向生成），用 HEAD 隔离库编译运行 → `astrometry.solved=true`，`astrometry.cd_error_rad_per_pixel=1.1822387905537114e-17`，`crpix_error_fits_pixel=4.582623304116851e-05`，19/19 checks pass（与上轮“删 guard 后”的 A/B 数值逐位一致）。
+- 标准帧驱动（`CD1_1=-0.0005`）仍 `solved=true`，`cd_error=3.49e-16`、`crpix_error=2.44e-05`，19/19 pass。
+
+## 2. P2 provider XP：**CLOSED（代码审读）**
+
+- `src/catalogue/provider.cpp:172` 新增 `xp_cache_failed_`；`load_index_arrays`（`:193-206`）在 decoded size ≠ `rows*coefficients` 时清空缓存并置失败。
+- `make_star`（`:309-323`）在 `coefficients>0 && xp_cache_failed_` 或 `columns->xp_coefficients` 存在但缓存为空时返回具名 `missing_dependency`，不再静默返回无 XP 星；正常路径仍按行 copy。
+- 残余（P3）：若 `coefficients>0` 但 `columns->xp_coefficients` 为空指针，仍走“无 XP”而不是报错；从列元数据构造看这属于产品不一致的边角，建议顺手拒绝。
+
+## 3. P2 persistent 清理：**仍未关闭，标 CAVEAT（不阻塞 X01 发布链 / M6 不因此 ACCEPT）**
+
+- 现状：`BlockStore` 的 persistent 条目（`internal.hpp:291-293`）在 `release_ref` 只减 refs、永不 erase（`storage.cpp:1909-1912`）；`close_command`/command drain 不清 `entries_`。整改尝试在 drain 回调里清 persistent 导致 teardown 死锁，已回退（commit message 记录；代码无残留）。
+- **是否阻塞 M6**：不阻塞“Linux 合成 X01 三命令发布链”这一已证事实——CLI 每个命令一个进程/一个 `Services`，normalize/mosaic/export 各自结束时 `Services` 销毁，persistent 条目不跨命令累积；mosaic/export 另起进程。它是**长驻 Host 在同一 `Services` 上多次 `open_command`** 的资源泄漏（输入数组 + Lease/claim，claim 还挂在已 close 的 persistent arena scope 上），属于运行时 API 的 P2 鲁棒性/资源项，不是 X01/M6 发布链的 P0/P1。
+- 必须同步的文档：`internal.hpp:274-278` 仍写“release_ref 在最后引用死亡时 erase、不会被 cache 永久 pin”，对 persistent 已不成立；请改为明确 persistent 例外，并补一个多 command 生命周期测试。若后续 M6“干净安装/恢复”会用同一个 Host 连续跑多 command，则此 P2 需升级为该项的前置条件；在当前证据范围内标 CAVEAT。
+
+## 4. P1-2 科学比较 / 发布链表述：**同意“发布链 PASS / M6 PENDING”**
+
+- `validation/x01/comparison.json` 现在：整体 `status=pending_implementation`，`three_commands_on_disk=pass`（引用 e2e summary），`blind_solve`/`source_recovered`/`no_fabricated_solution` 三项 `pending_implementation` 并写明原因（残差未持久化、无 truth-to-product oracle、负例未注入）；`notes` 明确“publication smoke test 不是 science pass”。这解决了上轮“用发布 smoke 冒充 M6 全链”的 P1-2，**不再算过度声明**。
+- `e2e_x01.py:134-140` 的 verdict 已加强为 `exit_code==0 && published>0 && unsolved==0 && failed==0 && pure`；normalize 的 exit 0 仍经 `kPartial=6` 蕴含 8/8（`apps/cli/commands.cpp:1211-1217`），mosaic/export 的 `kSuccess` 也只在发布后（`:985`、`:1339`）。
+- 不建议把 comparison 整体写成 pass：当前 pending 是诚实的；科学三项（盲解残差 ≤0.5 px、源恢复 5%、无伪造解负例）仍是 M6 的**验收缺口**，不是“发布链 PASS”能替代的。M6 里程碑仍 PENDING（另含双平台、干净安装/恢复、性能/故障报告；`DEVELOPMENT.md:15`、`IMPLEMENTATION-STATUS.md:29`）。
+
+## 5. X01 8/8 与证据溯源
+
+- committed `validation/x01/observed/e2e_summary.json`（在 `2855a521b`）：`status=pass`、`git_commit=cbd4bcc0c…`、`binary_sha256=07fdb04c…`、`frame_hashes` 8 个；stages 为 normalize 8 / mosaic 1 / export 1，exit 0，unsolved/failed 0。
+- 我核对了溯源：`07fdb04c…` 等于实际 `/tmp/acsd-build/acsd`（mtime 03:43:40，晚于 fix commit 03:42:21）；8 个 `frame_hashes` 与 `validation/x01/input/cli/frames/*.fits` 逐一相等；`e2e_events.jsonl` 为 28 事件（8 frame_finished + 2 product_published + 3 run_finished），run_id 三个、帧 x01-00…07 + mosaic/export 完整。**发布链 8/8 的结论与证据自洽**。
+- 本轮未重复跑完整 8 帧（约 40 分钟；我在 `/tmp/m6run2` 启动后于 x01-00 处停止以控制时间），但我独立验证了受本次改动影响的 astrometry 镜像/标准路径（上节），且 committed 证据的 binary/git/frame 哈希与 HEAD 代码一致。若需要“独立完整重跑”作为最终发布证据，建议在安静环境重跑并保留 `git_commit`/binary sha（脚本已支持）。
+
+## 6. 测试计数与库存
+
+- 隔离 HEAD `ctest` 为 **20/20**；仓库 `build/science` 的 `ctest -N` 为 **19/19**，差一个是 `process_photometry.fit_x01_minimal_repro`（已存在的 driver，仓库 build 目录未重新 configure/构建该 target）。两边都全过；Lead 的“19/19”不算错，但 HEAD 的完整测试清单是 20 个，建议重新 configure 后按 20/20 记录。
+- runtime suite 16/16（含 d01_on DEV、multi01、storage01、ASan 的 life01/io01/b01）在本轮隔离构建复现；`design_integrity` PASS。
+
+## 7. 其他 P2/P3（不影响本轮结论）
+
+- `docs/audit/m0-implementation-matrix.md:213` 的 L04 仍写 “`acsd normalize` 端到端 published=0”；发布链现在 8/8，该行应改为“发布链 8/8，科学比较 pending”，否则与 e2e 证据矛盾。
+- `comparison.json` 的 `status=pending_implementation` 语义是“public entry point 未实现”，而这里 pending 的是科学比较器/负例；notes 已解释，属 P3 措辞。
+- e2e verdict 用 `published>0` 而非 `published==inputs_total`；normalize 的 exit code 已隐含全发布，属 P3 防御性建议。
+
+## 8. 结论
+
+| 项 | 状态 |
+|---|---|
+| P1-1 astrometry 手性 | **CLOSED**（镜像 CD solved=true，cd 1.18e-17、crpix 4.58e-5；标准帧仍 solved） |
+| P2 provider XP | **CLOSED**（代码审读；残余 null-array 边角 P3） |
+| P2 persistent 清理 | **OPEN → CAVEAT**（不阻塞 X01 发布链；长驻多 command Host 泄漏；需修注释+生命周期测试） |
+| P1-2 科学比较/表述 | **CLOSED（作为过度声明）**；科学三项仍 pending，是 M6 验收缺口 |
+| 证据溯源 | **CLOSED**（git_commit/binary sha/frame hashes 与 HEAD 代码一致） |
+| X01 8/8 | **committed e2e 在 cbd4bcc0c 自洽**；本轮未重复完整 8 帧，受影响路径已独立验证 |
+
+**最终表述**：**同意“发布链 PASS / M6 PENDING”**。发布链可写 PASS（有溯源、有干净输出树、有 e2e verdict），但 M6 里程碑不因此关闭：科学比较三项、双平台、干净安装/恢复、性能/故障报告仍未完成。P0 无；P1 无（上轮两项均已关闭/降级）；P2 persistent 为 CAVEAT，另有三项 P2/P3 文档/库存项。
+
+**追记签署**：reviewer-m0m4。仅记录复核证据与建议，未改仓库代码/用例，未 commit/push。

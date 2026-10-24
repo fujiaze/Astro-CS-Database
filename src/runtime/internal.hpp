@@ -273,9 +273,12 @@ class BlockStore {
   Lease lease_of(const Id& id) const;
   // Lifetime of a stored array.  register_array starts at one reference; a
   // caller that hands out an additional Array handle adds one and releases it
-  // from the Array's deleter.  release_ref erases the entry and returns its
-  // Lease exactly when the last reference dies, so an array is never pinned by
-  // the cache after every ArrayRef is gone.
+  // from the Array's deleter.  release_ref erases an ordinary entry and
+  // returns its Lease exactly when the last reference dies.  An entry ingests
+  // by a workflow input is marked persistent instead: it survives until the
+  // owning Services is destroyed, because a later process in the same command
+  // may still read it after the producing Array handle is gone.  Persistent
+  // entries are never erased by release_ref.
   void add_ref(const Id& id);
   bool release_ref(const Id& id);
 
