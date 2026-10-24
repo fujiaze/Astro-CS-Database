@@ -85,7 +85,7 @@ permit等待不持CPU token、不持部分分支credit。广播必须整组获�
 
 ## 多command分配与公平性
 
-CPU和I/O各用同一套**加权轮转发放token**：按command接纳序号循环，每轮给weight个dispatch credit，单执行段成本1；每轮未用credit不跨轮累积。只有ready且资源可行的command参与，单command同时运行不得超自己的cpu/io ceiling。持久等待I/O不耗CPU dispatch credit；CPU压缩/hash/复制照常耗CPU credit，阻塞syscall只占I/O slot。
+CPU和I/O各用同一套**加权轮转发放token**：按command接纳序号循环，每轮给weight个dispatch credit，单执行段成本1；每轮未用credit不跨轮累积。只有ready且资源可行的command参与，单command同时运行不得超自己的cpu/io ceiling。公平性在**每个完整可行轮**上判定，而非用全局累计 dispatch 比率代替局部约束；当一条 command 尚未 ready/无法获得其额度时不得空转强等它。持久等待I/O不耗CPU dispatch credit；CPU压缩/hash/复制照常耗CPU credit，阻塞syscall只占I/O slot。
 
 command内部优先当前progress cohort的可运行stage，次序为(Key,stage.id,task ordinal)，再发elastic任务。没有progress任务ready时可运行已获E的其它任务，不能占其保底内存/发布permit。该公平性按有界执行段次数，不声称不同耗时kernel得到精确相同CPU秒数；不可中断库调用必须在plan限制其规模，不能靠虚构抢占承诺硬实时。
 
@@ -115,3 +115,11 @@ await把当前执行段转suspended并交回CPU token，完成事件只把预留
 | S-LIFE | close arena后仍存一输出Lease、取消仍在途写 | 未claim立即退，输出/写buffer直到真正释放才退，不UAF/重复收费 |
 
 这些是后续实现验收，不是本次文档已运行的证据。实现者必须记录plan F/R/E、每次准入/credit流转和峰值反例数据，才能确认调度器满足本篇；仅接口能编译或正常样例不挂起不够。
+
+## S-MULTI 的证据口径与失败处理（2026-10-24 订正）
+
+以权重 1:2、P=2 的固定 fixture 为例，一个可检轮开始前必须有 command1 至少 1 个 ready item、command2 至少 2 个 ready item，且这些 item 满足资源准入；对应连续三次 dispatch 的多重集须严格为 `{1,2,2}`。逐轮记录开始时 ready 状态、对应的 dispatch ID/command ID、额度和资源拒绝次数，保存全部可检序列以便独立复算。不得把只有部分 command ready 的轮计成违反权重，也不得将一个发生过违规的轮靠累计 1:2 抵消。
+
+正式门禁同时要求（a）**安全/正确性**：完整可行轮的违规数为 0、每 command 不超自身并发 ceiling、不漏任务、不出现饥饿；（b）**观测充分性**：每次运行至少 100 个完整可行轮，连续 5 次运行每次都满足（a）和（b）。样本不足既不是证明公平性错误，也**不是通过证据**，应保留 `FAIL/INSUFFICIENT_COVERAGE` 的原始记录并诊断 producer 供给/并发窗口/调度行为，不削弱条件或挑一次绿的取代。窗口 P=1 时 `2P=2` 无法同时容纳 1+2 ready item，不能以该配置认证三次 dispatch 的 1:2 完整轮；仍需独立验证其可进展性。
+
+截至本次文档订正，`validation/runtime/multi01/comparison.json` 的五次中有一次仅 74 个完整可行轮，测试结论仍是 FAIL；五次完整轮的记录中暂未发现权重多重集违规。将这一诊断与下一轮稳定性改进分别追踪，不把现存失败表述成已通过。

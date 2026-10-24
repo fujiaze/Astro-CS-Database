@@ -32,3 +32,7 @@
 按[TEMPLATE](TEMPLATE.md)定义一个有明确数据边界的科学步骤，在所属模块声明一次descriptor/typed binding，提供CPU实现与独立反例。输入输出沿公开类型传递，不把每个标量原语变成调度节点。构建自动汇总注册；工作流只选择process_id/operation及显式数据边，框架无需新增算法switch。CLI、合同驱动、独立C++进程内调用必须经过同一registry边界；内部科学helper调用同一实现，不递归建立调度池。
 
 流程组合见[WORKFLOWS](../standards/WORKFLOWS.md)；通用求解方法见[NUMERICS](../standards/NUMERICS.md)。具体实现与证据状态按模块提交和冻结验证记录，本文目录不证明其已经接线。
+
+## 实际接入状态
+
+本目录 22 个 process 文档和 57 个 operation 是科学责任和目标覆盖范围，**不代表每个 operation 都已通过生产级验证**。实际接入与独立证据见 [M0—M6 状态表](../../../audit/IMPLEMENTATION-STATUS.md) 及 [M5 固定用例](../../../../validation/process/README.md)。

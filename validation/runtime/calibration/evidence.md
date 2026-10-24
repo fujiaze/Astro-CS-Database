@@ -118,10 +118,18 @@ claimed verified.
 * **spill placement**: the science bridge reads from the in-memory block store;
   spilled sealed arrays would need the bridge to read storage blocks before
   spill can be claimed.
-* **C-CAL-WRITE / C-CAL-CLEAN** (short write, seal failure, cancellation in
-  write): need injected failures; the runtime verification cases own that
-  machinery.
-* **DEV ON**: this build is `ACSD_DEV_MODE=0`; ON snapshot/span semantics need a
-  DEV=1 runtime build (`d01_on`).
-* **pipe credit**: serial plan until a real pipe/permit implementation exists;
-  the `cal01` wrapper wiring belongs to verify-rt.
+* **C-CAL-WRITE / C-CAL-CLEAN**: separate writer-layer injection evidence
+  exists under `validation/process/calibration-faults` (reported 16/16 in
+  the anchored M0–M4 follow-up review). This is **not** a current re-run of
+  the complete calibration adapter → begin/seal four-writer chain. That
+  adapter-level path remains a separately required injection case; do not
+  mark it certified solely from writer unit fixtures.
+* **DEV ON**: the calibration evidence in this file used `ACSD_DEV_MODE=0`;
+  a distinct `validation/runtime/d01_on` DEV=1 case is recorded as pass
+  in the runtime manifest. This does not imply the entire calibration Host
+  science path was re-run with every DEV snapshot enabled.
+* **pipe credit**: this particular calibration plan is intentionally serial
+  (`edges=0`); Runtime now has Pipe/permit facilities in other paths.
+  Multi-stage calibration Pipe/credit integration and low-H progress still
+  need their own positive/negative fixtures. Do not say the Pipe mechanism
+  itself does not exist.

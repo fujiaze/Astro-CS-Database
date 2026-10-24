@@ -2,7 +2,7 @@
 
 当前处于内部重构开发阶段，采用一套当前标准，允许破坏式修改；不要求v1或早期v2接口/产品/配置兼容。v1只作为“文档完整度”参照，不移植其Runtime或实现层次。Git历史和科学原始证据继续保留。
 
-本轮只修改文档。远端已有部分科学实现，但标准ProcessHost/registry与下述新增服务尚未按新骨架接线；文档完成不表示运行验收通过。GPU只设计扩展，当前CPU，不实现GPU后端。
+**版本状态（核查 2026-10-24，代码锚点 `6f08c4e`）**：标准 Runtime 的公开头、Host/registry、Pool/Task/Pipe、Storage、诊断与校准 Host 路径已有实际实现；M5 部分科学模块已接入，M6 完整链尚未验收。冻结的 Runtime 证据为 16 case 中 15 pass、`multi01` fail。各能力必须按 [实施与验收状态](../../audit/IMPLEMENTATION-STATUS.md) 而非设计文档存在与否判断；GPU 仍只设计扩展，首期 CPU。
 
 ## 阅读顺序与唯一所有权
 
@@ -20,7 +20,7 @@
 | [WORKFLOWS](standards/WORKFLOWS.md) | Normalize/Mosaic/Export的固定数据边、屏障与反馈组合 |
 | [NUMERICS](standards/NUMERICS.md)、[PROBES](standards/PROBES.md) | 唯一共享数值原语合同；初始探针目录与生成规则 |
 
-保留六份根工程文件供现有工具识别；SYSTEM是唯一骨架，算法详细步骤已拆到process，不再放在SYSTEM集中维护。子目录标准属于上述相应正本，不新增一套框架或公共签名。公开字段/签名仍唯一由[contracts.hpp](../../../include/acsd/contracts.hpp)拥有；本轮新基建目标接口已在FOUNDATION_API定稿，后续统一落到源码；不把未实施接口伪称现有能力。
+保留六份根工程文件供现有工具识别；SYSTEM是唯一骨架，算法详细步骤已拆到process，不再放在SYSTEM集中维护。子目录标准属于上述相应正本，不新增一套框架或公共签名。公开字段/签名分别由[model.hpp](../../../include/acsd/model.hpp)、[runtime/*.hpp](../../../include/acsd/runtime/types.hpp) 与 [modules/*.hpp](../../../include/acsd/modules/observation.hpp) 唯一定义；[contracts.hpp](../../../include/acsd/contracts.hpp) 仅聚合这些声明。FOUNDATION_API 是行为规格而非另一份可编译签名正本；实现/证据状态见[当前状态](../../audit/IMPLEMENTATION-STATUS.md)。
 
 ## 科学基础
 
@@ -32,6 +32,6 @@ ACSD首期Windows/Linux amd64 CPU，科学天空ICRS/HEALPix NESTED、order≤29
 
 按[模板](processes/TEMPLATE.md)修改或新增process文档，在其模块登记一个typed descriptor并实现CPU路径，补独立反例；构建自动汇总registry，Host无需加算法switch。算法改变通常只改本模块及明确受影响消费者；公共资源或数据合同改变才联动共用标准。不是每个scalar helper都需要process节点。
 
-实施次序：VirtualComputePool/Task/Pipe及可复用模块强类型边界→Host/registry→公共资源/Storage/CPU执行与默认观测→逐模块CPU接入→固定工作流/CLI/driver统一装配→实际验收。未来GPU沿既定KernelExecutor/ArrayBacking/Completion合同扩展，不要求当前实现CUDA/ROCm、保留旧API或双版本产品reader。
+规范实施依赖次序：VirtualComputePool/Task/Pipe及可复用模块强类型边界→Host/registry→公共资源/Storage/CPU执行与默认观测→逐模块CPU接入→固定工作流/CLI/driver统一装配→实际验收。此箭头是依赖关系，不表示前项未写代码或已全部通过；各项现况以状态表和实跑 case 为准。未来GPU沿既定KernelExecutor/ArrayBacking/Completion合同扩展，不要求当前实现CUDA/ROCm、保留旧API或双版本产品reader。
 
 本次更正见[process框架记录](../../audit/process-framework.md)，可直接开发的补全内容与实际检查边界见[实施规格复核](../../audit/developer-specification.md)；先前审核报告保留历史范围，不能用来认证本次新设计。[根README](../../../README.md)提供现有检查入口；[AGENTS](../../../AGENTS.md)规定协作与提交边界。

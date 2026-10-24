@@ -40,23 +40,38 @@ the drivers.
 1. **Probe sampling**: the seven process registrations do not emit per-probe
    `PerfRecord`s; only the framework invocation span exists. The process
    documents' probe ids are in the descriptors/manifest but are not sampled.
-2. **`integrate_response` units**: a flat unit photon throughput over 450-650 nm
-   returns basis integrals of about 5.54e20 (deterministic and finite), which is
-   suspicious for the intended nm/Hz convention; the physical unit scaling is
-   not verified.
+2. **`integrate_response` units — analytical oracle needed**: for a flat
+   spectrum of **1 W m^-2 nm^-1**, unit dimensionless photon response over
+   450–650 nm, and multiplication by wavelength in metres divided by hc,
+   the independent exact-form expression is
+   `0.5*(650^2-450^2)*1e-9/(h*c) ≈ 5.5375e20 s^-1 m^-2`.
+   Thus a result near 5.54e20 is **not by itself suspicious**. The driver
+   must additionally assert response photon-conversion flags, nm vs Hz
+   spectral-density identity, coefficients/units and absolute-error bounds;
+   passing a finite-value assertion does not establish those checks.
 3. **Resource accounting**: the legacy synchronous implementations allocate
    `std::vector` scratch outside the ledger, so the plan R/F are declared
    conservative upper bounds, not enforced per-allocation accounting. The
    `work_upper` floors (1 MiB for most, 8 MiB for fit/astrometry) are declared,
    not measured.
-4. **Small-field solver robustness (real contradiction)**: with five detections
-   and `match_radius_pixel = 2`, `fit_wcs` is called with training pairs below
-   the eight WCS parameters; `numerics::least_squares` -> `householder_qr`
-   computes `std::vector<double> reflector(m - k)` with `k > m` and throws
-   `std::length_error`, which the Host reports as `internal`. Minimal repro:
-   5-source 32x32 field, same-source catalogue, `min_matches=4`,
-   `match_radius_pixel=2`, `scale_rad_pixel=[1.5e-5,2e-5]`. Not fixed here (the
-   numerics/solver files are outside this work package's write scope); the
-   positive case above avoids it with a 26-source field and `min_matches=9`.
+4. **Small-field solver — old contradiction, re-run needed**: an earlier
+   five-source 32x32 / `min_matches=4` fixture caused an underdetermined
+   `least_squares` path to reach invalid Householder indexing and raise
+   `std::length_error`. The current `src/numerics/linalg.cpp` checks
+   `m<n` and returns `converged=false` before `householder_qr`. This is
+   a source-level correction, **not yet an observed re-run of the original
+   five-source fixture**. Preserve the old failure as historical evidence;
+   re-run it to verify a stable, named scientific non-success outcome through
+   the Host, not an unhandled `internal` exception.
 5. **Atomic plans**: these synchronous entries publish one barrier region with
    `cohorts=1`; streaming/cohort plans are an M6 upgrade.
+
+## Evidence / scientific completeness boundary (2026-10-24)
+
+This page is a module-level historical/frozen summary, not a claim that all 22
+processes, all 57 operations, or complete Normalize→Mosaic→Export are certified.
+The current cross-milestone index is [IMPLEMENTATION-STATUS](../../docs/audit/IMPLEMENTATION-STATUS.md).
+Seven reported process positive cases cannot certify per-operation negative cases,
+allocation accounting for legacy `std::vector` scratch, true probe sampling,
+read-after-publish, shared-noise provenance or CPU cancellation/low-H behavior.
+Keep pending items pending until tested against a pinned current code SHA.

@@ -1,8 +1,8 @@
 # 可复用计算模块与强类型组合标准
 
-本篇拥有计算积木的公共行为标准，基建骨架只在[SYSTEM](../SYSTEM.md)，具体科学算法仍在各process。所有下述Task/Pipe/Block/异步服务名称为目标角色，不是当前头文件已提供的实现。
+本篇拥有计算积木的公共行为标准，基建骨架只在[SYSTEM](../SYSTEM.md)，具体科学算法仍在各 process。Task/Pipe/Block 等已有 Runtime 公开声明与部分实现；下述组合必须复用这些真实接口，不再基于历史设计阶段文字新建同名机制。
 
-基建字段/签名已在[FOUNDATION_API](FOUNDATION_API.md)定稿；以下模块函数及资源公式是本轮补定的实施合同，当前代码尚未接入。编译装配/调度按[SCHEDULER](SCHEDULER.md)，完整校准模块见[实施例](CALIBRATION_WALKTHROUGH.md)。
+基建行为遵循[FOUNDATION_API](FOUNDATION_API.md)；以下模块函数与资源公式是接入合同，部分模块已实现，另一些仍待接入或完整验收，见[状态正本](../../../audit/IMPLEMENTATION-STATUS.md)。编译装配/调度按[SCHEDULER](SCHEDULER.md)，完整校准模块见[实施例](CALIBRATION_WALKTHROUGH.md)。
 
 ## 计算积木的分层
 
@@ -21,7 +21,7 @@
 
 ## 一个计算模块的标准
 
-模块公共声明给出强类型Input/Output、domain/codomain单位/index/shape、前置能力、数值与随机误差合同、资源上界函数、输出所有权、重入/取消/异步完成语义。实施时可把公开声明拆为共享基础头与模块公共头，现有contracts.hpp作为聚合入口；每个类型/签名只定义一次，不要求永远把所有算法塞进一个巨型头。当前实际声明仍以已存在的contracts.hpp为准，本轮不改代码。
+模块公共声明给出强类型Input/Output、domain/codomain单位/index/shape、前置能力、数值与随机误差合同、资源上界函数、输出所有权、重入/取消/异步完成语义。实施时可把公开声明拆为共享基础头与模块公共头，现有contracts.hpp作为聚合入口；每个类型/签名只定义一次，不要求永远把所有算法塞进一个巨型头。当前可编译声明以 `model.hpp`、`runtime/*.hpp`、`modules/*.hpp` 为准，`contracts.hpp` 只聚合。
 
 资源需求是依赖实际shape/nnz/位长的保守上界，至少分input新加载、output、scratch、队列/halo/元数据、spill与I/O在途；共享既有lease不重复收费。实际需要扩大时先增量准入，失败按安全边界返回，不能先分配后补账。不可控第三方workspace需实测余量并纳计划。
 

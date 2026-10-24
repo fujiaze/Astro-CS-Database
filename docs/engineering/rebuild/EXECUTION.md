@@ -102,13 +102,13 @@ Resources.reserve接ResourceRequest，原子预留host/pinned/device/spill及线
 
 ## E04目标：开发观测的资源与失败隔离
 
-待实施的ACSD_DEV_MODE默认OFF；ON/OFF必须使用同科学H/work/归约/随机种子/停止规则。诊断策略给附加D、最大落盘字节、max_inflight_items、event_buffer_bytes与flush_timeout_ms；它们全部计进唯一进程准入，科学H额度不得被诊断占用。D不足、未选择、view尚未就绪或异步队列满时同步接口立即skip，不在生产者内等磁盘。线程本地性能事件缓冲也计D，溢出记dropped；单写者批量写，线程池/I/O租约为低优先有界诊断份额，不能启动另一套无限线程。
+ACSD_DEV_MODE 规范默认 OFF；当前 Runtime 已有 OFF/ON 的具名 fixture，但全链诊断协议仍按真实证据分项判定；ON/OFF必须使用同科学H/work/归约/随机种子/停止规则。诊断策略给附加D、最大落盘字节、max_inflight_items、event_buffer_bytes与flush_timeout_ms；它们全部计进唯一进程准入，科学H额度不得被诊断占用。D不足、未选择、view尚未就绪或异步队列满时同步接口立即skip，不在生产者内等磁盘。线程本地性能事件缓冲也计D，溢出记dropped；单写者批量写，线程池/I/O租约为低优先有界诊断份额，不能启动另一套无限线程。
 
 诊断仅对现有数据try-copy；禁止异步pin科学数组，也不触发设备同步/拉回、额外PSF或几何计算。若要观察GPU数据，只能在已有host物化边界采集。诊断自身CPU、复制字节、flush wall及失败计数单列，不记入Result.usage科学work。诊断数据flush失败/磁盘满不改变科学code/退出码/发布；正式文件错误仍按正式错误处理。终止时停止新采集，按flush_timeout尽力排空，未完成条目标CANCELLED/incomplete；仍在途写持私有租约至完成，不能为满足超时先释放其缓冲。退出清理由正常I/O安全边界完成，不伪造硬实时保证。
 
 ## 后端与未来GPU的执行边界
 
-ExecutionPolicy、KernelExecutor、KernelBatch、BackendBuffer、ArrayBacking和Completion是E03/E05目标角色，当前头文件尚无这些扩展，最终字段/签名必须一次落实在唯一声明；本期只实现CPU，GPU仅设计扩展；gpu请求能力失败/显式CPU回退按API。executor为空等价CPU基础设施；不要求保留既有科学签名，后续只维护统一typed调用标准。静态内部kernel白名单如下；不从产品或用户文本装载代码，也不把GMP/MPFR裁剪改写为无界GPU double。
+ExecutionPolicy、KernelExecutor、KernelBatch、BackendBuffer、ArrayBacking 和 Completion 是 CPU/未来 GPU 的共同目标合同；其中哪些已经声明或可运行，以 `include/acsd/runtime/*.hpp` 和实际 case 为准，不以旧 E03/E05 差距表判断。本期只认证 CPU；真实 GPU 后端仍未实现，gpu 请求能力失败/显式 CPU 回退按 API。executor为空等价CPU基础设施；不要求保留既有科学签名，后续只维护统一typed调用标准。静态内部kernel白名单如下；不从产品或用户文本装载代码，也不把GMP/MPFR裁剪改写为无界GPU double。
 
 | KernelKind | arrays顺序；数学输出 |
 |---|---|
@@ -166,3 +166,9 @@ I/O中的压缩/解压/hash/host复制也需同一CPU compute token；固定I/O 
 ## 定稿实施细节
 
 资源物理计费以reserve→claim票据→allocation commit→release为准，区分held/claimed/allocated，allocator失败不制造物理高水位。Task work预留沿祖先登记，未消耗上限可归还，实际work不可重置。精确接口见[FOUNDATION_API](standards/FOUNDATION_API.md)，保底F模拟、PlanOptions重规划、region/barrier、原子广播、weighted轮转与cleanup准入见[SCHEDULER](standards/SCHEDULER.md)。早期角色说明若未区分这些阶段，以本段链接的定稿细则为具体含义，不可另写不同执行器。
+
+## M5 资源上界的可证伪实现门槛
+
+每个科学 process 的 `plan(R,F,E)` 必须覆盖运行期间全部实际分配，包括同步遗留算法在 `std::vector`、矩阵分解、谱积分、临时精确数、排序/归约以及 I/O codec 中隐藏的分配。适配器外层提交一个经验 R/F 数字不是内存封顶证明。实施者须用受控 allocator/分配事件追踪，对齐 `scope`/区域和实际高水位，结合最低可行 H 的成功 case 与再减少预算的明确 `resource_exhausted` case 判定。
+
+实测至少保留原始分配峰值、不可控第三方库峰值及上界理由、退回 spill/降块的重规划路径、被取消和失败时的释放/仍存 Lease。只有验证“先准入，后分配”，并且不因工作块改变科学输出/界/随机根，才称完成 M5 的有限内存合同。详见 [当前状态 E-02](../../audit/IMPLEMENTATION-STATUS.md)。

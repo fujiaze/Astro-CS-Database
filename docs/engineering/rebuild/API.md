@@ -1,10 +1,10 @@
 # 标准科学 API 与驱动协议
 
-本合同定义现有公开接口与本次新增工程目标；远端已有部分科学函数与驱动实现，实际覆盖见阶段记录。本次仅改文档，新增目标尚未接入。科学类型遵循[统一对象](OBJECTS.md)，所有 action 的域、单位、原点及随机变量身份必须匹配。独立 Agent 只需本合同和五份科学规范即可构造输入，不需要理解旧 CLI、adapter、scheduler 或 session。
+本合同定义当前科学 API、资源/执行/诊断与 wire/driver 的规范行为；多轮建设后，部分原称“工程目标”的接口已实际声明并实现，具体能力及最新验收见[状态正本](../../audit/IMPLEMENTATION-STATUS.md)。科学类型遵循[统一对象](OBJECTS.md)，所有 action 的域、单位、原点及随机变量身份必须匹配。独立 Agent 只需本合同和五份科学规范即可构造输入，不需要理解旧 CLI、adapter、scheduler 或 session。
 
 ## 本次工程目标与实施清单
 
-本次按负责人要求**只修改文档**；当前头文件、schema、CMake和实现保持原样。本文“现有”部分以实际contracts.hpp为准；新增基建接口字段/签名已在[FOUNDATION_API](standards/FOUNDATION_API.md)定稿，本轮尚未写入源码；它们是下一轮必须落实的目标合同，不是当前已经可调用的声明或wire字段。实施者必须先在唯一头文件落实签名/字段，再同步生成schema、集中decoder和消费者，不能靠私有helper假装公开合同已完成。
+下表 E00—E07 是**最初设计时的差距及目标实施清单**，其“当前/现有”列仅代表当时快照，**不再是本提交的实时能力报告**。已有实现的声明以 `model.hpp`、`runtime/*.hpp`、`modules/*.hpp` 为准，`contracts.hpp` 仅聚合；[FOUNDATION_API](standards/FOUNDATION_API.md) 规定统一目标行为。每项变更须贯通公开声明→schema/codec→实现→驱动→独立验证；缺少最新证据的能力不能以文档或旧测试冒充实现通过。
 
 | 实施项 | 当前公开能力 | 必须落实的目标与顺序 |
 |---|---|---|
@@ -21,9 +21,9 @@
 
 ## 唯一签名与调用约定
 
-[contracts.hpp](../../../include/acsd/contracts.hpp) 唯一拥有公共字段、函数签名、参数名和枚举值；[science-input.schema.json](../../../schemas/science-input.schema.json)仅由声明生成。本篇拥有操作语义、错误、所有权和进程协议，不另定义伪代码签名或 Request 类型。现有可调用操作仅以声明为准；本次实施清单列明的新增工程能力是后续实施要求，必须先同步唯一声明/schema再调用，不可当作已经可用的操作。
+[model.hpp](../../../include/acsd/model.hpp) 唯一定义科学 DTO/free 函数；`include/acsd/runtime/*.hpp` 与 `include/acsd/modules/*.hpp` 唯一定义对应 Runtime/typed 模块接口，[contracts.hpp](../../../include/acsd/contracts.hpp) 只作聚合；[science-input.schema.json](../../../schemas/science-input.schema.json)须与可编译声明及生成规则一致。本篇拥有操作语义、错误、所有权和进程协议，不另定义伪代码签名或 Request 类型。现有可调用操作仅以声明为准；本次实施清单列明的新增工程能力是后续实施要求，必须先同步唯一声明/schema再调用，不可当作已经可用的操作。
 
-当前Context仅借用Resources、Cancellation、Storage；E05目标允许另借用诊断/执行设施，但不承载科学默认。目标中空执行设施使用同一CPU实现、空诊断设施不采集，当前头文件尚无这两个扩展。现有科学函数同步；目标顶层invoke同步、内部Task异步完成，span/Context借用至少覆盖真实任务完成，Ref<const T>拥有共享依赖；输出数组由Storage租约保字节，独占scratch按调用申请。异步GUI在子进程层集成，不增加异步科学API或C ABI。只读模型可并发，每次调用的scratch/迭代状态独占。取消在有界工作单元边界检查，最大工作及位长仍计入统一预算。
+早期同步科学 `Context` 与标准 Runtime `InvocationContext` 分属不同接口层；后者的实际字段以 `runtime/types.hpp` 等声明为准。诊断与执行设施只能由基建装配，不携带科学默认；空可选执行设施沿规范 CPU 路径，空诊断设施不采集。不能因历史 E05 表述把已存在的 Runtime 头重新设计一次。现有科学函数同步；目标顶层invoke同步、内部Task异步完成，span/Context借用至少覆盖真实任务完成，Ref<const T>拥有共享依赖；输出数组由Storage租约保字节，独占scratch按调用申请。异步GUI在子进程层集成，不增加异步科学API或C ABI。只读模型可并发，每次调用的scratch/迭代状态独占。取消在有界工作单元边界检查，最大工作及位长仍计入统一预算。
 
 Result<T> 实际字段为 code、value、assessment、usage、dependencies；issues在assessment.issues，不在Result顶层。值存在不表示所有泛函成功，面积有效而科学量未收敛可以同时成立；failure不返回可误用的任意sky/权/方差。Issue的作用域、原因和重试条件遵声明，算法不exit，不以异常文本作协议。
 
@@ -63,7 +63,7 @@ provider 本身不新建面积实现：认证面积账本由 geometry 模块的�
 
 实际公共接口、入口和结果规则
 
-[contracts.hpp](../../../include/acsd/contracts.hpp) 是所有字段/签名的唯一可编译声明。本篇不授权实现者另造 Request 类型。C++20静态库是首期进程内 API，CLI与contract驱动均直接调用它。首期没有 C ABI 或异步科学 ABI；未来如有真实进程内外语消费者另作版本设计，不提前建设 opaque-handle/函数表包装。GUI及独立语言 oracle 使用下面JSON文件/子进程边界，已满足同步核心与异步集成。
+`model.hpp`、`runtime/*.hpp`、`modules/*.hpp` 是对应领域唯一可编译声明；`contracts.hpp` 仅聚合。本篇不授权实现者另造 Request 类型。C++20静态库是首期进程内 API，CLI与contract驱动均直接调用它。首期没有 C ABI 或异步科学 ABI；未来如有真实进程内外语消费者另作版本设计，不提前建设 opaque-handle/函数表包装。GUI及独立语言 oracle 使用下面JSON文件/子进程边界，已满足同步核心与异步集成。
 
 目标process调用边界、类型映射与状态机遵SYSTEM；底层science函数同步；Context在整个进程中可共享同一Resources+Storage（commands各有取消域），线程安全只读Ref和provider可跨调用共享。运行清单/提交状态只属于本次command。输出Ref可超调用活着，最后引用释放数组/模型；Context外部所有者必须保持Resources和Storage直到全部Ref/Lease释放。函数不保存span，provider请求完成后其输出Lease保字节。Context本身为轻量借用，无可变科学会话注册。
 
@@ -71,7 +71,7 @@ Result.code=ok 表示调用被完整处理且必要目标达标；partial value�
 
 ### 资源与Storage目标：资源子域与数组构建
 
-下述child/ResourceRequest/ReservationState/ArrayBuilder/ArrayBuildRequest等均为E01/E02目标角色，当前头文件尚未声明，精确目标签名见FOUNDATION_API，实施时同步唯一公共头。调用者先由进程Resources创建command子域，再为每次顶层API创建唯一operation子域，得到Context；嵌套科学函数复用该域，Result.usage是该域快照，父结果含子域但统计汇总不得重复相加。拒绝重复scope ID、超父限额或试图重置work；输出租约保计费域活着。Usage峰值逐次占用变化更新，CPU时间不可得为null，非零工作不能由空值填0。进程RSS只能由process_snapshot报告，不按调用/模块猜归因。
+下述 child/ResourceRequest/ReservationState/ArrayBuilder/ArrayBuildRequest 是早期 E01/E02 的角色名称和语义说明；部分实际接口已落在 `include/acsd/runtime/` 下，调用前必须以当前公共头核对具体类型、签名和错误码，不能把历史角色名当成可编译 API。调用者先由进程Resources创建command子域，再为每次顶层API创建唯一operation子域，得到Context；嵌套科学函数复用该域，Result.usage是该域快照，父结果含子域但统计汇总不得重复相加。拒绝重复scope ID、超父限额或试图重置work；输出租约保计费域活着。Usage峰值逐次占用变化更新，CPU时间不可得为null，非零工作不能由空值填0。进程RSS只能由process_snapshot报告，不按调用/模块猜归因。
 
 | 操作 | 完整契约 |
 |---|---|
@@ -121,7 +121,7 @@ result.json字段：protocol,major,request_id,operation,input_hashes,resolved_re
 
 ## 执行选择与内部诊断协议：执行选择与内部诊断协议
 
-下述为待实施协议，不是当前schema已接受的输入。目标config及contract信封增加execution和diagnostics两个基础设施字段；缺省execution={backend:cpu,device:null,allow_cpu_fallback:false}，diagnostics缺省无采集。ExecutionPolicy是待声明的基础设施角色：backend为cpu/gpu，device可空字符串，allow_cpu_fallback为布尔；CLI/driver按ExecutionPolicy装配一个已解析策略的executor；嵌入式调用者提供相同策略的实现，科学模块不读配置。首期请求gpu且不允许回退返回unsupported，显式允许时记录requested/actual/reason后走CPU。不得把CPU回退写成GPU成功。执行后端/算术身份进入算法证据与缓存key，设备序号和性能计时不进入科学内容hash。
+下述是执行配置的规范目标，并非当前 CLI/schema 全部已支持的证明；实际可接受的字段必须以该被测提交生成的 schema、codec 与 CLI 负例验证为准。目标config及contract信封增加execution和diagnostics两个基础设施字段；缺省execution={backend:cpu,device:null,allow_cpu_fallback:false}，diagnostics缺省无采集。ExecutionPolicy是待声明的基础设施角色：backend为cpu/gpu，device可空字符串，allow_cpu_fallback为布尔；CLI/driver按ExecutionPolicy装配一个已解析策略的executor；嵌入式调用者提供相同策略的实现，科学模块不读配置。首期请求gpu且不允许回退返回unsupported，显式允许时记录requested/actual/reason后走CPU。不得把CPU回退写成GPU成功。执行后端/算术身份进入算法证据与缓存key，设备序号和性能计时不进入科学内容hash。
 
 diagnostics是独立策略文件路径，后续实现应建立独立诊断schema，相对config/request文件；不合并到科学request或configuration_hash。OFF构建可检查该外层路径字段但不打开文件、不读诊断环境变量、不创建sink；run_summary明确diagnostics_compiled=false、requested=true、status=not_compiled。ON时策略校验失败仅禁用诊断并记录config_error，不改变合法科学任务退出码。实际策略、编译开关、选择器hash单独进debug_manifest，不假充科学输入。
 

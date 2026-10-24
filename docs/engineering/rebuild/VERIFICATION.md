@@ -1,6 +1,6 @@
 # 独立 Agent 真值协议与架构审核
 
-本协议依据[独立证据规范](../../science/foundation/INDEPENDENT_ORACLES.md)，使用[公共 API](API.md)验证[统一对象](OBJECTS.md)和[执行模型](EXECUTION.md)。本篇定义验收目标与审核条件；远端已有部分驱动、实现和验证记录，具体结果按冻结case与阶段报告。本次新增基建实施清单仍未实施/验收。有限历史证据保持自己的输入与源码身份，不转记为新核心证据。
+本协议依据[独立证据规范](../../science/foundation/INDEPENDENT_ORACLES.md)，使用[公共 API](API.md)验证[统一对象](OBJECTS.md)和[执行模型](EXECUTION.md)。本篇定义验收目标与审核条件，**不代表已经通过**。已有 M0—M4 Runtime 实跑（16 case 中 15 pass、multi01 fail）和部分 M5 typed 模块结果；实际证据范围以 [实施状态正本](../../audit/IMPLEMENTATION-STATUS.md) 与冻结 manifest/comparison 为准。有限历史证据保持自己的输入与源码身份，不转记为新核心证据。
 
 ## 独立性和输入包
 
@@ -92,7 +92,7 @@ F01 增补确定数值界的可证伪构型：固定精确 PSF、同名义 count
 
 ## 设计复核与实现验收的状态边界
 
-当前已完成的独立科学及完整性设计复核见[最终状态](../../audit/final-review.md#科学审核状态)，不再追加无具体反例的重复通用科学审核前置。本轮仅授权文档补全，新增工程目标尚未实施；现有各项独立数值/产品/资源/真实数据验收状态依其冻结证据，不能一概称未执行或已全部通过。本篇的oracle目录和命令定义完整目标，现有运行入口见根README与分支实现交付记录。foundation中的旧研究命令须在固定历史checkout运行，不导入新验证树、不以旧结果代替新证据。
+当前已完成的独立科学及完整性设计复核见[最终状态](../../audit/final-review.md#科学审核状态)，不再追加无具体反例的重复通用科学审核前置。早期设计审查只授权文档补全，此后已有基建与部分模块实现；现有各项独立数值/产品/资源/真实数据验收状态依其冻结证据，不能一概称未执行或已全部通过。本篇的oracle目录和命令定义完整目标，现有运行入口见根README与分支实现交付记录。foundation中的旧研究命令须在固定历史checkout运行，不导入新验证树、不以旧结果代替新证据。
 
 
 ## 固定基建与逐process验收
@@ -105,7 +105,7 @@ F01 增补确定数值界的可证伪构型：固定精确 PSF、同名义 count
 | PROC01 单模块维护 | 新增一个有输入输出的独立测试process，添加CPU binding和本地文档/反例 | 不修改Host算法分派，生成schema/能力/默认phase span；单invoke/工作流/driver均调用同一实现 |
 | FORMAT01 当前格式 | 旧v1/早期v2或当前格式未知字段/recipe/版本 | 明确unsupported/invalid_model，要求原始输入重建；没有兼容别名、双reader或隐式转换 |
 
-以上是待实施验收，当前文档检查不等于registry或process已经运行。科学process还需逐篇的精确小例/负例及原C01—X01矩阵；共享原语单测不能替代其正式producer→consumer→publish路径。首期没有GPU实现验收；仅检查显式gpu请求不谎报可用、资源/事件合同可用模拟验证。
+以上是必须维持的验收合同，其中一部分已有按 case 运行的有限证据，但文档检查或少数 PASS 均不等于所有 registry/process 操作已经验收。科学process还需逐篇的精确小例/负例及原C01—X01矩阵；共享原语单测不能替代其正式producer→consumer→publish路径。首期没有GPU实现验收；仅检查显式gpu请求不谎报可用、资源/事件合同可用模拟验证。
 
 PROC01另须覆盖coadd三个typed阶段：已生成Selection/WeightSolution可直接传integrate，在恰足一轮总work时不重复计算；另一sky/Γ/selection身份不得复用。科学provider方法、action能力及坐标重载也须由唯一process key/type映射覆盖，不能因当前旧driver支持一个名字就绕过registry。
 
@@ -119,7 +119,7 @@ PROC01另须覆盖coadd三个typed阶段：已生成Selection/WeightSolution可�
 | ASYNC01 实际完成 | 假I/O延迟、短读/写满、取消future后底层仍完成；压缩/hash占满CPU配额、finalize等待flush | consumer在read+hash就绪后运行，writer完成后才能seal，buffer不提前回收；suspend/resume/finalize不占CPU token，I/O计算不能超售CPU，worker可推进其它ready任务 |
 | COMPOSE01 函数组合 | 同一校准/action/数值模块直接调用、单process、管道组合与独立最小依赖包 | 同科学单位/index/共享根/误差/选择；Host无新增算法switch，未列依赖不得隐式读取原项目会话 |
 
-以上为后续CPU框架验收目标，本轮未实现或实跑。GPU只扩展同一pool/批次/内存位置与事件合同，不要求本期设备代码。参考类比不引入其它软件的实现或兼容义务。
+以上仍为 CPU 框架的完整验收目标；某些固定构型已有当前有限证据，其余由状态表逐项明确未测/失败，不能据旧设计日期笼统判定“全未实现”或“全通过”。GPU只扩展同一pool/批次/内存位置与事件合同，不要求本期设备代码。参考类比不引入其它软件的实现或兼容义务。
 
 
 ## 详细开发合同的新增门槛

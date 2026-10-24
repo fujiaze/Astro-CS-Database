@@ -1,6 +1,6 @@
 # 固定基建框架
 
-本篇唯一拥有v2程序骨架：模块注册、typed调用边界、生命周期、调度、基建服务、扩展规则和构建装配。科学算法步骤由[各process](processes/README.md)各自拥有，固定命令的数据流在[WORKFLOWS](standards/WORKFLOWS.md)。本轮只改文档；ProcessDescriptor/InvocationPlan/InvocationContext及Task/Pipe的字段、签名已在[FOUNDATION_API](standards/FOUNDATION_API.md)定稿，调度实现步骤在[SCHEDULER](standards/SCHEDULER.md)；当前头文件和程序尚未据此改造。本文早期ProcessContext角色由定稿InvocationContext承接，不再定义第二种上下文。
+本篇唯一拥有v2程序骨架：模块注册、typed调用边界、生命周期、调度、基建服务、扩展规则和构建装配。科学算法步骤由[各process](processes/README.md)各自拥有，固定命令的数据流在[WORKFLOWS](standards/WORKFLOWS.md)。ProcessDescriptor/InvocationPlan/InvocationContext 和 Task/Pipe 等已经拥有 Runtime 公共头及实现；[FOUNDATION_API](standards/FOUNDATION_API.md) 是目标行为规格，[SCHEDULER](standards/SCHEDULER.md) 是调度算法规格，不构成第二套可编译声明。代码与验收的当前状态见[状态正本](../../audit/IMPLEMENTATION-STATUS.md)。本文早期ProcessContext角色由定稿InvocationContext承接，不再定义第二种上下文。
 
 内部开发允许直接破坏式重构。只维护一套当前接口/对象/产品/配置格式，旧v1及早期v2产物无兼容或转换义务；格式不匹配具名拒绝并由原始输入重新生成。Git提交历史和原始科学证据保留；保存历史不要求保留旧运行接口。
 
@@ -193,3 +193,7 @@ Windows 科学 CLI 优先 MSYS2 UCRT64 GCC14+，MPFR/GMP 与库使用同一 CRT/
 ## 直接开发入口
 
 按[DEVELOPMENT](standards/DEVELOPMENT.md)分配M0—M6任务；公共类型/函数以FOUNDATION_API定稿，scope/region/重规划/cleanup规则统一，算法实现只在所属process。完整calibration模块的文件、输入/精确公式、R/F/E、run/finalize/codec登记及故障测试见[实施例](standards/CALIBRATION_WALKTHROUGH.md)。不需要各开发者重新决定资源/注册/Task接口。
+
+## 实施阶段与规范版本的分离
+
+本篇定义**必须满足的最终行为**，不据“实现存在”自动认定所有阶段通过。M0—M4 的 16 项 Runtime 冻结 case 目前仍有 multi01 失败；M5 的 typed 模块具有部分正例，但资源跟踪、probe、低内存/取消/重开与独立科学负例仍逐模块验收。实现者优先修复可复现的失败和实际缺口，不把历史“尚未接线”的句子当作增建第二套 runtime 的指令。

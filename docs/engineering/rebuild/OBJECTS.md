@@ -1,6 +1,6 @@
 # 统一对象、身份与持久化
 
-本合同实现[观测科学接口 §7](../../science/foundation/OBSERVATION_COORDINATES.md)及[统一统计](../../science/foundation/STATISTICS_SKY_COADD.md)，保持其公共类型名和数学语义。新增存储/诊断/设备角色是待实施目标，本轮未修改声明。内部开发只维护当前格式，不兼容旧产品，格式变更允许从原始输入重建。API 见[标准接口](API.md)，大数组寿命见[计算与资源](EXECUTION.md)。旧统一对象或 JSON schema 不构成新核心的兼容要求。
+本合同实现[观测科学接口 §7](../../science/foundation/OBSERVATION_COORDINATES.md)及[统一统计](../../science/foundation/STATISTICS_SKY_COADD.md)，保持其公共类型名和数学语义。存储和诊断已有 Runtime 公开头及部分实现，设备扩展仍为目标设计；实际完成范围见[实施状态](../../audit/IMPLEMENTATION-STATUS.md)。内部开发只维护当前格式，不兼容旧产品，格式变更允许从原始输入重建。API 见[标准接口](API.md)，大数组寿命见[计算与资源](EXECUTION.md)。旧统一对象或 JSON schema 不构成新核心的兼容要求。
 
 ## 对象信封
 
@@ -99,7 +99,7 @@ staging 在同文件系统内写块、等待异步写完成、验证闭包/hash�
 
 ## 字段、布局及构造的唯一正本
 
-实际 C++20 类型/签名以 [contracts.hpp](../../../include/acsd/contracts.hpp) 为正本，本篇既有科学类型已定义；ProcessDescriptor等新框架角色仍待统一声明。Ref<T> 是 shared_ptr<const T>，不拥有裸指针借用。Model 是 Identity+Assessment；所有继承 Model 的对象在 JSON 中平铺这些字段。上述概念登记表及科学分册的伪代码不额外产生同名字段。NoiseModel 统一以 innovations/shared_factors+对应 influence 表示，统计分册 §6 的 action 字段由 make_covariance 构造，不另存第二份 covariance。
+实际 C++20 科学类型以 [model.hpp](../../../include/acsd/model.hpp) 为正本，Runtime 类型以 `include/acsd/runtime/*.hpp` 为正本，模块类型以 `include/acsd/modules/*.hpp` 为正本；[contracts.hpp](../../../include/acsd/contracts.hpp) 仅聚合，不二次定义；ProcessDescriptor 已有公开声明，其实现验收必须独立检查。Ref<T> 是 shared_ptr<const T>，不拥有裸指针借用。Model 是 Identity+Assessment；所有继承 Model 的对象在 JSON 中平铺这些字段。上述概念登记表及科学分册的伪代码不额外产生同名字段。NoiseModel 统一以 innovations/shared_factors+对应 influence 表示，统计分册 §6 的 action 字段由 make_covariance 构造，不另存第二份 covariance。
 
 索引以 Index.content_hash 绑定完整排序，数组 shape 不等于 index 身份。native index按声明的partition和sample序；leaf 按 (order,ipix)，parameter 按 (模型、basis项)、latent 按 SharedId 和分量序。所有 flatten 为 row-major。uint64 乘加先查溢出，空数组合法、零输入 action 输出严格零；不支持/unknown 与空域不同。原生二维像元 flatten=y*width+x。Index.ids 对 leaf 存 [N,2] u64 的 order,ipix（Index.order 再校验统一阶）；native身份用下文partition/规则编码或小例sources，不强制全样本字符串。小索引可内联，大索引可块化。
 
