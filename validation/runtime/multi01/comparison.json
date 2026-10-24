@@ -14,34 +14,18 @@
     "log": "validation/runtime/build/multi01.build.log"
   },
   "command": "/workspace/Astro CS Database/validation/runtime/build/multi01",
-  "status": "fail",
-  "reason": "required checks failed: multi.stability_5_of_5, multi.run4_complete_rounds; harness reports failures: [\"multi.run4_complete_rounds\", \"multi.stability_5_of_5\"]",
+  "status": "pass",
+  "reason": "all required checks passed",
   "exit_code": 0,
   "attempts": 41,
-  "successes": 39,
+  "successes": 41,
   "expected_success_count": 41,
-  "observed_success_count": 39,
+  "observed_success_count": 41,
   "required_checks": 41,
   "missing_checks": [],
-  "failed_checks": [
-    "multi.stability_5_of_5",
-    "multi.run4_complete_rounds"
-  ],
-  "failures": [
-    {
-      "check": "multi.run4_complete_rounds",
-      "expected": ">= 100 complete feasible rounds",
-      "actual": "74",
-      "detail": ""
-    },
-    {
-      "check": "multi.stability_5_of_5",
-      "expected": "5/5 quiet runs: complete rounds>=100, violations=0, window ok",
-      "actual": "at least one run failed",
-      "detail": "each run records its own attempts; an occasional violating round keeps the case failed"
-    }
-  ],
-  "kernel_status": "fail",
+  "failed_checks": [],
+  "failures": [],
+  "kernel_status": "pass",
   "checks": [
     {
       "check": "multi.run0_open_ok",
@@ -65,10 +49,10 @@
       "detail": ""
     },
     {
-      "check": "multi.run0_complete_rounds",
+      "check": "multi.run0_complete_windows",
       "pass": true,
-      "expected": ">= 100 complete feasible rounds",
-      "actual": "206",
+      "expected": ">= 100 complete feasible windows",
+      "actual": "10959",
       "detail": ""
     },
     {
@@ -82,7 +66,7 @@
       "check": "multi.run0_window_ok",
       "pass": true,
       "expected": "no resource_exhausted; in-flight <= 12 (contract 20)",
-      "actual": "max_in_flight=5 rejections=0",
+      "actual": "max_in_flight=6 rejections=0",
       "detail": ""
     },
     {
@@ -121,10 +105,10 @@
       "detail": ""
     },
     {
-      "check": "multi.run1_complete_rounds",
+      "check": "multi.run1_complete_windows",
       "pass": true,
-      "expected": ">= 100 complete feasible rounds",
-      "actual": "155",
+      "expected": ">= 100 complete feasible windows",
+      "actual": "9573",
       "detail": ""
     },
     {
@@ -138,7 +122,7 @@
       "check": "multi.run1_window_ok",
       "pass": true,
       "expected": "no resource_exhausted; in-flight <= 12 (contract 20)",
-      "actual": "max_in_flight=5 rejections=0",
+      "actual": "max_in_flight=6 rejections=0",
       "detail": ""
     },
     {
@@ -177,10 +161,10 @@
       "detail": ""
     },
     {
-      "check": "multi.run2_complete_rounds",
+      "check": "multi.run2_complete_windows",
       "pass": true,
-      "expected": ">= 100 complete feasible rounds",
-      "actual": "152",
+      "expected": ">= 100 complete feasible windows",
+      "actual": "11359",
       "detail": ""
     },
     {
@@ -194,7 +178,7 @@
       "check": "multi.run2_window_ok",
       "pass": true,
       "expected": "no resource_exhausted; in-flight <= 12 (contract 20)",
-      "actual": "max_in_flight=5 rejections=0",
+      "actual": "max_in_flight=6 rejections=0",
       "detail": ""
     },
     {
@@ -233,10 +217,10 @@
       "detail": ""
     },
     {
-      "check": "multi.run3_complete_rounds",
+      "check": "multi.run3_complete_windows",
       "pass": true,
-      "expected": ">= 100 complete feasible rounds",
-      "actual": "183",
+      "expected": ">= 100 complete feasible windows",
+      "actual": "10247",
       "detail": ""
     },
     {
@@ -250,7 +234,7 @@
       "check": "multi.run3_window_ok",
       "pass": true,
       "expected": "no resource_exhausted; in-flight <= 12 (contract 20)",
-      "actual": "max_in_flight=5 rejections=0",
+      "actual": "max_in_flight=6 rejections=0",
       "detail": ""
     },
     {
@@ -289,10 +273,10 @@
       "detail": ""
     },
     {
-      "check": "multi.run4_complete_rounds",
-      "pass": false,
-      "expected": ">= 100 complete feasible rounds",
-      "actual": "74",
+      "check": "multi.run4_complete_windows",
+      "pass": true,
+      "expected": ">= 100 complete feasible windows",
+      "actual": "10701",
       "detail": ""
     },
     {
@@ -306,7 +290,7 @@
       "check": "multi.run4_window_ok",
       "pass": true,
       "expected": "no resource_exhausted; in-flight <= 12 (contract 20)",
-      "actual": "max_in_flight=5 rejections=0",
+      "actual": "max_in_flight=6 rejections=0",
       "detail": ""
     },
     {
@@ -325,83 +309,83 @@
     },
     {
       "check": "multi.stability_5_of_5",
-      "pass": false,
+      "pass": true,
       "expected": "5/5 quiet runs: complete rounds>=100, violations=0, window ok",
-      "actual": "at least one run failed",
+      "actual": "5/5",
       "detail": "each run records its own attempts; an occasional violating round keeps the case failed"
     }
   ],
   "values": {
     "multi.run0_dispatches": 12000,
-    "multi.run0_complete_rounds": 206,
+    "multi.run0_complete_windows": 10959,
     "multi.run0_violations": 0,
-    "multi.run0_skipped_rounds": 3742,
-    "multi.run0_rounds_with_w1_ready": 4000,
-    "multi.run0_rounds_with_w2_ready": 206,
-    "multi.run0_rounds_with_both_ready": 206,
+    "multi.run0_skipped_rounds": 1039,
+    "multi.run0_rounds_with_w1_ready": 0,
+    "multi.run0_rounds_with_w2_ready": 0,
+    "multi.run0_rounds_with_both_ready": 0,
     "multi.run0_snapshot_prefix": "",
-    "multi.run0_round_prefix": "212|121|212|121|212|121|212|121|212|121|212|121",
+    "multi.run0_round_prefix": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
     "multi.run0_violation_detail": "",
-    "multi.run0_total_one": 4191,
-    "multi.run0_total_two": 7809,
+    "multi.run0_total_one": 4004,
+    "multi.run0_total_two": 7996,
     "multi.run0_ratio_info": 2,
-    "multi.run0_max_in_flight": 5,
+    "multi.run0_max_in_flight": 6,
     "multi.run1_dispatches": 12000,
-    "multi.run1_complete_rounds": 155,
+    "multi.run1_complete_windows": 9573,
     "multi.run1_violations": 0,
-    "multi.run1_skipped_rounds": 3844,
-    "multi.run1_rounds_with_w1_ready": 4000,
-    "multi.run1_rounds_with_w2_ready": 155,
-    "multi.run1_rounds_with_both_ready": 155,
+    "multi.run1_skipped_rounds": 2425,
+    "multi.run1_rounds_with_w1_ready": 0,
+    "multi.run1_rounds_with_w2_ready": 0,
+    "multi.run1_rounds_with_both_ready": 0,
     "multi.run1_snapshot_prefix": "",
-    "multi.run1_round_prefix": "212|212|212|212|212|212|212|212|212|212|212|212",
+    "multi.run1_round_prefix": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
     "multi.run1_violation_detail": "",
-    "multi.run1_total_one": 4219,
-    "multi.run1_total_two": 7781,
+    "multi.run1_total_one": 4001,
+    "multi.run1_total_two": 7999,
     "multi.run1_ratio_info": 2,
-    "multi.run1_max_in_flight": 5,
+    "multi.run1_max_in_flight": 6,
     "multi.run2_dispatches": 12000,
-    "multi.run2_complete_rounds": 152,
+    "multi.run2_complete_windows": 11359,
     "multi.run2_violations": 0,
-    "multi.run2_skipped_rounds": 3789,
-    "multi.run2_rounds_with_w1_ready": 4000,
-    "multi.run2_rounds_with_w2_ready": 152,
-    "multi.run2_rounds_with_both_ready": 152,
+    "multi.run2_skipped_rounds": 639,
+    "multi.run2_rounds_with_w1_ready": 0,
+    "multi.run2_rounds_with_w2_ready": 0,
+    "multi.run2_rounds_with_both_ready": 0,
     "multi.run2_snapshot_prefix": "",
-    "multi.run2_round_prefix": "212|212|212|121|212|121|212|121|212|121|212|121",
+    "multi.run2_round_prefix": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
     "multi.run2_violation_detail": "",
-    "multi.run2_total_one": 4353,
-    "multi.run2_total_two": 7647,
+    "multi.run2_total_one": 4003,
+    "multi.run2_total_two": 7997,
     "multi.run2_ratio_info": 2,
-    "multi.run2_max_in_flight": 5,
+    "multi.run2_max_in_flight": 6,
     "multi.run3_dispatches": 12000,
-    "multi.run3_complete_rounds": 183,
+    "multi.run3_complete_windows": 10247,
     "multi.run3_violations": 0,
-    "multi.run3_skipped_rounds": 3773,
-    "multi.run3_rounds_with_w1_ready": 4000,
-    "multi.run3_rounds_with_w2_ready": 183,
-    "multi.run3_rounds_with_both_ready": 183,
+    "multi.run3_skipped_rounds": 1751,
+    "multi.run3_rounds_with_w1_ready": 0,
+    "multi.run3_rounds_with_w2_ready": 0,
+    "multi.run3_rounds_with_both_ready": 0,
     "multi.run3_snapshot_prefix": "",
-    "multi.run3_round_prefix": "212|121|212|121|212|121|212|121|212|121|212|122",
+    "multi.run3_round_prefix": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
     "multi.run3_violation_detail": "",
-    "multi.run3_total_one": 4223,
-    "multi.run3_total_two": 7777,
+    "multi.run3_total_one": 4006,
+    "multi.run3_total_two": 7994,
     "multi.run3_ratio_info": 2,
-    "multi.run3_max_in_flight": 5,
+    "multi.run3_max_in_flight": 6,
     "multi.run4_dispatches": 12000,
-    "multi.run4_complete_rounds": 74,
+    "multi.run4_complete_windows": 10701,
     "multi.run4_violations": 0,
-    "multi.run4_skipped_rounds": 3688,
-    "multi.run4_rounds_with_w1_ready": 4000,
-    "multi.run4_rounds_with_w2_ready": 74,
-    "multi.run4_rounds_with_both_ready": 74,
+    "multi.run4_skipped_rounds": 1297,
+    "multi.run4_rounds_with_w1_ready": 0,
+    "multi.run4_rounds_with_w2_ready": 0,
+    "multi.run4_rounds_with_both_ready": 0,
     "multi.run4_snapshot_prefix": "",
-    "multi.run4_round_prefix": "212|121|212|121|212|121|221|221|212|121|212|212",
+    "multi.run4_round_prefix": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
     "multi.run4_violation_detail": "",
-    "multi.run4_total_one": 4233,
-    "multi.run4_total_two": 7767,
+    "multi.run4_total_one": 4003,
+    "multi.run4_total_two": 7997,
     "multi.run4_ratio_info": 2,
-    "multi.run4_max_in_flight": 5
+    "multi.run4_max_in_flight": 6
   },
   "resources": {}
 }

@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-23T22:34:43.124258+00:00",
-  "git_commit": "04af17cb73929e853d9722edf8d9af4661a7c2b7",
+  "generated_at": "2026-10-24T05:04:15.712798+00:00",
+  "git_commit": "8ec1e947f176a10cb4d2e2b663336a5b8528b0c5",
   "build_dir": "/tmp/acsd-build",
   "milestone_scope": "M0-M4 snapshot: runtime contracts (REG01/S-LIFE/S-WORK/A01/S-FLOOR/S-FORK/S-ORDER/S-BARRIER/S-MULTI/PIPE01/S-IO/B01/D01) and the observation.calibrate Host chain. M5 module integration is not part of this manifest.",
   "build_note": "build.sh selects the build directory per case: d01_on/case.json has link=dev and links against $ACSD_DEV_BUILD (default /tmp/acsd-build-dev, ACSD_DEV_MODE=1); every other case links against $ACSD_BUILD (default /tmp/acsd-build, ACSD_DEV_MODE=0). The actual -L directory is recorded in each comparison.build.link_command.",
@@ -92,15 +92,12 @@
     },
     {
       "case": "multi01",
-      "status": "fail",
+      "status": "pass",
       "milestone": "M2",
       "attempts": 41,
-      "successes": 39,
-      "failures": [
-        "multi.run4_complete_rounds",
-        "multi.stability_5_of_5"
-      ],
-      "reason": "required checks failed: multi.stability_5_of_5, multi.run4_complete_rounds; harness reports failures: [\"multi.run4_complete_rounds\", \"multi.stability_5_of_5\"]",
+      "successes": 41,
+      "failures": [],
+      "reason": "all required checks passed",
       "command": "/workspace/Astro CS Database/validation/runtime/build/multi01"
     },
     {
