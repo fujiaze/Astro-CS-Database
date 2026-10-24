@@ -465,6 +465,10 @@ void release_zstd(WriterState& writer) noexcept {
 }
 
 void cleanup_writer(WriterState& writer) noexcept {
+  // Abort/failure returns the staging and metadata reservations immediately;
+  // they must not stay charged while a WriterRef is still alive.
+  writer.staging_claim.reset();
+  writer.metadata_claim.reset();
   release_zstd(writer);
   if (!writer.directory.empty()) {
     std::error_code ec;
@@ -1441,6 +1445,37 @@ Task<U64> append_async(InvocationContext ctx, WriterRef writer, Block<T> block) 
     if (block.values.size() != block.range.count) {
       return failure_task(Code::invalid_model,
                           "block values length does not match its range");
+    }
+    // The staging buffer bounds one encoded chunk.  Split a larger append into
+    // sequential chunks instead of materialising the whole block, so the
+    // declared buffer_bytes is a real ceiling (OBJECTS:142).
+    const U64 element_bytes = std::max<U64>(state->itemsize, sizeof(T));
+    if (state->buffer_bytes != 0 && element_bytes != 0 &&
+        count > state->buffer_bytes / element_bytes) {
+      const U64 per_chunk = state->buffer_bytes / element_bytes;
+      if (per_chunk == 0) {
+        return failure_task(Code::resource_exhausted,
+                            "the staging buffer is smaller than one element");
+      }
+      Block<T> first = block;
+      first.range.count = per_chunk;
+      first.values = block.values.subspan(0, per_chunk);
+      Block<T> rest = block;
+      rest.range.begin += per_chunk;
+      rest.range.count -= per_chunk;
+      rest.values = block.values.subspan(per_chunk);
+      return then(
+          ctx, append_async<T>(ctx, writer, first),
+          [ctx, writer, rest](U64 written_first) -> Task<U64> {
+            return then(
+                ctx, append_async<T>(ctx, writer, rest),
+                [ctx, written_first](U64 written_rest) -> Task<U64> {
+                  Result<U64> total;
+                  total.code = Code::ok;
+                  total.value = written_first + written_rest;
+                  return ready<U64>(ctx, std::move(total));
+                });
+          });
     }
     {
       std::lock_guard<std::mutex> lock(state->mutex);

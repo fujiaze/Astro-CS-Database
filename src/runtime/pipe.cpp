@@ -367,6 +367,11 @@ Result<Done> pipe_expect_core(PipeCore& pipe, Key key) {
       result.code = Code::invalid_request;
       return result;
     }
+    if (pipe.have_expected && key < pipe.expected) {
+      // The frontier is monotonic: a rewind would silently reorder the stream.
+      result.code = Code::invalid_request;
+      return result;
+    }
     if (!pipe.have_expected || pipe.expected < key) {
       pipe.expected = key;
       pipe.have_expected = true;

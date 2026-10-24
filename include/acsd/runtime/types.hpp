@@ -6,6 +6,7 @@
 // and the scheduling rules in SCHEDULER.md.  No science algorithm lives here.
 #include <acsd/model.hpp>
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -201,10 +202,26 @@ struct InvocationPlan {
 // Pool configuration
 // ---------------------------------------------------------------------------
 
+// One dispatch decision, recorded before the picked execution segment runs.
+// The observer is called with the pool's own pre-dispatch snapshot, so a
+// weighted-share test does not have to infer readiness from callable entry.
+struct DispatchEvent {
+  U64 sequence = 0;
+  Id command;
+  U32 ready = 0;    // ready items of this command before the pop
+  U32 running = 0;  // execution segments of this command still running
+  U32 ceiling = 0;  // this command's CPU ceiling (0 means pool width)
+  bool control = false;
+};
+using DispatchObserver = std::function<void(const DispatchEvent&)>;
+
 struct PoolConfig {
   ScopeLimits process;
   U32 cpu_threads = 0, read_slots = 0, write_slots = 0;
   Id scratch_root;
+  // Optional diagnostic hook; it must not call Services (it runs inside the
+  // dispatcher).  nullptr keeps the production path unchanged.
+  DispatchObserver dispatch_observer;
 };
 
 }  // namespace acsd::rt

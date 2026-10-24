@@ -520,3 +520,82 @@ for i in $(seq 1 10); do timeout 180 validation/runtime/build/multi01; done
 ---
 
 **追记签署**：reviewer-m0m4（未参与实现）。本追记只记录复核证据与建议，不修改实现/验证用例，不 commit/push；历史 §1—§10 的 REJECT 仍是对 `d404c99f7` 的结论。
+
+---
+
+# 追记二：最终复核（2026-10-24 13:45，锚点 `5d643e07e`）
+
+> 历史 §1—§10 的 REJECT 与追记一的结论保留；本节只按新锚点更新状态。相对追记一（`5329987b4`），M0—M4 运行时代码变化为：`types.hpp` 新增 `InvocationContext.dispatch_sequence`、`pool.cpp` 两处派发赋值、`storage.cpp` 的 staging claim 与 `-0/NaN` 修复（`0a3975a1b`）；调度器另有 `8895df9a9`/`8ec1e947f`。M5/M6 与 photometry 的 x01/Armijo 不在本轮 M0—M4 范围。
+
+## 1. M2：S-MULTI 关闭（撤销追记一的 caveat）
+
+新 fixture 的判据是**滑动可行窗口**：每个 `i, i+1, i+2` 三次 dispatch 起点都满足 `ready1≥1 && running1<ceiling1 && ready2≥2 && running2<ceiling2` 时，`commands[i..i+2]` 的多重集必须恰为 `{w1,w2,w2}`；可行窗口 ≥100、违规 = 0、5/5。排序用池在派发时赋值的 `ctx.dispatch_sequence`（不是 callable 入口墙钟顺序），queued 硬上限 4（2P ready 窗口），避免 deferred 被计成 ready。
+
+**隔离复现（`/tmp/review-5d6`，OFF+DEV 两套构建）**：完整套件 **16/16 pass**（含 `storage01`、`d01_on` DEV）；`multi01` 单独 **5 次独立调用 × 每次 5 run**，全部 41/41 checks、每 run 可行窗口 **5,811–10,266**、**违规 0**、window 拒绝 0、per-command 并发 ≤ `ceiling.cpu_tokens=2`；committed observed 的 5 run 为 9,573–11,359、违规 0。判据没有放宽：逐可行窗口的严格 `{1,2,2}` 比旧的累计 ±5 更强；P=2 是合法可行环境（2P=4 才放得下 1+2），并已在 `case.json` 的 `why_P2` 写明。
+
+**残余 P2（测量机制，不阻塞）**：`ready1/ready2/running1/running2` 是 fixture 在 **callable 入口**用自身计数器采样的，而排序键是池在**选中**时赋的 `dispatch_sequence`；P=2 下选中与入口之间有时间差，可行性分类因此是近似的。25 次运行未出现假通过（0 违规），但若要严格到“派发时刻的 ready 快照”，应由池在派发记录里一并记录 ready/ceiling，或只使用在选中时更新的计数器。另：`case.json` 的 `runs=5` 与外部 5 次调用是两层；请在证据里保留全部 5 次外部 attempt，而不是只留最后一次的 observed。
+
+## 2. M3：staging claim 与 -0/NaN 已修，留两个 P2
+
+修复实际在 **`0a3975a1b`**（不是 `04af17cb7`；后者是 LocalStorage 行读、catalogue XP null 与 sky 默认 patch 的 covariance 崩溃）。隔离探针（`/tmp/final_storage_life`）：
+
+- **staging claim**：spill `begin(buffer=1 MiB, metadata=64 KiB)` → `claimed_delta = 1,114,112 B`（=1 MiB+64 KiB），不再为 0；`abort` 后 claim 仍在（见下），WriterRef 释放后回到 0。
+- **-0/NaN**：`seal({+0.0})` 与 `seal({-0.0})` 的 `content_hash` **不同**（`+0!=-0:1`）；payload/quiet/signalling NaN 归一到 `0x7ff8000000000000` 后 **相同**（`nanA==nanB:1`）。b01 的 ASan 构型（`-fsanitize=address`）覆盖 ±0/NaN 并 pass（30/30）。
+- **writer drop**：未 sealed 的 spill writer 直接析构 → spool 目录 `after_drop_dirs=0`。
+- `life01/io01/b01` 以 ASan 构建并运行 pass（build.sh 显式 `-fsanitize=address`），`storage01` 16/16 套件内 pass。
+
+**残余 P2**：
+- **claim 释放时机**：`cleanup_writer`（`storage.cpp:467`）不重置 `staging_claim/metadata_claim`；`abort` 后只要 WriterRef 还活着，claim 就一直计费（我的探针：abort 后 claimed 仍为 1,114,112，drop WriterRef 后才 0）。提交说明写“cleanup releases them”，实际是 WriterState 析构时由成员释放。建议在 seal/abort 的 cleanup 里显式 reset。
+- **append 超出声明 staging**：spill writer 声明 `buffer_bytes=1 MiB`，一次 append 4 MiB 的 block **被接受**（`append=0`）；`encode_append` 仍按整块物化，claim 只预留了 `min(buffer_bytes,8 MiB)=1 MiB`。提交说明“encode staging 被 reservation 界定”只在调用方按 buffer 大小时成立。建议：append block > `buffer_bytes` 时拒绝（具名 `resource_exhausted`）或内部按 ≤buffer 分块；这也是 OBJECTS:142“受实际缓冲额度约束”的直接要求。
+- 仍 OPEN：`read_async<Dyadic>` 无路径（`storage.cpp:1012`）；`total*itemsize` 溢出未查（`:1376`）。
+
+**M3 结论**：由“未关闭”升级为 **ACCEPT-WITH-CAVEATS**——原 P1（完全不 claim）已实质修复，且 ASan/回归证据齐；上述两点 P2 不影响 M0—M4 结论，但若要求严格的 OBJECTS:142 缓冲约束，请先修 append 上限。
+
+## 3. M4：caveat 保留（与 Lead 一致）
+
+隔离重跑：`cal_equivalence` 8/8、`cal_kernel` 37/37、`cal_host` 33/33、`calibration-faults` 16/16；`cal01` 在 16/16 套件内 pass（严格 required，usage 140≤524，共享 `master_noise` 根）。**保留 caveat**：(a) plan 的 R/F/W 是声明上界，不是 allocator 逐分配实测；(b) C-CAL-WRITE/CLEAN 只在 runtime writer 组注入，校准 adapter 的 `begin_signal/seal_signal` 组合路径未注入；(c) C-CAL-ROOT 仍把同一个 NoiseModel 对象传给两帧，等价独立对象未测。
+
+## 4. M0/M1 与正本同步
+
+M0/M1 结论不变（ACCEPT，P2 列表同追记一）。**N-5 已关闭**：`FOUNDATION_API.md` 现在同时记录 `dispatch_sequence`（池派发时赋的单调序号，P>1 排序用）与执行器 `expect(key)` frontier 契约（含“单调不减、回退 invalid_request”）。由此产生一个新的 **P2 文档/实现不一致**：`pipe_expect_core`（`pipe.cpp:370-373`）对回退 key 直接返回 ok，不报 `invalid_request`；探针：`send item0` 后 `expect(item0)` → `code=0`（文档要求 `invalid_request`）；`expect` after close 正确返回 `invalid_request`。建议实现补上回退拒绝，或把文档改为“回退被忽略”。
+
+## 5. 证据一致性（P2，发布前清理）
+
+- `validation/runtime/README.md:26` 与 `:101` 仍写 **“15 pass / 1 fail（multi01）”**，但同文件逐 case 表把 multi01 记为 pass，committed `manifest.json` 是 **16/16**；三方不一致。
+- committed `manifest.json.git_commit = 8ec1e947f`，而所在 HEAD 是 `5d643e07e`（README 说它“记录本次运行的 HEAD”，实际落后一个提交）。
+- `io01` 的 `io.written_ledger_at_seal` 仍存 `written+spilled`（check 已改成 `written>=bytes`，值只是冗余，建议删掉以免误读）。
+- `observation.calibrate` 的 manifest 依赖仍缺 `runtime`（M0-1 未动）。
+- 观察：我第一次 `build.sh && run_cases.py` 时 reg01 报过一次 “did not emit JSON evidence”，立即重跑即 29/29 pass；属构建/启动竞态，未复现，不记为缺陷。
+
+## 6. 最终分项结论
+
+| 里程碑 | 结论 |
+|---|---|
+| M0 公共合同与登记 | **ACCEPT**（P2：M0-1 依赖、M0-3/M0-4 语义） |
+| M1 账本/所有权 | **ACCEPT**（P2：claim 原子性、metadata/cpu_ns） |
+| M2 Task/pool/pipe | **ACCEPT**（S-MULTI 滑动可行窗口 5×5 复现、0 违规；P2：入口采样机制、`pipe_expect` 回退文档/实现不一致、M2-4/5/7/8/9） |
+| M3 异步 Storage/诊断 | **ACCEPT-WITH-CAVEATS**（staging claim、-0/NaN、ASan 证据已闭；P2：claim 释放时机、append 超出声明 buffer、dyadic 读、溢出） |
+| M4 observation.calibrate | **ACCEPT-WITH-CAVEATS**（plan 声明上界、adapter 注入、C-CAL-ROOT 同对象） |
+
+**总体：ACCEPT-WITH-CAVEATS。** 没有 P0/P1 阻塞；M4 的两项 caveat 是 Lead 已明确保留的声明上界/注入范围，M3 只剩 P2，M2 的 S-MULTI 已从“不可测/不稳定”变为可复现的严格判据。发布前建议按 §5 清理 README/manifest 一致性，并按 §2 修 claim 释放与 append 上限（若要求严格 OBJECTS:142）；`pipe_expect` 回退按 §4 二选一补实现或改文档。
+
+## 7. 复现命令（`/tmp`，与报告其余部分一致）
+
+```bash
+mkdir -p /tmp/review-5d6 && git archive 5d643e07e | tar -x -C /tmp/review-5d6
+cmake -S /tmp/review-5d6 -B /tmp/review-5d6-build -G Ninja -DACSD_BUILD_SCIENCE=ON -DACSD_DEV_MODE=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build /tmp/review-5d6-build -j 8 && (cd /tmp/review-5d6-build && ctest)     # 19/19
+cmake -S /tmp/review-5d6 -B /tmp/review-5d6-dev -G Ninja -DACSD_BUILD_SCIENCE=ON -DACSD_DEV_MODE=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build /tmp/review-5d6-dev -j 8 --target runtime model numerics storage
+cd /tmp/review-5d6
+ACSD_BUILD=/tmp/review-5d6-build ACSD_DEV_BUILD=/tmp/review-5d6-dev bash validation/runtime/build.sh
+ACSD_BUILD=/tmp/review-5d6-build ACSD_DEV_BUILD=/tmp/review-5d6-dev python3 validation/runtime/run_cases.py --no-build   # 16/16
+for i in 1 2 3 4 5; do timeout 300 validation/runtime/build/multi01 > /tmp/multi_$i.json; done   # 5 外部调用 × 5 run
+g++ -std=c++20 -O2 -I include /tmp/final_storage_life.cpp -L/tmp/review-5d6-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -lresources -lcodec -Wl,--end-group -lpthread -lzstd -o /tmp/g_storage && /tmp/g_storage
+g++ -std=c++20 -O2 -I include /tmp/final_pipe_expect.cpp -L/tmp/review-5d6-build -Wl,--start-group -lruntime -lmodel -lnumerics -lstorage -lresources -lcodec -Wl,--end-group -lpthread -lzstd -o /tmp/g_pe && /tmp/g_pe
+bash validation/runtime/calibration/run_cal_equivalence.sh   # 8/8
+bash validation/runtime/calibration/run_cal_kernel.sh       # 37/37
+bash validation/runtime/calibration/run_cal_host.sh         # 33/33
+```
+
+**追记二签署**：reviewer-m0m4。仅记录复核证据与建议；不修改实现/验证用例，不 commit/push。

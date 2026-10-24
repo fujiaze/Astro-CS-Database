@@ -1147,9 +1147,15 @@ bool Services::take_runnable(std::shared_ptr<detail::TaskNode>& node) {
       if (best != count) {
         auto command = commands_[best];
         std::lock_guard<std::mutex> command_lock(command->mutex);
+        U32 ceiling = command->scope->limits.ceiling.cpu_tokens;
+        if (ceiling == 0) ceiling = cpu_threads_;
+        const U64 dispatch_id = dispatch_sequence.fetch_add(1);
+        const DispatchEvent event{dispatch_id, command->id,
+                                  static_cast<U32>(command->ready.size()),
+                                  command->cpu_running, ceiling, false};
         node = command->ready.front();
         command->ready.pop_front();
-        node->context.dispatch_sequence = dispatch_sequence.fetch_add(1);
+        node->context.dispatch_sequence = dispatch_id;
         --command->deficit;
         ++command->cpu_running;
         rr_index_ = (best + 1) % count;
