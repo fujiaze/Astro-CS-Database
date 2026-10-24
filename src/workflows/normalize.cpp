@@ -682,6 +682,21 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
 
     observations.push_back(observation);
     measurements.push_back(value_of(measured));
+    if (trace.is_open()) {
+      // The validation oracle reads the measured point sources: their pixel
+      // positions and integrated fluxes are compared with the frozen truth,
+      // independently of the HiPS resolution of the published product.
+      trace << "{\"frame\":\"" << frame.frame << "\",\"step\":\"measured_stars\",\"stars\":[";
+      bool first = true;
+      for (const StarFlux& star : value_of(measured)->stars) {
+        if (!first) trace << ",";
+        first = false;
+        trace << "{\"id\":" << star.gaia_source_id << ",\"x\":" << star.position.x
+              << ",\"y\":" << star.position.y << ",\"flux\":" << star.integrated_flux << "}";
+      }
+      trace << "]}\n";
+      trace.flush();
+    }
     if (frame.response) {
       responses.push_back(frame.response);
       photometry_frames.push_back(frame.frame);

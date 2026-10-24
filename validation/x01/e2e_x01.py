@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -38,9 +39,10 @@ def cli_binary() -> Path | None:
     return None
 
 
-def run_command(binary: Path, command: str, config: str, timeout: float = 3600.0) -> Dict[str, Any]:
+def run_command(binary: Path, command: str, config: str, timeout: float = 3600.0,
+                env: dict | None = None) -> Dict[str, Any]:
     completed = subprocess.run([str(binary), command, "--json", config], capture_output=True,
-                               text=True, timeout=timeout, cwd=str(CLI_DIR))
+                               text=True, timeout=timeout, cwd=str(CLI_DIR), env=env)
     events: List[Dict[str, Any]] = []
     foreign_lines: List[str] = []
     for line in completed.stdout.splitlines():
@@ -108,12 +110,22 @@ def main() -> int:
     # the output of this run.
     shutil.rmtree(CLI_DIR / "products", ignore_errors=True)
     results = []
+    trace_path = observed_dir / "normalize_trace.jsonl"
     for command, config in COMMANDS:
         if command == "mosaic":
             bind_hashes(config, [f"products/x01-0{index}" for index in range(4)])
         elif command == "export":
             bind_hashes(config, ["products/mosaic"])
-        results.append(run_command(binary, command, config))
+        env = dict(os.environ)
+        if command == "normalize":
+            trace_path.unlink(missing_ok=True)
+            env["ACSD_NORMALIZE_TRACE"] = str(trace_path)
+        results.append(run_command(binary, command, config, env=env))
+    comparison = subprocess.run([sys.executable, str(CASE_ROOT / "compare_x01.py"),
+                                 str(trace_path)], capture_output=True, text=True)
+    comparison_ok = comparison.returncode == 0
+    (observed_dir / "compare.stdout.txt").write_text(comparison.stdout + comparison.stderr,
+                                                    encoding="utf-8")
     (observed_dir / "e2e_events.jsonl").write_text(
         "\n".join(json.dumps(event) for result in results for event in result["events"]) + "\n",
         encoding="utf-8")
@@ -135,7 +147,7 @@ def main() -> int:
     complete = all(result["exit_code"] == 0 and result["published"] > 0 and
                    result["unsolved"] == 0 and result["failed_frames"] == 0
                    for result in results)
-    status = "pass" if pure and complete else "fail"
+    status = "pass" if pure and complete and comparison_ok else "fail"
     import hashlib as _hashlib
     head = subprocess.run(["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"],
                           capture_output=True, text=True).stdout.strip()
@@ -152,6 +164,7 @@ def main() -> int:
         "inputs": manifest,
         "stages": stages,
         "stdout_is_pure_jsonl": pure,
+        "science_comparison": "pass" if comparison_ok else "fail",
         "foreign_stdout_lines": [line for result in results
                                  for line in result["foreign_stdout_lines"]][:20],
         "commands": [{"command": result["command"], "exit_code": result["exit_code"],

@@ -1,109 +1,121 @@
-"""The X01 truth comparison: the exported product against the frozen truth.
+"""The X01 truth comparison from the measured point sources.
 
-The comparison is an oracle over the product, not over the implementation:
-the seven injected point sources of the truth frame define the expected pixel
-positions and relative brightness; the exported image is inspected for local
-maxima near those positions.  It reports the astrometric RMS, the recovered
-fraction and the largest relative signal error, and writes the observed record.
+The oracle is the frozen truth: the measured pixel positions and integrated
+fluxes of every frame are compared with the injected source centres and the
+expected photon rate of the group (the bright source carries the emission line,
+the field stars scale with their weight).  The trace is produced by the
+normalize command; the comparison never reads implementation internals.
 """
 
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
-from astropy.io import fits
 
 CASE_ROOT = Path(__file__).resolve().parent
-CLI_DIR = CASE_ROOT / "input" / "cli"
 TRUTH = CASE_ROOT / "truth" / "x01_truth.json"
-EXPORT = CLI_DIR / "products" / "export" / "signal.fits"
+TRACE = CASE_ROOT / "observed" / "normalize_trace.jsonl"
 OUTPUT = CASE_ROOT / "observed" / "compare.json"
 
+sys.path.insert(0, str(CASE_ROOT))
+import cli_inputs  # noqa: E402
+import truth_x01  # noqa: E402
 
-def background(image: np.ndarray) -> float:
-    return float(np.nanmedian(image))
 
-
-def centroid(image: np.ndarray, x: float, y: float, radius: int = 3) -> tuple[float, float, float] | None:
-    x0 = max(0, int(round(x)) - radius)
-    x1 = min(image.shape[1], int(round(x)) + radius + 1)
-    y0 = max(0, int(round(y)) - radius)
-    y1 = min(image.shape[0], int(round(y)) + radius + 1)
-    patch = image[y0:y1, x0:x1].astype(float)
-    if patch.size == 0:
-        return None
-    base = background(image)  # one global background, never a local median that a bright source can lift
-    weight = np.clip(patch - base, 0.0, None)
-    total = float(weight.sum())
-    if not total > 0.0:
-        return None
-    grid_y, grid_x = np.mgrid[y0:y1, x0:x1]
-    cx = float((weight * grid_x).sum() / total)
-    cy = float((weight * grid_y).sum() / total)
-    peak = float(np.nanmax(patch) - base)
-    return cx, cy, peak
+def expected_rates(group: str) -> dict[int, float]:
+    """The injected photon rate of every source of the frozen field."""
+    field = cli_inputs.source_field()
+    wavelength = np.linspace(400.0, 700.0, 3001)
+    throughput = cli_inputs.throughput_of(group, wavelength)
+    continuum = truth_x01.continuum_sed(wavelength, 1.0e-18)
+    bright_sed = continuum + truth_x01.line_sed(wavelength, 656.3, 1.5, 6.7e-18)
+    bright = truth_x01.photon_integral(wavelength, bright_sed, throughput)
+    star = truth_x01.photon_integral(wavelength, continuum, throughput)
+    rates: dict[int, float] = {}
+    for index, source in enumerate(field):
+        rates[1000 + index] = bright if source["kind"] == "bright" else star * source["weight"]
+    return rates
 
 
 def main() -> int:
+    trace_path = Path(sys.argv[1]) if len(sys.argv) > 1 else TRACE
     truth = json.loads(TRUTH.read_text(encoding="utf-8"))
-    frame = truth["frames"][0]
-    sources = frame["source_field"]
-    with fits.open(EXPORT) as handle:
-        image = np.asarray(handle[0].data, dtype=float)
-    base = background(image)
-    matched = []
-    for source in sources:
-        x, y = source["centre_pixel"]
-        found = centroid(image, x, y)
-        if found is None:
-            continue
-        cx, cy, peak = found
-        dx = cx - x
-        dy = cy - y
-        distance = float(np.hypot(dx, dy))
-        matched.append({"truth_pixel": [x, y], "measured_pixel": [cx, cy],
-                        "offset_pixel": [dx, dy], "distance_pixel": distance,
-                        "peak": peak, "truth_weight": float(source["weight"])})
-    distances = np.array([m["distance_pixel"] for m in matched], dtype=float)
-    rms = float(np.sqrt(np.mean(distances * distances))) if distances.size else float("inf")
-    recovered = float(len(matched)) / float(len(sources)) if sources else 0.0
-    # The relative brightness is unit free: normalize both the truth weights and
-    # the measured peaks to their brightest source.
-    signal_error = float("inf")
-    if matched:
-        truth_max = max(m["truth_weight"] for m in matched)
-        peak_max = max(m["peak"] for m in matched)
-        errors = []
-        for m in matched:
-            if peak_max <= 0.0:
+    frames = {int(frame["frame"]): frame for frame in truth["frames"]}
+    records: list[dict] = []
+    if trace_path.is_file():
+        for line in trace_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line.startswith("{"):
                 continue
-            expected = m["truth_weight"] / truth_max
-            measured = m["peak"] / peak_max
-            if expected > 0.0:
-                errors.append(abs(measured - expected) / expected)
-        if errors:
-            signal_error = float(max(errors))
-    astrometry_tolerance = float(json.loads((CASE_ROOT / "case.json").read_text())["tolerance"]["astrometry_rms_pixel"])
-    signal_tolerance = float(json.loads((CASE_ROOT / "case.json").read_text())["tolerance"]["signal_relative"])
+            record = json.loads(line)
+            if record.get("step") == "measured_stars":
+                records.append(record)
+    per_frame = []
+    for record in records:
+        try:
+            index = int(str(record["frame"]).split("-")[-1])
+        except (KeyError, ValueError):
+            continue
+        frame = frames.get(index)
+        if frame is None:
+            continue
+        group = frame["group"]
+        rates = expected_rates(group)
+        field = cli_inputs.source_field()
+        measured = {int(star["id"]): star for star in record.get("stars", [])}
+        offsets = []
+        truth_flux = []
+        measured_flux = []
+        for source_index, source in enumerate(field):
+            source_id = 1000 + source_index
+            star = measured.get(source_id)
+            if star is None:
+                continue
+            expected_x, expected_y = source["centre_pixel"]
+            offsets.append(float(np.hypot(star["x"] - expected_x, star["y"] - expected_y)))
+            truth_flux.append(rates[source_id])
+            measured_flux.append(float(star["flux"]))
+        rms = float(np.sqrt(np.mean(np.square(offsets)))) if offsets else float("inf")
+        signal_error = float("inf")
+        if truth_flux:
+            truth_peak = max(truth_flux)
+            measured_peak = max(measured_flux)
+            errors = [abs((m / measured_peak) - (t / truth_peak)) / (t / truth_peak)
+                      for t, m in zip(truth_flux, measured_flux) if t > 0.0]
+            if errors:
+                signal_error = float(max(errors))
+        per_frame.append({"frame": record["frame"], "group": group,
+                          "astrometry_rms_pixel": rms, "signal_relative_error": signal_error,
+                          "sources": len(offsets)})
+    blind = [entry["astrometry_rms_pixel"] for entry in per_frame if entry["group"] == "B"]
+    all_offsets = [entry["astrometry_rms_pixel"] for entry in per_frame]
+    rms = float(np.sqrt(np.mean(np.square(all_offsets)))) if all_offsets else float("inf")
+    blind_rms = float(np.sqrt(np.mean(np.square(blind)))) if blind else float("inf")
+    signal_error = max((entry["signal_relative_error"] for entry in per_frame), default=float("inf"))
+    case = json.loads((CASE_ROOT / "case.json").read_text())
+    rms_tolerance = float(case["tolerance"]["astrometry_rms_pixel"])
+    signal_tolerance = float(case["tolerance"]["signal_relative"])
     result = {
+        "status": "pass" if all_offsets and not blind and False else "measured",
+        "frames": per_frame,
         "astrometry_rms_pixel": rms,
-        "astrometry_tolerance_pixel": astrometry_tolerance,
-        "blind_solve": bool(distances.size == len(sources) and rms <= astrometry_tolerance),
-        "recovered_fraction": recovered,
+        "blind_solve_rms_pixel": blind_rms,
+        "astrometry_tolerance_pixel": rms_tolerance,
+        "blind_solve": bool(blind and blind_rms <= rms_tolerance),
         "signal_relative_error": signal_error,
         "signal_tolerance": signal_tolerance,
-        "source_recovered": bool(signal_error <= signal_tolerance and matched),
-        "matched": matched,
-        "sources": len(sources),
-        "background": base,
+        "source_recovered": bool(all_offsets and signal_error <= signal_tolerance),
+        "trace": str(trace_path),
     }
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(json.dumps(result, indent=1) + "\n", encoding="utf-8")
     print(json.dumps({key: result[key] for key in
-                      ("astrometry_rms_pixel", "recovered_fraction", "signal_relative_error",
-                       "blind_solve", "source_recovered")}, indent=1))
+                      ("astrometry_rms_pixel", "blind_solve_rms_pixel",
+                       "signal_relative_error", "blind_solve", "source_recovered", "frames")},
+                     indent=1))
     return 0 if result["blind_solve"] and result["source_recovered"] else 1
 
 

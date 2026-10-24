@@ -1,8 +1,8 @@
 {
  "case": "X01",
  "failures": [
-  "blind_solve: astrometry RMS 1.920 px > 0.5 px",
-  "source_recovered: largest relative signal error 0.895 > 0.05"
+  "blind_solve: B-group RMS 0.579 px > 0.5 px",
+  "source_recovered: largest relative signal error 0.128 > 0.05"
  ],
  "functionals": [
   {
@@ -17,22 +17,22 @@
   {
    "kind": "value",
    "name": "blind_solve",
-   "reason": "exported image to truth source comparison: RMS 1.920 px (tolerance 0.5); see validation/x01/observed/compare.json",
+   "reason": "measured-source comparison of the blind B group: RMS 0.579 px (A group 0.000 px); see validation/x01/observed/compare.json",
    "status": "fail",
    "tolerance": 0.5,
    "truth": "astrometry_rms_pixel",
    "unit": "pixel",
-   "observed": 1.9200398630369488
+   "observed": 0.5790106821121697
   },
   {
    "kind": "value",
    "name": "source_recovered",
-   "reason": "sources recovered 100.0% but the relative signal error is 0.895 (tolerance 0.05); see validation/x01/observed/compare.json",
+   "reason": "A-group relative signal error 2.8-4.2%% (inside 5%%), B-group 9.4-12.8%% (outside); see validation/x01/observed/compare.json",
    "status": "fail",
    "tolerance": 0.05,
    "truth": "signal_relative_error",
    "unit": "fraction",
-   "observed": 0.8953007140400326
+   "observed": 0.12786022339117611
   },
   {
    "kind": "value",
@@ -44,7 +44,7 @@
    "unit": "verdict"
   }
  ],
- "notes": "The Linux synthetic X01 publication chain passes; the truth comparison executed against the published export shows an astrometric RMS above tolerance and a large relative signal error, so the science functionals fail. The no-fabricated negative is executed at the module boundary. This is a real M6 science gap, not a publication failure.",
+ "notes": "The publication chain passes; the measured-source truth comparison is now executed (normalize trace). A-group astrometry and relative photometry pass, while the blind B group fails both tolerances (0.43-0.66 px and 9-13%%). The no-fabricated negative passes. M6 science acceptance remains FAIL.",
  "status": "fail",
  "status_vocabulary": {
   "fail": "at least one functional is outside the frozen tolerance",
