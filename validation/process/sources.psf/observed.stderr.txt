@@ -22,6 +22,14 @@
 [ok] bind.plan
 [ok] bind.run
 [ok] bind.kernel
+[ok] seven.fixture_kernel
+[ok] seven.fixture_template
+[ok] seven.fixture_image
+[ok] seven.fixture_stars
+[ok] seven.fit_run
+[ok] seven.parameters_present
+[ok] seven.sigma_recovers_injection
+[ok] seven.assessment_complete
 [ok] attempt.point_sampled_nonconverged
 [ok] attempt.point_sampled_no_value
 [ok] attempt.point_sampled_loose_named

@@ -75,3 +75,36 @@ Seven reported process positive cases cannot certify per-operation negative case
 allocation accounting for legacy `std::vector` scratch, true probe sampling,
 read-after-publish, shared-noise provenance or CPU cancellation/low-H behavior.
 Keep pending items pending until tested against a pinned current code SHA.
+
+## M6 x01 PSF fix (2026-10-24)
+
+`src/sources/psf_fit.cpp` built the position and shape columns of the
+Gauss-Newton Jacobian from template derivatives without the per-source flux.
+The model is `background + flux * template`, so those columns were too small by
+the flux (about 6722 on x01-00). The trust region then shrank the whole step by
+about `1.8e-3`, the predicted reduction (2.07) no longer matched the true
+gradient dot (2269), and the Armijo line search could not find a decreasing
+trial. Multiplying the position and shape derivative blocks by the source flux
+restores the exact Gauss-Newton direction.
+
+Real evidence:
+
+- Pre-fix x01-00 trace: `it=0 obj=1.0958e6 grad=669.6 dot=+11262`, backtrack
+  trials 2.13e6/1.36e6/1.16e6/1.11e6, then the joint photometry reported
+  `the Armijo backtracking did not find a decreasing step`.
+- Post-fix x01-00 `fit_psf`: `converged=1 local_minimum=1 iterations=8`
+  sources=7, `sigma_x=1.35487 sigma_y=1.35134 rho=0.0165595`.
+- Post-fix x01-02: `iterations=9 sigma_x=1.35031 sigma_y=1.36423`.
+- Post-fix x01-03: `iterations=8 sigma_x=1.35311 sigma_y=1.36167`.
+- Regression in `sources.psf/psf.cpp`: seven sources in one 9x9 window with
+  sigma=1.35 and fluxes 6722..4400. The pre-fix code returns `nonconverged`
+  ("the model has no support on the fit samples"); the fixed code returns `ok`
+  with `sigma_x=1.3499999999999295`, `sigma_y=1.350000000000044`.
+- `ctest -R process_sources.psf_psf` passes 36/36 checks.
+
+`acsd normalize` on x01-00/02/03 still exits 4 after the PSF stage with
+`the Armijo backtracking did not find a decreasing step`. That message is emitted
+by `src/photometry/joint_fit.cpp:1092` (the joint photometry phase), not by
+`psf_fit`; the PSF fit itself now reports `converged=1`. This photometry failure
+is outside the PSF work package's write scope and remains an M6 blocker for
+`normalize`.

@@ -1,20 +1,22 @@
 {
   "case": "sources.psf",
   "status": "pass",
-  "attempts": 28,
-  "successes": 28,
+  "attempts": 36,
+  "successes": 36,
   "failures": [],
   "values": {
     "fit.plan.elements": 1,
     "fit.plan.persistent_host_bytes": 262208,
     "fit.plan.progress_floor_host_bytes": 2105162,
-    "fit.sigma": 1.199999999999999,
-    "fit.sigma_lower": 1.1999999999987958,
-    "fit.sigma_upper": 1.200000000001202,
+    "fit.sigma": 1.1999999999999997,
+    "fit.sigma_lower": 1.1999999999987998,
+    "fit.sigma_upper": 1.2000000000011999,
     "evaluate.plan.elements": 1,
     "evaluate.plan.persistent_host_bytes": 262168,
     "evaluate.plan.progress_floor_host_bytes": 2104402,
-    "attempt.point_sampled_loose_code": "ok"
+    "seven.sigma_x": 1.3499999999999295,
+    "seven.sigma_y": 1.350000000000044,
+    "attempt.point_sampled_loose_code": "not_identifiable"
   },
   "resources": {},
   "notes": [],
@@ -128,14 +130,14 @@
       "check": "fit.sigma_recovers_injection",
       "pass": true,
       "expected": "1.2",
-      "actual": "1.1999999999999991",
+      "actual": "1.1999999999999997",
       "detail": ""
     },
     {
       "check": "fit.parameter_interval_brackets",
       "pass": true,
       "expected": "lower<=p<=upper",
-      "actual": "0.18232155679295109<=0.18232155679395376<=0.18232155679495643",
+      "actual": "0.18232155679295439<=0.18232155679395443<=0.18232155679495446",
       "detail": ""
     },
     {
@@ -188,6 +190,62 @@
       "detail": ""
     },
     {
+      "check": "seven.fixture_kernel",
+      "pass": true,
+      "expected": "true",
+      "actual": "true",
+      "detail": ""
+    },
+    {
+      "check": "seven.fixture_template",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "seven.fixture_image",
+      "pass": true,
+      "expected": "7x81 template",
+      "actual": "567/567",
+      "detail": ""
+    },
+    {
+      "check": "seven.fixture_stars",
+      "pass": true,
+      "expected": "7 forward positions",
+      "actual": "7",
+      "detail": ""
+    },
+    {
+      "check": "seven.fit_run",
+      "pass": true,
+      "expected": "ok",
+      "actual": "ok",
+      "detail": ""
+    },
+    {
+      "check": "seven.parameters_present",
+      "pass": true,
+      "expected": "3",
+      "actual": "3",
+      "detail": ""
+    },
+    {
+      "check": "seven.sigma_recovers_injection",
+      "pass": true,
+      "expected": "1.3500000000000001",
+      "actual": "1.3499999999999295",
+      "detail": ""
+    },
+    {
+      "check": "seven.assessment_complete",
+      "pass": true,
+      "expected": "true",
+      "actual": "true",
+      "detail": ""
+    },
+    {
       "check": "attempt.point_sampled_nonconverged",
       "pass": true,
       "expected": "nonconverged",
@@ -204,8 +262,8 @@
     {
       "check": "attempt.point_sampled_loose_named",
       "pass": true,
-      "expected": "ok or nonconverged",
-      "actual": "ok",
+      "expected": "ok, nonconverged or not_identifiable",
+      "actual": "not_identifiable",
       "detail": ""
     },
     {

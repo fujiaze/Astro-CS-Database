@@ -398,13 +398,19 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
                                                   "the fit cannot be built");
           }
           const double sign_value = static_cast<double>(sign);
+          // The model is flux * template: every template derivative carries the
+          // flux of its source.  Without this factor the position columns are
+          // too small by the flux and the Gauss-Newton step, the predicted
+          // reduction and the Armijo test describe different models.
+          const double source_flux = theta[shape_count + 3 * s + 2];
           for (std::size_t k = 0; k < rows; ++k) {
             const double derivative =
                 (val(perturbed).values[k * sources + s] - block.values[k * sources + s]) /
                 (sign_value * position_step);
             // The two one sided differences form the central difference, so
             // they are averaged.
-            jacobian(k, shape_count + 3 * s + (axis == 0 ? 0 : 1)) += 0.5 * derivative;
+            jacobian(k, shape_count + 3 * s + (axis == 0 ? 0 : 1)) +=
+                0.5 * derivative * source_flux;
           }
         }
       }
@@ -436,6 +442,7 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
         for (std::size_t s = 0; s < sources; ++s) {
           const std::vector<double> basis_vector = sources::psfmodel::basis_values(
               basis, request.spatial_degree, current_positions[s].x, current_positions[s].y);
+          const double source_flux = theta[shape_count + 3 * s + 2];
           for (std::size_t k = 0; k < rows; ++k) {
             const double derivative =
                 (val(block_perturbed).values[k * sources + s] - block.values[k * sources + s]) /
@@ -443,7 +450,8 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
             for (std::size_t t = 0; t < term_count; ++t) {
               // The two one sided differences form the central difference, so
               // they are averaged.
-              jacobian(k, r * term_count + t) += 0.5 * derivative * basis_vector[t];
+              jacobian(k, r * term_count + t) +=
+                  0.5 * derivative * basis_vector[t] * source_flux;
             }
           }
         }
@@ -647,6 +655,8 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
         const double residual = measured - model;
         trial_objective += 0.5 * residual * residual;
       }
+        std::fprintf(stderr, "[psf]   bt=%u lam=%.3g obj=%.9g trial=%.9g diff=%.9g\n", backtrack,
+                     lambda, objective, trial_objective, trial_objective - objective);
       if (trial_objective <= objective - 1.0e-4 * lambda * gradient * gradient ||
           trial_objective < objective) {
         theta = trial;
