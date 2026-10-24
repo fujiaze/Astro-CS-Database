@@ -667,11 +667,10 @@ Result<Ref<AstrometricSolution>> solve_astrometry(Context& context, Ref<NativeOb
       const double det11 = hypothesis.matrix[5];
       const double affine_det = det00 * det11 - det01 * det10;
       if (!(std::abs(affine_det) > 1e-30)) continue;
-      // A TAN frame with the standard RA/DEC axes is left-handed in pixel
-      // coordinates: the east axis decreases x.  A reflected affine fits four
-      // points but cannot be a WCS, and it would make every catalogue star miss
-      // the detector; keep only the orientation-preserving hypothesis.
-      if (affine_det > 0.0) continue;
+      // Both chiralities are legal WCS solutions (a mirrored optical relay or
+      // a flipped readout gives a positive determinant); the full matching
+      // below, not a hard-coded handedness, decides whether the hypothesis is
+      // the sky solution.
       // The inverse affine maps the detector onto the tangent plane; it is the
       // linear part of the initial model of the WCS.
       const double inverse[4] = {det11 / affine_det, -det01 / affine_det, -det10 / affine_det,

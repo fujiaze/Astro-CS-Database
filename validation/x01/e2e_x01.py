@@ -132,9 +132,21 @@ def main() -> int:
         })
 
     pure = all(result["stdout_is_pure_jsonl"] for result in results)
-    status = "pass" if all(result["exit_code"] == 0 for result in results) and pure else "fail"
+    complete = all(result["exit_code"] == 0 and result["published"] > 0 and
+                   result["unsolved"] == 0 and result["failed_frames"] == 0
+                   for result in results)
+    status = "pass" if pure and complete else "fail"
+    import hashlib as _hashlib
+    head = subprocess.run(["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"],
+                          capture_output=True, text=True).stdout.strip()
+    binary_sha = _hashlib.sha256(binary.read_bytes()).hexdigest()
+    frame_hashes = {path.name: _hashlib.sha256(path.read_bytes()).hexdigest()
+                    for path in sorted((CLI_DIR / "frames").glob("*.fits"))}
     summary = {
         "status": status,
+        "git_commit": head,
+        "binary_sha256": binary_sha,
+        "frame_hashes": frame_hashes,
         "route": "the three commands of the acsd command line on the frozen frames",
         "binary": str(binary.relative_to(REPO_ROOT)),
         "inputs": manifest,

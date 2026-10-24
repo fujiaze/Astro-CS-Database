@@ -172,6 +172,7 @@ class CatalogueProviderImpl final : public CatalogueProvider {
   // The exported index arrays, decoded once.
   std::vector<std::array<U64, 4>> quad_source_ids_;
   std::vector<double> xp_coefficients_;  // cached row-major, avoids storage reads at query time
+  bool xp_cache_failed_ = false;
   std::vector<std::array<double, 4>> quad_descriptors_;
   std::vector<double> quad_baselines_;
   std::vector<Vec3> quad_centers_;
@@ -199,6 +200,10 @@ void CatalogueProviderImpl::load_index_arrays(Context& context) {
       const std::vector<std::byte> bytes =
           read(index_->columns->xp_coefficients, rows * coefficients, DType::f64);
       xp_coefficients_ = model::decode_f64(bytes);
+      if (xp_coefficients_.size() != rows * coefficients) {
+        xp_coefficients_.clear();
+        xp_cache_failed_ = true;
+      }
     }
   }
   const std::vector<std::byte> source_bytes =
@@ -304,6 +309,16 @@ Result<CatalogueStar> CatalogueProviderImpl::make_star(Context& context, const S
 
   // The spectral coefficients of this source are exported as their own array.
   const U64 coefficients = catalogue::spectral_coefficient_count(*index_->columns);
+  if (coefficients > 0 && xp_cache_failed_) {
+    return model::fail<CatalogueStar>(
+        Code::missing_dependency, "the XP coefficients of the catalogue cannot be read",
+        "catalogue.make_star", "the star has no spectral coefficients");
+  }
+  if (coefficients > 0 && index_->columns->xp_coefficients && xp_coefficients_.empty()) {
+    return model::fail<CatalogueStar>(
+        Code::missing_dependency, "the XP coefficients of the catalogue were not loaded",
+        "catalogue.make_star", "the star has no spectral coefficients");
+  }
   if (coefficients > 0 && !xp_coefficients_.empty()) {
     const std::size_t row_index = static_cast<std::size_t>(by_id_.at(row.source_id));
     if ((row_index + 1) * coefficients <= xp_coefficients_.size()) {

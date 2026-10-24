@@ -1,23 +1,50 @@
 {
-  "case": "X01",
-  "failures": [],
-  "functionals": [
-    {
-      "kind": "value",
-      "name": "three_commands_on_disk",
-      "reason": "the three command entry points are not available yet",
-      "status": "pending_implementation",
-      "tolerance": 0.0,
-      "truth": "ok",
-      "unit": "verdict"
-    }
-  ],
-  "notes": "The synthetic observation is complete and frozen; the observed side is pending_implementation.",
-  "status": "pending_implementation",
-  "status_vocabulary": {
-    "fail": "at least one functional is outside the frozen tolerance",
-    "not_applicable": "the case does not exercise the requested functional",
-    "pass": "every requested functional is inside the frozen tolerance",
-    "pending_implementation": "the public entry point under test is not implemented yet"
+ "case": "X01",
+ "failures": [],
+ "functionals": [
+  {
+   "kind": "value",
+   "name": "three_commands_on_disk",
+   "reason": "normalize 8/8, mosaic 1, export 1, exit 0 on a clean tree (validation/x01/observed/e2e_summary.json)",
+   "status": "pass",
+   "tolerance": 0.0,
+   "truth": "ok",
+   "unit": "verdict"
+  },
+  {
+   "kind": "value",
+   "name": "blind_solve",
+   "reason": "the solver residual is not persisted in the product or the event stream; the blind B group publishes but the <=0.5 px functional is not evaluated yet",
+   "status": "pending_implementation",
+   "tolerance": 0.5,
+   "truth": "residual_pixel",
+   "unit": "pixel"
+  },
+  {
+   "kind": "value",
+   "name": "source_recovered",
+   "reason": "the truth-to-product source recovery comparison has no executed oracle yet; the published products are not compared against truth in this snapshot",
+   "status": "pending_implementation",
+   "tolerance": 0.05,
+   "truth": "recovered_fraction",
+   "unit": "fraction"
+  },
+  {
+   "kind": "value",
+   "name": "no_fabricated_solution",
+   "reason": "the negative injection (a field with no catalogue solution) is not executed in the current e2e run",
+   "status": "pending_implementation",
+   "tolerance": 0.0,
+   "truth": "unsolved",
+   "unit": "verdict"
   }
+ ],
+ "notes": "The Linux synthetic X01 publication chain passes end to end (8/8 frames, mosaic, export). The scientific comparisons of case.json (blind-solve residual, source recovery, the fabricated-solution negative) remain pending; this file does not turn the publication smoke test into a science pass.",
+ "status": "pending_implementation",
+ "status_vocabulary": {
+  "fail": "at least one functional is outside the frozen tolerance",
+  "not_applicable": "the case does not exercise the requested functional",
+  "pass": "every requested functional is inside the frozen tolerance",
+  "pending_implementation": "the public entry point under test is not implemented yet"
+ }
 }
