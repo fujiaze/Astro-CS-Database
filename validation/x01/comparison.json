@@ -1,6 +1,9 @@
 {
  "case": "X01",
- "failures": [],
+ "failures": [
+  "blind_solve: astrometry RMS 1.920 px > 0.5 px",
+  "source_recovered: largest relative signal error 0.895 > 0.05"
+ ],
  "functionals": [
   {
    "kind": "value",
@@ -14,33 +17,35 @@
   {
    "kind": "value",
    "name": "blind_solve",
-   "reason": "the solver residual is not persisted in the product or the event stream; the blind B group publishes but the <=0.5 px functional is not evaluated yet",
-   "status": "pending_implementation",
+   "reason": "exported image to truth source comparison: RMS 1.920 px (tolerance 0.5); see validation/x01/observed/compare.json",
+   "status": "fail",
    "tolerance": 0.5,
-   "truth": "residual_pixel",
-   "unit": "pixel"
+   "truth": "astrometry_rms_pixel",
+   "unit": "pixel",
+   "observed": 1.9200398630369488
   },
   {
    "kind": "value",
    "name": "source_recovered",
-   "reason": "the truth-to-product source recovery comparison has no executed oracle yet; the published products are not compared against truth in this snapshot",
-   "status": "pending_implementation",
+   "reason": "sources recovered 100.0% but the relative signal error is 0.895 (tolerance 0.05); see validation/x01/observed/compare.json",
+   "status": "fail",
    "tolerance": 0.05,
-   "truth": "recovered_fraction",
-   "unit": "fraction"
+   "truth": "signal_relative_error",
+   "unit": "fraction",
+   "observed": 0.8953007140400326
   },
   {
    "kind": "value",
    "name": "no_fabricated_solution",
-   "reason": "the negative injection (a field with no catalogue solution) is not executed in the current e2e run",
-   "status": "pending_implementation",
+   "reason": "module negative executed in validation/process/sources.astrometry: a source-free frame with the same catalogue reports unsolved and no WCS",
+   "status": "pass",
    "tolerance": 0.0,
    "truth": "unsolved",
    "unit": "verdict"
   }
  ],
- "notes": "The Linux synthetic X01 publication chain passes end to end (8/8 frames, mosaic, export). The scientific comparisons of case.json (blind-solve residual, source recovery, the fabricated-solution negative) remain pending; this file does not turn the publication smoke test into a science pass.",
- "status": "pending_implementation",
+ "notes": "The Linux synthetic X01 publication chain passes; the truth comparison executed against the published export shows an astrometric RMS above tolerance and a large relative signal error, so the science functionals fail. The no-fabricated negative is executed at the module boundary. This is a real M6 science gap, not a publication failure.",
+ "status": "fail",
  "status_vocabulary": {
   "fail": "at least one functional is outside the frozen tolerance",
   "not_applicable": "the case does not exercise the requested functional",

@@ -1,0 +1,132 @@
+{
+ "astrometry_rms_pixel": 1.9200398630369488,
+ "astrometry_tolerance_pixel": 0.5,
+ "blind_solve": false,
+ "recovered_fraction": 1.0,
+ "signal_relative_error": 0.8953007140400326,
+ "signal_tolerance": 0.05,
+ "source_recovered": false,
+ "matched": [
+  {
+   "truth_pixel": [
+    63.5,
+    64.5
+   ],
+   "measured_pixel": [
+    63.99579920157329,
+    63.99579920157329
+   ],
+   "offset_pixel": [
+    0.49579920157329127,
+    -0.5042007984267087
+   ],
+   "distance_pixel": 0.7071317369591352,
+   "peak": 907569076224.0,
+   "truth_weight": 1.0
+  },
+  {
+   "truth_pixel": [
+    24.5,
+    30.5
+   ],
+   "measured_pixel": [
+    25.912136177829428,
+    31.678198775962574
+   ],
+   "offset_pixel": [
+    1.412136177829428,
+    1.1781987759625743
+   ],
+   "distance_pixel": 1.8390978604779067,
+   "peak": 135903320064.0,
+   "truth_weight": 0.8
+  },
+  {
+   "truth_pixel": [
+    96.5,
+    22.5
+   ],
+   "measured_pixel": [
+    93.78684213316059,
+    24.42368420887187
+   ],
+   "offset_pixel": [
+    -2.71315786683941,
+    1.9236842088718689
+   ],
+   "distance_pixel": 3.325926419188429,
+   "peak": 85519650816.0,
+   "truth_weight": 0.9
+  },
+  {
+   "truth_pixel": [
+    30.5,
+    100.5
+   ],
+   "measured_pixel": [
+    31.21913579387139,
+    98.62086420512173
+   ],
+   "offset_pixel": [
+    0.7191357938713914,
+    -1.879135794878266
+   ],
+   "distance_pixel": 2.0120406620194853,
+   "peak": 183635220480.0,
+   "truth_weight": 0.7
+  },
+  {
+   "truth_pixel": [
+    92.5,
+    98.5
+   ],
+   "measured_pixel": [
+    91.55223879726955,
+    97.46268656161658
+   ],
+   "offset_pixel": [
+    -0.9477612027304474,
+    -1.0373134383834213
+   ],
+   "distance_pixel": 1.405087352036129,
+   "peak": 305616742400.0,
+   "truth_weight": 1.0
+  },
+  {
+   "truth_pixel": [
+    14.5,
+    72.5
+   ],
+   "measured_pixel": [
+    15.829059840575663,
+    71.6703296657038
+   ],
+   "offset_pixel": [
+    1.3290598405756633,
+    -0.8296703342961962
+   ],
+   "distance_pixel": 1.566765114317449,
+   "peak": 159769276416.0,
+   "truth_weight": 0.75
+  },
+  {
+   "truth_pixel": [
+    110.5,
+    66.5
+   ],
+   "measured_pixel": [
+    109.06796116982945,
+    65.92233009179839
+   ],
+   "offset_pixel": [
+    -1.4320388301705549,
+    -0.5776699082016137
+   ],
+   "distance_pixel": 1.544162470065217,
+   "peak": 236670664704.0,
+   "truth_weight": 0.85
+  }
+ ],
+ "sources": 7,
+ "background": 9.401673737633503e+18
+}

@@ -270,6 +270,25 @@ int main() {
                   " for the frozen synthetic field");
   }
 
+  // negative: a blank (source-free) frame with the same catalogue must report
+  // unsolved and publish no WCS; a solver that invents a solution fails here.
+  {
+    const std::vector<double> blank(100 * 100, 100.0);
+    auto noise_native = vpf::make_native(
+        chain.command, blank, std::vector<std::uint16_t>(blank.size(), 0), 100, 100, "noise0",
+        2016.0);
+    if (noise_native.observation) {
+      auto noise_input = std::make_shared<modules::SolveAstrometryInput>(*input);
+      noise_input->observation = noise_native.observation;
+      auto noise = vpf::invoke<modules::SolveAstrometryInput, Ref<AstrometricSolution>>(
+          chain, "sources.astrometry", "solve_astrometry", noise_input);
+      recorder.check("negative.no_fabricated_solution",
+                     noise.code == Code::unsolved &&
+                         !(noise.code == Code::ok && noise.value && (*noise.value)->wcs),
+                     "unsolved and no WCS", vrt::code_name(noise.code));
+    }
+  }
+
   // negative: a zero match budget is refused before run.
   auto bad_input = std::make_shared<modules::SolveAstrometryInput>(*input);
   bad_input->request.min_matches = 0;
