@@ -440,7 +440,7 @@ struct NormalizeRequest { std::vector<NormalizeFrame> frames; SolverRequest astr
 struct NormalizeResult { std::vector<ProductLocation> published;
   std::vector<std::pair<Id,Assessment>> frames; };
 struct MosaicRequest { std::vector<ProductLocation> inputs; SkyRequest sky{};
-  CoaddRequest coaddition; PublishRequest output; };
+  CoaddRequest coaddition{}; PublishRequest output{}; };
 struct ExportWorkflowRequest { ProductLocation input; ExportRequest projection;
   PublishRequest output; };
 // All functions synchronous. Context/spans borrowed through return; Ref outputs retain dependencies.

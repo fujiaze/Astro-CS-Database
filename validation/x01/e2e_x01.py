@@ -8,7 +8,9 @@ end-to-end path and is reported with the exact stage and reason.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -90,8 +92,27 @@ def main() -> int:
         print(json.dumps(result, indent=1))
         return 0
 
+    def bind_hashes(config_name: str, paths: List[str]) -> None:
+        """Bind every prerequisite product by the hash of its manifest."""
+        config_path = CLI_DIR / config_name
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        for entry, path in zip(config["inputs"], paths):
+            manifest = CLI_DIR / path / "manifest.json"
+            if not manifest.is_file():
+                continue
+            entry["expected_hash"] = "sha256:" + hashlib.sha256(manifest.read_bytes()).hexdigest()
+        config_path.write_text(json.dumps(config, indent=1) + "\n", encoding="utf-8")
+
+    # The three commands publish into products/; the end-to-end run starts
+    # from a clean output tree so a stale product can never be mistaken for
+    # the output of this run.
+    shutil.rmtree(CLI_DIR / "products", ignore_errors=True)
     results = []
     for command, config in COMMANDS:
+        if command == "mosaic":
+            bind_hashes(config, [f"products/x01-0{index}" for index in range(4)])
+        elif command == "export":
+            bind_hashes(config, ["products/mosaic"])
         results.append(run_command(binary, command, config))
     (observed_dir / "e2e_events.jsonl").write_text(
         "\n".join(json.dumps(event) for result in results for event in result["events"]) + "\n",

@@ -1256,6 +1256,58 @@ int run_mosaic(Config& config, EventWriter& events, CancellationSource& cancella
   publish.durable = config.durable;
 
   MosaicRequest request;
+  {
+    const json& sci = val(scientific).request;
+    if (sci.contains("coaddition") && sci.at("coaddition").is_object()) {
+      const json& coadd = sci.at("coaddition");
+      if (coadd.contains("target") && coadd.at("target").is_object()) {
+        const json& target = coadd.at("target");
+        request.coaddition.target.id = string_field(target, "id", "coadd");
+        request.coaddition.target.quantity = string_field(target, "quantity", "brightness");
+        if (target.contains("unit")) request.coaddition.target.unit = decode_unit(target.at("unit"));
+        request.coaddition.target.condition =
+            model::make_condition(request.coaddition.target.id, "fixed_geometry");
+      }
+      request.coaddition.mixed_observation = bool_field(coadd, "mixed_observation", false);
+      const std::string weights = string_field(coadd, "weights", "automatic");
+      request.coaddition.weights = weights == "equal" ? WeightPolicy::equal
+                                    : weights == "blue" ? WeightPolicy::blue
+                                    : weights == "nonnegative_qp" ? WeightPolicy::nonnegative_qp
+                                                                  : WeightPolicy::automatic;
+      if (coadd.contains("rejection") && coadd.at("rejection").is_object()) {
+        const json& rejection = coadd.at("rejection");
+        const std::string kind = string_field(rejection, "kind", "dq_only");
+        request.coaddition.rejection.kind =
+            kind == "single_max_loo" ? RejectionPolicy::Kind::single_max_loo
+                                     : RejectionPolicy::Kind::dq_only;
+        request.coaddition.rejection.alpha = double_field(rejection, "alpha", 0.0);
+      }
+    }
+    if (sci.contains("sky") && sci.at("sky").is_object()) {
+      const json& sky = sci.at("sky");
+      if (sky.contains("basis") && sky.at("basis").is_object()) {
+        const json& basis = sky.at("basis");
+        const std::string kind = string_field(basis, "kind", "constant");
+        request.sky.basis.kind = kind == "plane" ? Basis::Kind::plane
+                                  : kind == "polynomial" ? Basis::Kind::polynomial
+                                                         : Basis::Kind::constant;
+        request.sky.basis.degree = static_cast<U32>(u64_field(basis, "degree", 0));
+        if (basis.contains("center") && basis.at("center").is_array() &&
+            basis.at("center").size() == 2) {
+          request.sky.basis.center = {basis.at("center")[0].get<double>(),
+                                      basis.at("center")[1].get<double>()};
+        }
+        if (basis.contains("scale") && basis.at("scale").is_array() &&
+            basis.at("scale").size() == 2) {
+          request.sky.basis.scale = {basis.at("scale")[0].get<double>(),
+                                     basis.at("scale")[1].get<double>()};
+        }
+        if (basis.contains("normalization_domain"))
+          request.sky.basis.normalization_domain =
+              decode_box(basis.at("normalization_domain"));
+      }
+    }
+  }
   for (const InputEntry& input : config.inputs) {
     ProductLocation location;
     location.directory = (config.base / input.path).string();

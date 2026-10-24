@@ -726,6 +726,69 @@ Result<Ref<NoiseModel>> build_joint_noise(Context& context, const std::vector<Fr
 }  // namespace
 
 
+
+namespace {
+
+// The named equal-weight fallback of WORKFLOWS: when the covariance closure is
+// unknown or cannot be reopened, the control statistic is computed with equal
+// weights.  The model is marked unknown; no full IVAR and no known variance is
+// claimed.
+Result<Ref<CovarianceAction>> equal_weight_covariance(Context& context, U64 count) {
+  std::vector<U64> offsets(count + 1, 0);
+  std::vector<U64> indices(count, 0);
+  std::vector<double> values(count, 1.0);
+  for (U64 i = 0; i < count; ++i) {
+    offsets[i] = i;
+    indices[i] = i;
+  }
+  offsets[count] = count;
+  Result<Ref<LinearAction>> identity =
+      operators::make_csr_action(context, count, count, offsets, indices, values, Id(), Id(),
+                                 model::unit_dimensionless());
+  if (!ok(identity)) {
+    return model::fail<Ref<CovarianceAction>>(identity.code,
+                                              "the equal-weight control operator cannot be built",
+                                              "sky.equal_weights",
+                                              "the control covariance cannot be built");
+  }
+  auto root = std::make_shared<NoiseRoot>();
+  root->shared_id.external_namespace = "acsd.controls";
+  root->shared_id.entity = "equal_weights";
+  root->shared_id.model_revision = "1";
+  root->shared_id.component = "amplitude";
+  root->unit = model::unit_dimensionless();
+  root->factor = val(identity);
+  root->assessment = model::make_assessment(Code::ok);
+  root->identity = model::make_identity("acsd.NoiseRoot", 2, 0,
+                                        model::sha256_hex("equal-weights-controls"), "acsd");
+  auto noise = std::make_shared<NoiseModel>();
+  noise->variance_unit = model::unit_dimensionless();
+  noise->innovations.push_back(root);
+  noise->influence.push_back(val(identity));
+  noise->state = NoiseState::unknown;
+  UnknownTerm term;
+  term.id = "equal_weights_unknown_covariance";
+  term.reason = "the joint covariance cannot be built from the published noise closure";
+  term.influence = val(identity);
+  noise->unknown_terms.push_back(term);
+  noise->identity = model::make_identity("acsd.NoiseModel", 2, 0,
+                                         model::sha256_hex("equal-weights-noise"), "acsd");
+  auto covariance = std::make_shared<CovarianceAction>();
+  covariance->model = std::shared_ptr<const NoiseModel>(noise);
+  covariance->influence = val(identity);
+  covariance->input_output.domain = nullptr;
+  covariance->input_output.codomain = nullptr;
+  covariance->input_output.input = model::unit_dimensionless();
+  covariance->input_output.output = model::unit_dimensionless();
+  covariance->identity = model::make_identity("acsd.CovarianceAction", 2, 0,
+                                              model::sha256_hex("equal-weights-covariance"), "acsd");
+  covariance->assessment = model::make_assessment(Code::ok, Capability::supported);
+  covariance->assessment.noise = NoiseState::unknown;
+  covariance->assessment.science = ScienceState::conditional;
+  return model::ok_result(std::shared_ptr<const CovarianceAction>(covariance));
+}
+
+}  // namespace
 Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvider& frames,
                                              const SkyRequest& request) {
   {
@@ -1038,32 +1101,34 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
 
   // ---- the control covariance ---------------------------------------------
   Ref<CovarianceAction> control_noise = request.control_noise;
+  bool equal_weights = false;
   if (!control_noise) {
     Result<Ref<NoiseModel>> joint = build_joint_noise(context, blocks);
-    if (!ok(joint)) {
-      return model::fail<Ref<SkyControls>>(joint.code, "the joint noise cannot be built",
-                                           "build_sky_controls", "no control can be built");
+    Result<Ref<CovarianceAction>> control_covariance_result;
+    if (ok(joint)) {
+      Result<Ref<CovarianceAction>> joint_covariance = make_covariance(context, val(joint));
+      if (ok(joint_covariance)) {
+        Result<Ref<LinearAction>> t_action =
+            sky::dense_to_action(context, T, Id(), Id(), model::unit_dimensionless());
+        if (ok(t_action)) {
+          control_covariance_result =
+              control_covariance(context, val(joint_covariance), val(t_action));
+        }
+      }
     }
-    Result<Ref<CovarianceAction>> joint_covariance = make_covariance(context, val(joint));
-    if (!ok(joint_covariance)) {
-      return model::fail<Ref<SkyControls>>(joint_covariance.code,
-                                           "the joint covariance cannot be built",
-                                           "build_sky_controls", "no control can be built");
+    if (ok(control_covariance_result)) {
+      control_noise = val(control_covariance_result);
+    } else {
+      Result<Ref<CovarianceAction>> equal =
+          equal_weight_covariance(context, static_cast<U64>(control_count));
+      if (!ok(equal)) {
+        return model::fail<Ref<SkyControls>>(equal.code,
+                                             "the equal-weight control covariance cannot be built",
+                                             "build_sky_controls", "no control can be built");
+      }
+      control_noise = val(equal);
+      equal_weights = true;
     }
-    Result<Ref<LinearAction>> t_action =
-        sky::dense_to_action(context, T, Id(), Id(), model::unit_dimensionless());
-    if (!ok(t_action)) {
-      return model::fail<Ref<SkyControls>>(t_action.code, "the control operator cannot be built",
-                                           "build_sky_controls", "no control can be built");
-    }
-    Result<Ref<CovarianceAction>> control_covariance_result =
-        control_covariance(context, val(joint_covariance), val(t_action));
-    if (!ok(control_covariance_result)) {
-      return model::fail<Ref<SkyControls>>(control_covariance_result.code,
-                                           "the control covariance cannot be built",
-                                           "build_sky_controls", "no control can be built");
-    }
-    control_noise = val(control_covariance_result);
   }
 
   // ---- publish ------------------------------------------------------------
@@ -1146,7 +1211,16 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
   model::set_included(out.assessment, explicit_model
                                             ? "explicit_control_operator"
                                             : "standard_32x32_patch_control_operator");
-  model::set_included(out.assessment, "control_covariance_from_the_shared_roots");
+  if (equal_weights) {
+    controls->assessment.noise = NoiseState::unknown;
+    controls->assessment.science = ScienceState::conditional;
+    out.assessment.noise = NoiseState::unknown;
+    out.assessment.science = ScienceState::conditional;
+    model::set_omitted(out.assessment, "known_control_covariance");
+    model::set_included(out.assessment, "equal_weights_unknown_covariance");
+  } else {
+    model::set_included(out.assessment, "control_covariance_from_the_shared_roots");
+  }
   model::set_included(out.assessment, "basis_chart_centre_is_the_mean_control_direction");
   model::set_omitted(out.assessment, "sky_prediction_outside_the_training_support");
   return out;
@@ -1739,15 +1813,17 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
         flat.push_back(null_parameters(static_cast<std::size_t>(p), j));
       }
     }
-    Result<ArrayRef> nullspace = operators::write_f64(
-        context, flat, std::vector<U64>{static_cast<U64>(null_parameters.cols),
-                                        static_cast<U64>(parameters)},
-        model::unit_dimensionless(), "sky_parameter");
-    if (!ok(nullspace)) {
-      return model::fail<Ref<SkyFit>>(nullspace.code, "the null space cannot be stored",
-                                      "fit_relative_sky", "the sky cannot be fitted");
+    if (!flat.empty()) {
+      Result<ArrayRef> nullspace = operators::write_f64(
+          context, flat, std::vector<U64>{static_cast<U64>(null_parameters.cols),
+                                          static_cast<U64>(parameters)},
+          model::unit_dimensionless(), "sky_parameter");
+      if (!ok(nullspace)) {
+        return model::fail<Ref<SkyFit>>(nullspace.code, "the null space cannot be stored",
+                                        "fit_relative_sky", "the sky cannot be fitted");
+      }
+      rank.nullspace = val(nullspace);
     }
-    rank.nullspace = val(nullspace);
   }
 
   auto fit = std::make_shared<SkyFit>();

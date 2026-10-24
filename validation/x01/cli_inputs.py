@@ -163,8 +163,12 @@ def estimator(identifier: str, quantity: str, unit_scale: str = "1") -> Dict[str
 
 
 def solver_request() -> Dict[str, Any]:
+    center = target_wcs_model()["c"]
     return {
-        "regions": [],
+        # The blind B group needs a search region and a scale interval; the
+        # frozen field is centred on the frame tangent point.
+        "regions": [{"center": {"nx": center[0], "ny": center[1], "nz": center[2]},
+                     "radius_rad": 0.01}],
         # the scale interval must exclude zero; the frozen scale of the
         # construction is 4.848e-06 rad per pixel
         "scale_rad_pixel": {"lower": 1.0e-6, "upper": 1.0e-4},
@@ -350,14 +354,39 @@ def mosaic_scientific() -> Dict[str, Any]:
     }
 
 
+
+def target_wcs_model() -> Dict[str, Any]:
+    """The tangent-plane model of the frozen frame (the export target)."""
+    with fits.open(CASE_ROOT / "input" / "frames" / "frame_00_A.fits") as handle:
+        header = handle[0].header
+    ra = math.radians(float(header["CRVAL1"]))
+    dec = math.radians(float(header["CRVAL2"]))
+    center = np.array([math.cos(dec) * math.cos(ra), math.cos(dec) * math.sin(ra), math.sin(dec)],
+                      dtype=float)
+    east = np.cross(np.array([0.0, 0.0, 1.0]), center)
+    east = east / np.linalg.norm(east)
+    north = np.cross(center, east)
+    cd = np.array([[header["CD1_1"], header["CD1_2"]],
+                   [header["CD2_1"], header["CD2_2"]]], dtype=float) * (math.pi / 180.0)
+    return {
+        "crpix_fits1": [float(header["CRPIX1"]), float(header["CRPIX2"])],
+        "cd_rad_per_pixel": [float(cd[0, 0]), float(cd[0, 1]), float(cd[1, 0]), float(cd[1, 1])],
+        "c": [float(center[0]), float(center[1]), float(center[2])],
+        "e": [float(east[0]), float(east[1]), float(east[2])],
+        "north": [float(north[0]), float(north[1]), float(north[2])],
+        "domain": {"lower": [-0.5, -0.5], "upper": [127.5, 127.5]},
+        "detector_frame": "x01",
+    }
+
+
 def export_scientific() -> Dict[str, Any]:
     return {
         "command": "export",
         "request": {
             "projection": {
-            "target": {"model": None, "width": 128, "height": 128},
+            "target": {"model": target_wcs_model(), "width": 128, "height": 128},
             "quantity": "supported_flux",
-            "support_policy": "primitives",
+            "support_policy": "full_leaf_approx",
             "assume_uniform_uncovered": False,
             "output_dtype": "f64",
             "budget": {
@@ -412,8 +441,9 @@ def mosaic_config() -> Dict[str, Any]:
     return {
         "schema": "acsd.config/2",
         "command": "mosaic",
-        "inputs": [{"path": "products",
-                    "expected_hash": "sha256:" + "0" * 64}],
+        "inputs": [{"path": f"products/x01-0{index}",
+                    "expected_hash": "sha256:" + "0" * 64} for index in range(4)],
+        "publication": {"signal_dtype": "f64", "tile_log2_width": 6, "durable": False},
         "scientific": "mosaic.scientific.json",
         "output": "products/mosaic",
         "resources": resources(),

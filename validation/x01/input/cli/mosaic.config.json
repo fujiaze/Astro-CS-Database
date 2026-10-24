@@ -4,21 +4,26 @@
  "inputs": [
   {
    "path": "products/x01-00",
-   "expected_hash": "sha256:fca769349707bbbc85ca3b0ca991a8866ee2dfb152485ef92b7283ffef63f7df"
+   "expected_hash": "sha256:95d47a7c141b1b98c7fbf176fece5ccf44d53eb2b4ea5090fa87d2922a770e8c"
   },
   {
    "path": "products/x01-01",
-   "expected_hash": "sha256:0d7ed74aaaf6bde126cad90959a14c42460fd824ba65af462611902932efed12"
+   "expected_hash": "sha256:df532c23666f297e831a974e4cf9446e0e65fa108a9aa2e057907d83dc60e886"
   },
   {
    "path": "products/x01-02",
-   "expected_hash": "sha256:a3980746d478b57453660764ef9e68742e74260274f56761a351152b23ed50bd"
+   "expected_hash": "sha256:3fa2c9b22f69d2796ccd43bcd38bea8c891e0c1dfdb6705499f511d5348b188e"
   },
   {
    "path": "products/x01-03",
-   "expected_hash": "sha256:f3aa4d978b26759ff9786fd0a3f32cdc142c922d834269e77ea84d41c973b7b2"
+   "expected_hash": "sha256:4725ad33ce451765000ea96bad1cdaafee743461186a801523fba906ba9cb348"
   }
  ],
+ "publication": {
+  "signal_dtype": "f64",
+  "tile_log2_width": 6,
+  "durable": false
+ },
  "scientific": "mosaic.scientific.json",
  "output": "products/mosaic",
  "resources": {

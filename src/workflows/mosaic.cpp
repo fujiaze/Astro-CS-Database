@@ -265,8 +265,12 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
                                                 : sky.assessment.issues.front().reason,
                                  "mosaic", "no product was published");
   }
+  // The comparability groups are the same scientific object for the sky and
+  // the coaddition; the workflow supplies the group it verified above.
+  CoaddRequest coadd_request = request.coaddition;
+  coadd_request.groups = sky_request.groups;
   auto select_input = std::make_shared<const modules::SelectSamplesInput>(
-      modules::SelectSamplesInput{val(frames), request.coaddition});
+      modules::SelectSamplesInput{val(frames), coadd_request});
   Result<rt::InvocationPlan> select_plan = modules::plan_coadd_select(
       workflow_runtime.command, select_input, workflow_runtime.options);
   Result<Ref<Selection>> selection = rt::wait_external(
@@ -280,7 +284,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
                                  "mosaic", "no product was published");
   }
   auto weights_input = std::make_shared<const modules::SolveWeightsInput>(
-      modules::SolveWeightsInput{val(frames), val(selection), request.coaddition});
+      modules::SolveWeightsInput{val(frames), val(selection), coadd_request});
   Result<rt::InvocationPlan> weights_plan = modules::plan_coadd_weights(
       workflow_runtime.command, weights_input, workflow_runtime.options);
   Result<Ref<WeightSolution>> weights = rt::wait_external(
@@ -295,7 +299,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   }
   auto coadd_input = std::make_shared<const modules::CoaddInput>(
       modules::CoaddInput{val(frames), val(sky), val(selection), val(weights),
-                          request.coaddition});
+                          coadd_request});
   Result<rt::InvocationPlan> coadd_plan = modules::plan_coadd_integrate(
       workflow_runtime.command, coadd_input, workflow_runtime.options);
   Result<CoaddResult> coadd_result = rt::wait_external(
@@ -319,7 +323,12 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   graph->identity = model::make_identity("acsd.ProductGraph", 2, 0,
                                           model::sha256_hex("acsd.mosaic"), "acsd");
   for (const ProductLocation& location : request.inputs) graph->inputs.push_back(location.manifest_hash);
-  return publish_product(context, graph, request.output);
+  // The coadded arrays were produced inside the Host and live in the runtime
+  // BlockStore; publication reads them through the workflow storage view while
+  // writing with the ordinary storage.
+  workflows::WorkflowStorage publish_storage(context.storage, workflow_runtime.services);
+  Context publish_context{context.resources, context.cancellation, publish_storage};
+  return publish_product(publish_context, graph, request.output);
 }
 
 }  // namespace acsd

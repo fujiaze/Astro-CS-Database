@@ -2,7 +2,16 @@
  "command": "normalize",
  "request": {
   "astrometry": {
-   "regions": [],
+   "regions": [
+    {
+     "center": {
+      "nx": 0.10714019848480942,
+      "ny": 0.9897947532827971,
+      "nz": -0.09395384102037764
+     },
+     "radius_rad": 0.01
+    }
+   ],
    "scale_rad_pixel": {
     "lower": 1e-06,
     "upper": 0.0001

@@ -20,39 +20,31 @@
  "stages": [
   {
    "command": "normalize",
-   "exit_code": 4,
-   "published": 0,
-   "unsolved": 8,
+   "exit_code": 6,
+   "published": 4,
+   "unsolved": 4,
    "failed_frames": 0,
    "first_failure": {
-    "frame_id": "x01-00",
+    "frame_id": "x01-04",
     "code": "failed",
-    "message": "the Armijo backtracking did not find a decreasing step"
+    "message": "no quad of the detection matched the catalogue"
    }
   },
   {
    "command": "mosaic",
-   "exit_code": 4,
-   "published": 0,
+   "exit_code": 0,
+   "published": 1,
    "unsolved": 0,
-   "failed_frames": 1,
-   "first_failure": {
-    "frame_id": "mosaic",
-    "code": "missing_dependency",
-    "message": "the product directory is missing"
-   }
+   "failed_frames": 0,
+   "first_failure": null
   },
   {
    "command": "export",
-   "exit_code": 4,
-   "published": 0,
+   "exit_code": 0,
+   "published": 1,
    "unsolved": 0,
-   "failed_frames": 1,
-   "first_failure": {
-    "frame_id": "export",
-    "code": "missing_dependency",
-    "message": "the product directory is missing"
-   }
+   "failed_frames": 0,
+   "first_failure": null
   }
  ],
  "stdout_is_pure_jsonl": true,
@@ -60,22 +52,22 @@
  "commands": [
   {
    "command": "normalize",
-   "exit_code": 4,
-   "published": 0,
-   "unsolved": 8,
-   "stderr": ""
+   "exit_code": 6,
+   "published": 4,
+   "unsolved": 4,
+   "stderr": "bt=7 lam=0.00781 obj=582600.62 trial=582600.62 diff=0\n[psf]   bt=0 lam=1 obj=1411615.91 trial=668480.617 diff=-743135.298\n[psf]   bt=0 lam=1 obj=668480.617 trial=667265.43 diff=-1215.18646\n[psf]   bt=0 lam=1 obj=667265.43 trial=667262.844 diff=-2.58656559\n[psf]   bt=0 lam=1 obj=667262.844 trial=667262.835 diff=-0.00860304537\n[psf]   bt=0 lam=1 obj=667262.835 trial=667262.835 diff=-3.46099259e-05\n[psf]   bt=0 lam=1 obj=667262.835 trial=667262.835 diff=-1.5378464e-07\n[psf]   bt=0 lam=1 obj=667262.835 trial=667262.835 diff=-9.31322575e-10\n[psf]   bt=0 lam=1 obj=667262.835 trial=667262.835 diff=0\n"
   },
   {
    "command": "mosaic",
-   "exit_code": 4,
-   "published": 0,
+   "exit_code": 0,
+   "published": 1,
    "unsolved": 0,
    "stderr": ""
   },
   {
    "command": "export",
-   "exit_code": 4,
-   "published": 0,
+   "exit_code": 0,
+   "published": 1,
    "unsolved": 0,
    "stderr": ""
   }

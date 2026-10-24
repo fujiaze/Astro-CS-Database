@@ -3,12 +3,49 @@
  "request": {
   "projection": {
    "target": {
-    "model": null,
+    "model": {
+     "crpix_fits1": [
+      64.0,
+      64.0
+     ],
+     "cd_rad_per_pixel": [
+      -4.848137198946305e-06,
+      0.0,
+      0.0,
+      4.848137198946305e-06
+     ],
+     "c": [
+      0.10714019848480942,
+      0.9897947532827971,
+      -0.09395384102037764
+     ],
+     "e": [
+      -0.9941925097222705,
+      0.10761623303262886,
+      0.0
+     ],
+     "north": [
+      0.010110958449559525,
+      0.09340820500209646,
+      0.9955765544434629
+     ],
+     "domain": {
+      "lower": [
+       -0.5,
+       -0.5
+      ],
+      "upper": [
+       127.5,
+       127.5
+      ]
+     },
+     "detector_frame": "x01"
+    },
     "width": 128,
     "height": 128
    },
    "quantity": "supported_flux",
-   "support_policy": "primitives",
+   "support_policy": "full_leaf_approx",
    "assume_uniform_uncovered": false,
    "output_dtype": "f64",
    "budget": {

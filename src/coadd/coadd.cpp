@@ -690,6 +690,9 @@ Result<Ref<Selection>> select_samples(Context& context, const FramesProvider& fr
   index->order = order;
   index->namespace_id = selection_index;
   index->ids = val(leaf_id_array);
+  index->identity = model::make_identity("acsd.Index", 2, 0,
+                                         model::hash_index(Index::Kind::leaf, leaf_count, order, {}),
+                                         "acsd");
 
   auto selection = std::make_shared<Selection>();
   selection->index = std::shared_ptr<const Index>(index);
@@ -1227,6 +1230,7 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
                                     "the combination is not available");
   }
   std::vector<double> combined(leaf_count, 0.0);
+  std::vector<std::uint8_t> leaf_state(leaf_count, 0);
   for (std::size_t leaf = 0; leaf < leaf_count && leaf < leaves.size(); ++leaf) {
     double sum = 0.0;
     double total = 0.0;
@@ -1242,6 +1246,7 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
     }
     if (total == 0.0) continue;
     combined[leaf] = sum;
+    leaf_state[leaf] = 1;
   }
   Result<ArrayRef> combined_array = operators::write_f64(
       context, combined, std::vector<U64>{static_cast<U64>(leaf_count)}, request.target.unit,
@@ -1256,7 +1261,39 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
   estimate->estimator = request.target;
   estimate->numerical_lower = nullptr;
   estimate->numerical_upper = nullptr;
-  estimate->support = nullptr;
+  // The coadded product carries the leaf support of the combined samples so
+  // that the published HiPS knows which leaves exist and which are absent.
+  {
+    const std::vector<std::byte> state_bytes = model::encode_u8(leaf_state);
+    Result<ArrayRef> state_array = context.storage.copy(
+        context, DType::u8, state_bytes,
+        std::vector<U64>{static_cast<U64>(leaf_state.size())}, model::unit_dimensionless(),
+        selection->index ? selection->index->identity.object_id : Id());
+    if (!ok(state_array)) {
+      return model::fail<CoaddResult>(state_array.code, "the support states cannot be stored",
+                                      "coadd", "the combination is not available");
+    }
+    const double leaf_area_sr =
+        4.0 * 3.14159265358979323846 / (12.0 * static_cast<double>(1ull << (2 * (selection->index ? selection->index->order : 0))));
+    std::vector<double> area_values(leaf_state.size(), leaf_area_sr);
+    Result<ArrayRef> area_array = operators::write_f64(
+        context, area_values, std::vector<U64>{static_cast<U64>(area_values.size())},
+        model::unit_sr(), "coadd_support_area");
+    if (!ok(area_array)) {
+      return model::fail<CoaddResult>(area_array.code, "the support area cannot be stored",
+                                      "coadd", "the combination is not available");
+    }
+    auto support = std::make_shared<SupportMap>();
+    support->kind = SupportMap::Kind::full_leaf_approx;
+    support->index = selection->index;
+    support->states = val(state_array);
+    support->area_lower_sr = val(area_array);
+    support->area_upper_sr = val(area_array);
+    support->identity = model::make_identity("acsd.SupportMap", 2, 0,
+                                             model::sha256_hex("acsd.coadd.support"), "acsd");
+    support->assessment = model::make_assessment(Code::ok);
+    estimate->support = std::shared_ptr<const SupportMap>(support);
+  }
   estimate->effective_response = nullptr;
   estimate->noise = weights->covariance;
   estimate->error = nullptr;
