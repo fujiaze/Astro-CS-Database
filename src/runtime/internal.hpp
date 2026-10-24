@@ -259,7 +259,8 @@ class BlockStore {
  public:
   void register_array(const Id& id,
                       std::shared_ptr<const std::vector<std::byte>> bytes,
-                      DType dtype, std::vector<U64> shape, Lease lease = {});
+                      DType dtype, std::vector<U64> shape, Lease lease = {},
+                      bool persistent = false);
   void register_blocks(const Id& array_id,
                        const std::vector<BlockDescriptor>& blocks);
   // Returns nullptr when the block is unknown; the caller reports
@@ -287,6 +288,9 @@ class BlockStore {
     std::vector<BlockDescriptor> blocks;
     Lease lease;
     U32 refs = 0;
+    // An ingested workflow input lives until the command closes; a bridge
+    // output is released by its Array reaper.
+    bool persistent = false;
   };
   mutable std::unordered_map<Id, Entry> entries_;
   mutable std::unordered_map<Id, BlockDescriptor> block_index_;

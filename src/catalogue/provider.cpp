@@ -171,6 +171,7 @@ class CatalogueProviderImpl final : public CatalogueProvider {
 
   // The exported index arrays, decoded once.
   std::vector<std::array<U64, 4>> quad_source_ids_;
+  std::vector<double> xp_coefficients_;  // cached row-major, avoids storage reads at query time
   std::vector<std::array<double, 4>> quad_descriptors_;
   std::vector<double> quad_baselines_;
   std::vector<Vec3> quad_centers_;
@@ -189,6 +190,17 @@ void CatalogueProviderImpl::load_index_arrays(Context& context) {
     return std::vector<std::byte>(val(view).bytes.begin(), val(view).bytes.end());
   };
 
+  if (index_->columns && index_->columns->xp_coefficients) {
+    const U64 coefficients = catalogue::spectral_coefficient_count(*index_->columns);
+    const U64 rows = index_->columns->xp_coefficients->shape.empty()
+                         ? 0
+                         : index_->columns->xp_coefficients->shape[0];
+    if (coefficients > 0 && rows > 0) {
+      const std::vector<std::byte> bytes =
+          read(index_->columns->xp_coefficients, rows * coefficients, DType::f64);
+      xp_coefficients_ = model::decode_f64(bytes);
+    }
+  }
   const std::vector<std::byte> source_bytes =
       read(index_->quad_source_ids, quad_source_ids_size(), DType::u64);
   const std::vector<U64> source_values = model::decode_u64(source_bytes);
@@ -292,16 +304,17 @@ Result<CatalogueStar> CatalogueProviderImpl::make_star(Context& context, const S
 
   // The spectral coefficients of this source are exported as their own array.
   const U64 coefficients = catalogue::spectral_coefficient_count(*index_->columns);
-  if (coefficients > 0 && index_->columns->xp_coefficients) {
-    const ArrayRef& source = index_->columns->xp_coefficients;
+  if (coefficients > 0 && !xp_coefficients_.empty()) {
     const std::size_t row_index = static_cast<std::size_t>(by_id_.at(row.source_id));
-    Result<ArrayView> view = context.storage.read(
-        context, source, BlockRequest{row_index * coefficients, coefficients});
-    if (ok(view)) {
-      const std::vector<std::byte> bytes(val(view).bytes.begin(), val(view).bytes.end());
+    if ((row_index + 1) * coefficients <= xp_coefficients_.size()) {
+      const std::vector<double> values(xp_coefficients_.begin() +
+                                           static_cast<long>(row_index * coefficients),
+                                       xp_coefficients_.begin() +
+                                           static_cast<long>((row_index + 1) * coefficients));
       const std::vector<U64> shape{coefficients};
-      Result<ArrayRef> copy = context.storage.copy(context, DType::f64, bytes, shape, source->unit,
-                                                    source->index_id);
+      Result<ArrayRef> copy = context.storage.copy(
+          context, DType::f64, model::encode_f64(values), shape, index_->columns->xp_coefficients->unit,
+          index_->columns->xp_coefficients->index_id);
       if (!ok(copy))
         return model::fail<CatalogueStar>(
             copy.code, "the XP coefficients cannot be copied for the source",
@@ -309,7 +322,7 @@ Result<CatalogueStar> CatalogueProviderImpl::make_star(Context& context, const S
       star.xp_coefficients = val(copy);
     } else {
       return model::fail<CatalogueStar>(
-          view.code, "the XP coefficients cannot be read for the source",
+          Code::missing_dependency, "the XP coefficients of the source are outside the catalogue",
           "catalogue.make_star", "the star has no spectral coefficients");
     }
   }

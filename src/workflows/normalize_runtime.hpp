@@ -62,6 +62,12 @@ inline Result<Done> ingest_array(Context& source, WorkflowRuntime& runtime,
   if (!array) return model::ok_result(Done{});
   const Id id = array->identity.object_id;
   if (runtime.ingested.count(id) != 0) return model::ok_result(Done{});
+  // The array may already live in the runtime BlockStore (an output of a
+  // previous Host invocation); it is then already served.
+  if (runtime.services->blocks->find(id)) {
+    runtime.ingested.insert(id);
+    return model::ok_result(Done{});
+  }
   const U64 count = runtime_element_count(array->shape);
   if (count == 0) {
     runtime.ingested.insert(id);
@@ -78,7 +84,7 @@ inline Result<Done> ingest_array(Context& source, WorkflowRuntime& runtime,
                                view.value->bytes.end());
   auto data = std::make_shared<const std::vector<std::byte>>(std::move(bytes));
   runtime.services->blocks->register_array(id, data, array->dtype,
-                                           array->shape);
+                                           array->shape, {}, true);
   runtime.ingested.insert(id);
   return model::ok_result(Done{});
 }

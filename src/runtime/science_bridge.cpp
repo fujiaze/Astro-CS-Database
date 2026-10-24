@@ -58,20 +58,30 @@ class BridgeStorage final : public Storage {
                                                          bytes.end());
     auto owner = std::make_shared<ArrayOwner>();
     owner->data = data;
-    if (arena_) {
-      ResourceVector required;
-      required.host_bytes = bytes.size();
-      auto claim = claim_capacity(arena_, required);
-      if (claim.code != Code::ok || !claim.value) {
-        result.code = claim.code;
-        return result;
-      }
+    // Prefer the invocation's persistent arena: a science array may be
+    // aliased to a later process (a catalogue star, a PSF parameter block).
+    // When the persistent arena has no room, fall back to the segment arena so
+    // a bounded segment can still produce a transient array.
+    ResourceVector required;
+    required.host_bytes = bytes.size();
+    Result<std::shared_ptr<ClaimImpl>> claim;
+    ArenaRef claim_arena =
+        ctx_.persistent ? ctx_.persistent : ArenaRef{};
+    if (claim_arena) claim = claim_capacity(claim_arena, required);
+    if ((claim.code != Code::ok || !claim.value) && arena_ &&
+        (!claim_arena || arena_ != claim_arena)) {
+      claim = claim_capacity(arena_, required);
+    }
+    if (claim.code == Code::ok && claim.value) {
       owner->claim = *claim.value;
       {
         std::lock_guard<std::mutex> lock(owner->claim->mutex);
         owner->claim->committed = true;
       }
       ledger_commit(owner->claim->arena->scope, required);
+    } else if (claim.code != Code::ok) {
+      result.code = claim.code;
+      return result;
     }
     std::vector<U64> shape_vec(shape.begin(), shape.end());
     const std::string hex =

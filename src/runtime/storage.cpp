@@ -1885,7 +1885,7 @@ namespace detail {
 
 void BlockStore::register_array(
     const Id& id, std::shared_ptr<const std::vector<std::byte>> bytes,
-    DType dtype, std::vector<U64> shape, Lease lease) {
+    DType dtype, std::vector<U64> shape, Lease lease, bool persistent) {
   if (!bytes) return;
   std::lock_guard<std::mutex> lock(mutex_);
   auto& entry = entries_[id];
@@ -1894,6 +1894,7 @@ void BlockStore::register_array(
   entry.shape = std::move(shape);
   // The entry keeps the capacity Lease alive as long as the stored bytes do.
   entry.lease = std::move(lease);
+  entry.persistent = entry.persistent || persistent;
 }
 
 void BlockStore::add_ref(const Id& id) {
@@ -1905,6 +1906,10 @@ bool BlockStore::release_ref(const Id& id) {
   std::lock_guard<std::mutex> lock(mutex_);
   auto it = entries_.find(id);
   if (it == entries_.end()) return true;
+  if (it->second.persistent) {
+    if (it->second.refs > 0) it->second.refs -= 1;
+    return false;
+  }
   if (it->second.refs > 1) {
     it->second.refs -= 1;
     return false;

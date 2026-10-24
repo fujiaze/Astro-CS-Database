@@ -1,5 +1,5 @@
 {
- "status": "fail",
+ "status": "pass",
  "route": "the three commands of the acsd command line on the frozen frames",
  "binary": "build/science/acsd",
  "inputs": {
@@ -20,15 +20,11 @@
  "stages": [
   {
    "command": "normalize",
-   "exit_code": 6,
-   "published": 4,
-   "unsolved": 4,
+   "exit_code": 0,
+   "published": 8,
+   "unsolved": 0,
    "failed_frames": 0,
-   "first_failure": {
-    "frame_id": "x01-04",
-    "code": "failed",
-    "message": "no quad of the detection matched the catalogue"
-   }
+   "first_failure": null
   },
   {
    "command": "mosaic",
@@ -52,10 +48,10 @@
  "commands": [
   {
    "command": "normalize",
-   "exit_code": 6,
-   "published": 4,
-   "unsolved": 4,
-   "stderr": "bt=7 lam=0.00781 obj=582600.62 trial=582600.62 diff=0\n[psf]   bt=0 lam=1 obj=1411615.91 trial=668480.617 diff=-743135.298\n[psf]   bt=0 lam=1 obj=668480.617 trial=667265.43 diff=-1215.18646\n[psf]   bt=0 lam=1 obj=667265.43 trial=667262.844 diff=-2.58656559\n[psf]   bt=0 lam=1 obj=667262.844 trial=667262.835 diff=-0.00860304537\n[psf]   bt=0 lam=1 obj=667262.835 trial=667262.835 diff=-3.46099259e-05\n[psf]   bt=0 lam=1 obj=667262.835 trial=667262.835 diff=-1.5378464e-07\n[psf]   bt=0 lam=1 obj=667262.835 trial=667262.835 diff=-9.31322575e-10\n[psf]   bt=0 lam=1 obj=667262.835 trial=667262.835 diff=0\n"
+   "exit_code": 0,
+   "published": 8,
+   "unsolved": 0,
+   "stderr": "=781953.551 diff=-0.00624094543\n[psf]   bt=0 lam=1 obj=781953.551 trial=781953.551 diff=-0.000123920501\n[psf]   bt=0 lam=1 obj=781953.551 trial=781953.551 diff=-2.47918069e-06\n[psf]   bt=0 lam=1 obj=781953.551 trial=781953.551 diff=-5.25033101e-08\n[psf]   bt=0 lam=1 obj=781953.551 trial=781953.551 diff=-2.32830644e-10\n[psf]   bt=0 lam=1 obj=781953.551 trial=781953.551 diff=9.31322575e-10\n[psf]   bt=1 lam=0.5 obj=781953.551 trial=781953.551 diff=1.16415322e-09\n[psf]   bt=2 lam=0.25 obj=781953.551 trial=781953.551 diff=6.98491931e-10\n[psf]   bt=3 lam=0.125 obj=781953.551 trial=781953.551 diff=0\n"
   },
   {
    "command": "mosaic",

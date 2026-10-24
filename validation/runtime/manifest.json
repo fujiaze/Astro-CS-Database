@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-24T10:20:12.735348+00:00",
-  "git_commit": "b592d88e01f9b6cfcaf32ef554ae6fc7a9c0197e",
+  "generated_at": "2026-10-24T18:09:29.858421+00:00",
+  "git_commit": "71e612b339a1d57f1f77e22f96f5bf5bc2c6255c",
   "build_dir": "/tmp/acsd-build",
   "milestone_scope": "M0-M4 snapshot: runtime contracts (REG01/S-LIFE/S-WORK/A01/S-FLOOR/S-FORK/S-ORDER/S-BARRIER/S-MULTI/PIPE01/S-IO/B01/D01) and the observation.calibrate Host chain. M5 module integration is not part of this manifest.",
   "build_note": "build.sh selects the build directory per case: d01_on/case.json has link=dev and links against $ACSD_DEV_BUILD (default /tmp/acsd-build-dev, ACSD_DEV_MODE=1); every other case links against $ACSD_BUILD (default /tmp/acsd-build, ACSD_DEV_MODE=0). The actual -L directory is recorded in each comparison.build.link_command.",

@@ -23,6 +23,7 @@
 
 #include "acsd/contracts.hpp"
 #include "model/array.hpp"
+#include "coordinates/tan_sip.hpp"
 #include "model/result.hpp"
 #include "model/units.hpp"
 #include "operators/linear_action.hpp"
@@ -563,8 +564,6 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     // The catalogue stars of the field.  query() is a provider method of the
     // storage service (WORKFLOWS: provider methods are not per-call processes);
     // the returned stars are ingested for the typed steps that consume them.
-    CatalogueQuery query;
-    query.region.center = SkyICRS{wcs->c[0], wcs->c[1], wcs->c[2]};
     const double scale = request.astrometry.scale_rad_pixel.upper > 0.0
                              ? request.astrometry.scale_rad_pixel.upper
                              : 1e-6;
@@ -574,6 +573,15 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       width = observation->footprints->width;
       height = observation->footprints->height;
     }
+    // The search centre is the sky direction of the detector centre, not the
+    // CRVAL of the tangent point: a blind solution may put CRPIX far outside
+    // the detector while still mapping every pixel correctly.
+    const Vec2 uv = coordinates::pixel_to_uv(
+        *wcs, 0.5 * static_cast<double>(width), 0.5 * static_cast<double>(height));
+    const SkyICRS field_center =
+        coordinates::direction_from_tangent(*wcs, coordinates::tangent_offset(*wcs, uv[0], uv[1]));
+    CatalogueQuery query;
+    query.region.center = field_center;
     const double radius =
         0.5 * std::sqrt(static_cast<double>(width) * static_cast<double>(width) +
                          static_cast<double>(height) * static_cast<double>(height)) *

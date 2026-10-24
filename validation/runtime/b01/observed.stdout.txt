@@ -27,7 +27,7 @@
     {"check": "b01.cancel_first_append_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "b01.cancel_allocate_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "b01.cancel_append_terminal_named", "pass": true, "expected": "cancelled or ok", "actual": "cancelled", "detail": ""},
-    {"check": "b01.cancel_no_half_product", "pass": true, "expected": "seal does not deliver an ArrayRef", "actual": "cancelled(cancelled:runtime.storage.seal:append I/O failed)", "detail": ""},
+    {"check": "b01.cancel_no_half_product", "pass": true, "expected": "seal does not deliver an ArrayRef", "actual": "cancelled(cancelled:runtime.storage.seal:work budget exhausted)", "detail": ""},
     {"check": "b01.cancel_abort_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "b01.bits_open_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},
     {"check": "b01.bits_reserve_ok", "pass": true, "expected": "ok", "actual": "ok", "detail": ""},

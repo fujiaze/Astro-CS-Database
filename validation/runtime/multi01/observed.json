@@ -38,7 +38,7 @@
       "check": "multi.run0_complete_windows",
       "pass": true,
       "expected": ">= 100 feasible sliding windows",
-      "actual": "734",
+      "actual": "451",
       "detail": ""
     },
     {
@@ -59,7 +59,7 @@
       "check": "multi.run0_command_concurrency",
       "pass": true,
       "expected": "each command <= ceiling.cpu_tokens=2",
-      "actual": "1/2",
+      "actual": "2/2",
       "detail": ""
     },
     {
@@ -94,7 +94,7 @@
       "check": "multi.run1_complete_windows",
       "pass": true,
       "expected": ">= 100 feasible sliding windows",
-      "actual": "645",
+      "actual": "517",
       "detail": ""
     },
     {
@@ -150,7 +150,7 @@
       "check": "multi.run2_complete_windows",
       "pass": true,
       "expected": ">= 100 feasible sliding windows",
-      "actual": "453",
+      "actual": "520",
       "detail": ""
     },
     {
@@ -171,7 +171,7 @@
       "check": "multi.run2_command_concurrency",
       "pass": true,
       "expected": "each command <= ceiling.cpu_tokens=2",
-      "actual": "1/2",
+      "actual": "2/2",
       "detail": ""
     },
     {
@@ -206,7 +206,7 @@
       "check": "multi.run3_complete_windows",
       "pass": true,
       "expected": ">= 100 feasible sliding windows",
-      "actual": "473",
+      "actual": "665",
       "detail": ""
     },
     {
@@ -227,7 +227,7 @@
       "check": "multi.run3_command_concurrency",
       "pass": true,
       "expected": "each command <= ceiling.cpu_tokens=2",
-      "actual": "1/2",
+      "actual": "2/2",
       "detail": ""
     },
     {
@@ -262,7 +262,7 @@
       "check": "multi.run4_complete_windows",
       "pass": true,
       "expected": ">= 100 feasible sliding windows",
-      "actual": "697",
+      "actual": "501",
       "detail": ""
     },
     {
@@ -283,7 +283,7 @@
       "check": "multi.run4_command_concurrency",
       "pass": true,
       "expected": "each command <= ceiling.cpu_tokens=2",
-      "actual": "2/2",
+      "actual": "1/2",
       "detail": ""
     },
     {
@@ -303,39 +303,39 @@
   ],
   "values": {
     "multi.run0_dispatches": 800,
-    "multi.run0_complete_windows": 734,
+    "multi.run0_complete_windows": 451,
     "multi.run0_violations": 0,
-    "multi.run0_skipped_windows": 64,
+    "multi.run0_skipped_windows": 347,
     "multi.run0_ratio_info": 2,
-    "multi.run0_sample": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
+    "multi.run0_sample": "2,1,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,1,2,1,2,2,1,2,2,1,2,2",
     "multi.run0_violation_detail": "",
     "multi.run1_dispatches": 800,
-    "multi.run1_complete_windows": 645,
+    "multi.run1_complete_windows": 517,
     "multi.run1_violations": 0,
-    "multi.run1_skipped_windows": 153,
+    "multi.run1_skipped_windows": 281,
     "multi.run1_ratio_info": 2,
-    "multi.run1_sample": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
+    "multi.run1_sample": "1,2,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
     "multi.run1_violation_detail": "",
     "multi.run2_dispatches": 800,
-    "multi.run2_complete_windows": 453,
+    "multi.run2_complete_windows": 520,
     "multi.run2_violations": 0,
-    "multi.run2_skipped_windows": 345,
+    "multi.run2_skipped_windows": 278,
     "multi.run2_ratio_info": 2,
-    "multi.run2_sample": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
+    "multi.run2_sample": "1,2,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
     "multi.run2_violation_detail": "",
     "multi.run3_dispatches": 800,
-    "multi.run3_complete_windows": 473,
+    "multi.run3_complete_windows": 665,
     "multi.run3_violations": 0,
-    "multi.run3_skipped_windows": 325,
+    "multi.run3_skipped_windows": 133,
     "multi.run3_ratio_info": 2,
-    "multi.run3_sample": "1,2,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
+    "multi.run3_sample": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
     "multi.run3_violation_detail": "",
     "multi.run4_dispatches": 800,
-    "multi.run4_complete_windows": 697,
+    "multi.run4_complete_windows": 501,
     "multi.run4_violations": 0,
-    "multi.run4_skipped_windows": 101,
+    "multi.run4_skipped_windows": 297,
     "multi.run4_ratio_info": 2,
-    "multi.run4_sample": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,1,2,2,1,2,2,1,2,2,1,2,2,1",
+    "multi.run4_sample": "2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2,2,1,2",
     "multi.run4_violation_detail": ""
   },
   "resources": {},

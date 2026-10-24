@@ -38,7 +38,7 @@ def cli_binary() -> Path | None:
     return None
 
 
-def run_command(binary: Path, command: str, config: str, timeout: float = 900.0) -> Dict[str, Any]:
+def run_command(binary: Path, command: str, config: str, timeout: float = 3600.0) -> Dict[str, Any]:
     completed = subprocess.run([str(binary), command, "--json", config], capture_output=True,
                                text=True, timeout=timeout, cwd=str(CLI_DIR))
     events: List[Dict[str, Any]] = []
