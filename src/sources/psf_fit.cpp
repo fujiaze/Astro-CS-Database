@@ -8,6 +8,8 @@
 // implementation never reduces the requested degree behind the user's back.
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <limits>
 #include <vector>
 
@@ -270,10 +272,12 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
         double template_sum = 0.0;
         for (std::size_t k = 0; k < fit_rows.size(); ++k) {
           const U64 row = fit_rows[k];
+          const double weight = val(initial).values[k * sources + s];
+          if (!(weight > 0.0)) continue;  // only this source's own window
           if (row < val(data).size() && std::isfinite(val(data)[static_cast<std::size_t>(row)])) {
             signal += val(data)[static_cast<std::size_t>(row)] - background;
           }
-          template_sum += val(initial).values[k * sources + s];
+          template_sum += weight;
         }
         if (template_sum > 0.0) theta[shape_count + 3 * s + 2] = signal / template_sum;
       }
@@ -352,7 +356,6 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
     }
     objective = 0.0;
     for (double r : residuals) objective += 0.5 * r * r;
-
     // The model has to have support on the fit samples.  A template without
     // any mass is a degenerate model, and the rank of such a design says
     // nothing about the estimability of the parameters.
