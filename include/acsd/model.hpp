@@ -439,7 +439,7 @@ struct NormalizeRequest { std::vector<NormalizeFrame> frames; SolverRequest astr
   std::vector<PublishRequest> outputs; };
 struct NormalizeResult { std::vector<ProductLocation> published;
   std::vector<std::pair<Id,Assessment>> frames; };
-struct MosaicRequest { std::vector<ProductLocation> inputs; SkyRequest sky;
+struct MosaicRequest { std::vector<ProductLocation> inputs; SkyRequest sky{};
   CoaddRequest coaddition; PublishRequest output; };
 struct ExportWorkflowRequest { ProductLocation input; ExportRequest projection;
   PublishRequest output; };
