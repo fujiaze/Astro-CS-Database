@@ -160,6 +160,10 @@
   "sky_order": 5,
   "max_stars_per_cell": 64,
   "neighbors_per_anchor": 12,
-  "quads_per_anchor": 8
+  "quads_per_anchor": 8,
+  "quad_baseline_rad": {
+   "lower": 1e-05,
+   "upper": 0.01
+  }
  }
 }

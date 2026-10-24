@@ -102,6 +102,7 @@ def catalogue_document() -> Dict[str, Any]:
             "max_stars_per_cell": 64,
             "neighbors_per_anchor": 12,
             "quads_per_anchor": 8,
+            "quad_baseline_rad": {"lower": 1.0e-5, "upper": 1.0e-2},
         },
     }
 
