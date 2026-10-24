@@ -1,6 +1,6 @@
 # operators.action：线性action
 
-状态：目标process文档；对应科学函数可已有部分实现，标准注册/生命周期/探针尚未据本文落地。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
+状态：本篇规定目标算法及实施合同；已有部分Runtime和科学模块实现，具体完成/验收只看[统一状态](../../../audit/IMPLEMENTATION-STATUS.md)，不能由本文标题推断全部未实现或已通过。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
 
 ## 注册与边界
 
@@ -33,7 +33,7 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 
 最小反例：U01/R01；显式矩阵、内积转置恒等式、signed系数、单位/index冲突。还需通过公共注册/取消/资源/单线程与多线程矩阵；计时必须包含本process的读取、执行、封存及明确分摊的共享成本，不能用失败更快冒充优化。
 
-改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，文档中的角色名不表示头文件现已提供新接口。
+改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，当前接口及能力以公开头/registry核对，规格与代码偏差必须明确记录。
 
 ## 算法详细条款
 
@@ -65,8 +65,28 @@ dependency_blocks、serialize_recipe、row_enclosure通过本process中具名typ
 
 ## 直接开发的实施合同
 
-本process全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
+本process的算法复现按[独立实施标准](../standards/ALGORITHM_CONTRACTS.md)验收。全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
 
 有全局拟合屏障时拆stream→ordered_accumulator→barrier region：每cohort提交R内聚合状态即可退F，不能让唯一进展cohort等待下一cohort。科学迭代以显式epoch重新准入，work不重置。取消/失败只允许内建清理继续，模块不提交新科学计算；公开输出只在所有必需任务/写入/校验结束后交付。
 
 实施交付包含所属模块plan/kernel/adapter/codec、独立小例/负例及真实service资源/取消证据，逐项门槛见[DEVELOPMENT](../standards/DEVELOPMENT.md)。完整编排代码可参照[校准实施例](../standards/CALIBRATION_WALKTHROUGH.md)，不得复制其中像元公式到其它process。GPU只预留同一批次/内存位置/完成事件边界，不实现后端。
+
+## 可独立实施的算法合同
+
+### 七种operation的具体程序
+
+| operation | 执行与能力 | 资源/误差边界 |
+|---|---|---|
+| make_action | 解析OBJECTS白名单recipe，检查有序children/arrays和DAG无环；CSR offsets单调、末项=nnz、列域合法，同列重复按稳定顺序合并 | 校验O(rows+nnz+children)，大型清单分块；未知recipe unsupported |
+| apply | identity/diagonal直接映射，CSR按行和列index固定归约，compose先inner再outer，solve按持久化系统/容差 | CSR O(nnz)，名义/输入/系数区间同传播；solve成本如实登记，不能叫O(nnz) |
+| transpose_apply | CSR按原列归并散射、固定source key；compose按innerᵀouterᵀ，solve调用实际转置系统 | 需要外存时排序spool，不能只交换shape/复用正向解 |
+| compose | 校验inner.codomain=outer.domain的单位/index，生成惰性recipe并保依赖 | 不强制物化矩阵；串行复用峰值需计中间向量与两个workspace |
+| action.dependency_blocks | 从请求输出行反查真实输入块，compose递归去重，transpose反向；返回稳定有序集合 | solve通常全耦合，不能宣称只触及同号行；index/版本锁定 |
+| action.serialize_recipe | 输出当前白名单recipe/有序依赖/hash，无地址/线程/stream/隐藏路径 | 所有children可新进程重开；缺闭包missing_dependency |
+| action.row_enclosure | 在真正具备逐行系数/绝对能力时返回名义及严格包含，signed保持符号 | solve等无显式行能力可unsupported；不能用全0行替代 |
+
+一般误差传递`|Δ(Ax)|≤|A0|e_x+E_A(|x0|+e_x)+归约舍入`，绝对action不是把signed结果取绝对值。求解action的界由NUMERICS扰动/残差给，未验证原语或秩不稳定时不认证。unknown误差不改成0；同源块/recipe共享只计一次物理lease。
+
+### 固定反例、停止与复用
+
+A-OPS用A=[[1,2],[0,3]]、x=[4,5]，Ax=[14,15]，对y=[7,11]有Aᵀy=[7,47]，两侧内积263；七个入口需各自typed/wire可达。duplicate COO同列须求和；signed误差用[1,-1]不能互消；compose以非对易2×2矩阵验证顺序；低H transpose必须外存完成或在开始前具名拒绝。取消在读取/归约/迭代段检查，不能无限排队；row_enclosure能力缺失要真正失败，不能只测metadata能序列化。

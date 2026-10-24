@@ -1,6 +1,6 @@
 # coordinates.wcs：规范WCS与坐标
 
-状态：目标process文档；对应科学函数可已有部分实现，标准注册/生命周期/探针尚未据本文落地。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
+状态：本篇规定目标算法及实施合同；已有部分Runtime和科学模块实现，具体完成/验收只看[统一状态](../../../audit/IMPLEMENTATION-STATUS.md)，不能由本文标题推断全部未实现或已通过。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
 
 ## 注册与边界
 
@@ -33,7 +33,7 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 
 最小反例：C01/G01；非整数CRPIX、镜像CD、极点、SIP、域外逆与残差证书。还需通过公共注册/取消/资源/单线程与多线程矩阵；计时必须包含本process的读取、执行、封存及明确分摊的共享成本，不能用失败更快冒充优化。
 
-改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，文档中的角色名不表示头文件现已提供新接口。
+改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，当前接口及能力以公开头/registry核对，规格与代码偏差必须明确记录。
 
 ## 算法详细条款
 
@@ -83,8 +83,22 @@ bind_wcs另接solution：solver成功传AstrometricSolution，supplied WCS可显
 
 ## 直接开发的实施合同
 
-本process全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
+本process的算法复现按[独立实施标准](../standards/ALGORITHM_CONTRACTS.md)验收。全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
 
 有全局拟合屏障时拆stream→ordered_accumulator→barrier region：每cohort提交R内聚合状态即可退F，不能让唯一进展cohort等待下一cohort。科学迭代以显式epoch重新准入，work不重置。取消/失败只允许内建清理继续，模块不提交新科学计算；公开输出只在所有必需任务/写入/校验结束后交付。
 
 实施交付包含所属模块plan/kernel/adapter/codec、独立小例/负例及真实service资源/取消证据，逐项门槛见[DEVELOPMENT](../standards/DEVELOPMENT.md)。完整编排代码可参照[校准实施例](../standards/CALIBRATION_WALKTHROUGH.md)，不得复制其中像元公式到其它process。GPU只预留同一批次/内存位置/完成事件边界，不实现后端。
+
+## 可独立实施的算法合同
+
+### 被计算对象与操作序列
+
+唯一坐标/TAN/SIP/整域单射定义见[观测与坐标基础](../../../science/foundation/OBSERVATION_COORDINATES.md)。make_wcs先规范header单位/轴/CRPIX/参考系，构造同一WcsModel的解析多项式和导数，再以覆盖全部FootprintSet的Box验证定义域、非奇异/单射及60°准入。不能以匹配星或网格点代替整域证明；基础中的充分判据不成立是未决，不自动证明模型一定非法。
+
+forward.center0/edge0只在绑定detector坐标中各自解释原点；共享一次解析表达式。derivative直接解析微分，solid_angle_jacobian用同一导数/球面换元有向求界；禁止有限差分作正式包含。inverse先作天空到切平面，Newton求名义点，再用区间根盒证明域内存在/唯一及残差，root_box和天空总误差分列。跨RA切线用三维单位向量/atan2误差，不能直接减RA。
+
+### 参数、资源与停止
+
+所有容差/位长/迭代来自NumericBudget，模型误差来自输入头/context，不从roundtrip自造。work计每Box/解析/精度段；F含degree对应系数/区间、逆根盒队列及MPFR位长。Box队列有界，不能把全域细分节点无限驻留。原语未认证、极点分支/导数符号未决或唯一性不能证实时，按domain/precision_exhausted及具体reason返回；不以中心值WCS继续严格geometry。bind_wcs只在域/frame一致后创建新revision。
+
+W-ORIGIN用CRPIX=(17.293,41.617)的非整数外部真值，W-SIP用Jacobian跨0而采样点均正常的多项式，W-CUT跨RA0及靠近天极，W-PRIMITIVE使用sin[1000,1002]依赖负例证明认证不能越过NUMERICS门槛。C01需独立标准库世界坐标对照；有小roundtrip仍不能省原点/全域准入负例。

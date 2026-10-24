@@ -1,6 +1,6 @@
 # observation.calibrate：观测校准
 
-状态：目标process文档；对应科学函数可已有部分实现，标准注册/生命周期/探针尚未据本文落地。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
+状态：本篇规定目标算法及实施合同；已有部分Runtime和科学模块实现，具体完成/验收只看[统一状态](../../../audit/IMPLEMENTATION-STATUS.md)，不能由本文标题推断全部未实现或已通过。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
 
 ## 注册与边界
 
@@ -33,7 +33,7 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 
 最小反例：U01/F01/X01；常量flat、带bias的dark、共享母版、flat≤0及非有限输入。还需通过公共注册/取消/资源/单线程与多线程矩阵；计时必须包含本process的读取、执行、封存及明确分摊的共享成本，不能用失败更快冒充优化。
 
-改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，文档中的角色名不表示头文件现已提供新接口。
+改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，当前接口及能力以公开头/registry核对，规格与代码偏差必须明确记录。
 
 ## 算法详细条款
 
@@ -71,8 +71,18 @@ NativeObservation.numerical_lower/upper随integrated_values同index；calibrate�
 
 ## 直接开发的实施合同
 
-本process全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
+本process的算法复现按[独立实施标准](../standards/ALGORITHM_CONTRACTS.md)验收。全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
 
 有全局拟合屏障时拆stream→ordered_accumulator→barrier region：每cohort提交R内聚合状态即可退F，不能让唯一进展cohort等待下一cohort。科学迭代以显式epoch重新准入，work不重置。取消/失败只允许内建清理继续，模块不提交新科学计算；公开输出只在所有必需任务/写入/校验结束后交付。
 
 实施交付包含所属模块plan/kernel/adapter/codec、独立小例/负例及真实service资源/取消证据，逐项门槛见[DEVELOPMENT](../standards/DEVELOPMENT.md)。完整编排代码可参照[校准实施例](../standards/CALIBRATION_WALKTHROUGH.md)，不得复制其中像元公式到其它process。GPU只预留同一批次/内存位置/完成事件边界，不实现后端。
+
+## 可独立实施的算法合同
+
+### 执行顺序与认证依赖
+
+本篇的公式、四writer编排、R/F/E及全部固定C-CAL输入唯一见[完整实施例](../standards/CALIBRATION_WALKTHROUGH.md)，不复制第二套校准器。validate只核元数据；load读并验证实际输入后，kernel按同一个公式同时产生value/lower/upper/DQ，sink排空四writer。缺省master为标量0/0/1，不分配全图；dark含bias的同bias系数为β−1。
+
+参数唯一来自Calibration、Raw.context/单位和NumericBudget；flat≤0/NaN/DQ冲突按实施例处理，负raw/x合法。数值包围须依赖已验证四则，随机shot/master根另算；未验证interval实现不能把正常输出称certified。像元之间可并行，母版和noise根共享；所有输入/输出/codec/区间临时峰值必须在60n+S及持久R中实测核对，不能只证明预留数值合适。
+
+验收在C-CAL上增加A-CAL-PEAK：真实allocator日志逐块证明输入34n、输出26n与S的上界，失败allocate不增allocated，第四writer seal失败后前三个私有产物回收。A-CAL-CERT让N-ADD失败后，上游不得仍标严格数值证书。取消、work耗尽、DEV_MODE磁盘故障按既有完整实施例；这些是待实跑门槛。

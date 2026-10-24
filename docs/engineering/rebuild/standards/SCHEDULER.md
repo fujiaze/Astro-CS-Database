@@ -122,4 +122,14 @@ await把当前执行段转suspended并交回CPU token，完成事件只把预留
 
 正式门禁同时要求（a）**安全/正确性**：完整可行轮的违规数为 0、每 command 不超自身并发 ceiling、不漏任务、不出现饥饿；（b）**观测充分性**：每次运行至少 100 个完整可行轮，连续 5 次运行每次都满足（a）和（b）。样本不足既不是证明公平性错误，也**不是通过证据**，应保留 `FAIL/INSUFFICIENT_COVERAGE` 的原始记录并诊断 producer 供给/并发窗口/调度行为，不削弱条件或挑一次绿的取代。窗口 P=1 时 `2P=2` 无法同时容纳 1+2 ready item，不能以该配置认证三次 dispatch 的 1:2 完整轮；仍需独立验证其可进展性。
 
-截至本次文档订正，`validation/runtime/multi01/comparison.json` 的五次中有一次仅 74 个完整可行轮，测试结论仍是 FAIL；五次完整轮的记录中暂未发现权重多重集违规。将这一诊断与下一轮稳定性改进分别追踪，不把现存失败表述成已通过。
+早期冻结快照的五次中有一次仅74完整可行轮，因此该attempt保留FAIL。较新manifest在b592d88被测代码上记录multi01 42/42检查PASS，不再将早期失败作为当前结论。实际测试/fixture变化及新HEAD适用范围按IMPLEMENTATION-STATUS核对；本段规定样本/公平性标准，不手写第二份实时状态。
+
+## 控制元数据、并发快照和跨模块进展
+
+控制metadata同样必须先准入：plan给最大展开cohort数、每stage Task/continuation/cancel/pipe/permit节点数，包含std::function捕获、可变长ID/Issue和allocator对齐/容量。不能只按sizeof(Task)忽略堆内存；具体布局的上界由实现给出并用分配日志核验。重用节点池的物理容量只计一次，逻辑slot分别计；节点耗尽暂停展开，不在内存不足时依赖未预留new才能取消/唤醒。
+
+scope/祖先账本的held/claimed/allocated/work_reserved和peak快照必须在同一事务时点读取；跨不同锁时点拼字段可能出现伪越额/漏计，不可拿它作资源正确证据。CPU时间以真实task执行段汇总，不取进程CPU差归某并发调用；不可取得就null。
+
+最小进展保证的前提是：region内DAG有限无环、每段真实最大工作集已计F、最低Key的整组发布信用受保护、每个执行段有限且实际I/O最终完成或失败、cleanup有预留额度。沿拓扑选一个ready保底stage即可串行推进；分支不持部分permit等另一分支，sink交R/完成真实写后退F，stream到barrier通过已计R累加器解除跨cohort等待。这是条件性进展论证，不承诺磁盘永久不返回时的硬实时。
+
+PIPE-CHAIN必须在同一Host真实串接三段科学模块、fork/join/有序sink和全局barrier，H=R+F、E=0、P=1/多线程、低Key磁盘慢和取消分别执行；再减到低于不可拆最小F应启动前拒绝。检查实际live allocation和信用流转，不仅看正常输入未挂起。不同region并行需要E追加额度，不能重复借唯一F。

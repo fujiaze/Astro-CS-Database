@@ -1,6 +1,6 @@
 # 独立 Agent 真值协议与架构审核
 
-本协议依据[独立证据规范](../../science/foundation/INDEPENDENT_ORACLES.md)，使用[公共 API](API.md)验证[统一对象](OBJECTS.md)和[执行模型](EXECUTION.md)。本篇定义验收目标与审核条件，**不代表已经通过**。已有 M0—M4 Runtime 实跑（16 case 中 15 pass、multi01 fail）和部分 M5 typed 模块结果；实际证据范围以 [实施状态正本](../../audit/IMPLEMENTATION-STATUS.md) 与冻结 manifest/comparison 为准。有限历史证据保持自己的输入与源码身份，不转记为新核心证据。
+本协议依据[独立证据规范](../../science/foundation/INDEPENDENT_ORACLES.md)，使用[公共 API](API.md)验证[统一对象](OBJECTS.md)和[执行模型](EXECUTION.md)。本篇定义验收目标与审核条件，**不代表已经通过**。已有M0—M4 Runtime较新16/16冻结PASS和部分M5结果，但共享严格数值认证仍有阻碍；实际证据范围以 [实施状态正本](../../audit/IMPLEMENTATION-STATUS.md) 与冻结 manifest/comparison 为准。有限历史证据保持自己的输入与源码身份，不转记为新核心证据。
 
 ## 独立性和输入包
 
@@ -127,3 +127,13 @@ PROC01另须覆盖coadd三个typed阶段：已生成Selection/WeightSolution可�
 M0抽取FOUNDATION_API和COMPUTE_MODULES声明检查C++20，并对校准run/finalize/typed登记做拼接类型检查；这仅检查文档合同，不算服务实跑。实际实现须按DEVELOPMENT从M1起交S-WORK/FLOOR/FORK/ORDER/BARRIER/MULTI/IO/LIFE证据，并执行CALIBRATION_WALKTHROUGH的C-CAL冷磁盘validate、取消+science work耗尽仍可cleanup、四writer失败seal等固定case。
 
 注册负例必须包括TypeId与C++T不一致、缺codec/schema、make_pipe缺region/edge或重复绑定；重规划必须通过显式PlanOptions调用并重算非线性workspace，不能缩比例。allocator失败不增物理peak，close与commit竞争不漏记物理字节；cleanup-only故障只作次要Issue。未满足这些门槛不能把“可编译”报告成基建运行正确。
+
+## 第二轮数值及陌生开发者复现验收
+
+先通过[NUMERICS](standards/NUMERICS.md)的N-ADD/PERIOD/POW/ANGLE/COMPOSE/LINALG，认证依赖按原语/域/编译环境分别冻结。原语失败时相应上游certified路径阻断，普通正常算例成功不覆盖它。先核共享原语，再对WCS/geometry/PSF/photometry实际使用链复跑；既有产品的影响依据来源/依赖追踪，不未经证据宣布全量污染。
+
+按[ALGORITHM_CONTRACTS](standards/ALGORITHM_CONTRACTS.md)对22篇process分别执行陌生开发者复现：只读规范/API→独立伪代码/数学例→冻结truth→typed/wire/真实服务observed→比较。矩阵小例须核非对角、秩/unknown和数值界，不能只看code=ok。特别是M-MEASURE/I-POLY/D-ROW、七项action、Selection状态和PSD/QP各策略必须各有反例。使用统一模板/链接覆盖检查仅证明结构，不证明算法等价或可复现。
+
+状态证据以tested source、test/fixture、规范、环境/flags、实际运行及归档身份分别记录，详见[状态正本](../../audit/IMPLEMENTATION-STATUS.md)。新HEAD不自动继承PASS，也不因文档提交就抹掉有效历史PASS；依赖内容/fixture/断言变化且未复验则当前结论PENDING。旧FAIL可保失败attempt，同时用较新冻结PASS明确替代，禁止两个相反当前裁决并存。
+
+新增基础反例：RES-META在极低H计入Task/capture/strings/continuation/pipe节点，RES-SNAPSHOT并发时快照同一账本时点；PIPE-CHAIN是三段map→fork/join→写入再barrier、E=0且慢I/O的真实组合，不只分别测两段pipe。ST-DYADIC以精确可变长端点跨1024边界，ST-OVERFLOW覆盖shape/count/itemsize/spill/offset乘加溢出及失败前无分配，ST-REOPEN新进程只凭full闭包重开。全部是待生产实施验收，本轮不修改或伪造observed。

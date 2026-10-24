@@ -171,3 +171,9 @@ finish_native使用同一校准模型构造器绑定SignalArrays、Raw.context/f
 | 三角网 | 当前chart控点/triangle/精确谓词、halo/holes/查询批次；典型O(MlogM)不是内存上限证明 |
 
 每个process的plan需给min_block_elements、可分块轴与不可拆barrier、以上项的来源/上界及spill路线。实施表见[DEVELOPMENT](DEVELOPMENT.md)；缺任何必需workspace上界不得宣称该模块已完成接入。
+
+## 算法规格与认证能力的接入门槛
+
+22篇process的“可独立实施的算法合同”与[ALGORITHM_CONTRACTS](ALGORITHM_CONTRACTS.md)是具体算法分支/参数/错误的实施标准。库模块函数必须复用这些唯一实现，不能因为接口可编译就改用另一种估计量。所有声明/codec/57项binding和真实生产路径逐项映射；没有逐项例子的“全部支持”不成立。
+
+新增数值能力须登记NUMERICS的实际原语/域/精度证明和独立测试；CPU batch返回完成不等于数值certified。未来GPU继续沿同一边界验证，缺严格能力显式CPU或unsupported；本轮只完善设计。probe不只登记：每个所属模块要有生产采样、载荷单位/index、OFF/ON科学等价与故障证据，目录检查不能证明probe实际执行。

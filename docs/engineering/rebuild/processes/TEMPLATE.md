@@ -28,3 +28,7 @@
 ## 详细接口/资源检查
 
 实现FOUNDATION_API的Operation五hooks：validate、bounds、plan(显式PlanOptions)、run、finalize；先登记TypeId/schema/codec。plan包含region/跨region累加边、cleanup额度和物理claim/commit模型。给F生存期模拟及最坏workspace界、E窗口、PlanOptions缩块/spill反例；有全局barrier还须E=0多cohort可推进。不能只填函数名和“资源由框架管理”即声称可交付。
+
+## 可独立实施的算法合同
+
+按[ALGORITHM_CONTRACTS](../standards/ALGORITHM_CONTRACTS.md)逐项补齐估计量/假设、每个operation的确定伪代码、参数来源、数值证书/随机根/unknown、精度/停止、失败/partial状态表、资源与最小单元、上下游失效和固定独立例。没有公开参数就不能让实现者自由选择背景阶数/likelihood/排异策略。至少一个陌生审核者仅凭规范/公开API复算例子并给可执行步骤；必须读src才做得出的关键决定视为规格未完成。

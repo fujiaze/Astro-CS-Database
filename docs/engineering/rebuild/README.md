@@ -2,7 +2,7 @@
 
 当前处于内部重构开发阶段，采用一套当前标准，允许破坏式修改；不要求v1或早期v2接口/产品/配置兼容。v1只作为“文档完整度”参照，不移植其Runtime或实现层次。Git历史和科学原始证据继续保留。
 
-**版本状态（核查 2026-10-24，代码锚点 `6f08c4e`）**：标准 Runtime 的公开头、Host/registry、Pool/Task/Pipe、Storage、诊断与校准 Host 路径已有实际实现；M5 部分科学模块已接入，M6 完整链尚未验收。冻结的 Runtime 证据为 16 case 中 15 pass、`multi01` fail。各能力必须按 [实施与验收状态](../../audit/IMPLEMENTATION-STATUS.md) 而非设计文档存在与否判断；GPU 仍只设计扩展，首期 CPU。
+**版本状态（核查2026-10-24，受检代码13740080）**：Runtime公开头、Host/registry、Pool/Task/Pipe、Storage、诊断与校准路径已有实现；较新Runtime记录16/16冻结PASS，M5部分接入、M6整链待验收，严格数值原语/证书仍有阻碍。各能力必须按 [实施与验收状态](../../audit/IMPLEMENTATION-STATUS.md) 而非设计文档存在与否判断；GPU 仍只设计扩展，首期 CPU。
 
 ## 阅读顺序与唯一所有权
 
@@ -35,3 +35,7 @@ ACSD首期Windows/Linux amd64 CPU，科学天空ICRS/HEALPix NESTED、order≤29
 规范实施依赖次序：VirtualComputePool/Task/Pipe及可复用模块强类型边界→Host/registry→公共资源/Storage/CPU执行与默认观测→逐模块CPU接入→固定工作流/CLI/driver统一装配→实际验收。此箭头是依赖关系，不表示前项未写代码或已全部通过；各项现况以状态表和实跑 case 为准。未来GPU沿既定KernelExecutor/ArrayBacking/Completion合同扩展，不要求当前实现CUDA/ROCm、保留旧API或双版本产品reader。
 
 本次更正见[process框架记录](../../audit/process-framework.md)，可直接开发的补全内容与实际检查边界见[实施规格复核](../../audit/developer-specification.md)；先前审核报告保留历史范围，不能用来认证本次新设计。[根README](../../../README.md)提供现有检查入口；[AGENTS](../../../AGENTS.md)规定协作与提交边界。
+
+## 第二轮算法实施补全
+
+[ALGORITHM_CONTRACTS](standards/ALGORITHM_CONTRACTS.md)统一规定陌生开发者复现门槛，22篇process各有自己的执行程序/参数/状态/反例。NUMERICS补定严格区间/复合证书的实际计算和能力门槛；具体整改及验证边界见[第二轮记录](../../audit/round2-algorithm-contracts.md)，实现状态仍唯一看[IMPLEMENTATION-STATUS](../../audit/IMPLEMENTATION-STATUS.md)。框架完整不能替代逐算法可实施，更不能替代源码已修复/生产验收。

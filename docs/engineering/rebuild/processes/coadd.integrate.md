@@ -1,6 +1,6 @@
 # coadd.integrate：最终信号合成
 
-状态：目标process文档；对应科学函数可已有部分实现，标准注册/生命周期/探针尚未据本文落地。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
+状态：本篇规定目标算法及实施合同；已有部分Runtime和科学模块实现，具体完成/验收只看[统一状态](../../../audit/IMPLEMENTATION-STATUS.md)，不能由本文标题推断全部未实现或已通过。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
 
 ## 注册与边界
 
@@ -33,7 +33,7 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 
 最小反例：U01/W01/X01；解析混合核、共享噪声、缺帧与单/多线程结果一致。还需通过公共注册/取消/资源/单线程与多线程矩阵；计时必须包含本process的读取、执行、封存及明确分摊的共享成本，不能用失败更快冒充优化。
 
-改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，文档中的角色名不表示头文件现已提供新接口。
+改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，当前接口及能力以公开头/registry核对，规格与代码偏差必须明确记录。
 
 ## 算法详细条款
 
@@ -42,7 +42,7 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 
 ### 冻结背景后的整合条件
 
-先冻结全分量 sky 解，再逐 leaf 资格→可选单步 LOO→权→归约。Γ 从共同 root 联合查询，不各帧独立读对角替代。BLUE/PSD与非负QP见[NUMERICS](../standards/NUMERICS.md)；不同 K 的 mixed_observation 只能 equal 或显式 nonnegative_qp，后者是该混合样本方差目标，不称共同量 BLUE。LOO 前置失败逐位置 skip，N<4不猜坏帧。effective_response 保存实际 t,c,核组合及条件，不强行分离滤镜。
+工作流先冻结全分量sky解，再依次select→weights→integrate；本process只执行最后归约，消费前两阶段对象。Γ 从共同 root 联合查询，不各帧独立读对角替代。BLUE/PSD与非负QP见[NUMERICS](../standards/NUMERICS.md)；不同 K 的 mixed_observation 只能 equal 或显式 nonnegative_qp，后者是该混合样本方差目标，不称共同量 BLUE。LOO 前置失败逐位置 skip，N<4不猜坏帧。effective_response 保存实际 t,c,核组合及条件，不强行分离滤镜。
 
 
 ### 整合调用语义
@@ -53,7 +53,7 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 
 ### 强类型数据边与现有入口改造
 
-Selection/WeightSolution是目标typed输入的必需强引用。现有coadd free函数尚未接受这些输入，后续应修唯一声明及核心实现，不能以保留旧签名为由隐藏会话或重复求解。固定mosaic工作流按select→weights→integrate各执行一次；只有用户单独请求新的选择/权版本才重算。没有对应权或身份不匹配在validate拒绝，不悄悄补算；独立driver必须能只给已验证的三个阶段对象完成整合。
+Selection/WeightSolution是目标typed输入的必需强引用。当前公开声明/typed绑定须显式保留这些输入；历史未接入版本只作旧快照，不能以保留旧签名为由隐藏会话或重复求解。固定mosaic工作流按select→weights→integrate各执行一次；只有用户单独请求新的选择/权版本才重算。没有对应权或身份不匹配在validate拒绝，不悄悄补算；独立driver必须能只给已验证的三个阶段对象完成整合。
 
 新增反例：总work只足一轮选择/求权/归约，预先运行前两阶段后integrate仍应完成；传另一SkyFit/selection/Γ的权必须失败，不能重算绕过身份冲突。
 
@@ -67,8 +67,20 @@ Selection/WeightSolution是目标typed输入的必需强引用。现有coadd fre
 
 ## 直接开发的实施合同
 
-本process全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
+本process的算法复现按[独立实施标准](../standards/ALGORITHM_CONTRACTS.md)验收。全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
 
 有全局拟合屏障时拆stream→ordered_accumulator→barrier region：每cohort提交R内聚合状态即可退F，不能让唯一进展cohort等待下一cohort。科学迭代以显式epoch重新准入，work不重置。取消/失败只允许内建清理继续，模块不提交新科学计算；公开输出只在所有必需任务/写入/校验结束后交付。
 
 实施交付包含所属模块plan/kernel/adapter/codec、独立小例/负例及真实service资源/取消证据，逐项门槛见[DEVELOPMENT](../standards/DEVELOPMENT.md)。完整编排代码可参照[校准实施例](../standards/CALIBRATION_WALKTHROUGH.md)，不得复制其中像元公式到其它process。GPU只预留同一批次/内存位置/完成事件边界，不实现后端。
+
+## 可独立实施的算法合同
+
+### 强类型输入与唯一归约程序
+
+当前typed CoaddInput必须显式带frames、sky、selection、weights、request；coadd公开函数/头中的历史接口是否已改，以当前公开声明核对，不在本文保留旧签名契约。validate逐项锁provider/sky/selection/weights的依赖身份、leaf/frame index和actual Γ；非合格权为0、active sum=1的数值包围须含1。身份不合直接失败，不重跑选择/求权或apply_sky。
+
+按leaf和稳定frame ID读取已校正z，B=Σt_k z_k；负权/负z合法。数值界用signed t/z区间全部乘积和归约舍入；随机图为Σt_k L_k的同根合并，不各帧variance独立相加。权来自数据/Selection时明确冻结选择条件，物理有效核包含真实t、reference因子和已用spatial action，不把已经吸收的系数再乘。no_support行不构假signal/权；unknown C时合法B可保，但noise仍unknown。
+
+### 资源、失败与独立例
+
+F计当前leaf完整K样本/权/端点和根块，R为最终模型/recipe，分块输出不物化全图×全部帧。integrate实际work只计读取/归约/模型构造，不重复消耗select/weights预算；输入的科学分支没有完成则不能创建complete结果。C-INTEGRATE：z=[2,5]、t=[2/3,1/3]得3，Γ=diag(1,4)得V=8/9；若两帧共享variance4的同根，t归一后共享项仍4，不能被平均缩小。C-WORK给恰够一轮的总work，前三阶段各执行一次能完成；C-ID给另一SkyFit/selection的权，必须拒绝而非重算。输出重开保response及选择条件。

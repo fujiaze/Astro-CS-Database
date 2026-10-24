@@ -1,50 +1,67 @@
 # ACSD v2 实施与验收状态正本
 
-> 冻结核查时间：2026-10-24；范围：`rebuild/acsd-v2` 的代码/文档提交 [`6f08c4ead6ad454231141f2d4ec4883a140c2705`](https://github.com/fujiaze/Astro-CS-Database/commit/6f08c4ead6ad454231141f2d4ec4883a140c2705)。本文件是**当前进度的唯一导航**，不是新的科学/API/调度合同，也不是本次重新运行测试的声明。后续提交须按实际新证据更新本文件及验证产物；历史审核快照不回写。
+> 文档核查日期：2026-10-24；受检源代码基线：[`13740080d44a587947652b7544ba7ce5d0af7921`](https://github.com/fujiaze/Astro-CS-Database/commit/13740080d44a587947652b7544ba7ce5d0af7921)。本轮只修文档，未编译或重新运行生产C++测试。原始第二轮报告检查的是`a17b199c2e17...`；本页已核较新分支，不能把不同快照混作同一当前裁决。旧失败/报告保留，不回写成通过。
 
-## 状态与证据规则
+## 三种完成标准与状态
 
-- `DESIGN_REVIEWED`：独立审阅过规范可实施性，不代表源码、数值、产品或性能通过。
-- `IMPLEMENTED_NOT_VERIFIED`：可找到代码/接口，但未取得针对当前代码的完整可复现证据。
-- `PASS_SCOPED`：具名冻结 case 的全部**实际要求**通过；只认证 case 的有限范围。
-- `FAIL`：冻结 case 中至少一项失败；退出码为 0、成功运行多数次、历史曾通过均不能覆盖它。
-- `PENDING`：未运行、没有生产实现、缺 Oracle 或当前验收链不完整；不能计入 PASS。
-- `HISTORICAL`：有绑定旧 SHA 的有效历史结论；不得自动继承至新实现。
-- 所有报告写明源码 SHA、验证代码/夹具 SHA、运行命令、输入/期望 hash、环境、断言、observed 与 comparison。文档/算法修改应当重新判定影响范围；未复跑时保持旧快照身份。
-- [REVIEW](REVIEW.md)、[final-review](final-review.md)、[m0-implementation-matrix](m0-implementation-matrix.md)、[review-m0m4](review-m0m4.md)均为**锚定旧提交的审计证据**，不可单独当作本 HEAD 最新裁决。
+- 架构完备：固定框架、资源、API、数据边和维护责任清楚。
+- 算法规格可复现：陌生开发者只凭公开规范/API即可确定估计量、步骤、参数、停止、状态和固定例。
+- 实现验收：真实代码在冻结输入、独立Oracle和明确环境中符合规范。前两项不能替代这一项。
 
-## 里程碑当前快照
+`DESIGN_REVIEWED`只描述已审范围；`IMPLEMENTED_NOT_VERIFIED`表示有代码但证据不足；`PASS_SCOPED`只认证具名冻结case的全部实际断言；`FAIL`是对应冻结运行有失败；`PENDING`包括未运行/未覆盖/依赖变动待复验；`HISTORICAL`保留旧SHA结论。新增`BLOCKED_CERTIFICATION`仅是本页的验收标签，表示存在已知数值包含阻碍，不能宣称相应严格证书通过，不是新增公开Code。
 
-| 范围 | 代码与目标关系 | 验收裁决/边界 | 可核查证据 |
-|---|---|---|---|
-| 科学与架构设计 | 5 份 foundation、22 份 process、57 个科学 operation、固定基建/typed 目标已写成规范 | **DESIGN_REVIEWED**；不是 57 个 operation 全部完成/全部科学认证 | [设计审查](final-review.md)、[process 清单](../engineering/rebuild/processes/README.md) |
-| M0 声明/注册 | `model.hpp`、`runtime/*.hpp`、`modules/*.hpp` 和聚合 `contracts.hpp` 已存在 | **PASS_SCOPED**：`reg01` 等当前记录通过；覆盖检查与复杂负例继续分别核验 | [runtime manifest](../../validation/runtime/manifest.json)、[reg01](../../validation/runtime/reg01/comparison.json) |
-| M1 账本/所有权 | 实际 `memory.cpp` 与 Arena/Lease/Scope 代码存在 | **PASS_SCOPED**：`life01`/`work01`/`a01` 通过；旧审核的 metadata、CPU 归因等 P2 不因此自动关闭 | [manifest](../../validation/runtime/manifest.json)、[定向复核](review-m0m4.md) |
-| M2 Task/pool/pipe | 单池、Task、Pipe、Host 等已有代码 | **FAIL**：`multi01` 当前 39/41 checks、5 次运行中的一轮不足 100 个完整可行轮；其它已记录的 M2 case 可逐项 PASS_SCOPED | [multi01](../../validation/runtime/multi01/comparison.json)、[manifest](../../validation/runtime/manifest.json) |
-| M3 Storage/诊断 | `src/runtime/storage.cpp` 已有 begin/append/seal/abort、staging/metadata claim 和 NaN/-0 处理 | **PASS_SCOPED**：`io01`/`b01`/`storage01`/`d01_off`/`d01_on` 通过；Dyadic 读路径、真正的 staging 峰值、跨平台产品恢复等须另核 | [manifest](../../validation/runtime/manifest.json)、[storage01](../../validation/runtime/storage01/comparison.json) |
-| M4 observation.calibrate | 校准唯一内核与 typed Host 路径已接入 | **PASS_SCOPED**：`cal01` 通过；部分故障注入只覆盖 writer 层，完整 adapter 链仍需具名复验 | [cal01](../../validation/runtime/cal01/comparison.json)、[校准证据](../../validation/runtime/calibration/evidence.md) |
-| M5 其余科学模块 | 部分 typed-process 已接入，另有只有记录或待接入的模块 | **IMPLEMENTED_NOT_VERIFIED / PASS_SCOPED 混合**；正例不能替代每个 process 全部 operation、探针和资源验收 | [M5 记录](../../validation/process/README.md)、[模块矩阵](m0-implementation-matrix.md) |
-| M6 工作流/发布 | WORKFLOWS 已明确 Normalize→Mosaic→Export；历史科学 driver 有部分运行 | **PENDING 完整发布链**；科学旧基线 11 case 中 7 pass、4 pending（W01/P01/R01/X01），它们是带历史身份的结果，非 v2 新链的完整验收 | [历史汇总](../../validation/run_summary.json)、[流程标准](../engineering/rebuild/standards/WORKFLOWS.md) |
-| GPU | KernelExecutor/ArrayBacking/Completion 扩展合同 | **PENDING**；首期 CPU，不将模拟 Completion 视为真实 GPU 验收 | [EXECUTION](../engineering/rebuild/EXECUTION.md) |
+## 当前证据身份与Runtime快照
 
-**Runtime 统计口径**：`validation/runtime/manifest.json` 共 16 个 case，15 pass / 1 fail；其中 `multi01` 失败。manifest 的 `git_commit=04af17cb7...` 是被测 Runtime 代码锚点，manifest 文件本身位于较新的 `6f08c4e` 测试提交中。二者不同并不自动证明篡改，但必须区分**被测代码版本**与**证据提交版本**，且任何其后算法变动都需重跑相关 case。
+当前仓库的[runtime manifest](../../validation/runtime/manifest.json)记录16/16 case通过，包含[multi01的42/42检查](../../validation/runtime/multi01/comparison.json)，`git_commit=b592d88e01f9b6cfcaf32ef554ae6fc7a9c0197e`，生成时间2026-10-24T10:20:12Z。此前6f08c4e归档的15 pass/1 fail、multi01 39/41是历史失败，不能再称为“当前仍失败”。
 
-## 当前优先闭合项（只列有依据的缺口）
+从b592d88到本页受检13740080相差4个提交；本次比较可见PSF实现、验证harness/case/观测及文档改变，未见Runtime主体源代码变化。这保留了Runtime冻结PASS的有限价值，但**没有重新构建/执行新HEAD，也没有证明新fixture、当前规范或全部科学链通过**。M0—M4 smoke/资源断言更不能替共享interval、超越函数和全链科学数值认证背书。
 
-| ID | 优先级 | 实质问题与判定方法 | 责任正本 |
-|---|---|---|---|
-| E-01 | P1 | `multi01` 的完整可行轮数不足，保持 FAIL。分开记录“每轮权重正确性”和“足够样本覆盖”；重复 5 次，所有完整可行轮多重集均为 {1,2,2}，且每次可行轮至少 100 才能关门。不以累计比例/选取最好一次替代 | [SCHEDULER](../engineering/rebuild/standards/SCHEDULER.md)、[测试](../../validation/runtime/multi01/comparison.json) |
-| E-02 | P1（验收缺口） | M5 已接入同步算法的 `std::vector`、矩阵分解/排序/临时大整数是否完整纳入 R/F/实际分配账本；必须用分配跟踪、低 H、真实超限和有界拒绝证明 | [EXECUTION](../engineering/rebuild/EXECUTION.md)、[DEVELOPMENT](../engineering/rebuild/standards/DEVELOPMENT.md) |
-| E-03 | P1（端到端缺口） | 无原始 FITS 的 full 产品重新打开、共享随机根、未知噪声、唯一 HiPS signal、WCS Export 与真实文件读写尚未构成当前完整 PASS 证据 | [VERIFICATION](../engineering/rebuild/VERIFICATION.md)、[WORKFLOWS](../engineering/rebuild/standards/WORKFLOWS.md) |
-| E-04 | P2 | M5 七个已记录接入模块的具名 probe 仅注册而未全面采样；补生产采样及 DEV_MODE OFF/ON 科学结果等价性 | [PROBES](../engineering/rebuild/standards/PROBES.md)、[M5](../../validation/process/README.md) |
-| E-05 | P2（复验） | 旧审核中 spill staging 未计费的 P1 和 -0 散列的 P2 已有针对性源码修订：`storage.cpp` 当前有 staging/metadata claim、NaN-only 规范化。需更新原复现输入、用当前二进制做并发/泄漏/边界复验，**不继续作为未经验证的当前事实指控** | [旧定向报告](review-m0m4.md)、[Storage](../../src/runtime/storage.cpp) |
-| E-06 | P2（复验） | `FOUNDATION_API.md` 已明确 `detail::pipe_expect` 的 frontier 规则；需要正式 map/pipe 执行器跨 cohort fixture，不是“接口文档完全缺失” | [FOUNDATION_API](../engineering/rebuild/standards/FOUNDATION_API.md) |
-| E-07 | P2（复验） | 旧 M5 的 5-source 欠定 QR `length_error` 复现报告对应旧代码；当前 `linalg.cpp` 已对 `m<n` 具名拒绝。用原 5-source case 重新运行并验证上层给出科学可解释的非成功码 | [M5](../../validation/process/README.md)、[Numerics](../../src/numerics/linalg.cpp) |
-| E-08 | P2（量纲 oracle） | 响应积分约 `5.54e20` 的数量级，与平坦 `1 W m^-2 nm^-1` 谱、450–650 nm、单位光子响应按 `λ×10^-9/(hc)` 积分的解析真值吻合；需确认实际 response 标志/输出维度并新增解析比较，不以“数字很大”判为科学错误 | [GAIA_RESPONSE](../science/foundation/GAIA_RESPONSE.md)、[响应模块](../engineering/rebuild/processes/response.integrate.md) |
+| 范围 | 已有代码/证据 | 当前裁决和未覆盖边界 |
+|---|---|---|
+| 架构与公共接口 | 五份foundation、22 process、57 typed operation；runtime/model/modules头与registry已有实现 | 已有设计复核；逐算法合同本轮再补，不以登记数当生产支持数 |
+| M0 | reg01冻结记录29/29 | PASS_SCOPED于该代码/fixture；复杂typed/codec负例及全部57路径分别核验 |
+| M1 | life01 20/20、work01 16/16、a01 23/23 | PASS_SCOPED；控制节点动态内存、并发快照/CPU归因继续按新增反例核验 |
+| M2 | floor/fork/order/barrier/multi/pipe六项冻结PASS | PASS_SCOPED；multi不再列当前FAIL，真实跨模块三段/分支/barrier低H组合仍PENDING |
+| M3 | io/b01/storage01/d01_off/on冻结PASS | PASS_SCOPED；Dyadic typed读取、全部乘加溢出和新进程完整恢复未闭合 |
+| M4 | cal01冻结41/41，另有校准故障证据 | PASS_SCOPED于实际断言；完整allocator/adapter故障与严格数值认证仍需复验 |
+| 共享严格数值 | interval/linalg已有代码，本页受检版本仍有下表阻碍 | BLOCKED_CERTIFICATION；普通point输出/字段名/收敛不授予严格证书 |
+| M5 | 多个typed process/科学实现与分散记录已存在 | 按operation/例子分别IMPLEMENTED_NOT_VERIFIED或PASS_SCOPED；本轮算法补全不提升生产状态 |
+| M6 | 工作流/产品/入口代码与历史11case部分记录 | PENDING完整当前Normalize→publish→new-process open→Mosaic→Export、双平台、性能与GUI协议验收 |
+| GPU | 只有扩展合同，本期CPU | 不属于本期实现；模拟Completion不等于设备验收 |
 
-## 更新纪律与下一步
+## 必须优先闭合的数值阻碍
 
-1. 每完成一个实际修复：保留失败 attempt，提交最小反例及新 PASS 的 `case.json/observed.json/comparison.json`，写清适用范围和相同被测 SHA；不因只修改文档提升验收状态。
-2. M5 每个 process 必须提供 typed 正负例、单位/index/数值误差、独立真值、资源上界、取消/低内存/存储重开，以及单独/组合/driver 同路径。特别记录真实 allocator peak 与计划 R/F/metadata，不以 `sizeof(T)` 或经验常数冒充任意 DTO 的真实占用。
-3. M6 必须由同一当前科学代码和真实服务完成 Normalize→publish→new-process open→Mosaic→Export，比较独立 Oracle；随后开展真实 HST/M42、Windows/Linux、cold/warm I/O、性能基线，不把历史探针或仅成功计数的 case 作为科学认证。
-4. 接口字段与签名的**可编译唯一正本**是 `include/acsd/model.hpp`、`include/acsd/runtime/*.hpp`、`include/acsd/modules/*.hpp`；`contracts.hpp` 只聚合，不再定义全部字段。科学、对象、调度的语义正本仍在本设计树；当文档与源码冲突时，记录偏差并修正规范或实现，禁止静默选择“更方便”的一侧。
+下列是对受检源码及数学反例的核对，不是本轮重新执行C++得到的comparison。优先级针对严格证书，不意味着已证明所有产品污染。
+
+| ID/等级 | 受检问题/反例 | 实施及关闭标准 |
+|---|---|---|
+| N-01 P0 | interval.cpp以down(a+b)接收已求值double；0.1/0.2按精确二进制输入的和可被错误下界漏掉 | 按NUMERICS在运算前指定舍入/显式MPFR，独立有理Oracle验证四则、抵消、次正规数与溢出 |
+| N-02 P0 | sin/cos的k固定枚举-8..8；sin[1000,1002]漏极大1 | 全相位存在性包含/粗[-1,1]，N-PERIOD和真实WCS/geometry链复验 |
+| N-03 P0 | 一般幂只交叉两个端点；[2,3]^[2,3]应包含[4,27] | 正底exp(Y log X)及整数/0域规则，N-POW与下游幂模型复验 |
+| N-04 P0 | atan2四角极值未覆盖负实轴切线；x=[-2,-1],y=[-1,1]需含±π极限 | 定义域切分/主值闭包、原点拒绝，N-ANGLE及坐标链复验 |
+| N-05 P1 | linalg的重建残差/正交缺陷/范数仍以常规浮点求，字段rank_certified不证明向外 | 独立向外重算残差/范数/输入半径和真实rank含义，多RHS证书AND，N-LINALG/上游score复验 |
+| N-06 P1 | 一个interval_primitive_status不能证明全部超越/积分/矩阵/根能力 | 分族/定义域/环境记录依赖能力；有未验证原语就不发布依赖它的certified结果 |
+
+修实现后先过原语及复合检查，再复验受影响的WCS/overlap/Drizzle/PSF/photometry路径；对已存在产品按source/recipe/算术身份追踪影响。没有经过分析的产物只标待追踪，不宣称全部已坏或全部安全。本轮没有修改任何上述生产源代码。
+
+## 其它当前闭合项
+
+| ID | 责任范围 | 任务与实际边界 |
+|---|---|---|
+| E-01 | 证据/状态 | 旧multi失败改列HISTORICAL，较新16/16按真实被测SHA记PASS_SCOPED；harness/规范改变时按依赖复验，不保两个相反当前结论 |
+| E-02 | M5资源 | 所有vector/字符串、矩阵/排序、GMP/MPFR/codec workspace和控制节点计真实容量；低H、allocator日志和RES-META反例，不只sizeof(T) |
+| E-03 | 产品/工作流 | 新进程full重开保共享根/unknown/精确端点，无原始FITS仍完整；真实文件/失败回滚/三命令/双平台/性能各自证据 |
+| E-04 | probe | 每个process实际生产采样及单位/index，DEV_MODE OFF/ON科学等价和故障/丢样，不止登记目录 |
+| E-05 | Storage | 当前prepare_read仍将itemsize=0的Dyadic路径unsupported，且cache路径有total*itemsize/begin*itemsize等直接乘法；按OBJECTS typed精确路径及ST-OVERFLOW落实 |
+| E-06 | Task/Pipe | frontier已写规范且单项有PASS；补PIPE-CHAIN真实跨模块、多段fork/join/barrier、E=0、P=1及在途取消，不再笼统说“无接口” |
+| E-07 | 数值/科学调用 | 欠定QR已有m<n具名拒绝；原5-source例重跑上层not_identifiable/unsolved及无假产品，不把旧length_error直接指控为当前事实 |
+| E-08 | 响应/量纲 | 约5.54e20的photon数量级可由平坦谱解析式得到；按I-UNIT核实际标志/单位/转换，不能仅凭大数指控科学错误 |
+| E-09 | 算法规格 | 本轮22篇补了各自步骤/参数/状态/反例，重点measure/认证积分/streaming CSR；按ALGORITHM_CONTRACTS陌生开发者复现和真实生产路径分别验收 |
+
+## 证据随提交同步的可执行纪律
+
+每份case/索引分别记录：tested_source_sha及实际构建的依赖内容摘要，test/fixture/oracle身份，spec/必需断言身份，命令、输入/期望hash、compiler/flags/依赖库、actual backend、attempts/successes/failures、observed/comparison及证据归档提交。evidence_commit可以在后续索引补链，不能要求证据文件预知自身commit或形成自hash循环。
+
+后续实施在现有验证工具中加入可机检的一致性门：manifest状态/attempts与case比较文件逐项相合；required缺项或零有效样本不能PASS；被测源码依赖、fixture/oracle/断言/flags任一变化时，旧结论转历史/待复验；仅文档或证据归档变化且依赖摘要无变，可引用原有限结果，但需明示不是新运行。当前本轮没有修改验证脚本或生成产物，故该自动门仍属待实施要求。
+
+汇总器据有效case依赖覆盖计算M0—M6，不手写第二份pass计数；本页只作人读导航，必须与manifest一致。规范语义改变也要标待按新要求验证，即使二进制相同；不能因为source hash相同就把新科学断言认证为已测。每个修复保留旧失败attempt、新运行与影响范围，禁止覆盖历史证据以凑通过。详见[第二轮整改记录](round2-algorithm-contracts.md)。

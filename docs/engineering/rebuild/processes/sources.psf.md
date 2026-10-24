@@ -1,6 +1,6 @@
 # sources.psf：PSF拟合与像元积分
 
-状态：目标process文档；对应科学函数可已有部分实现，标准注册/生命周期/探针尚未据本文落地。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
+状态：本篇规定目标算法及实施合同；已有部分Runtime和科学模块实现，具体完成/验收只看[统一状态](../../../audit/IMPLEMENTATION-STATUS.md)，不能由本文标题推断全部未实现或已通过。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
 
 ## 注册与边界
 
@@ -33,13 +33,13 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 
 最小反例：F01；解析Gaussian积分、部分窗口、signed transfer、output_rows子索引及秩亏。还需通过公共注册/取消/资源/单线程与多线程矩阵；计时必须包含本process的读取、执行、封存及明确分摊的共享成本，不能用失败更快冒充优化。
 
-改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，文档中的角色名不表示头文件现已提供新接口。
+改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，当前接口及能力以公开头/registry核对，规格与代码偏差必须明确记录。
 
 ## 算法详细条款
 
 ### 数值与模型细则
 
-科学源从 WCS 后 Gaia 预测独立选取；solver candidates 不转作测光源。以饱和/邻源/窗口掩码选择身份冻结后拟合。Gaussian 参数为 logσx、logσy、atanhρ；Moffat 为 logαx、logαy、atanhρ、log(β−1)；Airy 为 log first_zero_radius_pixel，圆对称。每源同时拟合连续位置、总 flux、常量/平面背景；flux 允许负，宽度/β 正参数用上述变换。空间 PSF 参数按归一 detector 的 degree≤2 多项式拟合，缺秩返回不可估，用户可重新请求常量，不暗中降阶。
+科学源从 WCS 后 Gaia 预测独立选取；solver candidates 不转作测光源。以饱和/邻源/窗口掩码选择身份冻结后拟合。Gaussian 参数为 logσx、logσy、atanhρ；Moffat 为 logαx、logαy、atanhρ、log(β−1)；Airy 为 log first_zero_radius_pixel，圆对称。每源同时拟合连续位置、总 flux、组内常量背景；flux 允许负，宽度/β 正参数用上述变换。空间 PSF 参数按归一 detector 的 degree≤2 多项式拟合，缺秩返回不可估，用户可重新请求常量，不暗中降阶。
 
 ### 数值与模型细则
 
@@ -97,8 +97,26 @@ PsfEvaluationRequest.output_rows 空表示整个 transfer 输出；非空为该�
 
 ## 直接开发的实施合同
 
-本process全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
+本process的算法复现按[独立实施标准](../standards/ALGORITHM_CONTRACTS.md)验收。全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
 
 有全局拟合屏障时拆stream→ordered_accumulator→barrier region：每cohort提交R内聚合状态即可退F，不能让唯一进展cohort等待下一cohort。科学迭代以显式epoch重新准入，work不重置。取消/失败只允许内建清理继续，模块不提交新科学计算；公开输出只在所有必需任务/写入/校验结束后交付。
 
 实施交付包含所属模块plan/kernel/adapter/codec、独立小例/负例及真实service资源/取消证据，逐项门槛见[DEVELOPMENT](../standards/DEVELOPMENT.md)。完整编排代码可参照[校准实施例](../standards/CALIBRATION_WALKTHROUGH.md)，不得复制其中像元公式到其它process。GPU只预留同一批次/内存位置/完成事件边界，不实现后端。
+
+## 可独立实施的算法合同
+
+### 联合目标与固定参数
+
+采用本篇已定义Gaussian/Moffat/Airy密度，以真实footprint/PRF积分构H(θ,positions)。首期PsfRequest无背景阶数字段，每组固定detector面连续常量背景，其原生积分及同采样链Z严格沿[sources.measure](sources.measure.md)，不能在非均匀bin/gain后设Z=1；空间形状degree来自spatial_degree，不按数据暗降阶。拟合目标是固定已声明噪声C下`1/2(d−H F−Zβ)ᵀ C^-1(d−H F−Zβ)`，PSD精确约束按NUMERICS的可行参数化/KKT路线；未知C仅单位工作权的conditional拟合。F可负，PSF形参用既定log/atanh映射，位置为连续detector坐标。窗口/邻源分组及共同像元的去重规则沿sources.measure，共享形状和相关噪声保全局耦合。
+
+SPD/已证明可行参数化分支，每次θ/位置迭代先按固定非线性量用QR解线性F/β，再形成真实profile score/Jacobian；PSD分支保全部精确约束，以完整KKT消元局部量，profile梯度包含乘子项，固定非线性量不可行时不能强行先解F。GN或KKT Newton作相应搜索步，Armijo与零步驻点先检查按NUMERICS。initial_width_pixel仅初值，shape/position边界由可用detector/模型域定义，不能通过clip使未收敛变成功。参数盒验证使用真实score/Hessian与区间AD，GN Hessian不得替代存在/唯一证明；没有证书则EffectivePSF参数盒缺失且conditional。
+
+### 尾界与模板执行
+
+先在源位置求空间参数，给窗口完整内接椭圆/圆半径R。tail_absolute_flux必须用已包围的|F|上界乘尾质量比较；初次无有限F界时仅作试窗，拟合/验证后按倍增半窗重算，不能用名义F给最终绝对尾证书。Gaussian/Moffat使用既有解析尾质量，Airy用同一有向J0/J1恒等式；参数盒内取安全上界，不用名义参数的尾界代表整个盒。模型截断、PRF系数和已知gain的影响分别计；有符号transfer后只传播绝对误差，不能称概率。矩形窗口尾界用其内接域的外尾作保守界，不能把角点半径当内接半径。无限域/边缘观测未覆盖的光子是尾项，不窗内归一为1。
+
+evaluate_psf按output_rows只计算真实依赖原生行，先分割PRF cell，再用response积分同样的解析/Taylor/包含准则求二维像元积分（二维余项逐轴包含），最后经过同一G/α/R/P/Q action。fit、measure、information不得各写近似积分器。缺Bessel区间或全参数尾界时不给Airy严格模板证书。
+
+### 资源、停止和独立例
+
+F计窗口m×源数、Jacobian m×p、局部q²因子、全局形状p²、积分面板与MPFR；R计参数/误差/influence，外层每次迭代先重新准入，不能以缩窗改变估计量。PSF-TAIL对σ=1圆Gaussian在R=2外质量=e^-2；Moffat β=2、R=1尾=1/2；Airy R=0尾=1、r=0密度为k²/(4π)，高精度解析对照必须包含。PSF-STATIONARY无噪声真初值允许零步成功；PSF-BLEND相同模板列不可估；PSF-BOX扩大宽度参数盒不能仍给原窄尾界；PSF-ROWS窗口子行与全行子矩阵相同且不重归一。

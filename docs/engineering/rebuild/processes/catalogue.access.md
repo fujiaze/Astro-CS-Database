@@ -1,6 +1,6 @@
 # catalogue.access：本地目录与历元传播
 
-状态：目标process文档；对应科学函数可已有部分实现，标准注册/生命周期/探针尚未据本文落地。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
+状态：本篇规定目标算法及实施合同；已有部分Runtime和科学模块实现，具体完成/验收只看[统一状态](../../../audit/IMPLEMENTATION-STATUS.md)，不能由本文标题推断全部未实现或已通过。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
 
 ## 注册与边界
 
@@ -33,7 +33,7 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 
 最小反例：C01/F01；历元差、负parallax、缺RV、重复source_id与破坏索引hash。还需通过公共注册/取消/资源/单线程与多线程矩阵；计时必须包含本process的读取、执行、封存及明确分摊的共享成本，不能用失败更快冒充优化。
 
-改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，文档中的角色名不表示头文件现已提供新接口。
+改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，当前接口及能力以公开头/registry核对，规格与代码偏差必须明确记录。
 
 ## 算法详细条款
 
@@ -63,8 +63,28 @@ quad不变式：最长基线端点A,B（长度平手按ID）；e=(B−A)/|B−A|
 
 ## 直接开发的实施合同
 
-本process全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
+本process的算法复现按[独立实施标准](../standards/ALGORITHM_CONTRACTS.md)验收。全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
 
 有全局拟合屏障时拆stream→ordered_accumulator→barrier region：每cohort提交R内聚合状态即可退F，不能让唯一进展cohort等待下一cohort。科学迭代以显式epoch重新准入，work不重置。取消/失败只允许内建清理继续，模块不提交新科学计算；公开输出只在所有必需任务/写入/校验结束后交付。
 
 实施交付包含所属模块plan/kernel/adapter/codec、独立小例/负例及真实service资源/取消证据，逐项门槛见[DEVELOPMENT](../standards/DEVELOPMENT.md)。完整编排代码可参照[校准实施例](../standards/CALIBRATION_WALKTHROUGH.md)，不得复制其中像元公式到其它process。GPU只预留同一批次/内存位置/完成事件边界，不实现后端。
+
+## 可独立实施的算法合同
+
+### 外部解码与历元的固定边界
+
+外部输入不是运行时联网查询。离线导入明确记录Gaia release、原始表/文件hash、字段单位、基函数ID、外定标模型/软件版本及hash；source_id按u64精确读，不经double。ra/dec从deg到rad，pmra已经含cos(dec)，不能再乘一次或在极点除cos；parallax从mas到rad，RV从km/s到m/s，ref_epoch取每条数据而非硬写常量。位置/自行缺失的条件和不确定性分别保留，不能将缺值0当测量。
+
+Gaia XP连续表示的系数、误差和相关矩阵按[DPAC原始发布论文](https://doi.org/10.1051/0004-6361/202243680)及[GaiaXPy官方输入规范](https://github.com/gaia-dpci/GaiaXPy/blob/main/docs/usage.rst)解码。导入器按锁定版本的矩阵展开规则转换，验收用已展开的完整对称矩阵；不凭数组长度猜含不含对角或行/列序。Σ_ij=σ_i corr_ij σ_j，校验diag/对称/PSD；缺交叉项记未知而非补0。BP/RP缺失不生成假0谱，basis/calibration ID不认识给unsupported。
+
+统一SpectralBasis若由官方外定标函数转分段多项式，必须保存该线性表示变换及全支持域转换误差/适用域；系数和协方差用同一变换。仅sampled谱可定义其已声明插值模型及相关性，不能声称无损还原连续XP。数据版本由dataset manifest锁定；后续导入不自动追随上游main或更换校准文件。
+
+### 构建与查询程序
+
+先解析/规范列并按source_id去重，同ID冲突拒绝；建立既有order6规则的分页分片、quad和KD树，外存归并后校验全部页hash/覆盖再封存index_complete。中断构建保私有状态，不将部分索引当全量。query先按目录可达位移上界扩展分片候选，再用同一ERFA传播到请求历元后精确筛圆域；没有位移上界时扫描所有可能页，不能只查目录静态中心片漏高速星。lookup保持目录历元，quad-query按索引历元描述符搜索并在候选WCS验证时用观测历元query，搜索heuristic不作绝对完备证明。
+
+正视差且RV已知用六维空间运动；RV缺失或视差非正时不取1/负视差造距离，使用单位球切向运动并明确省略项/条件。源自身历元、目标Julian year及时间尺度必须传给唯一传播函数。无observer仅给重心方向，topocentric/DCR等按基础单列。跨页cursor锁完整请求/dataset，过期/错请求invalid_request；lookup按输入ID顺序保缺失槽，不能挤掉位置。
+
+### 资源与独立验收
+
+F=有限页+实际谱维d及d²协方差/转换workspace+KD访问栈，R为只读索引目录；所有页/quad计数及字节先checked，排序可spill。Q-DECODE用source_id>2^53、已知2×2相关矩阵检验精度/布局；Q-EPOCH用20年、4角秒/年的移动星跨分片命中，与ERFA独立对照；Q-XP对冻结GaiaXPy输出和完整covariance逐项比较；Q-INDEX按小目录全枚举生成规则验证query/quads/pagination无漏/重/错cursor。它们验证实际模型，不认证XP无法恢复的窄线物理真值。

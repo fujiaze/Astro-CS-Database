@@ -1,6 +1,6 @@
 # observation.regroup：物理重组与线性视图
 
-状态：目标process文档；对应科学函数可已有部分实现，标准注册/生命周期/探针尚未据本文落地。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
+状态：本篇规定目标算法及实施合同；已有部分Runtime和科学模块实现，具体完成/验收只看[统一状态](../../../audit/IMPLEMENTATION-STATUS.md)，不能由本文标题推断全部未实现或已通过。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
 
 ## 注册与边界
 
@@ -33,7 +33,7 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 
 最小反例：U01；sum/mean含缺孔、翻转、转置及signed linear_view负例。还需通过公共注册/取消/资源/单线程与多线程矩阵；计时必须包含本process的读取、执行、封存及明确分摊的共享成本，不能用失败更快冒充优化。
 
-改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，文档中的角色名不表示头文件现已提供新接口。
+改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，当前接口及能力以公开头/registry核对，规格与代码偏差必须明确记录。
 
 ## 算法详细条款
 
@@ -69,8 +69,22 @@ Native.linear_view不能进入Normalize物理Drizzle；若NormalizeFrame.regroup
 
 ## 直接开发的实施合同
 
-本process全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
+本process的算法复现按[独立实施标准](../standards/ALGORITHM_CONTRACTS.md)验收。全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
 
 有全局拟合屏障时拆stream→ordered_accumulator→barrier region：每cohort提交R内聚合状态即可退F，不能让唯一进展cohort等待下一cohort。科学迭代以显式epoch重新准入，work不重置。取消/失败只允许内建清理继续，模块不提交新科学计算；公开输出只在所有必需任务/写入/校验结束后交付。
 
 实施交付包含所属模块plan/kernel/adapter/codec、独立小例/负例及真实service资源/取消证据，逐项门槛见[DEVELOPMENT](../standards/DEVELOPMENT.md)。完整编排代码可参照[校准实施例](../standards/CALIBRATION_WALKTHROUGH.md)，不得复制其中像元公式到其它process。GPU只预留同一批次/内存位置/完成事件边界，不实现后端。
+
+## 可独立实施的算法合同
+
+### 估计量与唯一执行程序
+
+输出由显式G作用同一原生随机量：值y=Gx、数值区间按signed行传播、noise=G C Gᵀ。先验证domain/codomain index和detector affine映射M,b；遍历G的每个输出行，按原生index排序并合并同列，核对成员footprint后执行。crop/flip/transpose/Bayer是选择/置换；physical_sum每成员系数1，physical_mean为实际成员数倒数，空成员不除0。一般signed/重叠去马赛克只作linear_view，不产生新的物理收光域。
+
+物理成员以原生photosite身份去重，缺孔按真实成员集合的union持久化；不能以bin外接矩形补孔，也不能把重复同一photosite当两次独立观测。mean→sum的还原乘真实成员数，noise和模板走相同action。空间标度已有时回溯parent按G Dα次序，context/frame/曝光根不得重置。DQ合格域由参与成员和明确策略形成，G本身不授权自动修复坏像元。
+
+### 资源、失败与独立例
+
+工作单元为完整G行及其全部依赖，F包含该行真实nnz、源块、footprint环/洞、输出双端点及归约workspace；R保G/parent/索引，长行可多遍/spill。非法维度invalid_model，非线性且无influence为unsupported，无成员为no_support，预算拒绝不改G。
+
+G-REGROUP：x=[2,4,8]、C=I、G=[[1,1,0],[0,1,1]]作linear_view，y=[6,12]、Cov=[[2,1],[1,2]]；此重叠G不得当物理互斥bin。物理mean仅用第0、2 photosite时值5、variance=1/2，恢复sum为10、variance=2，足迹中间洞仍在。再测signed行[1,-1,0]的区间、共享master根和跨进程重开；测试不能用G apply自身生成truth。

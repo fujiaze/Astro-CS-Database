@@ -1,6 +1,6 @@
 # information.reference：参考通量信息量
 
-状态：目标process文档；对应科学函数可已有部分实现，标准注册/生命周期/探针尚未据本文落地。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
+状态：本篇规定目标算法及实施合同；已有部分Runtime和科学模块实现，具体完成/验收只看[统一状态](../../../audit/IMPLEMENTATION-STATUS.md)，不能由本文标题推断全部未实现或已通过。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
 
 ## 注册与边界
 
@@ -33,7 +33,7 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 
 最小反例：F01/V01；解析设计矩阵、背景退化、缺模板界、unknown C与参考模型错配。还需通过公共注册/取消/资源/单线程与多线程矩阵；计时必须包含本process的读取、执行、封存及明确分摊的共享成本，不能用失败更快冒充优化。
 
-改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，文档中的角色名不表示头文件现已提供新接口。
+改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，当前接口及能力以公开头/registry核对，规格与代码偏差必须明确记录。
 
 ## 算法详细条款
 
@@ -62,8 +62,22 @@ Normalize.information使用ReferenceInformationRequest，不要求用户预先�
 
 ## 直接开发的实施合同
 
-本process全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
+本process的算法复现按[独立实施标准](../standards/ALGORITHM_CONTRACTS.md)验收。全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
 
 有全局拟合屏障时拆stream→ordered_accumulator→barrier region：每cohort提交R内聚合状态即可退F，不能让唯一进展cohort等待下一cohort。科学迭代以显式epoch重新准入，work不重置。取消/失败只允许内建清理继续，模块不提交新科学计算；公开输出只在所有必需任务/写入/校验结束后交付。
 
 实施交付包含所属模块plan/kernel/adapter/codec、独立小例/负例及真实service资源/取消证据，逐项门槛见[DEVELOPMENT](../standards/DEVELOPMENT.md)。完整编排代码可参照[校准实施例](../standards/CALIBRATION_WALKTHROUGH.md)，不得复制其中像元公式到其它process。GPU只预留同一批次/内存位置/完成事件边界，不实现后端。
+
+## 可独立实施的算法合同
+
+### 模板、背景与可估性程序
+
+直接InformationRequest锁定同一output_index的h、Z、C和reference条件。h若来自template_evaluation，必须逐行对应明确列及其包围；直接矩阵输入只对解析数字定义的模型。工作流请求则从同原生footprint/PSF和background Basis积分，依次同G/α/R投影成h/Z，不能在重采样中心另画背景平面。actual_scene只用实际noise；named_reference需显式物理均值/noise，缺输入unavailable。
+
+SPD时，在白化空间用QR投影背景列，以h对Z列空间的正交残差平方范数作可估信息，避免两个大数相减。PSD时必须先变换参数/泛函，不能直接投影原h/Z：令D=[h,Z]、θ=(F,β)，U0为结构性零空间，解A0θ=U0ᵀy（A0=U0ᵀD），得θp=K0y及null基N；自由设计为A+=Λ+^-1/2 U+ᵀD N，右端为Λ+^-1/2 U+ᵀ(y−Dθp)。所求F=eFᵀθp+aᵀη，a=NᵀeF；须验证a消灭null(A+)，再由同一QR解算map算完整F的influence/variance。a=0表示无噪声约束已决定F，V=0；约束不一致invalid_model。不能把θp固定成不依赖数据的常数，也不能用C+丢掉精确方程。
+
+若F泛函不可估，给not_identifiable无有限V。秩/模板区间跨可估边界时precision_exhausted/conditional，不用伪逆FF元冒充已识别。信息/variance单位沿h所定义的总flux，不能将I_F改名像元面亮度IVAR。
+
+### 资源、参数与独立例
+
+行窗口由明确模板和背景支持决定，F计n×(p+1)设计/端点、QR或PSD约束、C action workspace，R只保请求/结果/依赖；iterative分支需完整输出泛函残差证书。I-INFO：h=[1,0]、Z=[1,1]、C=I，F估计=d1−d2，V_F=2；h=[1,1]则完全被背景吸收，unavailable/not_identifiable；C=0且设计满秩则精确F，V=0。I-PSD：D=[[1,1],[1,2]]、C=diag(0,1)，F=2d1−d2、V=1，不能因正谱只有一行就误判不可估。扩大h区间应改变数值可估性/误差，不能只沿用名义V。比较独立有理矩阵例和实际PSF窗口入口，确保二者同一算法。

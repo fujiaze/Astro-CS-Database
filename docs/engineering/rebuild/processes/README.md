@@ -36,3 +36,7 @@
 ## 实际接入状态
 
 本目录 22 个 process 文档和 57 个 operation 是科学责任和目标覆盖范围，**不代表每个 operation 都已通过生产级验证**。实际接入与独立证据见 [M0—M6 状态表](../../../audit/IMPLEMENTATION-STATUS.md) 及 [M5 固定用例](../../../../validation/process/README.md)。
+
+## 独立算法复现
+
+每篇末尾“可独立实施的算法合同”固定其步骤、参数来源、资源/停止与独立例；统一门槛见[ALGORITHM_CONTRACTS](../standards/ALGORITHM_CONTRACTS.md)。sources.measure明确窗口/联合GLS/背景/误差，response.integrate明确认证积分，geometry.drizzle明确外存CSR/误差/细化；其余模块也不能只靠骨架段落登记完成。案例目录不意味着生产已实跑。

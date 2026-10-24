@@ -260,3 +260,13 @@ PsfEvaluation.values的笛卡尔索引和output_index/source_index保同序；In
 flux_numerical_lower/upper 为 f64 [stars.size()]，与 stars 严格同序，index_id=joint_noise.input_output.domain 的源通量索引，单位与 StarFlux.integrated_flux 一致（标度前 ADU，即本观测计数单位；不把它误记为最终参考 L）。两数组必须同时存在，包含名义 integrated_flux，保存实际源测量求解的确定数值包围；确实无法认证时二者同为 null，error 明确 numerical_flux_uncertified，结果 conditional/unconverged，不能按零半径消费。stars 的 Variance/joint_noise 仅表示随机误差，不替代此包围。
 
 error 为强引用，保该次实际 PSF 模板积分/参数盒、Native 数值区间、窗口线性求解或局部根验证的误差账本及 included/omitted。实际模板求值证书的影响归并进通量区间与 error；其 ErrorRecord 依赖须强引用可重开，不必保一份完整 NxS 模板矩阵。observation 强引用被测 Native（保 frame/context、数值输入及 noise），而非隐式当前会话。full 产品沿这些字段保存闭包；StarFlux 中名义值不再另有第二套区间正本。
+
+## Dyadic typed read与所有尺寸运算的闭合合同
+
+固定宽dtype的shape乘积、count×itemsize、begin+count、stride/offset、compressed/decompressed上界、spill累计字节及平台size_t转换都先checked；空数组走明确零元素分支，不用溢出后的0冒充空数组。任一不适配返回invalid_request/resource_exhausted且不开始分配/写入，不能仅保护最终new而漏掉中间乘法。
+
+Dyadic不是固定itemsize类型：按现有规范1024完整元素块读取，逐元素解析等值归一的mantissa/exponent，并核块hash/范围、位长、元素数及整数转换。read<Dyadic>返回保持精确值的强所有权块，动态limb和解析/规范化workspace须计claim/物理allocated；不能用count×sizeof(Dyadic)当全部内存。先解析有界头/长度并准入，再读limb/解码；超预算在元素安全边界停止，不暴露半个精确值。借用span不能超出其Lease。
+
+read<double>对Dyadic的类型不匹配可以unsupported；这是显式dtype约束。完整精确数值能力要求真正的Dyadic typed路径，不能把该路径也永久unsupported。转换到double是独立显式转换，附向外误差/精度状态；绝不默默截断大mantissa。科学endpoint/geometry recipe新进程重开须保精确值、shared roots/unknown和闭包，不依赖原进程缓存或原始FITS。
+
+ST-DYADIC例含±0等值归一、2^1000与2^-1000、大mantissa、1023/1024/1025尾块及损坏长度/hash；ST-OVERFLOW含UINT64_MAX附近shape/count和窄size_t平台。读写/重开正反例都必须走真实Storage；当前是否实现只按状态/证据记录。

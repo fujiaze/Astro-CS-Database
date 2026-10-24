@@ -1,6 +1,6 @@
 # photometry.apply：应用空间标度
 
-状态：目标process文档；对应科学函数可已有部分实现，标准注册/生命周期/探针尚未据本文落地。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
+状态：本篇规定目标算法及实施合同；已有部分Runtime和科学模块实现，具体完成/验收只看[统一状态](../../../audit/IMPLEMENTATION-STATUS.md)，不能由本文标题推断全部未实现或已通过。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
 
 ## 注册与边界
 
@@ -33,7 +33,7 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 
 最小反例：F01/U01；常数及梯度α、bin内变化、重复application_id、模板L单位。还需通过公共注册/取消/资源/单线程与多线程矩阵；计时必须包含本process的读取、执行、封存及明确分摊的共享成本，不能用失败更快冒充优化。
 
-改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，文档中的角色名不表示头文件现已提供新接口。
+改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，当前接口及能力以公开头/registry核对，规格与代码偏差必须明确记录。
 
 ## 算法详细条款
 
@@ -57,8 +57,20 @@ apply_scale创建新的EffectivePSF：source_scale引用PhotoSolution、frame绑
 
 ## 直接开发的实施合同
 
-本process全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
+本process的算法复现按[独立实施标准](../standards/ALGORITHM_CONTRACTS.md)验收。全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
 
 有全局拟合屏障时拆stream→ordered_accumulator→barrier region：每cohort提交R内聚合状态即可退F，不能让唯一进展cohort等待下一cohort。科学迭代以显式epoch重新准入，work不重置。取消/失败只允许内建清理继续，模块不提交新科学计算；公开输出只在所有必需任务/写入/校验结束后交付。
 
 实施交付包含所属模块plan/kernel/adapter/codec、独立小例/负例及真实service资源/取消证据，逐项门槛见[DEVELOPMENT](../standards/DEVELOPMENT.md)。完整编排代码可参照[校准实施例](../standards/CALIBRATION_WALKTHROUGH.md)，不得复制其中像元公式到其它process。GPU只预留同一批次/内存位置/完成事件边界，不实现后端。
+
+## 可独立实施的算法合同
+
+### 固定应用程序与同数据随机量
+
+validate先查solution.frames中唯一frame、application_id未应用、原单位与response/PSF来源匹配。回溯Native.parent/G到原始physical samples，在每个真实样本按持久化Basis计算h_j，再用exp区间得到α_j；先x'_j=α_j x_j，之后才执行G，不能用bin中心或星心α。PSF的源端a(source)和detector端α分别按本篇既有规则乘入唯一模板，不让平均后的PSF重新归一。
+
+数值端点由x和θ盒的同一signed运算传播。随机influence在原生域为`Dα L_x − diag(α x) H L_θ`，再乘G；x与θ同根就先加两个influence再作covariance，不能加两个独立variance。未知共同root或物理响应项仍unknown。产生新Native/EffectivePSF/error revision，旧引用只读，重复application_id立即identity_conflict。
+
+### 资源、停止与独立例
+
+按真实parent行块，F计x/θ读取、basis、α及输出端点/DQ，R保新模型/G/解引用；大G依赖行遵operators外存，不能全图α常驻。无法认证exp或θ盒时完整误差状态conditional，依请求决定保名义值或precision_exhausted。A-SCALE：x=[2,4]、α=[1,2]、G=[1,1]，真值10，先sum再中心α=1.5会给9。A-SAMEDATA：标量θ=log x且target=1时αx恒1，完整微分为0，错误独立加法非零；检查同根合并。另测重复应用、改变response和重开依赖，不能悄悄复用旧PSF。

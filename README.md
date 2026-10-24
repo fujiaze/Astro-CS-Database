@@ -6,7 +6,7 @@
 
 内部开发只维护一套当前格式，允许破坏式重构，不兼容v1或早期v2产品/接口，也不实现旧产品转换。Git历史及原始科学证据保留。GPU只设计KernelExecutor/ArrayBacking/Completion扩展，本期CPU，不实现GPU后端。
 
-本分支已经从纯设计推进至 Runtime（M0—M4）和部分 typed 科学模块（M5）的实际实现。**当前唯一进度与缺口入口**：[实施与验收状态](docs/audit/IMPLEMENTATION-STATUS.md)。截至被核查提交 `6f08c4e`，Runtime 冻结证据为 **16 case 中 15 pass、multi01 fail**；旧科学汇总为 7 pass / 4 pending，不能据此宣称新 Normalize→Mosaic→Export 全链完成。新增/修改算法继续通过模块 process 文档和唯一 typed descriptor 接入，不向 Host 增加算法分支。
+本分支已经从纯设计推进至 Runtime（M0—M4）和部分 typed 科学模块（M5）的实际实现。**当前唯一进度与缺口入口**：[实施与验收状态](docs/audit/IMPLEMENTATION-STATUS.md)。Runtime已有较新16/16 case的冻结PASS，但共享interval/严格矩阵证书仍有阻碍；具体被测SHA、当前复验和科学链状态仅以该状态页为准。新增/修改算法继续通过模块 process 文档和唯一 typed descriptor 接入，不向 Host 增加算法分支。
 
 ```text
 python -m pip install -r validation/requirements.txt
@@ -24,7 +24,7 @@ python tools/check_design.py
 
 ## 当前执行与验证入口
 
-- 基建：`validation/runtime/build.sh` + `validation/runtime/run_cases.py --no-build`（依赖已配置的 CPU OFF/DEV ON 构建；当前 multi01 预期仍是 FAIL，必须保持其证据）。
+- 基建：`validation/runtime/build.sh` + `validation/runtime/run_cases.py --no-build`（依赖已配置的 CPU OFF/DEV ON 构建；较新multi01已记录冻结PASS，旧失败attempt仍保留；不预设新运行结果）。
 - 已接入的科学模块：`validation/process/README.md` 及各模块冻结 case。
 - 完整科学链：`validation/run_summary.json` 只是旧身份的 11-case 汇总；正式验收以 [VERIFICATION](docs/engineering/rebuild/VERIFICATION.md) 与最新成功发布/重开证据为准。
 
