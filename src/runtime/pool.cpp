@@ -1009,7 +1009,20 @@ bool Services::take_runnable(std::shared_ptr<detail::TaskNode>& node) {
     }
     out = candidate;
     control_.pop_front();
-    if (out) out->context.dispatch_sequence = dispatch_sequence.fetch_add(1);
+    if (out) {
+      const U64 dispatch_id = dispatch_sequence.fetch_add(1);
+      out->context.dispatch_sequence = dispatch_id;
+      if (config().dispatch_observer) {
+        DispatchEvent event;
+        event.sequence = dispatch_id;
+        event.command = out->command ? out->command->id : Id{};
+        event.ready = 1;
+        event.running = out->command ? out->command->cpu_running : 0;
+        event.ceiling = out->command ? out->command->scope->limits.ceiling.cpu_tokens : 0;
+        event.control = true;
+        config().dispatch_observer(event);
+      }
+    }
     if (hub) hub->science_since_control.store(0);
     return true;
   };
@@ -1163,6 +1176,7 @@ bool Services::take_runnable(std::shared_ptr<detail::TaskNode>& node) {
           hub->science_since_control.fetch_add(1);
           hub->ready_count.fetch_sub(1, std::memory_order_acq_rel);
         }
+        if (config().dispatch_observer) config().dispatch_observer(event);
         return true;
       }
     }
