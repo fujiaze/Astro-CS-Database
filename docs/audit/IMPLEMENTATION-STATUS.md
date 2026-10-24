@@ -33,7 +33,7 @@
 
 | ID | 优先级 | 实质问题与判定方法 | 责任正本 |
 |---|---|---|---|
-| E-01 | P1 | `multi01` 的完整可行轮数不足，保持 FAIL。分开记录“每轮权重正确性”和“足够样本覆盖”；重复 5 次，所有完整可行轮多重集均为 {1,2,2}，且每次可行轮至少 100 才能关门。不以累计比例/选取最好一次替代 | [SCHEDULER](../engineering/rebuild/standards/SCHEDULER.md)、[测试](../../validation/runtime/multi01/) |
+| E-01 | P1 | `multi01` 的完整可行轮数不足，保持 FAIL。分开记录“每轮权重正确性”和“足够样本覆盖”；重复 5 次，所有完整可行轮多重集均为 {1,2,2}，且每次可行轮至少 100 才能关门。不以累计比例/选取最好一次替代 | [SCHEDULER](../engineering/rebuild/standards/SCHEDULER.md)、[测试](../../validation/runtime/multi01/comparison.json) |
 | E-02 | P1（验收缺口） | M5 已接入同步算法的 `std::vector`、矩阵分解/排序/临时大整数是否完整纳入 R/F/实际分配账本；必须用分配跟踪、低 H、真实超限和有界拒绝证明 | [EXECUTION](../engineering/rebuild/EXECUTION.md)、[DEVELOPMENT](../engineering/rebuild/standards/DEVELOPMENT.md) |
 | E-03 | P1（端到端缺口） | 无原始 FITS 的 full 产品重新打开、共享随机根、未知噪声、唯一 HiPS signal、WCS Export 与真实文件读写尚未构成当前完整 PASS 证据 | [VERIFICATION](../engineering/rebuild/VERIFICATION.md)、[WORKFLOWS](../engineering/rebuild/standards/WORKFLOWS.md) |
 | E-04 | P2 | M5 七个已记录接入模块的具名 probe 仅注册而未全面采样；补生产采样及 DEV_MODE OFF/ON 科学结果等价性 | [PROBES](../engineering/rebuild/standards/PROBES.md)、[M5](../../validation/process/README.md) |
