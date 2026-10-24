@@ -616,7 +616,6 @@ void Services::shutdown() {
       if (control_.empty()) break;
       node = control_.front();
       control_.pop_front();
-      node->context.dispatch_sequence = dispatch_sequence.fetch_add(1);
     }
     auto body = std::move(node->body);
     node->body = nullptr;
@@ -1097,59 +1096,69 @@ bool Services::take_runnable(std::shared_ptr<detail::TaskNode>& node) {
     }
   }
 
-  // 2) Weighted fair queueing over ready scientific work: dispatch the command
-  //    with the smallest (served+1)/weight, ties resolved by the larger weight
-  //    and then by rotation.  With both commands continuously ready this emits
-  //    the exact pattern w2,w2,w1 for weights 1:2: any complete round is
-  //    {w1,w2,w2}.  A momentarily empty command does not lose its turn: its
-  //    served count keeps the long-run share, and the pool stays
-  //    work-conserving.
+  // 2) Weighted deficit round-robin over ready scientific work.  When no
+  //    ready command has positive deficit, every ready command receives one
+  //    quantum equal to its weight (capped at its weight, so an idle command
+  //    cannot accumulate a burst).  The command with the largest deficit wins;
+  //    ties rotate.  This keeps the 1:2 share under a continuously ready pair
+  //    and remains work-conserving when one queue is momentarily empty.
   if (!shutdown_.load()) {
     std::lock_guard<std::mutex> lock(commands_mutex_);
-    const std::size_t count = commands_.size();
-    std::size_t best = count;
-    U64 best_served = 0;
-    U32 best_weight = 1;
-    for (std::size_t step = 0; step < count; ++step) {
-      const std::size_t index = (rr_index_ + step) % count;
-      auto command = commands_[index];
+    bool any_ready = false;
+    bool any_positive = false;
+    for (auto& command : commands_) {
       std::lock_guard<std::mutex> command_lock(command->mutex);
       if (!command->accept_new || command->draining) continue;
       if (detail::scope_status(command->scope) != ScopeStatus::accepting)
         continue;
       if (command->ready.empty()) continue;
-      U32 ceiling = command->scope->limits.ceiling.cpu_tokens;
-      if (ceiling == 0) ceiling = cpu_threads_;
-      if (command->cpu_running >= ceiling) continue;
-      if (best == count) {
-        best = index;
-        best_served = command->served;
-        best_weight = command->weight;
-        continue;
-      }
-      // (served+1)/weight < (best_served+1)/best_weight, in integers.
-      const U64 lhs = (command->served + 1) * best_weight;
-      const U64 rhs = (best_served + 1) * command->weight;
-      if (lhs < rhs || (lhs == rhs && command->weight > best_weight)) {
-        best = index;
-        best_served = command->served;
-        best_weight = command->weight;
-      }
+      any_ready = true;
+      if (command->deficit > 0) any_positive = true;
     }
-    if (best != count) {
-      auto command = commands_[best];
-      std::lock_guard<std::mutex> command_lock(command->mutex);
-      node = command->ready.front();
-      command->ready.pop_front();
-      node->context.dispatch_sequence = dispatch_sequence.fetch_add(1);
-      ++command->served;
-      ++command->cpu_running;
-      rr_index_ = (best + 1) % count;
-      if (hub) {
-        hub->science_since_control.fetch_add(1);
-        hub->ready_count.fetch_sub(1, std::memory_order_acq_rel);
+    if (any_ready) {
+      if (!any_positive) {
+        for (auto& command : commands_) {
+          std::lock_guard<std::mutex> command_lock(command->mutex);
+          if (command->ready.empty()) continue;
+          command->deficit += static_cast<std::int32_t>(command->weight);
+          if (command->deficit > static_cast<std::int32_t>(command->weight))
+            command->deficit = static_cast<std::int32_t>(command->weight);
+        }
       }
-      return true;
+      const std::size_t count = commands_.size();
+      std::size_t best = count;
+      std::int32_t best_deficit = 0;
+      for (std::size_t step = 0; step < count; ++step) {
+        const std::size_t index = (rr_index_ + step) % count;
+        auto command = commands_[index];
+        std::lock_guard<std::mutex> command_lock(command->mutex);
+        if (!command->accept_new || command->draining) continue;
+        if (detail::scope_status(command->scope) != ScopeStatus::accepting)
+          continue;
+        if (command->ready.empty() || command->deficit <= 0) continue;
+        U32 ceiling = command->scope->limits.ceiling.cpu_tokens;
+        if (ceiling == 0) ceiling = cpu_threads_;
+        if (command->cpu_running >= ceiling) continue;
+        if (best == count || command->deficit > best_deficit) {
+          best = index;
+          best_deficit = command->deficit;
+        }
+      }
+      if (best != count) {
+        auto command = commands_[best];
+        std::lock_guard<std::mutex> command_lock(command->mutex);
+        node = command->ready.front();
+        command->ready.pop_front();
+        node->context.dispatch_sequence = dispatch_sequence.fetch_add(1);
+        --command->deficit;
+        ++command->cpu_running;
+        rr_index_ = (best + 1) % count;
+        if (hub) {
+          hub->science_since_control.fetch_add(1);
+          hub->ready_count.fetch_sub(1, std::memory_order_acq_rel);
+        }
+        return true;
+      }
     }
   }
 
