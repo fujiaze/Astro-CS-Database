@@ -988,12 +988,22 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
       step[j] = -sum;
     }
 
-    double scaled_gradient = 0.0;
-    double scaled_step = 0.0;
+    // Scale free stationarity measures.  The old products score*column_scale
+    // and step*column_scale carry the flux magnitude twice: at the x01 scale a
+    // J of 1e16 makes them ~1e33 even when the arithmetic is at the optimum,
+    // so they can never meet a relative tolerance.  The predicted reduction
+    // score . step relative to the objective and the step relative to the
+    // parameter are dimensionless.
+    double relative_gradient = 0.0;
+    double relative_step = 0.0;
     for (std::size_t j = 0; j < problem.n_theta; ++j) {
-      scaled_gradient = std::max(scaled_gradient, std::fabs(score[j] * column_scale[j]));
-      scaled_step = std::max(scaled_step, std::fabs(step[j] * column_scale[j]));
+      relative_step =
+          std::max(relative_step, std::fabs(step[j]) / std::max(1.0, std::fabs(theta[j])));
+      relative_gradient =
+          std::max(relative_gradient,
+                   std::fabs(score[j] * step[j]) / std::max(1.0, std::fabs(current.chi_square)));
     }
+    (void)column_scale;
     // A denormal objective or score is not a convergence: it means that the
     // arithmetic has lost the significant digits of the design.  The fit
     // reports the exhausted precision instead.
@@ -1013,8 +1023,38 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
           "the objective or the score of the scale parameters is denormal; the precision is exhausted";
       break;
     }
-    if (scaled_gradient <= settings.gradient_tolerance && scaled_step <= settings.step_tolerance) {
+    if (relative_gradient <= settings.gradient_tolerance &&
+        relative_step <= settings.step_tolerance) {
       converged = true;
+      break;
+    }
+
+    // A step that cannot change any representable bit of the parameter is not a
+    // line search failure: the arithmetic has run out of resolution between the
+    // scale parameter and the flux magnitude.  Reporting this as "Armijo did
+    // not find a decreasing step" hides the real cause, so the exhausted
+    // precision is named instead.  No scale is published in either case.
+    bool representable = false;
+    for (std::size_t j = 0; j < problem.n_theta; ++j) {
+      if (theta[j] + step[j] != theta[j]) {
+        representable = true;
+        break;
+      }
+    }
+    if (!representable && relative_gradient > settings.gradient_tolerance) {
+      result.precision_exhausted = true;
+      std::string reason =
+          "the Gauss-Newton step is below the floating-point resolution of the scale parameters; "
+          "the precision is exhausted";
+      for (const FrameInput& frame : frames) {
+        if (!frame.variance_known) {
+          reason +=
+              "; the measurement variance of frame " + frame.frame +
+              " is unknown, so the fit used equal weights and cannot resolve the scale";
+          break;
+        }
+      }
+      failure = reason;
       break;
     }
 

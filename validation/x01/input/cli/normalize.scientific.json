@@ -107,7 +107,7 @@
    "step_tolerance": 1e-12,
    "max_outer_iterations": 32,
    "likelihood": {
-    "kind": "poisson",
+    "kind": "joint_flux_gaussian",
     "estimator": "x01-likelihood",
     "assumptions": [],
     "fixed_objects": []

@@ -404,7 +404,7 @@ def normalize_config(frame_ids: List[str]) -> Dict[str, Any]:
         "output": "products",
         "resources": resources(),
         "product_profile": "full",
-        "publication": {"signal_dtype": "f64", "tile_log2_width": 6, "durable": False},
+        "publication": {"signal_dtype": "f64", "tile_log2_width": 5, "durable": False},
     }
 
 

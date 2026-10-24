@@ -587,6 +587,24 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
     bool accepted = false;
     double next_objective = objective;
     double lambda = 1.0;
+    auto widths_are_identifiable = [&](const std::vector<double>& candidate) {
+      if (!(window_radius > 0.0)) return true;
+      for (std::size_t s = 0; s < sources; ++s) {
+        const std::vector<double> local = local_of(candidate, positions[s], s);
+        double width = 0.0;
+        switch (request.family) {
+          case PsfRequest::Family::gaussian:
+          case PsfRequest::Family::moffat:
+            width = std::max(std::exp(local[0]), std::exp(local[1]));
+            break;
+          case PsfRequest::Family::airy:
+            width = std::exp(local[0]);
+            break;
+        }
+        if (!(width <= window_radius)) return false;
+      }
+      return true;
+    };
     for (U32 backtrack = 0; backtrack < 32; ++backtrack) {
       std::vector<double> trial = theta;
       for (std::size_t c = 0; c < parameter_count; ++c) trial[c] += lambda * step[c];
@@ -598,6 +616,10 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
       for (std::size_t s = 0; s < sources; ++s) {
         trial_positions[s].x = trial[shape_count + 3 * s];
         trial_positions[s].y = trial[shape_count + 3 * s + 1];
+      }
+      if (!widths_are_identifiable(trial)) {
+        lambda *= 0.5;
+        continue;
       }
       Result<sources::psfmodel::TemplateBlock> trial_block = sources::psfmodel::build_templates(
           context, request.family, shape_coefficients(trial), basis, trial_positions, footprints,
@@ -647,6 +669,7 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
           trial_positions[s].x = trial[shape_count + 3 * s];
           trial_positions[s].y = trial[shape_count + 3 * s + 1];
         }
+        if (!widths_are_identifiable(trial)) continue;
         Result<sources::psfmodel::TemplateBlock> trial_block = sources::psfmodel::build_templates(
             context, request.family, shape_coefficients(trial), basis, trial_positions, footprints,
             fit_rows, tolerance);
@@ -709,6 +732,34 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
     const Code code = precision_exhausted ? Code::precision_exhausted : Code::nonconverged;
     return model::fail<Ref<EffectivePSF>>(code, failure, kOrigin,
                                           "the PSF fit did not converge");
+  }
+
+  // A width larger than the fit window is not identifiable: the template is
+  // almost constant over the data and total flux/background can trade against
+  // the width without changing the objective.  Report the named condition
+  // instead of publishing a flat PSF that would corrupt every downstream flux.
+  if (window_radius > 0.0) {
+    for (std::size_t s = 0; s < sources; ++s) {
+      const std::vector<double> local = local_of(theta, positions[s], s);
+      double width = 0.0;
+      switch (request.family) {
+        case PsfRequest::Family::gaussian:
+          width = std::max(std::exp(local[0]), std::exp(local[1]));
+          break;
+        case PsfRequest::Family::moffat:
+          width = std::max(std::exp(local[0]), std::exp(local[1]));
+          break;
+        case PsfRequest::Family::airy:
+          width = std::exp(local[0]);
+          break;
+      }
+      if (!(width <= window_radius)) {
+        return model::fail<Ref<EffectivePSF>>(
+            Code::not_identifiable,
+            "the fitted PSF width exceeds the fitting window; the shape is not identifiable",
+            kOrigin, "the PSF cannot be estimated from this window");
+      }
+    }
   }
 
   // The tail bound of the positive model beyond the fit window.

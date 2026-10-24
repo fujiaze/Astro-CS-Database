@@ -49160,5 +49160,7 @@
  "exposure_seconds": 100.0,
  "dark_exposure_seconds": 100.0,
  "flat_normalization": 1.0,
- "dark_contains_bias": true
+ "dark_contains_bias": true,
+ "gain_e_per_adu": 2.5,
+ "read_rms_e": 3.0
 }

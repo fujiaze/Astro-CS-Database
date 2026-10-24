@@ -27,7 +27,7 @@
    "first_failure": {
     "frame_id": "x01-00",
     "code": "failed",
-    "message": "the pixel integral cannot be built"
+    "message": "the Armijo backtracking did not find a decreasing step"
    }
   },
   {

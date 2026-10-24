@@ -570,19 +570,25 @@ Result<Ref<PhotoSolution>> fit_photometry(Context& context,
         copy_f64(context, outcome.rank.singular_values,
                  {static_cast<U64>(outcome.rank.singular_values.size())},
                  model::unit_dimensionless(), parameter_index.identity.object_id);
-    Result<ArrayRef> nullspace_array =
-        copy_f64(context, nullspace,
-                 {static_cast<U64>(null_dim),
-                  static_cast<U64>(null_dim > 0 ? nullspace.size() / null_dim : 0)},
-                 model::unit_dimensionless(), parameter_index.identity.object_id);
-    if (!ok(singular_array) || !ok(nullspace_array)) {
+    // A full rank design has no null space: an array with a zero extent is not
+    // a storable object, so the field stays absent instead of failing the
+    // publication of an otherwise certified solution.
+    Result<ArrayRef> nullspace_array;
+    if (null_dim > 0) {
+      nullspace_array =
+          copy_f64(context, nullspace,
+                   {static_cast<U64>(null_dim),
+                    static_cast<U64>(nullspace.size() / null_dim)},
+                   model::unit_dimensionless(), parameter_index.identity.object_id);
+    }
+    if (!ok(singular_array) || (null_dim > 0 && !ok(nullspace_array))) {
       return model::fail<Ref<PhotoSolution>>(Code::internal, "the rank report cannot be stored",
                                              kFitOrigin, "the solution cannot be published");
     }
     solution->rank.columns = outcome.rank.columns;
     solution->rank.rank = outcome.rank.rank;
     solution->rank.singular_values = val(singular_array);
-    solution->rank.nullspace = val(nullspace_array);
+    if (null_dim > 0) solution->rank.nullspace = val(nullspace_array);
     solution->rank.singular_error_bound = outcome.rank.singular_error_bound;
     solution->rank.certified = outcome.rank.certified;
   }
