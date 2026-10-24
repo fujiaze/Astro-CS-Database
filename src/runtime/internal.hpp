@@ -241,7 +241,8 @@ struct CommandState {
   std::deque<std::shared_ptr<TaskNode>> ready;
   std::deque<std::shared_ptr<TaskNode>> waiting;  // waiting_resources retry
   U32 credit = 1;      // dispatch credit in the current round (kept for wire)
-  std::int32_t deficit = 0;  // deficit round-robin credit (weighted share)
+  std::int32_t deficit = 0;  // unused; kept for ABI of the internal struct
+  U64 served = 0;           // dispatches in the weighted-fair scheduler
   U32 cpu_running = 0; // CPU tokens held by running nodes of this command
   U32 in_flight = 0;   // admitted nodes not yet terminal
   bool draining = false;
@@ -347,6 +348,11 @@ Result<std::shared_ptr<ScienceContext>> make_science_context(InvocationContext,
 
 class Services {
  public:
+  // Dispatch ordinal assigned to each admitted execution segment; the task
+  // context carries it so tests and probes can recover the scheduling order
+  // even when two workers enter their bodies concurrently.
+  std::atomic<U64> dispatch_sequence{1};
+
   static std::shared_ptr<Services> create(const PoolConfig& config,
                                           std::string& error);
   ~Services();

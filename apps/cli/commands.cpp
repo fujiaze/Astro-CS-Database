@@ -747,6 +747,10 @@ Result<Calibration> load_calibration(Context& context, const std::filesystem::pa
   calibration.exposure_seconds = double_field(document, "exposure_seconds", 1.0);
   calibration.dark_exposure_seconds = double_field(document, "dark_exposure_seconds", 1.0);
   calibration.flat_normalization = double_field(document, "flat_normalization", 1.0);
+  if (document.contains("gain_e_per_adu"))
+    calibration.gain_e_per_adu = document.at("gain_e_per_adu").get<double>();
+  if (document.contains("read_rms_e"))
+    calibration.read_rms_e = document.at("read_rms_e").get<double>();
   return ok_result(calibration);
 }
 

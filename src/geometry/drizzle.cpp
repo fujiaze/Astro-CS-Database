@@ -386,9 +386,19 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
   estimate->numerical_upper = val(signal_upper_array);
   estimate->support = support;
   estimate->effective_response = response;
-  // The noise of the observation is a NoiseModel; the covariance action is
-  // built by the uncertainty module, so the estimate keeps the noise unknown.
-  estimate->noise = nullptr;
+  // R transforms signal, PSF and the noise roots together: the native noise
+  // covariance C becomes R C R^T on the leaf index through the same operator
+  // that produced the signal.  Without an input noise model the output stays
+  // unknown (null), never zero.
+  if (observation->noise) {
+    Result<Ref<CovarianceAction>> native_covariance =
+        make_covariance(context, observation->noise);
+    if (ok(native_covariance)) {
+      Result<Ref<CovarianceAction>> leaf_covariance =
+          control_covariance(context, val(native_covariance), val(rows));
+      if (ok(leaf_covariance)) estimate->noise = val(leaf_covariance);
+    }
+  }
   estimate->error = error;
   estimate->identity = model::make_identity("acsd.SignalEstimate", 2, 0,
                                              model::sha256_hex("acsd.drizzle.estimate"), "acsd");

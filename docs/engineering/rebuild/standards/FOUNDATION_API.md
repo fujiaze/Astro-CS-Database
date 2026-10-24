@@ -63,7 +63,10 @@ struct InvocationContext {
   InvocationIds ids;
   std::optional<U32> region;
   ArenaRef persistent, progress;
+  U64 dispatch_sequence;  // 池派发该执行段时分配的单调序号；0 表示尚未派发
 };
+`dispatch_sequence` 在池选中该执行段时由唯一CPU池赋值（控制lane同样赋值），用于在P>1时恢复调度顺序：执行体入口的墙钟顺序不等于credit发放顺序，测试/探针必须按该序号排序，不能用入口顺序推断公平轮。
+
 enum class TaskState {
   waiting_dependencies, waiting_resources, ready, running, suspended,
   success, failed, cancelled

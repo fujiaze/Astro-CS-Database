@@ -106,6 +106,11 @@ struct InvocationContext {
   InvocationIds ids;
   std::optional<U32> region;
   ArenaRef persistent, progress;
+  // Monotonic dispatch ordinal assigned when the pool picks this execution
+  // segment (0 for a context that has not been dispatched).  With several
+  // workers the wall-clock entry order is not the scheduling order; this field
+  // makes the credit round observable without exposing engine internals.
+  U64 dispatch_sequence = 0;
 };
 
 enum class TaskState {

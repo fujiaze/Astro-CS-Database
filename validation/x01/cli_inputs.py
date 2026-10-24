@@ -134,6 +134,8 @@ def calibration_document() -> Dict[str, Any]:
         "dark_exposure_seconds": 100.0,
         "flat_normalization": 1.0,
         "dark_contains_bias": True,
+        "gain_e_per_adu": 2.5,
+        "read_rms_e": 3.0,
     }
 
 
@@ -221,7 +223,12 @@ def photometry_request() -> Dict[str, Any]:
         "gradient_tolerance": 1e-10,
         "step_tolerance": 1e-12,
         "max_outer_iterations": 32,
-        "likelihood": {"kind": "poisson", "estimator": "x01-likelihood",
+        # The first-phase photometry implements the flux-domain joint
+        # Gaussian latent; the low-count raw Poisson likelihood is an explicit
+        # unsupported capability (photometry.fit.md).  X01 requests the
+        # supported estimator instead of an unimplemented one.
+        "likelihood": {"kind": "joint_flux_gaussian",
+                        "estimator": "x01-likelihood",
                         "assumptions": [], "fixed_objects": []},
     }
 
