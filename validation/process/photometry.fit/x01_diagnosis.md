@@ -304,3 +304,44 @@ Hand arithmetic for case A (7 stars, one frame, unit weights):
 - `photometry/api.cpp` and the rest of `src/photometry` are unchanged except
   `joint_fit.cpp` (diff: 45 insertions, 5 deletions).
 - No `git commit`/`git push`.
+
+---
+
+## M6 follow-up (2026-10-24): after the PSF flux fix
+
+Commit `13740080d` fixed the PSF Jacobian (source flux factor).  x01-00/01/02/03
+now fit `sigma ~= 1.35 px` and the measured counts are the sane positive values
+(`~7000..10400`).  The photometry failure is therefore no longer the old
+`1e16`/flat-PSF arithmetic; it is the numerical precision floor of the joint
+objective:
+
+- x01-00, single frame: `chi2=0.078538`, `score0=-0.0586069`,
+  `step0=0.0114096`, `directional=2*score.step=-0.00133736` and the central
+  finite difference `true_directional=-0.00133736` (relative difference
+  `4e-7`).  The residual model, the theta/latent Jacobian columns and the score
+  are consistent; no missing flux factor or sign remained in this path.
+- The fit reaches `chi2=0.0778693684` after one step.  The predicted reduction
+  then falls below the rounding resolution of `chi2`
+  (`8 * n_rows * eps * chi2`), no representable Armijo decrease exists, and the
+  old code reported `the Armijo backtracking did not find a decreasing step`.
+- Fix in `src/photometry/joint_fit.cpp` (only the line-search failure branch):
+  when `-0.5*directional <= 8*n_rows*eps*max(1,chi2)`, the fit stops as a
+  **conditional precision-floor convergence**, sets `precision_exhausted`, and
+  records the predicted reduction/resolution in `result.notes`.  No user
+  tolerance was changed and no ridge was added.  `api.cpp` already publishes
+  such a fit as conditional (unknown variance equal weights are named).
+- Regression `validation/process/photometry.fit/x01_minimal_repro.cpp` case E
+  (seven stars, two frames, exact flux ratio 2, unknown variance) reproduces
+  the pre-fix Armijo failure; after the fix it recovers `ratio=2.000000` with
+  `chi2=0.077869` and `precision=true`.  `validation/phot/run_validation.sh`
+  still reports ALL CASES PASSED.
+
+`acsd normalize` now gets past photometry: x01-00..03 publish a conditional
+scale (theta `-37.8172, -37.8232, -37.8075, -37.8088` for the four A frames in
+the joint fit) and stop in the product writer:
+`the leaf order is below the tile width` with a valid `tile_log2_width=6`
+(the x01 sky product order is below 6).  With the shipped
+`tile_log2_width=5` the writer rejects the configuration earlier with
+`the tile width is outside the allowed range`.  B frames x01-04..07 remain the
+named `no quad of the detection matched the catalogue`.  This product-writer
+gap is outside the photometry/PSF write scope.

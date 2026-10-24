@@ -114,7 +114,7 @@
    }
   },
   "drizzle": {
-   "order": 5,
+   "order": 6,
    "pixfrac": 1.0,
    "budget": {
     "requested_functionals": [],

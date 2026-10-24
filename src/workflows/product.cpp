@@ -256,20 +256,43 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
     store_object(builder, estimate.error->identity.object_id, "acsd.ErrorRecord",
                  workflows::encode_error_record(*estimate.error));
   }
+  // The covariance closure may contain an action that the product cannot
+  // reopen (the public interface exposes no child list).  That degrades the
+  // noise to unknown: the signal and the estimate stay publishable and the
+  // omission is named, instead of publishing an estimate reference whose
+  // object was never written.
+  SignalEstimate effective = estimate;
   if (estimate.noise) {
+    bool noise_complete = true;
     if (estimate.noise->model) {
       Result<std::string> model = collect_noise(context, builder, *estimate.noise->model);
-      if (!ok(model)) return model;
+      if (!ok(model)) {
+        noise_complete = false;
+        builder.omitted.push_back(
+            "the covariance model is not reopenable: " +
+            (model.assessment.issues.empty() ? std::string("the closure is incomplete")
+                                             : model.assessment.issues.front().reason));
+      }
     }
-    if (estimate.noise->influence) {
+    if (noise_complete && estimate.noise->influence) {
       Result<std::string> action = collect_action(context, builder, *estimate.noise->influence);
-      if (!ok(action)) return action;
+      if (!ok(action)) {
+        noise_complete = false;
+        builder.omitted.push_back(
+            "the covariance influence is not reopenable: " +
+            (action.assessment.issues.empty() ? std::string("the closure is incomplete")
+                                              : action.assessment.issues.front().reason));
+      }
     }
-    store_object(builder, estimate.noise->identity.object_id, "acsd.CovarianceAction",
-                 workflows::encode_covariance_action(*estimate.noise));
+    if (noise_complete) {
+      store_object(builder, estimate.noise->identity.object_id, "acsd.CovarianceAction",
+                   workflows::encode_covariance_action(*estimate.noise));
+    } else {
+      effective.noise = nullptr;  // null means unknown, never zero variance
+    }
   }
-  store_object(builder, estimate.identity.object_id, "acsd.SignalEstimate",
-               workflows::encode_signal_estimate(estimate));
+  store_object(builder, effective.identity.object_id, "acsd.SignalEstimate",
+               workflows::encode_signal_estimate(effective));
   return ok_result(std::string());
 }
 
@@ -595,7 +618,12 @@ class DiskProduct final : public ProductProvider {
   Result<std::vector<Id>> list_frames(Context& context) const override {
     (void)context;
     std::vector<Id> frames;
-    if (graph_ && graph_->signal) frames.push_back(graph_->signal->estimator.id);
+    if (graph_ && graph_->signal) {
+      // The product identity is unique per published frame; the estimator id
+      // names the method and is shared by every product of the same stage.
+      frames.push_back(graph_->identity.object_id.empty() ? graph_->signal->estimator.id
+                                                          : graph_->identity.object_id);
+    }
     return ok_result(frames);
   }
 

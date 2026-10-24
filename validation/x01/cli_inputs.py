@@ -192,7 +192,7 @@ def psf_request() -> Dict[str, Any]:
 
 def drizzle_request() -> Dict[str, Any]:
     return {
-        "order": 5,
+        "order": 6,
         "pixfrac": 1.0,
         "budget": {
             "requested_functionals": [],
@@ -404,7 +404,7 @@ def normalize_config(frame_ids: List[str]) -> Dict[str, Any]:
         "output": "products",
         "resources": resources(),
         "product_profile": "full",
-        "publication": {"signal_dtype": "f64", "tile_log2_width": 5, "durable": False},
+        "publication": {"signal_dtype": "f64", "tile_log2_width": 6, "durable": False},
     }
 
 

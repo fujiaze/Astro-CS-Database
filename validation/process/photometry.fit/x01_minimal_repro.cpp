@@ -6,11 +6,15 @@
 // (the joint covariance of sources.measure is not a flux-domain covariance, so
 // the fit falls back to equal weights).  The expected results:
 //
-//   A  counts 1e16, variance unknown (1)      -> precision_exhausted
+//   A  counts 1e16, variance unknown (1)      -> converged at the numerical
+//      precision floor (conditional), previously a failed Armijo search
 //   B  counts 1e16, variance 1e16             -> converged
 //   C  100 counts, variance 100 (normal)      -> converged
 //   D  2 frames, one star, no Gaia information, identical design -> not
 //      identifiable with a non-empty null space (no ridge)
+//   E  known flux ratio 2 between two frames, unknown variance -> the scale
+//      difference recovers log(2) exactly (conditional).  This case reproduced
+//      the pre-fix Armijo failure.
 //
 // Case A is the arithmetic of the x01 trace: v = 2.31879e20, theta0 =
 // log(1e16 / 2.31879e20) = -10.06, chi2 ~ O(1), score ~ 1.9e17,
@@ -208,7 +212,10 @@ int main() {
   std::vector<photometry::StarInput> x01_stars;
   for (int i = 0; i < 7; ++i) x01_stars.push_back(star(gaia));
 
-  // A: x01-00, unknown variance -> equal weights, step below the resolution.
+  // A: the pre-PSF-fix x01 arithmetic: the Gauss-Newton step is below
+  // ulp(theta), so no representable update exists.  This stays a named
+  // precision exhaustion (no arbitrary scale is published); case E is the
+  // post-PSF-fix regime where the step is representable.
   run_case("A_x01_scale_unknown_variance",
            {x01_frame(x01_counts, 1.0, false, v)}, x01_stars, context,
            weighted_mean, false, true, true);
@@ -231,6 +238,54 @@ int main() {
     std::vector<photometry::StarInput> stars{star({0.0, 0.0, 0.0})};
     run_case("D_collinear_scales", frames, stars, context, weighted_mean, false, false,
              false);
+  }
+
+  // E: known flux ratio on the x01-00 geometry.  Seven stars observed in two
+  // frames through the same response; frame 1 has exactly twice the counts of
+  // frame 0, so the conditional scale difference must be log(2).  The
+  // variance is unknown (equal weights, conditional), which is the x01
+  // regime.  Before the precision-floor stop this case failed the Armijo
+  // search; after it the fit converges conditionally and recovers log(2).
+  {
+    const std::vector<double> base{10034.9383, 7935.29644, 8928.40792, 7060.76349,
+                                   10032.7305, 7597.11324, 8637.60658};
+    const std::vector<double> response{2.31878632e20, 1.17463e20, 7.91382e19};
+    auto make_frame = [&](const char* id, double ratio) {
+      photometry::FrameInput f;
+      f.frame = id;
+      f.v = response;
+      f.dv = {8.00657e6, 4.05598e6, 2.73264e6};
+      for (std::size_t i = 0; i < base.size(); ++i) {
+        f.counts.push_back(base[i] * ratio);
+        f.variance.push_back(1.0);
+        f.flux_low.push_back(base[i] * ratio);
+        f.flux_high.push_back(base[i] * ratio);
+        f.position_x.push_back(40.0 + static_cast<double>(i));
+        f.position_y.push_back(60.0);
+        f.star.push_back(i);
+      }
+      f.variance_known = false;
+      return f;
+    };
+    std::vector<photometry::StarInput> stars;
+    for (int i = 0; i < 7; ++i) stars.push_back(star(gaia));
+    std::vector<photometry::FrameInput> frames{make_frame("f0", 1.0), make_frame("f1", 2.0)};
+    Result<photometry::FitResult> fit = photometry::run_joint_fit(
+        context, frames, stars, constant_basis(), weighted_mean, settings());
+    const bool ok_fit = fit.code == Code::ok && fit.value && fit.value->converged &&
+                        fit.value->theta.size() == 2;
+    std::string actual = "code=" + std::to_string(static_cast<int>(fit.code));
+    if (ok_fit) {
+      const double ratio = std::exp(fit.value->theta[1] - fit.value->theta[0]);
+      actual += " ratio=" + std::to_string(ratio) + " precision=" +
+                (fit.value->precision_exhausted ? "true" : "false") +
+                " chi2=" + std::to_string(fit.value->chi_square);
+      check("E_known_flux_ratio", std::fabs(ratio - 2.0) < 1.0e-10, actual);
+    } else {
+      actual += " converged=" + std::string(fit.value && fit.value->converged ? "true" : "false") +
+                " failure=" + (fit.value ? fit.value->failure : "no-result");
+      check("E_known_flux_ratio", false, actual);
+    }
   }
 
   std::printf("{\"case\":\"x01_minimal_repro\",\"failures\":%d}\n", g_failures);

@@ -1089,6 +1089,26 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
       factor *= 0.5;
     }
     if (!accepted) {
+      // The line search failed to find a representable decrease.  When the
+      // predicted reduction of the Gauss-Newton step is below the rounding
+      // resolution of the objective, the fit is at its numerical precision
+      // floor: this is a conditional stop of the arithmetic, not a property of
+      // the objective, and it is named in the published assessment instead of
+      // being reported as a failed line search.
+      const double predicted_reduction = std::max(0.0, -0.5 * directional);
+      const double rounding_resolution =
+          8.0 * static_cast<double>(problem.n_rows) * std::numeric_limits<double>::epsilon() *
+          std::max(1.0, std::fabs(current.chi_square));
+      if (predicted_reduction <= rounding_resolution) {
+        converged = true;
+        result.precision_exhausted = true;
+        result.notes.push_back(
+            "the joint fit stopped at the numerical precision floor of the objective: the "
+            "predicted reduction " + std::to_string(predicted_reduction) +
+            " is below the rounding resolution " + std::to_string(rounding_resolution) +
+            " of chi^2, so no representable line-search decrease exists");
+        break;
+      }
       failure = "the Armijo backtracking did not find a decreasing step";
       break;
     }

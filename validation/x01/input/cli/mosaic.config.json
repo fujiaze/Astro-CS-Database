@@ -3,8 +3,20 @@
  "command": "mosaic",
  "inputs": [
   {
-   "path": "products",
-   "expected_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+   "path": "products/x01-00",
+   "expected_hash": "sha256:fca769349707bbbc85ca3b0ca991a8866ee2dfb152485ef92b7283ffef63f7df"
+  },
+  {
+   "path": "products/x01-01",
+   "expected_hash": "sha256:0d7ed74aaaf6bde126cad90959a14c42460fd824ba65af462611902932efed12"
+  },
+  {
+   "path": "products/x01-02",
+   "expected_hash": "sha256:a3980746d478b57453660764ef9e68742e74260274f56761a351152b23ed50bd"
+  },
+  {
+   "path": "products/x01-03",
+   "expected_hash": "sha256:f3aa4d978b26759ff9786fd0a3f32cdc142c922d834269e77ea84d41c973b7b2"
   }
  ],
  "scientific": "mosaic.scientific.json",
