@@ -313,9 +313,33 @@ std::vector<Detection> detect_candidates(const DetectorImage& image, double dete
             }
           }
           if (!maximum) continue;
+          // The sub-pixel centroid of the 5x5 neighbourhood: an integer peak
+          // quantises every blind solution by up to half a pixel, which is
+          // exactly the scale of the astrometric tolerance.
+          double sum = 0.0;
+          double sum_x = 0.0;
+          double sum_y = 0.0;
+          for (int dy = -2; dy <= 2; ++dy) {
+            for (int dx = -2; dx <= 2; ++dx) {
+              const long nx = static_cast<long>(x) + dx;
+              const long ny = static_cast<long>(y) + dy;
+              if (nx < 0 || ny < 0 || nx >= static_cast<long>(image.width) ||
+                  ny >= static_cast<long>(image.height)) {
+                continue;
+              }
+              const std::size_t neighbour =
+                  static_cast<std::size_t>(ny) * image.width + static_cast<std::size_t>(nx);
+              if (!sample_usable(image.dq[neighbour])) continue;
+              const double weight = image.values[neighbour] - background;
+              if (!(weight > 0.0) || !std::isfinite(weight)) continue;
+              sum += weight;
+              sum_x += weight * static_cast<double>(nx);
+              sum_y += weight * static_cast<double>(ny);
+            }
+          }
           Candidate candidate;
-          candidate.x = static_cast<double>(x);
-          candidate.y = static_cast<double>(y);
+          candidate.x = sum > 0.0 ? sum_x / sum : static_cast<double>(x);
+          candidate.y = sum > 0.0 ? sum_y / sum : static_cast<double>(y);
           candidate.snr = snr;
           candidate.value = value;
           tile_candidates.push_back(candidate);

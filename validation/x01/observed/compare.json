@@ -32,37 +32,37 @@
   {
    "frame": "x01-04",
    "group": "B",
-   "astrometry_rms_pixel": 0.5364987777911783,
-   "signal_relative_error": 0.1071759555606608,
+   "astrometry_rms_pixel": 0.16185659437556732,
+   "signal_relative_error": 0.07132195750688984,
    "sources": 7
   },
   {
    "frame": "x01-05",
    "group": "B",
-   "astrometry_rms_pixel": 0.6594492474785305,
-   "signal_relative_error": 0.09798088424681131,
+   "astrometry_rms_pixel": 0.24354121387794359,
+   "signal_relative_error": 0.07053844679285419,
    "sources": 7
   },
   {
    "frame": "x01-06",
    "group": "B",
-   "astrometry_rms_pixel": 0.4283039958454076,
-   "signal_relative_error": 0.12786022339117611,
+   "astrometry_rms_pixel": 0.16189733519381305,
+   "signal_relative_error": 0.10333067715982192,
    "sources": 7
   },
   {
    "frame": "x01-07",
    "group": "B",
-   "astrometry_rms_pixel": 0.6594428849956822,
-   "signal_relative_error": 0.09416676974409928,
+   "astrometry_rms_pixel": 0.25712751144686274,
+   "signal_relative_error": 0.08038941915179475,
    "sources": 7
   }
  ],
- "astrometry_rms_pixel": 0.40942237970096357,
- "blind_solve_rms_pixel": 0.5790106821121697,
+ "astrometry_rms_pixel": 0.14909526496745026,
+ "blind_solve_rms_pixel": 0.21085254580257834,
  "astrometry_tolerance_pixel": 0.5,
- "blind_solve": false,
- "signal_relative_error": 0.12786022339117611,
+ "blind_solve": true,
+ "signal_relative_error": 0.10333067715982192,
  "signal_tolerance": 0.05,
  "source_recovered": false,
  "trace": "/workspace/Astro CS Database/validation/x01/observed/normalize_trace.jsonl"
