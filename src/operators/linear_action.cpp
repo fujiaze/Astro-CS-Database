@@ -544,6 +544,24 @@ Result<Ref<LinearAction>> make_csr_action(Context& context, U64 rows, U64 cols,
   spaces.output = unit;
   action->set_recipe(recipe);
   action->set_spaces(spaces);
+  // A sparse action is content addressed: two actions with the same shape and
+  // the same CSR payload are the same operator and must carry the same id.
+  {
+    std::vector<std::byte> digest;
+    const auto append = [&](const void* data, std::size_t bytes) {
+      const std::byte* begin = static_cast<const std::byte*>(data);
+      digest.insert(digest.end(), begin, begin + bytes);
+    };
+    const U64 shape[2] = {rows, cols};
+    append(shape, sizeof(shape));
+    append(offsets.data(), offsets.size() * sizeof(U64));
+    append(indices.data(), indices.size() * sizeof(U64));
+    append(values.data(), values.size() * sizeof(double));
+    append(spaces.domain->identity.object_id.data(), spaces.domain->identity.object_id.size());
+    append(spaces.codomain->identity.object_id.data(), spaces.codomain->identity.object_id.size());
+    action->identity = model::make_identity(
+        "acsd.LinearAction", 2, 0, model::sha256_hex(std::span<const std::byte>(digest)), "acsd");
+  }
   (void)context;
   return model::ok_result(std::shared_ptr<const LinearAction>(action));
 }

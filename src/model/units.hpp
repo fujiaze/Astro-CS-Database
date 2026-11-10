@@ -68,7 +68,8 @@ std::string interval_to_string(const Interval& value);
 // ---------------------------------------------------------------------------
 
 Identity make_identity(const std::string& schema_id, U32 major, U32 minor,
-                       const std::string& content_hash_hex, const std::string& run_id);
+                       const std::string& content_hash_hex, const std::string& run_id,
+                       U64 revision = 1);
 Assessment make_assessment(Code code, Capability capability = Capability::supported);
 void add_issue(Assessment& assessment, Code code, const std::string& reason,
                const std::string& origin = {}, const std::string& impact = {},

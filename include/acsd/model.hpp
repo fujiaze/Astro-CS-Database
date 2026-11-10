@@ -35,8 +35,8 @@ struct FitsPixel1 { double x,y; };
 struct SkyICRS { double nx,ny,nz; };
 struct HealpixLeaf { U32 order; U64 ipix; };
 struct FacetPoint { std::uint8_t face; double s,t; };
-struct Unit { std::string scale; std::int32_t sr_power, pixel_power, nm_power;
-  double multiplier; std::int32_t linear_power; }; // named scale L, with explicit power (variance=2)
+struct Unit { std::string scale; std::int32_t sr_power = 0, pixel_power = 0, nm_power = 0;
+  double multiplier = 1.0; std::int32_t linear_power = 0; }; // named scale L, power (variance=2)
 struct SourceIdentity { Id dataset,exposure,detector,channel; U64 sample; };
 struct SharedId { Id external_namespace,entity,model_revision,component; };
 struct Identity { Id object_id,content_hash,run_id; U64 revision;

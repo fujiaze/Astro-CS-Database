@@ -250,12 +250,13 @@ std::string interval_to_string(const Interval& value) {
 // ---------------------------------------------------------------------------
 
 Identity make_identity(const std::string& schema_id, U32 major, U32 minor,
-                       const std::string& content_hash_hex, const std::string& run_id) {
+                       const std::string& content_hash_hex, const std::string& run_id,
+                       U64 revision) {
   Identity id;
   id.object_id = schema_id + ":" + content_hash_hex;
   id.content_hash = content_id(content_hash_hex);
   id.run_id = run_id;
-  id.revision = 1;
+  id.revision = revision == 0 ? 1 : revision;
   id.schema_id = schema_id;
   id.schema_major = major;
   id.schema_minor = minor;

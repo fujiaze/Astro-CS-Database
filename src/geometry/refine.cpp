@@ -190,7 +190,8 @@ Result<Ref<GeometryRevision>> refine_geometry(Context& context, const RefinableG
       digest.add("source_input", input ? input->identity.object_id : "");
     }
     digest.add_u64("functionals", static_cast<U64>(next->functionals.size()));
-    next->identity = model::make_identity("acsd.GeometrySnapshot", 2, 0, digest.hex(), "acsd");
+    next->identity = model::make_identity("acsd.GeometrySnapshot", 2, 0, digest.hex(), "acsd",
+                                                base->identity.revision + 1);
   }
   next->assessment = model::make_assessment(Code::ok);
   next->assessment.complete = status.termination == Termination::tolerance_met;

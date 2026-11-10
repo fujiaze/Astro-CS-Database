@@ -286,30 +286,51 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
     store_object(builder, estimate.error->identity.object_id, "acsd.ErrorRecord",
                  workflows::encode_error_record(*estimate.error));
   }
-  // The product reader has no LinearAction opener yet, so a stored
-  // CovarianceAction could be written but never reopened.  Publishing it
-  // would overstate the closure.  The noise stays unknown (null), which is
-  // the honest state and never zero variance, and the omission is named.
+  // The noise is stored only when its whole closure can be written: the
+  // covariance action, its model, every root/factor and every array.  If any
+  // part is missing the noise stays unknown (null, never zero) and the
+  // estimate carries the named degradation.
   SignalEstimate effective = estimate;
   if (estimate.noise) {
-    builder.omitted.push_back(
-        "no_noise: the covariance action is not reopenable: the product carries no "
-        "LinearAction reader");
-    effective.noise = nullptr;  // null means unknown, never zero variance
-    // The estimate itself must carry the degradation: otherwise the stored
-    // estimate says complete/bounded with no noise and no issue, and a
-    // republish of this object loses the omission.
-    effective.assessment.complete = false;
-    effective.assessment.science = ScienceState::conditional;
-    effective.assessment.noise = NoiseState::unknown;
-    Issue issue;
-    issue.code = Code::unsupported;
-    issue.scope = Scope{"product.signal", effective.identity.object_id};
-    issue.origin = "product.collect_signal";
-    issue.reason = "the covariance action cannot be reopened (no LinearAction reader)";
-    issue.impact = "the estimate noise is unknown; the product is signal_only";
-    issue.retry_condition = "implement a LinearAction reader and republish";
-    effective.assessment.issues.push_back(issue);
+    bool noise_complete = true;
+    std::string noise_reason;
+    if (estimate.noise->model) {
+      Result<std::string> model = collect_noise(context, builder, *estimate.noise->model);
+      if (!ok(model)) {
+        noise_complete = false;
+        noise_reason = model.assessment.issues.empty()
+                           ? "the covariance model closure is incomplete"
+                           : model.assessment.issues.front().reason;
+      }
+    }
+    if (noise_complete && estimate.noise->influence) {
+      Result<std::string> influence =
+          collect_action(context, builder, *estimate.noise->influence);
+      if (!ok(influence)) {
+        noise_complete = false;
+        noise_reason = influence.assessment.issues.empty()
+                           ? "the covariance influence closure is incomplete"
+                           : influence.assessment.issues.front().reason;
+      }
+    }
+    if (noise_complete) {
+      store_object(builder, estimate.noise->identity.object_id, "acsd.CovarianceAction",
+                   workflows::encode_covariance_action(*estimate.noise));
+    } else {
+      effective.noise = nullptr;
+      builder.omitted.push_back("no_noise: " + noise_reason);
+      effective.assessment.complete = false;
+      effective.assessment.science = ScienceState::conditional;
+      effective.assessment.noise = NoiseState::unknown;
+      Issue issue;
+      issue.code = Code::unsupported;
+      issue.scope = Scope{"product.signal", effective.identity.object_id};
+      issue.origin = "product.collect_signal";
+      issue.reason = "the covariance closure cannot be stored: " + noise_reason;
+      issue.impact = "the estimate noise is unknown; the product is signal_only";
+      issue.retry_condition = "store the missing covariance objects and republish";
+      effective.assessment.issues.push_back(issue);
+    }
   }
   store_object(builder, effective.identity.object_id, "acsd.SignalEstimate",
                workflows::encode_signal_estimate(effective));
@@ -473,6 +494,269 @@ class ProductReader {
     return ok_result(std::shared_ptr<const ErrorRecord>(result));
   }
 
+  Result<Ref<LinearAction>> action(const Id& hash) {
+    auto cached = actions_.find(hash);
+    if (cached != actions_.end()) return ok_result(cached->second);
+    Result<workflows::json> payload = object(hash);
+    if (!ok(payload)) {
+      return fail<Ref<LinearAction>>(payload.code, payload.assessment.issues.front().reason,
+                                     "product.read", "the product cannot be reopened");
+    }
+    const workflows::json& node = val(payload);
+    if (!node.contains("recipe") || node.at("recipe").is_null()) {
+      return fail<Ref<LinearAction>>(Code::unsupported,
+                                     "the action has no serialized recipe",
+                                     "product.read", "the action cannot be reopened");
+    }
+    const workflows::json& recipe_node = node.at("recipe");
+    const std::string kind = recipe_node.contains("kind") && recipe_node.at("kind").is_string()
+                                 ? recipe_node.at("kind").get<std::string>()
+                                 : std::string();
+    static const std::set<std::string> known = {
+        "identity", "diagonal", "csr", "compose", "sum", "transpose",
+        "factor_covariance", "solve", "sky", "selection", "leaf_merge"};
+    if (!known.count(kind)) {
+      return fail<Ref<LinearAction>>(Code::unsupported,
+                                     "the action recipe kind '" + kind + "' is not supported",
+                                     "product.read", "the action cannot be reopened");
+    }
+    if (kind == "solve") {
+      // The recipe only records that a solve spec exists; the spec itself was
+      // never serialized, so a silent identity would be wrong.
+      return fail<Ref<LinearAction>>(Code::unsupported,
+                                     "the solve action spec is not part of the product",
+                                     "product.read", "the action cannot be reopened");
+    }
+    ActionRecipe recipe = workflows::decode_action_recipe(recipe_node);
+    // The decoder keeps the units; the index references have to be resolved
+    // here because only the reader owns the object table.
+    const auto resolve_index = [&](const char* key, Ref<Index>& target)
+        -> Result<rt::Done> {
+      if (!recipe_node.contains("spaces") || !recipe_node.at("spaces").is_object()) {
+        return ok_result(rt::Done{});
+      }
+      const workflows::json& spaces = recipe_node.at("spaces");
+      if (!spaces.contains(key)) return ok_result(rt::Done{});
+      const Id id = workflows::decode_ref(spaces.at(key));
+      if (id.empty()) return ok_result(rt::Done{});
+      Result<Ref<Index>> resolved = this->index(id);
+      if (!ok(resolved)) {
+        return fail<rt::Done>(resolved.code, "the action space index cannot be reopened",
+                          "product.read", "the action cannot be reopened");
+      }
+      target = val(resolved);
+      return ok_result(rt::Done{});
+    };
+    Result<rt::Done> domain = resolve_index("domain", recipe.spaces.domain);
+    if (!ok(domain)) return fail<Ref<LinearAction>>(domain.code, domain.assessment.issues.front().reason,
+                                                    "product.read", "the action cannot be reopened");
+    Result<rt::Done> codomain = resolve_index("codomain", recipe.spaces.codomain);
+    if (!ok(codomain)) return fail<Ref<LinearAction>>(codomain.code, codomain.assessment.issues.front().reason,
+                                                      "product.read", "the action cannot be reopened");
+    if (recipe_node.contains("error_record")) {
+      const Id id = workflows::decode_ref(recipe_node.at("error_record"));
+      if (!id.empty()) {
+        Result<Ref<ErrorRecord>> resolved = this->error(id);
+        if (!ok(resolved)) {
+          return fail<Ref<LinearAction>>(resolved.code, "the action error record cannot be reopened",
+                                         "product.read", "the action cannot be reopened");
+        }
+        recipe.error_record = val(resolved);
+      }
+    }
+    std::vector<Ref<LinearAction>> children;
+    if (node.contains("children") && node.at("children").is_array()) {
+      for (const workflows::json& child : node.at("children")) {
+        if (!child.is_string()) {
+          return fail<Ref<LinearAction>>(Code::corrupt_product,
+                                         "an action child is not an object id",
+                                         "product.read", "the action cannot be reopened");
+        }
+        Result<Ref<LinearAction>> resolved = action(child.get<Id>());
+        if (!ok(resolved)) {
+          return fail<Ref<LinearAction>>(resolved.code, "an action child cannot be reopened",
+                                         "product.read", "the action cannot be reopened");
+        }
+        children.push_back(val(resolved));
+      }
+    }
+    std::vector<ArrayRef> arrays;
+    if (node.contains("arrays") && node.at("arrays").is_array()) {
+      for (const workflows::json& entry : node.at("arrays")) {
+        if (!entry.is_string()) {
+          return fail<Ref<LinearAction>>(Code::corrupt_product,
+                                         "an action array is not an object id",
+                                         "product.read", "the action cannot be reopened");
+        }
+        Result<ArrayRef> resolved = array(entry.get<Id>());
+        if (!ok(resolved)) {
+          return fail<Ref<LinearAction>>(resolved.code, "an action array cannot be reopened",
+                                         "product.read", "the action cannot be reopened");
+        }
+        arrays.push_back(val(resolved));
+      }
+    }
+    if (recipe.kind == ActionRecipe::Kind::compose && children.size() != 2) {
+      return fail<Ref<LinearAction>>(Code::corrupt_product,
+                                     "a compose action does not carry two children",
+                                     "product.read", "the action cannot be reopened");
+    }
+    Result<Ref<LinearAction>> built = make_action(context_, recipe, children, arrays);
+    if (!ok(built)) {
+      return fail<Ref<LinearAction>>(built.code, "the action cannot be rebuilt",
+                                     "product.read", "the action cannot be reopened");
+    }
+    actions_[hash] = val(built);
+    return ok_result(val(built));
+  }
+
+  Result<Ref<NoiseRoot>> noise_root(const Id& hash) {
+    Result<workflows::json> payload = object(hash);
+    if (!ok(payload)) {
+      return fail<Ref<NoiseRoot>>(payload.code, payload.assessment.issues.front().reason,
+                                  "product.read", "the noise root cannot be reopened");
+    }
+    const workflows::json& node = val(payload);
+    auto result = std::make_shared<NoiseRoot>(workflows::decode_noise_root(node));
+    if (node.contains("coordinates")) {
+      const Id id = workflows::decode_ref(node.at("coordinates"));
+      if (!id.empty()) {
+        Result<Ref<Index>> resolved = index(id);
+        if (!ok(resolved)) {
+          return fail<Ref<NoiseRoot>>(resolved.code, "the root coordinates cannot be reopened",
+                                      "product.read", "the noise root cannot be reopened");
+        }
+        result->coordinates = val(resolved);
+      }
+    }
+    if (node.contains("factor")) {
+      const Id id = workflows::decode_ref(node.at("factor"));
+      if (!id.empty()) {
+        Result<Ref<LinearAction>> resolved = action(id);
+        if (!ok(resolved)) {
+          return fail<Ref<NoiseRoot>>(resolved.code, "the root factor cannot be reopened",
+                                      "product.read", "the noise root cannot be reopened");
+        }
+        result->factor = val(resolved);
+      }
+    }
+    return ok_result(std::shared_ptr<const NoiseRoot>(result));
+  }
+
+  Result<Ref<NoiseModel>> noise(const Id& hash) {
+    Result<workflows::json> payload = object(hash);
+    if (!ok(payload)) {
+      return fail<Ref<NoiseModel>>(payload.code, payload.assessment.issues.front().reason,
+                                   "product.read", "the noise model cannot be reopened");
+    }
+    const workflows::json& node = val(payload);
+    auto result = std::make_shared<NoiseModel>(workflows::decode_noise_model(node));
+    const auto roots = [&](const char* key, std::vector<Ref<NoiseRoot>>& target)
+        -> Result<rt::Done> {
+      if (!node.contains(key) || !node.at(key).is_array()) return ok_result(rt::Done{});
+      for (const workflows::json& entry : node.at(key)) {
+        const Id id = workflows::decode_ref(entry);
+        if (id.empty()) continue;
+        Result<Ref<NoiseRoot>> resolved = noise_root(id);
+        if (!ok(resolved)) {
+          return fail<rt::Done>(resolved.code, "a noise root cannot be reopened", "product.read",
+                            "the noise model cannot be reopened");
+        }
+        target.push_back(val(resolved));
+      }
+      return ok_result(rt::Done{});
+    };
+    Result<rt::Done> innovations = roots("innovations", result->innovations);
+    if (!ok(innovations)) return fail<Ref<NoiseModel>>(innovations.code,
+                                                       innovations.assessment.issues.front().reason,
+                                                       "product.read",
+                                                       "the noise model cannot be reopened");
+    Result<rt::Done> shared = roots("shared_factors", result->shared_factors);
+    if (!ok(shared)) return fail<Ref<NoiseModel>>(shared.code,
+                                                  shared.assessment.issues.front().reason,
+                                                  "product.read",
+                                                  "the noise model cannot be reopened");
+    if (node.contains("influence") && node.at("influence").is_array()) {
+      for (const workflows::json& entry : node.at("influence")) {
+        const Id id = workflows::decode_ref(entry);
+        if (id.empty()) continue;
+        Result<Ref<LinearAction>> resolved = action(id);
+        if (!ok(resolved)) {
+          return fail<Ref<NoiseModel>>(resolved.code, "a noise influence cannot be reopened",
+                                       "product.read", "the noise model cannot be reopened");
+        }
+        result->influence.push_back(val(resolved));
+      }
+    }
+    return ok_result(std::shared_ptr<const NoiseModel>(result));
+  }
+
+  Result<Ref<CovarianceAction>> covariance(const Id& hash) {
+    Result<workflows::json> payload = object(hash);
+    if (!ok(payload)) {
+      return fail<Ref<CovarianceAction>>(payload.code, payload.assessment.issues.front().reason,
+                                         "product.read", "the covariance cannot be reopened");
+    }
+    const workflows::json& node = val(payload);
+    auto result = std::make_shared<CovarianceAction>(workflows::decode_covariance_action(node));
+    const auto ref = [&](const char* key) {
+      return node.contains(key) ? workflows::decode_ref(node.at(key)) : Id();
+    };
+    const Id model_ref = ref("model");
+    if (!model_ref.empty()) {
+      Result<Ref<NoiseModel>> resolved = noise(model_ref);
+      if (!ok(resolved)) {
+        return fail<Ref<CovarianceAction>>(resolved.code, "the covariance model cannot be reopened",
+                                           "product.read", "the covariance cannot be reopened");
+      }
+      result->model = val(resolved);
+    }
+    const Id influence_ref = ref("influence");
+    if (!influence_ref.empty()) {
+      Result<Ref<LinearAction>> resolved = action(influence_ref);
+      if (!ok(resolved)) {
+        return fail<Ref<CovarianceAction>>(resolved.code, "the covariance influence cannot be reopened",
+                                           "product.read", "the covariance cannot be reopened");
+      }
+      result->influence = val(resolved);
+    }
+    const auto space = [&](const char* key, Ref<Index>& target) -> Result<rt::Done> {
+      if (!node.contains("input_output")) return ok_result(rt::Done{});
+      const workflows::json& spaces = node.at("input_output");
+      if (!spaces.contains(key)) return ok_result(rt::Done{});
+      const Id id = workflows::decode_ref(spaces.at(key));
+      if (id.empty()) return ok_result(rt::Done{});
+      Result<Ref<Index>> resolved = index(id);
+      if (!ok(resolved)) {
+        return fail<rt::Done>(resolved.code, "the covariance space cannot be reopened", "product.read",
+                          "the covariance cannot be reopened");
+      }
+      target = val(resolved);
+      return ok_result(rt::Done{});
+    };
+    Result<rt::Done> domain = space("domain", result->input_output.domain);
+    if (!ok(domain)) return fail<Ref<CovarianceAction>>(domain.code,
+                                                        domain.assessment.issues.front().reason,
+                                                        "product.read",
+                                                        "the covariance cannot be reopened");
+    Result<rt::Done> codomain = space("codomain", result->input_output.codomain);
+    if (!ok(codomain)) return fail<Ref<CovarianceAction>>(codomain.code,
+                                                          codomain.assessment.issues.front().reason,
+                                                          "product.read",
+                                                          "the covariance cannot be reopened");
+    const Id bound_ref = ref("absolute_factor_bound");
+    if (!bound_ref.empty()) {
+      Result<Ref<LinearAction>> resolved = action(bound_ref);
+      if (!ok(resolved)) {
+        return fail<Ref<CovarianceAction>>(resolved.code,
+                                           "the covariance bound cannot be reopened",
+                                           "product.read", "the covariance cannot be reopened");
+      }
+      result->absolute_factor_bound = val(resolved);
+    }
+    return ok_result(std::shared_ptr<const CovarianceAction>(result));
+  }
+
   Result<Ref<SpatialResponse>> response(const Id& hash) {
     Result<workflows::json> payload = object(hash);
     if (!ok(payload)) {
@@ -562,6 +846,15 @@ class ProductReader {
       }
       estimate.effective_response = val(resolved);
     }
+    const Id noise_ref = ref("noise");
+    if (!noise_ref.empty()) {
+      Result<Ref<CovarianceAction>> resolved = covariance(noise_ref);
+      if (!ok(resolved)) {
+        return fail<Ref<SignalEstimate>>(resolved.code, "the estimate noise cannot be reopened",
+                                         "product.read", "the product cannot be reopened");
+      }
+      estimate.noise = val(resolved);
+    }
     const Id error_ref = ref("error");
     if (!error_ref.empty()) {
       Result<Ref<ErrorRecord>> resolved = this->error(error_ref);
@@ -607,6 +900,7 @@ class ProductReader {
   ProductManifest manifest_;
   std::map<Id, workflows::json> objects_;
   std::map<Id, ArrayRef> arrays_;
+  std::map<Id, Ref<LinearAction>> actions_;
 };
 
 // ---------------------------------------------------------------------------
