@@ -80,4 +80,4 @@ supported_flux actual=2.35044305387e-05  expected=b0*|det C|=2.35044305391e-05  
 supported_mean actual=1.000000e+06     expected=b0
 ```
 
-即 `supported_flux` 与解析球面像元面积一致到 \(1.8\times10^{-11}\)，`supported_mean` 精确等于常场。这验证了 Q 的定义、pixfrac=1 不二次收缩、支持均值/积分的区分，以及导出信号未被 clamp/归一污染。仍未覆盖：部分支持像素、非对称 CRPIX、旋转/镜像 CD、跨 face、极大目标像元与重复 pixfrac 的独立反例。
+`supported_flux` 与解析球面像元面积一致到 \(1.8\times10^{-11}\)，`supported_mean` 精确等于常场；同一产品在远离叶的 1×1 像元上返回 **NaN**（不是 0）。这验证了 Q 的定义、pixfrac=1 不二次收缩、支持均值/积分的区分，以及导出信号未被 clamp/归一污染。仍未覆盖：部分支持像素、非对称 CRPIX、旋转/镜像 CD、跨 face、极大目标像元与重复 pixfrac 的独立反例。

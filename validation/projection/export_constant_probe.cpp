@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -137,6 +138,28 @@ int main() {
     std::printf("  mean actual=%.12g expected=%.12g\n", actual, b0);
     check(std::fabs(actual - b0) <= 1e-9 * b0, "supported_mean equals b0");
   }
+  // A target pixel far from the supported leaf must be NaN, not zero.
+  auto away = std::make_shared<WcsModel>(*wcs);
+  const double d = 0.2;  // rad
+  away->c = Vec3{std::cos(d) * sky.nx - std::sin(d) * sr,
+                 std::cos(d) * sky.ny + std::sin(d) * cr,
+                 sky.nz};
+  away->e = Vec3{-away->c[1], away->c[0], 0.0};
+  const double len = std::sqrt(away->e[0] * away->e[0] + away->e[1] * away->e[1]);
+  away->e = Vec3{away->e[0] / len, away->e[1] / len, 0.0};
+  away->north = Vec3{away->c[1] * away->e[2] - away->c[2] * away->e[1],
+                     away->c[2] * away->e[0] - away->c[0] * away->e[2],
+                     away->c[0] * away->e[1] - away->c[1] * away->e[0]};
+  away->identity = make_identity("acsd.WcsModel", 2, 0, sha256_hex(std::string("exp-wcs-away")), "exp");
+  request.target.model = std::shared_ptr<const WcsModel>(away);
+  request.quantity = ExportRequest::Quantity::supported_flux;
+  Result<ExportResult> unsupported = build_export(context, **opened.value, request);
+  check(unsupported.code == Code::ok, "build export for an unsupported pixel");
+  if (unsupported.code == Code::ok) {
+    auto values = operators::read_f64(context, (*unsupported.value).estimate->signal, 0, 1);
+    check(std::isnan(val(values)[0]), "unsupported pixel is NaN, not zero");
+  }
+
   std::printf("EXPORT PROBE: %d failure(s)\n", failures);
   return failures == 0 ? 0 : 1;
 }
