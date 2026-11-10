@@ -289,13 +289,10 @@ Result<Ref<NativeObservation>> regroup_observation(Context& context,
         "the regrouping cannot be built");
   }
 
-  // The numerical bounds are propagated through the same signed matrix.
-  if (!have_bounds) {
-    for (U64 r = 0; r < m; ++r) {
-      row_lower[r] = val(regrouped)[r];
-      row_upper[r] = val(regrouped)[r];
-    }
-  }
+  // The numerical bounds are propagated through the same signed matrix.  If
+  // the parent has no bounds, the regrouped object must NOT publish the
+  // nominal value as an exact bound: the bounds stay null and the omission is
+  // recorded instead.
 
   // ---------------------------------------------------------------------
   // The noise: the same roots, the influence composed with G.
@@ -376,19 +373,25 @@ Result<Ref<NativeObservation>> regroup_observation(Context& context,
                                                "the regrouped values cannot be stored", kOrigin,
                                                "the regrouping cannot be built");
   }
-  Result<ArrayRef> lower_array =
-      observation::write_f64_values(context, row_lower, shape, observation->unit, index_id);
-  if (!ok(lower_array)) {
-    return model::fail<Ref<NativeObservation>>(lower_array.code,
-                                               "the numerical bounds cannot be stored", kOrigin,
-                                               "the regrouping cannot be built");
-  }
-  Result<ArrayRef> upper_array =
-      observation::write_f64_values(context, row_upper, shape, observation->unit, index_id);
-  if (!ok(upper_array)) {
-    return model::fail<Ref<NativeObservation>>(upper_array.code,
-                                               "the numerical bounds cannot be stored", kOrigin,
-                                               "the regrouping cannot be built");
+  ArrayRef lower_array;
+  ArrayRef upper_array;
+  if (have_bounds) {
+    Result<ArrayRef> lower =
+        observation::write_f64_values(context, row_lower, shape, observation->unit, index_id);
+    if (!ok(lower)) {
+      return model::fail<Ref<NativeObservation>>(lower.code,
+                                                 "the numerical bounds cannot be stored", kOrigin,
+                                                 "the regrouping cannot be built");
+    }
+    Result<ArrayRef> upper =
+        observation::write_f64_values(context, row_upper, shape, observation->unit, index_id);
+    if (!ok(upper)) {
+      return model::fail<Ref<NativeObservation>>(upper.code,
+                                                 "the numerical bounds cannot be stored", kOrigin,
+                                                 "the regrouping cannot be built");
+    }
+    lower_array = val(lower);
+    upper_array = val(upper);
   }
   Result<ArrayRef> flag_array = observation::write_u16_values(
       context, row_flags, shape, model::unit_dimensionless(), index_id);
@@ -424,8 +427,8 @@ Result<Ref<NativeObservation>> regroup_observation(Context& context,
   regrouped_model->physical_collection = request.mode != RegroupRequest::Mode::linear_view;
   regrouped_model->context = observation->context;
   regrouped_model->frame = observation->frame;
-  regrouped_model->numerical_lower = val(lower_array);
-  regrouped_model->numerical_upper = val(upper_array);
+  regrouped_model->numerical_lower = lower_array;
+  regrouped_model->numerical_upper = upper_array;
   regrouped_model->error = std::shared_ptr<const ErrorRecord>(error);
 
   Assessment assessment = model::make_assessment(Code::ok);
@@ -445,6 +448,7 @@ Result<Ref<NativeObservation>> regroup_observation(Context& context,
   }
   if (!have_bounds) {
     model::set_omitted(assessment, "the_parent_carries_no_numerical_bounds");
+    assessment.complete = false;
   }
   regrouped_model->assessment = assessment;
   regrouped_model->identity = model::make_identity(
