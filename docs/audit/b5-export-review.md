@@ -82,4 +82,13 @@ supported_mean actual=1.000000e+06     expected=b0
 
 `supported_flux` 与解析球面像元面积一致到 \(1.8\times10^{-11}\)，`supported_mean` 精确等于常场；同一产品在远离叶的 1×1 像元上返回 **NaN**（不是 0）。这验证了 Q 的定义、pixfrac=1 不二次收缩、支持均值/积分的区分，以及导出信号未被 clamp/归一污染。数值界现在同时传播**叶值区间**与**Q 系数区间**（overlap 面积的下/上界；`supported_mean` 用分母区间），而不是只把叶界通过中点 Q 作用；探针验证 `lower ≤ flux ≤ upper`。
 
-仍未覆盖：部分支持像素、非对称 CRPIX、旋转/镜像 CD、跨 face、极大目标像元与重复 pixfrac 的独立反例。
+### 2×2 旋转 CD / 非对称 CRPIX 独立面积
+
+`validation/projection/export_grid_probe.cpp` 发布常场单叶产品，按 `width height crpix1 crpix2 angle` 导出。用 Astropy TAN WCS 独立取 2×2 外角、按单位球面三角形面积求和（Van Oosterom–Strackee）作真值：
+
+| 参数 | export sum | b0·area (Astropy) | rel |
+|---|---|---|---|
+| 2×2, CRPIX=(0.5,0.5), CD 旋转 30° | 9.4017722148104666e-05 | 9.401774621017421e-05 | 2.56e-7 |
+| 2×2, CRPIX=(0.3,0.7), CD 旋转 30° | 9.401772214783947e-05 | 9.401769912085981e-05 | 2.45e-7 |
+
+这覆盖了非中心像元、旋转 CD 与非对称 CRPIX；仍未覆盖部分支持像素、镜像 CD、跨 face、极大目标像元与重复 pixfrac。
