@@ -64,3 +64,11 @@ historical 5% criterion: max relative error 0.10333067715982192, FAIL, kept as s
 | 信息 | `control_covariance` 的 unknown term influence 随 T 变换 |
 
 X01 在 `677e1a808` 再次全链通过：normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007、全部 ≤3σ；旧 5% 失败保留。注意 X01 仍是 signal_only，所以这次通过**不**等于协方差链端到端认证；协方差链的证据是 roundtrip probe 与 2 帧 mosaic→export 实测。
+
+## 7. 第三轮补充（2026-11-11，`5cdb27c15`）
+
+- **产品协方差链**：新增 `LinearAction/NoiseModel/CovarianceAction` 重开、action 内容身份、CSR payload 序列化、subscription arrays/indices/children 闭包；`validation/product/roundtrip_probe.cpp` 0 失败；2 帧 full 链 normalize→mosaic→export 发布 full 产品并导出约 2279 ADU。
+- **量化修正**：`apply_scale` 的绝对 \(1/a\) 使 X01 signal 达 \(5\times10^{29}\) ADU/sr（α≈2.3e16）；改为帧内中位数相对 gauge 后回到 \(8.8\times10^{13}\)，导出约 2679 ADU。X01 `xp_coefficients` 改为 `[weight,0,0]`。
+- **Export**：Q 点系数改取认证区间中点（旧取下界会系统压低通量）；BUNIT 标准单位 + ACSUNIT/ACSSTD；Astropy 7 读回：WCS 往返 6.75e-11 px、数据 128×128 全 finite。
+- **空协方差模型**：coadd 路径发布无根模型，export 的 `make_covariance` 拒绝发明根；已降级为 noise=null + no_noise，material issue 使 full 发布被拒绝。X01 因此使用显式 signal_only，在 `5cdb27c15` 再次通过。
+- **B0**：新增乘积可辨识、同一 R/非交换、P=I−EKT 负交叉项、Gaia gauge/秩四处正向推导；B0 仍因 B5/D0 未闭合而不能 PASS。

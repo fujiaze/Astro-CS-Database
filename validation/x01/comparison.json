@@ -52,7 +52,7 @@
   }
  ],
  "failures": [],
- "notes": "Final run at 677e1a808 with the default block=1 and the enforced 1e8 work budget: normalize 8/8, mosaic 1, export 1, e2e exit 0. The old 5% single-sample criterion is preserved as a superseded failure (max 10.33%). The gating test is the normalized ratio residual (48 residuals, max |z| 1.90). The X01 dark fixture (4.8 vs 480 ADU) and the XP coefficients ([1,0,0]) remain case defects documented in docs/audit/x01-photometry-statistical-analysis.md; they do not affect this pass but mean the dark/gauge paths are not exercised.",
+ "notes": "Final run at 5cdb27c15 with the default block=1 and the enforced 1e8 work budget: normalize 8/8, mosaic 1, export 1, e2e exit 0. The old 5% single-sample criterion is preserved as a superseded failure (max 10.33%). The gating test is the normalized ratio residual (48 residuals, max |z| 1.90). The X01 dark fixture (4.8 vs 480 ADU) and the XP coefficients ([1,0,0]) remain case defects documented in docs/audit/x01-photometry-statistical-analysis.md; they do not affect this pass but mean the dark/gauge paths are not exercised.",
  "status_vocabulary": {
   "pass": "every requested functional is inside the frozen tolerance",
   "fail": "at least one functional is outside the frozen tolerance",
@@ -61,5 +61,5 @@
   "superseded": "the criterion was shown invalid/unattainable; the old failure is preserved and the functional is not gating",
   "pending_at_current_head": "the recorded evidence is from an earlier commit and must be regenerated at the current HEAD"
  },
- "tested_source_sha": "677e1a808"
+ "tested_source_sha": "5cdb27c15"
 }

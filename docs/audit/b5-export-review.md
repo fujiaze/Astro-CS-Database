@@ -60,3 +60,9 @@ BUNIT 只写标准单位；内部 scale 进 `ACSUNIT`，非标准时再写 `ACSS
 ## 6. 裁决
 
 Export 的 Q 定义、NaN/负/零语义、单位与 full 协方差重开已可运行并有外部 FITS 检查；但 B5 要求的独立面积真值与全部边界反例未完成，**B5 不能标 PASS**。本轮修正了两个会直接导致产品量级错误的缺陷（下界系数、绝对标度 gauge），并把协方差链首次跑通 normalize→mosaic→export。
+
+## 7. 全协方差尝试的结论（补充）
+
+把 X01 三个 config 的 `product_profile` 改为 `full` 后，normalize 8/8、mosaic 1、export 1 **都能发布 full 产品**，导出值约 2679 ADU（输入约 2800 ADU），说明 normalize→mosaic→export 的 full 链已能跑通；但最终 export 的 `SignalEstimate.noise` 仍为 null，issue 为 “the export covariance cannot be built: the noise model carries no uncertainty root; a covariance cannot be built without inventing one”。根因是 coadd 路径发布的 `NoiseModel` 没有 innovations/shared_factors/influence（空模型），`make_covariance` 正确地拒绝为它发明一个根。
+
+因此本轮的裁决是：**空协方差模型必须降级为 noise=null + 具名 no_noise，不能以 full 发布**；`product.cpp` 已实现该降级，并把任何 material unavailable/unsupported issue 记为 omission，使 full 发布被拒绝。X01 返回显式 `signal_only`，在 `5cdb27c15` 通过（normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007，旧 5% 失败保留）。**full profile 的端到端证据目前只到 2 帧 /tmp 链（导出 2279 ADU）**；coadd 的根模型修复是下一轮 B4/B5 的前置。
