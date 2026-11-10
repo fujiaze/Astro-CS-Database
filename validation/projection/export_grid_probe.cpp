@@ -107,10 +107,13 @@ int main(int argc, char** argv) {
   const double crpix2 = argc > 4 ? std::stod(argv[4]) : 0.5;
   const double scale = 0.0002777777777777778 * M_PI / 180.0;
   const double angle = argc > 5 ? std::stod(argv[5]) : 0.0;
+  const bool mirror = argc > 6 && std::stoi(argv[6]) != 0;
   const double ca = std::cos(angle), sa = std::sin(angle);
   auto wcs = std::make_shared<WcsModel>();
   wcs->crpix_fits1 = Vec2{crpix1, crpix2};
-  wcs->cd_rad_per_pixel = Mat2{-scale * ca, scale * sa, scale * sa, scale * ca};
+  wcs->cd_rad_per_pixel = mirror
+      ? Mat2{scale * ca, -scale * sa, scale * sa, scale * ca}
+      : Mat2{-scale * ca, scale * sa, scale * sa, scale * ca};
   const double sd = sky.nz;
   const double cd = std::sqrt(std::max(0.0, 1.0 - sd * sd));
   const double cr = cd > 0.0 ? sky.nx / cd : 1.0;
