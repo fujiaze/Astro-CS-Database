@@ -65,6 +65,24 @@ void store_object(ProductBuilder& builder, const Id& hash, const std::string& ty
   builder.objects[hash] = workflows::json{{"type", type}, {"data", payload}};
 }
 
+// Every object reference that appears in a stored object, recursively.  A
+// manifest that lists an object whose payload points at an object which is not
+// in the manifest is not complete, even if every listed file exists.
+void collect_object_refs(const workflows::json& node, std::vector<Id>& refs) {
+  if (node.is_object()) {
+    for (auto it = node.begin(); it != node.end(); ++it) {
+      if (it.key() == "$ref" && it.value().is_string()) {
+        const Id ref = it.value().get<std::string>();
+        if (!ref.empty()) refs.push_back(ref);
+      } else {
+        collect_object_refs(it.value(), refs);
+      }
+    }
+  } else if (node.is_array()) {
+    for (const workflows::json& item : node) collect_object_refs(item, refs);
+  }
+}
+
 Result<std::string> write_file(const std::filesystem::path& path, const std::string& text) {
   std::error_code ec;
   std::filesystem::create_directories(path.parent_path(), ec);
@@ -249,6 +267,18 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
                  workflows::encode_support_map(support));
   }
   if (estimate.effective_response) {
+    // The weights and reference factors of the spatial response are arrays of
+    // the product, not decoration: without them the stored object has a
+    // dangling $ref and the product cannot be called complete.
+    for (const ArrayRef& array : {estimate.effective_response->weights,
+                                  estimate.effective_response->reference_factors}) {
+      if (!array) continue;
+      Result<Id> stored = persist_array(context, builder, array);
+      if (!ok(stored)) {
+        return fail<std::string>(stored.code, "the response weight cannot be stored",
+                                 "product.write", "the product cannot be published");
+      }
+    }
     store_object(builder, estimate.effective_response->identity.object_id, "acsd.SpatialResponse",
                  workflows::encode_spatial_response(*estimate.effective_response));
   }
@@ -929,6 +959,41 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
     if (!std::filesystem::exists(path, ec)) {
       return fail<ProductLocation>(Code::corrupt_product, "the block is missing", "publish_product",
                                    "the product cannot be published");
+    }
+  }
+  // The object graph must be closed: every $ref reachable from a stored object
+  // has to name an object of the manifest.  A file-existence check alone let
+  // products be marked complete while an array of the effective response was
+  // never written.
+  {
+    std::set<Id> declared;
+    for (const ObjectEntry& object : manifest.objects) declared.insert(object.hash);
+    std::vector<Id> refs;
+    for (const ObjectEntry& object : manifest.objects) {
+      std::ifstream stream(staging / object.path, std::ios::binary);
+      if (!stream) {
+        return fail<ProductLocation>(Code::corrupt_product,
+                                     "the object " + object.hash + " cannot be read",
+                                     "publish_product", "the product cannot be published");
+      }
+      std::stringstream buffer;
+      buffer << stream.rdbuf();
+      workflows::json payload;
+      try {
+        payload = workflows::json::parse(buffer.str());
+      } catch (const std::exception&) {
+        return fail<ProductLocation>(Code::corrupt_product,
+                                     "the object " + object.hash + " is not valid json",
+                                     "publish_product", "the product cannot be published");
+      }
+      collect_object_refs(payload, refs);
+    }
+    for (const Id& ref : refs) {
+      if (declared.count(ref) == 0) {
+        return fail<ProductLocation>(Code::corrupt_product,
+                                     "the object " + ref + " is referenced but not in the product",
+                                     "publish_product", "the product cannot be published");
+      }
     }
   }
 

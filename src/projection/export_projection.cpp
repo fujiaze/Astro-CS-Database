@@ -435,7 +435,32 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
   export_estimate->numerical_upper = upper_bound;
   export_estimate->support = estimate.support;
   export_estimate->effective_response = estimate.effective_response;
-  export_estimate->noise = estimate.noise;
+  // The exported signal is Q times the leaf signal, so its covariance is
+  // Q C Q^T, not the leaf covariance.  The influence of an exported
+  // covariance maps the native noise roots to the target pixels: it is the
+  // composition of the export row Q with the leaf influence I_leaf.  Keeping
+  // the old influence would report the variance of a different estimand.
+  export_estimate->noise = nullptr;  // null means unknown, never the leaf C
+  if (estimate.noise && estimate.noise->influence) {
+    Result<Ref<LinearAction>> composed =
+        compose(context, val(row_action), estimate.noise->influence);
+    if (ok(composed)) {
+      auto covariance = std::make_shared<CovarianceAction>(*estimate.noise);
+      covariance->influence = val(composed);
+      covariance->input_output = estimate.noise->input_output;
+      covariance->identity = model::make_identity(
+          "acsd.CovarianceAction", 2, 0,
+          model::sha256_hex("export:covariance:" + std::to_string(pixel_count) + ":" +
+                             std::to_string(static_cast<int>(request.quantity)) + ":" +
+                             val(composed)->identity.object_id),
+          "acsd");
+      export_estimate->noise = covariance;
+    } else {
+      model::add_issue(export_estimate->assessment, composed.code,
+                       "the export covariance cannot be pushed through Q",
+                       "build_export", "the exported noise stays unknown");
+    }
+  }
   export_estimate->error = estimate.error;
   export_estimate->identity = model::make_identity(
       "acsd.SignalEstimate", 2, 0,

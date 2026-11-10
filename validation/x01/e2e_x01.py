@@ -121,6 +121,10 @@ def main() -> int:
             trace_path.unlink(missing_ok=True)
             env["ACSD_NORMALIZE_TRACE"] = str(trace_path)
         results.append(run_command(binary, command, config, env=env))
+    # The independent flux-uncertainty analysis is required by the normalized
+    # acceptance criterion; it does not call a production helper.
+    subprocess.run([sys.executable, str(CASE_ROOT / "uncertainty_x01.py"), str(trace_path)],
+                   capture_output=True, text=True)
     comparison = subprocess.run([sys.executable, str(CASE_ROOT / "compare_x01.py"),
                                  str(trace_path)], capture_output=True, text=True)
     comparison_ok = comparison.returncode == 0

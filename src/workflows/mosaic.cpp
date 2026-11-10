@@ -95,6 +95,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   std::vector<Ref<FrameDescription>> descriptions;
   std::vector<ArrayRef> signals;
   std::vector<ArrayRef> dq;
+  std::vector<Ref<SignalEstimate>> estimates;
   U32 order = 0;
   bool first = true;
   std::set<std::pair<U32, U64>> leaves;
@@ -102,6 +103,20 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
     Result<std::vector<Id>> frames = product->list_frames(context);
     if (!ok(frames)) {
       return fail<ProductLocation>(frames.code, "the frames of an input cannot be listed", "mosaic",
+                                   "no product was published");
+    }
+    Ref<ProductGraph> product_graph = product->graph();
+    if (!product_graph || !product_graph->signal) {
+      return fail<ProductLocation>(Code::invalid_model,
+                                   "an input product carries no signal estimate", "mosaic",
+                                   "no product was published");
+    }
+    // apply_sky is a per-signal correction.  A product that carries several
+    // frames would need one estimate per frame; the current Normalize product
+    // carries exactly one, so anything else is refused instead of guessing.
+    if (val(frames).size() != 1) {
+      return fail<ProductLocation>(Code::unsupported,
+                                   "the mosaic expects one signal estimate per input product", "mosaic",
                                    "no product was published");
     }
     for (const Id& frame : val(frames)) {
@@ -141,6 +156,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
       descriptions.push_back(val(description));
       signals.push_back(val(block).signal);
       dq.push_back(val(block).dq);
+      estimates.push_back(product_graph->signal);
     }
   }
   if (descriptions.empty()) {
@@ -265,6 +281,59 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
                                                 : sky.assessment.issues.front().reason,
                                  "mosaic", "no product was published");
   }
+  // The fitted relative sky is subtracted exactly once, here, before the
+  // selection and the weight solve.  The coaddition only carries the frozen
+  // fit; it must never apply it a second time.
+  for (const Ref<SignalEstimate>& estimate : estimates) {
+    Result<Done> ingested_estimate = workflows::ingest_signal(context, workflow_runtime, estimate);
+    if (!ingested_estimate.value) {
+      return fail<ProductLocation>(ingested_estimate.code,
+                                   "a frame estimate cannot be served to the runtime", "mosaic",
+                                   "no product was published");
+    }
+  }
+  std::vector<Ref<FrameDescription>> corrected_descriptions;
+  std::vector<ArrayRef> corrected_signals;
+  for (std::size_t i = 0; i < estimates.size(); ++i) {
+    auto apply_input = std::make_shared<const modules::ApplySkyInput>(
+        modules::ApplySkyInput{estimates[i], val(sky)});
+    Result<rt::InvocationPlan> apply_plan = modules::plan_sky_apply(
+        workflow_runtime.command, apply_input, workflow_runtime.options);
+    Result<Ref<SignalEstimate>> applied = rt::wait_external(
+        workflow_runtime.host->invoke<modules::ApplySkyInput, Ref<SignalEstimate>>(
+            workflow_runtime.command, "sky.fit", "apply_sky", apply_input));
+    record("sky_apply", "sky.fit", "apply_sky", apply_plan, applied.code);
+    if (!ok(applied)) {
+      return fail<ProductLocation>(applied.code,
+                                   applied.assessment.issues.empty()
+                                       ? "the relative sky cannot be applied"
+                                       : applied.assessment.issues.front().reason,
+                                   "mosaic", "no product was published");
+    }
+    auto description = std::make_shared<FrameDescription>(*descriptions[i]);
+    if (val(applied)->noise) description->noise = val(applied)->noise;
+    if (val(applied)->effective_response) description->response = val(applied)->effective_response;
+    corrected_descriptions.push_back(description);
+    corrected_signals.push_back(val(applied)->signal);
+  }
+  Result<Done> corrected_ingest = workflows::ingest_frame_inputs(
+      context, workflow_runtime, corrected_descriptions, corrected_signals, dq);
+  if (!corrected_ingest.value) {
+    return fail<ProductLocation>(corrected_ingest.code,
+                                 "the corrected frame arrays cannot be served to the runtime",
+                                 "mosaic", "no product was published");
+  }
+  Result<Ref<FramesProvider>> corrected_frames =
+      make_frames_provider(context, corrected_descriptions, corrected_signals, dq);
+  if (!ok(corrected_frames)) {
+    return fail<ProductLocation>(corrected_frames.code,
+                                 corrected_frames.assessment.issues.empty()
+                                     ? "the corrected frames cannot be merged"
+                                     : corrected_frames.assessment.issues.front().reason,
+                                 "mosaic", "no product was published");
+  }
+  frames = std::move(corrected_frames);
+  descriptions = std::move(corrected_descriptions);
   // The comparability groups are the same scientific object for the sky and
   // the coaddition; the workflow supplies the group it verified above.
   CoaddRequest coadd_request = request.coaddition;

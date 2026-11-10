@@ -74,6 +74,10 @@ def throughput_of(group, wavelength):
     return 0.45 * np.exp(-0.5 * ((wavelength - 610.0) / 45.0) ** 2)
 
 
+def sky_level_of(frame):
+    return float(frame["sky_level_electrons"])
+
+
 def truth_rates(group):
     wavelength = np.linspace(400.0, 700.0, 3001)
     throughput = throughput_of(group, wavelength)
@@ -179,6 +183,80 @@ def main() -> int:
         print("no measured frames found", file=sys.stderr)
         return 1
 
+    # The X01 comparison is a ratio to the measured peak source, not the
+    # absolute flux: its variance needs the covariance between the source and
+    # the peak.  The joint fit covariance computed above is exactly that.
+    ratio_entries = []
+    per_frame_ratio = {}
+    for index in sorted(records):
+        frame = frame_truth[index]
+        group = frame["group"]
+        bright_rate, star_rate = truth_rates(group)
+        positions = []
+        measured = records[index]
+        for j, source in enumerate(field):
+            star = measured.get(1000 + j)
+            if star is None:
+                continue
+            positions.append((float(star["x"]), float(star["y"]), source["weight"]))
+        if len(positions) != len(field):
+            continue
+        rows = sorted({(yy, xx)
+                       for x, y, _ in positions
+                       for yy in range(int(math.floor(y - WINDOW_RADIUS)),
+                                       int(math.ceil(y + WINDOW_RADIUS)) + 1)
+                       for xx in range(int(math.floor(x - WINDOW_RADIUS)),
+                                       int(math.ceil(x + WINDOW_RADIUS)) + 1)})
+        design = np.zeros((len(rows), len(positions) + 1))
+        for k, (yy, xx) in enumerate(rows):
+            for j, (x, y, _) in enumerate(positions):
+                design[k, j] = pixel_integral(SIGMA_PIXEL, x, xx) * \
+                               pixel_integral(SIGMA_PIXEL, y, yy)
+            design[k, -1] = 1.0
+        expectation = (model_rate(positions) + sky_level_of(frame)) * EXPOSURE
+        variance = expectation + READ_RMS * READ_RMS
+        weights = np.array([GAIN * GAIN / variance[yy, xx] for yy, xx in rows])
+        covariance = np.linalg.inv(design.T @ (weights[:, None] * design))
+        truth_flux = []
+        for j, source in enumerate(field):
+            rate = bright_rate if j == 0 else star_rate * source["weight"]
+            truth_flux.append(rate * EXPOSURE / GAIN)
+        peak = 0  # source 1000 carries the line and is the measured peak
+        for j in range(1, len(field)):
+            star = measured[1000 + j]
+            measured_peak = measured[1000]["flux"]
+            truth_ratio = truth_flux[j] / truth_flux[peak]
+            measured_ratio = float(star["flux"]) / float(measured_peak)
+            relative = measured_ratio / truth_ratio - 1.0
+            sigma_ratio = math.sqrt(
+                covariance[j, j] / (truth_flux[j] * truth_flux[j]) +
+                covariance[peak, peak] / (truth_flux[peak] * truth_flux[peak]) -
+                2.0 * covariance[j, peak] / (truth_flux[j] * truth_flux[peak]))
+            ratio_entries.append({
+                "frame": f"x01-{index:02d}",
+                "group": group,
+                "source_id": 1000 + j,
+                "relative_error": relative,
+                "predicted_sigma_ratio": sigma_ratio,
+                "z_score": relative / sigma_ratio,
+            })
+        per_frame_ratio[f"x01-{index:02d}"] = float(
+            max(abs(item["z_score"]) for item in ratio_entries if item["frame"] == f"x01-{index:02d}"))
+
+    zr = np.array([entry["z_score"] for entry in ratio_entries])
+    ratio_report = {
+        "entries": ratio_entries,
+        "max_abs_z": float(np.max(np.abs(zr))),
+        "rms_z": float(np.sqrt(np.mean(zr * zr))),
+        "mean_z": float(np.mean(zr)),
+        "count": int(zr.size),
+        "within_3sigma": int(np.sum(np.abs(zr) <= 3.0)),
+        "within_4sigma": int(np.sum(np.abs(zr) <= 4.0)),
+        "max_abs_relative_error": float(max(abs(item["relative_error"]) for item in ratio_entries)),
+        "criterion": "every non-peak source/frame ratio residual within 4 sigma",
+        "per_frame_max_abs_z": per_frame_ratio,
+    }
+
     z = np.array([entry["z_score"] for entry in entries])
     relative = np.array([entry["relative_error"] for entry in entries])
     predicted = np.array([entry["predicted_relative_sigma"] for entry in entries])
@@ -219,6 +297,7 @@ def main() -> int:
             }
             for frame, items in per_frame_entries.items()
         },
+        "ratio_to_peak": ratio_report,
         "conclusion": (
             "A single-sample max relative error tolerance of 5% is only attainable for "
             "sources whose predicted relative sigma is well below 5%.  The B group's "
@@ -232,7 +311,9 @@ def main() -> int:
                      indent=1))
     # The scientific predicate: every measured flux is within 4 sigma of the
     # truth under the stated model.  A violation is a real discrepancy.
-    return 0 if report["z_score"]["within_4sigma"] == report["z_score"]["count"] else 1
+    ratio_ok = ratio_report["within_4sigma"] == ratio_report["count"]
+    absolute_ok = report["z_score"]["within_4sigma"] == report["z_score"]["count"]
+    return 0 if ratio_ok and absolute_ok else 1
 
 
 if __name__ == "__main__":

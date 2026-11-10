@@ -938,9 +938,31 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       const long parsed = std::atol(override_size);
       if (parsed > 0 && parsed <= 1024) block_size = static_cast<U64>(parsed);
     }
+    if (block_size != 1) {
+      // The observation carries one integrated value per pixel and the
+      // drizzle estimator uses x[source_row].  A block source row would need
+      // an aggregated signal with its own response/area weights; until that
+      // estimator exists, a block size above one changes the estimated
+      // quantity instead of batching the same one.
+      outcome.failed = true;
+      outcome.code = Code::unsupported;
+      outcome.reason =
+          "block_size > 1 is not a supported source partition: the drizzle signal is "
+          "per pixel and a block row would change the estimand";
+      result.frames.emplace_back(outcome.frame, outcome.assessment);
+      continue;
+    }
     std::vector<OverlapContribution> contributions;
     U64 source_rows = 0;
     bool geometry_failed = false;
+    Termination merged_termination = Termination::tolerance_met;
+    Validity merged_validity = Validity::certified;
+    SupportState merged_support = SupportState::absent;
+    std::vector<UnresolvedDomain> merged_unresolved;
+    std::vector<UnresolvedDomain> merged_status_unresolved;
+    Ref<GeometryRecipe> merged_recipe;
+    bool geometry_recipe_conflict = false;
+    bool geometry_primitives_unmerged = false;
     if (observation->footprints->width > 0 && observation->footprints->height > 0) {
       const U64 width = observation->footprints->width;
       const U64 height = observation->footprints->height;
@@ -1011,6 +1033,39 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
         }
         for (const OverlapContribution& contribution : value_of(overlaps)->contributions)
           contributions.push_back(contribution);
+        // The per-block geometry status, recipe and undecided domain are part
+        // of the overlap, not decoration.  Dropping them would let Drizzle see
+        // a default-constructed status (tolerance_met/certified) and skip the
+        // order/pixfrac identity check.
+        const Overlaps& block_overlaps = *value_of(overlaps);
+        auto worsen_termination = [](Termination current, Termination next) {
+          if (current == Termination::tolerance_met) return next;
+          return current;
+        };
+        merged_termination = worsen_termination(merged_termination, block_overlaps.status.termination);
+        if (static_cast<int>(block_overlaps.status.bound_validity) >
+            static_cast<int>(merged_validity)) {
+          merged_validity = block_overlaps.status.bound_validity;
+        }
+        if (block_overlaps.status.support == SupportState::positive) {
+          merged_support = SupportState::positive;
+        } else if (block_overlaps.status.support == SupportState::bounded_undecided &&
+                   merged_support == SupportState::absent) {
+          merged_support = SupportState::bounded_undecided;
+        }
+        for (const UnresolvedDomain& domain : block_overlaps.coarse_candidates)
+          merged_unresolved.push_back(domain);
+        for (const UnresolvedDomain& domain : block_overlaps.status.unresolved)
+          merged_status_unresolved.push_back(domain);
+        if (!merged_recipe && block_overlaps.recipe) merged_recipe = block_overlaps.recipe;
+        if (merged_recipe && block_overlaps.recipe) {
+          if (merged_recipe->order != block_overlaps.recipe->order ||
+              merged_recipe->pixfrac != block_overlaps.recipe->pixfrac) {
+            geometry_recipe_conflict = true;
+          }
+        }
+        if (block_overlaps.primitives || block_overlaps.constraints)
+          geometry_primitives_unmerged = true;
         ++source_rows;
       }
     }
@@ -1021,10 +1076,26 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     }
     auto merged = std::make_shared<Overlaps>();
     merged->contributions = std::move(contributions);
+    merged->coarse_candidates = std::move(merged_unresolved);
+    merged->recipe = merged_recipe;
+    merged->status.termination = geometry_recipe_conflict ? Termination::unsupported
+                                                          : merged_termination;
+    merged->status.bound_validity =
+        geometry_recipe_conflict ? Validity::invalid : merged_validity;
+    merged->status.support = merged_support;
+    merged->status.unresolved = std::move(merged_status_unresolved);
     merged->identity = model::make_identity("acsd.Overlaps", 2, 0,
                                             model::sha256_hex("acsd.normalize.overlaps"), "acsd");
     merged->assessment = model::make_assessment(Code::ok);
-    merged->assessment.complete = true;
+    merged->assessment.complete = merged->status.termination == Termination::tolerance_met;
+    if (geometry_primitives_unmerged) {
+      model::add_issue(merged->assessment, Code::unsupported,
+                       "the per-block primitive and constraint tables are not concatenated",
+                       "normalize", "the merged overlap keeps its numerical status but no "
+                       "reopenable primitive table");
+      model::set_omitted(merged->assessment, "merged_geometry_primitives");
+      merged->assessment.science = ScienceState::conditional;
+    }
     merged->assessment.included.push_back(
         block_size == 1
             ? "the source rows are the pixels of the detector: " + std::to_string(source_rows) +
@@ -1126,7 +1197,8 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     result.frames.emplace_back(outcome.frame, outcome.assessment);
   }
 
-  result.published.clear();
+  // The published locations are the result of the run: clearing them here
+  // made the CLI report zero publications for every successful frame.
   return ok_result(result);
 }
 

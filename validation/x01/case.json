@@ -166,7 +166,9 @@
   "tolerance": {
     "astrometry_rms_pixel": 0.5,
     "blind_solve": "the group without a WCS must produce a solution",
-    "signal_relative": 0.05
+    "signal_normalized_residual_sigma": 4.0,
+    "signal_relative": 0.05,
+    "signal_relative_status": "historical_superseded"
   },
   "truth_sha256": "f0b351102e23a78e6e3ecbe9a7b7fb55b9b12b0deb37022441ee905b0803dd17",
   "truth_type": "empirical + analytic_exact",

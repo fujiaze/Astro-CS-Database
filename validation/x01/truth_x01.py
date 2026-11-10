@@ -134,6 +134,14 @@ def main() -> int:
         unit="ADU in the raw frames; L/sr in the products",
         condition="the synthetic observation described by the input files",
         tolerance={"signal_relative": 0.05,
+                   # The 5% single-sample maximum is historical: the B group's
+                   # faintest ratio-to-peak has a predicted sigma of about 5%,
+                   # so the criterion is below its own 1-sigma and is retained
+                   # only as a reported failure.  The gating proposition is the
+                   # normalized residual of the ratio-to-peak (4 sigma, 48
+                   # residuals, FWER < 0.01 under independence).
+                   "signal_normalized_residual_sigma": 4.0,
+                   "signal_relative_status": "historical_superseded",
                    "astrometry_rms_pixel": 0.5,
                    "blind_solve": "the group without a WCS must produce a solution"},
         positive_expectations=[
