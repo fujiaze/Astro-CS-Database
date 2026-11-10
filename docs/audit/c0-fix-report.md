@@ -67,3 +67,14 @@ different=1
 ## P1-4 information 的 V_F 单位
 
 `estimate_flux_information` 现在把 template `h` 的单位传播到 `flux_variance.unit`：方差单位减去 `2×h` 的 linear/sr/pixel/nm power，并按 `multiplier` 调整；`h` 无量纲时保持协方差单位。参数数组 px/rad 混存仍未修。
+
+## C0 覆盖：information.reference 解析探针
+
+`validation/process/information.reference/information_reference.cpp` 用 \(C=\mathrm{diag}(4,9)\)、\(h=[1,0]\) 调 `estimate_flux_information`，解析真值 \(V_F=1/(h^\top C^{-1}h)=4\)：
+
+```
+cov code=0
+known V_F=4: ok; unknown propagated: ok
+```
+
+同一探针把 `NoiseModel.state` 改为 unknown，`V_F` 变为 `nullopt/unknown`（验证 §6 的 unknown 检查）。这补上了 11 个无 driver 中 information.reference 的独立数值证据（仍非完整 process driver）。
