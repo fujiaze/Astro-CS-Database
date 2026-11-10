@@ -1,7 +1,7 @@
 {
  "status": "fail",
- "git_commit": "2106df564ce14e3f89f69ec8a68861d8611076a5",
- "binary_sha256": "1c5da04f7bc7fe025336edc9ed92a13db3f6f52700102dc3835680163f5f3766",
+ "git_commit": "fa4649d57992281a8ecc17bad282529c794f0bcb",
+ "binary_sha256": "f3e65cb202daccb9e42a36ecbe983a26c1f9f162d5b7bde1455b76f515cb244d",
  "frame_hashes": {
   "frame_00_A.fits": "9f7bb23aeb7cf9115023ee19be0cae670bb96d77c3922441ae1ba1f8480fff75",
   "frame_01_A.fits": "1bcbeed379b228b29fd5f42aa69318a0225e20b477b1ea2d7efc0b5bb858e2ca",

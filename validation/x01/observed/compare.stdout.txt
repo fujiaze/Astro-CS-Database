@@ -1,0 +1,65 @@
+{
+ "astrometry_rms_pixel": 0.14909526496745026,
+ "blind_solve_rms_pixel": 0.21085254580257834,
+ "signal_relative_error": 0.10333067715982192,
+ "blind_solve": true,
+ "source_recovered": false,
+ "frames": [
+  {
+   "frame": "x01-00",
+   "group": "A",
+   "astrometry_rms_pixel": 0.0,
+   "signal_relative_error": 0.027929106049634035,
+   "sources": 7
+  },
+  {
+   "frame": "x01-01",
+   "group": "A",
+   "astrometry_rms_pixel": 0.0,
+   "signal_relative_error": 0.035225406324841176,
+   "sources": 7
+  },
+  {
+   "frame": "x01-02",
+   "group": "A",
+   "astrometry_rms_pixel": 0.0,
+   "signal_relative_error": 0.04185823726834133,
+   "sources": 7
+  },
+  {
+   "frame": "x01-03",
+   "group": "A",
+   "astrometry_rms_pixel": 0.0,
+   "signal_relative_error": 0.034795529176574566,
+   "sources": 7
+  },
+  {
+   "frame": "x01-04",
+   "group": "B",
+   "astrometry_rms_pixel": 0.16185659437556732,
+   "signal_relative_error": 0.07132195750688984,
+   "sources": 7
+  },
+  {
+   "frame": "x01-05",
+   "group": "B",
+   "astrometry_rms_pixel": 0.24354121387794359,
+   "signal_relative_error": 0.07053844679285419,
+   "sources": 7
+  },
+  {
+   "frame": "x01-06",
+   "group": "B",
+   "astrometry_rms_pixel": 0.16189733519381305,
+   "signal_relative_error": 0.10333067715982192,
+   "sources": 7
+  },
+  {
+   "frame": "x01-07",
+   "group": "B",
+   "astrometry_rms_pixel": 0.25712751144686274,
+   "signal_relative_error": 0.08038941915179475,
+   "sources": 7
+  }
+ ]
+}

@@ -65,5 +65,5 @@
  "signal_relative_error": 0.10333067715982192,
  "signal_tolerance": 0.05,
  "source_recovered": false,
- "trace": "/workspace/Astro CS Database/validation/x01/observed/normalize_trace.jsonl"
+ "trace": "validation/x01/observed/normalize_trace.jsonl"
 }
