@@ -39,6 +39,18 @@
 namespace acsd {
 namespace {
 
+bool same_unit(const Unit& a, const Unit& b) {
+  return a.scale == b.scale && a.sr_power == b.sr_power && a.pixel_power == b.pixel_power &&
+         a.nm_power == b.nm_power && a.linear_power == b.linear_power &&
+         std::fabs(a.multiplier - b.multiplier) <= 1e-15 * std::max(1.0, std::fabs(a.multiplier));
+}
+
+bool unit_is_unspecified(const Unit& u) {
+  return u.scale == "1" && u.sr_power == 0 && u.pixel_power == 0 && u.nm_power == 0 &&
+         u.linear_power == 0 && std::fabs(u.multiplier - 1.0) <= 1e-15;
+}
+
+
 using numerics::Matrix;
 
 // The reason codes of the selection.
@@ -1848,8 +1860,31 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
     combined[leaf] = sum;
     leaf_state[leaf] = 1;
   }
+  // The output unit must agree with the covariance unit: C is Var(y), so its
+  // unit is unit(y)^2.  An unspecified target unit ("1") inherits the common
+  // frame unit; an explicitly different unit is refused instead of silently
+  // publishing a signal whose declared unit contradicts its covariance.
+  Unit output_unit = request.target.unit;
+  const Unit variance_unit = weights && weights->covariance && weights->covariance->model
+                                 ? weights->covariance->model->variance_unit
+                                 : model::unit_variance("unknown");
+  if (unit_is_unspecified(output_unit)) {
+    output_unit.scale = variance_unit.scale;
+    output_unit.sr_power = variance_unit.sr_power / 2;
+    output_unit.pixel_power = variance_unit.pixel_power / 2;
+    output_unit.nm_power = variance_unit.nm_power / 2;
+    output_unit.linear_power = 1;
+    output_unit.multiplier = std::sqrt(std::fabs(variance_unit.multiplier));
+  } else {
+    const Unit expected = model::unit_multiply(output_unit, output_unit);
+    if (!same_unit(expected, variance_unit)) {
+      return model::fail<CoaddResult>(
+          Code::invalid_request, "the target unit contradicts the frame covariance unit",
+          "coadd", "the combination is not available");
+    }
+  }
   Result<ArrayRef> combined_array = operators::write_f64(
-      context, combined, std::vector<U64>{static_cast<U64>(leaf_count)}, request.target.unit,
+      context, combined, std::vector<U64>{static_cast<U64>(leaf_count)}, output_unit,
       "coadd_signal");
   if (!ok(combined_array)) {
     return model::fail<CoaddResult>(combined_array.code, "the combined signal cannot be stored",
@@ -1857,7 +1892,7 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
   }
   auto estimate = std::make_shared<SignalEstimate>();
   estimate->signal = val(combined_array);
-  estimate->unit = request.target.unit;
+  estimate->unit = output_unit;
   estimate->estimator = request.target;
   estimate->numerical_lower = nullptr;
   estimate->numerical_upper = nullptr;
