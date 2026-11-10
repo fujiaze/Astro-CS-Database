@@ -1006,6 +1006,27 @@ class ProductReader {
       }
       graph.signal = val(resolved);
     }
+    // Reopen the published closure.  Export publishes its projection
+    // operator Q here so that C_out = Q C_leaf Q^T remains auditable after a
+    // reopen.  A closure entry that is not an action is left to its own typed
+    // reader; an action that cannot be reopened is a real closure failure.
+    if (val(payload).contains("closure")) {
+      for (const json& ref : val(payload).at("closure")) {
+        const Id id = workflows::decode_ref(ref);
+        if (id.empty()) continue;
+        Result<Ref<LinearAction>> reopened = action(id);
+        if (!ok(reopened)) {
+          return fail<Ref<ProductGraph>>(
+              reopened.code,
+              reopened.assessment.issues.empty()
+                  ? "the action closure cannot be reopened"
+                  : "the action closure cannot be reopened: " +
+                        reopened.assessment.issues.front().reason,
+              "product.read", "the product cannot be reopened");
+        }
+        graph.closure.push_back(val(reopened));
+      }
+    }
     auto result = std::make_shared<ProductGraph>(graph);
     return ok_result(std::shared_ptr<const ProductGraph>(result));
   }

@@ -180,3 +180,13 @@ factor_kind=diagonal (16384), influence_kind=compose
   - `x·Cx > 0`（PSD）；
   - `C·1` 有限（mosaic 2.62e22、export 2.37e5）。
 - 状态仍 `noise=unknown`（帧噪声 conditional），但协方差对象、单位、对称性与 PSD 现在一致。
+
+## 21. 第十七轮：C_out = Q C_leaf Qᵀ 的端到端验证（2026-11-11）
+
+- export 产品现在把投影算子 `Q` 放进 `ProductGraph.closure`；产品 reader 重新打开 closure 中的 action，而不是静默丢弃。这样 `C_out` 在重开后仍可审计。
+- `validation/product/projection_covariance_probe.cpp` 在 2 帧链上打开 mosaic/export，取 `Q`、`C_leaf`、`C_out`，对随机像素向量 x 比较
+  \[
+  C_{\rm out}x \quad\text{vs}\quad Q\,C_{\rm leaf}(Q^\top x):
+  \]
+  `max_abs_diff=2.84e-14`，`max_abs=91.13`，相对差 **3.12e-16**。
+- 这说明 export 的协方差语义确实是 `Q C Qᵀ`（含 shared/cross 项），不是逐叶对角化或丢弃投影相关。
