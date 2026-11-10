@@ -293,7 +293,8 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
   SignalEstimate effective = estimate;
   if (estimate.noise) {
     builder.omitted.push_back(
-        "the covariance action is not reopenable: the product carries no LinearAction reader");
+        "no_noise: the covariance action is not reopenable: the product carries no "
+        "LinearAction reader");
     effective.noise = nullptr;  // null means unknown, never zero variance
   }
   store_object(builder, effective.identity.object_id, "acsd.SignalEstimate",
