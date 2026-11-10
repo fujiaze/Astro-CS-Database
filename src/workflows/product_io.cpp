@@ -253,14 +253,6 @@ json encode_ref(const Id& hash) {
   return json{{"$ref", hash}};
 }
 
-Id decode_ref(const json& node) {
-  if (node.is_object() && node.contains("$ref")) {
-    const json& value = node.at("$ref");
-    if (value.is_string()) return value.get<std::string>();
-  }
-  return Id();
-}
-
 }  // namespace
 
 std::string canonical_text(const json& node) { return node.dump(); }
@@ -709,6 +701,26 @@ SupportMap decode_support_map(const json& node) {
   }
   support.primitives = id_list(node, "primitives");
   support.geometry_snapshot = string_field(node, "geometry_snapshot");
+  // The array references must be decoded, otherwise the reader cannot even
+  // know that a support state array exists and silently treats every leaf as
+  // supported.  The resolver replaces these placeholders with opened arrays.
+  auto decode_array = [&](const char* name, ArrayRef& target) {
+    if (!node.contains(name)) return;
+    const Id id = decode_ref(static_cast<const json&>(node.at(name)));
+    if (id.empty()) return;
+    auto placeholder = std::make_shared<Array>();
+    placeholder->identity.object_id = id;
+    target = ArrayRef(placeholder);
+  };
+  decode_array("states", support.states);
+  decode_array("area_lower_sr", support.area_lower_sr);
+  decode_array("area_upper_sr", support.area_upper_sr);
+  decode_array("normalization_states", support.normalization_states);
+  decode_array("observational_states", support.observational_states);
+  decode_array("cell_face", support.cell_face);
+  decode_array("cell_x", support.cell_x);
+  decode_array("cell_y", support.cell_y);
+  decode_array("cell_state", support.cell_state);
   return support;
 }
 

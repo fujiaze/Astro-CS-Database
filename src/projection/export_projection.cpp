@@ -89,12 +89,19 @@ double leaf_area_sr(U32 order) { return 4.0 * M_PI / (12.0 * std::pow(4.0, stati
 
 // The state array of the support map holds 0 absent, 1 positive and
 // 2 bounded undecided per leaf.
-std::vector<std::uint8_t> read_states(Context& context, const ArrayRef& array, U64 count) {
+Result<std::vector<std::uint8_t>> read_states(Context& context, const ArrayRef& array,
+                                               U64 count) {
   std::vector<std::uint8_t> states;
-  if (!array) return states;
+  if (!array) return model::ok_result(std::move(states));
   Result<ArrayView> view = context.storage.read(context, array, BlockRequest{0, count});
-  if (!ok(view)) return states;
-  return model::decode_u8(val(view).bytes);
+  if (!ok(view)) {
+    // An unreadable support state is not "all supported": silently returning an
+    // empty vector would export every geometrically overlapping pixel.
+    return model::fail<std::vector<std::uint8_t>>(
+        view.code, "the support states cannot be read", "build_export",
+        "the support of the product is unknown");
+  }
+  return model::ok_result(model::decode_u8(val(view).bytes));
 }
 
 std::vector<double> read_doubles(Context& context, const ArrayRef& array, U64 count) {
@@ -202,7 +209,16 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
     return fail<ExportResult>(leaf_signal.code, "the leaf signal cannot be read", "build_export",
                               "the export cannot be built");
   }
-  const std::vector<std::uint8_t> states = read_states(context, support.states, leaf_count);
+  Result<std::vector<std::uint8_t>> states_result =
+      read_states(context, support.states, leaf_count);
+  if (!ok(states_result)) {
+    return fail<ExportResult>(states_result.code,
+                              states_result.assessment.issues.empty()
+                                  ? "the support states cannot be read"
+                                  : states_result.assessment.issues.front().reason,
+                              "build_export", "the export cannot be built");
+  }
+  const std::vector<std::uint8_t> states = val(states_result);
   const std::vector<double> area_lower = read_doubles(context, support.area_lower_sr, leaf_count);
   const std::vector<double> area_upper = read_doubles(context, support.area_upper_sr, leaf_count);
 

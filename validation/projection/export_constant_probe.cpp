@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstdio>
+#include <string>
 #include <filesystem>
 #include <fstream>
 #include <vector>
@@ -21,7 +22,8 @@ static void check(bool ok, const char* what) {
   if (!ok) ++failures;
 }
 
-int main() {
+int main(int argc, char** argv) {
+  const bool no_support = argc > 1 && std::string(argv[1]) == "nosupport";
   std::filesystem::remove_all("/tmp/expr");
   acsd_validation::CountingResources resources;
   acsd_validation::NoCancellation cancellation;
@@ -47,7 +49,7 @@ int main() {
   Result<ArrayRef> signal = storage.copy(context, DType::f64, encode_f64(signal_values),
                                          std::vector<U64>{1}, unit_dimensionless(),
                                          index->identity.object_id);
-  auto states_bytes = std::vector<std::byte>{std::byte{1}};
+  auto states_bytes = std::vector<std::byte>{std::byte{static_cast<unsigned char>(no_support ? 0 : 1)}};
   Result<ArrayRef> states = storage.copy(context, DType::u8, states_bytes, std::vector<U64>{1},
                                          unit_dimensionless(), index->identity.object_id);
 
@@ -90,6 +92,48 @@ int main() {
   Result<ProductLocation> published = publish_product(context, graph, publish);
   check(published.code == Code::ok, "publish constant-surface-brightness product");
   if (published.code != Code::ok) return 1;
+  if (no_support) {
+    // A support state of zero means no support, not a zero signal.
+    std::ifstream mf("/tmp/expr/manifest.json", std::ios::binary);
+    std::string mt((std::istreambuf_iterator<char>(mf)), std::istreambuf_iterator<char>());
+    ProductLocation loc;
+    loc.directory = "/tmp/expr";
+    loc.manifest_hash = "sha256:" + sha256_hex(std::span<const std::byte>(
+        reinterpret_cast<const std::byte*>(mt.data()), mt.size()));
+    Result<Ref<ProductProvider>> po = open_product(context, loc);
+    if (!ok(po)) return 1;
+    std::printf("  states present=%d\n",
+                (*po.value)->graph()->signal->support->states ? 1 : 0);
+    const double sd = sky.nz;
+    const double cd = std::sqrt(std::max(0.0, 1.0 - sd * sd));
+    const double cr = cd > 0.0 ? sky.nx / cd : 1.0;
+    const double sr = cd > 0.0 ? sky.ny / cd : 0.0;
+    const double scale = 0.0002777777777777778 * M_PI / 180.0;
+    auto w2 = std::make_shared<WcsModel>();
+    w2->crpix_fits1 = Vec2{0.5, 0.5};
+    w2->cd_rad_per_pixel = Mat2{-scale, 0.0, 0.0, scale};
+    w2->c = Vec3{sky.nx, sky.ny, sky.nz};
+    w2->e = Vec3{-sr, cr, 0.0};
+    w2->north = Vec3{-sd * cr, -sd * sr, cd};
+    w2->domain = Box{0.0, 0.0, 1.0, 1.0};
+    w2->identity = make_identity("acsd.WcsModel", 2, 0, sha256_hex(std::string("exp-wcs-ns")), "exp");
+    ExportRequest req;
+    req.target.model = std::shared_ptr<const WcsModel>(w2);
+    req.target.width = 1; req.target.height = 1;
+    req.quantity = ExportRequest::Quantity::supported_flux;
+    req.support_policy = SupportMap::Kind::full_leaf_approx;
+    req.output_dtype = DType::f64;
+    req.budget.area_absolute_sr = 1e-12;
+    Result<ExportResult> ex = build_export(context, **po.value, req);
+    check(ex.code == Code::ok, "build export with zero support state");
+    if (ex.code == Code::ok) {
+      auto v = operators::read_f64(context, (*ex.value).estimate->signal, 0, 1);
+      std::printf("  zero-support value=%.17g\n", ok(v) ? val(v)[0] : 1e300);
+      check(ok(v) && std::isnan(val(v)[0]), "zero support state gives NaN, not zero");
+    }
+    std::printf("EXPORT PROBE(nosupport): %d failure(s)\n", failures);
+    return failures == 0 ? 0 : 1;
+  }
 
   std::ifstream manifest("/tmp/expr/manifest.json", std::ios::binary);
   std::string text((std::istreambuf_iterator<char>(manifest)), std::istreambuf_iterator<char>());
