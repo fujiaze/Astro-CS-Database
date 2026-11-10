@@ -128,3 +128,11 @@ X01 在 `3fa331a90` 再次全链通过（signal_only）：normalize 8/8、mosaic
 - `bind_wcs`：sample 包围盒经 `detector_from_sample`/offset 映射到 detector 后再检查 `wcs.domain`，不再假设 sample 网格等于 detector 网格；bind 身份探针仍给不同像素值不同 hash。
 - `information`：`V_F` 单位按 `h` 的 linear/sr/pixel/nm power 与 multiplier 传播；`h` 无量纲时保持协方差单位。参数数组 px/rad 混存仍未修。
 - X01 在 `7b470005` 通过（signal_only）：normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007，旧 5% 失败保留。
+
+## 16. 第十二轮：regroup 界与 B5 旋转/非对称 oracle（2026-11-11，`5e4e1f9de`）
+
+- `regroup` 在父对象没有数值包围时，旧代码把名义值同时写为 lower/upper，制造“精确界”。现在 bounds 保持 null、`complete=false`，只记录 `the_parent_carries_no_numerical_bounds`；regroup driver 通过。
+- B5 新增 `validation/projection/export_grid_probe.cpp`：常场单叶、可配置 width/height/CRPIX/CD 旋转。与 Astropy TAN 外角球面多边形面积（Van Oosterom–Strackee）对比：
+  - 2×2、CRPIX=(0.5,0.5)、CD 旋转 30°：rel 2.56e-7；
+  - 2×2、CRPIX=(0.3,0.7)、CD 旋转 30°：rel 2.45e-7。
+- 说明：X01 最新全链证据仍在 `7b470005`（本轮改动不在 X01 链上）；B5 仍缺部分支持、镜像 CD、跨 face、极大像元与重复 pixfrac。
