@@ -4,19 +4,19 @@
  "inputs": [
   {
    "path": "products/x01-00",
-   "expected_hash": "sha256:63c4f3d80f8c196c730883815fc6c2f531169cfeea907c38d3c0a90a723a2568"
+   "expected_hash": "sha256:2d843d1be86ff85d5245ffc1c0964ae9ede0462728b87dc9f59b3e141e9bdefb"
   },
   {
    "path": "products/x01-01",
-   "expected_hash": "sha256:a07b4ba28865e61cff8ee0036a58a212600f0a89fd65db1fc99630e689ae2cf1"
+   "expected_hash": "sha256:36928721ab306cd9178d9ac85d787174d742fbfbce2df985523aca5569b97e50"
   },
   {
    "path": "products/x01-02",
-   "expected_hash": "sha256:3126ad946e6f9e48035b4c5afb6a350d10d77fde8ca05d26b763380a621b9629"
+   "expected_hash": "sha256:55fb8ecddcc9271f71c43db96b39b546de5efb7cebaef0c8e98d3d60064090ed"
   },
   {
    "path": "products/x01-03",
-   "expected_hash": "sha256:aff3f4aa7722a08560a11bed963e0c469ee0bf980da83ce67ba288f4e2fe1162"
+   "expected_hash": "sha256:2fe60a39a6497f660d9e3790e73fb725611a72943ee2df5088a7d55cf5b0332b"
   }
  ],
  "publication": {
@@ -35,5 +35,5 @@
   "max_precision_bits": 256,
   "scratch_directory": ".work"
  },
- "product_profile": "signal_only"
+ "product_profile": "full"
 }

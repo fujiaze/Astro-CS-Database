@@ -4,7 +4,7 @@
  "inputs": [
   {
    "path": "products/mosaic",
-   "expected_hash": "sha256:a5ad78e68feff6b23db25de1d4e29e269952ffacaeb492eff4e88232d6b712ac"
+   "expected_hash": "sha256:8c68ffa6d7020639f8568216ab7308d9f4127f19675a63f56e6640462b32b522"
   }
  ],
  "scientific": "export.scientific.json",
@@ -18,5 +18,5 @@
   "max_precision_bits": 256,
   "scratch_directory": ".work"
  },
- "product_profile": "signal_only"
+ "product_profile": "full"
 }

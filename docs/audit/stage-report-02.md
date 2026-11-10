@@ -155,3 +155,18 @@ factor_kind=diagonal (16384), influence_kind=compose
 即影响不是简单的 `CSR ∘ diagonal`，而是 `CSR ∘ (…∘…)`；快路径未命中，4096 列物化上界仍在 `to_csr` 处返回 unavailable，joint covariance 继续降级。尝试的通用 sparse 组合未经充分反例验证，本轮未保留，`sky.cpp` 已退回 HEAD。
 
 结论：full profile 的下一最小步骤是**扁平化 selection/compose 链并直接得到每一列的稀疏模式**（或在 build_joint_noise 里用 action 组合 + 对控制向量做二次型，不做列物化）；在此之前 full 仍应保持不可用，不能靠提高 4096 上界来“通过”。
+
+## 19. 第十五轮：full profile 打通（2026-11-11，`2a85553dc`）
+
+两项实现消除了列物化：
+
+- `sky.controls`：控制协方差
+  \[
+  C_c=\sum_k (L_kF_k)(L_kF_k)^\top
+  \]
+  由 diagonal root factor 与 influence 的稀疏列直接累加，再分解为 \(U\sqrt\Lambda\)；原逐 latent 列的 factor 仅作 fallback。
+- `coadd`：joint model 用 embedding \(E_f\) 与 influence 组合，不再 `to_csr` 逐列；shared root 用 sum action 合并。`runtime::ingest_action` 把 factor/influence 的 payload arrays/children 搬过 Host 边界。
+
+结果：X01 以 `product_profile=full` 全链通过（normalize 8/8、mosaic 1、export 1），mosaic/export 均发布 `profile=full` 且带 `CovarianceAction`；`covariance_apply(C,1)` 在 mosaic（domain 1）与 export（domain 16384）上均有限，mosaic max|C·1|=2.62e22、export 236906。状态仍是 `noise=unknown`，因为帧噪声本身 conditional（P1-5 等），不是协方差对象缺失。
+
+数值证据不变：blind RMS 0.2109，48 残差 max|z|1.9007，旧 5% 失败保留。

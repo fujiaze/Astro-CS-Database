@@ -63,7 +63,7 @@
   "max_precision_bits": 256,
   "scratch_directory": ".work"
  },
- "product_profile": "signal_only",
+ "product_profile": "full",
  "publication": {
   "signal_dtype": "f64",
   "tile_log2_width": 6,
