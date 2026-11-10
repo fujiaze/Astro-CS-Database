@@ -71,6 +71,8 @@ PhotoSolution数值参数包围使用可估空间的score根验证：在候选�
 | N-ANGLE | x=[-2,-1],y=[-1,1]；另测四象限、±0、原点 | 跨切线的包围覆盖趋近±π；含原点具名失败 |
 | N-COMPOSE | WCS导数/平方根、Airy原点/尾、score Hessian和矩阵残差链 | 逐个依赖原语及复合函数都有独立包含测试，不能用生产interval反造expected |
 
+**当前实现状态（2026-11-10，`fa4649d57`）**：本机只有 MPFR 运行时 `.so`、没有开发头文件，生产路径采用 binary64 `fenv` 有向模式 + 运行时检测 + 不支持时的 1 ulp 外扩回退；`+,-,*,/,sqrt` 的包含性由 IEEE 754 正确舍入与 `-frounding-math -ffp-contract=off -mfpmath=sse` 保证，并由独立精确有理 oracle（`validation/lead/interval_oracle.cpp`）检验。`sin/cos/exp/log/atan/atan2/pow` **不是定向舍入证书**：IEEE 754 不要求超越函数正确舍入，当前实现用 long double 加 1e-15 保守边界，只能标条件性；任何依赖这些函数的 `certified` 结论必须降级。不得把“ACSD 用 MPFR 保证有向舍入”写成事实。详见[B1 数值整改记录](../../../audit/b1-numerics-remediation.md)。
+
 四则用独立GMP/有理数oracle；超越函数用独立驱动的高精度MPFR点值和解析极值/单调域证据，oracle精度至少高于被测且增加精度检查稳定。随机/密集点只能补回归覆盖，不能证明区间全域。保存最坏包含违例、输入精确编码、域拆分、精度、compiler/flags及MPFR版本。资源/溢出/缺库导致不能认证时，调用不得继续返回严格证书。
 
 ## 认证能力不能用一个全局bool代表

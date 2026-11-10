@@ -6,21 +6,24 @@
 
 | 主题 | 原始发表作品或一手规范入口 | ACSD应追溯的适用域（待逐式核查） |
 |---|---|---|
-| FITS WCS | [FITS WCS Publications](https://fits.gsfc.nasa.gov/fits_wcs.html)；Greisen & Calabretta / Calabretta & Greisen 系列标准文献 | 像素原点、天球坐标、TAN、CD/PC、头与WCS |
-| SIP | [Shupe et al. SIP Convention, Caltech archive](https://authors.library.caltech.edu/records/fqnyw-qdw79) | 正向/逆向多项式、CRPIX单位及限制 |
-| Drizzle | [Fruchter & Hook (2002), DOI:10.1086/338393](https://doi.org/10.1086/338393) | Variable-Pixel线性重构；不承担ACSD真实曲边严格误差证明 |
-| HPX/HEALPix投影 | [Calabretta & Roukema (2007), DOI:10.1111/j.1365-2966.2007.12297.x](https://doi.org/10.1111/j.1365-2966.2007.12297.x) | HPX等面积坐标变换、面缝、极点 |
-| HEALPix本体 | [Górski et al. (2005), DOI:10.1086/427976](https://doi.org/10.1086/427976) | HEALPix像素化和NESTED规则 |
-| Gaia XP外定标 | [Montegriffo et al. (2023), DOI:10.1051/0004-6361/202243880](https://doi.org/10.1051/0004-6361/202243880) | XP谱表示、外定标、跨源共享条件 |
-| Gaia合成光度 | [Gaia DR3 synthetic photometry paper, DOI:10.1051/0004-6361/202243709](https://doi.org/10.1051/0004-6361/202243709) | 通带/零点和真实合成光度假设；需核对精确作者、章节和数据版本 |
-| Montage | [Montage算法说明](https://irsa.ipac.caltech.edu/Montage/docs/algorithms.html) | 重叠差分sky；ACSD统一gauge/同数据C为独立推导 |
-| Proper coadd对照 | [Zackay & Ofek (2017), DOI:10.3847/1538-4357/836/2/188](https://doi.org/10.3847/1538-4357/836/2/188) | **对照资料**，仅在其背景主导、稳定源等假设内讨论最优性；不是本期已实现算法 |
-| 数值有向算术 | [MPFR官方手册](https://www.mpfr.org/mpfr-current/mpfr.html) | directed rounding原语定义；各区间域/极值包围仍由ACSD推导 |
-| 统计/估计/矩阵 | 由相关Process实际选择的GLS/PSD/QR/SVD/BLUE/QP原始论文或权威标准补录 | 必须按实际算法变体定位原式，不靠无出处的“经典结论”一笔带过 |
+| FITS WCS | [FITS WCS Publications](https://fits.gsfc.nasa.gov/fits_wcs.html)；Greisen & Calabretta / Calabretta & Greisen 系列标准文献 → **卡 [01](papers/01-fits-wcs-paper-i-ii.md)** | 像素原点、天球坐标、TAN、CD/PC、头与WCS |
+| SIP | [Shupe et al. SIP Convention, Caltech archive](https://authors.library.caltech.edu/records/fqnyw-qdw79) → **卡 [02](papers/02-sip-shupe2005.md)** | 正向/逆向多项式、CRPIX单位及限制 |
+| Drizzle | [Fruchter & Hook (2002), DOI:10.1086/338393](https://doi.org/10.1086/338393) → **卡 [03](papers/03-fruchter-hook-drizzle.md)** | Variable-Pixel线性重构；不承担ACSD真实曲边严格误差证明 |
+| HPX/HEALPix投影 | [Calabretta & Roukema (2007), DOI:10.1111/j.1365-2966.2007.12297.x](https://doi.org/10.1111/j.1365-2966.2007.12297.x) → **卡 [04](papers/04-hpx-healpix.md)**（注意：该卡读的是 2004 单作者预印本，2007 出版版未读） | HPX等面积坐标变换、面缝、极点 |
+| HEALPix本体 | [Górski et al. (2005), DOI:10.1086/427976](https://doi.org/10.1086/427976) → **卡 [04](papers/04-hpx-healpix.md)** | HEALPix像素化和NESTED规则 |
+| Gaia XP外定标 | [Montegriffo et al. (2023), DOI:10.1051/0004-6361/202243880](https://doi.org/10.1051/0004-6361/202243880) → **卡 [05](papers/05-gaia-xp-synthetic-photometry.md)** | XP谱表示、外定标、跨源共享条件 |
+| Gaia合成光度 | [Gaia DR3 synthetic photometry paper, DOI:10.1051/0004-6361/202243709](https://doi.org/10.1051/0004-6361/202243709) → **卡 [05](papers/05-gaia-xp-synthetic-photometry.md)** | 通带/零点和真实合成光度假设；需核对精确作者、章节和数据版本 |
+| Montage | [Montage算法说明](https://irsa.ipac.caltech.edu/Montage/docs/algorithms.html) → **卡 [06](papers/06-montage-background-reprojection.md)** | 重叠差分sky；ACSD统一gauge/同数据C为独立推导 |
+| Proper coadd对照 | [Zackay & Ofek (2017), DOI:10.3847/1538-4357/836/2/188](https://doi.org/10.3847/1538-4357/836/2/188) → **卡 [07](papers/07-zackay-ofek-proper-coadd-context.md)** | **对照资料**，仅在其背景主导、稳定源等假设内讨论最优性；不是本期已实现算法 |
+| 数值有向算术 | [MPFR官方手册](https://www.mpfr.org/mpfr-current/mpfr.html) → **卡 [08](papers/08-numerics-directed-rounding-linalg.md)** | directed rounding原语定义；各区间域/极值包围仍由ACSD推导 |
+| 统计/估计/矩阵 | 由相关Process实际选择的GLS/PSD/QR/SVD/BLUE/QP原始论文或权威标准补录 → **卡 [08](papers/08-numerics-directed-rounding-linalg.md)、[09](papers/09-estimation-blue-gls-nnls-qp.md)** | 必须按实际算法变体定位原式，不靠无出处的“经典结论”一笔带过 |
+| CCD Poisson/读出噪声 | EMVA 1288（许可受限）/ Janesick → **卡 [10](papers/10-ccd-poisson-read-noise.md)** | 目前 `PRIMARY_LOCATED_NOT_YET_READ`；方差模型为 ACSD 自推，不得称“符合标准” |
 
 ## 原文/算法的人工研究卡规则
 
 每条最终卡必须写：(1)规范书目信息+永久索引与PDF合法性；(2)准确章节/页/公式/数学变量；(3)原文成立的物理/统计/数值域；(4)本项目从该公式到当前估计量的**独立逐步推导**；(5)当前Process及源码路径；(6)是否修改了原法与创新来源；(7)独立反例与科研证据；(8)真实数据风险；(9)原文读取者和审查者。若未获得原文，必须标“仅定位，不可视作已审”。
+
+**逐算法卡片已建立（2026-11-10，`lit-researcher`）**：见 [papers/00-README.md](papers/00-README.md) 的清单与状态表。该目录只存 Markdown 卡片、不镜像 PDF；每卡明确标注 `PRIMARY_READ_AND_MAPPED / PRIMARY_READ_PARTIAL / PRIMARY_LOCATED_NOT_YET_READ / DERIVATION_TO_REVIEW`，并写明“不能声称”的红线。
 
 ## 项目原创科学依据
 

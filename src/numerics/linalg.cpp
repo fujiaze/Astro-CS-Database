@@ -63,12 +63,17 @@ double reconstruction_residual_upper(const Matrix& a, const SvdResult& svd) {
   return interval_sqrt(sum).upper;
 }
 
-// The standard perturbation bound for a computed SVD:
+// Perturbation bound for a computed SVD.  The derivation status is
+// DERIVATION_TO_REVIEW: the form below follows the Weyl/Wedin family of
+// singular-value perturbation bounds (Wedin 1972, BIT 12, 99-111, which was
+// located but not read in full), and it is written as
 //   |sigma_i(A) - sigma_i(U S V^T)| <= e_R,
 //   orthogonality defects add e_U ||S||_2 sqrt(1 + delta_V)
 //   and e_V ||S||_2.
-// Every operation below is outward: the inputs are already upper bounds and
-// the arithmetic uses interval primitives.
+// The bound is only used to decide whether a singular value is provably
+// separated from a threshold; it is not a claim that the literature form was
+// verified term by term.  Every operation below is outward: the inputs are
+// already upper bounds and the arithmetic uses interval primitives.
 double sigma_error_upper(double residual, double delta_u, double delta_v,
                          double spectral_upper) {
   const double e_u =

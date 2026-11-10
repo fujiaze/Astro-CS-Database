@@ -312,7 +312,7 @@ SIP 真实边界仍可按§3的 Bernstein/de Casteljau 凸包快速排除候选�
 ## 8. 原始参考与物理风险
 
 1. [Fruchter & Hook 2002，PASP 114,144，§2与§7](https://arxiv.org/html/astro-ph/9808087v2)，DOI 10.1086/338393：采用像元收缩、线性分配和相关噪声；原论文不提供本文真实 HEALPix/SIP 相交器。
-2. [Calabretta & Roukema 2007，§2.1–2.4、式(3)–(10)](https://arxiv.org/html/astro-ph/0412607)，DOI 10.1111/j.1365-2966.2007.12297.x：采用 HPX 等面积 chart。本文另外推导全12face表与包含型积分。
+2. HPX 等面积 chart 的一手来源分两层：本次实际读到的是 **Calabretta 2004 单作者预印本** [astro-ph/0412607](https://arxiv.org/abs/astro-ph/0412607)，采用其 §2.1 式(3)–(10) 的 chart 定义与 **§2.4 式(15)–(27) 的 FITS 形式**；正式出版版 Calabretta & Roukema 2007（MNRAS 381, 865，DOI 10.1111/j.1365-2966.2007.12297.x）的出版页码与式号**尚未逐条核对**（`PRIMARY_LOCATED_NOT_YET_READ`）。引用时不得把 arXiv 0412607 标成 2007 出版版。本文另外推导全 12face 表与包含型积分。
 3. [Górski et al. 2005](https://arxiv.org/abs/astro-ph/0409513)：NESTED 和真实叶；[Astropy-HEALPix API](https://astropy-healpix.readthedocs.io/en/latest/api/astropy_healpix.HEALPix.html)作为独立坐标、成员和查询参照。
 4. [Farin，Curves and Surfaces for CAGD，Ch.4.1–4.6](https://www.farinhansford.com/books/cagd/toc.html)：Bernstein 凸包、de Casteljau 与细分；成熟几何算法用于多项式源曲线。
 5. [Moore, Kearfott & Cloud 2009，Ch.1–4、8](https://epubs.siam.org/doi/10.1137/1.9780898717716.fm)：包含型运算和积分；采用显式上下界，非采样收敛口号。

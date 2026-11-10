@@ -152,8 +152,9 @@ Oracle 的独立性：它不复用 `interval.cpp` 的任何算术，只用整数
 2. **sin/cos/exp/log/atan/atan2/pow 不是定向舍入证书**。它们用 long double 计算并加 `1e-15·max(1,|x|)` 边界；该边界远大于 glibc 观测误差，但“平台 libm 误差 < 边界”是**条件假设**，不是证明。生产认证链当前只用到 `sqrt/+/-/*//`（`coordinates/tan_sip.cpp`、`coordinates/wcs.cpp`、`coordinates/chart.cpp`），未用这些超越函数；若将来上游使用它们，必须降为 conditional 或补有向多精度实现。
 3. **巨大角、`|x|>1e9` 的 sin/cos 只给 `[-1,1]`**；这是有效但粗的包围，不能用于窄误差预算。
 4. **`interval_intersect` 的空标记**仍是 `[1,−1]`；`sqrt` 非法域返回该标记。调用者必须检查 `lower > upper`，不能继续把反序区间当数值。
-5. **linalg 的谱误差界是保守的**：`||Σ||₂` 用 `||A||_F`，比真实谱范数大 `sqrt(min(m,n))` 量级，因此小奇异值/大条件数问题的 `rank_certified` 会比点值算法更保守，可能返回 `rank_unresolved`。这是有意的：宁可未决，不给假证书。
-6. **未重跑全部依赖 case**。本次只跑了 numerics selftest、interval oracle、X01 三命令（进行中）与完整 science 构建。WCS/geometry/PSF 上游的既有 `certified` 结论必须按新原语重新审查；旧 PASS 不自动继承。
+5. **谱误差界的出处尚未逐式核对**：`sigma_error_upper` 采用 Weyl/Wedin 型奇异值扰动界，Wedin 1972 (BIT 12, 99–111) 已定位但未读全文；当前引用状态是 `DERIVATION_TO_REVIEW`，源码注释已如此标注。它只用于“是否可证分离阈值”的判定，不作为已核对的文献定理。
+6. **linalg 的谱误差界是保守的**：`||Σ||₂` 用 `||A||_F`，比真实谱范数大 `sqrt(min(m,n))` 量级，因此小奇异值/大条件数问题的 `rank_certified` 会比点值算法更保守，可能返回 `rank_unresolved`。这是有意的：宁可未决，不给假证书。
+7. **未重跑全部依赖 case**。本次只跑了 numerics selftest、interval oracle、X01 三命令（进行中）与完整 science 构建。WCS/geometry/PSF 上游的既有 `certified` 结论必须按新原语重新审查；旧 PASS 不自动继承。
 
 ## 5. 对上游的影响（待逐项复核）
 

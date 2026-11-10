@@ -94,7 +94,7 @@ c 为 CRVAL 方向，e 为当地东向，n_N 为北向。CD 作用在 SIP **之�
 C_{canonical}=\begin{bmatrix}\cos\rho&\sin\rho\\-\sin\rho&\cos\rho\end{bmatrix}C,
 \qquad {\tt LONPOLE}_{canonical}=180^\circ .\tag{5}
 \]
-这是二维基变换的代数恒等式，并非修改天区。保存原头、规范化矩阵及数值误差身份；角度转换/旋转的舍入不得算作零。独立新 fixture 已将非180°、精确双极点与 WCSLIB 对照（§6）。未经证明与式(5)等价的 native rotation 不走此入口。
+这是二维基变换的代数恒等式，并非修改天区；**其成立前提是投影为天顶类（首期 TAN，θ₀=90°）**，此时式(14) 的 φ=arg(−y,x) 使 φp 只作为 (x,y) 的平面旋转进入。对 (φ₀,θ₀)≠(0,90°) 的圆柱/圆锥等投影，(x,y) 与 φ 不是简单极坐标关系，式(5) 不再成立，本入口不解释这些投影。保存原头、规范化矩阵及数值误差身份；角度转换/旋转的舍入不得算作零。独立新 fixture 已将非180°、精确双极点与 WCSLIB 对照（§6）。未经证明与式(5)等价的 native rotation 不走此入口。
 
 单射首选用有向舍入的多项式/ Bernstein 导数界计算 \(L=\sup_U\|\nabla D\|_\infty<1\)。更广的充分条件是选择固定可逆 H，证明
 \(\eta=\sup_U\|I-HJ_F(u)\|_\infty<1, F=u+D\)：将 HF 写成恒等加压缩扰动即得全局单射，且
