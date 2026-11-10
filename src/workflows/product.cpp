@@ -292,8 +292,34 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
                                  "product.write", "the product cannot be published");
       }
     }
-    store_object(builder, estimate.effective_response->identity.object_id, "acsd.SpatialResponse",
-                 workflows::encode_spatial_response(*estimate.effective_response));
+    // The spatial actions are referenced by the response object: they must be
+    // part of the product, or the published response has a dangling $ref.
+    SpatialResponse response = *estimate.effective_response;
+    bool response_complete = true;
+    for (const Ref<LinearAction>& action : estimate.effective_response->spatial_actions) {
+      if (!action) continue;
+      Result<std::string> stored_action = collect_action(context, builder, *action);
+      if (!ok(stored_action)) {
+        response_complete = false;
+        builder.omitted.push_back("no_detailed_response: " + stored_action.assessment.issues.front().reason);
+        break;
+      }
+    }
+    // A per-response factor has no product codec yet; publishing its id would
+    // reference an object that is never written.
+    if (!estimate.effective_response->responses.empty()) {
+      response_complete = false;
+      builder.omitted.push_back(
+          "no_detailed_response: the response factors have no product codec");
+    }
+    if (!response_complete) {
+      response.spatial_actions.clear();
+      response.responses.clear();
+      response.assessment.complete = false;
+      response.assessment.science = ScienceState::conditional;
+    }
+    store_object(builder, response.identity.object_id, "acsd.SpatialResponse",
+                 workflows::encode_spatial_response(response));
   }
   if (estimate.error) {
     store_object(builder, estimate.error->identity.object_id, "acsd.ErrorRecord",
