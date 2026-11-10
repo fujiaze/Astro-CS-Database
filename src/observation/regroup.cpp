@@ -320,7 +320,10 @@ Result<Ref<NativeObservation>> regroup_observation(Context& context,
       return model::fail<Ref<NativeObservation>>(scale.code, "the mean restoration cannot be built",
                                                  kOrigin, "the regrouping cannot be built");
     }
-    Result<Ref<LinearAction>> chained = acsd::compose(context, val(scale), request.G);
+    // The restored integral is G(scale(x)): the scale must act first, so the
+    // composition is G o scale, not scale o G (the latter is shape-invalid
+    // for a non-square G and silently wrong when it fits).
+    Result<Ref<LinearAction>> chained = acsd::compose(context, request.G, val(scale));
     if (!ok(chained)) {
       return model::fail<Ref<NativeObservation>>(chained.code, "the mean restoration cannot be built",
                                                  kOrigin, "the regrouping cannot be built");
