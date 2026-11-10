@@ -202,7 +202,10 @@ OPERATIONS: list[OpBinding] = [
               FREE, "build_sky_controls"),
     OpBinding("sky.fit", "fit_relative_sky", "FitRelativeSkyInput", FREE,
               "fit_relative_sky"),
-    OpBinding("sky.fit", "apply_sky", "ApplySkyInput", FREE, "apply_sky"),
+    OpBinding("sky.fit", "apply_sky", "ApplySkyInput", FREE, "apply_sky",
+              discriminator="Id",
+              extra_fields=[("frame", "Id")],
+              field_order=["signal", "fit", "frame"]),
     # coadd
     OpBinding("coadd.select", "select_samples", "SelectSamplesInput", FREE,
               "select_samples"),

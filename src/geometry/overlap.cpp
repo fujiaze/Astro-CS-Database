@@ -484,7 +484,12 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
     // polar face is singular and the chart of the detector region cannot be
     // enclosed.  The fallback then works on the (s, t) grid of the candidate
     // faces and keeps the undecided mass of the apex region.
-    if (containment.leaves.empty() && !containment.complete) {
+    //
+    // It is only applicable when the kernel actually met an apex singularity.
+    // A seam crossing also makes the chart enclosure incomplete, but it is not
+    // a pole: running the polar fill there enumerates 2 N^2 cells that are all
+    // undecided (review §3.1) and bypasses the 4096 contribution bound.
+    if (kernel.apex_singular && containment.leaves.empty() && !containment.complete) {
       geometry::ContainmentOutcome apex = geometry::target_containment_apex(
           context, *model, model, drop_rectangle, order, request);
       if (apex.complete) containment = apex;
@@ -598,6 +603,16 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
       continue;
     }
     it->second = {lower, upper};
+  }
+  // The merged contribution set is the one that is published; the kernel's own
+  // bound is checked earlier, but the containment fallback can add leaves.  The
+  // inline table bound applies to the merged set as well (a polar fill would
+  // otherwise publish 2 N^2 undecided leaves).
+  if (published.size() > kMaxInlineContributions) {
+    return fail<Ref<Overlaps>>(Code::resource_exhausted, "too_many_contributions",
+                               "compute_overlap",
+                               "the merged kernel/containment contribution set exceeds the inline "
+                               "bound");
   }
   for (const auto& entry : published) {
     const HealpixLeaf leaf{entry.first.first, entry.first.second};

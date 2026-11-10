@@ -8,11 +8,12 @@
 // The template is the pixel integral of the PSF produced by evaluate_psf; the
 // flux and the background are a linear problem for a frozen template.  The
 // numerical bounds of the flux are constructed from the interval of the
-// native input and the interval of the template, which enter the same design
-// matrix: the inverse of the design matrix bounds the perturbation and the
-// residual is enclosed.  When the rank is not certified or the enclosure
-// cannot be certified, the nominal flux is kept and the state says so; a
-// random variance is never used as a deterministic error.
+// native input, the interval of the template and the floating point backward
+// error of the solve; all three enter the same design matrix.  The data
+// residual is a statistical quantity (D^+ r = 0 identically) and is never
+// added to the deterministic radius.  When the rank is not certified or the
+// enclosure cannot be certified, the nominal flux is kept and the state says
+// so; a random variance is never used as a deterministic error.
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -93,6 +94,154 @@ void psf_transfer(Context& context, Ref<NativeObservation> observation,
 }
 
 }  // namespace
+
+// ---------------------------------------------------------------------------
+// The numerical enclosure of the linear flux solve.
+//
+// This is the single implementation of the radius; it is not static because
+// the standalone probe calls it (the declaration lives in the probe, the
+// definition is the production one).  The returned vector holds one radius per
+// flux component; an empty vector means the enclosure is NOT certified.
+//
+// Perturbation.  The solve is the column scaled one, theta = D^+ d with
+// D^+ = S^-1 (D S^-1)^+, so
+//   d theta = D^+ (d d - dD theta).
+// Every flux component uses the 2-norm of its own row of D^+, which already
+// carries the column scaling S^-1 (the audit counterexample C2 is short by
+// exactly that factor if it is dropped).  The design perturbation is bounded in
+// the Frobenius norm and the non-linearity of the inverse is paid by
+// 1/(1 - ||D^+||_2 ||dD||_F).
+//
+// Two error sources enter:
+//   * the declared intervals of the native data and of the template
+//     (data_norm, design_norm);
+//   * the floating point error of the solve itself.  The computed solution is
+//     the exact least squares solution of a perturbed (D+dD, d+dd) with
+//     ||dd||_2 <= gamma ||d||_2 and ||dD||_F <= gamma ||D||_F, where
+//     gamma = m eps / (1 - m eps) for m rows (Higham, backward error of the
+//     least squares solve).  It is therefore bounded by the same formula once
+//     those perturbations are added to the declared ones.
+//
+// The DATA RESIDUAL r = d - D theta is NOT an error term: for the exact least
+// squares solution D^T r = 0 and D^+ r = 0 identically, so r contributes
+// nothing to the first order perturbation of theta.  Its norm is a statistical
+// quantity (noise plus model mismatch, of order sqrt(m) sigma) and putting it
+// into a deterministic radius turns a numerical enclosure into a statistical
+// interval while still calling it "numerical" (this was defect R1).  The
+// normal equation residual ||D^T r|| is reported as a diagnostic: it is the
+// floating point defect of the solve and is of order eps ||d||, which the
+// gamma bound above already covers.
+// ---------------------------------------------------------------------------
+std::vector<double> measure_flux_numerical_radius(
+    const numerics::Matrix& design, std::size_t sources, const std::vector<double>& measurement,
+    const std::vector<double>& solution, const std::vector<double>& row_norm,
+    const numerics::SvdResult& svd, const std::vector<double>& column_scale, double data_norm,
+    double design_norm, double& amplification, double& spectral_norm,
+    double& normal_residual_norm) {
+  std::vector<double> radius;
+  amplification = 0.0;
+  spectral_norm = 0.0;
+  normal_residual_norm = 0.0;
+  const std::size_t rows = design.rows;
+  const std::size_t parameters = design.cols;
+  if (rows == 0 || parameters == 0 || sources == 0 || sources > parameters) return radius;
+  if (solution.size() != parameters || column_scale.size() != parameters) return radius;
+  if (row_norm.size() < sources || measurement.size() != rows) return radius;
+  if (svd.rank != parameters || svd.singular_values.size() < parameters) return radius;
+  if (!std::isfinite(data_norm) || !std::isfinite(design_norm) || data_norm < 0.0 ||
+      design_norm < 0.0) {
+    return radius;
+  }
+  const double eps = std::numeric_limits<double>::epsilon();
+  // The rows of the design are the samples of the frame; the backward error
+  // constant is the one of an m x p least squares solve.
+  const double gamma = (static_cast<double>(rows) * eps) /
+                       (1.0 - static_cast<double>(rows) * eps);
+
+  // The spectral norm of D^+.  With D S^-1 = U Sigma V^T,
+  //   ||D^+||_2 = ||S^-1 V Sigma^-1 U^T||_2 = ||S^-1 V Sigma^-1||_2
+  // because U has orthonormal columns.  The p x p matrix M = S^-1 V Sigma^-1
+  // is small (p = sources + background), so its largest singular value is
+  // computed; the analytic bound sqrt(p) max_s ||e_s^T D^+||_2 is an upper
+  // bound as well, so taking the minimum keeps the certificate valid even if
+  // the small SVD is slightly off.
+  numerics::Matrix scaled_right(parameters, parameters);
+  for (std::size_t c = 0; c < parameters; ++c) {
+    const double scale = column_scale[c];
+    if (!(scale > 0.0)) continue;
+    for (std::size_t i = 0; i < parameters; ++i) {
+      const double sigma = svd.singular_values[i];
+      if (!(sigma > 0.0)) continue;
+      scaled_right(c, i) = svd.v(c, i) / sigma / scale;
+    }
+  }
+  const numerics::SvdResult right_svd = numerics::jacobi_svd(scaled_right, 1.0e-12);
+  double svd_norm = 0.0;
+  if (!right_svd.singular_values.empty()) svd_norm = right_svd.singular_values.front();
+  if (!std::isfinite(svd_norm) || svd_norm < 0.0) return radius;
+  // Upward padding of the small SVD, and the analytic sqrt(p) max row bound.
+  svd_norm = svd_norm * (1.0 + 64.0 * eps) + 64.0 * eps * svd_norm;
+  double largest_row_norm = 0.0;
+  for (std::size_t s = 0; s < sources; ++s) {
+    if (!std::isfinite(row_norm[s]) || row_norm[s] < 0.0) return radius;
+    largest_row_norm = std::max(largest_row_norm, row_norm[s]);
+  }
+  const double row_bound = std::sqrt(static_cast<double>(parameters)) * largest_row_norm;
+  spectral_norm = std::min(svd_norm, row_bound);
+  if (!(spectral_norm > 0.0) || !std::isfinite(spectral_norm)) return radius;
+
+  // The data residual is diagnostic only: ||D^T r|| measures the floating
+  // point defect of the nominal solve and is far below the statistical norm of
+  // r (see above).
+  {
+    std::vector<double> gradient(parameters, 0.0);
+    for (std::size_t k = 0; k < rows; ++k) {
+      double model = 0.0;
+      for (std::size_t c = 0; c < parameters; ++c) model += design(k, c) * solution[c];
+      const double residual = measurement[k] - model;
+      for (std::size_t c = 0; c < parameters; ++c) gradient[c] += design(k, c) * residual;
+    }
+    double sum = 0.0;
+    for (double value : gradient) sum += value * value;
+    normal_residual_norm = std::sqrt(sum);
+    if (!std::isfinite(normal_residual_norm)) return radius;
+  }
+
+  double data_vector_norm = 0.0;
+  for (double value : measurement) data_vector_norm += value * value;
+  data_vector_norm = std::sqrt(data_vector_norm);
+  double theta_norm = 0.0;
+  for (double value : solution) theta_norm += value * value;
+  theta_norm = std::sqrt(theta_norm);
+  const double design_frobenius = numerics::frobenius_norm(design);
+  if (!std::isfinite(data_vector_norm) || !std::isfinite(theta_norm) ||
+      !std::isfinite(design_frobenius)) {
+    return radius;
+  }
+  const double float_data = gamma * data_vector_norm;
+  const double float_design = gamma * design_frobenius;
+  const double data_total = data_norm + float_data;
+  const double design_total = design_norm + float_design;
+
+  const double contraction = spectral_norm * design_total;
+  if (!std::isfinite(contraction) || !(contraction < 1.0)) return radius;
+  amplification = 1.0 / (1.0 - contraction);
+  const double common = data_total + design_total * theta_norm;
+  if (!std::isfinite(common) || !std::isfinite(amplification)) return radius;
+  radius.assign(sources, 0.0);
+  for (std::size_t s = 0; s < sources; ++s) {
+    double value = amplification * row_norm[s] * common;
+    // The outward rounding of the interval arithmetic: a few ulp of the end
+    // points, never a change of the declared tolerance.
+    value += 4.0 * eps * (std::fabs(solution[s]) + value);
+    if (!std::isfinite(value)) {
+      radius.clear();
+      return radius;
+    }
+    radius[s] = value;
+  }
+  return radius;
+}
 
 Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
                                                         Ref<NativeObservation> observation,
@@ -521,32 +670,25 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
 
   // ---------------------------------------------------------------------
   // The numerical bounds of the flux.  The interval of the native input and
-  // the interval of the template enter the same design matrix.
+  // the interval of the template enter the same design matrix; the floating
+  // point error of the solve itself is a third, deterministic perturbation.
   //
-  // The solve is the column scaled one: theta = S^-1 y with
-  // y = (D S^-1)^+ d, so the perturbation of the solution is
-  //   d theta = S^-1 (D S^-1)^+ (d d - dD theta) = D^+ (d d - dD theta),
-  // where D^+ = S^-1 (D S^-1)^+ is the pseudo inverse of the design itself.
-  // The column scaling therefore MUST be part of the radius: a radius built
-  // from 1/sigma_min(D S^-1) alone is short by the factor ||S^-1|| and is not
-  // an enclosure (the audit counterexample C2 puts the truth outside it).
-  //
-  // Every flux component uses the 2-norm of its own row of D^+ instead of one
-  // isotropic radius; that is rigorous and already carries S^-1 because the
-  // row of D^+ is the row of S^-1 (D S^-1)^+.  The design perturbation is
-  // bounded in the Frobenius norm and the non-linearity of the inverse is
-  // paid by 1/(1 - ||D^+|| ||dD||): when that factor does not exist (the
-  // perturbation reaches the reciprocal condition number) the linearisation
-  // proves nothing and the enclosure is not certified.
+  // The enclosure is the shared implementation
+  // measure_flux_numerical_radius (see its comment for the math).  The data
+  // residual r = d - D theta is NOT part of it: D^+ r = 0 identically, r is a
+  // statistical quantity, and adding ||r|| to a deterministic radius turns the
+  // "numerical enclosure" into a statistical interval (defect R1).
   // ---------------------------------------------------------------------
   std::vector<double> flux_lower;
   std::vector<double> flux_upper;
   bool flux_certified = false;
   double flux_radius = 0.0;
   double flux_amplification = 0.0;
+  double flux_spectral_norm = 0.0;
   double data_norm = 0.0;
   double design_norm = 0.0;
   double residual_enclosure = 0.0;
+  double normal_residual_norm = 0.0;
   if (rank_certified) {
     // The interval half width is not enough: the nominal sample has to lie
     // inside its own interval, so the deviation is measured from the nominal
@@ -569,9 +711,6 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
       }
     }
     design_norm = std::sqrt(design_norm);
-    double solution_norm = 0.0;
-    for (double value : solution) solution_norm += value * value;
-    solution_norm = std::sqrt(solution_norm);
     // The norm of every row of D^+ = S^-1 (D S^-1)^+; the flux columns are
     // the first `sources` columns.
     std::vector<double> row_norm(sources, 0.0);
@@ -583,20 +722,6 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
       }
       row_norm[s] = std::sqrt(sum);
     }
-    double largest_row_norm = 0.0;
-    for (double value : row_norm) largest_row_norm = std::max(largest_row_norm, value);
-    // The residual of the nominal solve.  It is the floating point residual of
-    // the linear solve, not the interval of the data: the data and template
-    // intervals are already in data_norm and design_norm and must not be
-    // counted twice.
-    double residual_norm = 0.0;
-    for (std::size_t k = 0; k < rows; ++k) {
-      double model = 0.0;
-      for (std::size_t c = 0; c < parameters; ++c) model += design(k, c) * solution[c];
-      const double residual = measurement[k] - model;
-      residual_norm += residual * residual;
-    }
-    residual_norm = std::sqrt(residual_norm);
     // The enclosure residual of the validation solve, reported with the
     // result: the elementwise residual of the nominal model against the data
     // interval and the template interval.
@@ -612,23 +737,29 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
       error += data_error[k];
       residual_enclosure = std::max(residual_enclosure, error);
     }
-    const double contraction = largest_row_norm * design_norm;
-    if (largest_row_norm > 0.0 && std::isfinite(contraction) && contraction < 1.0) {
-      flux_amplification = 1.0 / (1.0 - contraction);
-      const double common = data_norm + design_norm * solution_norm + residual_norm;
+    const std::vector<double> flux_radii = measure_flux_numerical_radius(
+        design, sources, measurement, solution, row_norm, svd, column_scale, data_norm,
+        design_norm, flux_amplification, flux_spectral_norm, normal_residual_norm);
+    if (flux_radii.size() == sources) {
       flux_lower.assign(sources, 0.0);
       flux_upper.assign(sources, 0.0);
+      bool all_finite = true;
       for (std::size_t s = 0; s < sources; ++s) {
-        double radius = flux_amplification * row_norm[s] * common;
-        // The outward rounding of the interval arithmetic: a few ulp of the
-        // end points, never a change of the declared tolerance.
-        radius += 4.0 * std::numeric_limits<double>::epsilon() *
-                  (std::fabs(solution[s]) + radius);
+        const double radius = flux_radii[s];
+        if (!std::isfinite(radius) || !std::isfinite(solution[s])) all_finite = false;
         flux_lower[s] = solution[s] - radius;
         flux_upper[s] = solution[s] + radius;
         if (s == 0) flux_radius = radius;
       }
-      flux_certified = true;
+      // The certificate is only issued when every end point is a finite
+      // number: an infinite radius is not an enclosure.
+      flux_certified = all_finite && std::isfinite(flux_amplification) &&
+                       std::isfinite(flux_spectral_norm) &&
+                       std::isfinite(data_norm) && std::isfinite(design_norm);
+      if (!flux_certified) {
+        flux_lower.clear();
+        flux_upper.clear();
+      }
     }
   }
 
@@ -823,14 +954,22 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
   if (flux_certified) {
     // The composition of the enclosure is kept with the result: the radius of
     // every component is
-    //   1/(1-||D^+|| ||dD||) * ||D^+_s|| * (||dd|| + ||dD|| ||theta|| + ||r||).
+    //   1/(1-||D^+||_2 ||dD||_F) * ||D^+_s||_2 * (||dd|| + ||dD||_F ||theta||),
+    // where the data and design norms include the floating point backward
+    // error of the solve (gamma ||d|| and gamma ||D||_F) and ||D^+||_2 is the
+    // spectral norm (bounded by the smaller of the computed spectral norm and
+    // sqrt(p) max row norm).  The data residual is not a term: D^+ r = 0.
     model::set_included(
         result->assessment,
         "the_flux_radius_includes_the_column_scaling_because_every_component_uses_the_row_norm_of_"
-        "the_pseudo_inverse_D^+_=_S^-1_(D_S^-1)^+; amplification=" +
-            std::to_string(flux_amplification) + " data_norm=" + std::to_string(data_norm) +
+        "the_pseudo_inverse_D^+_=_S^-1_(D_S^-1)^+, and the_floating_point_backward_error_of_the_"
+        "solve_(gamma*||d||, gamma*||D||_F); amplification=" +
+            std::to_string(flux_amplification) + " spectral_norm_D+=" +
+            std::to_string(flux_spectral_norm) + " data_norm=" + std::to_string(data_norm) +
             " design_norm=" + std::to_string(design_norm) +
-            " residual_enclosure=" + std::to_string(residual_enclosure));
+            " normal_equation_residual_D^T_r=" + std::to_string(normal_residual_norm) +
+            " residual_enclosure=" + std::to_string(residual_enclosure) +
+            " (the_data_residual_itself_is_statistical_and_is_not_in_the_radius)");
   }
   if (!flux_certified) {
     model::add_issue(result->assessment, Code::not_identifiable,

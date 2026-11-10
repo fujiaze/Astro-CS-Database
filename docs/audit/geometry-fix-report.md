@@ -4,6 +4,8 @@
 > **被修分支/基线**：`rebuild/acsd-v2`，修复起点 `688adeac7`；工作树中他人并行改动（`src/workflows`、`src/model` 未由本任务触碰）。
 > **写域**：`src/geometry/*`、`src/coordinates/chart.cpp`；本文件是唯一写入的 `docs/` 文件。
 > **未改**：任何测试真值/容差、`src/workflows/`、`src/model/`、`src/numerics/`、其它 docs。未 `git commit`/`push`。
+> **复核**：独立复核 [review-geometry-fix.md](review-geometry-fix.md)（受检工作树 `376850340`）。复核后的修复见 **§10**；
+> 复核已关闭的 P0-1/P0-2/P0-3(内容)/P0-5 与大部分 P1 不再重复，§1–§8 保留首轮修复的记录。
 
 ## 0. 结论摘要
 
@@ -22,9 +24,10 @@
 | P1 取消保留当前块质量 | **已修** | `kernel.cpp:812` |
 | P1 `tolerance_met` 绑定 `area_absolute_sr` | **已修**（并接 `per_leaf_absolute_area`） | `kernel.cpp:851-874`；探针 D12/D13 |
 | P1 旋转矩形 footprint 不按 bbox | **已修**（拒绝 unsupported） | `overlap.cpp:121-158`；探针 D4 |
+| **复核后修复**（seam 工作预算/apex、`A_L=0` 点值、estimate 状态、端点向外、精确裁剪性能） | **5 项已修**（第 6 项历史驱动只报告） | 见 §10；探针 C2/C3/F，A/B 见 §10.5 |
 
-构建：`cmake --build build/science -j16` 通过（exit 0）。
-独立探针：`validation/geometry_probe.cpp`（源码，独立程序；**未接入 CMake/ctest**，不是正式 gate，只作证伪证据）→ `PROBES PASS: 0 failure(s)`（56 项检查）。
+构建：`cmake --build build/science -j8 --target acsd` 通过（exit 0）；全量 `cmake --build build/science -j16` 通过。
+独立探针：`validation/geometry_probe.cpp`（源码，独立程序；**未接入 CMake/ctest**，不是正式 gate，只作证伪证据）→ `PROBES PASS: 0 failure(s)`（75 项检查）。
 
 ---
 
@@ -366,13 +369,15 @@ c++ -std=c++20 -O2 -I include -I src validation/geometry_probe.cpp -o /tmp/geome
   build/science/libruntime.a \
   -Wl,--end-group -lzstd -lpthread
 /tmp/geometry_probe
-# 输出：PROBES PASS: 0 failure(s)（56 项 ok，0 FAIL；exit 0）
+# 输出：PROBES PASS: 0 failure(s)（75 项 ok，0 FAIL；exit 0）
 ```
 
 探针分组：A（P0-5 chart 偏导/残差，含 C1 13.6× 复现）、B（chart_leaf 越界）、
 C（Drizzle 常量场/顺序无关/负信号/零支持/`R C Rᵀ`/identity 敏感性）、
 D（旋转矩形、Ω_H 约束、identity 确定性、area 预算停止、refine replacement）、
-E（X01 实际 WCS：3 个像素 order 6 均 `tolerance_met`+`certified`，确认严格化未回归生产配置）。
+E（X01 实际 WCS：3 个像素 order 6 均 `tolerance_met`+`certified`，确认严格化未回归生产配置）、
+C2（复核 R3：`A_L=0` 点值 = 2）、C3（复核 R3d：estimate 状态跟随 overlaps）、
+F（复核 §3.1：φ 缝与 z=2/3 像素的工作有界、contributions 小、无 apex 全格填充）。
 
 `ctest`：19/20 通过。唯一与几何无关的失败是工作树中他人并行修改的
 `process_photometry.fit_x01_minimal_repro`（`src/photometry/joint_fit.cpp` 已由他人改动）
@@ -395,8 +400,9 @@ E（X01 实际 WCS：3 个像素 order 6 均 `tolerance_met`+`certified`，确�
 5. **P0-6 `block>1`**：未改 workflows；B1 未满足，当前只能靠默认 `block=1`。建议 Lead
    在 `normalize` 对 `block_size>1` fail-fast，直到 B1–B7 实现。
 6. **`geo_validation.cpp` 的 `two_source_row_sums_normalised`** 需按 `R` 重写（§5.3）。
-7. **apex fallback 的候选填充**：`target_containment_apex` 对候选 face 全格填充，
-   大 nside 下可能超过 `kMaxInlineContributions`（预存行为，本任务未改）。
+7. **apex fallback 的候选填充**：**复核后已修**——只在 `kernel.apex_singular` 时调用
+   `target_containment_apex`，且合并后的 contributions 也做 4096 检查（见 §10.1）；
+   极区真实 apex 帧仍可能因 4·N² 全格填充触发 `resource_exhausted`（诚实失败）。
 8. **半空间/`e_g` 的 P2**：`solid_angle_density_gradient` 的 `ddet_du/ddet_dv` 仍各漏一项
    （审计 §2.1 末尾），因 g 只用“代表值 + 交叉区间界”，只让 `e_g` 变大、不破坏包含性；
    本次未改 `src/coordinates/tan_sip.cpp`（写域外），文档须保持“这不是 §6 的导数余项”的降级陈述。
@@ -409,3 +415,120 @@ E（X01 实际 WCS：3 个像素 order 6 均 `tolerance_met`+`certified`，确�
   不声称 X01 或任何生产产品已通过科学验收（X01 证据链仍以 Lead 的统一实跑为准）。
 - 未决质量、负信号、零支持、未决区间均保留；未改任何测试真值/容差；未把未决质量清零。
 - 未 `git commit`/`push`；所有改动留在工作树，由 Lead 统一提交。
+
+---
+
+## 10. 复核后修复（review-geometry-fix.md 的 6 项）
+
+> 复核报告：[review-geometry-fix.md](review-geometry-fix.md)（独立复核，受检工作树 `376850340`）。
+> 本节只记录复核发现后的修复与前后数值；复核已关闭的 P0-1/P0-2/P0-3(内容)/P0-5 与大部分
+> P1 不再重复。所有改动仍在原写域内（`src/geometry/*`、`src/coordinates/chart.cpp`）。
+
+### 10.1 新 P1：seam / z=±2/3 的“拒绝”不再吃光工作预算（含 apex fallback）
+
+- **数学**：跨 chart 缝的块在任意深度都跨缝（细分只把未决前沿缩到 `2^-k`，不改变“跨缝”
+  这一事实），因此对它的无限细分没有收敛意义；正确做法是把它的质量作为**有界 coarse**
+  保留，而不是用工作预算买精度。`SPHERICAL_DRIZZLE:45` 的正解是“跨 r=1/3 分别求值取
+  并包”；本实现选择“未决 + 有界”，因为多 face 并包需要在同一 detector 子矩形上按 face
+  分割质量，而当前 chart 逆映射不提供该分割（属后续工作，见 §8）。
+- **修改**：
+  - `kernel.cpp` `kMaxSeamRefineDepth = 6`；`build_block_model` 增加
+    `chart_domain_failure` 分类（φ 分支/分支跨界/`s,t` 出方格 → chart domain；
+    `r≤0`/极点 → apex flag）；`cut_cell_overlap` 对 chart-domain 失败最多再细分 6 层，
+    之后 `keep_unresolved`（质量保留、工作有界）。
+  - `kernel.cpp` work 头判 `break` 前 drain 队列（I8；复核 §3.2）。
+  - `KernelOutcome::apex_singular`（`kernel.hpp`）+ `overlap.cpp:492`：只有 kernel 真的
+    遇到 apex 时才调用 `target_containment_apex`；seam 不再触发 2·N² 全格填充。
+  - 合并后的 contributions 也做 4096 检查（`overlap.cpp`，复核 §3.1）。
+- **前后**（同一 0.5°/px、order 6、max_depth 64、max_work 20000 的缝像素）：
+
+| 情形 | 复核前（review §3.1） | 复核后（探针 F） |
+|---|---|---|
+| φ 面缝像素 | work=**20000**、**47.5 s**、unresolved=**0**（头判丢质量）、compute_overlap **8192** contributions（apex 全格填充） | work=**1525**、blocks=496、**0.6–0.8 s**、contributions=**4**、unresolved=276（有界 coarse）、termination=depth(`area_absolute_sr_not_met`) |
+| z=+2/3 像素 | work=**20001**、**52.7 s**、unresolved=13524 | work=**487**、blocks=154、**1.3–1.6 s**、contributions=**4**、unresolved=66、termination=depth |
+
+  说明：0.5° 像素（面积 ~7.6e-5 sr）在 1e-12 绝对预算下不可能靠 6 层细分达标，所以
+  `termination=depth` 是诚实结果（工作有界、质量保留）；1″ 像素（X01）在 6 层后未决
+  前沿 ≈ `2^-6 px` ≈ 4e-13 sr < 1e-12，仍可 `tolerance_met`（探针 E 已证）。z=2/3 的
+  1.3 s 来自边界格的精确裁剪（§10.5），不是预算爆炸。
+
+### 10.2 新 P1：`A_L=0` 的叶不再发布错误点值
+
+- **数学**：`w=a/A`。`A_L=0` 时 `a_U/A_L` 无定义，但 `a≥a_L`、`A≤A_U ⇒ w≥a_L/A_U`，
+  且 `a≤A ⇒ w≤1`。合法且更紧的包围是 `w∈[a_L/A_U, 1]`，不是 `[0,1]`；原实现的
+  `[0,1]` 把代表点压到 0.5，`B0=F0/N0` 因此低 16.7%。
+- **修改**：`drizzle.cpp` 的 A_L=0 分支（`[a_L/A_U, 1]`，仅当 `A_U>0`；`A_U≤0` 才退
+  `[0,1]` 并保留具名）。
+- **数值**（复核 R3：源0 Ω=4、A∈[0,4]、a=[4,4]、x=10；源1 Ω=A=a=1、x=0；真值 B=2）：
+  **B 1.666667 → 2.000000**，区间仍包含 2（探针 C2.2/C2.3）。
+
+### 10.3 新 P1：estimate 状态跟随 overlaps
+
+- **修改**：`drizzle.cpp`；`estimate->assessment.complete/science/validity` 由
+  `overlaps->status.termination==tolerance_met && bound_validity==certified` 决定。
+- **数值**（复核 R3d：termination=depth、bound_validity=invalid、带 recipe）：
+  complete **1→0**、science **bounded(0)→unconverged(1)**、validity
+  **certified(0)→invalid(2)**（探针 C3.2–C3.4）。
+
+### 10.4 新 P2：N / union / Ω_H 端点向外
+
+- **修改**（`drizzle.cpp`）：N 的逐源项改 `multiply(weight, omega)`（`numerics::interval_mul`
+  有向）；union 上界用有向 `add` 累加；`leaf_solid_angle_upper()` 对 π 与商各
+  `nextafter(+inf)` 一次。下界 `max a_L` 是精确输入的最大值，无需舍入。
+- **探针**：常量场仍 B=2 精确、区间 [1,1]（C2/C.5）；`SupportMap.area_upper` 仍是
+  `min(Ω_H, Σa_U)` 的粗上界（I9 的独立 Boolean OR 仍未实现，见 §8）。
+
+### 10.5 新 P1(工程)：精确裁剪“慢 2.6×”的归因与优化
+
+- **归因**（gprof，0.5°/px、order 6、32 clips 的边界像素）：**97% 在 `model::BigInt::gcd`
+  的朴素 Euclid**（未约分分母达 ~935 bit，单次 ~4 ms，997 次 = 3.9 s）；其次
+  `integrate_affine` 里 `model::Rational` 每步 normalize（2.07 ms/叶）。半空间常数区间化
+  只是让分母位长变大，不是根因。
+- **优化（全部精确、不改值）**：
+  1. 单元格级 inside/outside 快速路径（`kernel.cpp` 单元循环）：块矩形被四个内半空间
+     包含 → 内外多边形就是矩形；被某个外半空间排除 → 重叠为 0；两者都跳过 8 次裁剪。
+  2. 逐半空间“包含整个块矩形”时跳过该次裁剪。
+  3. `integrate_affine` 全程 `ExactFraction`，结果直接量化到 2^-120 dyadic
+     （`DyadicLedger::add(ExactFraction)`、`dyadic_from_fraction`），不再走
+     `model::Rational` 的每步 gcd；`footprint_area` 同样。
+  4. `ExactFraction` 用**二进制（Stein）gcd** + 尾部零位二分查找，替换朴素 Euclid
+     （精确值不变，阈值 384 bit）。
+  - **等价性证据**：用 exact dyadic dump 把“快速路径”与“关闭优化的全裁剪路径”逐位对拍，
+    X01 内部/边缘与 0.5° 边界共 5 个构型的 `lower/upper/total` **逐位相同**。
+- **前后**（同一 bench、同一 `-O2`、同一输入；prefix = `git show HEAD:` 的修复前源码）：
+
+| 构型 | 修复前 HEAD | 复核后 | 加速 |
+|---|---|---|---|
+| X01 内部像素（1″、order 6、1 格） | 10.5 ms | **0.8 ms** | 13× |
+| 0.5°/px 边界像素 row 0（4 格、16 clips） | 2990 ms | **90–95 ms** | 32× |
+| 0.5°/px 边界像素 row 1（4 格、32 clips） | 11163 ms | **305–378 ms** | 30–37× |
+| 0.5°/px 边界像素 row 64（2 格、16 clips） | 2193 ms | **42–64 ms** | 34–52× |
+
+  ⇒ 复核的“修复后慢 2.6×”在加入上述优化后反转为 **13–52× 更快**。
+- **仍存成本**：边界格的精确裁剪仍走 ExactFraction + gcd，约 2 ms/clip（阈值 384）。
+  不改变科学量的进一步优化建议（未实施）：用“8 个原始半平面两两求交 + 可行点按极角
+  排序 + 鞋带公式”直接算面积/矩，顶点分母只含一个 2×2 行列式，避免顺序裁剪的分母累积。
+
+### 10.6 复核其他条目
+
+- **§1.3（P2）`chart_partials` 的隐式 face 契约**：`chart.cpp` 两个极区分支增加
+  `|4φ/π − L| ≤ 1` 的运行期拒绝（不再可能返回“错 L 的导数”）；`chart.hpp` 注释里的
+  前置条件仍在写域外，建议 Lead 补一行。
+- **§3.6（P2）`achieved` 无索引列**：`drizzle.cpp` 在 assessment 里记录
+  `achieved_error_leaf_indices=...`，partial 帧的对应关系可读；模型类型缺 unknown 标记
+  （`include/acsd/model.hpp` 写域外）。
+- **§5.2 P0-6、`Identity::revision`、`make_csr_action` identity、`normalizer_min_sr`**：
+  仍按 §8 未修（写域外/后续 task）。
+- **§6（历史 `validation/geo/geo_validation.cpp` 的行和检查）**：该文件不在写域，
+  **只报告**：`two_source_row_sums_normalised` 读 `op->rows` 期望行和≈1，是旧 `w` 语义；
+  现在 `op->rows = R = w/N`，行和 = `Σ_p w_jp/N_p ≠ 1`。应改为验证
+  `Σ_p R_pj·N_p = Σ_p w_jp = 1` 或 `R·x = B`。
+
+### 10.7 复核后构建与探针
+
+- `cmake --build build/science -j8 --target acsd` → **exit 0**。
+- `validation/geometry_probe.cpp`：**75 ok / 0 fail**（新增 C2/C3/F 三组）。
+- `process_geometry.overlap_m5_contracts`：104 项中 103 通过；唯一失败是
+  `export positive: build_export [invalid_request]`（`src/projection/export_projection.cpp:395`
+  “the export row cannot be applied”），来自工作树中他人未提交的 export 改动，与几何无关；
+  几何/drizzle 全部通过。

@@ -15201,6 +15201,38 @@
       "type": "object",
       "properties": {
         "operation": {
+          "const": "apply_sky"
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "signal": {
+              "$ref": "#/$defs/SignalEstimateRef"
+            },
+            "fit": {
+              "$ref": "#/$defs/SkyFitRef"
+            },
+            "frame": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "signal",
+            "fit",
+            "frame"
+          ]
+        },
+        "request": {
+          "type": "object",
+          "maxProperties": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "operation": {
           "const": "select_samples"
         },
         "arguments": {

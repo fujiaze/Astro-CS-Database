@@ -1582,7 +1582,7 @@ const char* status_json() {
         "schema": "acsd.SignalEstimate",
         "revision": 1
       },
-      "declaration": "Result<Ref<SignalEstimate>> (Context &, Ref<SignalEstimate>, Ref<SkyFit>) apply_sky(...)",
+      "declaration": "Result<Ref<SignalEstimate>> (Context &, Ref<SignalEstimate>, Ref<SkyFit>, Id) apply_sky(...)",
       "plan_stage": "M5",
       "run_status": "pending_m5",
       "run_reason": "not integrated before M5: the sky.fit run hook must call the single existing implementation through the runtime model-context bridge (M4/M5). M0 registers the typed binding, schema, codec and conservative bounds; no mock value is returned",

@@ -295,8 +295,10 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   std::vector<Ref<FrameDescription>> corrected_descriptions;
   std::vector<ArrayRef> corrected_signals;
   for (std::size_t i = 0; i < estimates.size(); ++i) {
+    // Pass the frame identity: in a deep mosaic several frames observe the
+    // same leaf, so the training-space match alone is ambiguous.
     auto apply_input = std::make_shared<const modules::ApplySkyInput>(
-        modules::ApplySkyInput{estimates[i], val(sky)});
+        modules::ApplySkyInput{estimates[i], val(sky), descriptions[i]->frame});
     Result<rt::InvocationPlan> apply_plan = modules::plan_sky_apply(
         workflow_runtime.command, apply_input, workflow_runtime.options);
     Result<Ref<SignalEstimate>> applied = rt::wait_external(

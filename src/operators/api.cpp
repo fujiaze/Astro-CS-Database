@@ -105,14 +105,15 @@ Result<Ref<LinearAction>> make_action(Context& context, const ActionRecipe& reci
       Result<std::vector<double>> values = operators::read_f64(context, arrays[2], 0, index_count);
       if (!ok(values)) return model::fail<Ref<LinearAction>>(values.code, "the values cannot be read", "make_action", "the action cannot be built");
       const U64 rows = offset_count > 0 ? offset_count - 1 : 0;
-      // The column count is the declared codomain size.  Inferring it from the
-      // largest index silently gives cols=0 for a zero action (all-zero H or
-      // E), which loses the space of the operator.
-      U64 cols = recipe.spaces.codomain ? recipe.spaces.codomain->size : 0;
+      // A CSR action maps domain -> codomain: rows are the codomain and the
+      // column indices index the domain.  The column count is therefore the
+      // declared domain size; inferring it from the largest index silently
+      // gives cols=0 for a zero action (all-zero H or E).
+      U64 cols = recipe.spaces.domain ? recipe.spaces.domain->size : 0;
       for (U64 index : val(indices_u64)) {
-        if (recipe.spaces.codomain && index >= cols) {
+        if (recipe.spaces.domain && index >= cols) {
           return model::fail<Ref<LinearAction>>(Code::invalid_model,
-                                                "a sparse index exceeds the codomain size",
+                                                "a sparse index exceeds the domain size",
                                                 "make_action", "the action cannot be built");
         }
         cols = std::max(cols, index + 1);

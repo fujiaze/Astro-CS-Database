@@ -20,6 +20,11 @@ namespace {
 using Iv = numerics::Interval;
 
 constexpr U64 kMaxCandidatesPerBlock = 4096;
+// The refinement bound of a block that crosses a chart seam.  The seam passes
+// through the block at every depth, so a deeper refinement can only shrink the
+// unresolved frontier: with this many levels the frontier mass is 2^-10 of the
+// block, while the work stays bounded by 2^(kMaxSeamRefineDepth+1) blocks.
+constexpr U32 kMaxSeamRefineDepth = 6;
 constexpr double kPi = 3.14159265358979323846;
 
 double abs_max(const Iv& value) {
@@ -55,6 +60,29 @@ BigInt scaled_floor(const Rational& value, int bits) {
 }
 
 BigInt scaled_ceil(const Rational& value, int bits) {
+  BigInt numerator = value.numerator();
+  const BigInt denominator = value.denominator();
+  if (bits > 0) numerator = numerator << static_cast<unsigned>(bits);
+  BigInt quotient = numerator / denominator;
+  const BigInt remainder = numerator % denominator;
+  if (value.sign() > 0 && !remainder.is_zero()) quotient = quotient + BigInt(1);
+  return quotient;
+}
+
+// floor(value * 2^bits) and ceil(value * 2^bits) directly from a fraction.  The
+// fraction is not reduced first: the scaled quotient is exact either way, and
+// the reduction is the expensive part.
+BigInt scaled_floor_fraction(const ExactFraction& value, int bits) {
+  BigInt numerator = value.numerator();
+  const BigInt denominator = value.denominator();
+  if (bits > 0) numerator = numerator << static_cast<unsigned>(bits);
+  BigInt quotient = numerator / denominator;
+  const BigInt remainder = numerator % denominator;
+  if (value.sign() < 0 && !remainder.is_zero()) quotient = quotient - BigInt(1);
+  return quotient;
+}
+
+BigInt scaled_ceil_fraction(const ExactFraction& value, int bits) {
   BigInt numerator = value.numerator();
   const BigInt denominator = value.denominator();
   if (bits > 0) numerator = numerator << static_cast<unsigned>(bits);
@@ -136,7 +164,8 @@ bool build_density_model(const WcsModel& wcs, const Block& block, BlockModel& mo
 // model is built: the native area A_j of a footprint that crosses a chart
 // branch still has to be measurable, and it does not need the chart.
 bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& model,
-                       bool& outcome_reason_apex, bool require_chart) {
+                       bool& outcome_reason_apex, bool& chart_domain_failure,
+                       bool require_chart) {
   ++geometry::kernel_counts().chart_models;
   model.cu = 0.5 * (block.u0 + block.u1);
   model.cv = 0.5 * (block.v0 + block.v1);
@@ -151,7 +180,10 @@ bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& mode
   const SkyICRS centre = forward_point(wcs, model.cu, model.cv);
   if (require_chart) {
     coordinates::ChartPoint chart;
-    if (!coordinates::chart_inverse(centre, chart)) return false;
+    if (!coordinates::chart_inverse(centre, chart)) {
+      chart_domain_failure = true;
+      return false;
+    }
     model.face = chart.face;
     model.s0 = chart.s;
     model.t0 = chart.t;
@@ -187,6 +219,7 @@ bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& mode
     // The block must stay inside the branch of the face; otherwise the chart
     // case is ambiguous and the block has to be refined.
     if (phi.lower < branch_centre - branch_half || phi.upper > branch_centre + branch_half) {
+      chart_domain_failure = true;
       return false;
     }
 
@@ -200,11 +233,18 @@ bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& mode
     const bool pure_band = z.lower >= -two_thirds && z.upper <= two_thirds;
     const bool pure_north = z.lower > two_thirds;
     const bool pure_south = z.upper < -two_thirds;
-    if (!pure_band && !pure_north && !pure_south) return false;
+    if (!pure_band && !pure_north && !pure_south) {
+      chart_domain_failure = true;
+      return false;
+    }
 
     Iv s;
     Iv t;
-    if (!coordinates::chart_interval(model.face, z, phi, s, t)) return false;
+    if (!coordinates::chart_interval(model.face, z, phi, s, t)) {
+      // r <= 0 (north) or w <= 0 (south): the block touches the apex.
+      outcome_reason_apex = true;
+      return false;
+    }
     if (!s.is_finite() || !t.is_finite()) return false;
     // The block must stay inside the face square.  The longitude branch check
     // above only proves |d| <= 1; the equatorial faces need the stricter
@@ -213,7 +253,10 @@ bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& mode
     // square crosses the seam between two faces: its cells belong to another
     // face, so it is refused (refined, or kept unresolved at max depth) instead
     // of being clamped onto the last column of this face.
-    if (s.lower < 0.0 || s.upper > 1.0 || t.lower < 0.0 || t.upper > 1.0) return false;
+    if (s.lower < 0.0 || s.upper > 1.0 || t.lower < 0.0 || t.upper > 1.0) {
+      chart_domain_failure = true;
+      return false;
+    }
     model.s_lo = s.lower;
     model.s_hi = s.upper;
     model.t_lo = t.lower;
@@ -224,11 +267,17 @@ bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& mode
     double ds_dphi = 0.0;
     double dt_dz = 0.0;
     double dt_dphi = 0.0;
-    if (!coordinates::chart_partials(centre.nz, phi_centre, ds_dz, ds_dphi, dt_dz, dt_dphi)) { return false; }
+    if (!coordinates::chart_partials(centre.nz, phi_centre, ds_dz, ds_dphi, dt_dz, dt_dphi)) {
+      outcome_reason_apex = true;
+      return false;
+    }
     double jacobian_matrix[3][2];
     coordinates::jacobian(wcs, model.cu, model.cv, jacobian_matrix);
     const double nxy2 = centre.nx * centre.nx + centre.ny * centre.ny;
-    if (!(nxy2 > 0.0)) return false;
+    if (!(nxy2 > 0.0)) {
+      outcome_reason_apex = true;
+      return false;
+    }
     const double dphi_du = (-centre.ny * jacobian_matrix[0][0] + centre.nx * jacobian_matrix[1][0]) / nxy2;
     const double dphi_dv = (-centre.ny * jacobian_matrix[0][1] + centre.nx * jacobian_matrix[1][1]) / nxy2;
     const double dz_du = jacobian_matrix[2][0];
@@ -255,7 +304,10 @@ bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& mode
     }
     const Iv nxy2_iv = numerics::interval_add(numerics::interval_mul(nx, nx),
                                               numerics::interval_mul(ny, ny));
-    if (nxy2_iv.lower <= 0.0) return false;
+    if (nxy2_iv.lower <= 0.0) {
+      outcome_reason_apex = true;
+      return false;
+    }
     const Iv dphi_du_iv =
         numerics::interval_div(numerics::interval_add(numerics::interval_mul(numerics::interval_neg(ny),
                                                                              jw[0][0]),
@@ -280,26 +332,44 @@ bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& mode
   return build_density_model(wcs, block, model, hu, hv);
 }
 
-// Exact integration of the affine density model over a polygon.
-void integrate_affine(const RationalPolygon& polygon, const BlockModel& model, Rational& lower,
-                      Rational& upper) {
-  lower = Rational(0, 1);
-  upper = Rational(0, 1);
+// Outward enclosure of the affine chart model over a detector rectangle.  The
+// model is  f(u,v) = f(c) + g_u (u - c_u) + g_v (v - c_v),  so its range over
+// the rectangle is obtained with interval arithmetic; the corner differences
+// are widened by one ulp so that their own rounding cannot shrink the range.
+Iv model_range(double value, double gu, double gv, double c_u, double c_v, double u0, double u1,
+               double v0, double v1) {
+  const double inf = std::numeric_limits<double>::infinity();
+  const Iv du(std::nextafter(u0 - c_u, -inf), std::nextafter(u1 - c_u, inf));
+  const Iv dv(std::nextafter(v0 - c_v, -inf), std::nextafter(v1 - c_v, inf));
+  return numerics::interval_add(
+      numerics::interval_add(Iv(value, value), numerics::interval_mul(Iv(gu, gu), du)),
+      numerics::interval_mul(Iv(gv, gv), dv));
+}
+
+// Exact integration of the affine density model over a polygon.  The whole
+// computation stays in ExactFraction: the result only has to be quantised
+// outward onto the dyadic ledger, so no reduction to lowest terms (the
+// expensive part of model::Rational) is needed on the science path.
+void integrate_affine(const RationalPolygon& polygon, const BlockModel& model, ExactFraction& lower,
+                      ExactFraction& upper) {
+  lower = ExactFraction(0, 1);
+  upper = ExactFraction(0, 1);
   if (polygon.size() < 3) return;
-  const Rational area = polygon_signed_area(polygon);
-  const Rational moment_u = polygon_moment_x(polygon);
-  const Rational moment_v = polygon_moment_y(polygon);
-  const Rational cu = Rational::from_double_exact(model.cu);
-  const Rational cv = Rational::from_double_exact(model.cv);
-  const Rational g0 = Rational::from_double_exact(model.g0);
-  const Rational gu = Rational::from_double_exact(model.gu);
-  const Rational gv = Rational::from_double_exact(model.gv);
-  const Rational eg = Rational::from_double_exact(model.e_g);
-  const Rational centre = g0 * area + gu * (moment_u - cu * area) + gv * (moment_v - cv * area);
+  const ExactFraction area = polygon_signed_area(polygon);
+  const ExactFraction moment_u = polygon_moment_x(polygon);
+  const ExactFraction moment_v = polygon_moment_y(polygon);
+  const ExactFraction cu = ExactFraction::from_double_exact(model.cu);
+  const ExactFraction cv = ExactFraction::from_double_exact(model.cv);
+  const ExactFraction g0 = ExactFraction::from_double_exact(model.g0);
+  const ExactFraction gu = ExactFraction::from_double_exact(model.gu);
+  const ExactFraction gv = ExactFraction::from_double_exact(model.gv);
+  const ExactFraction eg = ExactFraction::from_double_exact(model.e_g);
+  const ExactFraction centre =
+      g0 * area + gu * (moment_u - cu * area) + gv * (moment_v - cv * area);
   lower = centre - eg * area;
   upper = centre + eg * area;
-  if (lower.sign() < 0) lower = Rational(0, 1);
-  if (upper.sign() < 0) upper = Rational(0, 1);
+  if (lower.sign() < 0) lower = ExactFraction(0, 1);
+  if (upper.sign() < 0) upper = ExactFraction(0, 1);
 }
 
 struct HalfSpace {
@@ -382,6 +452,18 @@ RationalPolygon rectangle_polygon(const Block& block) {
 void DyadicLedger::add(const Rational& value, bool upper) {
   if (value.is_zero()) return;
   const BigInt scaled = upper ? scaled_ceil(value, kScaleBits) : scaled_floor(value, kScaleBits);
+  if (empty_) {
+    sum_ = scaled;
+    empty_ = false;
+    return;
+  }
+  sum_ = sum_ + scaled;
+}
+
+void DyadicLedger::add(const ExactFraction& value, bool upper) {
+  if (value.is_zero()) return;
+  const BigInt scaled = upper ? scaled_ceil_fraction(value, kScaleBits)
+                              : scaled_floor_fraction(value, kScaleBits);
   if (empty_) {
     sum_ = scaled;
     empty_ = false;
@@ -547,7 +629,8 @@ bool chart_enclosure(const WcsModel& wcs, double u0, double u1, double v0, doubl
   block.v1 = v1;
   BlockModel model;
   bool apex = false;
-  if (!build_block_model(wcs, block, model, apex, true)) return false;
+  bool chart_domain = false;
+  if (!build_block_model(wcs, block, model, apex, chart_domain, true)) return false;
   out.valid = true;
   out.face = model.face;
   out.s_lo = model.s_lo;
@@ -610,6 +693,10 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
 
   while (!queue.empty()) {
     if (outcome.work >= max_work) {
+      // The work budget is exhausted before the block is processed: the whole
+      // remaining queue keeps its mass as unresolved (I8), never dropped.
+      for (const Block& pending : queue) keep_unresolved(pending);
+      queue.clear();
       outcome.termination = Termination::work;
       outcome.reason = "work_budget_exhausted";
       break;
@@ -652,17 +739,26 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
     }
     BlockModel model;
     bool apex = false;
+    bool chart_domain = false;
     bool modelled = false;
     {
       geometry::StageTimer timer(geometry::kernel_timings().chart_model_ns);
-      modelled = build_block_model(wcs, block, model, apex, true);
+      modelled = build_block_model(wcs, block, model, apex, chart_domain, true);
     }
     if (!modelled) {
+      if (apex) outcome.apex_singular = true;
       if (apex && block.depth + 1 >= max_depth) {
         outcome.termination = Termination::unsupported;
         outcome.reason = "chart_apex_singular";
       }
-      if (block.depth + 1 < max_depth) {
+      // A block that crosses a chart seam (or whose face enclosure leaves the
+      // face square) never becomes modelable by further subdivision: the seam
+      // passes through it at every depth.  It is refined only up to
+      // kMaxSeamRefineDepth and then kept unresolved with its bounded mass.
+      // Without this bound a single seam pixel consumes the whole work budget
+      // (review §3.1: 20000 work, 47-53 s).
+      const bool seam_refinement_stopped = chart_domain && block.depth >= kMaxSeamRefineDepth;
+      if (block.depth + 1 < max_depth && !seam_refinement_stopped) {
         const double cu = 0.5 * (block.u0 + block.u1);
         const double cv = 0.5 * (block.v0 + block.v1);
         queue.push_back(Block{block.u0, cu, block.v0, cv, block.depth + 1});
@@ -731,6 +827,16 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
     }
 
     const RationalPolygon rectangle = rectangle_polygon(block);
+    // The model range over the whole block.  A cell whose four constraints
+    // provably contain the block needs no exact clipping (the clipped polygon
+    // is the block rectangle itself), and a cell that provably excludes it has
+    // an empty overlap.  Both shortcuts are exact: they only replace a clip
+    // whose result is the unchanged rectangle or the empty polygon, so the
+    // published areas are bit identical to the fully clipped path.
+    const Iv s_model_range = model_range(model.s0, model.gs_u, model.gs_v, model.cu, model.cv,
+                                         block.u0, block.u1, block.v0, block.v1);
+    const Iv t_model_range = model_range(model.t0, model.gt_u, model.gt_v, model.cu, model.cv,
+                                         block.u0, block.u1, block.v0, block.v1);
     geometry::StageTimer clip_timer(geometry::kernel_timings().rational_clip_ns);
     bool cancelled_in_cells = false;
     for (long long iy = iy_lo; iy <= iy_hi && !cancelled_in_cells; ++iy) {
@@ -760,33 +866,93 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
 
         ++geometry::kernel_counts().candidate_cells;
         StageCounts& counts = geometry::kernel_counts();
-        RationalPolygon inner = rectangle;
-        HalfSpace space = chart_half_space_le(model, true, s_hi - model.e_s, false);
-        inner = clip_half_space(inner, space.a, space.b, space.c);
-        space = chart_half_space_ge(model, true, s_lo + model.e_s, false);
-        inner = clip_half_space(inner, space.a, space.b, space.c);
-        space = chart_half_space_le(model, false, t_hi - model.e_t, false);
-        inner = clip_half_space(inner, space.a, space.b, space.c);
-        space = chart_half_space_ge(model, false, t_lo + model.e_t, false);
-        inner = clip_half_space(inner, space.a, space.b, space.c);
+        const double inf = std::numeric_limits<double>::infinity();
+        // The half-space constants of this cell, each rounded outward: the
+        // shortcut below may only fire when the inclusion is proven.
+        const double inner_s_hi = std::nextafter(s_hi - model.e_s, -inf);
+        const double inner_s_lo = std::nextafter(s_lo + model.e_s, inf);
+        const double inner_t_hi = std::nextafter(t_hi - model.e_t, -inf);
+        const double inner_t_lo = std::nextafter(t_lo + model.e_t, inf);
+        const double outer_s_hi = std::nextafter(s_hi + model.e_s, inf);
+        const double outer_s_lo = std::nextafter(s_lo - model.e_s, -inf);
+        const double outer_t_hi = std::nextafter(t_hi + model.e_t, inf);
+        const double outer_t_lo = std::nextafter(t_lo - model.e_t, -inf);
+        const bool block_inside_cell = s_model_range.upper <= inner_s_hi &&
+                                       s_model_range.lower >= inner_s_lo &&
+                                       t_model_range.upper <= inner_t_hi &&
+                                       t_model_range.lower >= inner_t_lo;
+        const bool block_outside_cell = s_model_range.lower > outer_s_hi ||
+                                        s_model_range.upper < outer_s_lo ||
+                                        t_model_range.lower > outer_t_hi ||
+                                        t_model_range.upper < outer_t_lo;
+        ExactFraction inner_lower(0, 1);
+        ExactFraction inner_upper(0, 1);
+        ExactFraction outer_lower(0, 1);
+        ExactFraction outer_upper(0, 1);
+        if (block_outside_cell) {
+          // The whole block is outside this cell: both polygons are empty and
+          // the overlap mass is exactly zero (the exact clip would return the
+          // empty polygon).
+        } else if (block_inside_cell) {
+          // The whole block is inside every inner half space: both the inner
+          // and the outer polygon are the block rectangle (the exact clip
+          // would return it unchanged).
+          integrate_affine(rectangle, model, inner_lower, inner_upper);
+          outer_lower = inner_lower;
+          outer_upper = inner_upper;
+        } else {
+          // A half space that provably contains the whole block rectangle is
+          // skipped: every polygon produced by the previous clips is a subset
+          // of the rectangle, so the clip would return it unchanged.  This is
+          // exact and removes the redundant clips of a cell that is cut by
+          // only one or two constraints.
+          auto contains_block = [&](bool s_axis, double bound, bool lower_bound) {
+            const Iv& range = s_axis ? s_model_range : t_model_range;
+            const double inf = std::numeric_limits<double>::infinity();
+            return lower_bound ? range.lower >= std::nextafter(bound, inf)
+                               : range.upper <= std::nextafter(bound, -inf);
+          };
+          RationalPolygon inner = rectangle;
+          HalfSpace space;
+          if (!contains_block(true, s_hi - model.e_s, false)) {
+            space = chart_half_space_le(model, true, s_hi - model.e_s, false);
+            inner = clip_half_space(inner, space.a, space.b, space.c);
+          }
+          if (!contains_block(true, s_lo + model.e_s, true)) {
+            space = chart_half_space_ge(model, true, s_lo + model.e_s, false);
+            inner = clip_half_space(inner, space.a, space.b, space.c);
+          }
+          if (!contains_block(false, t_hi - model.e_t, false)) {
+            space = chart_half_space_le(model, false, t_hi - model.e_t, false);
+            inner = clip_half_space(inner, space.a, space.b, space.c);
+          }
+          if (!contains_block(false, t_lo + model.e_t, true)) {
+            space = chart_half_space_ge(model, false, t_lo + model.e_t, false);
+            inner = clip_half_space(inner, space.a, space.b, space.c);
+          }
 
-        RationalPolygon outer = rectangle;
-        space = chart_half_space_le(model, true, s_hi + model.e_s, true);
-        outer = clip_half_space(outer, space.a, space.b, space.c);
-        space = chart_half_space_ge(model, true, s_lo - model.e_s, true);
-        outer = clip_half_space(outer, space.a, space.b, space.c);
-        space = chart_half_space_le(model, false, t_hi + model.e_t, true);
-        outer = clip_half_space(outer, space.a, space.b, space.c);
-        space = chart_half_space_ge(model, false, t_lo - model.e_t, true);
-        outer = clip_half_space(outer, space.a, space.b, space.c);
+          RationalPolygon outer = rectangle;
+          if (!contains_block(true, s_hi + model.e_s, false)) {
+            space = chart_half_space_le(model, true, s_hi + model.e_s, true);
+            outer = clip_half_space(outer, space.a, space.b, space.c);
+          }
+          if (!contains_block(true, s_lo - model.e_s, true)) {
+            space = chart_half_space_ge(model, true, s_lo - model.e_s, true);
+            outer = clip_half_space(outer, space.a, space.b, space.c);
+          }
+          if (!contains_block(false, t_hi + model.e_t, false)) {
+            space = chart_half_space_le(model, false, t_hi + model.e_t, true);
+            outer = clip_half_space(outer, space.a, space.b, space.c);
+          }
+          if (!contains_block(false, t_lo - model.e_t, true)) {
+            space = chart_half_space_ge(model, false, t_lo - model.e_t, true);
+            outer = clip_half_space(outer, space.a, space.b, space.c);
+          }
 
-        counts.rational_clips += 8;
-        Rational inner_lower(0, 1);
-        Rational inner_upper(0, 1);
-        Rational outer_lower(0, 1);
-        Rational outer_upper(0, 1);
-        integrate_affine(inner, model, inner_lower, inner_upper);
-        integrate_affine(outer, model, outer_lower, outer_upper);
+          counts.rational_clips += 8;
+          integrate_affine(inner, model, inner_lower, inner_upper);
+          integrate_affine(outer, model, outer_lower, outer_upper);
+        }
 
         {
         }
@@ -884,11 +1050,11 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
 // The area of a detector footprint
 // ---------------------------------------------------------------------------
 
-RationalAreaBound footprint_area_rational(const WcsModel& wcs,
-                                           const std::vector<std::vector<std::array<double, 2>>>& rings) {
-  RationalAreaBound bound;
-  bound.lower = Rational(0, 1);
-  bound.upper = Rational(0, 1);
+ExactAreaBound footprint_area_exact(const WcsModel& wcs,
+                                    const std::vector<std::vector<std::array<double, 2>>>& rings) {
+  ExactAreaBound bound;
+  bound.lower = ExactFraction(0, 1);
+  bound.upper = ExactFraction(0, 1);
   if (rings.empty()) return bound;
 
   double u_lo = std::numeric_limits<double>::infinity();
@@ -914,11 +1080,12 @@ RationalAreaBound footprint_area_rational(const WcsModel& wcs,
   bool apex = false;
   // The native area does not need the chart of a single face: a footprint that
   // crosses a chart branch still has a well defined area.
-  if (!build_block_model(wcs, block, model, apex, false)) return bound;
+  bool chart_domain = false;
+  if (!build_block_model(wcs, block, model, apex, chart_domain, false)) return bound;
 
-  Rational area(0, 1);
-  Rational moment_u(0, 1);
-  Rational moment_v(0, 1);
+  ExactFraction area(0, 1);
+  ExactFraction moment_u(0, 1);
+  ExactFraction moment_v(0, 1);
   for (const auto& ring : rings) {
     RationalPolygon single;
     for (const auto& vertex : ring) {
@@ -934,28 +1101,36 @@ RationalAreaBound footprint_area_rational(const WcsModel& wcs,
     moment_u = -moment_u;
     moment_v = -moment_v;
   }
-  const Rational cu = Rational::from_double_exact(model.cu);
-  const Rational cv = Rational::from_double_exact(model.cv);
-  const Rational g0 = Rational::from_double_exact(model.g0);
-  const Rational gu = Rational::from_double_exact(model.gu);
-  const Rational gv = Rational::from_double_exact(model.gv);
-  const Rational eg = Rational::from_double_exact(model.e_g);
-  const Rational centre = g0 * area + gu * (moment_u - cu * area) + gv * (moment_v - cv * area);
+  const ExactFraction cu = ExactFraction::from_double_exact(model.cu);
+  const ExactFraction cv = ExactFraction::from_double_exact(model.cv);
+  const ExactFraction g0 = ExactFraction::from_double_exact(model.g0);
+  const ExactFraction gu = ExactFraction::from_double_exact(model.gu);
+  const ExactFraction gv = ExactFraction::from_double_exact(model.gv);
+  const ExactFraction eg = ExactFraction::from_double_exact(model.e_g);
+  const ExactFraction centre =
+      g0 * area + gu * (moment_u - cu * area) + gv * (moment_v - cv * area);
   bound.lower = centre - eg * area;
   bound.upper = centre + eg * area;
-  if (bound.lower.sign() < 0) bound.lower = Rational(0, 1);
-  if (bound.upper.sign() < 0) bound.upper = Rational(0, 1);
+  if (bound.lower.sign() < 0) bound.lower = ExactFraction(0, 1);
+  if (bound.upper.sign() < 0) bound.upper = ExactFraction(0, 1);
   return bound;
+}
+
+Dyadic dyadic_from_fraction(const ExactFraction& value, bool upper) {
+  Dyadic out;
+  out.signed_integer = (upper ? scaled_ceil_fraction(value, DyadicLedger::kScaleBits)
+                              : scaled_floor_fraction(value, DyadicLedger::kScaleBits))
+                           .to_string();
+  out.exponent2 = -DyadicLedger::kScaleBits;
+  return out;
 }
 
 AreaBound footprint_area(const WcsModel& wcs,
                          const std::vector<std::vector<std::array<double, 2>>>& rings) {
-  const RationalAreaBound rational = footprint_area_rational(wcs, rings);
+  const ExactAreaBound exact = footprint_area_exact(wcs, rings);
   AreaBound bound;
-  bound.lower.signed_integer = scaled_floor(rational.lower, DyadicLedger::kScaleBits).to_string();
-  bound.lower.exponent2 = -DyadicLedger::kScaleBits;
-  bound.upper.signed_integer = scaled_ceil(rational.upper, DyadicLedger::kScaleBits).to_string();
-  bound.upper.exponent2 = -DyadicLedger::kScaleBits;
+  bound.lower = dyadic_from_fraction(exact.lower, false);
+  bound.upper = dyadic_from_fraction(exact.upper, true);
   return bound;
 }
 

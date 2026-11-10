@@ -349,6 +349,11 @@ U64 action_domain_size(Ref<LinearAction> action) {
       const U64 inner = action_domain_size(impl->children()[1]);
       if (inner > 0) return inner;
     }
+    // The sky action P = I - E K T acts on the codomain of E.
+    if (impl->recipe().kind == ActionRecipe::Kind::sky && !impl->children().empty()) {
+      const U64 rows = action_codomain_size(impl->children()[0]);
+      if (rows > 0) return rows;
+    }
   }
   if (action->spaces.domain) return action->spaces.domain->size;
   return 0;
@@ -361,6 +366,10 @@ U64 action_codomain_size(Ref<LinearAction> action) {
     if (impl->recipe().kind == ActionRecipe::Kind::compose && impl->children().size() == 2) {
       const U64 outer = action_codomain_size(impl->children()[0]);
       if (outer > 0) return outer;
+    }
+    if (impl->recipe().kind == ActionRecipe::Kind::sky && !impl->children().empty()) {
+      const U64 rows = action_codomain_size(impl->children()[0]);
+      if (rows > 0) return rows;
     }
   }
   if (action->spaces.codomain) return action->spaces.codomain->size;
@@ -509,6 +518,12 @@ Result<operators::CsrMatrix> multiply_csr(Context& context, Ref<LinearAction> ou
     out.offsets[i + 1] = out.indices.size();
   }
   return model::ok_result(std::move(out));
+}
+
+Result<Ref<LinearAction>> action_from_csr(Context& context, const operators::CsrMatrix& matrix,
+                                           const Unit& unit) {
+  return operators::make_csr_action(context, matrix.rows, matrix.cols, matrix.offsets,
+                                    matrix.indices, matrix.values, Id(), Id(), unit);
 }
 
 operators::CsrMatrix shift_rows(const operators::CsrMatrix& matrix, U64 offset, U64 total_rows) {
@@ -967,6 +982,77 @@ Result<Ref<CovarianceAction>> equal_weight_covariance(Context& context, U64 coun
 }
 
 }  // namespace
+// The concatenated leaf space of the frames: one index over all leaves in the
+// order of the blocks (frame major), with the support state of every leaf.  It
+// is the space where T acts and where the rows of E live.
+Result<Ref<SupportMap>> build_training_support(Context& context,
+                                                const std::vector<FrameBlock>& blocks,
+                                                U64 leaf_total) {
+  std::vector<U64> ids;
+  std::vector<std::uint8_t> states;
+  std::vector<SourcePartition> partitions;
+  ids.reserve(static_cast<std::size_t>(leaf_total) * 2);
+  states.reserve(static_cast<std::size_t>(leaf_total));
+  U32 order = 0;
+  U64 running = 0;
+  for (const FrameBlock& block : blocks) {
+    if (block.leaves.empty()) continue;
+    order = block.order;
+    // The row block of the frame inside the training leaf space.  The channel
+    // of the partition is the frame identity: it is what lets apply_sky place a
+    // single frame's estimate without guessing from the length.
+    SourcePartition partition;
+    partition.channel = block.frame;
+    partition.index_begin = running;
+    partition.count = static_cast<U64>(block.leaves.size());
+    partitions.push_back(partition);
+    running += static_cast<U64>(block.leaves.size());
+    for (std::size_t row = 0; row < block.leaves.size(); ++row) {
+      ids.push_back(block.leaves[row].order);
+      ids.push_back(block.leaves[row].ipix);
+      states.push_back(row < block.state.size() ? block.state[row] : 1);
+    }
+  }
+  auto index = std::make_shared<Index>();
+  index->size = leaf_total;
+  index->kind = Index::Kind::leaf;
+  index->order = order;
+  index->namespace_id = "sky_training_support";
+  Result<ArrayRef> id_array =
+      context.storage.copy(context, DType::u64, model::encode_u64(ids),
+                           std::vector<U64>{static_cast<U64>(ids.size() / 2), 2},
+                           model::unit_dimensionless(), index->namespace_id);
+  if (!ok(id_array)) {
+    return model::fail<Ref<SupportMap>>(id_array.code, "the training leaf identities cannot be stored",
+                                        "build_sky_controls",
+                                        "the training support cannot be built");
+  }
+  index->ids = val(id_array);
+  index->partitions = std::move(partitions);
+  index->identity = model::make_identity("acsd.Index", 2, 0,
+                                          model::hash_index(Index::Kind::leaf, leaf_total, order, {}),
+                                          "acsd");
+  Result<ArrayRef> state_array =
+      context.storage.copy(context, DType::u8, model::encode_u8(states),
+                           std::vector<U64>{static_cast<U64>(states.size())},
+                           model::unit_dimensionless(), index->namespace_id);
+  if (!ok(state_array)) {
+    return model::fail<Ref<SupportMap>>(state_array.code, "the training support states cannot be stored",
+                                        "build_sky_controls",
+                                        "the training support cannot be built");
+  }
+  auto support = std::make_shared<SupportMap>();
+  support->kind = SupportMap::Kind::full_leaf_approx;
+  support->index = std::shared_ptr<const Index>(index);
+  support->states = val(state_array);
+  support->identity = model::make_identity("acsd.SupportMap", 2, 0,
+                                            model::hash_index(Index::Kind::leaf, leaf_total, order, {}),
+                                            "acsd");
+  support->assessment = model::make_assessment(Code::ok);
+  support->assessment.complete = true;
+  return model::ok_result(std::shared_ptr<const SupportMap>(support));
+}
+
 Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvider& frames,
                                              const SkyRequest& request) {
   {
@@ -1478,6 +1564,17 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
                                          "build_sky_controls", "no control can be built");
   }
 
+  // The training support of the controls is the concatenated leaf space of the
+  // frames, in the same order as the columns of T and the rows of E.  The fit
+  // carries it to the SkyFit, where it is what lets apply_sky place a single
+  // frame's signal inside the joint leaf space by leaf identity instead of by
+  // guessing from the length.
+  Result<Ref<SupportMap>> training_support = build_training_support(context, blocks, leaf_total);
+  if (!ok(training_support)) {
+    return model::fail<Ref<SkyControls>>(training_support.code,
+                                         "the training support cannot be built",
+                                         "build_sky_controls", "no control can be built");
+  }
   auto controls = std::make_shared<SkyControls>();
   controls->c = val(c_array);
   controls->T = val(t_ref);
@@ -1487,7 +1584,7 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
   controls->noise = control_noise;
   controls->component_ids = val(component_array);
   controls->positions = val(position_array);
-  controls->training_support = nullptr;
+  controls->training_support = val(training_support);
   controls->identity = model::make_identity("acsd.SkyControls", 2, 0,
                                             model::hash_index(Index::Kind::control, control_count, 0, {}),
                                             "acsd");
@@ -2443,8 +2540,17 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
 // apply_sky
 // ---------------------------------------------------------------------------
 
-Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> signal,
-                                       Ref<SkyFit> fit) {
+// ---------------------------------------------------------------------------
+// apply_sky
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// The shared body of the two public entries: with a frame identity the block is
+// taken from the per frame partitions of the training support, without one the
+// block must be uniquely determined by the leaf identities.
+Result<Ref<SignalEstimate>> apply_sky_impl(Context& context, Ref<SignalEstimate> signal,
+                                            Ref<SkyFit> fit, const Id* frame) {
   if (!signal || !fit) {
     return model::fail<Ref<SignalEstimate>>(Code::invalid_request, "the inputs are incomplete",
                                             "apply_sky", "the correction cannot be applied");
@@ -2463,13 +2569,196 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
     return model::fail<Ref<SignalEstimate>>(beta.code, "the sky parameters cannot be read",
                                             "apply_sky", "the correction cannot be applied");
   }
-  Result<std::vector<double>> correction = sky::apply_action_full(context, fit->E, val(beta));
+  if (!fit->E || !fit->K || !fit->T) {
+    return model::fail<Ref<SignalEstimate>>(Code::invalid_model,
+                                            "the correction action is incomplete", "apply_sky",
+                                            "the correction cannot be applied");
+  }
+  const U64 joint_rows = sky::action_codomain_size(fit->E);
+  const std::size_t count = val(values).size();
+  if (joint_rows == 0) {
+    return model::fail<Ref<SignalEstimate>>(Code::invalid_model,
+                                            "the output model has no rows", "apply_sky",
+                                            "the correction cannot be applied");
+  }
+
+  // -------------------------------------------------------------------------
+  // Which rows of E does this signal cover?
+  //
+  // E and T live on the concatenated leaf space of the training frames of the
+  // fit, so a single frame's estimate covers one contiguous block of rows.  The
+  // block is located by leaf identity (the fit publishes the training leaf
+  // space in its support, the frame estimate carries its own leaves), never by
+  // guessing from the length: two frames of the same size are not the same
+  // frame, and a wrong block would subtract another frame's sky.
+  // -------------------------------------------------------------------------
+  bool frame_block = false;
+  U64 row_offset = 0;
+  if (joint_rows == static_cast<U64>(count)) {
+    // The signal already covers the whole training leaf space.
+  } else {
+    const Ref<SupportMap>& training = fit->support;
+    if (!training || !training->index) {
+      return model::fail<Ref<SignalEstimate>>(
+          Code::invalid_model,
+          "the signal covers a block of the training leaf space but the fit does not publish that "
+          "space, so the block cannot be placed",
+          "apply_sky", "the correction cannot be applied");
+    }
+    if (frame != nullptr) {
+      // The frame identity names the block directly.
+      bool found = false;
+      for (const SourcePartition& partition : training->index->partitions) {
+        if (partition.channel != *frame) continue;
+        if (partition.count != static_cast<U64>(count)) {
+          return model::fail<Ref<SignalEstimate>>(
+              Code::invalid_model,
+              "the frame names a training block whose length does not match the signal",
+              "apply_sky", "the correction cannot be applied");
+        }
+        row_offset = partition.index_begin;
+        found = true;
+        break;
+      }
+      if (!found) {
+        return model::fail<Ref<SignalEstimate>>(
+            Code::invalid_model,
+            "the frame is not part of the training leaf space of the fit", "apply_sky",
+            "the correction cannot be applied");
+      }
+      frame_block = true;
+    } else {
+      const Ref<SupportMap>& frame_support = signal->support;
+      if (!frame_support || !frame_support->index || !frame_support->index->ids ||
+          !training->index->ids) {
+        return model::fail<Ref<SignalEstimate>>(
+            Code::invalid_model,
+            "the signal covers a block of the training leaf space but the leaf identities of the "
+            "fit or of the signal are missing, so the block cannot be placed",
+            "apply_sky", "the correction cannot be applied");
+      }
+      Result<std::vector<U64>> training_ids = read_u64_array(context, training->index->ids);
+      Result<std::vector<U64>> frame_ids = read_u64_array(context, frame_support->index->ids);
+      if (!ok(training_ids) || !ok(frame_ids)) {
+        return model::fail<Ref<SignalEstimate>>(Code::invalid_model,
+                                                "the leaf identities cannot be read", "apply_sky",
+                                                "the correction cannot be applied");
+      }
+      if (val(frame_ids).size() != count * 2) {
+        return model::fail<Ref<SignalEstimate>>(
+            Code::invalid_model,
+            "the leaf identities of the signal do not match its length", "apply_sky",
+            "the correction cannot be applied");
+      }
+      const std::vector<U64>& joint = val(training_ids);
+      const std::vector<U64>& leaves = val(frame_ids);
+      std::size_t matches = 0;
+      for (U64 offset = 0; offset + static_cast<U64>(count) <= joint_rows; ++offset) {
+        bool match = true;
+        for (std::size_t i = 0; i < count && match; ++i) {
+          if (joint[2 * (offset + i)] != leaves[2 * i] ||
+              joint[2 * (offset + i) + 1] != leaves[2 * i + 1]) {
+            match = false;
+          }
+        }
+        if (!match) continue;
+        ++matches;
+        row_offset = offset;
+      }
+      if (matches == 0) {
+        return model::fail<Ref<SignalEstimate>>(
+            Code::invalid_model,
+            "the leaf identities of the signal do not match any contiguous block of the training "
+            "leaf space of the fit",
+            "apply_sky", "the correction cannot be applied");
+      }
+      if (matches > 1) {
+        // Several training frames observe exactly these leaves (the usual
+        // mosaic case): the leaf identity alone cannot say which frame's sky
+        // offset belongs to this signal, and choosing one would subtract
+        // another frame's sky.  The caller passes the frame identity.
+        return model::fail<Ref<SignalEstimate>>(
+            Code::invalid_model,
+            "the signal's leaves match more than one training frame; pass the frame identity (or "
+            "the joint training-space signal) so the sky of the right frame is subtracted",
+            "apply_sky", "the correction cannot be applied");
+      }
+      frame_block = true;
+    }
+  }
+
+  // The selection actions of the block: S picks the block's rows of E, S^T
+  // picks the block's columns of T.
+  Result<Ref<LinearAction>> selection;
+  Result<Ref<LinearAction>> selection_transposed;
+  if (frame_block) {
+    operators::CsrMatrix forward;
+    forward.rows = static_cast<U64>(count);
+    forward.cols = joint_rows;
+    forward.offsets.assign(count + 1, 0);
+    for (std::size_t i = 0; i < count; ++i) {
+      forward.indices.push_back(row_offset + i);
+      forward.values.push_back(1.0);
+      forward.offsets[i + 1] = forward.indices.size();
+    }
+    operators::CsrMatrix backward;
+    backward.rows = joint_rows;
+    backward.cols = static_cast<U64>(count);
+    backward.offsets.assign(static_cast<std::size_t>(joint_rows) + 1, 0);
+    for (U64 row = 0; row < joint_rows; ++row) {
+      if (row >= row_offset && row < row_offset + count) {
+        backward.indices.push_back(row - row_offset);
+        backward.values.push_back(1.0);
+      }
+      backward.offsets[static_cast<std::size_t>(row) + 1] = backward.indices.size();
+    }
+    selection = sky::action_from_csr(context, forward, model::unit_dimensionless());
+    selection_transposed = sky::action_from_csr(context, backward, model::unit_dimensionless());
+    if (!ok(selection) || !ok(selection_transposed)) {
+      return model::fail<Ref<SignalEstimate>>(Code::invalid_model,
+                                              "the block selection cannot be built", "apply_sky",
+                                              "the correction cannot be applied");
+    }
+  }
+
+  // E_f = S E (the block's rows), T_f = T S^T (the block's columns of T).
+  Ref<LinearAction> e_action = fit->E;
+  Ref<LinearAction> t_action = fit->T;
+  if (frame_block) {
+    Result<operators::CsrMatrix> block_e = sky::multiply_csr(context, val(selection), fit->E);
+    if (!ok(block_e)) {
+      return model::fail<Ref<SignalEstimate>>(block_e.code, "the output model block cannot be formed",
+                                              "apply_sky", "the correction cannot be applied");
+    }
+    Result<Ref<LinearAction>> e_ref = sky::action_from_csr(context, val(block_e),
+                                                            model::unit_dimensionless());
+    if (!ok(e_ref)) {
+      return model::fail<Ref<SignalEstimate>>(e_ref.code, "the output model block cannot be built",
+                                              "apply_sky", "the correction cannot be applied");
+    }
+    Result<operators::CsrMatrix> block_t = sky::multiply_csr(context, fit->T,
+                                                              val(selection_transposed));
+    if (!ok(block_t)) {
+      return model::fail<Ref<SignalEstimate>>(block_t.code, "the control operator block cannot be formed",
+                                              "apply_sky", "the correction cannot be applied");
+    }
+    Result<Ref<LinearAction>> t_ref = sky::action_from_csr(context, val(block_t),
+                                                            model::unit_dimensionless());
+    if (!ok(t_ref)) {
+      return model::fail<Ref<SignalEstimate>>(t_ref.code, "the control operator block cannot be built",
+                                              "apply_sky", "the correction cannot be applied");
+    }
+    e_action = val(e_ref);
+    t_action = val(t_ref);
+  }
+
+  Result<std::vector<double>> correction = sky::apply_action_full(context, e_action, val(beta));
   if (!ok(correction)) {
     return model::fail<Ref<SignalEstimate>>(correction.code, "the correction cannot be applied",
                                             "apply_sky", "the correction cannot be applied");
   }
   std::vector<double> mutable_correction = val(correction);
-  if (mutable_correction.size() != val(values).size()) {
+  if (mutable_correction.size() != count) {
     return model::fail<Ref<SignalEstimate>>(Code::invalid_model,
                                             "the correction does not match the signal",
                                             "apply_sky", "the correction cannot be applied");
@@ -2481,7 +2770,7 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
   // C_y and not the row of P C_y P^T.  The mask below is what makes the signal
   // and the covariance the same linear functional of the data.
   std::size_t unavailable_count = 0;
-  std::vector<char> correction_available(val(values).size(), 1);
+  std::vector<char> correction_available(count, 1);
   if (fit->rank.nullspace && fit->rank.nullspace->shape.size() == 2) {
     const U64 columns = fit->rank.nullspace->shape[1];
     const U64 rows = fit->rank.nullspace->shape[0];
@@ -2491,15 +2780,24 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
         return model::fail<Ref<SignalEstimate>>(nullspace.code, "the null space cannot be read",
                                                 "apply_sky", "the correction cannot be applied");
       }
-      const U64 e_rows = sky::action_codomain_size(fit->E);
-      const U64 e_cols = sky::action_domain_size(fit->E);
-      Result<Matrix> E = sky::dense_action(context, fit->E, e_rows, e_cols);
+      const U64 e_rows = sky::action_codomain_size(e_action);
+      const U64 e_cols = sky::action_domain_size(e_action);
+      Result<Matrix> E = sky::dense_action(context, e_action, e_rows, e_cols);
       if (!ok(E)) {
         return model::fail<Ref<SignalEstimate>>(E.code, "the output model cannot be applied",
                                                 "apply_sky", "the correction cannot be applied");
       }
-      for (std::size_t i = 0; i < val(values).size() && i < val(E).rows; ++i) {
+      for (std::size_t i = 0; i < count && i < val(E).rows; ++i) {
+        // The criterion is scale free: the row is unavailable when its
+        // projection on the null directions is not negligible compared with
+        // its own norm.  An absolute threshold would call a small but fully
+        // undetermined row determined.
         double norm = 0.0;
+        double row_norm = 0.0;
+        for (std::size_t p = 0; p < val(E).cols; ++p) {
+          row_norm += val(E)(static_cast<std::size_t>(i), static_cast<std::size_t>(p)) *
+                      val(E)(static_cast<std::size_t>(i), static_cast<std::size_t>(p));
+        }
         for (std::size_t j = 0; j < rows; ++j) {
           double sum = 0.0;
           for (std::size_t p = 0; p < columns && p < val(E).cols; ++p) {
@@ -2508,7 +2806,7 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
           }
           norm += sum * sum;
         }
-        if (std::sqrt(norm) > 1e-12) {
+        if (norm > 1e-20 * std::max(row_norm, 1e-300) && std::sqrt(norm) > 0.0) {
           mutable_correction[i] = 0.0;
           correction_available[i] = 0;
           ++unavailable_count;
@@ -2517,7 +2815,7 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
     }
   }
 
-  std::vector<double> corrected(val(values).size(), 0.0);
+  std::vector<double> corrected(count, 0.0);
   for (std::size_t i = 0; i < corrected.size(); ++i) {
     corrected[i] = val(values)[i] - mutable_correction[i];
   }
@@ -2530,89 +2828,206 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
                                             "apply_sky", "the correction cannot be applied");
   }
 
-  // The corrected covariance is (I - E K T) C_y (I - E K T)^T for the rows
-  // that are corrected, and C_y for the rows that keep no correction.  Both are
-  // written as one action P' = I - M E K T with the diagonal mask M: P' y is
-  // exactly the published corrected signal.
-  Ref<LinearAction> effective_p = fit->P;
-  if (unavailable_count > 0) {
-    if (!fit->E || !fit->K || !fit->T) {
-      return model::fail<Ref<SignalEstimate>>(
-          Code::invalid_model, "the correction action is incomplete", "apply_sky",
-          "the correction cannot be applied");
-    }
-    std::vector<double> mask_values(correction_available.size(), 0.0);
-    for (std::size_t i = 0; i < mask_values.size(); ++i) {
-      mask_values[i] = correction_available[i] ? 1.0 : 0.0;
-    }
-    Result<ArrayRef> mask_array = operators::write_f64(
-        context, mask_values,
-        std::vector<U64>{static_cast<U64>(mask_values.size())}, model::unit_dimensionless(), Id());
-    if (!ok(mask_array)) {
-      return model::fail<Ref<SignalEstimate>>(mask_array.code, "the correction mask cannot be stored",
-                                              "apply_sky", "the correction cannot be applied");
-    }
-    ActionRecipe mask_recipe;
-    mask_recipe.kind = ActionRecipe::Kind::diagonal;
-    mask_recipe.algorithm = "canonical_diagonal_v1";
-    mask_recipe.version = 1;
-    mask_recipe.arrays = {"sky_correction_mask"};
-    const std::vector<ArrayRef> mask_arrays{val(mask_array)};
-    Result<Ref<LinearAction>> mask = make_action(
-        context, mask_recipe, std::span<const Ref<LinearAction>>{}, mask_arrays);
-    if (!ok(mask)) {
-      return model::fail<Ref<SignalEstimate>>(mask.code, "the correction mask cannot be built",
-                                              "apply_sky", "the correction cannot be applied");
-    }
-    Result<Ref<LinearAction>> masked_e = compose(context, val(mask), fit->E);
-    if (!ok(masked_e)) {
-      return model::fail<Ref<SignalEstimate>>(masked_e.code, "the masked output model cannot be built",
-                                              "apply_sky", "the correction cannot be applied");
-    }
-    ActionRecipe masked_recipe;
-    masked_recipe.kind = ActionRecipe::Kind::sky;
-    masked_recipe.algorithm = "canonical_sky_masked_v1";
-    masked_recipe.version = 1;
-    masked_recipe.children = {"masked_E", "K", "T"};
-    const std::vector<Ref<LinearAction>> masked_children{val(masked_e), fit->K, fit->T};
-    Result<Ref<LinearAction>> masked_p =
-        make_action(context, masked_recipe, masked_children, std::span<const ArrayRef>{});
-    if (!ok(masked_p)) {
-      return model::fail<Ref<SignalEstimate>>(masked_p.code,
-                                              "the masked correction action cannot be built",
-                                              "apply_sky", "the correction cannot be applied");
-    }
-    effective_p = val(masked_p);
-  }
-
-  // The corrected covariance is (I - E K T) C_y (I - E K T)^T.  The outer
-  // action of a CovarianceAction is exactly this kind of left/right factor:
-  // C_out(v) = P (C_y (P^T v)), so the corrected covariance keeps the model of
-  // the input and publishes P as its outer influence.  The two negative cross
-  // terms of the expansion are then carried by the action itself instead of
-  // being reconstructed root by root.
+  // -------------------------------------------------------------------------
+  // The corrected covariance.
+  //
+  // The published covariance must belong to the published signal:
+  //   C_z = (I - E K T) C_y (I - E K T)^T
+  // with the rows that keep no correction left untouched.  Both are written as
+  // one action P = I - M E K T (M the availability mask), and P is folded into
+  // the influences of the roots so that the frame estimate can be merged by the
+  // coaddition with its shared roots intact:
+  //   C_z = sum_k (P L_k) F_k F_k^T (P L_k)^T.
+  // -------------------------------------------------------------------------
   Ref<CovarianceAction> corrected_noise = signal->noise;
-  if (signal->noise && signal->noise->model && effective_p) {
-    if (signal->noise->influence) {
-      return model::fail<Ref<SignalEstimate>>(
-          Code::unsupported,
-          "the corrected covariance cannot be formed: the input covariance already carries an "
-          "outer influence, and composing the two outer actions needs the transpose of a "
-          "composition, which the operators module applies in the wrong order",
-          "apply_sky", "the correction cannot be applied");
+  bool covariance_written = false;
+  std::vector<std::string> estimate_omitted;
+  if (signal->noise && signal->noise->model) {
+    // The outer influence of the input covariance is part of the input model:
+    // C_in = I0 C_model I0^T, so the total outer action is P I0.
+    Ref<LinearAction> outer = fit->P;
+    if (!outer) {
+      // A fit without the action is rebuilt from E, K and T of this block.
+      ActionRecipe recipe;
+      recipe.kind = ActionRecipe::Kind::sky;
+      recipe.algorithm = "canonical_sky_v1";
+      recipe.version = 1;
+      recipe.children = {"E", "K", "T"};
+      const std::vector<Ref<LinearAction>> children{e_action, fit->K, t_action};
+      Result<Ref<LinearAction>> built =
+          make_action(context, recipe, children, std::span<const ArrayRef>{});
+      if (!ok(built)) {
+        return model::fail<Ref<SignalEstimate>>(built.code,
+                                                "the correction action cannot be built",
+                                                "apply_sky", "the correction cannot be applied");
+      }
+      outer = val(built);
+    } else if (frame_block || unavailable_count > 0) {
+      // The published P of the fit is the whole-space action; the block (and
+      // the mask) need their own action.
+      Ref<LinearAction> masked_e = e_action;
+      if (unavailable_count > 0) {
+        std::vector<double> mask_values(correction_available.size(), 0.0);
+        for (std::size_t i = 0; i < mask_values.size(); ++i) {
+          mask_values[i] = correction_available[i] ? 1.0 : 0.0;
+        }
+        Result<ArrayRef> mask_array = operators::write_f64(
+            context, mask_values, std::vector<U64>{static_cast<U64>(mask_values.size())},
+            model::unit_dimensionless(), Id());
+        if (!ok(mask_array)) {
+          return model::fail<Ref<SignalEstimate>>(mask_array.code,
+                                                  "the correction mask cannot be stored",
+                                                  "apply_sky", "the correction cannot be applied");
+        }
+        ActionRecipe mask_recipe;
+        mask_recipe.kind = ActionRecipe::Kind::diagonal;
+        mask_recipe.algorithm = "canonical_diagonal_v1";
+        mask_recipe.version = 1;
+        mask_recipe.arrays = {"sky_correction_mask"};
+        const std::vector<ArrayRef> mask_arrays{val(mask_array)};
+        Result<Ref<LinearAction>> mask = make_action(
+            context, mask_recipe, std::span<const Ref<LinearAction>>{}, mask_arrays);
+        if (!ok(mask)) {
+          return model::fail<Ref<SignalEstimate>>(mask.code, "the correction mask cannot be built",
+                                                  "apply_sky", "the correction cannot be applied");
+        }
+        Result<operators::CsrMatrix> product = sky::multiply_csr(context, val(mask), e_action);
+        if (!ok(product)) {
+          return model::fail<Ref<SignalEstimate>>(product.code,
+                                                  "the masked output model cannot be formed",
+                                                  "apply_sky", "the correction cannot be applied");
+        }
+        Result<Ref<LinearAction>> masked =
+            sky::action_from_csr(context, val(product), model::unit_dimensionless());
+        if (!ok(masked)) {
+          return model::fail<Ref<SignalEstimate>>(masked.code,
+                                                  "the masked output model cannot be built",
+                                                  "apply_sky", "the correction cannot be applied");
+        }
+        masked_e = val(masked);
+      }
+      ActionRecipe recipe;
+      recipe.kind = ActionRecipe::Kind::sky;
+      recipe.algorithm = "canonical_sky_masked_v1";
+      recipe.version = 1;
+      recipe.children = {"masked_E", "K", "T"};
+      const std::vector<Ref<LinearAction>> children{masked_e, fit->K, t_action};
+      Result<Ref<LinearAction>> built =
+          make_action(context, recipe, children, std::span<const ArrayRef>{});
+      if (!ok(built)) {
+        return model::fail<Ref<SignalEstimate>>(built.code,
+                                                "the correction action cannot be built",
+                                                "apply_sky", "the correction cannot be applied");
+      }
+      outer = val(built);
     }
-    auto covariance = std::make_shared<CovarianceAction>(*signal->noise);
-    covariance->influence = effective_p;
-    covariance->identity = model::make_identity("acsd.CovarianceAction", 2, 0,
+    if (signal->noise->influence) {
+      // Fold the input's outer influence into P: C_z = P I0 C I0^T P^T.
+      Result<operators::CsrMatrix> product =
+          sky::multiply_csr(context, outer, signal->noise->influence);
+      if (!ok(product)) {
+        return model::fail<Ref<SignalEstimate>>(
+            product.code,
+            "the input covariance already carries an outer influence and the two cannot be "
+            "composed",
+            "apply_sky", "the correction cannot be applied");
+      }
+      Result<Ref<LinearAction>> folded =
+          sky::action_from_csr(context, val(product), model::unit_dimensionless());
+      if (!ok(folded)) {
+        return model::fail<Ref<SignalEstimate>>(folded.code,
+                                                "the correction action cannot be built",
+                                                "apply_sky", "the correction cannot be applied");
+      }
+      outer = val(folded);
+    }
+
+    auto noise_model = std::make_shared<NoiseModel>();
+    const NoiseModel& source = *signal->noise->model;
+    noise_model->variance_unit = source.variance_unit;
+    noise_model->condition = source.condition;
+    noise_model->state = source.state;
+    noise_model->innovations = source.innovations;
+    noise_model->shared_factors = source.shared_factors;
+    noise_model->influence.reserve(source.influence.size());
+    for (const Ref<LinearAction>& influence : source.influence) {
+      Result<operators::CsrMatrix> product = sky::multiply_csr(context, outer, influence);
+      if (!ok(product)) {
+        return model::fail<Ref<SignalEstimate>>(product.code,
+                                                "the corrected influence cannot be formed",
+                                                "apply_sky", "the correction cannot be applied");
+      }
+      Result<Ref<LinearAction>> action =
+          sky::action_from_csr(context, val(product), source.variance_unit);
+      if (!ok(action)) {
+        return model::fail<Ref<SignalEstimate>>(action.code,
+                                                "the corrected influence cannot be built",
+                                                "apply_sky", "the correction cannot be applied");
+      }
+      noise_model->influence.push_back(val(action));
+    }
+    for (const UnknownTerm& term : source.unknown_terms) {
+      UnknownTerm copy = term;
+      if (term.influence) {
+        Result<operators::CsrMatrix> product = sky::multiply_csr(context, outer, term.influence);
+        if (!ok(product)) {
+          return model::fail<Ref<SignalEstimate>>(product.code,
+                                                  "the corrected unknown term cannot be formed",
+                                                  "apply_sky", "the correction cannot be applied");
+        }
+        Result<Ref<LinearAction>> action =
+            sky::action_from_csr(context, val(product), source.variance_unit);
+        if (!ok(action)) {
+          return model::fail<Ref<SignalEstimate>>(action.code,
+                                                  "the corrected unknown term cannot be built",
+                                                  "apply_sky", "the correction cannot be applied");
+        }
+        copy.influence = val(action);
+      }
+      noise_model->unknown_terms.push_back(copy);
+    }
+
+    // The per frame block is the conditional covariance of the corrected
+    // frame given the fitted parameters: it carries the frame's own rows of
+    // P C_y P^T, i.e. C_f - E_f K T_f C_f - C_f T_f^T K^T E_f^T
+    // + E_f K T_f C_f T_f^T K^T E_f^T.  The unconditional block adds
+    // E_f K (C_c - T_f C_f T_f^T) K^T E_f^T, the part of beta's variance that
+    // the other frames contribute.  That part is not a sum of positive roots of
+    // this frame alone (the foundation asks for the action form instead of
+    // "independent parameter variances"), so it is declared as omitted instead
+    // of being silently dropped: a caller that needs the unconditional C_z uses
+    // the joint entry (one apply_sky call over the whole training leaf space),
+    // whose action form is exact.
+    if (frame_block) {
+      estimate_omitted.push_back("fit_parameter_variance_in_the_per_frame_covariance");
+    }
+
+    noise_model->identity = model::make_identity("acsd.NoiseModel", 2, 0,
                                                  model::hash_index(Index::Kind::latent,
-                                                                   static_cast<U64>(corrected.size()),
+                                                                   noise_model->influence.size(),
                                                                    0, {}),
                                                  "acsd");
-    covariance->assessment = model::make_assessment(Code::ok);
-    covariance->assessment.complete = true;
-    covariance->assessment.noise = signal->noise->model->state;
-    corrected_noise = std::shared_ptr<const CovarianceAction>(covariance);
+    noise_model->assessment = model::make_assessment(Code::ok);
+    noise_model->assessment.complete = true;
+    noise_model->assessment.noise = noise_model->state;
+    Result<Ref<CovarianceAction>> covariance = make_covariance(
+        context, Ref<NoiseModel>(std::shared_ptr<const NoiseModel>(noise_model)));
+    if (!ok(covariance)) {
+      return model::fail<Ref<SignalEstimate>>(covariance.code,
+                                              "the corrected covariance cannot be built",
+                                              "apply_sky", "the correction cannot be applied");
+    }
+    auto wrapped = std::make_shared<CovarianceAction>(*val(covariance));
+    // The corrected covariance acts on the same space as the input.
+    wrapped->input_output = signal->noise->input_output;
+    if (frame_block && signal->support && signal->support->index) {
+      wrapped->input_output.domain = signal->support->index;
+      wrapped->input_output.codomain = signal->support->index;
+    }
+    corrected_noise = std::shared_ptr<const CovarianceAction>(wrapped);
+    covariance_written = true;
   }
+  (void)covariance_written;
 
   auto estimate = std::make_shared<SignalEstimate>();
   estimate->signal = val(corrected_array);
@@ -2629,11 +3044,20 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
   estimate->assessment = model::make_assessment(Code::ok);
   estimate->assessment.complete = true;
   estimate->assessment.condition = signal->estimator.condition;
+  for (const std::string& omitted : estimate_omitted) {
+    model::set_omitted(estimate->assessment, omitted);
+  }
 
   Result<Ref<SignalEstimate>> out = model::ok_result(std::shared_ptr<const SignalEstimate>(estimate));
   out.assessment.condition = estimate->assessment.condition;
+  for (const std::string& omitted : estimate_omitted) {
+    model::set_omitted(out.assessment, omitted);
+  }
   model::set_included(out.assessment, "relative_sky_correction");
   model::set_included(out.assessment, "corrected_covariance_with_both_negative_cross_terms");
+  if (frame_block) {
+    model::set_included(out.assessment, "correction_of_one_frame_block_of_the_training_space");
+  }
   if (unavailable_count > 0) {
     model::add_issue(out.assessment, Code::unavailable,
                      "the sky is not estimable in some directions, those positions keep no correction",
@@ -2643,5 +3067,16 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
   return out;
 }
 
+}  // namespace
+
+Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> signal,
+                                       Ref<SkyFit> fit) {
+  return apply_sky_impl(context, signal, fit, nullptr);
+}
+
+Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> signal,
+                                       Ref<SkyFit> fit, Id frame) {
+  return apply_sky_impl(context, signal, fit, &frame);
+}
 
 }  // namespace acsd

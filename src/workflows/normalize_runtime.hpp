@@ -308,6 +308,10 @@ inline Result<std::shared_ptr<WorkflowRuntime>> open_workflow_runtime(
   pool.read_slots = 1;
   pool.write_slots = 1;
   pool.process.ceiling.host_bytes = host_bytes;
+  // The command is opened with a real spill request; the runtime narrows it
+  // to the user's declared spill budget.  A default zero would make the
+  // user's spill_bytes unreachable (min(0, user)).
+  pool.process.ceiling.spill_bytes = 64ull << 20;
   pool.process.ceiling.cpu_tokens = cpu_tokens;
   pool.process.max_work = max_work;
   Result<std::shared_ptr<rt::Services>> services = rt::make_services(pool);

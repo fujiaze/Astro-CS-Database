@@ -489,7 +489,14 @@ Result<VariancePrediction> reconstruct_scene_variance(Context& context,Ref<Preci
 Result<Ref<SupportedTriangulation>> build_supported_triangulation(Context& context,Ref<PrecisionControls> controls,Chart chart,Ref<SupportMap> support);
 Result<Ref<SkyControls>> build_sky_controls(Context& context,const FramesProvider& frames,const SkyRequest& request);
 Result<Ref<SkyFit>> fit_relative_sky(Context& context,Ref<SkyControls> controls,const SkyRequest& request);
+// The correction of one frame of the training leaf space.  The fit publishes the
+// per frame row blocks of its E in the partitions of the training support index
+// (channel = frame identity, index_begin/count = block), so a single frame's
+// estimate can be placed in the joint leaf space without guessing from lengths.
+// The three argument form is the whole training space; it accepts a single frame
+// block only when exactly one block matches the leaf identities of the signal.
 Result<Ref<SignalEstimate>> apply_sky(Context& context,Ref<SignalEstimate> signal,Ref<SkyFit> fit);
+Result<Ref<SignalEstimate>> apply_sky(Context& context,Ref<SignalEstimate> signal,Ref<SkyFit> fit,Id frame);
 Result<Ref<Selection>> select_samples(Context& context,const FramesProvider& frames,const CoaddRequest& request);
 Result<Ref<WeightSolution>> solve_weights(Context& context,const FramesProvider& frames,Ref<Selection> selection,const CoaddRequest& request);
 Result<CoaddResult> coadd(Context& context,const FramesProvider& frames,Ref<SkyFit> sky,const CoaddRequest& request);

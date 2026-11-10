@@ -253,3 +253,83 @@ cmake --build build/base -j16 --target sky coadd information uncertainty operato
 - 未运行 `validation/x01` 端到端（它会写 `validation/x01/**`，不在写域且会覆盖他人工作树）。§3 的“帧无 noise model”探针复现了当前 `x01` 产品的形态（`noise=None, assessment.noise=unknown`），据此判断链路不会因本次收紧而中断；这仍是**推理 + 局部探针**，不是端到端实跑。
 - `K H=0`、`U0ᵀy` 精确约束、`tᵀΓt` 都是线性/Gaussian 前提下的结论；Huber/median/clip/非 Gaussian 不在其内。
 - 本报告的“真值”均由探针按定义重算（含审计 CE-H 数字的更正），不引用生产 solver。
+
+---
+
+## 11. 复核后修复（第二轮，针对 [review-statistics-fix.md](review-statistics-fix.md) §2/§3）
+
+复核确认第一轮的 6 个 P0 与 3 个 P1 关闭；本轮处理它新发现的两处接线级 P0 与 export 三处，并记录未修项。
+
+### 11.1 `sky.apply_sky` 按帧选择 E 的行块（复核 §2.1 / R3）
+
+**行偏移的来源**：`build_sky_controls` 现在发布训练叶空间的 `SupportMap`（`build_training_support`，`src/sky/sky.cpp:988`）：`index` 是全部训练帧拼接后的叶索引（frame major），`index->partitions` 每帧一条，`channel = frame Id`、`index_begin = 行偏移`、`count = 叶数`。`fit_relative_sky` 把它原样挂到 `SkyFit.support`（`sky.cpp:1700` 区域），因此 `E` 的行块**不再靠长度猜**，来源是 fit 自己记录的帧身份 + 偏移（未改 `model.hpp` 的 DTO 字段）。
+
+**接口**：新增重载 `apply_sky(Context&, Ref<SignalEstimate>, Ref<SkyFit>, Id frame)`（`include/acsd/model.hpp:499`，`src/sky/sky.cpp:2535` 的 `apply_sky_impl`）。三参数版保留：信号覆盖整个训练叶空间时行为不变（兼容）；覆盖单帧时只有**唯一**叶身份匹配才接受，多个帧观测同一批叶时具名拒绝（`invalid_model`，原因写明"pass the frame identity (or the joint training-space signal)"）——不做统计猜测，避免减错帧的天光。
+
+**实现**：`S`（count×joint，选行）与 `Sᵀ`（joint×count，选列）稀疏选择算子；`E_f = S·E`、`T_f = T·Sᵀ`（精确稀疏乘积）；`P_f = I − M E_f K T_f`（M 为不可估行掩码）折进根影响后发布，`CovarianceAction.influence` 不再需要外层组合；`E_f` 的行范数相对判据替代 `1e-12` 绝对阈值判 nullspace。
+
+**数值**（探针 R3，2 帧×2 叶、同一批叶、offset=2）：
+| 项 | 修复前 | 修复后 |
+|---|---|---|
+| 单帧 apply_sky | `invalid_model: the correction does not match the signal` | 成功 |
+| 参考帧值 | — | 1, 2（不变，4.4e-16） |
+| 第二帧值 | — | 3,4 → **1,2**（4.4e-16） |
+| 第二帧条件方差 | — | **0**（β 固定时该帧被完全决定） |
+| 同叶歧义（三参数版） | — | 具名拒绝 |
+| 外来叶空间 | — | 具名拒绝 |
+
+**已知限制（写进 assessment，不是静默）**：单帧发布的是**条件协方差**（给定 β̂），`omitted = fit_parameter_variance_in_the_per_frame_covariance`，`science=conditional`。无条件 `C_z` 需要 `E_f K (C_c − T_f C_f T_fᵀ) Kᵀ E_fᵀ`，它不是本帧正根之和（基础 §3 要求用 action 形式而不是"独立参数方差"），只能由**联合入口**（一次 `apply_sky` 覆盖整个训练叶空间，`influence=P'`）精确给出。
+
+**mosaic 实跑（4 帧，`validation/x01` 的 4 个产品，同一叶 order 6/ipix 21439）**：不再出现 `the correction does not match the signal`；当前返回 `invalid_model: the signal's leaves match more than one training frame; pass the frame identity (or the joint training-space signal)`。**UNRESOLVED（写域外）**：typed 输入 `ApplySkyInput` 只有 `{signal, fit}`（`include/acsd/modules/generated/inputs.hpp:365`），`mosaic.cpp:299` 的 `host->invoke` 无法带帧身份。两条最小改动（均在本任务写域外）：
+1. 在 `tools/codec_gen/bindings.py` 为 `apply_sky` 增加带 `frame` 的 variant 并重新生成 `include/acsd/modules/generated/inputs.hpp`、`src/runtime/generated/*`，`mosaic.cpp` 传 `frame = val(frames).front()`；或
+2. `mosaic.cpp` 把各帧 `SignalEstimate` 拼成联合叶向量、调一次三参数 `apply_sky`，再按 `SkyFit.support` 的 partitions 切回（这条同时给出**无条件**协方差，是更正确的接线）。
+
+### 11.2 coadd 联合协方差读取外层 `CovarianceAction.influence`（复核 §2.2 / R2）
+
+`build_joint_covariance`（`src/coadd/coadd.cpp:224`）现在对每帧读 `frame.noise->influence`（`I0`）：`L_k ← I0·L_k`（精确稀疏乘积，逐根影响；`unknown_terms` 同样处理），再按帧行偏移放置；没有外层影响时路径不变。尺寸保护：外层影响 `rows·cols > 2^26` 时返回具名 `unavailable`（要求发布方把影响折进根），不静默丢弃。
+
+**数值**（探针 R2：单叶两帧、`C_y = 4`、外层 `P = 1/2`）：
+| 项 | 修复前 | 修复后 |
+|---|---|---|
+| 等权 `V = tᵀΓt` | **2**（用了 `C_y`） | **0.5**（= `P C Pᵀ = 1` 每帧） |
+
+### 11.3 export 的 `Q C Qᵀ` 收尾（复核 §3 / R1）
+
+`src/projection/export_projection.cpp`：
+1. **单位幂**：新增 `variance_unit = unit_multiply(signal_unit, signal_unit)`，并把导出的 `NoiseModel.variance_unit` 设为它（`quadratic_form` 返回的就是这个单位）。`supported_flux` 的信号单位 `sr⁰` ⇒ 方差单位 `sr⁰`（旧：仍为模型的 `sr⁻²`）；`supported_mean` 仍为 `sr⁻²`，两者不再混同。
+2. **索引**：`CovarianceAction.input_output.domain/codomain` 换成目标像元索引（`Index::Kind::pixel`，size = `pixel_count`），不再是叶索引；`input/output` 同步为方差单位。
+3. **错误记录**：`assessment` 先初始化、后追加 issue（`PendingIssue` 队列），`add_issue` 不再被 `make_assessment(ok)` 清掉；`assessment.noise` 从发布的协方差模型状态取（有已知协方差不再是默认 `unknown`）。
+4. **一般化**：不再要求输入协方差已有外层影响——把 `Q` 折进每个根影响（`compose(Q, L_k)`，未知项同理），于是普通叶噪声模型也能得到 `Q C Qᵀ`（旧实现遇到 `influence == nullptr` 直接 `noise = nullptr`）。
+- 验证边界：export 的数值 `Q C Qᵀ` 由复核 §3 用独立探针确认（跨叶项保留、`1ᵀC1 = 6`）；本轮的单位/索引/issue 三项是代码级修改，**未独立探针**（探针 harness 没有 `ProductProvider`，构造完整导出链超出本轮收尾范围），构建与既有 `projection` 目标通过。
+
+### 11.4 其它（本轮顺带、均在写域内）
+
+- `sky::action_{domain,codomain}_size` 增加 `compose` 与 `sky` 动作的尺寸回退（否则组合动作的影响在 `dense_covariance_factor`/`to_csr` 处没有形状）；`multiply_csr`、`action_from_csr` 作为精确稀疏乘积/构造 helper。
+- `build_joint_noise`/`build_joint_covariance` 的 `shift_rows`/`block_diagonal`/`place` 按 `total_rows` 补齐尾随零行（否则首帧块会把联合空间缩小、CSR offsets 不单调）。
+- `include/acsd/model.hpp` 只加了 `apply_sky` 的 4 参数重载声明；`schemas/science-input.schema.json` 由 `tools/generate_contract_schema.py` 重新生成（+32 行，无其它改动）。
+
+### 11.5 仍失败 / 未修（本轮明确不做，避免半成品）
+
+| 项 | 状态 | 原因/归属 |
+|---|---|---|
+| 4 帧 mosaic 端到端 | **UNRESOLVED** | typed 输入不带帧身份（`inputs.hpp`/`codecs.cpp` 生成物 + `mosaic.cpp`），见 §11.1 的两条最小改动；本任务写域外 |
+| 单帧无条件协方差 | **已声明 omitted** | 需联合入口或 signed block 表示（基础 §3） |
+| 复核 R4（DTO 未初始化） | 未修 | `include/acsd/model.hpp` 的 POD 默认成员初始化，写域外 |
+| 复核 R5（exact-constraint 绝对容差） | 未修 | 现为 `1e-8·max(1,‖d‖∞)`；应按模型/协方差尺度，本轮未动 |
+| `same_factor` undecided → true | 未修 | 现返回"相同"；应返回 `identity_conflict`，本轮未动 |
+| `build_sky_controls` 降级白名单 | 未修 | 现仍允许 `resource_exhausted/cancelled/domain` 落入 equal；应只允许 `unavailable/unsupported` |
+| `quadratic_form` 负方差启发式 | 未修 | 仍为 `1e-12·max(1,|v|)`，需区间证书 |
+| `apply_sky` nullspace 绝对阈值 | **已修** | 改为行范数相对判据（§11.1） |
+| export 单位/domain/issue 独立探针 | 未做 | 见 §11.3 验证边界 |
+
+### 11.6 本轮验证命令
+
+```sh
+cmake --build build/science -j8 --target acsd      # 通过
+cmake --build build/science -j16                   # 通过（含 check_design PASS）
+/tmp/acsd_probe/probe                              # 132 ok / 0 fail（新增 R2/R3/默认协方差/缺噪声链）
+# 真实 4 帧 mosaic（validation/x01 的 4 个产品，输出改到 /tmp 副本，不写他人目录）
+cd /tmp/mosaic_run/cli && build/science/acsd mosaic mosaic.config.json
+#   -> invalid_model: the signal's leaves match more than one training frame; ...
+#      （此前为 "the correction does not match the signal"；见 §11.1 UNRESOLVED）
+```

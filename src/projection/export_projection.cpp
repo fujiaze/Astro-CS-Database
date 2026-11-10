@@ -34,6 +34,17 @@ namespace {
 using model::fail;
 using model::ok_result;
 
+// An issue collected before the assessment of the exported estimate exists.  The
+// assessment is initialised once, before the issues are added: the previous
+// order added the reason first and cleared it with the default assessment, so a
+// covariance that could not be pushed through Q was silently missing.
+struct PendingIssue {
+  Code code;
+  std::string reason;
+  std::string origin;
+  std::string impact;
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -132,6 +143,7 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
                               "build_export", "the export cannot be built");
   }
   const SignalEstimate& estimate = *graph->signal;
+  std::vector<PendingIssue> pending_issues;
   if (!estimate.support) {
     return fail<ExportResult>(Code::missing_dependency, "the product has no support map",
                               "build_export", "the export cannot be built");
@@ -436,36 +448,106 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
   export_estimate->support = estimate.support;
   export_estimate->effective_response = estimate.effective_response;
   // The exported signal is Q times the leaf signal, so its covariance is
-  // Q C Q^T, not the leaf covariance.  The influence of an exported
-  // covariance maps the native noise roots to the target pixels: it is the
-  // composition of the export row Q with the leaf influence I_leaf.  Keeping
-  // the old influence would report the variance of a different estimand.
+  // Q C Q^T, not the leaf covariance.  The influence of the roots is folded
+  // into Q (C_out = sum_k (Q L_k) F_k F_k^T (Q L_k)^T), so every shared root
+  // and every cross leaf term survives the projection; keeping the leaf
+  // influence would report the variance of a different estimand.
+  const Unit variance_unit = model::unit_multiply(signal_unit, signal_unit);
+  auto pixel_index = std::make_shared<Index>();
+  pixel_index->size = pixel_count;
+  pixel_index->kind = Index::Kind::pixel;
+  pixel_index->namespace_id = "acsd.export.pixels";
+  pixel_index->identity = model::make_identity(
+      "acsd.Index", 2, 0,
+      model::sha256_hex("export:pixels:" + std::to_string(pixel_count)), "acsd");
   export_estimate->noise = nullptr;  // null means unknown, never the leaf C
-  if (estimate.noise && estimate.noise->influence) {
-    Result<Ref<LinearAction>> composed =
-        compose(context, val(row_action), estimate.noise->influence);
-    if (ok(composed)) {
-      auto covariance = std::make_shared<CovarianceAction>(*estimate.noise);
-      covariance->influence = val(composed);
-      covariance->input_output = estimate.noise->input_output;
-      // The covariance now lives on the target pixels: its codomain is the
-      // row action's codomain, not the leaf codomain of the input noise.
-      if (val(row_action)->spaces.codomain) {
-        covariance->input_output.codomain = val(row_action)->spaces.codomain;
+  if (estimate.noise && estimate.noise->model) {
+    // The input covariance may itself carry an outer action: C_in = I0 C I0^T,
+    // so the total outer action is Q I0.
+    Ref<LinearAction> outer = val(row_action);
+    bool usable = true;
+    if (estimate.noise->influence) {
+      Result<Ref<LinearAction>> composed =
+          compose(context, val(row_action), estimate.noise->influence);
+      if (!ok(composed)) {
+        usable = false;
+      } else {
+        outer = val(composed);
       }
-      covariance->identity = model::make_identity(
-          "acsd.CovarianceAction", 2, 0,
-          model::sha256_hex("export:covariance:" + std::to_string(pixel_count) + ":" +
-                             std::to_string(static_cast<int>(request.quantity)) + ":" +
-                             val(composed)->identity.object_id),
-          "acsd");
-      export_estimate->noise = covariance;
-    } else {
-      model::add_issue(export_estimate->assessment, composed.code,
-                       "the export covariance cannot be pushed through Q",
-                       "build_export", "the exported noise stays unknown");
     }
+    if (usable) {
+      auto noise_model = std::make_shared<NoiseModel>();
+      const NoiseModel& source = *estimate.noise->model;
+      noise_model->variance_unit = variance_unit;
+      noise_model->condition = source.condition;
+      noise_model->state = source.state;
+      noise_model->innovations = source.innovations;
+      noise_model->shared_factors = source.shared_factors;
+      noise_model->influence.reserve(source.influence.size());
+      for (const Ref<LinearAction>& influence : source.influence) {
+        Result<Ref<LinearAction>> composed = compose(context, outer, influence);
+        if (!ok(composed)) {
+          usable = false;
+          break;
+        }
+        noise_model->influence.push_back(val(composed));
+      }
+      if (usable) {
+        for (const UnknownTerm& term : source.unknown_terms) {
+          UnknownTerm copy = term;
+          if (term.influence) {
+            Result<Ref<LinearAction>> composed = compose(context, outer, term.influence);
+            if (!ok(composed)) {
+              usable = false;
+              break;
+            }
+            copy.influence = val(composed);
+          }
+          noise_model->unknown_terms.push_back(copy);
+        }
+      }
+      if (usable) {
+        noise_model->identity = model::make_identity(
+            "acsd.NoiseModel", 2, 0,
+            model::sha256_hex("export:noise:" + std::to_string(pixel_count) + ":" +
+                               std::to_string(static_cast<int>(request.quantity))),
+            "acsd");
+        noise_model->assessment = model::make_assessment(Code::ok);
+        noise_model->assessment.complete = true;
+        noise_model->assessment.noise = noise_model->state;
+        Result<Ref<CovarianceAction>> covariance = make_covariance(
+            context, Ref<NoiseModel>(std::shared_ptr<const NoiseModel>(noise_model)));
+        if (ok(covariance)) {
+          auto wrapped = std::make_shared<CovarianceAction>(*val(covariance));
+          wrapped->input_output.domain = std::shared_ptr<const Index>(pixel_index);
+          wrapped->input_output.codomain = wrapped->input_output.domain;
+          wrapped->input_output.input = variance_unit;
+          wrapped->input_output.output = variance_unit;
+          wrapped->identity = model::make_identity(
+              "acsd.CovarianceAction", 2, 0,
+              model::sha256_hex("export:covariance:" + std::to_string(pixel_count) + ":" +
+                                 std::to_string(static_cast<int>(request.quantity))),
+              "acsd");
+          export_estimate->noise = std::shared_ptr<const CovarianceAction>(wrapped);
+        } else {
+          usable = false;
+        }
+      }
+    }
+    if (!usable) {
+      // The assessment is initialised below, before any issue is added, so the
+      // reason survives instead of being cleared by the default assessment.
+      pending_issues.push_back(
+          {Code::unavailable, "the export covariance cannot be pushed through Q",
+           "build_export", "the exported noise stays unknown"});
+    }
+  } else {
+    pending_issues.push_back({Code::unavailable,
+                              "the leaf estimate publishes no covariance, so the exported "
+                              "covariance is unknown",
+                              "build_export", "the exported noise stays unknown"});
   }
+
   export_estimate->error = estimate.error;
   export_estimate->identity = model::make_identity(
       "acsd.SignalEstimate", 2, 0,
@@ -475,6 +557,20 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
   export_estimate->assessment = model::make_assessment(Code::ok);
   export_estimate->assessment.complete = true;
   export_estimate->assessment.science = ScienceState::bounded;
+  // The noise state of the published estimate is the state of its covariance:
+  // a known covariance is not reported as unknown, and an absent one is.
+  export_estimate->assessment.noise =
+      export_estimate->noise && export_estimate->noise->model
+          ? export_estimate->noise->model->state
+          : NoiseState::unknown;
+  for (const PendingIssue& pending : pending_issues) {
+    model::add_issue(export_estimate->assessment, pending.code, pending.reason, pending.origin,
+                     pending.impact);
+    if (export_estimate->assessment.science == ScienceState::bounded) {
+      export_estimate->assessment.science = ScienceState::conditional;
+    }
+  }
+
   // The coverage of the export is recorded: the size of the target, the
   // number of the leaves it touches and the number of the supported pixels.
   // A reader can tell a constant image from a degenerate projection.

@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
+#include <map>
 #include <numeric>
 #include <string>
 #include <vector>
@@ -278,6 +279,35 @@ struct Problem {
   std::vector<Whitener> gaia_whitener;  // one per star
   bool counts_couple_sources = false;
 };
+
+// The shared identity of a calibration master root.  Two roots with the same
+// key are the same random variable by declaration (the contract merges master
+// roots by their shared identity), so two frames that carry the same key share
+// that random amplitude.
+std::string shared_root_key(const SharedId& id) {
+  return id.external_namespace + "|" + id.entity + "|" + id.model_revision + "|" + id.component;
+}
+
+// The shared master roots that a frame's measurement inherits.  The
+// covariance of the frame names its noise model; the observation's own noise
+// model is the fallback when the covariance object is absent.
+std::vector<std::string> frame_shared_roots(const FrameInput& frame) {
+  std::vector<std::string> keys;
+  const auto collect = [&keys](const Ref<NoiseModel>& noise) {
+    if (!noise) return;
+    for (const Ref<NoiseRoot>& root : noise->shared_factors) {
+      if (!root) continue;
+      keys.push_back(shared_root_key(root->shared_id));
+    }
+  };
+  if (frame.measurements) {
+    if (frame.measurements->joint_noise) collect(frame.measurements->joint_noise->model);
+    if (frame.measurements->observation) collect(frame.measurements->observation->noise);
+  }
+  std::sort(keys.begin(), keys.end());
+  keys.erase(std::unique(keys.begin(), keys.end()), keys.end());
+  return keys;
+}
 
 struct Evaluation {
   std::vector<double> amplitude;  // A_sk per measurement
@@ -812,6 +842,15 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
     // diagonal terms are zero.  A measurement whose variance is unknown keeps
     // the unit working weight (the document allows a conditional fit with unit
     // weights) and is recorded by the variance check below.
+    //
+    // The matrix is RESET to a pure diagonal before the fill (defect R3).  The
+    // frames that were assembled before the failing one wrote their correlated
+    // flux blocks into the same matrix; keeping them would mix measured
+    // correlations of some frames with the declared diagonal of the others and
+    // contradict the unknown record that says every off diagonal term is
+    // unknown.  A partially measured covariance is neither a measured nor a
+    // declared one.
+    counts_covariance = numerics::Matrix(problem.n_meas, problem.n_meas);
     for (std::size_t i = 0; i < problem.n_meas; ++i) {
       const double variance = problem.meas_variance[i];
       counts_covariance(i, i) = (is_normal(variance) && variance > 0.0) ? variance : 1.0;
@@ -819,7 +858,8 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
     result.unknown_terms.push_back(
         "the measured flux correlation is unavailable (" + counts_covariance_reason +
         "); the count rows use the declared diagonal variance as the working weight and the "
-        "off diagonal terms are unknown, not zero");
+        "off diagonal terms are unknown, not zero (the blocks of every frame, including the "
+        "frames whose joint covariance could be read, were discarded, not partially kept)");
   }
   std::string whitener_note;
   Result<Whitener> counts_whitener =
@@ -831,6 +871,73 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
   problem.counts_whitener = val(counts_whitener);
   if (!whitener_note.empty()) {
     result.notes.push_back(whitener_note);
+  }
+
+  // ---------------------------------------------------------------------
+  // Cross frame correlation through a shared calibration master root
+  // (defect R4).
+  //
+  // The assembled counts covariance is block diagonal over frames, which is
+  // the same as assuming that the native noise roots of different frames are
+  // independent.  A master root with a shared identity breaks that: the same
+  // random flat/dark/bias amplitude multiplies the flux of every frame that
+  // was calibrated with it, so
+  //
+  //   Cov(F_k, F_l) = (dF_k/dr)(dF_l/dr) sigma_r^2,   k != l,
+  //
+  // which is not in the block diagonal assembly and is NOT zero.  The
+  // correction needs the per frame influence of the root, which the block
+  // diagonal assembly does not carry, so the term is recorded as unknown (the
+  // contract photometry.fit "a shared calibration root must be kept as a
+  // global latent or a sparse coupling; the cross block may not be dropped")
+  // instead of being silently zero.  For a flat role dF/dr = F/flat, so the
+  // omitted term is of order F_k F_l sigma_r^2.
+  // ---------------------------------------------------------------------
+  {
+    struct RootUse {
+      std::vector<std::string> frames;
+      std::vector<double> largest_flux;
+    };
+    std::map<std::string, RootUse> uses;
+    for (std::size_t frame_index = 0; frame_index < frames.size(); ++frame_index) {
+      const std::vector<std::string> keys = frame_shared_roots(frames[frame_index]);
+      if (keys.empty()) continue;
+      double largest = 0.0;
+      for (double count : frames[frame_index].counts) {
+        if (std::isfinite(count)) largest = std::max(largest, std::fabs(count));
+      }
+      for (const std::string& key : keys) {
+        RootUse& use = uses[key];
+        use.frames.push_back(frames[frame_index].frame);
+        use.largest_flux.push_back(largest);
+      }
+    }
+    for (const auto& entry : uses) {
+      const RootUse& use = entry.second;
+      if (use.frames.size() < 2) continue;
+      std::string frame_list;
+      double largest = 0.0;
+      for (std::size_t i = 0; i < use.frames.size(); ++i) {
+        if (i > 0) frame_list += ", ";
+        frame_list += use.frames[i];
+        largest = std::max(largest, use.largest_flux[i]);
+      }
+      result.unknown_terms.push_back(
+          "the calibration master root '" + entry.first + "' is shared by the frames " +
+          frame_list +
+          "; their measured fluxes are correlated through that one random amplitude, while the "
+          "assembled counts covariance is block diagonal over frames. The cross frame block "
+          "Cov(F_k,F_l) = (dF_k/dr)(dF_l/dr) sigma_r^2 is unknown, not zero");
+      result.notes.push_back(
+          "the omitted cross frame term of the shared master root '" + entry.first +
+          "' is Cov(F_k,F_l) = (dF_k/dr)(dF_l/dr) sigma_r^2; for a flat role "
+          "|dF/dr| = F/flat, so a relative root amplitude sigma_r and two frames of flux F give "
+          "|Cov| = F^2 sigma_r^2 (F=1000 ADU and sigma_r=0.01 give 100 ADU^2, which is also the "
+          "variance that root contributes to each frame when flat=1: the two frames are fully "
+          "correlated through this root apart from their other noise); the largest measured flux "
+          "of these frames is " +
+          std::to_string(largest) + " ADU");
+    }
   }
 
   for (std::size_t star = 0; star < problem.stars; ++star) {
@@ -879,6 +986,10 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
           ": the absolute scale direction (all log a_k of its frames shifted by the same delta "
           "with c_s scaled by exp(delta)) is fixed by the equal working weight and is NOT "
           "measured; the XP covariance is unknown");
+      // The published parameter covariance is conditional on that working
+      // prior: its gauge direction is pseudo-information, so it must not be
+      // handed to a consumer as a known covariance (defect P1-2).
+      result.covariance_state_known = false;
     }
     std::string note;
     Result<Whitener> whitener = build_whitener(covariance, settings.rank_relative, note);

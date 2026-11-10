@@ -1,7 +1,12 @@
 # Runtime / 资源账本 / Storage 修复报告（P0 全量 + 高价值 P1）
 
 > 实施者：runtime-implementer（非独立审查者；审查结论唯一正本仍是 `docs/audit/audit-runtime.md`）。
-> 分支 `rebuild/acsd-v2`，起点 HEAD `ef91befb7`。写域：`src/runtime/*.cpp`、`src/resources/cpu_resources.cpp`、
+> 分支 `rebuild/acsd-v2`，起点 HEAD `ef91befb7`。**提交状态**：实施期间 Lead 的
+> `77a13c89c fix(science): close the P0 findings of the four independent audits` 把本轮的
+> `src/runtime/*.cpp`、`src/resources/cpu_resources.cpp`、`src/storage/local_storage.cpp` 一并收进了提交
+> （工作树与 HEAD 在这些文件上一致）；但 **`apps/cli/commands.cpp` 的 P0-3 接线仍未提交**
+> （`git status` 仍显示 `M apps/cli/commands.cpp`，81 行）。在它被提交之前，HEAD 上的 CLI 不会先用用户
+> `Limits` 建立 `Services`，H 仍然不生效——这是合并前必须带上的一处。写域：`src/runtime/*.cpp`、`src/resources/cpu_resources.cpp`、
 > `src/storage/local_storage.cpp`、`apps/cli/{commands,main}.cpp`，外加上报文件 `docs/audit/runtime-fix-report.md`。
 > 未改 `include/`、`src/workflows/`、`src/projection/`、`src/model/`、其它模块与 `src/runtime/generated/`。
 > 未改任何科学容差、真值、估计量、归约次序或块边界；改动只涉及准入、计费、所有权、取消、有界性与 I/O 安全。
@@ -275,7 +280,7 @@ open with blocks/../../secret.bin: invalid_request
 
 ### P1-11 Dyadic 读（**未实现**，仅给出设计）
 
-`prepare_read`（`src/runtime/storage.cpp:1170-1180`）仍对 `itemsize==0` 返回 `unsupported`；
+`prepare_read`（`src/runtime/storage.cpp:1128-1133`）仍对 `itemsize==0` 返回 `unsupported`；
 `LocalStorage::open` 同样。原因与设计见 §7.5：它需要一条"文本块 → `Dyadic` 元素"的异步解码阶段
 （目标 buffer 计费、逐元素解析规范 JSON、块 hash 与元素数校验、按 `count` 精确切分），
 属于新增子流水线而不是一行补丁；本轮选择不交付半成品（半解析器比显式 `unsupported` 更危险）。
@@ -295,7 +300,7 @@ open with blocks/../../secret.bin: invalid_request
 | P1-18 | `apps/cli/events.cpp:53,100` | `flush` 后不检查流状态，事件流写失败静默 | `if (!stream_) { failed_=true; }`，`run_finished` 前检查并令退出码失败 |
 | P1-5 | `src/workflows/product.cpp` 的私有 `write_file` 与 `manifest.staging/manifest` 落盘处（函数体内联，非 `LocalStorage::write_file`） | 发布路径无 fsync/fdatasync/目录 fsync | 见 §7.2 |
 | P1-7 | `src/workflows/product.cpp` 重开产品时解析 `root/entry.path` 与 `base/block.path` 的两处（`read_block`/`open` 路径构造） | 未做根内约束 | 见 §7.4 |
-| P1-11 | `src/runtime/storage.cpp:1170-1180`、`src/storage/local_storage.cpp:307-311` | dyadic typed read/open 仍 `unsupported` | 见 §7.5 |
+| P1-11 | `src/runtime/storage.cpp:1128-1133`、`src/storage/local_storage.cpp:307-311` | dyadic typed read/open 仍 `unsupported` | 见 §7.5 |
 
 ## 5. 已知保守/未证明项
 

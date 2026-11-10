@@ -263,7 +263,8 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
     // of the contract, so that an implementation outside the operators module
     // is usable as well.  The number of columns is the size of the latent
     // space of the root, which the contract carries.
-    const U64 columns = impl ? impl->domain_size() : expected_columns;
+    U64 columns = impl ? impl->domain_size() : 0;
+    if (columns == 0) columns = expected_columns;
     if (columns == 0) {
       return model::fail<operators::CsrMatrix>(Code::invalid_model,
                                                "the action has no columns in the latent space",
@@ -301,6 +302,48 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
       matrix.offsets[1 + j] = matrix.indices.size();
     }
     return model::ok_result(matrix);
+  };
+
+  // The exact product of two sparse matrices: the corrected covariance of a
+  // frame is P C P^T, so the influence of every root is P L_k before it is
+  // placed at the frame offset.
+  auto multiply = [](const operators::CsrMatrix& left,
+                     const operators::CsrMatrix& right) -> Result<operators::CsrMatrix> {
+    if (left.cols != right.rows) {
+      return model::fail<operators::CsrMatrix>(Code::invalid_model,
+                                               "the shapes of the multiplied actions do not agree",
+                                               "coadd.covariance",
+                                               "the joint noise cannot be built");
+    }
+    operators::CsrMatrix out;
+    out.rows = left.rows;
+    out.cols = right.cols;
+    out.offsets.assign(static_cast<std::size_t>(out.rows) + 1, 0);
+    std::vector<double> row(static_cast<std::size_t>(right.cols), 0.0);
+    std::vector<U64> touched;
+    for (U64 i = 0; i < out.rows; ++i) {
+      touched.clear();
+      for (U64 k = left.offsets[i]; k < left.offsets[i + 1]; ++k) {
+        const U64 middle = left.indices[k];
+        const double scale = left.values[k];
+        if (scale == 0.0 || middle >= right.rows) continue;
+        for (U64 j = right.offsets[middle]; j < right.offsets[middle + 1]; ++j) {
+          const U64 column = right.indices[j];
+          if (row[static_cast<std::size_t>(column)] == 0.0) touched.push_back(column);
+          row[static_cast<std::size_t>(column)] += scale * right.values[j];
+        }
+      }
+      std::sort(touched.begin(), touched.end());
+      for (U64 column : touched) {
+        const double value = row[static_cast<std::size_t>(column)];
+        if (value == 0.0) continue;
+        out.indices.push_back(column);
+        out.values.push_back(value);
+      }
+      for (U64 column : touched) row[static_cast<std::size_t>(column)] = 0.0;
+      out.offsets[i + 1] = out.indices.size();
+    }
+    return model::ok_result(std::move(out));
   };
 
   auto make_rows = [&](const operators::CsrMatrix& matrix,
@@ -368,6 +411,101 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
                                                 "coadd.covariance", "the joint noise cannot be built");
     }
     if (noise.state != NoiseState::known) any_unknown = true;
+    // The frame covariance may carry an outer action: C_frame = I0 C_model I0^T
+    // (this is how apply_sky publishes the corrected covariance when it does
+    // not fold the action into the roots).  Dropping it would use the
+    // uncorrected C_y for the weights and for the published covariance, so it
+    // is composed with every root influence before the frame offset is applied.
+    Ref<LinearAction> outer = frame.noise->influence;
+    if (outer) {
+      const U64 outer_rows = frame.leaves.size();
+      const U64 outer_cols = frame.leaves.size();
+      if (outer_rows != 0 && outer_rows * outer_cols > (1ull << 26)) {
+        return model::fail<Ref<CovarianceAction>>(
+            Code::unavailable,
+            "the outer influence of a frame is too large to be applied inside the coaddition; the "
+            "corrected covariance must be published with its influences already folded",
+            "coadd.covariance", "the joint noise cannot be built");
+      }
+      Result<operators::CsrMatrix> outer_matrix = to_csr(outer, outer_rows, outer_cols);
+      if (!ok(outer_matrix)) {
+        return model::fail<Ref<CovarianceAction>>(outer_matrix.code,
+                                                  "the outer influence cannot be converted",
+                                                  "coadd.covariance",
+                                                  "the joint noise cannot be built");
+      }
+      for (std::size_t k = 0; k < roots.size(); ++k) {
+        const U64 latent = roots[k] && roots[k]->coordinates ? roots[k]->coordinates->size : 0;
+        Result<operators::CsrMatrix> matrix =
+            to_csr(noise.influence[k], frame.leaves.size(), latent);
+        if (!ok(matrix)) {
+          return model::fail<Ref<CovarianceAction>>(matrix.code, "an influence cannot be converted",
+                                                    "coadd.covariance",
+                                                    "the joint noise cannot be built");
+        }
+        Result<operators::CsrMatrix> corrected = multiply(val(outer_matrix), val(matrix));
+        if (!ok(corrected)) {
+          return model::fail<Ref<CovarianceAction>>(corrected.code,
+                                                    "the corrected influence cannot be formed",
+                                                    "coadd.covariance",
+                                                    "the joint noise cannot be built");
+        }
+        if (k < noise.innovations.size()) {
+          Result<Ref<LinearAction>> action =
+              make_rows(place(val(corrected), offset, total_rows), noise.variance_unit);
+          if (!ok(action)) {
+            return model::fail<Ref<CovarianceAction>>(action.code, "an influence cannot be built",
+                                                      "coadd.covariance",
+                                                      "the joint noise cannot be built");
+          }
+          innovations.push_back(roots[k]);
+          innovation_influences.push_back(val(action));
+          continue;
+        }
+        const SharedId& identity = roots[k]->shared_id;
+        const std::string key = identity.external_namespace + "\x1f" + identity.entity + "\x1f" +
+                                identity.model_revision + "\x1f" + identity.component;
+        auto found = shared_index.find(key);
+        if (found == shared_index.end()) {
+          shared_index[key] = shared_roots.size();
+          shared_roots.push_back(roots[k]);
+          shared_blocks.emplace_back();
+          shared_offsets.emplace_back();
+        }
+        shared_blocks[shared_index[key]].push_back(val(corrected));
+        shared_offsets[shared_index[key]].push_back(offset);
+      }
+      for (const UnknownTerm& term : noise.unknown_terms) {
+        if (!term.influence) continue;
+        const U64 columns = term.influence->spaces.domain ? term.influence->spaces.domain->size : 0;
+        Result<operators::CsrMatrix> matrix =
+            to_csr(term.influence, frame.leaves.size(), columns);
+        if (!ok(matrix)) {
+          return model::fail<Ref<CovarianceAction>>(matrix.code, "an unknown term cannot be converted",
+                                                    "coadd.covariance",
+                                                    "the joint noise cannot be built");
+        }
+        Result<operators::CsrMatrix> corrected = multiply(val(outer_matrix), val(matrix));
+        if (!ok(corrected)) {
+          return model::fail<Ref<CovarianceAction>>(corrected.code,
+                                                    "the corrected unknown term cannot be formed",
+                                                    "coadd.covariance",
+                                                    "the joint noise cannot be built");
+        }
+        Result<Ref<LinearAction>> action =
+            make_rows(place(val(corrected), offset, total_rows), joint->variance_unit);
+        if (!ok(action)) {
+          return model::fail<Ref<CovarianceAction>>(action.code, "an unknown term cannot be built",
+                                                    "coadd.covariance",
+                                                    "the joint noise cannot be built");
+        }
+        UnknownTerm copy = term;
+        copy.influence = val(action);
+        unknown_terms.push_back(copy);
+        any_unknown = true;
+      }
+      continue;
+    }
     for (std::size_t k = 0; k < roots.size(); ++k) {
       const U64 latent = roots[k] && roots[k]->coordinates
                              ? roots[k]->coordinates->size

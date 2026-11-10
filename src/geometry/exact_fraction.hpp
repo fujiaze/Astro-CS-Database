@@ -20,7 +20,7 @@ namespace acsd::geometry {
 
 // The bound on the denominator of a fraction: past this many bits the
 // fraction is reduced, so that the growth of the denominators stays bounded.
-inline constexpr std::size_t kMaxFractionBits = 1024;
+inline constexpr std::size_t kMaxFractionBits = 384;
 
 // An exact fraction, not necessarily in lowest terms.
 class ExactFraction {

@@ -4254,6 +4254,10 @@ Result<rt::Done> validate_apply_sky(rt::InvocationContext ctx,
     return invalid<rt::Done>(origin,
         "field 'fit' is a required object reference but is null");
   }
+  if (input->frame.empty()) {
+    return invalid<rt::Done>(origin,
+        "field 'frame' is a required Id but is empty");
+  }
   return codec::ok<rt::Done>(rt::Done{});
 }
 

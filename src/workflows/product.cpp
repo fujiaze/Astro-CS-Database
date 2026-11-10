@@ -296,6 +296,20 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
         "no_noise: the covariance action is not reopenable: the product carries no "
         "LinearAction reader");
     effective.noise = nullptr;  // null means unknown, never zero variance
+    // The estimate itself must carry the degradation: otherwise the stored
+    // estimate says complete/bounded with no noise and no issue, and a
+    // republish of this object loses the omission.
+    effective.assessment.complete = false;
+    effective.assessment.science = ScienceState::conditional;
+    effective.assessment.noise = NoiseState::unknown;
+    Issue issue;
+    issue.code = Code::unsupported;
+    issue.scope = Scope{"product.signal", effective.identity.object_id};
+    issue.origin = "product.collect_signal";
+    issue.reason = "the covariance action cannot be reopened (no LinearAction reader)";
+    issue.impact = "the estimate noise is unknown; the product is signal_only";
+    issue.retry_condition = "implement a LinearAction reader and republish";
+    effective.assessment.issues.push_back(issue);
   }
   store_object(builder, effective.identity.object_id, "acsd.SignalEstimate",
                workflows::encode_signal_estimate(effective));
@@ -881,6 +895,14 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
     }
   }
 
+  const std::string profile = request.profile.empty() ? "full" : request.profile;
+  if (profile == "full" && !builder.omitted.empty()) {
+    return fail<ProductLocation>(
+        Code::unsupported,
+        "the requested full profile cannot be delivered: " + builder.omitted.front(),
+        "publish_product",
+        "the product cannot be published; request signal_only or implement the missing closure");
+  }
   // The manifest: the staging manifest first, the complete manifest last.
   ProductManifest manifest;
   manifest.format = "acsd.product";
@@ -890,7 +912,7 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
   manifest.product_id = "acsd.product:" + hex_of(root_hash);
   manifest.revision = 1;
   manifest.root_object = root_hash;
-  manifest.profile = request.profile.empty() ? "full" : request.profile;
+  manifest.profile = profile;
   manifest.capabilities = builder.capabilities;
   for (const std::string& omitted : builder.omitted) manifest.capabilities.push_back("omitted:" + omitted);
   manifest.inputs = graph->inputs;

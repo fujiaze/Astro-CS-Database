@@ -72,18 +72,73 @@ Result<Ref<LinearAction>> make_calibration_diagonal(Context& context,
 
 // The calibration input a shared master root belongs to.  The declaration has
 // no separate role field for a master root, so the role is the shared identity
-// entity: "flat"/"gain"/"flat_field", "dark" and "bias", with an optional
-// "master_" prefix (the fixtures and the configuration use "master_flat").
+// entity: "flat"/"flat_field", "dark"/"dark_current" and "bias"/"offset", with
+// an optional "master_" prefix (the fixtures and the configuration use
+// "master_flat").
+//
+// A role is never guessed.  Two cases are refused explicitly instead of being
+// mapped onto some derivative:
+//
+//   * "gain" is NOT a flat.  The calibrated formula is
+//       x = (d - b - r (dk - b)) / f
+//     so d x / d flat = -x/f while d x / d gain = -x/gain; the two agree only
+//     when the gain happens to be numerically equal to the flat, and the true
+//     variance of a gain root is (x/gain)^2 sigma_g^2.  With flat = 1 and a
+//     root sigma of 1 the flat derivative x^2 overstates a gain of 2 by a
+//     factor of four; with gain = 0.5 the alternative reading is
+//     non-conservative by a factor of four.  Either way the mapping is not
+//     proven, so it is not assumed.
+//   * a role written in the `component` field is not read: the entity is the
+//     only role declaration, and a generic entity keeps the root unknown.
 enum class MasterRole { flat, dark, bias, unknown };
 
-MasterRole master_root_role(const SharedId& id) {
-  std::string entity = id.entity;
+struct MasterRoleDeclaration {
+  MasterRole role = MasterRole::unknown;
+  std::string reason;  // why the role is unknown (empty for a known role)
+};
+
+std::string strip_master_prefix(std::string text) {
   static const std::string prefix = "master_";
-  if (entity.rfind(prefix, 0) == 0) entity = entity.substr(prefix.size());
-  if (entity == "flat" || entity == "gain" || entity == "flat_field") return MasterRole::flat;
-  if (entity == "dark" || entity == "dark_current") return MasterRole::dark;
-  if (entity == "bias" || entity == "offset") return MasterRole::bias;
-  return MasterRole::unknown;
+  if (text.rfind(prefix, 0) == 0) text = text.substr(prefix.size());
+  return text;
+}
+
+bool is_role_word(const std::string& word) {
+  return word == "flat" || word == "flat_field" || word == "dark" || word == "dark_current" ||
+         word == "bias" || word == "offset" || word == "gain";
+}
+
+MasterRoleDeclaration parse_master_role(const SharedId& id) {
+  MasterRoleDeclaration out;
+  const std::string entity = strip_master_prefix(id.entity);
+  if (entity == "flat" || entity == "flat_field") {
+    out.role = MasterRole::flat;
+    return out;
+  }
+  if (entity == "dark" || entity == "dark_current") {
+    out.role = MasterRole::dark;
+    return out;
+  }
+  if (entity == "bias" || entity == "offset") {
+    out.role = MasterRole::bias;
+    return out;
+  }
+  const std::string component = strip_master_prefix(id.component);
+  if (entity == "gain") {
+    out.reason =
+        "the master root entity is 'gain'; a gain is not a flat (d x/d gain = -x/gain and "
+        "d x/d flat = -x/flat agree only when gain == flat), so no calibration Jacobian is "
+        "assumed for it";
+  } else if (is_role_word(component)) {
+    out.reason =
+        "the master root declares its role in the component field ('" + id.component +
+        "') while the shared identity entity is '" + id.entity +
+        "'; the entity is the only role declaration of a master root, so the role is unknown";
+  } else {
+    out.reason = "the shared identity entity '" + id.entity +
+                 "' does not name flat/dark/bias, so the Jacobian d x / d master is not known";
+  }
+  return out;
 }
 
 // A noise root whose coordinates are the native samples and whose factor
@@ -485,8 +540,39 @@ Result<Ref<NativeObservation>> assemble_calibrated_native(
     for (std::size_t k = 0; k < shared_count; ++k) {
       const Ref<NoiseRoot>& root = request.master_noise->shared_factors[k];
       const Ref<LinearAction>& influence = request.master_noise->influence[offset + k];
-      const MasterRole role =
-          root ? master_root_role(root->shared_id) : MasterRole::unknown;
+      MasterRoleDeclaration declaration =
+          root ? parse_master_role(root->shared_id) : MasterRoleDeclaration{};
+      if (!root) {
+        declaration.reason = "the shared master root is missing from the noise model";
+      }
+      MasterRole role = declaration.role;
+      // A declared role whose calibration input is absent on this frame is not
+      // a zero contribution: the root exists with a finite sigma but the
+      // calibration formula of this request does not contain that input, so the
+      // root cannot be mapped onto the calibrated samples.  Recording it as
+      // unknown keeps the variance honest instead of silently dropping it (a
+      // flat root with no flat map previously used f = 1 and the flat
+      // derivative -x, which is not even the zero derivative of the formula).
+      if (role == MasterRole::flat && !has_flat) {
+        role = MasterRole::unknown;
+        declaration.reason =
+            "the master root declares the flat role but the calibration request carries no flat "
+            "map; the derivative of the calibration formula with respect to a flat that is not "
+            "applied is not the flat derivative, so the root is unknown rather than a zero "
+            "contribution";
+      } else if (role == MasterRole::dark && !has_dark) {
+        role = MasterRole::unknown;
+        declaration.reason =
+            "the master root declares the dark role but the calibration request carries no dark "
+            "map; the exposure ratio and the dark derivative do not exist, so the root is "
+            "unknown rather than a zero contribution";
+      } else if (role == MasterRole::bias && !has_bias) {
+        role = MasterRole::unknown;
+        declaration.reason =
+            "the master root declares the bias role but the calibration request carries no bias "
+            "map; the bias derivative -1/flat does not act on any input of this formula, so the "
+            "root is unknown rather than a zero contribution";
+      }
       const std::vector<double>* weights = nullptr;
       switch (role) {
         case MasterRole::flat:
@@ -509,10 +595,10 @@ Result<Ref<NativeObservation>> assemble_calibrated_native(
         UnknownTerm term;
         term.id = root ? "master_root_role_unknown:" + root->shared_id.entity
                        : std::string("master_root_role_unknown");
-        term.reason =
-            "the master noise root does not declare which calibration input it belongs to "
-            "(the shared identity entity is not flat/dark/bias), so the Jacobian d x / d master "
-            "is not known and the root cannot be mapped onto the calibrated samples";
+        term.reason = declaration.reason.empty()
+                          ? std::string("the master root role is not declared, so the Jacobian "
+                                        "d x / d master is not known")
+                          : declaration.reason;
         Result<Ref<LinearAction>> placeholder = make_calibration_diagonal(
             context, std::vector<double>(count, 1.0), raw_observation->source_index, signal_unit,
             signal_unit);

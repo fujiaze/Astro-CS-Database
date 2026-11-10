@@ -87,6 +87,12 @@ struct FitResult {
   double reduction_condition = 0.0;
   bool reduction_degenerate = false;
   bool precision_exhausted = false;
+  // False when the latent spectral coefficients were held by an equal WORKING
+  // PRIOR because a measured XP covariance was not supplied.  The parameter
+  // covariance is then conditional: the gauge direction that the working prior
+  // fixes is not a measured direction, so the published covariance must not be
+  // presented as a known covariance downstream (defect P1-2).
+  bool covariance_state_known = true;
   std::string failure;
   std::vector<std::string> notes;
   std::vector<std::string> unknown_terms;

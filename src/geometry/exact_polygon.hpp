@@ -35,11 +35,14 @@ RationalPolygon clip_half_space(const RationalPolygon& polygon, const ExactFract
                                 const ExactFraction& b, const ExactFraction& c);
 
 // Signed area (shoelace).  Positive for a counter clockwise polygon.
-Rational polygon_signed_area(const RationalPolygon& polygon);
+// The results stay ExactFractions: the caller quantises them outward onto the
+// dyadic ledger, so a reduction to lowest terms (the expensive part) is not
+// needed on the science path.
+ExactFraction polygon_signed_area(const RationalPolygon& polygon);
 
 // First moments: integral of x and of y over the polygon.
-Rational polygon_moment_x(const RationalPolygon& polygon);
-Rational polygon_moment_y(const RationalPolygon& polygon);
+ExactFraction polygon_moment_x(const RationalPolygon& polygon);
+ExactFraction polygon_moment_y(const RationalPolygon& polygon);
 
 
 }  // namespace acsd::geometry

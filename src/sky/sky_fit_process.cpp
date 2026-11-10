@@ -528,6 +528,11 @@ rt::Task<Ref<SignalEstimate>> run_sky_apply(rt::InvocationContext context,
                   "the sky cannot be applied");
             }
             acsd::Context& science = (*bridge.value)->context();
+            // The frame identity is optional: the three-argument form is used
+            // only when the leaves identify a unique training frame.
+            if (!input->frame.empty()) {
+              return apply_sky(science, input->signal, input->fit, input->frame);
+            }
             return apply_sky(science, input->signal, input->fit);
           }),
       [context, start_ns, span_id](Ref<SignalEstimate> corrected)

@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "acsd/contracts.hpp"
+#include "geometry/exact_fraction.hpp"
 #include "model/exact.hpp"
 #include "model/hash.hpp"
 
@@ -32,6 +33,7 @@ class DyadicLedger {
   static constexpr int kScaleBits = 120;
 
   void add(const Rational& value, bool upper);
+  void add(const ExactFraction& value, bool upper);
   void add(const Dyadic& value, bool upper);
   bool empty() const { return empty_; }
   // The accumulated value as an exact dyadic.
@@ -55,6 +57,11 @@ struct LeafAreaBound {
 struct KernelOutcome {
   std::vector<LeafAreaBound> leaves;
   std::vector<UnresolvedDomain> unresolved;
+  // True when a block could not be modelled because it touches the apex of a
+  // polar face (the chart derivative is singular there).  The containment
+  // fallback uses this flag to decide whether its apex version is applicable;
+  // a seam crossing is not an apex and must not trigger the polar fill.
+  bool apex_singular = false;
   Termination termination = Termination::tolerance_met;
   U64 work = 0;
   std::string reason;
@@ -95,13 +102,17 @@ struct AreaBound {
 AreaBound footprint_area(const WcsModel& wcs,
                          const std::vector<std::vector<std::array<double, 2>>>& rings);
 
-// The exact rational area bounds behind an AreaBound.
-struct RationalAreaBound {
-  Rational lower;
-  Rational upper;
+// The exact area bounds behind an AreaBound.  They stay ExactFractions (no
+// reduction to lowest terms): the ledger quantises them outward directly.
+struct ExactAreaBound {
+  ExactFraction lower;
+  ExactFraction upper;
 };
-RationalAreaBound footprint_area_rational(const WcsModel& wcs,
-                                          const std::vector<std::vector<std::array<double, 2>>>& rings);
+ExactAreaBound footprint_area_exact(const WcsModel& wcs,
+                                    const std::vector<std::vector<std::array<double, 2>>>& rings);
+
+// floor/ceil of value * 2^120 as an exact dyadic, directly from a fraction.
+Dyadic dyadic_from_fraction(const ExactFraction& value, bool upper);
 
 // Converts an exact dyadic into the binary64 value used for display.
 double dyadic_to_double(const Dyadic& value);

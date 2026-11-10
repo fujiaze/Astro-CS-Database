@@ -350,6 +350,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
   pool.read_slots = 1;
   pool.write_slots = 1;
   pool.process.ceiling.host_bytes = 1ull << 30;
+  pool.process.ceiling.spill_bytes = 64ull << 20;
   pool.process.ceiling.cpu_tokens = 2;
   pool.process.max_work = 4000000000ull;
   Result<std::shared_ptr<rt::Services>> services = rt::make_services(pool);
@@ -381,6 +382,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
 
   rt::ScopeLimits limits;
   limits.ceiling.host_bytes = 1ull << 30;
+  limits.ceiling.spill_bytes = 64ull << 20;
   limits.ceiling.cpu_tokens = 2;
   limits.max_work = 4000000000ull;
   Result<InvocationContext> command =

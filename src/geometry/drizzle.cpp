@@ -55,11 +55,16 @@ IntervalValue divide(const IntervalValue& a, const IntervalValue& b) {
 
 double representative(const IntervalValue& value) { return 0.5 * (value.lower + value.upper); }
 
-// The solid angle of one true leaf: Omega_H = pi / (3 N^2) (SPHERICAL_DRIZZLE
-// Eq. (4)).  It bounds every overlap mass a_jp from above.
-double leaf_solid_angle(U32 order) {
+// An upper bound of the solid angle of one true leaf: Omega_H = pi / (3 N^2)
+// (SPHERICAL_DRIZZLE Eq. (4)).  It bounds every overlap mass a_jp from above,
+// so it is rounded upward (the pi literal is the nearest double, and the
+// quotient is rounded to nearest: one ulp up encloses the true value).
+double leaf_solid_angle_upper(U32 order) {
   const double nside = static_cast<double>(1ull << order);
-  return kPi / (3.0 * nside * nside);
+  const double inf = std::numeric_limits<double>::infinity();
+  const double pi_upper = std::nextafter(kPi, inf);
+  const double denominator = 3.0 * nside * nside;
+  return std::nextafter(pi_upper / denominator, inf);
 }
 
 Result<ArrayRef> store_f64(Context& context, const std::vector<double>& values, const Unit& unit,
@@ -229,10 +234,18 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
                                      "the overlap enclosure does not intersect the drop "
                                      "enclosure");
         }
-      } else {
+      } else if (term.drop.upper > 0.0) {
         // Only the positivity of A_j is certified (measure proved A > 0 but its
-        // lower bound rounded to zero).  w = a/A in [0,1] is still a valid
-        // enclosure; the missing lower bound is named below.
+        // lower bound rounded to zero).  w = a/A is still bounded below by
+        // a_L/A_U and above by 1 (a <= A): the lower bound must not be widened
+        // to 0, because the representative would then be 0.5 and the published
+        // point value wrong (review R3: B = 1.666667 instead of the true 2).
+        term.weight.lower = term.overlap.lower / term.drop.upper;
+        term.weight.upper = 1.0;
+        any_drop_lower_not_positive = true;
+      } else {
+        // A_j is not even bounded above: w in [0,1] is the only valid
+        // enclosure, and the leaf is reported as not positively supported.
         term.weight = IntervalValue{0.0, 1.0};
         any_drop_lower_not_positive = true;
       }
@@ -255,17 +268,21 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
     double union_upper = 0.0;
     for (const SourceTerm& term : terms) {
       f_interval = add(f_interval, multiply(term.weight, IntervalValue{term.value, term.value}));
-      n_interval = add(n_interval, IntervalValue{term.weight.lower * term.omega.lower,
-                                                 term.weight.upper * term.omega.upper});
+      // N = sum_j w_jp Omega_j: both factors are non-negative, so the directed
+      // product of the two intervals is the outward term.
+      n_interval = add(n_interval, multiply(term.weight, term.omega));
       f_nominal += term.weight_nominal * term.value;
       n_nominal += term.weight_nominal * representative(term.omega);
       // The support union S = union_j (D_j cap H_p): a single source is inside
       // the union (lower), the sum of the overlap upper bounds and the leaf
-      // area bound it from above.  The sum of the a is not the union.
+      // area bound it from above.  The sum of the a is not the union.  The sum
+      // of the upper bounds is accumulated with the directed addition.
       union_lower = std::max(union_lower, term.overlap.lower);
-      union_upper += term.overlap.upper;
+      union_upper = add(IntervalValue{union_upper, union_upper},
+                        IntervalValue{term.overlap.upper, term.overlap.upper})
+                        .upper;
     }
-    const double omega_leaf = leaf_solid_angle(leaf.order);
+    const double omega_leaf = leaf_solid_angle_upper(leaf.order);
     union_upper = std::min(union_upper, omega_leaf);
     area_lower.push_back(union_lower);
     area_upper.push_back(union_upper);
@@ -435,6 +452,9 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
   auto error = std::make_shared<ErrorRecord>();
   error->requested = request.budget.requested_functionals;
   error->achieved.clear();
+  // The ErrorRecord has no index column (model type), so the map from the
+  // achieved entries back to the leaf index is recorded in the assessment.
+  std::string achieved_index_map;
   for (std::size_t i = 0; i < signal.size(); ++i) {
     if (!std::isfinite(signal_lower[i]) || !std::isfinite(signal_upper[i])) {
       any_missing_error = true;
@@ -445,6 +465,8 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
     interval.upper = model::dyadic_from_double(signal_upper[i]);
     interval.precision_bits = 53;
     error->achieved.push_back(interval);
+    if (!achieved_index_map.empty()) achieved_index_map += ",";
+    achieved_index_map += std::to_string(i);
   }
   error->linearization_selection =
       model::make_condition("drizzle_surface_brightness", "interval_bounded");
@@ -522,10 +544,20 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
     estimate->identity = model::make_identity("acsd.SignalEstimate", 2, 0, digest.hex(), "acsd");
   }
   estimate->assessment = model::make_assessment(Code::ok);
-  estimate->assessment.complete = !any_unresolved && !any_missing_error && recipe_identity_proven;
-  estimate->assessment.science = (any_unresolved || any_missing_error || !recipe_identity_proven)
-                                     ? ScienceState::unconverged
-                                     : ScienceState::bounded;
+  // The estimate inherits the certification state of the overlap it was built
+  // from: an invalid or unconverged geometry must not be reported as a bounded
+  // estimate (review R3d: complete=1/bounded while op.validity=invalid).
+  const bool overlaps_certified =
+      overlaps->status.termination == Termination::tolerance_met &&
+      overlaps->status.bound_validity == Validity::certified;
+  estimate->assessment.complete = !any_unresolved && !any_missing_error &&
+                                  recipe_identity_proven && overlaps_certified;
+  estimate->assessment.science =
+      (any_unresolved || any_missing_error || !recipe_identity_proven || !overlaps_certified)
+          ? ScienceState::unconverged
+          : ScienceState::bounded;
+  estimate->assessment.validity =
+      overlaps_certified ? Validity::certified : Validity::invalid;
   if (any_absent) {
     model::add_issue(estimate->assessment, Code::no_support, "leaves_without_positive_support",
                      "build_drizzle",
@@ -541,6 +573,8 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
   if (any_missing_error) {
     model::set_included(estimate->assessment,
                         "leaves_without_a_certified_signal_interval_have_no_achieved_error_entry");
+    model::set_included(estimate->assessment,
+                        "achieved_error_leaf_indices=" + achieved_index_map);
   }
   if (any_drop_lower_not_positive) {
     model::set_included(estimate->assessment,

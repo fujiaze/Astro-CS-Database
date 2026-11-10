@@ -361,10 +361,11 @@ struct FitRelativeSkyInput {
   SkyRequest request;
 };
 // sky.fit / apply_sky
-// Derived from: Result<Ref<SignalEstimate>> (Context &, Ref<SignalEstimate>, Ref<SkyFit>) apply_sky(...)
+// Derived from: Result<Ref<SignalEstimate>> (Context &, Ref<SignalEstimate>, Ref<SkyFit>, Id) apply_sky(...)
 struct ApplySkyInput {
   Ref<SignalEstimate> signal;
   Ref<SkyFit> fit;
+  Id frame;
 };
 // coadd.select / select_samples
 // Derived from: Result<Ref<Selection>> (Context &, const FramesProvider &, const CoaddRequest &) select_samples(...)

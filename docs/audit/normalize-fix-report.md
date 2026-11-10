@@ -231,3 +231,194 @@ g++ ... validation/process/photometry.fit/x01_minimal_repro.cpp /tmp/orig/joint_
 | P1-8 背景 Z=1 条件 | 已修 | `measure.cpp:350-463` | Z 由同一 PRF/gain/transfer 链构造；条件写明 |
 | P1-10 psf_fit 加权/Jacobian/盒 | 部分修 | `psf_fit.cpp:317-395,436,546,985-1005` | 可证对角才加权；盒语义显式；score 根盒待 U5 |
 | P1-11 清空 published | 仅建议 | `normalize.cpp:1129`（域外） | §8 |
+
+---
+
+## 12. 第二轮（R1/R1b/R2/R3/R4/P1-2/P1-6）：实施记录
+
+> 基线：`rebuild/acsd-v2` 工作树 HEAD `1f48c58ad`。权威缺陷：[review-normalize-fix.md](review-normalize-fix.md)（R1/R1b/R2/R3/R4、§5/§6/§7）。
+> 本轮写入：`src/sources/measure.cpp`、`src/observation/calibration_kernel.cpp`、`src/photometry/joint_fit.{cpp,hpp}`、`src/photometry/api.cpp`、`src/workflows/fits_writer.cpp`、新探针 `validation/normalize_probe2.cpp`、本文件。未改 `src/geometry`、`src/sky`、`src/coadd`、`src/runtime`、`src/operators`、`src/model`、其它 docs；未 commit/push；未改任何容差或真值。
+> `joint_fit.hpp` 只加了一个语义字段 `FitResult::covariance_state_known`（P1-2 的 API 无法用既有字段表达，属最小补丁，见 §17）。
+> 工作树同时被其他 agent 修改（`src/workflows/fits_writer.cpp` 在我动手前已被另一 agent 改过 BUNIT；我在其基础上继续）。未改的数据夹具缺陷见 §19。
+
+### 12.1 R1：数据残差不是数值半径（`measure.cpp`）
+
+**数学。** 对最小二乘，精确解满足 `Dᵀr = 0`，于是 `D⁺r = (DᵀD)⁻¹Dᵀr ≡ 0`；`δθ = D⁺(δd − δDθ)` 与数据残差 `r` 无关。`‖r‖` 是统计量（噪声 + 模型失配，量级 `√m·σ`），把它加进确定性半径会把“数值包围”变成统计区间（这正是 R1）。
+浮点解算误差另有一个**可证**来源：算出的 `θ̂` 是某个扰动问题 `(D+δD)θ = d+δd` 的精确最小二乘解，且 `‖δd‖₂ ≤ γ‖d‖₂`、`‖δD‖_F ≤ γ‖D‖_F`，`γ = mε/(1−mε)`（Higham 最小二乘后向误差）。它与“声明区间”同型，可直接并入同一公式，不需要 `r`。
+
+**修改（`src/sources/measure.cpp`）。**
+- 新函数 `measure_flux_numerical_radius`（定义 `:135`，`measure_science_sources` 调用 `:740`）是半径的唯一实现：`radius_s = 1/(1−‖D⁺‖₂·‖δD‖_F) · ‖e_sᵀD⁺‖₂ · (‖δd‖ + ‖δD‖_F‖θ̂‖)`，其中 `‖δd‖ = data_norm + γ‖d‖₂`、`‖δD‖_F = design_norm + γ‖D‖_F`（Frobenius）。删除 `residual_norm`（旧 `:592-599`）。
+- `flux_certified` 只在每个半径有限且 `amplification/spectral/data_norm/design_norm` 全有限时置真（`:756`），否则清空端点并写 `numerical_flux_uncertified`（原有）。
+- 正规方程残差 `‖Dᵀr‖` 仍计算但只作诊断写入 assessment（`normal_equation_residual_D^T_r=`），不进半径；理由：它的围包本身需要同阶舍入界，`γ` 界才是可证形式。
+- 文件头注释（`:8-15`）与半径注释同步改写，明确“数据残差是统计量，`D⁺r=0`”。
+
+**修复前后数值（探针 A，`validation/normalize_probe2.cpp`；设计矩阵、解、行范数、旧半径由探针独立高斯消元复算，新半径调用生产函数链接）。**
+
+| 情形 | ‖r‖₂ | ‖Dᵀr‖ | 旧半径（含 ‖r‖） | 新半径 | 相对通量 |
+|---|---|---|---|---|---|
+| 合成 1 源+背景，160 行，噪声 σ=30 | 213.095 | 4.61e-11 | **1055.418 ADU** | **2.212e-08 ADU** | 2.35e-11（F=942.85） |
+
+```
+R1/A2 the statistical residual case is certified   PASS  F=942.850655 ||r||=213.095 ||D^T r||=4.610e-11
+  pre-fix radius=1055.418 new radius=2.212e-08 (new/F=2.35e-11) spectral=4.953
+R1/A2 the pre-fix radius was dominated by ||r||      PASS  pre-fix/new = 4.77e10
+R1/A2 the normal equation residual is a rounding defect PASS ||D^T r||/(||D||_F ||r||) = 1.710e-14
+R1/C2 the enclosure still contains the corner truths [8,12] PASS radius 2.000000000 interval [8.000000000,12.000000000]
+```
+
+**X01 量级估计（未跑 e2e，见 §20/U2）。** 按 review 的 X01 帧 00（m=1372、‖r‖≈1045、row_norm≈4.94）：`γ = 1372·2.22e-16 = 3.0e-13`，`‖d‖₂ ≈ 1.5e5`、`‖D‖_F ≈ 37`、`‖θ‖ ≈ 4e3` ⇒ 括号 ≈ `3.0e-13·(1.5e5 + 37·4e3) ≈ 9e-8`，半径 ≈ `4.94·9e-8 ≈ 4.4e-7 ADU`（相对 ≈5e-11）。即从“通量的 52–190%”回到**相对 1e-11 的浮点解算误差量级**；绝对量级随 `m·ε·‖d‖` 增长，不是固定的 1e-12。
+
+### 12.2 R1b：收缩因子用谱范数（`measure.cpp:226` 起）
+
+**数学。** 不动点论证需要 `‖D⁺‖₂`；`√p·max_s‖e_sᵀD⁺‖₂` 是合法上界（`‖Ax‖₂ ≤ √p max_i|row_iᵀx|`），但只用最大行范数不是。实现：`D⁺ = S⁻¹VΣ⁻¹Uᵀ` ⇒ `‖D⁺‖₂ = ‖S⁻¹VΣ⁻¹‖₂`；构造 p×p 的 `M = S⁻¹VΣ⁻¹`（p=sources+1），取其最大奇异值（`jacobi_svd`），再与解析界 `√p·max row norm` 取**较小值**（两者都是上界，取小仍合法；小矩阵 SVD 的误差因此不影响证书）。
+
+**反例（探针 A3，D=[[1,0],[0,1],[0.9,0.9],[0.9,0.900001]]，‖δD‖_F=1.001）：**
+
+```
+max row norm=0.786082, pre-fix contraction=0.786868 (certified)
+||D^+||_2=1.000000, spectral contraction=1.001000  -> refused (radius count 0)
+```
+
+旧规则 `0.786<1` 判可认证（半径有限、自称 enclosed），谱范数规则 `1.001>1` 直接拒绝——与 review 的“证明缺口”一致。另有 A4：`data_norm=NaN` 与 `design_norm=1e300` 都返回“不认证”。
+
+### 12.3 R2：母版角色不猜（`calibration_kernel.cpp`）
+
+**数学。** `x=(d−b−r(dk−b))/f`。`∂x/∂flat=−x/f`、`∂x/∂dk=−r/f`、`∂x/∂b=(r−1)/f` 或 `−1/f`。`gain` 不是 flat：`∂x/∂gain=−x/gain`，只在 `gain≡flat` 时相同；反例 flat=1、gain=0.5、σ=1 时用 flat 导数会把方差算成 `x²`，真实 `(2x)²`，**小 4 倍（非保守）**。
+
+**修改。**
+- `parse_master_role`（`:111`）替换原 `master_root_role`：仅接受 entity（可带 `master_` 前缀）为 `flat/flat_field`、`dark/dark_current`、`bias/offset`；`gain` 明确 unknown 并给出理由；角色写在 `component`（如 entity=`master`、component=`flat`）明确 unknown 并说明“entity 是唯一角色声明”。
+- 声明角色但对应数组缺失（`flat` 根而 `has_flat=false`、`dark` 根无 dark、`bias` 根无 bias）一律转 unknown（`:553-573`），不再用 `f=1` 的 `−x`、也不再静默零贡献。unknown 分支写 `UnknownTerm`（id 前缀 `master_root_role_unknown:`，reason 逐例不同）并把 noise state 降为 unknown（`:598`）。
+
+**探针 B（真实 `assemble_calibrated_native`；x=4、flat=2、σ_f=0.1 时 `(−x/f)²σ_f²=0.04`，raw 根 0.0025）。**
+
+```
+R2 the flat role still carries (-x/flat)^2 sigma_f^2   PASS  variance 0.042500000 expected 0.042500000
+R2 entity gain is unknown, not the flat derivative     PASS  shared roots 0 unknown terms 1
+R2 a flat root without a flat map is unknown, not -x   PASS  shared roots 0
+R2 a dark root without a dark map is unknown, not a silent zero PASS shared roots 0
+R2 a bias root without a bias map is unknown, not a silent zero PASS shared roots 0
+R2 a role in the component field is unknown and says so PASS unknown terms 1
+```
+
+对照修前：`gain` 走 flat 导数（σ=1 时方差 0.0025+4=4.0025 而非 unknown）、flat 根无 flat 数组时用 `−x`（σ=1 时 16，真实导数 0）、dark/bias 根无数组时权重全 0 且**无 unknown**。
+
+### 12.4 R3：fallback 必须重置为纯对角（`joint_fit.cpp:853`）
+
+**缺陷。** 前面帧写入的**非对角块**在后续帧缺 `joint_noise` 时不被清掉（旧代码只覆盖对角线），结果“部分帧相关、部分帧对角”，却记录“off diagonal terms are unknown, not zero”。
+
+**修改。** `counts_covariance = numerics::Matrix(problem.n_meas, problem.n_meas);` 再填对角；unknown 文案补“the blocks of every frame… were discarded, not partially kept”。
+
+**探针 C（2 帧、1 星；帧 0 两测 [100,110]、声明方差 4；帧 1 一测 [105]、方差 4）。** 手算对角 `χ²=(5²+5²)/4=12.5`；旧残差矩阵（对角被覆盖为 4、非对角 3 保留 ⇒ `[[4,3],[3,4]]`）沿 `(1,−1)` 方差 `4−3−3+4=2`、沿 `(1,1)` 为 14，`χ²=350/7=50`。
+
+```
+none    chi2=12.500000000 theta[0]=4.653960350
+partial chi2=12.500000000 theta[0]=4.653960350     （修复后 == 全对角）
+R3 the record says the earlier blocks were discarded PASS
+old residual matrix: chi2=50.002523000 (diagonal 12.500000000)   （差 4 倍；多出的 0.0025 是 working prior 的 Gaia 行）
+```
+
+### 12.5 R4：跨帧共享母版根 → 显式 unknown 交叉项（`joint_fit.cpp:287,300,900-940`）
+
+**数学。** 装配是逐帧块对角，等于假设不同帧的原生噪声根独立。共享母版根 `r` 破坏该假设：`Cov(F_k,F_l) = (∂F_k/∂r)(∂F_l/∂r)σ_r²`（flat 角色 `|∂F/∂r| = F/flat`），量级 `F_kF_lσ_r²`，**不是 0**。交叉项需要每帧根对通量的影响，块对角装配不携带它，故按合同（`photometry.fit.md`“共享校准根须作为全局 latent/稀疏耦合保留，不能删去交叉块”）记录为 unknown，而不是补一个猜的矩阵。
+
+**修改。** `shared_root_key`（`:287`）用 `external_namespace|entity|model_revision|component` 标识共享根；`frame_shared_roots` 从 `joint_noise->model` 与 `observation->noise` 收集；检测到同一 key 出现在 ≥2 帧即写 `unknown_terms`（“shared by the frames …; the cross frame block Cov(F_k,F_l) = (dF_k/dr)(dF_l/dr) sigma_r^2 is unknown, not zero”）与 `notes`（含精确小例与该组帧最大通量）。单帧持有同一根不记录。
+
+**探针 D。** 两帧各 1 测、共享 `master_flat` 根：
+
+```
+R4 the shared root of two frames is recorded as an unknown PASS  unknown terms 2
+R4 the record names the omitted cross covariance            PASS  Cov(F_k,F_l)
+R4 a single frame with the same root records nothing        PASS
+R4 the worked example: current 0 vs correct 100 ADU^2       PASS  Cov = F^2 sigma_f^2 = 100.000 ADU^2; block diagonal = 0.0
+```
+
+**当前值/应得值（σ_f=0.01、F=1000、两帧）**：块对角装配给 `Cov(F₁,F₂)=0`；应得 `=F²σ_f²=100 ADU²`（同根对每帧方差也是 100，故两帧经此根完全相关，其余噪声另加）。**未修**：交叉块本身仍未进入协方差（见 §21）。
+
+### 12.6 P1-2：working prior 的协方差状态（`joint_fit.cpp:992`、`api.cpp:670`）
+
+- `FitResult` 新增 `covariance_state_known`（`joint_fit.hpp:95`）：任何源缺 XP 协方差、latent 由等权 working prior 支撑时置 false（`joint_fit.cpp:992`）。
+- `api.cpp:670`：`noise_model->state = covariance_state_known ? known : unknown`；并追加 `UnknownTerm{parameter_covariance_uses_a_working_prior}`，**不带 influence**——已知方向仍可用（`covariance_apply` 不被整体拒绝），但 gauge 方向明确不是测量。assessment 因 `unknown_terms` 非空为 conditional。
+
+**探针 E：**
+
+```
+P1-2 the working prior marks the covariance conditional   PASS
+P1-2 a measured XP covariance keeps the covariance known  PASS
+P1-2 the published covariance model state is unknown      PASS  state 3 (unknown)
+P1-2 the working prior is an explicit unknown term        PASS
+P1-2 the covariance is still applicable on the measured directions PASS
+P1-2 the published science state is conditional           PASS
+```
+
+（`fit_photometry` 端到端：1 帧 1 星、缺 XP 协方差 ⇒ `PhotoSolution.covariance->model->state=unknown` 且保留可应用性。）
+
+### 12.7 P1-6：BUNIT 不再承载内部恒等（`fits_writer.cpp`）
+
+**修改。** 新 `FitsUnitText fits_unit_text(Unit)`（`:268`）与 `fits_unit_text_from_scale(text)`（`:298`），三个 writer 共用：导出图（`:530`）、HiPS tile 头（`:397,441`）、`properties`（`:552-558`）。
+- 若声明 scale **本身就是单位**（显式白名单：`L/sr`、`ADU`、`Jy`、`K`、`sr`…，或带 provider/fixture 前缀如 `fixture:L/sr` 时取冒号后的单位部分）→ `BUNIT` 写该单位。
+- 否则 `BUNIT` 只写由 Unit 合约可证的量纲（`linear_power` + sr/pixel/nm 逆幂），内部恒等写入 `ACSUNIT`，并写 `ACSSTD='nonstandard_model_unit'` 作为**显式非标准标记**（不伪装成标准单位）；HiPS `properties` 用 `hips_unit=`（同一标准量纲）+ `acsunit=` + `acsunit_standard=false`。
+
+**实测（`/tmp/unit_probe.cpp` 调用真实 `write_export_image` 后读 header）：**
+
+| 单元 scale | 修前 BUNIT | 修后 BUNIT | 附加卡 |
+|---|---|---|---|
+| `acsd.native:x01-00*scale/x01-scale*1/sr` | `acsd.native:x01-00*scale/x01-scale*1/sr`（非标准长串） | `ADU/SR` | `ACSUNIT=…^sr-1^L1`、`ACSSTD='nonstandard_model_unit'` |
+| `fixture:L/sr` | `fixture:L/sr` | `L/sr` | `ACSUNIT=fixture:L/sr^sr-1^L1` |
+| `1` | `1` | `1` | — |
+
+**副作用（需 Lead 处理）**：#112 的冻结证据 `validation/apps/evidence/export/export_evidence.json` 记录 `BUNIT: "fixture:L/sr"`；重跑该证据会得到 `L/sr`（同一物理单位、去掉夹具前缀）。这是对外部语义字段的**期望变化**，不是回归；该证据属于 #112 agent 的域，我未改。
+
+### 12.8 构建与实跑
+
+```bash
+cmake --build build/science -j16
+#   [73/74] Linking CXX executable acsd   （exit 0；期间一次 check_design 因其他 agent
+#   正在写 generated schema 而瞬时失败，随后同一命令通过）
+
+g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -frounding-math -mfpmath=sse \
+    -I src -I include validation/normalize_probe2.cpp \
+    -Wl,--start-group build/science/libsources.a build/science/libobservation.a \
+    build/science/libphotometry.a build/science/libresponse.a build/science/libcoordinates.a \
+    build/science/libcatalogue.a build/science/liboperators.a build/science/libuncertainty.a \
+    build/science/libnumerics.a build/science/libmodel.a build/science/libstorage.a \
+    build/science/libresources.a build/science/libruntime.a -Wl,--end-group -lpthread \
+    -o /tmp/normalize_probe2 && /tmp/normalize_probe2
+#   ALL PROBES PASS (0 failure(s))  —— 37 项（A 11 / B 6 / C 7 / D 6 / E 7）
+
+# 回归（每项 "pass": false 计数为 0）
+./build/science/acsd_process_sources.measure_measure                # 14 checks, 0 false
+./build/science/acsd_process_sources.psf_psf                        # 0 false
+./build/science/acsd_process_observation.regroup_regroup            # 0 false
+./build/science/acsd_process_photometry.fit_m5_process_plan         # 38 checks, 0 false
+./build/science/acsd_process_photometry.fit_x01_minimal_repro        # failures 0
+./build/science/acsd_process_coordinates.wcs_wcs                     # 0 false
+/tmp/normalize_probe1（第一轮探针，未改）                              # ALL PROBES PASS
+```
+
+### 12.9 未修项 / 风险 / 需 Lead 决定
+
+- **U9（R4 本体未实现）**：交叉块仍未进入 counts 协方差（只记录 unknown）。真正的修法需要把共享根的每帧影响（`I_k F_root`）从 `joint_noise` 取出并装配跨帧块；当前 `CovarianceAction` 只暴露 `I C Iᵀ` 的合成结果，不暴露根的单独影响，属 API 缺口。测量侧若要支持，需要 `SourceMeasurements` 保留每根对通量的影响（或 `CovarianceAction` 暴露按根的分解）。**在此之前 M-MEASURE 一类“共享根”用例的比值方差仍会低估。**
+- **U10（X01 e2e 未跑）**：半径从 O(F) 变到 1e-7 量级后，`photometry.fit` 的数值参数盒（`joint_fit.cpp:1372` 由 `0.5(high−low)+model_radius` 驱动）会收缩到 ~1e-11；点估计/χ²/协方差不变（不读该盒），`apply_scale` 的 α 区间随之变成纯数值区间（其 θ 随机影响已是 unknown）。**需要 Lead 跑 `python3 validation/x01/e2e_x01.py` 确认 `fit_photometry` 仍 `code=ok`、参数盒仍 `certified`（search 半径 ~4e-11 时二分仍可表示），并记录 e2e 数值变化。** 我无法在并发修改的工作树上跑 CLI。
+- **U11（`measure` 半径语义）**：`flux_certified=true` 现在只意味“线性求解 + 浮点后向误差”的数值包围，不再包含任何统计/模型误差；`assessment.science=bounded` 的下游含义依赖它（`photometry.fit` 的参数盒）。这与原审计的“数值/统计分账”一致，但任何把 bounded 读成“通量不确定度已知”的消费者都应改读 `flux.variance`（其 state 仍是 `observation->noise->state`）。
+- **U12（`γ` 界的假设）**：浮点项用 Higham 后向误差 `γ=mε/(1−mε)`，假设标准 IEEE 双精度、无 fast-math（本构建 `-fno-fast-math -ffp-contract=off`）。若将来开启 `-ffast-math` 或 FMA 收缩，该界需重证。
+- **U13（P1-2 的 gauge 伪方差仍在矩阵里）**：状态已 unknown，但 `covariance` 的 gauge 方向仍是 working prior 的值（~1/n）。P1-5 实现时必须先投影掉该方向，不能把矩阵直接当 `L_θ`。
+- **U14（P1-6 白名单）**：`is_standard_unit_token` 是显式白名单（34 个 token）。新物理单位（如 `W/m2/sr/nm`）会退回 `ADU`+非标准标记而不是伪装；若产品要写新单位，应扩白名单并同步 `OBSERVATION_COORDINATES`。
+
+### 12.10 §19 数据夹具缺陷（不在我的写域，只给修法与影响）
+
+1. **X01 dark 夹具 4.8 vs 480 ADU**：`validation/x01/input/cli/calibration.json` 的 `dark[0]=4.8`，而 `validation/x01/truth_x01.py:102-107` 注入 `12 e⁻/s × 100 s / gain = 480 ADU`。差值 475.2 ADU 被 β 吸收，通量不变，但 **N0 的 dark 单位/曝光比路径从未被检验**。修法：dark 母版改 480 ADU 并同步 `dark_exposure_seconds`（或显式声明该案 dark=0 并另建 N0 专项）。影响：修后 R2 的 dark 角色才有真实数据覆盖；不修则该路径只能算“代码审查通过”。
+2. **X01 XP 系数全 `[1,0,0]`**（`validation/x01/cli_inputs.py:91`）：注入星等按 `weight∈[0.7,1.0]` 变化，而模型 `C=a_k exp(bᵀθ)vᵀc_s` 在 constant basis 下对所有星预测同一通量，与数据差 15–30%。因此 **X01 的 `photometry.fit` 是按错配模型拟合**，`code=ok` 不能证明 gauge/绝对标度正确；也阻断 P1-2 的 gauge 验证（精确 gauge 会破坏该夹具）。修法：星表 `c_s ∝ weight`（或引入具名逐星幅度字段），并把真值 `flux` 与该系数一致；禁止用“修实现”迁就夹具。影响：修后 X01 才能验证绝对标度与 P1-2 的零方差方向。
+
+### 12.11 逐项对照（第二轮）
+
+| 项 | 状态 | 位置 | 证据 |
+|---|---|---|---|
+| R1 数据残差进半径 | **已修** | `measure.cpp:135,740,756` | 探针 A2：\|r\|=213 → 旧 1055 / 新 2.2e-8；‖Dᵀr‖/(‖D‖\|r\|)=1.7e-14 |
+| R1b 最大行范数当谱范数 | **已修** | `measure.cpp:226` | 探针 A3：谱范数 1.000（旧 0.786）→ 拒绝 |
+| R2 gain/缺数组/component 角色 | **已修** | `calibration_kernel.cpp:95,111,543-605` | 探针 B：6 例；有效 flat 方差 0.0425 不变 |
+| R3 fallback 残留非对角 | **已修** | `joint_fit.cpp:853` | 探针 C：partial==none（12.5）；旧残余矩阵 50.0025 |
+| R4 跨帧共享根 | **记录 unknown（本体未修）** | `joint_fit.cpp:287,300,900-940` | 探针 D：unknown+notes；0 vs 100 ADU² |
+| P1-2 working prior 冒充 known | **已修（状态+显式项）** | `joint_fit.cpp:992`、`api.cpp:670` | 探针 E：state=unknown、项存在、仍可 apply |
+| P1-6 BUNIT 泄漏 | **已修** | `fits_writer.cpp:229,268,298,397,441,530,552` | 实测三例：`ADU/SR`+ACSUNIT+ACSSTD / `L/sr` / `1` |
+| X01 dark 夹具 | 未修（域外） | `validation/x01/...` | §12.10 修法与影响 |
+| X01 XP 系数 | 未修（域外） | `cli_inputs.py:91` | §12.10 修法与影响 |

@@ -660,7 +660,28 @@ Result<Ref<PhotoSolution>> fit_photometry(Context& context,
     noise_model->condition = model::make_condition("photometric_scale", "joint_flux_gaussian");
     noise_model->shared_factors.push_back(root);
     noise_model->influence.push_back(val(identity_action));
-    noise_model->state = NoiseState::known;
+    // The state of the parameter covariance is the one of the fit, not an
+    // unconditional "known".  When a source had no measured XP covariance the
+    // latent was held by an equal WORKING PRIOR: the gauge direction
+    // (all log a_k shifted by the same delta with c_s scaled by exp(delta)) is
+    // fixed by that prior and is not measured.  Publishing the covariance as
+    // known would let a consumer treat the pseudo-information in that
+    // direction as a measured variance (defect P1-2).
+    noise_model->state = outcome.covariance_state_known ? NoiseState::known : NoiseState::unknown;
+    if (!outcome.covariance_state_known) {
+      // The unknown carries a reason but NO influence: the known part of the
+      // covariance stays available (covariance_apply remains meaningful for
+      // the measured directions) while the state and the record state that the
+      // gauge direction is not a measurement.
+      UnknownTerm prior_term;
+      prior_term.id = "parameter_covariance_uses_a_working_prior";
+      prior_term.reason =
+          "the XP coefficient covariance of at least one source was not supplied; the latent "
+          "spectral coefficients were held by an equal working weight (a working prior, NOT a "
+          "declared measurement covariance), so the absolute scale/gauge direction of this "
+          "parameter covariance is fixed by that prior and is not a measured covariance";
+      noise_model->unknown_terms.push_back(prior_term);
+    }
     Result<Ref<CovarianceAction>> covariance_action = make_covariance(context, noise_model);
     if (!ok(covariance_action)) {
       return model::fail<Ref<PhotoSolution>>(covariance_action.code, "the parameter covariance cannot be built",

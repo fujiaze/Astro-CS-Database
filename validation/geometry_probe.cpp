@@ -10,6 +10,7 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <chrono>
 #include <cstring>
 #include <memory>
 #include <span>
@@ -21,6 +22,7 @@
 #include "model/array.hpp"
 #include "model/result.hpp"
 #include "geometry/kernel.hpp"
+#include "geometry/profile.hpp"
 #include "model/units.hpp"
 #include "resources/cpu_resources.hpp"
 #include "storage/local_storage.hpp"
@@ -466,6 +468,190 @@ void probe_drizzle(Context& context) {
   }
 }
 
+// Declared below with the WCS probes.
+Ref<FootprintSet> probe_footprints(Ref<WcsModel> wcs, U64 width, U64 height, Mat2 matrix);
+
+// ---------------------------------------------------------------------------
+// Probe C2 (review R3): a leaf whose drop area lower bound is zero must not
+// publish a wrong point value.  Source 0 covers the leaf with a = A = 4 but
+// only A in [0,4] is certified (x=10); source 1 is normal A = a = 1 (x=0).
+// True w = (1,1), F = 10, N = 5, B = 2.
+// ---------------------------------------------------------------------------
+void probe_drizzle_azero(Context& context) {
+  std::printf("\n[C2] review R3: A_L = 0 point value\n");
+  auto overlaps = std::make_shared<Overlaps>();
+  auto first = std::make_shared<OverlapContribution>();
+  first->source = SourceIdentity{"probe", "exposure", "detector", "channel", 0};
+  first->leaf = HealpixLeaf{0, 0};
+  first->native_area = SphericalAreaInterval{4.0, 4.0};
+  first->drop_area = SphericalAreaInterval{0.0, 4.0};
+  first->overlap_area = SphericalAreaInterval{4.0, 4.0};
+  first->shared_geometry_constraints = "probe.constraints";
+  auto second = std::make_shared<OverlapContribution>();
+  second->source = SourceIdentity{"probe", "exposure", "detector", "channel", 1};
+  second->leaf = HealpixLeaf{0, 0};
+  second->native_area = SphericalAreaInterval{1.0, 1.0};
+  second->drop_area = SphericalAreaInterval{1.0, 1.0};
+  second->overlap_area = SphericalAreaInterval{1.0, 1.0};
+  second->shared_geometry_constraints = "probe.constraints";
+  overlaps->contributions.push_back(*first);
+  overlaps->contributions.push_back(*second);
+  overlaps->identity = model::make_identity("acsd.Overlaps", 2, 0, "probe.azero", "probe");
+  overlaps->assessment = model::make_assessment(Code::ok);
+  auto observation = std::make_shared<NativeObservation>();
+  observation->integrated_values =
+      val(store_f64(context, {10.0, 0.0}, model::unit_adu("ADU"), "probe.azero.x"));
+  observation->native_index = make_index(2);
+  observation->unit = model::unit_adu("ADU");
+  observation->identity = model::make_identity("acsd.NativeObservation", 2, 0, "probe.azero", "probe");
+  observation->assessment = model::make_assessment(Code::ok);
+  DrizzleRequest request;
+  request.order = 0;
+  request.pixfrac = 1.0;
+  request.budget.max_work = 1000;
+  request.budget.max_depth = 8;
+  request.budget.area_absolute_sr = 1e-9;
+  request.budget.arithmetic.initial_bits = 64;
+  request.budget.arithmetic.max_bits = 256;
+  Result<DrizzleResult> result = build_drizzle(context, overlaps, observation, request);
+  check("C2.1 the A_L=0 frame builds", ok(result),
+        ok(result) ? "" : "code " + std::to_string(static_cast<int>(result.code)));
+  if (!ok(result)) return;
+  const std::vector<double> signal = read_f64(context, val(result).estimate->signal);
+  const std::vector<double> lower = read_f64(context, val(result).estimate->numerical_lower);
+  const std::vector<double> upper = read_f64(context, val(result).estimate->numerical_upper);
+  check("C2.2 the published point value is 2 (not 1.666667)",
+        signal.size() == 1 && std::fabs(signal[0] - 2.0) < 1e-12,
+        signal.empty() ? "empty" : std::to_string(signal[0]));
+  check("C2.3 the interval still contains the true value 2",
+        lower.size() == 1 && upper.size() == 1 && lower[0] <= 2.0 && 2.0 <= upper[0],
+        lower.empty() ? "empty"
+                      : "[" + std::to_string(lower[0]) + "," + std::to_string(upper[0]) + "]");
+}
+
+// ---------------------------------------------------------------------------
+// Probe C3 (review R3d): the estimate assessment must follow the overlap
+// certification state.
+// ---------------------------------------------------------------------------
+void probe_estimate_status(Context& context) {
+  std::printf("\n[C3] review R3d: estimate follows the overlap status\n");
+  auto overlaps = std::make_shared<Overlaps>();
+  auto contribution = std::make_shared<OverlapContribution>();
+  contribution->source = SourceIdentity{"probe", "exposure", "detector", "channel", 0};
+  contribution->leaf = HealpixLeaf{0, 0};
+  contribution->native_area = SphericalAreaInterval{1.0, 1.0};
+  contribution->drop_area = SphericalAreaInterval{1.0, 1.0};
+  contribution->overlap_area = SphericalAreaInterval{1.0, 1.0};
+  contribution->shared_geometry_constraints = "probe.constraints";
+  overlaps->contributions.push_back(*contribution);
+  auto recipe = std::make_shared<GeometryRecipe>();
+  recipe->order = 0;
+  recipe->pixfrac = 1.0;
+  recipe->algorithm = "probe";
+  recipe->version = 2;
+  recipe->identity = model::make_identity("acsd.GeometryRecipe", 2, 0, "probe.recipe", "probe");
+  recipe->assessment = model::make_assessment(Code::ok);
+  overlaps->recipe = recipe;
+  overlaps->status.termination = Termination::depth;
+  overlaps->status.bound_validity = Validity::invalid;
+  overlaps->identity = model::make_identity("acsd.Overlaps", 2, 0, "probe.unconverged", "probe");
+  overlaps->assessment = model::make_assessment(Code::ok);
+  auto observation = std::make_shared<NativeObservation>();
+  observation->integrated_values =
+      val(store_f64(context, {2.0}, model::unit_adu("ADU"), "probe.status.x"));
+  observation->native_index = make_index(1);
+  observation->unit = model::unit_adu("ADU");
+  observation->identity = model::make_identity("acsd.NativeObservation", 2, 0, "probe.status", "probe");
+  observation->assessment = model::make_assessment(Code::ok);
+  DrizzleRequest request;
+  request.order = 0;
+  request.pixfrac = 1.0;
+  request.budget.max_work = 1000;
+  request.budget.max_depth = 8;
+  request.budget.area_absolute_sr = 1e-9;
+  request.budget.arithmetic.initial_bits = 64;
+  request.budget.arithmetic.max_bits = 256;
+  Result<DrizzleResult> result = build_drizzle(context, overlaps, observation, request);
+  check("C3.1 the unconverged frame builds", ok(result),
+        ok(result) ? "" : "code " + std::to_string(static_cast<int>(result.code)));
+  if (!ok(result)) return;
+  const Assessment& assessment = val(result).estimate->assessment;
+  check("C3.2 the estimate is not complete", !assessment.complete, "");
+  check("C3.3 the estimate science is unconverged",
+        assessment.science == ScienceState::unconverged,
+        std::to_string(static_cast<int>(assessment.science)));
+  check("C3.4 the estimate validity follows the overlap",
+        assessment.validity == Validity::invalid,
+        std::to_string(static_cast<int>(assessment.validity)));
+}
+
+// ---------------------------------------------------------------------------
+// Probe F (review §3.1): a pixel on a chart seam or on z = 2/3 is kept as a
+// bounded unresolved mass, not refined into the whole work budget, and the
+// polar containment fill is not triggered by a seam.
+// ---------------------------------------------------------------------------
+Ref<WcsModel> seam_wcs(bool on_z_branch) {
+  const double deg = kPi / 180.0;
+  auto wcs = std::make_shared<WcsModel>();
+  wcs->crpix_fits1 = Vec2{8.0, 8.0};
+  wcs->cd_rad_per_pixel = Mat2{0.5 * deg, 0.0, 0.0, 0.5 * deg};
+  const double ra = 45.0 * deg;
+  const double dec = on_z_branch ? std::asin(2.0 / 3.0) : 0.0;
+  wcs->c = Vec3{std::cos(dec) * std::cos(ra), std::cos(dec) * std::sin(ra), std::sin(dec)};
+  wcs->e = Vec3{-std::sin(ra), std::cos(ra), 0.0};
+  wcs->north = Vec3{-std::sin(dec) * std::cos(ra), -std::sin(dec) * std::sin(ra), std::cos(dec)};
+  wcs->domain = Box{{-0.5, -0.5}, {16.5, 16.5}};
+  wcs->detector_frame = "seam-probe";
+  wcs->identity = model::make_identity("acsd.WcsModel", 2, 0, "probe.seam.wcs", "probe");
+  wcs->assessment = model::make_assessment(Code::ok);
+  return wcs;
+}
+
+void probe_seam_bounded(Context& context) {
+  std::printf("\n[F] review §3.1: seam pixels are bounded, not budget-exhausting\n");
+  for (int branch = 0; branch < 2; ++branch) {
+    const char* name = branch == 0 ? "phi seam" : "z=2/3 seam";
+    Ref<WcsModel> wcs = seam_wcs(branch == 1);
+    Result<Ref<FootprintProvider>> provider = make_footprint_provider(context, wcs);
+    check((std::string("F.1 ") + name + " provider").c_str(), ok(provider), "");
+    if (!ok(provider)) continue;
+    auto set = probe_footprints(wcs, 16, 16, Mat2{1.0, 0.0, 0.0, 1.0});
+    // The reference point sits at the centre of pixel 7 (crpix = 8, u = x-7).
+    Result<Ref<DetectorFootprint>> footprint = detector_footprint(context, set, 7 * 16 + 7);
+    check((std::string("F.2 ") + name + " footprint").c_str(), ok(footprint), "");
+    if (!ok(footprint)) continue;
+    GeometryBudget budget;
+    budget.max_work = 20000;
+    budget.max_depth = 64;
+    budget.area_absolute_sr = 1e-12;
+    budget.arithmetic.initial_bits = 64;
+    budget.arithmetic.max_bits = 256;
+    geometry::reset_stage_counts();
+    const auto start = std::chrono::steady_clock::now();
+    Result<Ref<Overlaps>> overlaps =
+        compute_overlap(context, *val(provider), val(footprint), 6, 1.0, budget);
+    const double elapsed =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    check((std::string("F.3 ") + name + " overlap builds").c_str(), ok(overlaps),
+          ok(overlaps) ? "" : "code " + std::to_string(static_cast<int>(overlaps.code)));
+    if (!ok(overlaps)) continue;
+    const Termination termination = val(overlaps)->status.termination;
+    check((std::string("F.4 ") + name + " does not exhaust the work budget").c_str(),
+          termination != Termination::work, std::to_string(static_cast<int>(termination)));
+    check((std::string("F.5 ") + name + " work stays bounded").c_str(),
+          geometry::kernel_counts().blocks < 2000,
+          "blocks=" + std::to_string(geometry::kernel_counts().blocks));
+    check((std::string("F.6 ") + name + " contributions stay small (no polar fill)").c_str(),
+          val(overlaps)->contributions.size() < 512,
+          "contributions=" + std::to_string(val(overlaps)->contributions.size()));
+    std::printf("       %s: %.0f ms, work=%llu blocks=%llu contributions=%zu termination=%d\n",
+                name, elapsed * 1000.0,
+                static_cast<unsigned long long>(geometry::kernel_counts().work_units),
+                static_cast<unsigned long long>(geometry::kernel_counts().blocks),
+                val(overlaps)->contributions.size(), static_cast<int>(termination));
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Probe D: WCS based probes: rotated footprint, conservation, tolerance,
 // content hashes, refine replacement (audit P0-3/P1).
@@ -747,7 +933,10 @@ int main() {
   probe_chart_partials();
   probe_chart_leaf();
   probe_drizzle(context);
+  probe_drizzle_azero(context);
+  probe_estimate_status(context);
   probe_wcs_geometry(context);
+  probe_seam_bounded(context);
   probe_x01_geometry(context);
 
   std::printf("\n%s: %d failure(s)\n", failures == 0 ? "PROBES PASS" : "PROBES FAIL", failures);

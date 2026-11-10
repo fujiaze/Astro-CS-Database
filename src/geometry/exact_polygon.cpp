@@ -45,8 +45,8 @@ RationalPolygon clip_half_space(const RationalPolygon& polygon, const ExactFract
   return result;
 }
 
-Rational polygon_signed_area(const RationalPolygon& polygon) {
-  if (polygon.size() < 3) return Rational(0, 1);
+ExactFraction polygon_signed_area(const RationalPolygon& polygon) {
+  if (polygon.size() < 3) return ExactFraction(0, 1);
   ExactFraction total;
   const std::size_t count = polygon.size();
   for (std::size_t i = 0; i < count; ++i) {
@@ -54,11 +54,11 @@ Rational polygon_signed_area(const RationalPolygon& polygon) {
     const RationalPoint& b = polygon[(i + 1) % count];
     total = total + (a.x * b.y - b.x * a.y);
   }
-  return (total / ExactFraction(2)).to_rational();
+  return total / ExactFraction(2);
 }
 
-Rational polygon_moment_x(const RationalPolygon& polygon) {
-  if (polygon.size() < 3) return Rational(0, 1);
+ExactFraction polygon_moment_x(const RationalPolygon& polygon) {
+  if (polygon.size() < 3) return ExactFraction(0, 1);
   ExactFraction total;
   const std::size_t count = polygon.size();
   for (std::size_t i = 0; i < count; ++i) {
@@ -67,11 +67,11 @@ Rational polygon_moment_x(const RationalPolygon& polygon) {
     const ExactFraction cross = a.x * b.y - b.x * a.y;
     total = total + (a.x + b.x) * cross;
   }
-  return (total / ExactFraction(6)).to_rational();
+  return total / ExactFraction(6);
 }
 
-Rational polygon_moment_y(const RationalPolygon& polygon) {
-  if (polygon.size() < 3) return Rational(0, 1);
+ExactFraction polygon_moment_y(const RationalPolygon& polygon) {
+  if (polygon.size() < 3) return ExactFraction(0, 1);
   ExactFraction total;
   const std::size_t count = polygon.size();
   for (std::size_t i = 0; i < count; ++i) {
@@ -80,7 +80,7 @@ Rational polygon_moment_y(const RationalPolygon& polygon) {
     const ExactFraction cross = a.x * b.y - b.x * a.y;
     total = total + (a.y + b.y) * cross;
   }
-  return (total / ExactFraction(6)).to_rational();
+  return total / ExactFraction(6);
 }
 
 }  // namespace acsd::geometry

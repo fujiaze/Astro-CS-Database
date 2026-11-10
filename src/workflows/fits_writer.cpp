@@ -187,6 +187,134 @@ void append_header(const std::vector<HeaderCard>& cards, std::vector<std::string
   }
 }
 
+// ---------------------------------------------------------------------------
+// The FITS unit of a signal.
+//
+// BUNIT is an external FITS semantics field: it states the unit of the values,
+// not the identity of the internal model that produced them.  The rules are:
+//
+//   * BUNIT never carries an internal identity, a detector id or an
+//     application id such as "acsd.native:x01-00*scale/x01-scale".  A reader
+//     outside this project cannot interpret it and an external tool that tries
+//     to parse a unit would either reject the file or mis-parse the string.
+//   * If the declared scale IS a unit ("L/sr", "ADU", "Jy", possibly behind a
+//     fixture/provider prefix such as "fixture:L/sr"), that unit is written.
+//   * Otherwise the physical dimension really known from the Unit contract is
+//     written: the linear power (the signal of this pipeline is a detector
+//     linear signal, so ADU for linear power one) and the inverse powers of sr,
+//     pixel and nm.  A physical unit (Jy, L) needs a reference SED and is not
+//     claimed here.
+//
+// The exact internal scale is kept next to BUNIT in ACSUNIT and, when BUNIT is
+// not that unit, the non standard nature is stated explicitly in ACSSTD.  The
+// unit is never presented as a standard one when it is not.
+// ---------------------------------------------------------------------------
+struct FitsUnitText {
+  std::string bunit;    // the value of BUNIT
+  std::string acsunit;  // the exact internal unit text (empty when trivial)
+  bool nonstandard = false;
+};
+
+std::string lowercase_ascii(std::string text) {
+  for (char& c : text) {
+    if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+  }
+  return text;
+}
+
+// A standard unit token this writer can prove.  The list is explicit: a
+// detector identity ("detector0") or an internal unit ("acsd.native:...") is
+// not a unit and must not pass as one.  A physical unit (Jy, L) is accepted
+// here because the caller declared it; this writer never invents it.
+bool is_standard_unit_token(const std::string& text) {
+  const std::string token = lowercase_ascii(text);
+  static const char* const kUnits[] = {
+      "1",        "1/sr",      "adu",      "counts",  "count",   "photon",   "photons",
+      "e-",       "jy",        "jansky",   "mjy",     "ujy",     "mag",      "k",
+      "kelvin",   "s",         "sec",      "second",  "nm",      "um",       "a",
+      "angstrom", "sr",        "deg",      "l",       "l/sr",    "j/sr",
+      "erg/s/cm2/hz", "erg/s/cm^2/hz", "w/m2/hz", "w/m2/nm", "adu/sr", "rayleigh"};
+  for (const char* unit : kUnits) {
+    if (token == unit) return true;
+  }
+  return false;
+}
+
+// The unit part of a declared scale: the text itself, or the part behind the
+// provider/fixture prefix ("fixture:L/sr" -> "L/sr").  Empty when the scale is
+// an internal identity.
+std::string standard_unit_part(const std::string& scale) {
+  if (is_standard_unit_token(scale)) return scale;
+  const std::size_t colon = scale.rfind(':');
+  if (colon != std::string::npos) {
+    const std::string tail = scale.substr(colon + 1);
+    if (is_standard_unit_token(tail)) return tail;
+  }
+  return std::string();
+}
+
+std::string linear_power_base(int linear_power) {
+  if (linear_power == 0) return "1";
+  if (linear_power == 1) return "ADU";
+  return "ADU^" + std::to_string(linear_power);
+}
+
+void append_power_suffix(std::string& text, const char* name, int power) {
+  if (power == 0) return;
+  text += "/" + std::string(name);
+  if (power != -1) text += "^" + std::to_string(-power);
+}
+
+FitsUnitText fits_unit_text(const Unit& unit) {
+  FitsUnitText out;
+  out.bunit = linear_power_base(unit.linear_power);
+  append_power_suffix(out.bunit, "SR", unit.sr_power);
+  append_power_suffix(out.bunit, "PIXEL", unit.pixel_power);
+  append_power_suffix(out.bunit, "NM", unit.nm_power);
+  if (unit.scale.empty() || unit.scale == "1") return out;
+  const std::string exact = model::unit_to_string(unit);
+  const std::string declared = standard_unit_part(unit.scale);
+  if (!declared.empty()) {
+    // The scale is a unit (possibly behind a provider prefix): write it.
+    out.bunit = declared;
+    if (unit.sr_power < 0) {
+      const std::string lower = lowercase_ascii(declared);
+      const bool has_sr = lower.find("/sr") != std::string::npos ||
+                          lower.find("sr^-") != std::string::npos;
+      if (!has_sr) out.bunit += "/SR";
+    }
+    if (declared != unit.scale) out.acsunit = exact;
+    return out;
+  }
+  out.acsunit = exact;
+  out.nonstandard = true;
+  return out;
+}
+
+// The same decision when only the unit scale text is available (the HiPS tile
+// writer receives the identity string, not the Unit).  The "/sr" suffix is
+// still recovered from the text because the unit multiplication of this
+// pipeline records it there.
+FitsUnitText fits_unit_text_from_scale(const std::string& scale) {
+  FitsUnitText out;
+  if (scale.empty() || scale == "1") {
+    out.bunit = "1";
+    return out;
+  }
+  const std::string declared = standard_unit_part(scale);
+  if (!declared.empty()) {
+    out.bunit = declared;
+    if (declared != scale) out.acsunit = scale;
+    return out;
+  }
+  const bool per_sr = scale.find("/sr") != std::string::npos ||
+                      scale.find("sr^-1") != std::string::npos;
+  out.bunit = per_sr ? "ADU/SR" : "ADU";
+  out.acsunit = scale;
+  out.nonstandard = true;
+  return out;
+}
+
 }  // namespace
 
 Result<std::string> write_fits_image(const std::filesystem::path& path, U64 width, U64 height,
@@ -263,6 +391,10 @@ Result<std::string> write_hips_order(const std::filesystem::path& root, U32 orde
   }
 
   const U64 group_size = 10000;
+  // The unit of every tile of this order: BUNIT is a standard (dimension)
+  // expression, the exact internal scale stays in ACSUNIT with an explicit
+  // non standard marker.
+  const FitsUnitText unit_text = fits_unit_text_from_scale(bunit);
   for (U64 first = 0; first < tiles; first += group_size) {
     const U64 count = std::min(group_size, tiles - first);
     std::vector<double> pixels(static_cast<std::size_t>(tile_width) * tile_width * count,
@@ -305,7 +437,11 @@ Result<std::string> write_hips_order(const std::filesystem::path& root, U32 orde
         cards.emplace_back("CD1_2", numeric_value(-45.0 / n));
         cards.emplace_back("CD2_1", numeric_value(45.0 / n));
         cards.emplace_back("CD2_2", numeric_value(-45.0 / n));
-        cards.emplace_back("BUNIT", bunit);
+        cards.emplace_back("BUNIT", unit_text.bunit);
+        if (!unit_text.acsunit.empty()) cards.emplace_back("ACSUNIT", unit_text.acsunit);
+        if (unit_text.nonstandard) {
+          cards.emplace_back("ACSSTD", "nonstandard_model_unit");
+        }
       }
       for (U64 dy = 0; dy < tile_width; ++dy) {
         for (U64 dx = 0; dx < tile_width; ++dx) {
@@ -387,16 +523,14 @@ Result<std::string> write_export_image(Context& context, const std::filesystem::
   cards.emplace_back("CD1_2", numeric_value(wcs.cd_rad_per_pixel[1] * radians_to_degrees));
   cards.emplace_back("CD2_1", numeric_value(wcs.cd_rad_per_pixel[2] * radians_to_degrees));
   cards.emplace_back("CD2_2", numeric_value(wcs.cd_rad_per_pixel[3] * radians_to_degrees));
-  // BUNIT must stay a standard FITS unit.  A model scale such as
-  // "acsd.native:x01-00*scale/x01-scale" is not a FITS unit; it is written
-  // to the ACSUNIT card and BUNIT keeps the dimensionless/per-steradian
-  // standard form.  A reader that needs the exact model scale uses ACSUNIT.
-  std::string bunit = image.estimate->unit.sr_power < 0 ? "1/SR" : "1";
-  cards.emplace_back("BUNIT", bunit);
-  if (!image.estimate->unit.scale.empty() &&
-      image.estimate->unit.scale != "1") {
-    cards.emplace_back("ACSUNIT", image.estimate->unit.scale);
-  }
+  // BUNIT is the physical dimension of the signal and never the internal model
+  // identity.  The exact unit (with the applied photometric scale) is kept in
+  // ACSUNIT and the fact that it is not a standard FITS unit is stated in
+  // ACSSTD, so the unit is not disguised as a standard one (defect P1-6).
+  const FitsUnitText unit_text = fits_unit_text(image.estimate->unit);
+  cards.emplace_back("BUNIT", unit_text.bunit);
+  if (!unit_text.acsunit.empty()) cards.emplace_back("ACSUNIT", unit_text.acsunit);
+  if (unit_text.nonstandard) cards.emplace_back("ACSSTD", "nonstandard_model_unit");
   return write_fits_image(root / "signal.fits", width, height, values, cards);
 }
 
@@ -413,7 +547,15 @@ Result<std::string> write_hips_properties(const std::filesystem::path& root, U32
   text << "hips_builder=acsd-v2\n";
   text << "hips_version=2.0.0\n";
   text << "hips_data_release=2\n";
-  if (!bunit.empty()) text << "hips_unit=" << bunit << "\n";
+  // hips_unit is external metadata as well: it carries the same standard
+  // dimension, not the internal identity.  The exact unit and the explicit non
+  // standard flag stay in the acsunit/acsunit_standard keys.
+  const FitsUnitText unit_text = fits_unit_text_from_scale(bunit);
+  if (!unit_text.bunit.empty()) text << "hips_unit=" << unit_text.bunit << "\n";
+  if (!unit_text.acsunit.empty()) {
+    text << "acsunit=" << unit_text.acsunit << "\n";
+    text << "acsunit_standard=" << (unit_text.nonstandard ? "false" : "true") << "\n";
+  }
   const std::filesystem::path path = root / "properties";
   std::ofstream stream(path, std::ios::binary | std::ios::trunc);
   if (!stream) {

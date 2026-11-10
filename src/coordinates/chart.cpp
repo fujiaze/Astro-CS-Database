@@ -125,6 +125,10 @@ bool chart_partials(double z, double phi, double& ds_dz, double& ds_dphi, double
     // model and its residual bound wrong together (SPHERICAL_DRIZZLE section
     // 6.1, the chart partials must be the true ones).
     const double l = static_cast<double>(polar_longitude_constant(phi));
+    // The face longitude constant is recovered from the branch of the given
+    // longitude; a longitude outside that branch (an unnormalised RA) has no
+    // derivative in this face and must not be answered with a wrong one.
+    if (std::fabs(4.0 * phi / kPi - l) > 1.0) return false;
     const double dd_dz = (4.0 * phi / kPi - l) * dr_dz;
     const double dd_dphi = 4.0 * r / kPi;
     ds_dz = (-dr_dz + dd_dz) / 2.0;
@@ -140,6 +144,7 @@ bool chart_partials(double z, double phi, double& ds_dz, double& ds_dphi, double
     const double dr_dz = -dw_dz;
     // d = (4 phi / pi - L) w, so dd/dz = (4 phi / pi - L) dw/dz.
     const double l = static_cast<double>(polar_longitude_constant(phi));
+    if (std::fabs(4.0 * phi / kPi - l) > 1.0) return false;
     const double dd_dz = (4.0 * phi / kPi - l) * dw_dz;
     const double dd_dphi = 4.0 * w / kPi;
     ds_dz = (-dr_dz + dd_dz) / 2.0;
