@@ -152,10 +152,14 @@ def main() -> int:
         # of the background-limited B group.
         expectation = (model_rate(positions) + sky_level + DARK_RATE) * EXPOSURE
         variance = expectation + READ_RMS * READ_RMS  # electrons^2
-        # Convert to ADU^2: the measured model is in ADU = electrons / gain.
-        weights = np.array([GAIN * GAIN / variance[yy, xx] for yy, xx in rows])
-        normal = design.T @ (weights[:, None] * design)
-        covariance = np.linalg.inv(normal)
+        # sources.measure solves the unweighted (OLS) normal equations, so the
+        # covariance of its flux estimator is the sandwich
+        #   (D^T D)^-1 D^T diag(Var_adu) D (D^T D)^-1,
+        # not the GLS (D^T W D)^-1, which is only the efficient lower bound.
+        variance_adu = np.array([variance[yy, xx] / (GAIN * GAIN) for yy, xx in rows])
+        normal = design.T @ design
+        normal_inverse = np.linalg.inv(normal)
+        covariance = normal_inverse @ (design.T @ (variance_adu[:, None] * design)) @ normal_inverse
         sigma = np.sqrt(np.diag(covariance))
 
         truth_flux = []
@@ -215,8 +219,10 @@ def main() -> int:
             design[k, -1] = 1.0
         expectation = (model_rate(positions) + sky_level_of(frame)) * EXPOSURE
         variance = expectation + READ_RMS * READ_RMS
-        weights = np.array([GAIN * GAIN / variance[yy, xx] for yy, xx in rows])
-        covariance = np.linalg.inv(design.T @ (weights[:, None] * design))
+        variance_adu = np.array([variance[yy, xx] / (GAIN * GAIN) for yy, xx in rows])
+        normal = design.T @ design
+        normal_inverse = np.linalg.inv(normal)
+        covariance = normal_inverse @ (design.T @ (variance_adu[:, None] * design)) @ normal_inverse
         truth_flux = []
         for j, source in enumerate(field):
             rate = bright_rate if j == 0 else star_rate * source["weight"]
