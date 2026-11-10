@@ -211,3 +211,11 @@ max_abs_diff=2.84217e-14  max_abs=59.2686  rel=4.8e-16
 - `decode_support_map` 漏解码 support 数组引用，重开产品时 `states=null`，export 把所有几何重叠叶当作 supported；`states=0` 的叶仍导出非零。
 - `read_states` 读失败还静默返回空 vector，同样等于“全支持”。
 - 修复后：`states present=1`、`states=0` 叶导出 NaN；读失败具名拒绝。X01 full 在 `6889aa307` 通过，blind RMS 0.2109、48 残差 max|z|1.9007 不变。
+
+## 24. 第二十轮：coadd/sky 的 support 缺失不再默认全支持（2026-11-11，`7775f6a14`）
+
+export 的 P0（`6889aa307`）修复后，继续检查同一类“重开即放宽”：
+
+- `coadd::read_frame` 与 `sky::read_frame` 在 `query_support` 失败、support 为空或 `states` 为空时都 `assign(count,1)`，即把所有叶当 supported。权重和控制统计会静默使用生产者排除的行。
+- 两处现在都返回具名失败（`the frame publishes no support states`），不再默认 1。2 帧 full 链仍发布；X01 full 在 `7775f6a14` 通过，blind RMS 0.2109、48 残差 max|z|1.9007 不变。
+- 仍未处理的同类点：DQ 数组缺失时 coadd 的 `view.dq` 为空，选择是否把它当“全部质量良好”需单独审查（X01 有 DQ，不在本轮覆盖）。
