@@ -286,40 +286,15 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
     store_object(builder, estimate.error->identity.object_id, "acsd.ErrorRecord",
                  workflows::encode_error_record(*estimate.error));
   }
-  // The covariance closure may contain an action that the product cannot
-  // reopen (the public interface exposes no child list).  That degrades the
-  // noise to unknown: the signal and the estimate stay publishable and the
-  // omission is named, instead of publishing an estimate reference whose
-  // object was never written.
+  // The product reader has no LinearAction opener yet, so a stored
+  // CovarianceAction could be written but never reopened.  Publishing it
+  // would overstate the closure.  The noise stays unknown (null), which is
+  // the honest state and never zero variance, and the omission is named.
   SignalEstimate effective = estimate;
   if (estimate.noise) {
-    bool noise_complete = true;
-    if (estimate.noise->model) {
-      Result<std::string> model = collect_noise(context, builder, *estimate.noise->model);
-      if (!ok(model)) {
-        noise_complete = false;
-        builder.omitted.push_back(
-            "the covariance model is not reopenable: " +
-            (model.assessment.issues.empty() ? std::string("the closure is incomplete")
-                                             : model.assessment.issues.front().reason));
-      }
-    }
-    if (noise_complete && estimate.noise->influence) {
-      Result<std::string> action = collect_action(context, builder, *estimate.noise->influence);
-      if (!ok(action)) {
-        noise_complete = false;
-        builder.omitted.push_back(
-            "the covariance influence is not reopenable: " +
-            (action.assessment.issues.empty() ? std::string("the closure is incomplete")
-                                              : action.assessment.issues.front().reason));
-      }
-    }
-    if (noise_complete) {
-      store_object(builder, estimate.noise->identity.object_id, "acsd.CovarianceAction",
-                   workflows::encode_covariance_action(*estimate.noise));
-    } else {
-      effective.noise = nullptr;  // null means unknown, never zero variance
-    }
+    builder.omitted.push_back(
+        "the covariance action is not reopenable: the product carries no LinearAction reader");
+    effective.noise = nullptr;  // null means unknown, never zero variance
   }
   store_object(builder, effective.identity.object_id, "acsd.SignalEstimate",
                workflows::encode_signal_estimate(effective));
@@ -489,8 +464,23 @@ class ProductReader {
       return fail<Ref<SpatialResponse>>(payload.code, payload.assessment.issues.front().reason,
                                         "product.read", "the product cannot be reopened");
     }
-    auto result = std::make_shared<SpatialResponse>(
-        workflows::decode_spatial_response(val(payload)));
+    SpatialResponse response = workflows::decode_spatial_response(val(payload));
+    const auto array_ref = [&](const char* key) {
+      return workflows::decode_ref(val(payload).contains(key) ? val(payload).at(key)
+                                                              : json(nullptr));
+    };
+    for (const auto& link : {std::make_pair(array_ref("weights"), &response.weights),
+                             std::make_pair(array_ref("reference_factors"),
+                                            &response.reference_factors)}) {
+      if (link.first.empty()) continue;
+      Result<ArrayRef> array = this->array(link.first);
+      if (!ok(array)) {
+        return fail<Ref<SpatialResponse>>(array.code, "the response array cannot be reopened",
+                                          "product.read", "the product cannot be reopened");
+      }
+      *link.second = val(array);
+    }
+    auto result = std::make_shared<SpatialResponse>(response);
     return ok_result(std::shared_ptr<const SpatialResponse>(result));
   }
 
@@ -937,7 +927,13 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
   manifest.arithmetic.allow_target_fallback = true;
   manifest.assessment = graph->assessment;
   manifest.assessment.execution = ExecutionState::complete;
-  manifest.assessment.complete = true;
+  // `complete` describes the scientific closure, not the fact that the files
+  // were written.  A named omission makes the closure conditional instead of
+  // silently upgrading it to complete.
+  manifest.assessment.complete = builder.omitted.empty();
+  if (!builder.omitted.empty()) {
+    manifest.assessment.science = ScienceState::conditional;
+  }
 
   manifest.complete = false;
   Result<std::string> staging_manifest =
