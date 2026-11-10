@@ -14,6 +14,8 @@
 
 #include <fitsio.h>
 
+#include <acsd/runtime/process.hpp>
+
 #include "model/array.hpp"
 #include "model/hash.hpp"
 #include "model/result.hpp"
@@ -301,6 +303,46 @@ int exit_code_of(Code code) {
     case Code::selection_unresolved: return kPartial;
   }
   return kFailure;
+}
+
+// ---------------------------------------------------------------------------
+// The one process Runtime of a command
+// ---------------------------------------------------------------------------
+
+// P0-3 / P0-5: the command line owns the single process Runtime.  It is created
+// here, once, from the user's Limits (resources.bytes/work/threads/spill_bytes/
+// scratch_directory) before any workflow runs.  Every workflow that later asks
+// for a runtime receives this same ledger and CPU pool, because
+// rt::make_services answers a second request with the live instance instead of
+// building another independent pool.  Consequences:
+//   * no workflow hard-coded budget (1 GiB / 2 tokens / 4e9 work) can become
+//     the effective budget: its command/invocation ceilings are clamped to this
+//     process scope and can never widen it;
+//   * no second CPU pool can exist in the process (the only threads are the
+//     ones created here, sized by Limits.threads);
+//   * Limits.bytes is the H that Host admission actually tests.
+// The returned service must stay alive until every workflow call of the command
+// returned; the caller holds it for exactly that long.
+Result<std::shared_ptr<rt::Services>> open_process_runtime(const Config& config) {
+  rt::PoolConfig pool;
+  pool.cpu_threads = std::max<U32>(1, config.resources.threads);
+  // One blocking reader and one writer: the first-phase I/O lane of SCHEDULER.
+  pool.read_slots = 1;
+  pool.write_slots = 1;
+  pool.process.ceiling.host_bytes = config.resources.bytes;
+  pool.process.ceiling.pinned_bytes = 0;
+  pool.process.ceiling.device_bytes = 0;
+  pool.process.ceiling.spill_bytes = config.resources.spill_bytes;
+  pool.process.ceiling.cpu_tokens = pool.cpu_threads;
+  pool.process.ceiling.io_slots = pool.read_slots + pool.write_slots;
+  pool.process.max_work = config.resources.work;
+  if (!config.resources.scratch_directory.empty()) {
+    // The user's spill root is relative to the configuration file, never to the
+    // process working directory (API: "配置路径相对config所在目录").
+    pool.scratch_root =
+        (config.base / config.resources.scratch_directory).lexically_normal().string();
+  }
+  return rt::make_services(pool);
 }
 
 // The run summary of one command.
@@ -950,6 +992,19 @@ int run_export(Config& config, EventWriter& events, CancellationSource& cancella
   resources::CpuResources resources(config.resources);
   storage::LocalStorage storage;
   Context context{resources, cancellation, storage};
+  // The single process Runtime of this command: created from the user's
+  // Limits before the workflow, so the workflow inherits exactly this ledger.
+  Result<std::shared_ptr<rt::Services>> runtime = open_process_runtime(config);
+  if (!runtime.value) {
+    const std::string reason = runtime.assessment.issues.empty()
+                                   ? "the runtime budget cannot be established"
+                                   : runtime.assessment.issues.front().reason;
+    events.issue(code_name(runtime.code), reason);
+    events.run_finished(exit_code_of(runtime.code),
+                        make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                     json::array()));
+    return exit_code_of(runtime.code);
+  }
 
   PublishRequest publish;
   publish.destination = (config.base / config.output).string();
@@ -1035,6 +1090,19 @@ int run_normalize(Config& config, EventWriter& events, CancellationSource& cance
   resources::CpuResources resources(config.resources);
   storage::LocalStorage storage;
   Context context{resources, cancellation, storage};
+  // The single process Runtime of this command: created from the user's
+  // Limits before the workflow, so the workflow inherits exactly this ledger.
+  Result<std::shared_ptr<rt::Services>> runtime = open_process_runtime(config);
+  if (!runtime.value) {
+    const std::string reason = runtime.assessment.issues.empty()
+                                   ? "the runtime budget cannot be established"
+                                   : runtime.assessment.issues.front().reason;
+    events.issue(code_name(runtime.code), reason);
+    events.run_finished(exit_code_of(runtime.code),
+                        make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                     json::array()));
+    return exit_code_of(runtime.code);
+  }
 
   // The catalogue of the run.
   const std::filesystem::path catalogue_path = config.base / config.catalogue;
@@ -1247,6 +1315,19 @@ int run_mosaic(Config& config, EventWriter& events, CancellationSource& cancella
   resources::CpuResources resources(config.resources);
   storage::LocalStorage storage;
   Context context{resources, cancellation, storage};
+  // The single process Runtime of this command: created from the user's
+  // Limits before the workflow, so the workflow inherits exactly this ledger.
+  Result<std::shared_ptr<rt::Services>> runtime = open_process_runtime(config);
+  if (!runtime.value) {
+    const std::string reason = runtime.assessment.issues.empty()
+                                   ? "the runtime budget cannot be established"
+                                   : runtime.assessment.issues.front().reason;
+    events.issue(code_name(runtime.code), reason);
+    events.run_finished(exit_code_of(runtime.code),
+                        make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                     json::array()));
+    return exit_code_of(runtime.code);
+  }
 
   PublishRequest publish;
   publish.destination = (config.base / config.output).string();
