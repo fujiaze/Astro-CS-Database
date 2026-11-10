@@ -27,8 +27,16 @@ constexpr const char* kOrigin = "bind_wcs";
 // and the revision number change.
 Identity revise(const Identity& parent, const std::string& payload) {
   Identity identity = parent;
-  identity.content_hash = model::content_id(model::sha256_hex(payload));
+  // The revision identity must cover the parent content as well: two native
+  // observations with the same frame and sample count but different pixel
+  // values are different objects.  Hashing only the tag/frame/count/kernel
+  // made them collide.
+  const std::string hex = model::sha256_hex(
+      payload + "|parent:" + parent.content_hash + "|revision:" +
+      std::to_string(parent.revision));
+  identity.content_hash = model::content_id(hex);
   identity.revision = parent.revision + 1;
+  identity.object_id = parent.schema_id + ":" + hex;
   return identity;
 }
 
@@ -92,9 +100,15 @@ Result<Ref<NativeObservation>> bind_wcs(Context& context, Ref<NativeObservation>
 
   auto bound = std::make_shared<NativeObservation>(*observation);
   bound->footprints = footprints;
-  bound->identity = revise(observation->identity,
-                            describe("native", observation->frame, observation->native_index->size) +
-                                ":" + wcs->identity.content_hash);
+  bound->identity = revise(
+      observation->identity,
+      describe("native", observation->frame,
+               observation->native_index ? observation->native_index->size : 0) +
+          ":" + (observation->integrated_values
+                     ? observation->integrated_values->identity.content_hash
+                     : Id()) +
+          ":" + (observation->dq ? observation->dq->identity.content_hash : Id()) +
+          ":" + wcs->identity.content_hash);
   bound->assessment = observation->assessment;
   bound->assessment.complete = true;
   model::set_included(bound->assessment, "wcs_bound_to_the_observation");
@@ -187,10 +201,15 @@ Result<Ref<NativeObservation>> bind_observation_model(Context& context,
   auto bound = std::make_shared<NativeObservation>(*observation);
   bound->kernel = kernel;
   bound->response = response;
-  bound->identity = revise(observation->identity,
-                            describe("native", observation->frame, observation->native_index->size) +
-                                ":" + kernel->identity.content_hash + ":" +
-                                response->identity.content_hash);
+  bound->identity = revise(
+      observation->identity,
+      describe("native", observation->frame,
+               observation->native_index ? observation->native_index->size : 0) +
+          ":" + (observation->integrated_values
+                     ? observation->integrated_values->identity.content_hash
+                     : Id()) +
+          ":" + (observation->dq ? observation->dq->identity.content_hash : Id()) +
+          ":" + kernel->identity.content_hash + ":" + response->identity.content_hash);
   bound->assessment = observation->assessment;
   bound->assessment.complete = true;
   model::set_included(bound->assessment, "psf_kernel_bound");

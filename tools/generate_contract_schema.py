@@ -103,7 +103,7 @@ for name, (base, body) in structs.items():
         statement = statement.strip()
         if not statement or '(' in statement or statement.startswith('virtual'):
             continue
-        nested = re.fullmatch(r'enum\s+class\s+(\w+)\s*\{([^}]+)\}\s*(\w+)', statement, re.S)
+        nested = re.fullmatch(r'enum\s+class\s+(\w+)\s*\{([^}]+)\}\s*(\w+)(?:\s*=\s*\w+(?:::\w+)?)?', statement, re.S)
         if nested:
             field = nested.group(3)
             properties[field] = {'enum': enums[name + '::' + nested.group(1)]}
@@ -124,7 +124,7 @@ for name, (base, body) in structs.items():
             # A declarator may carry a default initialiser, for example
             # `Vec2 center{0.0,0.0}`.  The default is a C++ detail of the
             # declaration and does not change the wire shape.
-            field = field.split('{', 1)[0].strip()
+            field = field.split('{', 1)[0].split('=', 1)[0].strip()
             if not re.fullmatch(r'\w+', field):
                 raise ValueError(f'Unparsed declarator {name}: {field}')
             properties[field] = type_schema(cpp, name)

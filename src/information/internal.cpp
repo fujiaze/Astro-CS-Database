@@ -149,7 +149,12 @@ Result<Matrix> dense_action(Context& context, Ref<LinearAction> action, U64 rows
 }
 
 bool covariance_has_unknown_term(Ref<CovarianceAction> covariance) {
-  if (!covariance || !covariance->model) return false;
+  if (!covariance || !covariance->model) return true;
+  // A model that is not known is not a covariance: its omitted terms may have
+  // no explicit influence (a working prior, a missing shared root) and the
+  // state still says the complete variance is unknown.
+  if (covariance->model->state != NoiseState::known) return true;
+  if (covariance->assessment.noise == NoiseState::unknown) return true;
   for (const UnknownTerm& term : covariance->model->unknown_terms) {
     if (term.influence) return true;
   }

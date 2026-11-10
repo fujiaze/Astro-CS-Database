@@ -298,6 +298,7 @@ Result<Ref<NativeObservation>> apply_scale(Context& context, Ref<PhotoSolution> 
   // measured.  Fix the gauge by making the frame median factor one, so the
   // corrected frame stays in the same relative scale instead of inheriting an
   // arbitrary 1/q magnitude.  Covariance is scaled with the same factors.
+  bool gauge_applied = false;
   if (!factors.empty()) {
     std::vector<double> sorted = factors;
     std::sort(sorted.begin(), sorted.end());
@@ -306,6 +307,7 @@ Result<Ref<NativeObservation>> apply_scale(Context& context, Ref<PhotoSolution> 
       for (double& value : factors) value /= gauge;
       for (double& value : factor_low) value /= gauge;
       for (double& value : factor_high) value /= gauge;
+      gauge_applied = true;
     }
   }
   // The signal: the factor acts on the root samples, the physical regrouping
@@ -554,6 +556,15 @@ Result<Ref<NativeObservation>> apply_scale(Context& context, Ref<PhotoSolution> 
   model::set_included(scaled_observation->assessment, "noise_chain_scaled_with_the_same_factor");
   model::set_included(scaled_observation->assessment,
                       "the_unit_names_the_applied_photometric_scale: " + scaled_unit.scale);
+  if (gauge_applied) {
+    // The absolute photometric zero point is degenerate with the response
+    // normalisation (GAIA_RESPONSE §1/§3.1).  Only the relative scale is
+    // measured here; the frame median is a declared gauge, not a calibration.
+    model::set_included(scaled_observation->assessment,
+                        "scale_gauge=frame_median_of_the_spatial_factors");
+    model::set_omitted(scaled_observation->assessment,
+                       "the_absolute_photometric_zero_point_is_not_measured");
+  }
   // P1-5: the random influence of the fitted parameters on the image,
   //   d x' / d root = -diag(alpha x) H L_theta,   then the transfer G,
   // is NOT in the scaled noise model.  The published parameter covariance of

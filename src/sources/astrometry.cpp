@@ -613,6 +613,16 @@ Result<Ref<AstrometricSolution>> solve_astrometry(Context& context, Ref<NativeOb
     query.regions = request.regions;
     query.page_size = 4096;
     Result<QuadPage> candidates = catalogue.query_quads(context, query);
+    if (!ok(candidates)) {
+      if (candidates.code == Code::cancelled || candidates.code == Code::resource_exhausted) {
+        return model::fail<Ref<AstrometricSolution>>(
+            candidates.code, "the quad catalogue query did not complete", "astrometry",
+            "the blind solve cannot continue");
+      }
+      // A malformed/unsupported query is a failed hypothesis, not an empty
+      // optional to dereference.
+      continue;
+    }
 
     for (const QuadMatch& match : val(candidates).matches) {
       const Vec3 centre{match.center.nx, match.center.ny, match.center.nz};

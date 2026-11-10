@@ -99,6 +99,18 @@ class MetaAction final : public LinearAction {
     out.value = std::vector<Id>{};
     return out;
   }
+  Result<std::vector<ArrayRef>> dependency_arrays() const override {
+    Result<std::vector<ArrayRef>> out;
+    out.code = Code::ok;
+    out.value = std::vector<ArrayRef>{};
+    return out;
+  }
+  Result<std::vector<Ref<LinearAction>>> dependency_children() const override {
+    Result<std::vector<Ref<LinearAction>>> out;
+    out.code = Code::ok;
+    out.value = std::vector<Ref<LinearAction>>{};
+    return out;
+  }
   Result<ActionRecipe> serialize_recipe() const override {
     Result<ActionRecipe> out;
     out.code = Code::unsupported;
