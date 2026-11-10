@@ -190,3 +190,14 @@ factor_kind=diagonal (16384), influence_kind=compose
   \]
   `max_abs_diff=2.84e-14`，`max_abs=91.13`，相对差 **3.12e-16**。
 - 这说明 export 的协方差语义确实是 `Q C Qᵀ`（含 shared/cross 项），不是逐叶对角化或丢弃投影相关。
+
+### X01 全链上的同一验证（`177fde19c`）
+
+X01 `product_profile=full` 通过（normalize 8/8、mosaic 1、export 1），blind RMS 0.2109、48 残差 max|z|1.9007 不变。对 X01 mosaic/export 产品运行同一探针：
+
+```
+npix=16384 nleaf=1
+max_abs_diff=2.84217e-14  max_abs=59.2686  rel=4.8e-16
+```
+
+即 X01 的导出协方差确实等于 `Q C_leaf Qᵀ`，而不是逐叶独立或漏掉 cross 项。
