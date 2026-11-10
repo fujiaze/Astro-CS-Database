@@ -136,3 +136,9 @@ X01 在 `3fa331a90` 再次全链通过（signal_only）：normalize 8/8、mosaic
   - 2×2、CRPIX=(0.5,0.5)、CD 旋转 30°：rel 2.56e-7；
   - 2×2、CRPIX=(0.3,0.7)、CD 旋转 30°：rel 2.45e-7。
 - 说明：X01 最新全链证据仍在 `7b470005`（本轮改动不在 X01 链上）；B5 仍缺部分支持、镜像 CD、跨 face、极大像元与重复 pixfrac。
+
+## 17. 第十三轮：information 解析与镜像 CD（2026-11-11，`65a9acb21`）
+
+- `validation/process/information.reference/information_reference.cpp`：\(C=\mathrm{diag}(4,9)\)、\(h=[1,0]\)，`estimate_flux_information` 给 \(V_F=4\) 精确；把 `NoiseModel.state` 改为 unknown 后 `V_F=nullopt/unknown`。补上 information.reference 的独立数值证据（仍非完整 process driver）。
+- B5 镜像 CD：`export_grid_probe` 增加 det>0 模式；2×2、CRPIX=(0.3,0.7)、CD 旋转 30° 镜像，export sum 与 Astropy 球面面积相对差 3.57e-8。
+- X01 最新全链通过仍在 `7b470005`；本轮改动不在 X01 链上。
