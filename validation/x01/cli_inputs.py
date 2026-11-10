@@ -407,9 +407,14 @@ def export_scientific() -> Dict[str, Any]:
 
 
 def resources() -> Dict[str, Any]:
+    # The work budget is a resource input, not a scientific tolerance.  The
+    # old 1e7 was never enforced by the workflow; with the runtime ledger
+    # wired, the per-pixel geometry consumes about 1e7 work per frame, so a
+    # 100M budget is the measured two-frame cost (2e7) with a conservative
+    # margin for eight frames.  See docs/audit/x01-photometry-statistical-analysis.md.
     return {
         "bytes": 268435456,
-        "work": 10000000,
+        "work": 100000000,
         "spill_bytes": 0,
         "threads": 1,
         "max_depth": 32,
