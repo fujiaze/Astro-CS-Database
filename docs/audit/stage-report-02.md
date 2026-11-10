@@ -105,3 +105,13 @@ X01 在 `677e1a808` 再次全链通过：normalize 8/8、mosaic 1、export 1，b
 - **B5 常场解析 Oracle（新证据）**：`validation/projection/export_constant_probe.cpp` 发布单叶常面亮度产品，1×1 TAN 像元 `supported_flux = b0·|det CD|`（相对误差 1.76e-11）、`supported_mean = b0`；远离叶的像元返回 **NaN**（非 0）。这验证 Q 定义、pixfrac=1、mean/flux 区分与无支持语义。
 - **D0 四语义映射**：`docs/audit/d0-error-semantics.md` 把确定数值包围/随机统计/物理系统偏差/未知映射到 `Interval`、`CovarianceAction`、`ErrorRecord`、`UnknownTerm/noise=null`，并列出数据残差进半径、unknown 填零、逐叶对角化等反例；D0 仍因 full 协方差端到端未闭合而不能 PASS。
 - **C0 22 Process 审计**：已启动独立审查（报告 `docs/audit/c0-process-audit.md` 由 subagent 产出），本轮结束时尚未返回；下一轮收集其 P0/P1 并按序修复。
+
+## 13. 第九轮：C0 P0 修复（2026-11-11，`3fa331a90`）
+
+C0 审计报告 `docs/audit/c0-process-audit.md` 返回 2 个 P0、若干 P1；本轮关闭：
+
+- **P0-1 bind 身份**：`revise` 纳入父 content_hash/revision 并更新 object_id；`bind_wcs`/`bind_observation_model` payload 纳入 integrated_values/dq 数组哈希。探针 `validation/observation/bind_identity_probe.cpp`：同 frame/index/parent、不同像素值 → 不同 hash（修复前相同）。
+- **P0-2 全量构建**：`MetaAction` 补 `dependency_arrays/children`；schema 生成器解析默认初值与 nested enum 默认。`python3 tools/generate_contract_schema.py` 输出 302 defs/79 variants；`cmake --build build/science -j8` 全量通过；typed_smoke 1255、host_lifecycle 66。
+- **P1**：apply_scale 记录 frame-median gauge 与绝对零点未测；astrometry 检查 `query_quads` 后再解引用；information 把非 known 协方差视为 unknown。
+
+X01 在 `3fa331a90` 再次全链通过（signal_only）：normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007，旧 5% 失败保留。C0 其余 P1（bind 域检查、regroup 维度/区间、export 数值界、information 单位、11 个无 driver process）仍开。
