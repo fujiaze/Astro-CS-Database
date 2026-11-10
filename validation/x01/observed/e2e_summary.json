@@ -1,6 +1,6 @@
 {
  "status": "pass",
- "git_commit": "177fde19cec79dcd0f3df5ee27fa919e091582fc",
+ "git_commit": "f3b72c3eab3a72f8e541376ade4aa0b110729b56",
  "binary_sha256": "177be0353a2e2b1c914d1a51b3f50558dfc8cc85119c3b77672c1361c6430870",
  "frame_hashes": {
   "frame_00_A.fits": "9f7bb23aeb7cf9115023ee19be0cae670bb96d77c3922441ae1ba1f8480fff75",

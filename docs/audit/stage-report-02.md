@@ -201,3 +201,7 @@ max_abs_diff=2.84217e-14  max_abs=59.2686  rel=4.8e-16
 ```
 
 即 X01 的导出协方差确实等于 `Q C_leaf Qᵀ`，而不是逐叶独立或漏掉 cross 项。
+
+## 22. 第十八轮：X01 dark 夹具（2026-11-11，`f3b72c3ea`）
+
+`calibration.json` 的 dark 从 4.8 ADU 改为 truth 对应的 480 ADU（`12 e⁻/s × 100 s / 2.5`），曝光时间同为 100 s。此前 475.2 ADU 被 β 吸收，N0 的 dark 路径未被真实覆盖。X01 full 全链在 `f3b72c3ea` 仍通过，blind RMS/48 残差不变；dark 路径现在有数据覆盖。

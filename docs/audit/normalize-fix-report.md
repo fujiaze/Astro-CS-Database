@@ -430,3 +430,9 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -frounding-math -mfpmath=sse
 ## 14. Lead 修正：X01 产品量级与 fittable gauge（2026-11-11）
 
 审计发现 X01 normalize 产品 signal 达 \(5\times10^{29}\) ADU/sr，根因是 `apply_scale` 直接使用绝对 \(1/a\)：合成谱系数为 O(1) 时 \(q\sim10^{19}\)，fit 的 \(a\) 吸收该量级，\(\alpha\) 变成 \(2.3\times10^{16}\)。绝对标度在无物理响应锚时不可辨识，因此改为帧内中位数 gauge（\(\alpha/\mathrm{median}\,\alpha\)），协方差同因子缩放；同帧 signal 回到 \(8.8\times10^{13}\) ADU/sr（2800 ADU/pix ÷ 2.35e-11 sr），量级正确。同时把 X01 `xp_coefficients` 从全 `[1,0,0]` 改为 `[weight,0,0]`，消除夹具与注入亮度 \(0.7\)–\(1.0\) 的错配。该修正不改变 measured_stars 或旧 5% 失败；Export 的物理量级此前因此错误，B5 必须在新量级上重验。
+
+## 19. X01 dark 夹具修复（2026-11-11，`f3b72c3ea`）
+
+- truth：`dark_level=12 e⁻/s`、`exposure=100 s`、`gain=2.5 e⁻/ADU` ⇒ `12×100/2.5 = 480 ADU`。
+- 旧 `calibration.json` 的 `dark=4.8 ADU`，只扣掉 4.8，剩余 475.2 ADU 被 β 吸收；通量不变但 N0 的 dark 单位/曝光路径从未被真实覆盖。
+- 现 `dark=[480]×16384`，`exposure_seconds=dark_exposure_seconds=100`，与 truth 一致。X01 全链在 `f3b72c3ea` 通过：blind RMS 0.2109、48 残差 max|z|1.9007，数值与修复前一致（符合“只改被 β 吸收的加性项”的预期），但 dark 路径现在有真实数据覆盖。
