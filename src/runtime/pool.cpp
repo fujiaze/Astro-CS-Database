@@ -147,6 +147,13 @@ std::shared_ptr<detail::CommandState> find_command(const Services* services,
   return found->second.lock();
 }
 
+// The one live Services of this process, if any.  `make_services` answers a
+// second request with this instance (P0-3/P0-5: one ledger, one pool).
+std::shared_ptr<Services> active_services() {
+  std::lock_guard<std::mutex> lock(g_registry_mutex);
+  return g_active_services.lock();
+}
+
 void wake_hub(const Services* services) {
   auto hub = hub_of(services);
   if (!hub) return;
@@ -673,11 +680,15 @@ std::shared_ptr<detail::CommandState> Services::add_command(Id id,
   const U32 command_tokens = limits.ceiling.cpu_tokens == 0
                                  ? cpu_threads_
                                  : limits.ceiling.cpu_tokens;
-  if (command_tokens > cpu_threads_) {
-    error =
-        "resource_exhausted: the command CPU ceiling exceeds the unique pool";
-    return nullptr;
-  }
+  // P0-3: the command ceiling is an upper bound, never a reservation.  A
+  // caller that declares more CPU tokens than the unique pool owns receives
+  // the pool's own bound; it can never lease more than the user's threads.
+  limits.ceiling.cpu_tokens = std::min(command_tokens, cpu_threads_);
+  if (limits.ceiling.io_slots > read_slots_ + write_slots_)
+    limits.ceiling.io_slots = read_slots_ + write_slots_;
+  // The command ceiling is bounded by the process scope in make_child_scope;
+  // an over-declared host/spill/work ceiling is clamped there and never
+  // granted, so the process budget stays authoritative.
  {
     std::lock_guard<std::mutex> lock(commands_mutex_);
     for (auto& command : commands_)
@@ -836,14 +847,39 @@ void Services::submit(const std::shared_ptr<detail::TaskNode>& node,
   if (outcome.result == AdmitResult::retry) {
     node->state.store(TaskState::waiting_resources, std::memory_order_release);
     bool accepted = false;
+    bool window_full = false;
     {
       std::lock_guard<std::mutex> lock(command->mutex);
       if (command->accept_new && !command->draining) {
-        command->waiting.push_back(node);
-        accepted = true;
+        // P1-12 / SCHEDULER ("所有等待项都已有节点额度…只有有限窗口的cohort可
+        // 展开Task"): the resource-wait queue is a bounded window, not an
+        // unbounded park.  Its size follows the same control-lane bound as the
+        // rest of the pool; a submission beyond it is refused with a named
+        // resource_exhausted instead of growing the command's metadata without
+        // limit.  The node holds no capacity while it waits, so refusing it
+        // cannot strand a ticket.
+        const std::size_t capacity =
+            std::max<std::size_t>(64, 8 * static_cast<std::size_t>(cpu_threads_));
+        if (command->waiting.size() < capacity) {
+          command->waiting.push_back(node);
+          accepted = true;
+        } else {
+          window_full = true;
+        }
       }
     }
     if (!accepted) {
+      if (window_full) {
+        release_execution(node);
+        detail::node_complete(
+            node, Code::resource_exhausted,
+            failure_assessment(
+                Code::resource_exhausted,
+                "the bounded resource-wait window of the command is full; the "
+                "submission is refused instead of parking without limit"),
+            Usage{}, {}, nullptr);
+        return;
+      }
       cancel_pending_node(this, node);
       return;
     }
@@ -1350,7 +1386,11 @@ void Services::io_loop(bool write) {
       // The submission owns its completion node; an escaping exception must
       // not kill the fixed I/O worker before shutdown drains it.
     }
-    if (hub) hub->io_pending.fetch_sub(1, std::memory_order_relaxed);
+    if (hub) {
+      hub->io_pending.fetch_sub(1, std::memory_order_acq_rel);
+      // A command close polling for its drain waits on this condition.
+      hub->close_cv.notify_all();
+    }
     notify_capacity();
   }
   detail::mark_executor_thread(false);
@@ -1412,6 +1452,19 @@ bool cancellation_requested(
 
 Result<std::shared_ptr<Services>> make_services(PoolConfig config) {
   Result<std::shared_ptr<Services>> result;
+  // P0-3 / P0-5: a process has exactly one ledger, one CPU pool and one I/O
+  // lane set.  The first creation (the command line, from the user's Limits)
+  // establishes the budget; any later request inside the same process is
+  // answered with that same service instead of a second, independent pool.
+  // This is what makes a hard-coded workflow ceiling harmless: it can neither
+  // create a parallel ledger nor widen the process budget, because the ledger
+  // it receives is the one built from Limits.  A caller that genuinely needs
+  // a fresh pool must destroy the previous one first.
+  if (auto existing = active_services()) {
+    result.code = Code::ok;
+    result.value = std::move(existing);
+    return result;
+  }
   std::string error;
   auto services = Services::create(config, error);
   if (!services) {
@@ -1533,7 +1586,19 @@ Task<Done> close_command(InvocationContext context) {
       auto it = hub->control_pending.find(command_id);
       if (it != hub->control_pending.end()) pending_control = it->second;
     }
-    if (!idle || pending_control != 0) {
+    // P1-13: an admitted node is not the only work that is still running.  The
+    // I/O lane executes a read/write body after the submission returned, so
+    // `in_flight == 0` alone let close_command report "drained" while a block
+    // of this command was still being written; the product layer then publishes
+    // from a handle that claims the write finished.  io_pending is incremented
+    // before the request is queued and decremented only after the body ran, so
+    // requiring it to be zero means every in-flight I/O request of the process
+    // (a superset of this command's) has really completed.  This is the
+    // conservative direction: it can delay the close but never report a write
+    // that has not happened.
+    const U32 pending_io =
+        hub ? hub->io_pending.load(std::memory_order_acquire) : 0;
+    if (!idle || pending_control != 0 || pending_io != 0) {
       return false;
     }
     detail::set_scope_status(command->scope, ScopeStatus::draining);

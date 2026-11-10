@@ -963,6 +963,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     Ref<GeometryRecipe> merged_recipe;
     bool geometry_recipe_conflict = false;
     bool geometry_primitives_unmerged = false;
+    std::string geometry_digest;
     if (observation->footprints->width > 0 && observation->footprints->height > 0) {
       const U64 width = observation->footprints->width;
       const U64 height = observation->footprints->height;
@@ -1038,6 +1039,8 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
         // a default-constructed status (tolerance_met/certified) and skip the
         // order/pixfrac identity check.
         const Overlaps& block_overlaps = *value_of(overlaps);
+        geometry_digest += block_overlaps.identity.content_hash;
+        geometry_digest += ":" + std::to_string(block_overlaps.contributions.size()) + ";";
         auto worsen_termination = [](Termination current, Termination next) {
           if (current == Termination::tolerance_met) return next;
           return current;
@@ -1084,8 +1087,9 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
         geometry_recipe_conflict ? Validity::invalid : merged_validity;
     merged->status.support = merged_support;
     merged->status.unresolved = std::move(merged_status_unresolved);
-    merged->identity = model::make_identity("acsd.Overlaps", 2, 0,
-                                            model::sha256_hex("acsd.normalize.overlaps"), "acsd");
+    merged->identity = model::make_identity(
+        "acsd.Overlaps", 2, 0,
+        model::sha256_hex("acsd.normalize.overlaps:" + geometry_digest), "acsd");
     merged->assessment = model::make_assessment(Code::ok);
     merged->assessment.complete = merged->status.termination == Termination::tolerance_met;
     if (geometry_primitives_unmerged) {

@@ -1,6 +1,9 @@
 // The public covariance entry points declared in include/acsd/contracts.hpp.
 #include <algorithm>
 #include <cmath>
+#include <map>
+#include <string>
+#include <vector>
 
 #include "acsd/contracts.hpp"
 #include "model/result.hpp"
@@ -23,10 +26,73 @@ bool same_shared_id(const SharedId& a, const SharedId& b) {
          a.model_revision == b.model_revision && a.component == b.component;
 }
 
+std::string shared_key(const SharedId& id) {
+  return id.external_namespace + "\x1f" + id.entity + "\x1f" + id.model_revision + "\x1f" +
+         id.component;
+}
+
+// Two identities name the same object when they carry the same content hash, or
+// the same object id when neither carries a content hash.
+bool same_identity(const Identity& a, const Identity& b) {
+  if (!a.content_hash.empty() || !b.content_hash.empty()) return a.content_hash == b.content_hash;
+  return a.object_id == b.object_id;
+}
+
+// Two roots with the same SharedId are the same random variable, so their
+// factors must be the same linear map.  The comparison is exact for the payload
+// the operators module exposes (CSR and diagonal); an action that exposes no
+// payload is compared through its identity when both carry one, and through its
+// shape otherwise.
+bool same_factor(const Ref<LinearAction>& a, const Ref<LinearAction>& b, bool& decided) {
+  decided = false;
+  if (!a || !b) return a == b;
+  const auto* left = dynamic_cast<const operators::ActionImpl*>(a.get());
+  const auto* right = dynamic_cast<const operators::ActionImpl*>(b.get());
+  if (left && right) {
+    if (left->domain_size() != right->domain_size() ||
+        left->codomain_size() != right->codomain_size()) {
+      decided = true;
+      return false;
+    }
+    const bool left_csr = left->recipe().kind == ActionRecipe::Kind::csr ||
+                          left->recipe().kind == ActionRecipe::Kind::leaf_merge;
+    const bool right_csr = right->recipe().kind == ActionRecipe::Kind::csr ||
+                           right->recipe().kind == ActionRecipe::Kind::leaf_merge;
+    if (left_csr && right_csr) {
+      const operators::CsrMatrix& x = left->csr();
+      const operators::CsrMatrix& y = right->csr();
+      decided = true;
+      return x.rows == y.rows && x.cols == y.cols && x.offsets == y.offsets &&
+             x.indices == y.indices && x.values == y.values;
+    }
+    if (left->recipe().kind == ActionRecipe::Kind::diagonal &&
+        right->recipe().kind == ActionRecipe::Kind::diagonal) {
+      decided = true;
+      return left->diagonal() == right->diagonal();
+    }
+  }
+  if (!a->identity.content_hash.empty() && !b->identity.content_hash.empty()) {
+    decided = true;
+    return same_identity(a->identity, b->identity);
+  }
+  return true;
+}
+
+bool same_coordinates(const Ref<Index>& a, const Ref<Index>& b) {
+  if (!a || !b) return !a && !b;
+  if (a->size != b->size) return false;
+  if (!a->identity.content_hash.empty() && !b->identity.content_hash.empty()) {
+    return same_identity(a->identity, b->identity);
+  }
+  return true;
+}
+
 // Merge the shared roots that carry the same identity into one root whose
-// influence is the sum of the influences of the group.  The factor of the
-// group is the factor of its first member: the roots describe the same
-// random variable.
+// influence is the sum of the influences of the group.  The grouping is over the
+// whole list, not only over neighbouring entries: the same random variable may
+// appear as A, B, A and its two influences must still be added before the
+// covariance is squared.
+//   (L1 + L2) F F^T (L1 + L2)^T = L1FF^TL1^T + L1FF^TL2^T + L2FF^TL1^T + L2FF^TL2^T
 Result<Ref<NoiseModel>> merge_shared_roots(Context& context, Ref<NoiseModel> model) {
   const std::size_t innovation_count = model->innovations.size();
   std::vector<Ref<NoiseRoot>> merged_shared;
@@ -34,54 +100,88 @@ Result<Ref<NoiseModel>> merge_shared_roots(Context& context, Ref<NoiseModel> mod
   for (std::size_t i = 0; i < innovation_count; ++i) {
     merged_influence.push_back(model->influence[i]);
   }
-  std::size_t index = innovation_count;
-  std::size_t group_start = 0;
-  while (group_start < model->shared_factors.size()) {
-    std::size_t group_end = group_start + 1;
-    while (group_end < model->shared_factors.size() &&
-           same_shared_id(model->shared_factors[group_start]->shared_id,
-                          model->shared_factors[group_end]->shared_id)) {
-      ++group_end;
-    }
-    if (group_end - group_start == 1) {
-      merged_shared.push_back(model->shared_factors[group_start]);
-      merged_influence.push_back(model->influence[index + group_start]);
+  // The first occurrence order of every shared identity: a stable grouping.
+  std::map<std::string, std::vector<std::size_t>> groups;
+  std::vector<std::string> order;
+  for (std::size_t k = 0; k < model->shared_factors.size(); ++k) {
+    const Ref<NoiseRoot>& root = model->shared_factors[k];
+    const std::string key = shared_key(root->shared_id);
+    auto found = groups.find(key);
+    if (found == groups.end()) {
+      groups.emplace(key, std::vector<std::size_t>{k});
+      order.push_back(key);
     } else {
-      std::vector<Ref<LinearAction>> members;
-      for (std::size_t k = group_start; k < group_end; ++k) {
-        members.push_back(model->influence[index + k]);
-      }
-      // The total influence is the sum of the influences of the group.
-      std::vector<double> coefficients(members.size(), 1.0);
-      const std::vector<U64> coefficient_shape{static_cast<U64>(members.size())};
-      Result<ArrayRef> stored =
-          operators::write_f64(context, coefficients, std::span<const U64>(coefficient_shape),
-                               model::unit_dimensionless(), Id());
-      if (!ok(stored)) {
-        return model::fail<Ref<NoiseModel>>(stored.code, "the coefficients cannot be stored",
-                                            "make_covariance", "the covariance cannot be built");
-      }
-      ActionRecipe recipe;
-      recipe.kind = ActionRecipe::Kind::sum;
-      recipe.algorithm = "shared_root_merge_v1";
-      recipe.version = 1;
-      recipe.children.clear();
-      for (const Ref<LinearAction>& member : members) {
-        recipe.children.push_back(member->spaces.domain ? member->spaces.domain->identity.object_id
-                                                        : Id());
-      }
-      recipe.arrays = {"shared_root_merge_coefficients"};
-      std::vector<ArrayRef> arrays{val(stored)};
-      Result<Ref<LinearAction>> total = make_action(context, recipe, members, arrays);
-      if (!ok(total)) {
-        return model::fail<Ref<NoiseModel>>(total.code, "the total influence cannot be built",
-                                            "make_covariance", "the covariance cannot be built");
-      }
-      NoiseRoot root = *model->shared_factors[group_start];
-      merged_shared.push_back(std::make_shared<const NoiseRoot>(root));
-      merged_influence.push_back(val(total));
+      found->second.push_back(k);
     }
-    group_start = group_end;
+  }
+  for (const std::string& key : order) {
+    const std::vector<std::size_t>& members = groups[key];
+    const Ref<NoiseRoot>& first = model->shared_factors[members.front()];
+    for (std::size_t k : members) {
+      const Ref<NoiseRoot>& other = model->shared_factors[k];
+      if (!other || !other->factor) {
+        return model::fail<Ref<NoiseModel>>(Code::invalid_model, "a shared root is incomplete",
+                                            "make_covariance",
+                                            "the covariance cannot be built");
+      }
+      if (!same_unit(first->unit, other->unit)) {
+        return model::fail<Ref<NoiseModel>>(
+            Code::identity_conflict, "a shared root is defined twice with different units",
+            "make_covariance", "the covariance cannot be built");
+      }
+      if (!same_coordinates(first->coordinates, other->coordinates)) {
+        return model::fail<Ref<NoiseModel>>(
+            Code::identity_conflict,
+            "a shared root is defined twice with different latent coordinates", "make_covariance",
+            "the covariance cannot be built");
+      }
+      bool decided = false;
+      if (!same_factor(first->factor, other->factor, decided)) {
+        return model::fail<Ref<NoiseModel>>(
+            Code::identity_conflict,
+            "a shared root is defined twice with different factors", "make_covariance",
+            "the covariance cannot be built");
+      }
+    }
+    if (members.size() == 1) {
+      merged_shared.push_back(first);
+      merged_influence.push_back(model->influence[innovation_count + members.front()]);
+      continue;
+    }
+    std::vector<Ref<LinearAction>> influences;
+    for (std::size_t k : members) {
+      influences.push_back(model->influence[innovation_count + k]);
+    }
+    // The total influence is the sum of the influences of the group.  The
+    // merge happens before the square, so the two cross terms are kept.
+    std::vector<double> coefficients(influences.size(), 1.0);
+    const std::vector<U64> coefficient_shape{static_cast<U64>(influences.size())};
+    Result<ArrayRef> stored =
+        operators::write_f64(context, coefficients, std::span<const U64>(coefficient_shape),
+                             model::unit_dimensionless(), Id());
+    if (!ok(stored)) {
+      return model::fail<Ref<NoiseModel>>(stored.code, "the coefficients cannot be stored",
+                                          "make_covariance", "the covariance cannot be built");
+    }
+    ActionRecipe recipe;
+    recipe.kind = ActionRecipe::Kind::sum;
+    recipe.algorithm = "shared_root_merge_v1";
+    recipe.version = 1;
+    recipe.children.clear();
+    for (const Ref<LinearAction>& member : influences) {
+      recipe.children.push_back(member->spaces.domain ? member->spaces.domain->identity.object_id
+                                                      : Id());
+    }
+    recipe.arrays = {"shared_root_merge_coefficients"};
+    std::vector<ArrayRef> arrays{val(stored)};
+    Result<Ref<LinearAction>> total = make_action(context, recipe, influences, arrays);
+    if (!ok(total)) {
+      return model::fail<Ref<NoiseModel>>(total.code, "the total influence cannot be built",
+                                          "make_covariance", "the covariance cannot be built");
+    }
+    NoiseRoot root = *first;
+    merged_shared.push_back(std::make_shared<const NoiseRoot>(root));
+    merged_influence.push_back(val(total));
   }
   auto out = std::make_shared<NoiseModel>(*model);
   out->shared_factors = std::move(merged_shared);
@@ -174,8 +274,16 @@ Result<Ref<CovarianceAction>> make_covariance(Context& context, Ref<NoiseModel> 
   // C = I C_latent I^T, so its input and its output are the codomain of the
   // influence.  The coordinates of a root describe its latent space and are
   // the fallback for a model without an influence.
+  //
+  // A model without a known root is still a legitimate covariance object when
+  // it declares an unknown term: the known part is empty and the complete
+  // variance is unknown, which is not the same as inventing a zero variance.
+  bool material_unknown = false;
+  for (const UnknownTerm& term : model->unknown_terms) {
+    if (term.influence) material_unknown = true;
+  }
   if (model->influence.empty() && model->innovations.empty() &&
-      model->shared_factors.empty()) {
+      model->shared_factors.empty() && !material_unknown) {
     return model::fail<Ref<CovarianceAction>>(
         Code::unavailable,
         "the noise model carries no uncertainty root; a covariance cannot be "
@@ -185,17 +293,34 @@ Result<Ref<CovarianceAction>> make_covariance(Context& context, Ref<NoiseModel> 
   DomainUnits spaces;
   const Ref<LinearAction>* first_influence =
       model->influence.empty() ? nullptr : &model->influence.front();
-  if (first_influence && *first_influence &&
-      (*first_influence)->spaces.codomain) {
-    spaces.domain = (*first_influence)->spaces.codomain;
-    spaces.codomain = (*first_influence)->spaces.codomain;
+  Ref<Index> covariance_index;
+  if (first_influence && *first_influence) {
+    covariance_index = (*first_influence)->spaces.codomain;
+    if (!covariance_index) {
+      // A composed or a sparse action may carry its sizes only in its
+      // implementation and not in the declared spaces.  The codomain of the
+      // influence is the index the covariance acts on, so it is published
+      // instead of leaving the domain absent (a consumer that reads the domain
+      // size would otherwise see zero).
+      const auto* impl = dynamic_cast<const operators::ActionImpl*>(first_influence->get());
+      const U64 size = impl ? impl->codomain_size() : 0;
+      if (size > 0) {
+        auto index = std::make_shared<Index>();
+        index->size = size;
+        index->kind = Index::Kind::latent;
+        index->identity =
+            model::make_identity("acsd.Index", 2, 0,
+                                 model::hash_index(Index::Kind::latent, size, 0, {}), "acsd");
+        covariance_index = index;
+      }
+    }
   } else if (!model->innovations.empty() && model->innovations.front()) {
-    spaces.domain = model->innovations.front()->coordinates;
-    spaces.codomain = spaces.domain;
+    covariance_index = model->innovations.front()->coordinates;
   } else if (!model->shared_factors.empty() && model->shared_factors.front()) {
-    spaces.domain = model->shared_factors.front()->coordinates;
-    spaces.codomain = spaces.domain;
+    covariance_index = model->shared_factors.front()->coordinates;
   }
+  spaces.domain = covariance_index;
+  spaces.codomain = covariance_index;
   spaces.input = model->variance_unit;
   spaces.output = model->variance_unit;
   covariance->input_output = spaces;
@@ -322,6 +447,87 @@ Result<Variance> quadratic_form(Context& context, Ref<CovarianceAction> covarian
   return model::ok_result(variance);
 }
 
+// ---------------------------------------------------------------------------
+// The absolute error action of the geometry bound must be an element-wise
+// non-negative bound: the enclosure of statistics section 2.1 is derived for
+// E >= 0, and a signed E can turn the formula into a negative "upper bound"
+// (R0 = 1, E = -5, t = 1 gives -35 instead of the true 35).  The sign is
+// certified from the payload the operators module exposes; an action without a
+// decidable payload is probed on its domain basis when it is small enough, and
+// the bound is otherwise reported unavailable.  A sign that cannot be certified
+// never becomes a published bound.
+// ---------------------------------------------------------------------------
+namespace {
+
+enum class SignCertificate { nonnegative, negative, undecided };
+
+SignCertificate absolute_error_sign(Context& context, Ref<LinearAction> action) {
+  if (!action) return SignCertificate::negative;
+  const auto* impl = dynamic_cast<const operators::ActionImpl*>(action.get());
+  if (!impl) return SignCertificate::undecided;
+  const ActionRecipe::Kind kind = impl->recipe().kind;
+  if (kind == ActionRecipe::Kind::identity) return SignCertificate::nonnegative;
+  if (kind == ActionRecipe::Kind::csr || kind == ActionRecipe::Kind::leaf_merge) {
+    for (double value : impl->csr().values) {
+      if (!(value >= 0.0)) return SignCertificate::negative;
+    }
+    return SignCertificate::nonnegative;
+  }
+  if (kind == ActionRecipe::Kind::diagonal) {
+    for (double value : impl->diagonal()) {
+      if (!(value >= 0.0)) return SignCertificate::negative;
+    }
+    return SignCertificate::nonnegative;
+  }
+  if (kind == ActionRecipe::Kind::selection) {
+    for (double value : impl->selection_scale()) {
+      if (!(value >= 0.0)) return SignCertificate::negative;
+    }
+    return SignCertificate::nonnegative;
+  }
+  if (kind == ActionRecipe::Kind::compose || kind == ActionRecipe::Kind::sum) {
+    // A composition or a sum with non-negative coefficients of non-negative
+    // actions is non-negative; a single negative factor decides the answer.
+    if (kind == ActionRecipe::Kind::sum) {
+      if (impl->arrays().empty()) return SignCertificate::undecided;
+      const ArrayRef& array = impl->arrays().front();
+      const U64 count =
+          static_cast<U64>(array->shape.empty() ? 0 : array->shape.front());
+      Result<std::vector<double>> read = operators::read_f64(context, array, 0, count);
+      if (!ok(read)) return SignCertificate::undecided;
+      if (val(read).size() != impl->children().size()) return SignCertificate::undecided;
+      for (double value : val(read)) {
+        if (!(value >= 0.0)) return SignCertificate::undecided;
+      }
+    }
+    for (const Ref<LinearAction>& child : impl->children()) {
+      const SignCertificate child_sign = absolute_error_sign(context, child);
+      if (child_sign == SignCertificate::negative) return SignCertificate::negative;
+      if (child_sign == SignCertificate::undecided) return SignCertificate::undecided;
+    }
+    return SignCertificate::nonnegative;
+  }
+  // The remaining kinds carry no sign certificate of their own.  A small action
+  // is probed exactly on the domain basis; a large one stays undecided.
+  const U64 rows = impl->codomain_size();
+  const U64 cols = impl->domain_size();
+  constexpr U64 kProbeLimit = 1ull << 20;
+  if (rows == 0 || cols == 0 || rows * cols > kProbeLimit) return SignCertificate::undecided;
+  for (U64 j = 0; j < cols; ++j) {
+    std::vector<double> unit(static_cast<std::size_t>(cols), 0.0);
+    unit[static_cast<std::size_t>(j)] = 1.0;
+    Result<std::vector<double>> column =
+        uncertainty::apply_linear_helper(context, action, unit);
+    if (!ok(column) || val(column).size() != rows) return SignCertificate::undecided;
+    for (double value : val(column)) {
+      if (!(value >= 0.0)) return SignCertificate::negative;
+    }
+  }
+  return SignCertificate::nonnegative;
+}
+
+}  // namespace
+
 Result<BoundOrUnavailable> geometry_covariance_bound(Context& context,
                                                       Ref<CovarianceAction> covariance,
                                                       Ref<LinearAction> nominal,
@@ -332,11 +538,30 @@ Result<BoundOrUnavailable> geometry_covariance_bound(Context& context,
     out.reason = "the covariance bound needs a covariance and both actions";
     return model::ok_result(out);
   }
-  const bool has_absolute = covariance->absolute_factor_bound != nullptr;
+  // An empty optional is not an absolute bound: comparing the optional itself
+  // with nullptr is true when it is disengaged, which used to route every
+  // covariance without an absolute factor bound into the absolute branch and to
+  // answer "the absolute factor bound cannot be applied" instead of using the
+  // spectral norm route.
+  const bool has_absolute = covariance->absolute_factor_bound.has_value() &&
+                            *covariance->absolute_factor_bound != nullptr;
   const bool has_norm = covariance->operator_norm_upper.has_value();
   if (!has_absolute && !has_norm) {
     out.reason =
         "the covariance exposes neither an absolute factor bound nor a spectral norm bound";
+    return model::ok_result(out);
+  }
+  const SignCertificate sign = absolute_error_sign(context, absolute_error);
+  if (sign == SignCertificate::negative) {
+    out.reason =
+        "the absolute error action carries a negative entry; the bound is derived for a "
+        "non-negative absolute error and a signed one gives a non-enclosing value";
+    return model::ok_result(out);
+  }
+  if (sign == SignCertificate::undecided) {
+    out.reason =
+        "the non-negativity of the absolute error action cannot be certified; no bound is "
+        "published";
     return model::ok_result(out);
   }
   Result<std::vector<double>> t =

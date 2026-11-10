@@ -32,45 +32,19 @@ struct LeaseRelease {
 
 double process_uptime_seconds() { return now_seconds(); }
 
-CpuResources::CpuResources(const Limits& limits) : limits_(limits) {
-  if (limits_.threads > 0) {
-    // A single shared pool; nested parallel sections are forbidden by
-    // construction because the callers lease threads before entering.
-    workers_.reserve(limits_.threads);
-    for (U32 i = 0; i < limits_.threads; ++i) {
-      workers_.emplace_back([this] {
-        std::uint64_t seen_generation = 0;
-        while (true) {
-          std::unique_lock<std::mutex> lock(queue_mutex_);
-          queue_cv_.wait(lock, [this, &seen_generation] {
-            return shutdown_ || job_generation_ != seen_generation;
-          });
-          if (shutdown_) return;
-          seen_generation = job_generation_;
-          while (job_next_ < job_count_) {
-            const U64 index = job_next_++;
-            const auto body = job_;
-            lock.unlock();
-            body(index);
-            lock.lock();
-            if (--job_active_ == 0) done_cv_.notify_all();
-          }
-        }
-      });
-    }
-  }
-}
+// CpuResources is a facade over the process budget, never an executor.
+//
+// P0-5: this constructor used to start one std::thread per leased thread, i.e.
+// a second CPU pool with its own counters that the scheduler never knew about,
+// while every production scientific task actually ran on rt::Services.  The
+// unique pool/ledger of the process is acsd::rt::Services
+// (SYSTEM.md: "不再创建另一套线程池或重复内存账本"); this class keeps only the
+// user's Limits and the advisory counters that the public acsd::Context needs.
+// It starts no thread, owns no queue and gates nothing: the runtime ledger is
+// the only admission gate.
+CpuResources::CpuResources(const Limits& limits) : limits_(limits) {}
 
-CpuResources::~CpuResources() {
-  {
-    std::lock_guard<std::mutex> lock(queue_mutex_);
-    shutdown_ = true;
-  }
-  queue_cv_.notify_all();
-  for (std::thread& worker : workers_) {
-    if (worker.joinable()) worker.join();
-  }
-}
+CpuResources::~CpuResources() = default;
 
 Result<Reservation> CpuResources::reserve(U64 bytes, U32 threads) {
   if (bytes > limits_.bytes) {
@@ -133,39 +107,14 @@ Usage CpuResources::usage() const {
 }
 
 void CpuResources::parallel_for(U64 count, U32 threads, const std::function<void(U64)>& body) {
-  if (count == 0) return;
-  if (workers_.empty() || threads <= 1 || count == 1) {
-    for (U64 i = 0; i < count; ++i) body(i);
-    return;
-  }
-  const U32 use = static_cast<U32>(std::min<U64>(threads, workers_.size()));
-  {
-    std::lock_guard<std::mutex> lock(queue_mutex_);
-    job_ = body;
-    job_count_ = count;
-    job_next_ = 0;
-    job_active_ = use;
-    ++job_generation_;
-  }
-  queue_cv_.notify_all();
-  // The calling thread participates as one of the workers.
-  while (true) {
-    std::unique_lock<std::mutex> lock(queue_mutex_);
-    if (job_next_ >= job_count_) break;
-    const U64 index = job_next_++;
-    const auto job = job_;
-    lock.unlock();
-    job(index);
-    lock.lock();
-    if (--job_active_ == 0) done_cv_.notify_all();
-  }
-  {
-    std::unique_lock<std::mutex> lock(queue_mutex_);
-    done_cv_.wait(lock, [this] { return job_active_ == 0; });
-    job_ = nullptr;
-    job_count_ = 0;
-    job_next_ = 0;
-  }
+  if (count == 0 || !body) return;
+  // Deterministic inline execution.  There is no second pool: a caller that
+  // needs real parallelism submits a bounded Task to the unique CPU lane of
+  // rt::Services, which leases the threads from that pool.  Running the range
+  // here on the calling thread keeps the fixed reduction order and can never
+  // nest two executors (SCHEDULER: no nested oversubscription).
+  (void)threads;
+  for (U64 i = 0; i < count; ++i) body(i);
 }
 
 }  // namespace acsd::resources

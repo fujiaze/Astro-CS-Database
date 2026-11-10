@@ -448,6 +448,11 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
       auto covariance = std::make_shared<CovarianceAction>(*estimate.noise);
       covariance->influence = val(composed);
       covariance->input_output = estimate.noise->input_output;
+      // The covariance now lives on the target pixels: its codomain is the
+      // row action's codomain, not the leaf codomain of the input noise.
+      if (val(row_action)->spaces.codomain) {
+        covariance->input_output.codomain = val(row_action)->spaces.codomain;
+      }
       covariance->identity = model::make_identity(
           "acsd.CovarianceAction", 2, 0,
           model::sha256_hex("export:covariance:" + std::to_string(pixel_count) + ":" +

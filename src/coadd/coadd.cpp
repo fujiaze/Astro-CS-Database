@@ -212,8 +212,15 @@ Result<FrameView> read_frame(Context& context, const FramesProvider& frames, con
   return model::ok_result(std::move(view));
 }
 
-// The joint covariance of the frames: the innovations stay separate and the
-// shared roots are merged so that the cross frame correlation survives.
+// The joint covariance of the frames on the concatenated leaf space.
+//
+// Every root influence is placed at the row offset of its own frame, so an
+// innovation of frame 2 never lands on the rows of frame 1.  The shared roots
+// are merged by identity, so that the cross frame correlation of the combined
+// value survives.  The unknown terms of the frames are carried into the joint
+// model with the same offset, and a frame without a published noise model
+// becomes an explicit unknown term: a joint model with an unknown contribution
+// is published as unknown, never as known.
 Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
                                                       const std::vector<FrameView>& frames) {
   auto joint = std::make_shared<NoiseModel>();
@@ -222,8 +229,23 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
   std::map<std::string, std::size_t> shared_index;
   std::vector<Ref<NoiseRoot>> shared_roots;
   std::vector<std::vector<operators::CsrMatrix>> shared_blocks;
-  U64 total = 0;
-  for (const FrameView& frame : frames) total += frame.leaves.size();
+  std::vector<std::vector<U64>> shared_offsets;
+  std::vector<UnknownTerm> unknown_terms;
+  std::vector<std::size_t> frame_offsets(frames.size(), 0);
+  bool any_unknown = false;
+  U64 total_rows = 0;
+  for (const FrameView& frame : frames) total_rows += frame.leaves.size();
+  {
+    U64 running = 0;
+    for (std::size_t f = 0; f < frames.size(); ++f) {
+      frame_offsets[f] = static_cast<std::size_t>(running);
+      running += frames[f].leaves.size();
+    }
+    joint->variance_unit =
+        frames.empty() || !frames.front().noise || !frames.front().noise->model
+            ? model::unit_variance("unknown")
+            : frames.front().noise->model->variance_unit;
+  }
 
   auto to_csr = [&](Ref<LinearAction> action, U64 rows,
                     U64 expected_columns) -> Result<operators::CsrMatrix> {
@@ -281,8 +303,61 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
     return model::ok_result(matrix);
   };
 
-  for (const FrameView& frame : frames) {
-    if (!frame.noise || !frame.noise->model) continue;
+  auto make_rows = [&](const operators::CsrMatrix& matrix,
+                       const Unit& unit) -> Result<Ref<LinearAction>> {
+    return operators::make_csr_action(context, matrix.rows, matrix.cols, matrix.offsets,
+                                      matrix.indices, matrix.values, Id(), Id(), unit);
+  };
+
+  // Places the rows of a frame local block at the frame offset of the
+  // concatenated leaf space.  The rows before the offset are exact zero rows.
+  auto place = [](const operators::CsrMatrix& matrix, U64 offset, U64 total_rows) {
+    operators::CsrMatrix out;
+    out.cols = matrix.cols;
+    out.rows = std::max(offset + matrix.rows, total_rows);
+    out.offsets.assign(static_cast<std::size_t>(out.rows) + 1, 0);
+    for (U64 row = 0; row < out.rows; ++row) {
+      if (row >= offset && row < offset + matrix.rows) {
+        const U64 local = row - offset;
+        for (U64 k = matrix.offsets[local]; k < matrix.offsets[local + 1]; ++k) {
+          out.indices.push_back(matrix.indices[k]);
+          out.values.push_back(matrix.values[k]);
+        }
+      }
+      out.offsets[static_cast<std::size_t>(row) + 1] = out.indices.size();
+    }
+    return out;
+  };
+
+  for (std::size_t f = 0; f < frames.size(); ++f) {
+    const FrameView& frame = frames[f];
+    const U64 offset = frame_offsets[f];
+    if (!frame.noise || !frame.noise->model) {
+      // No published noise model is not a zero variance.
+      any_unknown = true;
+      operators::CsrMatrix identity;
+      identity.rows = frame.leaves.size();
+      identity.cols = frame.leaves.size();
+      identity.offsets.assign(static_cast<std::size_t>(identity.rows) + 1, 0);
+      for (U64 i = 0; i < identity.rows; ++i) {
+        identity.indices.push_back(i);
+        identity.values.push_back(1.0);
+        identity.offsets[static_cast<std::size_t>(i) + 1] = identity.indices.size();
+      }
+      Result<Ref<LinearAction>> action =
+          make_rows(place(identity, offset, total_rows), joint->variance_unit);
+      if (!ok(action)) {
+        return model::fail<Ref<CovarianceAction>>(action.code, "an unknown term cannot be built",
+                                                  "coadd.covariance",
+                                                  "the joint noise cannot be built");
+      }
+      UnknownTerm term;
+      term.id = "frame_noise_missing_" + std::to_string(offset);
+      term.reason = "the frame publishes no noise model; its variance is unknown, not zero";
+      term.influence = val(action);
+      unknown_terms.push_back(term);
+      continue;
+    }
     const NoiseModel& noise = *frame.noise->model;
     std::vector<Ref<NoiseRoot>> roots;
     roots.insert(roots.end(), noise.innovations.begin(), noise.innovations.end());
@@ -292,6 +367,7 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
                                                 "the influence count does not match the roots",
                                                 "coadd.covariance", "the joint noise cannot be built");
     }
+    if (noise.state != NoiseState::known) any_unknown = true;
     for (std::size_t k = 0; k < roots.size(); ++k) {
       const U64 latent = roots[k] && roots[k]->coordinates
                              ? roots[k]->coordinates->size
@@ -304,9 +380,8 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
                                                   "the joint noise cannot be built");
       }
       if (k < noise.innovations.size()) {
-        Result<Ref<LinearAction>> action = operators::make_csr_action(
-            context, val(matrix).rows, val(matrix).cols, val(matrix).offsets, val(matrix).indices,
-            val(matrix).values, Id(), Id(), noise.variance_unit);
+        Result<Ref<LinearAction>> action =
+            make_rows(place(val(matrix), offset, total_rows), noise.variance_unit);
         if (!ok(action)) {
           return model::fail<Ref<CovarianceAction>>(action.code, "an influence cannot be built",
                                                     "coadd.covariance",
@@ -324,68 +399,93 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
         shared_index[key] = shared_roots.size();
         shared_roots.push_back(roots[k]);
         shared_blocks.emplace_back();
+        shared_offsets.emplace_back();
       }
       shared_blocks[shared_index[key]].push_back(val(matrix));
+      shared_offsets[shared_index[key]].push_back(offset);
+    }
+    for (const UnknownTerm& term : noise.unknown_terms) {
+      if (!term.influence) continue;
+      const U64 columns = term.influence->spaces.domain ? term.influence->spaces.domain->size : 0;
+      Result<operators::CsrMatrix> matrix =
+          to_csr(term.influence, frame.leaves.size(), columns);
+      if (!ok(matrix)) {
+        return model::fail<Ref<CovarianceAction>>(matrix.code, "an unknown term cannot be converted",
+                                                  "coadd.covariance",
+                                                  "the joint noise cannot be built");
+      }
+      Result<Ref<LinearAction>> action =
+          make_rows(place(val(matrix), offset, total_rows), joint->variance_unit);
+      if (!ok(action)) {
+        return model::fail<Ref<CovarianceAction>>(action.code, "an unknown term cannot be built",
+                                                  "coadd.covariance",
+                                                  "the joint noise cannot be built");
+      }
+      UnknownTerm copy = term;
+      copy.influence = val(action);
+      unknown_terms.push_back(copy);
+      any_unknown = true;
     }
   }
-  joint->variance_unit = frames.empty() || !frames.front().noise || !frames.front().noise->model
-                             ? model::unit_variance("unknown")
-                             : frames.front().noise->model->variance_unit;
+
   joint->innovations = innovations;
   joint->shared_factors = shared_roots;
   joint->influence = innovation_influences;
-  for (std::vector<operators::CsrMatrix>& blocks_of_root : shared_blocks) {
+  for (std::size_t k = 0; k < shared_blocks.size(); ++k) {
+    // The blocks of one shared root keep their own columns and are placed at
+    // the row offsets of their frames; a frame that does not carry the root
+    // keeps exact zero rows for it.
     operators::CsrMatrix merged;
-    if (blocks_of_root.empty()) continue;
-    // The column count is the largest one of the blocks: a block may leave
-    // trailing latent columns without a non zero.
     merged.cols = 0;
-    for (const operators::CsrMatrix& block : blocks_of_root) {
+    for (const operators::CsrMatrix& block : shared_blocks[k]) {
       merged.cols = std::max(merged.cols, block.cols);
       for (const U64 index : block.indices) merged.cols = std::max(merged.cols, index + 1);
     }
-    merged.rows = 0;
-    for (const operators::CsrMatrix& block : blocks_of_root) merged.rows += block.rows;
-    merged.offsets.assign(static_cast<std::size_t>(merged.rows) + 1, 0);
-    U64 row = 0;
-    for (const operators::CsrMatrix& block : blocks_of_root) {
-      for (std::size_t i = 0; i < block.rows; ++i) {
-        for (U64 k = block.offsets[i]; k < block.offsets[i + 1]; ++k) {
-          merged.indices.push_back(block.indices[k]);
-          merged.values.push_back(block.values[k]);
+    U64 rows = total_rows;
+    for (std::size_t b = 0; b < shared_blocks[k].size(); ++b) {
+      rows = std::max(rows, shared_offsets[k][b] + shared_blocks[k][b].rows);
+    }
+    merged.rows = rows;
+    merged.offsets.assign(static_cast<std::size_t>(rows) + 1, 0);
+    std::vector<int> owner(static_cast<std::size_t>(rows), -1);
+    std::vector<U64> local(static_cast<std::size_t>(rows), 0);
+    for (std::size_t b = 0; b < shared_blocks[k].size(); ++b) {
+      const U64 offset = shared_offsets[k][b];
+      for (U64 i = 0; i < shared_blocks[k][b].rows; ++i) {
+        if (offset + i < rows) {
+          owner[static_cast<std::size_t>(offset + i)] = static_cast<int>(b);
+          local[static_cast<std::size_t>(offset + i)] = i;
         }
-        merged.offsets[row + i + 1] = merged.indices.size();
-      }
-      row += block.rows;
-    }
-    if (std::getenv("ACSD_COADD_DEBUG") != nullptr) {
-      std::fprintf(stderr, "DBG merged root rows=%llu cols=%llu offs=%zu idx=%zu vals=%zu\n",
-                   (unsigned long long)merged.rows, (unsigned long long)merged.cols,
-                   merged.offsets.size(), merged.indices.size(), merged.values.size());
-      for (std::size_t i = 0; i < merged.offsets.size(); ++i) {
-        std::fprintf(stderr, "   off[%zu]=%llu\n", i, (unsigned long long)merged.offsets[i]);
-      }
-      for (std::size_t i = 0; i < merged.values.size(); ++i) {
-        std::fprintf(stderr, "   val[%zu]=%g idx=%llu\n", i, merged.values[i],
-                     (unsigned long long)merged.indices[i]);
       }
     }
-    Result<Ref<LinearAction>> action = operators::make_csr_action(
-        context, merged.rows, merged.cols, merged.offsets, merged.indices, merged.values, Id(), Id(),
-        joint->variance_unit);
+    for (U64 row = 0; row < rows; ++row) {
+      const int b = owner[static_cast<std::size_t>(row)];
+      if (b >= 0) {
+        const operators::CsrMatrix& block = shared_blocks[k][static_cast<std::size_t>(b)];
+        const U64 i = local[static_cast<std::size_t>(row)];
+        for (U64 j = block.offsets[i]; j < block.offsets[i + 1]; ++j) {
+          merged.indices.push_back(block.indices[j]);
+          merged.values.push_back(block.values[j]);
+        }
+      }
+      merged.offsets[static_cast<std::size_t>(row) + 1] = merged.indices.size();
+    }
+    Result<Ref<LinearAction>> action = make_rows(merged, joint->variance_unit);
     if (!ok(action)) {
       return model::fail<Ref<CovarianceAction>>(action.code, "a shared influence cannot be built",
                                                 "coadd.covariance", "the joint noise cannot be built");
     }
     joint->influence.push_back(val(action));
   }
-  joint->state = NoiseState::known;
+  joint->unknown_terms = unknown_terms;
+  joint->state = any_unknown ? NoiseState::unknown : NoiseState::known;
   joint->identity = model::make_identity("acsd.NoiseModel", 2, 0,
                                           model::hash_index(Index::Kind::latent,
                                                             joint->influence.size(), 0, {}),
                                           "acsd");
   joint->assessment = model::make_assessment(Code::ok);
   joint->assessment.complete = true;
+  joint->assessment.noise = joint->state;
   return make_covariance(context, Ref<NoiseModel>(std::shared_ptr<const NoiseModel>(joint)));
 }
 
@@ -701,6 +801,13 @@ Result<Ref<Selection>> select_samples(Context& context, const FramesProvider& fr
   selection->reasons = val(reasons_array);
   selection->policy = request.rejection;
   selection->condition = request.target.condition;
+  // The published variance is conditional on the frozen mask.  A statistical
+  // rejection takes the mask from the same data, so the conditional variance is
+  // not an unconditional 68/95 percent coverage statement.  The condition field
+  // is the estimator identity that the later stages compare, so the marker is
+  // recorded in the assessment, where it cannot be confused with the identity.
+  const bool statistical_selection =
+      request.rejection.kind == RejectionPolicy::Kind::single_max_loo && rejection_note.empty();
   selection->identity = model::make_identity("acsd.Selection", 2, 0,
                                              model::hash_index(Index::Kind::leaf, leaf_count, order, {}),
                                              "acsd");
@@ -726,6 +833,15 @@ Result<Ref<Selection>> select_samples(Context& context, const FramesProvider& fr
   }
   if (rejected_count > 0) {
     model::set_included(out.assessment, "rejected_samples=" + std::to_string(rejected_count));
+  }
+  model::set_included(out.assessment, "conditional_on_frozen_selection_mask");
+  if (statistical_selection) {
+    model::set_omitted(out.assessment, "unconditional_coverage_after_selection");
+    out.assessment.science = ScienceState::conditional;
+    model::add_issue(out.assessment, Code::ok,
+                     "the frozen mask conditions the variance; the conditional variance is not an "
+                     "unconditional coverage statement, which needs a full forward Monte Carlo",
+                     "select_samples", "the variance is conditional on the frozen mask");
   }
   return out;
 }
@@ -795,7 +911,8 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
     bool covariance_complete = true;
     for (const FrameView& view : views) {
       if (!view.noise || !view.noise->model) covariance_complete = false;
-      if (!view.noise || !view.noise->model || !view.noise->model->unknown_terms.empty()) {
+      if (!view.noise || !view.noise->model || !view.noise->model->unknown_terms.empty() ||
+          view.noise->model->state != NoiseState::known) {
         covariance_complete = false;
       }
     }
@@ -809,14 +926,59 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
     }
   }
 
+  // The joint covariance over the concatenated leaf space.  Every policy needs
+  // it: the equal policy still has the variance t^T Gamma t (CE-G: the true
+  // equal weight variance of Gamma = [[1,2],[2,5]] is 5/2, not 1/K = 1/2) and
+  // the published covariance is W C W^T with the shared roots kept, so the
+  // cross leaf terms of CE-H survive (Var(z1+z2) = 10, Var(z1-z2) = 0).
   Ref<CovarianceAction> joint;
-  if (policy == WeightPolicy::blue || policy == WeightPolicy::nonnegative_qp) {
+  std::string covariance_failure_reason;
+  bool joint_available = false;
+  {
     Result<Ref<CovarianceAction>> built = build_joint_covariance(context, views);
     if (!ok(built)) {
-      return model::fail<Ref<WeightSolution>>(built.code, "the joint covariance cannot be built",
-                                              "solve_weights", "the weights cannot be solved");
+      // A malformed model is an input error, not a science limitation.
+      const bool malformed = built.code == Code::invalid_model ||
+                             built.code == Code::identity_conflict ||
+                             built.code == Code::invalid_request ||
+                             built.code == Code::invalid_covariance;
+      covariance_failure_reason = built.assessment.issues.empty()
+                                      ? "the joint covariance cannot be built"
+                                      : built.assessment.issues.front().reason;
+      if (malformed) {
+        return model::fail<Ref<WeightSolution>>(built.code, covariance_failure_reason,
+                                                "solve_weights", "the weights cannot be solved");
+      }
+    } else {
+      joint = val(built);
+      joint_available = true;
     }
-    joint = val(built);
+  }
+  bool covariance_known = joint_available && joint && joint->model;
+  if (covariance_known) {
+    if (joint->model->state != NoiseState::known) covariance_known = false;
+    for (const UnknownTerm& term : joint->model->unknown_terms) {
+      if (term.influence) covariance_known = false;
+    }
+  }
+  if (!covariance_known) {
+    if (covariance_failure_reason.empty()) {
+      covariance_failure_reason =
+          "the joint covariance model carries an unknown contribution";
+    }
+    if (policy == WeightPolicy::blue || policy == WeightPolicy::nonnegative_qp) {
+      // An explicit BLUE or non-negative program with an incomplete Gamma is
+      // not a declared estimator: it is unavailable, never a silent equal
+      // weight solution.
+      return model::fail<Ref<WeightSolution>>(
+          Code::unavailable,
+          "the joint covariance is not complete and known, so the requested weight policy is not "
+          "defined: " + covariance_failure_reason,
+          "solve_weights", "the weights cannot be solved");
+    }
+    if (request.weights == WeightPolicy::automatic) {
+      policy_reason = "the joint covariance is not complete, the equal weights are used";
+    }
   }
 
   // The leaf identities of the selection and the offsets of the frames in the
@@ -844,7 +1006,6 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
   }
 
   std::vector<double> coefficients(leaf_count * frame_count, 0.0);
-  std::vector<double> variances(leaf_count, 0.0);
   std::size_t empty_leaves = 0;
   for (std::size_t leaf = 0; leaf < leaf_count; ++leaf) {
     std::vector<std::size_t> eligible;
@@ -856,116 +1017,198 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
       continue;
     }
     std::vector<double> weights(eligible.size(), 1.0 / static_cast<double>(eligible.size()));
-    double variance = 0.0;
-    if (policy == WeightPolicy::blue || policy == WeightPolicy::nonnegative_qp) {
-      // The Gamma block of the leaf in the joint covariance.  The joint space
-      // concatenates the leaves of the frames; the leaf identity comes from
-      // the selection index.
-      std::vector<std::size_t> rows;
-      std::vector<std::size_t> columns;
-      const U64 leaf_order = leaf_ids[2 * leaf];
-      const U64 leaf_ipix = leaf_ids[2 * leaf + 1];
-      for (std::size_t f : eligible) {
-        auto found = views[f].row_of_leaf.find({leaf_order, leaf_ipix});
-        if (found == views[f].row_of_leaf.end()) {
-          return model::fail<Ref<WeightSolution>>(
-              Code::invalid_model, "an accepted sample has no leaf in its frame",
-              "solve_weights", "the weights cannot be solved");
-        }
-        rows.push_back(frame_offsets[f] + found->second);
-        columns.push_back(frame_offsets[f] + found->second);
+    // The Gamma block of the leaf in the joint covariance.  The joint space
+    // concatenates the leaves of the frames; the leaf identity comes from the
+    // selection index.
+    std::vector<std::size_t> rows;
+    const U64 leaf_order = leaf_ids[2 * leaf];
+    const U64 leaf_ipix = leaf_ids[2 * leaf + 1];
+    for (std::size_t f : eligible) {
+      auto found = views[f].row_of_leaf.find({leaf_order, leaf_ipix});
+      if (found == views[f].row_of_leaf.end()) {
+        return model::fail<Ref<WeightSolution>>(
+            Code::invalid_model, "an accepted sample has no leaf in its frame",
+            "solve_weights", "the weights cannot be solved");
       }
-      Result<Matrix> block = covariance_block(context, joint, rows, columns);
-      if (!ok(block)) {
+      rows.push_back(frame_offsets[f] + found->second);
+    }
+    Matrix block;
+    bool block_available = false;
+    if (covariance_known) {
+      Result<Matrix> read_block = covariance_block(context, joint, rows, rows);
+      if (!ok(read_block)) {
         Result<Ref<WeightSolution>> out = model::fail<Ref<WeightSolution>>(
-            block.code, "the covariance block cannot be read", "solve_weights",
+            read_block.code, "the covariance block cannot be read", "solve_weights",
             "the weights cannot be solved");
-        // The reason of the block is kept, so that the failure names its
-        // cause instead of a generic message.
-        for (const Issue& issue : block.assessment.issues) {
+        for (const Issue& issue : read_block.assessment.issues) {
           model::add_issue(out.assessment, issue.code, issue.reason, issue.origin, issue.impact);
         }
         return out;
       }
-      if (policy == WeightPolicy::blue) {
-        coadd_internal::BlueResult blue = coadd_internal::solve_blue(val(block), request.solve.rank_relative > 0.0
-                                                                  ? request.solve.rank_relative
-                                                                  : 1e-12);
-        if (blue.outcome == coadd_internal::BlueOutcome::kUnresolved) {
-          return model::fail<Ref<WeightSolution>>(Code::geometry_solve_unresolved, blue.reason,
-                                                  "solve_weights", "the weights cannot be solved");
-        }
-        weights = blue.weights;
-        variance = blue.variance;
-      } else {
-        std::vector<std::string> names;
-        for (std::size_t f : eligible) names.push_back(views[f].frame);
-        coadd_internal::QpResult qp =
-            coadd_internal::solve_nonnegative_qp(context, val(block), names, 100);
-        if (qp.outcome != coadd_internal::QpOutcome::kSolved) {
-          return model::fail<Ref<WeightSolution>>(Code::geometry_solve_unresolved, qp.reason,
-                                                  "solve_weights", "the weights cannot be solved");
-        }
-        weights = qp.weights;
-        variance = qp.variance;
+      block = val(read_block);
+      block_available = true;
+    }
+    if (policy == WeightPolicy::blue) {
+      coadd_internal::BlueResult blue =
+          coadd_internal::solve_blue(block, request.solve.rank_relative > 0.0
+                                                       ? request.solve.rank_relative
+                                                       : 1e-12);
+      if (blue.outcome == coadd_internal::BlueOutcome::kUnresolved) {
+        return model::fail<Ref<WeightSolution>>(Code::geometry_solve_unresolved, blue.reason,
+                                                "solve_weights", "the weights cannot be solved");
       }
-    } else {
-      variance = 1.0 / static_cast<double>(eligible.size());
+      weights = blue.weights;
+    } else if (policy == WeightPolicy::nonnegative_qp) {
+      std::vector<std::string> names;
+      for (std::size_t f : eligible) names.push_back(views[f].frame);
+      coadd_internal::QpResult qp =
+          coadd_internal::solve_nonnegative_qp(context, block, names, 100);
+      if (qp.outcome != coadd_internal::QpOutcome::kSolved) {
+        return model::fail<Ref<WeightSolution>>(Code::geometry_solve_unresolved, qp.reason,
+                                                "solve_weights", "the weights cannot be solved");
+      }
+      weights = qp.weights;
+    }
+    // The weights of one leaf must be a normalised set: the combined value is
+    // B = sum_k t_k z_k with sum_k t_k = 1, and a solver output that violates
+    // it is a failed self check, not a small numerical detail.
+    double weight_sum = 0.0;
+    for (double weight : weights) weight_sum += weight;
+    if (!(std::fabs(weight_sum - 1.0) <= 1e-9)) {
+      return model::fail<Ref<WeightSolution>>(
+          Code::invalid_model,
+          "the weights of a leaf do not sum to one; the combined value would not estimate the "
+          "common quantity",
+          "solve_weights", "the weights cannot be solved");
+    }
+    // The published variance of the leaf is the quadratic form t^T Gamma t of
+    // the same block the weights were solved with; it is never 1/K.
+    if (block_available) {
+      double variance = 0.0;
+      for (std::size_t a = 0; a < weights.size(); ++a) {
+        for (std::size_t b = 0; b < weights.size(); ++b) {
+          variance += weights[a] * block(a, b) * weights[b];
+        }
+      }
+      if (!(variance >= 0.0)) {
+        return model::fail<Ref<WeightSolution>>(
+            Code::invalid_covariance, "the combined variance of a leaf is negative",
+            "solve_weights", "the weights cannot be solved");
+      }
     }
     for (std::size_t k = 0; k < eligible.size(); ++k) {
       coefficients[leaf * frame_count + eligible[k]] = weights[k];
     }
-    variances[leaf] = variance;
   }
 
-  // The covariance of the combined value: the diagonal of the per leaf
-  // variance of the weighted sum.
+  // The covariance of the combined value.  It is not a per leaf diagonal: the
+  // combination is z = W y over the concatenated leaf space, so
+  //   Cov(z) = W C W^T = sum_k (W L_k) F_k F_k^T (W L_k)^T,
+  // which keeps the shared roots and therefore the cross leaf terms.  Replacing
+  // it by the diagonal of the per leaf variances drops exactly those terms.
+  std::size_t total_leaves = 0;
+  for (const FrameView& view : views) total_leaves += view.leaves.size();
+  std::vector<U64> w_offsets(static_cast<std::size_t>(leaf_count) + 1, 0);
+  std::vector<U64> w_indices;
+  std::vector<double> w_values;
+  for (std::size_t leaf = 0; leaf < leaf_count; ++leaf) {
+    const U64 leaf_order = leaf_ids[2 * leaf];
+    const U64 leaf_ipix = leaf_ids[2 * leaf + 1];
+    for (std::size_t f = 0; f < frame_count; ++f) {
+      const double weight = coefficients[leaf * frame_count + f];
+      if (weight == 0.0) continue;
+      auto found = views[f].row_of_leaf.find({leaf_order, leaf_ipix});
+      if (found == views[f].row_of_leaf.end()) continue;
+      w_indices.push_back(static_cast<U64>(frame_offsets[f] + found->second));
+      w_values.push_back(weight);
+    }
+    w_offsets[leaf + 1] = w_indices.size();
+  }
+  Result<Ref<LinearAction>> weight_action = operators::make_csr_action(
+      context, static_cast<U64>(leaf_count), static_cast<U64>(total_leaves), w_offsets, w_indices,
+      w_values, Id(), Id(), model::unit_dimensionless());
+  if (!ok(weight_action)) {
+    return model::fail<Ref<WeightSolution>>(weight_action.code, "the combination operator cannot be built",
+                                            "solve_weights", "the weights cannot be solved");
+  }
   Ref<CovarianceAction> covariance;
-  {
-    std::vector<double> root_values(leaf_count, 0.0);
-    for (std::size_t leaf = 0; leaf < leaf_count; ++leaf) {
-      root_values[leaf] = variances[leaf] > 0.0 ? std::sqrt(variances[leaf]) : 0.0;
+  // The combined covariance is C = W C_joint W^T.  The outer action of a
+  // CovarianceAction is exactly a left/right factor: C(v) = W (C_joint (W^T v)),
+  // so the joint model is kept unchanged and W is published as the outer
+  // influence.  Every shared root, and therefore every cross leaf term, is
+  // carried by the model instead of being collapsed to a per leaf diagonal.
+  auto leaf_index = [&]() {
+    auto index = std::make_shared<Index>();
+    index->size = static_cast<U64>(leaf_count);
+    index->kind = Index::Kind::leaf;
+    index->namespace_id = selection->index ? selection->index->identity.object_id : Id();
+    index->identity = model::make_identity("acsd.Index", 2, 0,
+                                            model::hash_index(Index::Kind::leaf, leaf_count, 0, {}),
+                                            "acsd");
+    return std::shared_ptr<const Index>(index);
+  };
+  if (covariance_known) {
+    auto built = std::make_shared<CovarianceAction>(*joint);
+    built->influence = val(weight_action);
+    built->input_output.domain = leaf_index();
+    built->input_output.codomain = built->input_output.domain;
+    built->input_output.input = joint->model->variance_unit;
+    built->input_output.output = joint->model->variance_unit;
+    built->identity = model::make_identity("acsd.CovarianceAction", 2, 0,
+                                            model::hash_index(Index::Kind::leaf, leaf_count, 0, {}),
+                                            "acsd");
+    built->assessment = model::make_assessment(Code::ok);
+    built->assessment.complete = true;
+    built->assessment.noise = NoiseState::known;
+    covariance = std::shared_ptr<const CovarianceAction>(built);
+  } else {
+    // The variance of the combined value is unknown: the model carries an
+    // unknown term and the outer influence is the same combination operator,
+    // so no invented diagonal is published.
+    auto noise = std::make_shared<NoiseModel>();
+    noise->variance_unit = joint_available && joint->model
+                               ? joint->model->variance_unit
+                               : model::unit_variance("unknown");
+    noise->state = NoiseState::unknown;
+    operators::CsrMatrix identity;
+    identity.rows = static_cast<U64>(total_leaves);
+    identity.cols = static_cast<U64>(total_leaves);
+    identity.offsets.assign(static_cast<std::size_t>(identity.rows) + 1, 0);
+    for (U64 i = 0; i < identity.rows; ++i) {
+      identity.indices.push_back(i);
+      identity.values.push_back(1.0);
+      identity.offsets[static_cast<std::size_t>(i) + 1] = identity.indices.size();
     }
-    const U64 size = leaf_count;
-    std::vector<U64> offsets{0};
-    std::vector<U64> indices;
-    std::vector<double> values;
-    for (U64 i = 0; i < size; ++i) {
-      indices.push_back(i);
-      values.push_back(root_values[static_cast<std::size_t>(i)]);
-      offsets.push_back(indices.size());
-    }
-    Result<Ref<LinearAction>> factor =
-        operators::make_csr_action(context, size, size, offsets, indices, values, Id(), Id(),
-                                    model::unit_variance("combined"));
-    if (!ok(factor)) {
-      return model::fail<Ref<WeightSolution>>(factor.code, "the covariance factor cannot be built",
+    Result<Ref<LinearAction>> unknown_influence = operators::make_csr_action(
+        context, identity.rows, identity.cols, identity.offsets, identity.indices, identity.values,
+        Id(), Id(), noise->variance_unit);
+    if (!ok(unknown_influence)) {
+      return model::fail<Ref<WeightSolution>>(unknown_influence.code,
+                                              "the unknown covariance cannot be built",
                                               "solve_weights", "the weights cannot be solved");
     }
-    auto noise = std::make_shared<NoiseModel>();
-    auto root = std::make_shared<NoiseRoot>();
-    root->shared_id = SharedId{"acsd", "coadd_combined_variance", "2", "leaf"};
-    root->unit = model::unit_variance("combined");
-    root->factor = val(factor);
-    auto coordinates = std::make_shared<Index>();
-    coordinates->size = leaf_count;
-    coordinates->kind = Index::Kind::leaf;
-    root->coordinates = std::shared_ptr<const Index>(coordinates);
-    noise->innovations.push_back(std::shared_ptr<const NoiseRoot>(root));
-    noise->influence.push_back(val(factor));
-    noise->variance_unit = model::unit_variance("combined");
-    noise->state = NoiseState::known;
+    UnknownTerm term;
+    term.id = "coadd_combined_variance_unknown";
+    term.reason = covariance_failure_reason;
+    term.influence = val(unknown_influence);
+    noise->unknown_terms.push_back(term);
     noise->identity = model::make_identity("acsd.NoiseModel", 2, 0,
-                                            model::hash_index(Index::Kind::latent, 1, 0, {}), "acsd");
+                                            model::hash_index(Index::Kind::latent, 1, 0, {}),
+                                            "acsd");
     noise->assessment = model::make_assessment(Code::ok);
     noise->assessment.complete = true;
+    noise->assessment.noise = NoiseState::unknown;
     Result<Ref<CovarianceAction>> built =
         make_covariance(context, Ref<NoiseModel>(std::shared_ptr<const NoiseModel>(noise)));
     if (!ok(built)) {
-      return model::fail<Ref<WeightSolution>>(built.code, "the covariance cannot be built",
+      return model::fail<Ref<WeightSolution>>(built.code, "the unknown covariance cannot be built",
                                               "solve_weights", "the weights cannot be solved");
     }
-    covariance = val(built);
+    auto wrapped = std::make_shared<CovarianceAction>(*val(built));
+    wrapped->influence = val(weight_action);
+    wrapped->input_output.domain = leaf_index();
+    wrapped->input_output.codomain = wrapped->input_output.domain;
+    covariance = std::shared_ptr<const CovarianceAction>(wrapped);
   }
 
   Result<ArrayRef> coefficients_array = operators::write_f64(
@@ -984,17 +1227,34 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
   solution->policy = policy;
   solution->covariance = covariance;
   solution->selection = selection;
+  // The condition is the estimator identity that the later stages compare, so
+  // the selection conditional marker lives in the assessment: the variance of
+  // the combined value is conditional on a frozen mask that was chosen from the
+  // same data and is not an unconditional coverage claim.
   solution->condition = request.target.condition;
   solution->identity = model::make_identity("acsd.WeightSolution", 2, 0,
                                              model::hash_index(Index::Kind::leaf, leaf_count, 0, {}),
                                              "acsd");
   solution->assessment = model::make_assessment(Code::ok);
   solution->assessment.complete = true;
+  if (!covariance_known) {
+    solution->assessment.noise = NoiseState::unknown;
+  }
 
   Result<Ref<WeightSolution>> out = model::ok_result(std::shared_ptr<const WeightSolution>(solution));
   out.assessment.condition = solution->condition;
   model::set_included(out.assessment, "weight_policy=" + std::to_string(static_cast<int>(policy)));
   if (!policy_reason.empty()) model::set_included(out.assessment, policy_reason);
+  model::set_included(out.assessment, "weights_sum_to_one_per_leaf");
+  model::set_included(out.assessment, "combined_covariance_keeps_the_shared_roots");
+  if (!covariance_known) {
+    model::set_omitted(out.assessment, "known_combined_variance");
+    out.assessment.noise = NoiseState::unknown;
+    out.assessment.science = ScienceState::conditional;
+    model::add_issue(out.assessment, Code::unavailable,
+                     "the combined variance is unknown: " + covariance_failure_reason,
+                     "solve_weights", "the combined variance is unknown");
+  }
   if (empty_leaves > 0) {
     model::add_issue(out.assessment, Code::no_support,
                      "some leaves have no accepted sample and carry no weight",
@@ -1245,6 +1505,16 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
       total += weight;
     }
     if (total == 0.0) continue;
+    // The active weights of a leaf must be a normalised set: the combined value
+    // estimates the common quantity only when the active sum is one, and the
+    // sealed solution is checked here instead of being trusted.
+    if (!(std::fabs(total - 1.0) <= 1e-9)) {
+      return model::fail<CoaddResult>(
+          Code::invalid_model,
+          "the active weights of a leaf do not sum to one; the sealed solution does not "
+          "normalise the combined value",
+          "coadd", "the sealed inputs cannot be combined");
+    }
     combined[leaf] = sum;
     leaf_state[leaf] = 1;
   }

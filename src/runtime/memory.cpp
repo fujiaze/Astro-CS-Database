@@ -57,6 +57,42 @@ bool checked_mul(U64 a, U64 b, U64& out) {
   return true;
 }
 
+// A child scope may only narrow its parent's budget, never widen it.
+//
+// P0-3: the user's Limits are the process budget.  A caller that declares a
+// larger child ceiling (for example a workflow whose command scope still says
+// "1 GiB" under a 32 MiB user budget) must neither bypass that budget nor make
+// the command fail, because a ceiling is an upper bound and never a
+// reservation (API: "这是额度上限而非提前占有").  The effective ceiling recorded
+// on the scope is therefore the component-wise minimum with the parent; every
+// ancestor check in ledger_reserve still tests the parent's own ceiling, so no
+// capacity beyond the parent can ever be admitted.
+ScopeLimits narrow_limits(ScopeLimits limits, const ScopeLimits& parent) {
+  ResourceVector& c = limits.ceiling;
+  c.host_bytes = std::min(c.host_bytes, parent.ceiling.host_bytes);
+  c.pinned_bytes = std::min(c.pinned_bytes, parent.ceiling.pinned_bytes);
+  c.device_bytes = std::min(c.device_bytes, parent.ceiling.device_bytes);
+  c.spill_bytes = std::min(c.spill_bytes, parent.ceiling.spill_bytes);
+  c.cpu_tokens = std::min(c.cpu_tokens, parent.ceiling.cpu_tokens);
+  c.io_slots = std::min(c.io_slots, parent.ceiling.io_slots);
+  limits.max_work = std::min(limits.max_work, parent.max_work);
+  if (parent.metadata_bytes != 0) {
+    limits.metadata_bytes =
+        limits.metadata_bytes == 0
+            ? parent.metadata_bytes
+            : std::min(limits.metadata_bytes, parent.metadata_bytes);
+  }
+  // host_bytes is the inclusive upper bound of pinned_bytes.
+  if (c.pinned_bytes > c.host_bytes) c.pinned_bytes = c.host_bytes;
+  return limits;
+}
+
+bool limits_need_narrowing(const ScopeLimits& limits,
+                           const ScopeLimits& parent) {
+  const ResourceVector& c = limits.ceiling;
+  return !fits_within(c, parent.ceiling) || limits.max_work > parent.max_work;
+}
+
 }  // namespace
 
 namespace detail {
@@ -302,10 +338,15 @@ Result<ScopeRef> make_child_scope(const ScopeRef& parent, Id local_id,
     result.code = Code::invalid_request;
     return result;
   }
-  if (limits.ceiling.pinned_bytes > limits.ceiling.host_bytes ||
-      !fits_within(limits.ceiling, parent->limits.ceiling)) {
+  if (limits.ceiling.pinned_bytes > limits.ceiling.host_bytes) {
     result.code = Code::invalid_request;
     return result;
+  }
+  if (limits_need_narrowing(limits, parent->limits)) {
+    // P0-3: never widen a parent budget; the effective ceiling is the
+    // component-wise minimum (see narrow_limits).  A caller that overstates
+    // its ceiling cannot obtain capacity beyond the process budget.
+    limits = narrow_limits(std::move(limits), parent->limits);
   }
   auto scope = std::make_shared<ScopeState>();
   scope->local_id = std::move(local_id);
@@ -354,10 +395,10 @@ Result<ScopeRef> child_scope(InvocationContext parent, Id local_id,
     result.code = Code::invalid_request;
     return result;
   }
-  if (!fits_within(limits.ceiling, parent.scope->limits.ceiling)) {
-    // A child may only narrow the ceiling of its parent.
-    result.code = Code::invalid_request;
-    return result;
+  if (limits_need_narrowing(limits, parent.scope->limits)) {
+    // A child may only narrow the ceiling of its parent; an over-declared
+    // ceiling is clamped instead of being granted (P0-3).
+    limits = narrow_limits(std::move(limits), parent.scope->limits);
   }
   auto scope = detail::make_child_scope(parent.scope, std::move(local_id), limits);
   if (scope.code != Code::ok) {

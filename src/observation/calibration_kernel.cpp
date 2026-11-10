@@ -70,6 +70,22 @@ Result<Ref<LinearAction>> make_calibration_diagonal(Context& context,
                      std::span<const ArrayRef>{arrays.data(), arrays.size()});
 }
 
+// The calibration input a shared master root belongs to.  The declaration has
+// no separate role field for a master root, so the role is the shared identity
+// entity: "flat"/"gain"/"flat_field", "dark" and "bias", with an optional
+// "master_" prefix (the fixtures and the configuration use "master_flat").
+enum class MasterRole { flat, dark, bias, unknown };
+
+MasterRole master_root_role(const SharedId& id) {
+  std::string entity = id.entity;
+  static const std::string prefix = "master_";
+  if (entity.rfind(prefix, 0) == 0) entity = entity.substr(prefix.size());
+  if (entity == "flat" || entity == "gain" || entity == "flat_field") return MasterRole::flat;
+  if (entity == "dark" || entity == "dark_current") return MasterRole::dark;
+  if (entity == "bias" || entity == "offset") return MasterRole::bias;
+  return MasterRole::unknown;
+}
+
 // A noise root whose coordinates are the native samples and whose factor
 // scales a standard latent to the raw ADU amplitude.
 Result<Ref<NoiseRoot>> make_native_root(Context& context, Ref<Index> index, const Unit& adu_unit,
@@ -404,23 +420,59 @@ Result<Ref<NativeObservation>> assemble_calibrated_native(
 
   if (request.master_noise) {
     // The master root is merged by its shared identity; it is not rebuilt for
-    // every frame.  The flat Jacobian d x / d flat = -x/flat maps the master
-    // amplitude onto the calibrated samples.
-    std::vector<double> flat_jacobian(count, 0.0);
-    for (U64 i = 0; i < count; ++i) {
-      const double f = has_flat ? flat_values[i] / request.flat_normalization : 1.0;
-      flat_jacobian[i] = (std::isfinite(f) && f > 0.0 && std::isfinite(inputs.values[i]))
-                             ? -inputs.values[i] / f
-                             : 0.0;
-    }
-    Result<Ref<LinearAction>> jacobian =
-        make_calibration_diagonal(context, flat_jacobian, raw_observation->source_index, signal_unit,
-                             signal_unit);
-    if (!ok(jacobian)) {
-      return model::fail<Ref<NativeObservation>>(jacobian.code,
-                                                 "the master Jacobian cannot be built", kOrigin,
-                                                 "the observation cannot be calibrated");
-    }
+    // every frame.  The Jacobian of the calibration formula is per input map:
+    //   x = (d - b - r (dk - b)) / f
+    //   d x / d flat = -x / f          (the flat map)
+    //   d x / d dk   = -r / f          (the dark map)
+    //   d x / d b    = (r - 1) / f     (the bias inside a dark that contains
+    //                                   the bias) or -1 / f (a plain bias)
+    // A master root therefore may not be composed with the flat Jacobian by
+    // default: the dark root carries (r/f)^2 sigma_dk^2 and dropping it makes
+    // the calibrated variance short by that term without any unknown record.
+    // The role is the shared identity of the root (the only identity the
+    // declaration gives a master root); a root with an unrecognised role is
+    // never composed with a guessed Jacobian, it stays an explicit unknown.
+    const double ratio =
+        has_dark ? (request.exposure_seconds / request.dark_exposure_seconds) : 0.0;
+    std::vector<double> flat_jacobian;
+    std::vector<double> dark_jacobian;
+    std::vector<double> bias_jacobian;
+    auto flat_weights = [&]() -> const std::vector<double>& {
+      if (flat_jacobian.empty()) {
+        flat_jacobian.assign(count, 0.0);
+        for (U64 i = 0; i < count; ++i) {
+          const double f = has_flat ? flat_values[i] / request.flat_normalization : 1.0;
+          flat_jacobian[i] =
+              (std::isfinite(f) && f > 0.0 && std::isfinite(inputs.values[i]))
+                  ? -inputs.values[i] / f
+                  : 0.0;
+        }
+      }
+      return flat_jacobian;
+    };
+    auto dark_weights = [&]() -> const std::vector<double>& {
+      if (dark_jacobian.empty()) {
+        dark_jacobian.assign(count, 0.0);
+        for (U64 i = 0; i < count; ++i) {
+          const double f = has_flat ? flat_values[i] / request.flat_normalization : 1.0;
+          dark_jacobian[i] = (has_dark && std::isfinite(f) && f > 0.0) ? -ratio / f : 0.0;
+        }
+      }
+      return dark_jacobian;
+    };
+    auto bias_weights = [&]() -> const std::vector<double>& {
+      if (bias_jacobian.empty()) {
+        bias_jacobian.assign(count, 0.0);
+        for (U64 i = 0; i < count; ++i) {
+          const double f = has_flat ? flat_values[i] / request.flat_normalization : 1.0;
+          if (!(std::isfinite(f) && f > 0.0)) continue;
+          const double derivative =
+              (request.dark_contains_bias && has_dark) ? (ratio - 1.0) / f : -1.0 / f;
+          bias_jacobian[i] = has_bias ? derivative : 0.0;
+        }
+      }
+      return bias_jacobian;
+    };
     const std::size_t shared_count = request.master_noise->shared_factors.size();
     if (request.master_noise->influence.size() <
         request.master_noise->innovations.size() + shared_count) {
@@ -431,20 +483,83 @@ Result<Ref<NativeObservation>> assemble_calibrated_native(
     const std::size_t offset =
         request.master_noise->influence.size() - shared_count;
     for (std::size_t k = 0; k < shared_count; ++k) {
+      const Ref<NoiseRoot>& root = request.master_noise->shared_factors[k];
       const Ref<LinearAction>& influence = request.master_noise->influence[offset + k];
+      const MasterRole role =
+          root ? master_root_role(root->shared_id) : MasterRole::unknown;
+      const std::vector<double>* weights = nullptr;
+      switch (role) {
+        case MasterRole::flat:
+          weights = &flat_weights();
+          break;
+        case MasterRole::dark:
+          weights = &dark_weights();
+          break;
+        case MasterRole::bias:
+          weights = &bias_weights();
+          break;
+        case MasterRole::unknown:
+          break;
+      }
+      if (weights == nullptr) {
+        // The role of the root is not declared, so no Jacobian can be proven
+        // for it.  The root is not dropped and not composed with a guessed
+        // derivative: it becomes an unknown term, and the variance that
+        // touches it is unknown.
+        UnknownTerm term;
+        term.id = root ? "master_root_role_unknown:" + root->shared_id.entity
+                       : std::string("master_root_role_unknown");
+        term.reason =
+            "the master noise root does not declare which calibration input it belongs to "
+            "(the shared identity entity is not flat/dark/bias), so the Jacobian d x / d master "
+            "is not known and the root cannot be mapped onto the calibrated samples";
+        Result<Ref<LinearAction>> placeholder = make_calibration_diagonal(
+            context, std::vector<double>(count, 1.0), raw_observation->source_index, signal_unit,
+            signal_unit);
+        if (!ok(placeholder)) {
+          return model::fail<Ref<NativeObservation>>(placeholder.code,
+                                                     "the unknown term cannot be built", kOrigin,
+                                                     "the observation cannot be calibrated");
+        }
+        term.influence = val(placeholder);
+        noise_model->unknown_terms.push_back(term);
+        noise_omitted.push_back(term.id);
+        noise_state = NoiseState::unknown;
+        continue;
+      }
+      Result<Ref<LinearAction>> jacobian =
+          make_calibration_diagonal(context, *weights, raw_observation->source_index, signal_unit,
+                                    signal_unit);
+      if (!ok(jacobian)) {
+        return model::fail<Ref<NativeObservation>>(jacobian.code,
+                                                   "the master Jacobian cannot be built", kOrigin,
+                                                   "the observation cannot be calibrated");
+      }
       Result<Ref<LinearAction>> chained = acsd::compose(context, val(jacobian), influence);
       if (!ok(chained)) {
         return model::fail<Ref<NativeObservation>>(chained.code,
                                                    "the master root cannot be merged", kOrigin,
                                                    "the observation cannot be calibrated");
       }
-      noise_model->shared_factors.push_back(request.master_noise->shared_factors[k]);
+      noise_model->shared_factors.push_back(root);
       noise_model->influence.push_back(val(chained));
+      switch (role) {
+        case MasterRole::flat:
+          noise_included.push_back("master_flat_root_shared_identity(-x/flat)");
+          break;
+        case MasterRole::dark:
+          noise_included.push_back("master_dark_root_shared_identity(-r/flat)");
+          break;
+        case MasterRole::bias:
+          noise_included.push_back("master_bias_root_shared_identity((r-1)/flat)");
+          break;
+        case MasterRole::unknown:
+          break;
+      }
     }
     for (const UnknownTerm& term : request.master_noise->unknown_terms) {
       noise_model->unknown_terms.push_back(term);
     }
-    noise_included.push_back("master_flat_root_shared_identity");
     if (!request.master_noise->unknown_terms.empty()) noise_state = NoiseState::unknown;
   }
 

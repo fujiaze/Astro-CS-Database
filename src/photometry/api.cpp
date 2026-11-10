@@ -626,10 +626,14 @@ Result<Ref<PhotoSolution>> fit_photometry(Context& context,
         if (!(eigen.eigenvalues[mode] > 0.0)) {
           continue;
         }
+        // L L^T = C: the factor of the covariance is sum sqrt(lambda) v v^T.
+        // The reciprocal would build C^{-1/2} (a precision factor), which is
+        // a different operator and made any downstream use of the parameter
+        // covariance wrong.
         const double root = std::sqrt(eigen.eigenvalues[mode]);
         for (std::size_t i = 0; i < n_theta; ++i) {
           for (std::size_t j = 0; j < n_theta; ++j) {
-            factor(i, j) += eigen.eigenvectors(i, mode) * eigen.eigenvectors(j, mode) / root;
+            factor(i, j) += eigen.eigenvectors(i, mode) * eigen.eigenvectors(j, mode) * root;
           }
         }
       }

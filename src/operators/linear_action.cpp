@@ -328,9 +328,11 @@ Result<ArrayRef> ActionImpl::transpose_apply(Context& context, ArrayRef values) 
       return model::fail<ArrayRef>(Code::invalid_model, "compose needs two children",
                                    "operators.transpose_apply", "the action cannot be applied");
     }
-    Result<ArrayRef> outer = children_[1]->transpose_apply(context, values);
+    // apply() computes children_[0](children_[1](x)) = A B x, so the
+    // transpose is (A B)^T = B^T A^T: A^T acts first, then B^T.
+    Result<ArrayRef> outer = children_[0]->transpose_apply(context, values);
     if (!ok(outer)) return outer;
-    Result<ArrayRef> inner = children_[0]->transpose_apply(context, val(outer));
+    Result<ArrayRef> inner = children_[1]->transpose_apply(context, val(outer));
     if (!ok(inner)) return inner;
     return inner;
   }

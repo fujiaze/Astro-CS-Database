@@ -38,6 +38,15 @@ BigInt scaled_reciprocal(const BigInt& denominator, unsigned scale) {
   return BigInt::pow2(scale) / denominator;
 }
 
+// ceil(numerator / denominator) for a positive numerator and denominator: the
+// cell area upper bound must not be rounded down (the audit P2 "cell_area_upper
+// uses floor division, less than one cell").
+BigInt ceil_div(const BigInt& numerator, const BigInt& denominator) {
+  BigInt quotient = numerator / denominator;
+  if (!(numerator % denominator).is_zero()) quotient = quotient + BigInt(1);
+  return quotient;
+}
+
 // The alternating atan series  sum_k (-1)^k / ((2k+1) m^(2k+1))  evaluated on
 // the dyadic grid 2^-scale.  The returned interval encloses the true value:
 // the truncation error is bounded by the first omitted term and the rounding
@@ -356,7 +365,7 @@ ContainmentOutcome target_containment_apex(Context& context, const WcsModel& wcs
   const DyadicInterval pi = pi_enclosure();
   const BigInt divisor = BigInt(3) * BigInt(nside) * BigInt(nside);
   const BigInt cell_area_lower = BigInt::from_string(pi.lower.signed_integer) / divisor;
-  const BigInt cell_area_upper = BigInt::from_string(pi.upper.signed_integer) / divisor;
+  const BigInt cell_area_upper = ceil_div(BigInt::from_string(pi.upper.signed_integer), divisor);
   Dyadic cell_area;
   cell_area.signed_integer = cell_area_lower.to_string();
   cell_area.exponent2 = -DyadicLedger::kScaleBits;
@@ -521,12 +530,22 @@ ContainmentOutcome target_containment(Context& context, const WcsModel& wcs, Ref
   const DyadicInterval pi = pi_enclosure();
   const BigInt divisor = BigInt(3) * BigInt(nside) * BigInt(nside);
   const BigInt cell_area_lower = BigInt::from_string(pi.lower.signed_integer) / divisor;
-  const BigInt cell_area_upper = BigInt::from_string(pi.upper.signed_integer) / divisor;
+  const BigInt cell_area_upper = ceil_div(BigInt::from_string(pi.upper.signed_integer), divisor);
 
   const long long ix_lo = static_cast<long long>(std::floor(box.s_lo * static_cast<double>(nside)));
   const long long ix_hi = static_cast<long long>(std::floor(box.s_hi * static_cast<double>(nside)));
   const long long iy_lo = static_cast<long long>(std::floor(box.t_lo * static_cast<double>(nside)));
   const long long iy_hi = static_cast<long long>(std::floor(box.t_hi * static_cast<double>(nside)));
+  // The candidate cells must be cells of the face.  A box whose chart
+  // enclosure leaves [0,1] crosses the face seam; the containment fill cannot
+  // claim whole cells of this face for it, and clamping the out-of-face
+  // windows onto the last column would attribute (and double count) the mass of
+  // another face (P1, counterexample C3).  The proof is then incomplete and the
+  // cut cell kernel bounds stay authoritative.
+  if (ix_lo < 0 || iy_lo < 0 || ix_hi >= static_cast<long long>(nside) ||
+      iy_hi >= static_cast<long long>(nside)) {
+    return outcome;
+  }
   const double cells = static_cast<double>(ix_hi - ix_lo + 1) * static_cast<double>(iy_hi - iy_lo + 1);
   if (cells > 1.0e6) return outcome;
 

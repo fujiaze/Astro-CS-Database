@@ -8,9 +8,11 @@
 
 #include "acsd/contracts.hpp"
 #include "coordinates/footprint_provider.hpp"
+#include "geometry/kernel.hpp"
 #include "model/array.hpp"
 #include "model/result.hpp"
 #include "model/units.hpp"
+#include "numerics/interval.hpp"
 #include "operators/linear_action.hpp"
 
 namespace acsd {
@@ -18,28 +20,28 @@ namespace {
 
 using model::Rational;
 
+constexpr double kPi = 3.14159265358979323846;
+
 struct IntervalValue {
   double lower = 0.0;
   double upper = 0.0;
 };
 
-IntervalValue hull(const IntervalValue& a, const IntervalValue& b) {
-  return IntervalValue{std::min(a.lower, b.lower), std::max(a.upper, b.upper)};
+// The four rules go through the directed rounding interval primitives of the
+// numerics module, so the published B enclosure is outward (the local plain
+// double min/max of the four products is not).
+numerics::Interval as_interval(const IntervalValue& value) {
+  return numerics::Interval(value.lower, value.upper);
 }
 
 IntervalValue multiply(const IntervalValue& a, const IntervalValue& b) {
-  const double p[4] = {a.lower * b.lower, a.lower * b.upper, a.upper * b.lower, a.upper * b.upper};
-  double lo = p[0];
-  double hi = p[0];
-  for (double value : p) {
-    lo = std::min(lo, value);
-    hi = std::max(hi, value);
-  }
-  return IntervalValue{lo, hi};
+  const numerics::Interval product = numerics::interval_mul(as_interval(a), as_interval(b));
+  return IntervalValue{product.lower, product.upper};
 }
 
 IntervalValue add(const IntervalValue& a, const IntervalValue& b) {
-  return IntervalValue{a.lower + b.lower, a.upper + b.upper};
+  const numerics::Interval sum = numerics::interval_add(as_interval(a), as_interval(b));
+  return IntervalValue{sum.lower, sum.upper};
 }
 
 IntervalValue divide(const IntervalValue& a, const IntervalValue& b) {
@@ -47,14 +49,17 @@ IntervalValue divide(const IntervalValue& a, const IntervalValue& b) {
     return IntervalValue{-std::numeric_limits<double>::infinity(),
                          std::numeric_limits<double>::infinity()};
   }
-  const double p[4] = {a.lower / b.lower, a.lower / b.upper, a.upper / b.lower, a.upper / b.upper};
-  double lo = p[0];
-  double hi = p[0];
-  for (double value : p) {
-    lo = std::min(lo, value);
-    hi = std::max(hi, value);
-  }
-  return IntervalValue{lo, hi};
+  const numerics::Interval quotient = numerics::interval_div(as_interval(a), as_interval(b));
+  return IntervalValue{quotient.lower, quotient.upper};
+}
+
+double representative(const IntervalValue& value) { return 0.5 * (value.lower + value.upper); }
+
+// The solid angle of one true leaf: Omega_H = pi / (3 N^2) (SPHERICAL_DRIZZLE
+// Eq. (4)).  It bounds every overlap mass a_jp from above.
+double leaf_solid_angle(U32 order) {
+  const double nside = static_cast<double>(1ull << order);
+  return kPi / (3.0 * nside * nside);
 }
 
 Result<ArrayRef> store_f64(Context& context, const std::vector<double>& values, const Unit& unit,
@@ -97,6 +102,11 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
   if (context.cancellation.requested()) {
     return fail<DrizzleResult>(Code::cancelled, "cancelled", "build_drizzle");
   }
+  // The identity of the geometry that produced the contributions must be the
+  // identity of the requested drizzle: same order, same pixfrac.  A merged
+  // Overlaps that does not carry its recipe cannot prove this; the check is
+  // then named instead of silently skipped (the operator is not certified).
+  bool recipe_identity_proven = false;
   if (overlaps->recipe) {
     const GeometryRecipe& recipe = *overlaps->recipe;
     if (recipe.order != request.order) {
@@ -107,6 +117,7 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
       return fail<DrizzleResult>(Code::identity_conflict, "drizzle_pixfrac_differs_from_overlap",
                                  "build_drizzle");
     }
+    recipe_identity_proven = true;
   }
 
   // The source values and their index.
@@ -147,6 +158,20 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
   bool any_unresolved = false;
   bool any_absent = false;
   bool any_present = false;
+  bool any_missing_error = false;
+  bool any_drop_lower_not_positive = false;
+
+  // One source term of a leaf.  Omega_j and A_j are properties of the source
+  // (the contribution), a_jp is the only (source, leaf) quantity.
+  struct SourceTerm {
+    U64 source_row = 0;
+    IntervalValue overlap{0.0, 0.0};
+    IntervalValue drop{0.0, 0.0};
+    IntervalValue omega{0.0, 0.0};
+    IntervalValue weight{0.0, 0.0};
+    double weight_nominal = 0.0;
+    double value = 0.0;
+  };
 
   row_offsets.push_back(0);
   for (const auto& entry : by_leaf) {
@@ -157,50 +182,97 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
     }
     const HealpixLeaf leaf = HealpixLeaf{entry.first.first, entry.first.second};
     leaves.push_back(leaf);
-    IntervalValue omega{0.0, 0.0};
-    IntervalValue drop{0.0, 0.0};
-    IntervalValue weight_sum{0.0, 0.0};
-    IntervalValue numerator{0.0, 0.0};
-    IntervalValue area{0.0, 0.0};
-    bool first_contribution = true;
-    std::vector<std::pair<U64, double>> row;
-    std::vector<double> nominal_weights;
+
+    // --- per source j: w_jp = a_jp / A_j (SPHERICAL_DRIZZLE Eq. (9)) --------
+    std::vector<SourceTerm> terms;
+    terms.reserve(entry.second.size());
     for (std::size_t index : entry.second) {
       // The cancellation checkpoint of the contribution loop.
       if (context.cancellation.requested()) {
         return fail<DrizzleResult>(Code::cancelled, "cancelled", "build_drizzle:contributions");
       }
       const OverlapContribution& contribution = overlaps->contributions[index];
-      const IntervalValue a{contribution.overlap_area.lower_sr, contribution.overlap_area.upper_sr};
-      const IntervalValue a_prim{contribution.native_area.lower_sr, contribution.native_area.upper_sr};
-      const IntervalValue drop_prim{contribution.drop_area.lower_sr, contribution.drop_area.upper_sr};
-      if (first_contribution) {
-        omega = a_prim;
-        drop = drop_prim;
-        area = a;
-        first_contribution = false;
-      } else {
-        omega = hull(omega, a_prim);
-        drop = hull(drop, drop_prim);
-        area = hull(area, a);
+      SourceTerm term;
+      term.source_row = contribution.source.sample;
+      term.overlap = IntervalValue{contribution.overlap_area.lower_sr,
+                                   contribution.overlap_area.upper_sr};
+      term.drop = IntervalValue{contribution.drop_area.lower_sr, contribution.drop_area.upper_sr};
+      term.omega = IntervalValue{contribution.native_area.lower_sr,
+                                 contribution.native_area.upper_sr};
+      if (!(term.overlap.lower <= term.overlap.upper) ||
+          !(term.drop.lower <= term.drop.upper) || !(term.omega.lower <= term.omega.upper)) {
+        return fail<DrizzleResult>(Code::invalid_model, "invalid_area_interval", "build_drizzle",
+                                   "the overlap, drop or native area enclosure is inverted");
       }
-      if (!(drop.lower > 0.0)) continue;
-      // w = a / A with the enclosure of SPHERICAL_DRIZZLE section 5.
-      IntervalValue w = divide(a, IntervalValue{drop.upper, drop.lower});
-      w.upper = std::min(1.0, w.upper);
-      weight_sum = add(weight_sum, w);
-      // The column of the weight is the source row of the contribution (the
-      // sample number of its source identity), never a hard coded zero.
-      const U64 source_row = contribution.source.sample;
-      const double value = source_row < source_count ? x[source_row] : 0.0;
-      const IntervalValue signal_interval = multiply(w, IntervalValue{value, value});
-      numerator = add(numerator, signal_interval);
-      row.emplace_back(source_row, 0.0);
-      nominal_weights.push_back(0.5 * (w.lower + w.upper));
+      if (term.overlap.lower < 0.0 || term.drop.upper < 0.0 || term.omega.lower < 0.0) {
+        return fail<DrizzleResult>(Code::invalid_model, "negative_area", "build_drizzle",
+                                   "an area enclosure is negative");
+      }
+      if (term.source_row >= source_count) {
+        // The source row of the contribution is the column of the weight
+        // matrix.  A row outside the native values has no value at all: it is
+        // an error, never a silent zero (AGENTS: unknown error is not zero).
+        return fail<DrizzleResult>(Code::invalid_model, "source_row_out_of_range",
+                                   "build_drizzle",
+                                   "the source row of an overlap contribution is outside the "
+                                   "native values");
+      }
+      term.value = x[term.source_row];
+      // w in [a_L/A_U, min(1, a_U/A_L)].  The true w = a/A satisfies w <= 1
+      // because a_jp <= A_j, so the cap is a valid tightening, not a mask.
+      if (term.drop.lower > 0.0) {
+        term.weight.lower = term.overlap.lower / term.drop.upper;
+        term.weight.upper = std::min(1.0, term.overlap.upper / term.drop.lower);
+        if (!(term.weight.lower <= term.weight.upper)) {
+          return fail<DrizzleResult>(Code::invalid_model, "empty_weight_interval",
+                                     "build_drizzle",
+                                     "the overlap enclosure does not intersect the drop "
+                                     "enclosure");
+        }
+      } else {
+        // Only the positivity of A_j is certified (measure proved A > 0 but its
+        // lower bound rounded to zero).  w = a/A in [0,1] is still a valid
+        // enclosure; the missing lower bound is named below.
+        term.weight = IntervalValue{0.0, 1.0};
+        any_drop_lower_not_positive = true;
+      }
+      term.weight_nominal = representative(term.weight);
+      terms.push_back(term);
     }
-    // The normaliser N = sum_j w_j Omega_j.
-    IntervalValue n = multiply(weight_sum, omega);
-    if (!(n.upper > 0.0)) {
+
+    // --- F_p, N_p and their representative point ---------------------------
+    //   F_p = sum_j w_jp x_j,  N_p = sum_j w_jp Omega_j.
+    // Both are accumulated per source: the normaliser never uses a hull of the
+    // Omega_j or of the A_j across sources (I1).  The point estimate is
+    // evaluated at one consistent point of the enclosure box (the midpoints of
+    // w and Omega), so the constant field x_j = b0 Omega_j gives B = b0
+    // exactly instead of the midpoint of a conservative ratio interval.
+    IntervalValue f_interval{0.0, 0.0};
+    IntervalValue n_interval{0.0, 0.0};
+    double f_nominal = 0.0;
+    double n_nominal = 0.0;
+    double union_lower = 0.0;
+    double union_upper = 0.0;
+    for (const SourceTerm& term : terms) {
+      f_interval = add(f_interval, multiply(term.weight, IntervalValue{term.value, term.value}));
+      n_interval = add(n_interval, IntervalValue{term.weight.lower * term.omega.lower,
+                                                 term.weight.upper * term.omega.upper});
+      f_nominal += term.weight_nominal * term.value;
+      n_nominal += term.weight_nominal * representative(term.omega);
+      // The support union S = union_j (D_j cap H_p): a single source is inside
+      // the union (lower), the sum of the overlap upper bounds and the leaf
+      // area bound it from above.  The sum of the a is not the union.
+      union_lower = std::max(union_lower, term.overlap.lower);
+      union_upper += term.overlap.upper;
+    }
+    const double omega_leaf = leaf_solid_angle(leaf.order);
+    union_upper = std::min(union_upper, omega_leaf);
+    area_lower.push_back(union_lower);
+    area_upper.push_back(union_upper);
+
+    if (!(n_interval.upper > 0.0)) {
+      // N_U = 0: no support.  The signal is unavailable, never a fabricated
+      // zero.
       any_absent = true;
       normalizer.push_back(0.0);
       signal.push_back(std::numeric_limits<double>::quiet_NaN());
@@ -209,12 +281,12 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
       support_states.push_back(0);
       normalization_states.push_back(0);
       observational_states.push_back(1);
-      area_lower.push_back(area.lower);
-      area_upper.push_back(area.upper);
       row_offsets.push_back(static_cast<U64>(row_indices.size()));
       continue;
     }
-    if (!(n.lower > 0.0)) {
+    if (!(n_interval.lower > 0.0)) {
+      // N_L <= 0 < N_U: the normaliser may vanish, so no normalised row is
+      // constructed (support_unresolved).
       any_unresolved = true;
       normalizer.push_back(std::numeric_limits<double>::quiet_NaN());
       signal.push_back(std::numeric_limits<double>::quiet_NaN());
@@ -223,25 +295,31 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
       support_states.push_back(2);
       normalization_states.push_back(2);
       observational_states.push_back(1);
-      area_lower.push_back(area.lower);
-      area_upper.push_back(area.upper);
       row_offsets.push_back(static_cast<U64>(row_indices.size()));
       continue;
     }
     any_present = true;
-    const IntervalValue brightness = divide(numerator, n);
-    normalizer.push_back(0.5 * (n.lower + n.upper));
-    signal.push_back(0.5 * (brightness.lower + brightness.upper));
+    // B_p = F_p / N_p with N_L > 0; the point value is the same ratio at the
+    // representative point, which lies inside the certified interval.
+    const IntervalValue brightness = divide(f_interval, n_interval);
+    const double brightness_nominal = f_nominal / n_nominal;
+    normalizer.push_back(n_nominal);
+    signal.push_back(brightness_nominal);
     signal_lower.push_back(brightness.lower);
     signal_upper.push_back(brightness.upper);
     support_states.push_back(1);
     normalization_states.push_back(1);
     observational_states.push_back(1);
-    area_lower.push_back(area.lower);
-    area_upper.push_back(area.upper);
-    for (std::size_t k = 0; k < row.size(); ++k) {
-      row_indices.push_back(row[k].first);
-      row_values.push_back(k < nominal_weights.size() ? nominal_weights[k] : 0.0);
+    // The row of the same linear operator R: R_pj = w_jp / N_p.  The row is
+    // merged per source row (one column per source, SPHERICAL_DRIZZLE Eq. (2)),
+    // in source order so that the result is order independent.
+    std::map<U64, double> r_by_source;
+    for (const SourceTerm& term : terms) {
+      r_by_source[term.source_row] += term.weight_nominal / n_nominal;
+    }
+    for (const auto& [source_row, r] : r_by_source) {
+      row_indices.push_back(source_row);
+      row_values.push_back(r);
     }
     row_offsets.push_back(static_cast<U64>(row_indices.size()));
   }
@@ -277,18 +355,21 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
   if (!ok(normalizer_array)) {
     return fail<DrizzleResult>(normalizer_array.code, "normalizer_store_failed", "build_drizzle");
   }
-  Result<ArrayRef> signal_array =
-      store_f64(context, signal, model::unit_sr_per_pixel(), leaf_index_id);
+  // The signal is F/N: a native integrated value (the observation unit) per
+  // steradian, so the unit of the array and of the estimator is the
+  // observation unit divided by sr, not sr/pixel.
+  const Unit signal_unit = model::unit_multiply(observation->unit, model::unit_per_sr());
+  Result<ArrayRef> signal_array = store_f64(context, signal, signal_unit, leaf_index_id);
   if (!ok(signal_array)) {
     return fail<DrizzleResult>(signal_array.code, "signal_store_failed", "build_drizzle");
   }
   Result<ArrayRef> signal_lower_array =
-      store_f64(context, signal_lower, model::unit_sr_per_pixel(), leaf_index_id);
+      store_f64(context, signal_lower, signal_unit, leaf_index_id);
   if (!ok(signal_lower_array)) {
     return fail<DrizzleResult>(signal_lower_array.code, "signal_store_failed", "build_drizzle");
   }
   Result<ArrayRef> signal_upper_array =
-      store_f64(context, signal_upper, model::unit_sr_per_pixel(), leaf_index_id);
+      store_f64(context, signal_upper, signal_unit, leaf_index_id);
   if (!ok(signal_upper_array)) {
     return fail<DrizzleResult>(signal_upper_array.code, "signal_store_failed", "build_drizzle");
   }
@@ -320,7 +401,8 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
     return fail<DrizzleResult>(rows.code, "drizzle_action_failed", "build_drizzle");
   }
 
-  // The support map.
+  // The support map.  Its area is the independent union enclosure, never the
+  // sum of the a (I9).
   auto support = std::make_shared<SupportMap>();
   support->kind = SupportMap::Kind::primitives;
   support->index = leaf_index;
@@ -331,16 +413,33 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
   support->geometry_snapshot = overlaps->identity.object_id;
   support->normalization_states = val(normalization_states_array);
   support->observational_states = val(observational_states_array);
-  support->identity = model::make_identity("acsd.SupportMap", 2, 0, model::sha256_hex(leaf_index_id),
-                                           "acsd");
+  {
+    geometry::ContentDigest digest;
+    digest.add("schema", "acsd.SupportMap");
+    digest.add("leaf_index", leaf_index_id);
+    digest.add("geometry", overlaps->identity.object_id);
+    digest.add("primitives", overlaps->primitives ? overlaps->primitives->identity.object_id : "");
+    digest.add("states", val(states_array)->identity.object_id);
+    digest.add("area_lower", val(area_lower_array)->identity.object_id);
+    digest.add("area_upper", val(area_upper_array)->identity.object_id);
+    digest.add("normalization_states", val(normalization_states_array)->identity.object_id);
+    digest.add("observational_states", val(observational_states_array)->identity.object_id);
+    support->identity =
+        model::make_identity("acsd.SupportMap", 2, 0, digest.hex(), "acsd");
+  }
   support->assessment = model::make_assessment(Code::ok);
   support->assessment.complete = true;
 
-  // The error record.
+  // The error record.  The leaves without a certified interval keep no
+  // achieved entry: an unknown error is not a zero error.
   auto error = std::make_shared<ErrorRecord>();
   error->requested = request.budget.requested_functionals;
   error->achieved.clear();
   for (std::size_t i = 0; i < signal.size(); ++i) {
+    if (!std::isfinite(signal_lower[i]) || !std::isfinite(signal_upper[i])) {
+      any_missing_error = true;
+      continue;
+    }
     ExactInterval interval;
     interval.lower = model::dyadic_from_double(signal_lower[i]);
     interval.upper = model::dyadic_from_double(signal_upper[i]);
@@ -351,7 +450,9 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
       model::make_condition("drizzle_surface_brightness", "interval_bounded");
 
   // The effective response: the drizzle operator itself acts on the native
-  // samples, so it is the effective response of this frame.
+  // samples, so it is the effective response of this frame.  Its coefficients
+  // are the final R = w/N, the same operator that produced the signal and the
+  // noise (I2), not w.
   auto response = std::make_shared<SpatialResponse>();
   response->spatial_actions.push_back(val(rows));
   Result<ArrayRef> weights_array = store_f64(context, {1.0}, model::unit_dimensionless(),
@@ -368,18 +469,25 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
   response->reference_factors = val(factors_array);
   response->signed_response = false;
   response->condition = model::make_condition("drizzle_kernel", "same_R_for_signal_and_noise");
-  response->identity = model::make_identity("acsd.SpatialResponse", 2, 0,
-                                             model::sha256_hex("acsd.drizzle.response"), "acsd");
+  {
+    geometry::ContentDigest digest;
+    digest.add("schema", "acsd.SpatialResponse");
+    digest.add_csr("operator", row_offsets, row_indices, row_values);
+    digest.add("weights", val(weights_array)->identity.object_id);
+    digest.add("reference_factors", val(factors_array)->identity.object_id);
+    digest.add_u64("signed_response", response->signed_response ? 1 : 0);
+    response->identity = model::make_identity("acsd.SpatialResponse", 2, 0, digest.hex(), "acsd");
+  }
   response->assessment = model::make_assessment(Code::ok);
   response->assessment.complete = true;
 
   // The signal estimate.
   auto estimate = std::make_shared<SignalEstimate>();
   estimate->signal = val(signal_array);
-  estimate->unit = observation->unit;
+  estimate->unit = signal_unit;
   estimate->estimator.id = "acsd.drizzle.brightness";
   estimate->estimator.quantity = "surface_brightness";
-  estimate->estimator.unit = observation->unit;
+  estimate->estimator.unit = signal_unit;
   estimate->estimator.condition = model::make_condition("drizzle_surface_brightness",
                                                          "interval_bounded");
   estimate->numerical_lower = val(signal_lower_array);
@@ -400,11 +508,24 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
     }
   }
   estimate->error = error;
-  estimate->identity = model::make_identity("acsd.SignalEstimate", 2, 0,
-                                             model::sha256_hex("acsd.drizzle.estimate"), "acsd");
+  {
+    geometry::ContentDigest digest;
+    digest.add("schema", "acsd.SignalEstimate");
+    digest.add("signal", val(signal_array)->identity.object_id);
+    digest.add("lower", val(signal_lower_array)->identity.object_id);
+    digest.add("upper", val(signal_upper_array)->identity.object_id);
+    digest.add("unit", model::unit_to_string(signal_unit));
+    digest.add("support", support->identity.object_id);
+    digest.add("response", response->identity.object_id);
+    digest.add("noise", estimate->noise ? estimate->noise->identity.object_id : "");
+    digest.add("condition", estimate->estimator.condition.kind);
+    estimate->identity = model::make_identity("acsd.SignalEstimate", 2, 0, digest.hex(), "acsd");
+  }
   estimate->assessment = model::make_assessment(Code::ok);
-  estimate->assessment.complete = !any_unresolved;
-  estimate->assessment.science = any_unresolved ? ScienceState::unconverged : ScienceState::bounded;
+  estimate->assessment.complete = !any_unresolved && !any_missing_error && recipe_identity_proven;
+  estimate->assessment.science = (any_unresolved || any_missing_error || !recipe_identity_proven)
+                                     ? ScienceState::unconverged
+                                     : ScienceState::bounded;
   if (any_absent) {
     model::add_issue(estimate->assessment, Code::no_support, "leaves_without_positive_support",
                      "build_drizzle",
@@ -417,6 +538,21 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
                      "the certified normalization row is not constructed for these leaves",
                      "refine the geometry");
   }
+  if (any_missing_error) {
+    model::set_included(estimate->assessment,
+                        "leaves_without_a_certified_signal_interval_have_no_achieved_error_entry");
+  }
+  if (any_drop_lower_not_positive) {
+    model::set_included(estimate->assessment,
+                        "drop_area_lower_bound_not_positive:weight_enclosed_by_[0,1]");
+  }
+  if (!recipe_identity_proven) {
+    model::add_issue(estimate->assessment, Code::identity_conflict,
+                     "overlaps_without_recipe_identity", "build_drizzle:overlaps",
+                     "the order and pixfrac of the request cannot be checked against the "
+                     "geometry that produced the contributions",
+                     "carry the GeometryRecipe of the overlap through the merge");
+  }
 
   // The operator.
   auto op = std::make_shared<DrizzleOperator>();
@@ -426,6 +562,8 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
   op->normalizer_sr = val(normalizer_array);
   op->support = support;
   op->status = overlaps->status;
+  op->assessment = model::make_assessment(Code::ok);
+  op->assessment.complete = true;
   // The bounds of the Drizzle operator are the bounds of the overlaps: when
   // the geometry path did not reach its tolerance (a budget exhaustion, an
   // unresolved domain), the operator carries that termination and no bound of
@@ -446,10 +584,18 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
                                  ? "unsupported"
                                  : "tolerance_met"));
   }
-  op->identity = model::make_identity("acsd.DrizzleOperator", 2, 0, model::sha256_hex("acsd.drizzle"),
-                                       "acsd");
-  op->assessment = model::make_assessment(Code::ok);
-  op->assessment.complete = true;
+  {
+    geometry::ContentDigest digest;
+    digest.add("schema", "acsd.DrizzleOperator");
+    digest.add_csr("rows", row_offsets, row_indices, row_values);
+    digest.add("source_index", observation->native_index ? observation->native_index->identity.object_id : "");
+    digest.add("bounds", overlaps->identity.object_id);
+    digest.add("normalizer", val(normalizer_array)->identity.object_id);
+    digest.add("support", support->identity.object_id);
+    digest.add_u64("termination", static_cast<U64>(op->status.termination));
+    digest.add_u64("bound_validity", static_cast<U64>(op->status.bound_validity));
+    op->identity = model::make_identity("acsd.DrizzleOperator", 2, 0, digest.hex(), "acsd");
+  }
 
   DrizzleResult result;
   result.op = op;

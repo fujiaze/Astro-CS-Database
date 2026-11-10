@@ -6,6 +6,7 @@
 #include "internal.hpp"
 
 #include <cstring>
+#include <new>
 
 #include "model/array.hpp"
 #include "model/result.hpp"
@@ -50,38 +51,58 @@ class BridgeStorage final : public Storage {
       result.code = Code::invalid_request;
       return result;
     }
-    if (bytes.size() == 0) {
-      result.code = Code::invalid_request;
-      return result;
-    }
-    auto data = std::make_shared<std::vector<std::byte>>(bytes.begin(),
-                                                         bytes.end());
-    auto owner = std::make_shared<ArrayOwner>();
-    owner->data = data;
+    // An empty array is legal (OBJECTS: "空数组合法"), it just owns no bytes and
+    // therefore needs no capacity ticket.  A degenerate scientific system (for
+    // example a zero column relative-sky stack) must be able to store its
+    // zero-length result instead of failing the whole invocation.
+    const bool empty = bytes.size() == 0;
     // Prefer the invocation's persistent arena: a science array may be
     // aliased to a later process (a catalogue star, a PSF parameter block).
     // When the persistent arena has no room, fall back to the segment arena so
     // a bounded segment can still produce a transient array.
+    //
+    // P0-6: claim the capacity FIRST, then allocate, then commit.  The old
+    // order copied the bytes into a std::vector before any claim, so a failed
+    // claim left the physical allocation unaccounted (and the peak never saw
+    // it).  An uncommitted ticket releases only `claimed` when it dies
+    // (SCHEDULER: "allocate失败/未commit票据最后释放时减claimed"), and the
+    // commit below is what puts the real allocation into allocated/peak.
     ResourceVector required;
     required.host_bytes = bytes.size();
     Result<std::shared_ptr<ClaimImpl>> claim;
     ArenaRef claim_arena =
         ctx_.persistent ? ctx_.persistent : ArenaRef{};
-    if (claim_arena) claim = claim_capacity(claim_arena, required);
-    if ((claim.code != Code::ok || !claim.value) && arena_ &&
-        (!claim_arena || arena_ != claim_arena)) {
-      claim = claim_capacity(arena_, required);
+    if (!empty) {
+      if (claim_arena) claim = claim_capacity(claim_arena, required);
+      if ((claim.code != Code::ok || !claim.value) && arena_ &&
+          (!claim_arena || arena_ != claim_arena)) {
+        claim = claim_capacity(arena_, required);
+      }
+      if (claim.code != Code::ok || !claim.value) {
+        result.code = claim.code == Code::ok ? Code::resource_exhausted
+                                             : claim.code;
+        return result;
+      }
     }
-    if (claim.code == Code::ok && claim.value) {
+    auto owner = std::make_shared<ArrayOwner>();
+    std::shared_ptr<std::vector<std::byte>> data;
+    try {
+      data = std::make_shared<std::vector<std::byte>>(bytes.begin(),
+                                                      bytes.end());
+    } catch (const std::bad_alloc&) {
+      // The claim is still uncommitted: dropping it returns the claimed
+      // capacity and never touches the physical peak.
+      result.code = Code::resource_exhausted;
+      return result;
+    }
+    owner->data = data;
+    if (!empty) {
       owner->claim = *claim.value;
       {
         std::lock_guard<std::mutex> lock(owner->claim->mutex);
         owner->claim->committed = true;
       }
       ledger_commit(owner->claim->arena->scope, required);
-    } else if (claim.code != Code::ok) {
-      result.code = claim.code;
-      return result;
     }
     std::vector<U64> shape_vec(shape.begin(), shape.end());
     const std::string hex =
@@ -194,6 +215,20 @@ class BridgeResources final : public Resources {
       result.code = claim.code;
       return result;
     }
+    // P0-6: a science-side workspace reservation is a real allocation, not a
+    // bare claim.  The module performs the physical allocation itself (it is a
+    // std::vector/matrix inside the numerics code), so the declaration is the
+    // allocation contract: commit it now, which moves claimed -> allocated and
+    // updates the peak of every ancestor scope.  Without the commit the
+    // reported peak_payload_bytes was systematically blind to exactly the
+    // workspace the module had reserved (SCHEDULER: commit(ticket,
+    // actual_allocation)).  The ticket's Lease returns the capacity only when
+    // the Reservation dies, exactly like a Buffer lease.
+    {
+      std::lock_guard<std::mutex> lock((*claim.value)->mutex);
+      (*claim.value)->committed = true;
+    }
+    ledger_commit((*claim.value)->arena->scope, required);
     Reservation reservation;
     reservation.bytes = bytes;
     reservation.threads = threads;

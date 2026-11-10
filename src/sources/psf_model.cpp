@@ -6,6 +6,7 @@
 #include <cmath>
 #include <limits>
 
+#include "model/array.hpp"
 #include "model/result.hpp"
 #include "model/units.hpp"
 #include "numerics/quadrature.hpp"
@@ -14,6 +15,29 @@ namespace acsd::sources::psfmodel {
 namespace {
 
 constexpr double kPi = 3.14159265358979323846;
+
+// Reads a whole f64 array.  `expected` is the required element count, or zero
+// when the caller accepts any length (the pixel response gains).
+Result<std::vector<double>> read_f64_values(Context& context, ArrayRef array, U64 expected) {
+  if (!array) {
+    return model::fail<std::vector<double>>(Code::invalid_model, "the array is missing",
+                                            "sources.psf", "the values cannot be read");
+  }
+  U64 count = 1;
+  for (U64 extent : array->shape) count *= extent;
+  if (array->shape.empty()) count = 0;
+  if (expected != 0 && count != expected) {
+    return model::fail<std::vector<double>>(Code::invalid_model,
+                                            "the array does not cover the native samples",
+                                            "sources.psf", "the values cannot be read");
+  }
+  Result<ArrayView> view = context.storage.read(context, array, BlockRequest{0, count});
+  if (!ok(view)) {
+    return model::fail<std::vector<double>>(view.code, "the array cannot be read", "sources.psf",
+                                            "the values cannot be read");
+  }
+  return model::ok_result(model::decode_f64(val(view).bytes));
+}
 
 // The Gauss-Legendre nodes and weights of the rules used by the block
 // quadrature.
@@ -537,6 +561,102 @@ Result<TemplateBlock> build_templates_from_local(Context& context, PsfRequest::F
     return model::fail<TemplateBlock>(work.code, "the template exceeds the work budget",
                                        "sources.psf", "the template cannot be built");
   }
+  // ---------------------------------------------------------------------
+  // The known multiplicative sample response and the intra-pixel PRF.
+  //
+  // OBSERVATION_COORDINATES Eq. (2) integrates the PSF against the relative
+  // in-pixel efficiency rho_i, and sources.psf fixes the first-release
+  // convention: FootprintSet.sample_response_gain[N] (null means 1) multiplies
+  // the pixel integral of its sample, and a non-empty PixelResponse splits the
+  // photosite into cells whose per-band gains multiply the integral over each
+  // cell.  Both were ingested and copied by the workflow but never entered the
+  // integral, so a real instrument (flat residual, Bayer/PRF) had a flux bias
+  // with no unknown record at all.
+  //
+  // The first release is achromatic, so a PixelResponse with more than one
+  // wavelength bin cannot be weighted by the spectrum here: it is refused by
+  // name instead of silently picking a band.
+  // ---------------------------------------------------------------------
+  std::vector<double> sample_gain;
+  if (footprints.sample_response_gain) {
+    Result<std::vector<double>> read =
+        read_f64_values(context, footprints.sample_response_gain,
+                        footprints.index ? footprints.index->size : 0);
+    if (!ok(read)) {
+      return model::fail<TemplateBlock>(read.code, "the sample response gain cannot be read",
+                                        "sources.psf", "the template cannot be built");
+    }
+    sample_gain = val(read);
+  }
+  const PixelResponse* pixel_response = footprints.pixel_response.get();
+  std::vector<double> cell_gain;
+  bool prf = false;
+  if (pixel_response && !pixel_response->cells.empty()) {
+    if (!pixel_response->gains) {
+      return model::fail<TemplateBlock>(Code::invalid_model,
+                                        "the pixel response declares cells without gains",
+                                        "sources.psf", "the template cannot be built");
+    }
+    Result<std::vector<double>> read = read_f64_values(context, pixel_response->gains, 0);
+    if (!ok(read)) {
+      return model::fail<TemplateBlock>(read.code, "the pixel response gains cannot be read",
+                                        "sources.psf", "the template cannot be built");
+    }
+    cell_gain = val(read);
+    const std::size_t cells = pixel_response->cells.size();
+    if (cell_gain.size() % cells != 0) {
+      return model::fail<TemplateBlock>(Code::invalid_model,
+                                        "the pixel response gains do not cover its cells",
+                                        "sources.psf", "the template cannot be built");
+    }
+    const std::size_t bins = cell_gain.size() / cells;
+    if (bins != 1) {
+      return model::fail<TemplateBlock>(
+          Code::unsupported,
+          "the pixel response carries " + std::to_string(bins) +
+              " wavelength bins while the first-release PSF is achromatic; the band weights are "
+              "not known and the colour dependent PRF is not modelled",
+          "sources.psf", "the spectral PRF cannot be applied to an achromatic kernel");
+    }
+    prf = true;
+  }
+  // The cell rectangles in detector coordinates: the cells live in the local
+  // photosite frame and are mapped by the same affine map as the sample.
+  struct CellRectangle {
+    double x[4];
+    double y[4];
+    bool axis_aligned = true;
+  };
+  std::vector<CellRectangle> cells;
+  if (prf) {
+    const Mat2& m = footprints.detector_from_sample;
+    const Box& local_cell = footprints.local_cell;
+    for (const Box& cell : pixel_response->cells) {
+      const double x0 = std::max(cell.lower[0], local_cell.lower[0]);
+      const double x1 = std::min(cell.upper[0], local_cell.upper[0]);
+      const double y0 = std::max(cell.lower[1], local_cell.lower[1]);
+      const double y1 = std::min(cell.upper[1], local_cell.upper[1]);
+      CellRectangle rectangle;
+      if (!(x1 > x0) || !(y1 > y0)) {
+        // An empty clipped cell contributes nothing; the four corners are
+        // degenerate and the integral is skipped below.
+        rectangle.x[0] = rectangle.x[1] = rectangle.x[2] = rectangle.x[3] = 0.0;
+        rectangle.y[0] = rectangle.y[1] = rectangle.y[2] = rectangle.y[3] = 0.0;
+        cells.push_back(rectangle);
+        continue;
+      }
+      const double cx[4] = {x0, x1, x1, x0};
+      const double cy[4] = {y0, y0, y1, y1};
+      for (int corner = 0; corner < 4; ++corner) {
+        rectangle.x[corner] = m[0] * cx[corner] + m[1] * cy[corner] + footprints.offset[0];
+        rectangle.y[corner] = m[2] * cx[corner] + m[3] * cy[corner] + footprints.offset[1];
+      }
+      // The affine map keeps the rectangle axis aligned only when the off
+      // diagonal terms vanish.
+      rectangle.axis_aligned = (m[1] == 0.0 && m[2] == 0.0);
+      cells.push_back(rectangle);
+    }
+  }
   for (std::size_t s = 0; s < sources; ++s) {
     // The cancellation is checked for every source and for every block of
     // samples: a cancelled build returns no partial template.
@@ -559,19 +679,71 @@ Result<TemplateBlock> build_templates_from_local(Context& context, PsfRequest::F
         return model::fail<TemplateBlock>(Code::cancelled, "cancelled", "sources.psf",
                                           "the template cannot be built");
       }
-      const SampleFootprint footprint = sample_footprint(footprints, rows[k]);
+      const U64 row = rows[k];
+      const SampleFootprint footprint = sample_footprint(footprints, row);
       if (!footprint.valid) continue;
+      const double gain =
+          row < sample_gain.size() && std::isfinite(sample_gain[row]) ? sample_gain[row] : 1.0;
       Integral integral;
-      if (footprint.rings.empty()) {
+      double cell_mass = 0.0;
+      if (prf && footprint.rings.empty()) {
+        // Integrate the density over every PRF cell of this sample and weight
+        // it by the gain of the cell.  The sum of the cell integrals is the
+        // integral over the photosite, so the tail of the positive model uses
+        // it without the gain (the gain is not a probability).
+        double value = 0.0;
+        double error = 0.0;
+        for (std::size_t c = 0; c < cells.size(); ++c) {
+          const CellRectangle& rectangle = cells[c];
+          Integral part;
+          if (rectangle.axis_aligned) {
+            double x0 = rectangle.x[0];
+            double x1 = rectangle.x[0];
+            double y0 = rectangle.y[0];
+            double y1 = rectangle.y[0];
+            for (int corner = 1; corner < 4; ++corner) {
+              x0 = std::min(x0, rectangle.x[corner]);
+              x1 = std::max(x1, rectangle.x[corner]);
+              y0 = std::min(y0, rectangle.y[corner]);
+              y1 = std::max(y1, rectangle.y[corner]);
+            }
+            if (!(x1 > x0) || !(y1 > y0)) continue;
+            part = integrate_rectangle(family, local, positions[s].x, positions[s].y, x0, x1, y0,
+                                       y1, absolute_tolerance);
+          } else {
+            std::vector<std::vector<PixelEdge0>> rings(1);
+            for (int corner = 0; corner < 4; ++corner) {
+              rings[0].push_back(PixelEdge0{rectangle.x[corner], rectangle.y[corner]});
+            }
+            part = integrate_polygon(family, local, positions[s].x, positions[s].y, rings,
+                                     absolute_tolerance);
+          }
+          const double weight = cell_gain[c];
+          value += weight * part.value;
+          error += std::fabs(weight) * part.error;
+          cell_mass += part.value;
+        }
+        integral.value = value;
+        integral.error = error;
+      } else if (prf) {
+        // A footprint with exceptional rings is not a rectangle, so the cell
+        // partition of the photosite cannot be intersected with it here.  The
+        // response is refused by name instead of being dropped.
+        return model::fail<TemplateBlock>(
+            Code::unsupported,
+            "the pixel response cells cannot be intersected with an exceptional ring footprint",
+            "sources.psf", "the template cannot be built");
+      } else if (footprint.rings.empty()) {
         integral = integrate_rectangle(family, local, positions[s].x, positions[s].y, footprint.x0,
                                        footprint.x1, footprint.y0, footprint.y1, absolute_tolerance);
       } else {
         integral = integrate_polygon(family, local, positions[s].x, positions[s].y, footprint.rings,
                                      absolute_tolerance);
       }
-      block.values[k * sources + s] = integral.value;
-      block.errors[k * sources + s] = integral.error;
-      mass += integral.value;
+      if (!prf) cell_mass = integral.value;
+      block.values[k * sources + s] = gain * integral.value;
+      block.errors[k * sources + s] = std::fabs(gain) * integral.error;
+      mass += cell_mass;
     }
     // The native positive model is normalised over the whole plane, so the
     // mass outside the integrated region is one minus the integrated mass.

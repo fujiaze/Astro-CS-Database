@@ -232,6 +232,17 @@ void try_fulfill_broadcasts() {
         done.push_back(group);
         continue;
       }
+      // P0-4: a cancelled command must wake the group here as well.  The
+      // per-pipe cancel watcher cannot observe every path (a group may be
+      // parked after the cancel already fired, or its pipes may be replaced),
+      // so the terminal state of the waiting Task is never left to an
+      // unrelated pipe event.
+      if (cancellation_requested(group->node->context.cancel)) {
+        complete_node(group->node, Code::cancelled, nullptr,
+                      "the command was cancelled while the broadcast waited");
+        done.push_back(group);
+        continue;
+      }
       bool closed_branch = false;
       bool credit = true;
       for (auto& pipe : group->pipes) {
@@ -277,6 +288,45 @@ void try_fulfill_broadcasts() {
   }
 }
 
+// P0-4: completes every parked broadcast group that involves `pipe`.  A
+// broadcast group is not stored in pipe.waiting (it waits for the whole set of
+// branches), so the per-pipe cancel path alone left it unreachable: the Task
+// stayed in waiting_dependencies until some unrelated pipe was closed, and a
+// caller blocked in wait_external() never observed cancellation (F1).  Every
+// pipe of a command is registered on the same CancelState, so at least one
+// watcher invocation reaches this function for any parked group.
+// Runs without the pipe mutex; the group mutex is released before any node is
+// completed so that no user continuation runs under a pipe/ledger lock.
+void wake_parked_broadcasts_involving(PipeCore& pipe, Code code,
+                                      const char* reason) {
+  std::vector<std::shared_ptr<BroadcastGroup>> woken;
+  {
+    std::lock_guard<std::mutex> global(broadcast_mutex());
+    auto& groups = broadcast_groups();
+    for (auto it = groups.begin(); it != groups.end();) {
+      bool involves = false;
+      if (*it) {
+        for (const auto& branch : (*it)->pipes)
+          if (branch.get() == &pipe) involves = true;
+      }
+      if (involves) {
+        woken.push_back(*it);
+        it = groups.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+  for (auto& group : woken) {
+    if (!group) continue;
+    complete_node(group->node, code, nullptr, reason);
+    for (auto& branch : group->pipes) {
+      if (branch) release_credit_and_dispatch(*branch);
+    }
+    group->pipes.clear();
+  }
+}
+
 void cancel_waiters(PipeCore& pipe) {
   std::vector<std::shared_ptr<TaskNode>> senders;
   std::vector<std::shared_ptr<TaskNode>> receivers;
@@ -300,6 +350,9 @@ void cancel_waiters(PipeCore& pipe) {
     end.end.issues.push_back(std::move(issue));
     complete_delivery(node, std::move(end));
   }
+  wake_parked_broadcasts_involving(
+      pipe, Code::cancelled,
+      "the command was cancelled while the broadcast waited for credit");
 }
 
 }  // namespace
@@ -601,6 +654,14 @@ Task<Done> pipe_broadcast_erased(
   bool parked = false;
   {
     std::lock_guard<std::mutex> global(broadcast_mutex());
+    // P0-4: never park after the command was cancelled.  The per-pipe cancel
+    // watchers already ran at that point, so a group parked here would never be
+    // woken by them; the terminal state is decided immediately instead.
+    if (cancellation_requested(ctx.cancel)) {
+      complete_node(node, Code::cancelled, nullptr,
+                    "the command was cancelled before the broadcast waited");
+      return wrap_task<Done>(std::move(node));
+    }
     bool ok = true;
     for (auto& pipe : group->pipes) {
       std::lock_guard<std::mutex> lock(pipe->mutex);
@@ -630,6 +691,20 @@ Task<Done> pipe_broadcast_erased(
       if (closed_branch) {
         complete_node(node, Code::invalid_request, nullptr,
                       "a broadcast branch is already closed");
+        return wrap_task<Done>(std::move(node));
+      }
+      // P0-4: the parked set is a control window, not an unbounded side map.
+      // It is sized like the other control lanes of the pool (8 items per CPU
+      // thread, with a 64 entry floor); a submission beyond it is refused with
+      // a named resource_exhausted instead of growing without bound.
+      const U32 threads = ctx.services ? ctx.services->cpu_threads() : 1;
+      const std::size_t capacity =
+          std::max<std::size_t>(64, 8 * static_cast<std::size_t>(threads));
+      if (broadcast_groups().size() >= capacity) {
+        complete_node(
+            node, Code::resource_exhausted, nullptr,
+            "the bounded broadcast window is full: every branch must free "
+            "credit before another group may park");
         return wrap_task<Done>(std::move(node));
       }
       broadcast_groups().push_back(group);

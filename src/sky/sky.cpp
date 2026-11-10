@@ -236,6 +236,10 @@ std::size_t basis_term_count(const Basis& basis) {
 
 std::vector<double> evaluate_basis(const Basis& basis, const ChartProjection& projection,
                                     const SkyICRS& position) {
+  // The constant term is 1 at every position and needs no chart at all: making
+  // it depend on a successful gnomonic projection would turn a chart limit into
+  // a silently missing constant column.
+  if (basis.kind == Basis::Kind::constant) return {1.0};
   Vec2 chart_point{0.0, 0.0};
   if (!project_to_chart(projection, position, chart_point)) return {};
   const double scale_x = basis.scale[0];
@@ -337,6 +341,14 @@ U64 action_domain_size(Ref<LinearAction> action) {
   if (!action) return 0;
   if (const auto* impl = dynamic_cast<const operators::ActionImpl*>(action.get())) {
     if (impl->domain_size() > 0) return impl->domain_size();
+    // A composition publishes the spaces of its outer action only, so the
+    // domain is the domain of its inner child.  Without this fallback a
+    // composed influence has no usable shape and every consumer that asks for
+    // it refuses the whole covariance.
+    if (impl->recipe().kind == ActionRecipe::Kind::compose && impl->children().size() == 2) {
+      const U64 inner = action_domain_size(impl->children()[1]);
+      if (inner > 0) return inner;
+    }
   }
   if (action->spaces.domain) return action->spaces.domain->size;
   return 0;
@@ -346,6 +358,10 @@ U64 action_codomain_size(Ref<LinearAction> action) {
   if (!action) return 0;
   if (const auto* impl = dynamic_cast<const operators::ActionImpl*>(action.get())) {
     if (impl->codomain_size() > 0) return impl->codomain_size();
+    if (impl->recipe().kind == ActionRecipe::Kind::compose && impl->children().size() == 2) {
+      const U64 outer = action_codomain_size(impl->children()[0]);
+      if (outer > 0) return outer;
+    }
   }
   if (action->spaces.codomain) return action->spaces.codomain->size;
   return 0;
@@ -444,33 +460,121 @@ Result<Ref<LinearAction>> dense_to_action(Context& context, const Matrix& matrix
                                     unit);
 }
 
-operators::CsrMatrix shift_rows(const operators::CsrMatrix& matrix, U64 offset) {
-  operators::CsrMatrix out = matrix;
-  (void)offset;
+Result<operators::CsrMatrix> multiply_csr(Context& context, Ref<LinearAction> outer,
+                                            Ref<LinearAction> inner) {
+  // The exact product of two sparse actions.  It is formed here because the
+  // covariance of a corrected quantity needs the product itself: a covariance
+  // whose influences are composed through the operators module is applied
+  // through the transpose of the composition, and that transpose is the
+  // pre-existing cross module defect reported with this fix.
+  const U64 outer_rows = action_codomain_size(outer);
+  const U64 outer_cols = action_domain_size(outer);
+  const U64 inner_rows = action_codomain_size(inner);
+  const U64 inner_cols = action_domain_size(inner);
+  if (outer_cols != inner_rows || outer_rows == 0 || inner_cols == 0) {
+    return model::fail<operators::CsrMatrix>(Code::invalid_model,
+                                             "the shapes of the composed actions do not agree",
+                                             "sky.multiply", "the product cannot be formed");
+  }
+  Result<operators::CsrMatrix> left = to_csr(context, outer, outer_rows, outer_cols);
+  if (!ok(left)) return left;
+  Result<operators::CsrMatrix> right = to_csr(context, inner, inner_rows, inner_cols);
+  if (!ok(right)) return right;
+  operators::CsrMatrix out;
+  out.rows = outer_rows;
+  out.cols = inner_cols;
+  out.offsets.assign(static_cast<std::size_t>(outer_rows) + 1, 0);
+  std::vector<double> row(static_cast<std::size_t>(inner_cols), 0.0);
+  std::vector<U64> touched;
+  for (U64 i = 0; i < outer_rows; ++i) {
+    touched.clear();
+    for (U64 k = val(left).offsets[i]; k < val(left).offsets[i + 1]; ++k) {
+      const U64 middle = val(left).indices[k];
+      const double scale = val(left).values[k];
+      if (scale == 0.0 || middle >= val(right).rows) continue;
+      for (U64 j = val(right).offsets[middle]; j < val(right).offsets[middle + 1]; ++j) {
+        const U64 column = val(right).indices[j];
+        if (row[static_cast<std::size_t>(column)] == 0.0) touched.push_back(column);
+        row[static_cast<std::size_t>(column)] += scale * val(right).values[j];
+      }
+    }
+    std::sort(touched.begin(), touched.end());
+    for (U64 column : touched) {
+      const double value = row[static_cast<std::size_t>(column)];
+      if (value == 0.0) continue;
+      out.indices.push_back(column);
+      out.values.push_back(value);
+    }
+    for (U64 column : touched) row[static_cast<std::size_t>(column)] = 0.0;
+    out.offsets[i + 1] = out.indices.size();
+  }
+  return model::ok_result(std::move(out));
+}
+
+operators::CsrMatrix shift_rows(const operators::CsrMatrix& matrix, U64 offset, U64 total_rows) {
+  // The matrix keeps its columns (the latent space of the root) and its rows
+  // are placed at [offset, offset + rows) of a larger row space.  The rows
+  // before the offset and after the block are exact zero rows: the root does
+  // not touch them.  The row count is the total row space, not offset + rows,
+  // otherwise the block of the first frame would shrink the joint space.
+  operators::CsrMatrix out;
+  out.cols = matrix.cols;
+  out.rows = std::max(offset + matrix.rows, total_rows);
+  out.offsets.assign(static_cast<std::size_t>(out.rows) + 1, 0);
+  for (U64 row = 0; row < out.rows; ++row) {
+    if (row >= offset && row < offset + matrix.rows) {
+      const U64 local = row - offset;
+      for (U64 k = matrix.offsets[local]; k < matrix.offsets[local + 1]; ++k) {
+        out.indices.push_back(matrix.indices[k]);
+        out.values.push_back(matrix.values[k]);
+      }
+    }
+    out.offsets[static_cast<std::size_t>(row) + 1] = out.indices.size();
+  }
   return out;
 }
 
 operators::CsrMatrix block_diagonal(const std::vector<operators::CsrMatrix>& blocks,
-                                    const std::vector<U64>& row_offsets) {
+                                    const std::vector<U64>& row_offsets, U64 total_rows) {
+  // Every block keeps its own columns and is placed at its row offset.  A block
+  // that is missing for a row group leaves exact zero rows, which is the
+  // truthful statement that the root does not influence those rows.
   operators::CsrMatrix out;
   if (blocks.empty()) return out;
-  out.cols = blocks.front().cols;
-  out.rows = 0;
-  for (const operators::CsrMatrix& block : blocks) out.rows += block.rows;
-  out.offsets.assign(static_cast<std::size_t>(out.rows) + 1, 0);
-  U64 row = 0;
+  for (const operators::CsrMatrix& block : blocks) out.cols = std::max(out.cols, block.cols);
+  U64 rows = total_rows;
   for (std::size_t b = 0; b < blocks.size(); ++b) {
-    const operators::CsrMatrix& block = blocks[b];
-    for (std::size_t i = 0; i < block.rows; ++i) {
+    const U64 offset = row_offsets.empty() ? 0 : row_offsets[b];
+    rows = std::max(rows, offset + blocks[b].rows);
+  }
+  out.rows = rows;
+  out.offsets.assign(static_cast<std::size_t>(rows) + 1, 0);
+  // The row of every block, or the block that owns it.
+  std::vector<int> owner(static_cast<std::size_t>(rows), -1);
+  std::vector<U64> local(static_cast<std::size_t>(rows), 0);
+  U64 cursor = 0;
+  for (std::size_t b = 0; b < blocks.size(); ++b) {
+    const U64 offset = row_offsets.empty() ? cursor : row_offsets[b];
+    for (U64 i = 0; i < blocks[b].rows; ++i) {
+      if (offset + i < rows) {
+        owner[static_cast<std::size_t>(offset + i)] = static_cast<int>(b);
+        local[static_cast<std::size_t>(offset + i)] = i;
+      }
+    }
+    cursor = offset + blocks[b].rows;
+  }
+  for (U64 row = 0; row < rows; ++row) {
+    const int b = owner[static_cast<std::size_t>(row)];
+    if (b >= 0) {
+      const operators::CsrMatrix& block = blocks[static_cast<std::size_t>(b)];
+      const U64 i = local[static_cast<std::size_t>(row)];
       for (U64 k = block.offsets[i]; k < block.offsets[i + 1]; ++k) {
         out.indices.push_back(block.indices[k]);
         out.values.push_back(block.values[k]);
       }
-      out.offsets[row + i + 1] = out.indices.size();
     }
-    row += block.rows;
+    out.offsets[static_cast<std::size_t>(row) + 1] = out.indices.size();
   }
-  (void)row_offsets;
   return out;
 }
 
@@ -638,9 +742,17 @@ Result<FrameBlock> read_frame(Context& context, const FramesProvider& frames, co
   return model::ok_result(std::move(block));
 }
 
-// Builds the joint noise model of the frames: the innovations stay separate
-// and the shared roots are merged so that the cross frame correlation of the
-// control statistics survives.
+// Builds the joint noise model of the frames on the concatenated leaf space.
+//
+// Every root influence is placed at the row offset of its own frame, so a root
+// of frame 2 never lands on the rows of frame 1.  The innovations stay separate
+// and the shared roots are merged by identity, so that the cross frame
+// correlation of the control statistics survives:
+//   C = sum_k L_k F_k F_k^T L_k^T,  L_k over the concatenated leaf space.
+// The unknown terms of the frames are carried into the joint model with the
+// same row offset; a frame without a published noise model becomes an explicit
+// unknown term instead of a silently noiseless frame.  A joint model with any
+// unknown contribution is published as unknown, never as known.
 Result<Ref<NoiseModel>> build_joint_noise(Context& context, const std::vector<FrameBlock>& blocks) {
   auto joint = std::make_shared<NoiseModel>();
   std::vector<Ref<NoiseRoot>> innovations;
@@ -648,9 +760,50 @@ Result<Ref<NoiseModel>> build_joint_noise(Context& context, const std::vector<Fr
   std::map<std::string, std::size_t> shared_index;
   std::vector<Ref<NoiseRoot>> shared_roots;
   std::vector<std::vector<operators::CsrMatrix>> shared_blocks;
+  std::vector<std::vector<U64>> shared_offsets;
+  std::vector<UnknownTerm> unknown_terms;
+  U64 joint_rows = 0;
+  for (const FrameBlock& block : blocks) joint_rows += block.leaves.size();
+  bool any_unknown = false;
+  joint->variance_unit =
+      (blocks.empty() || !blocks.front().noise || !blocks.front().noise->model)
+          ? model::unit_variance("unknown")
+          : blocks.front().noise->model->variance_unit;
+
+  auto make_rows = [&](const operators::CsrMatrix& matrix, U64 columns,
+                       const Unit& unit) -> Result<Ref<LinearAction>> {
+    return operators::make_csr_action(context, matrix.rows, columns, matrix.offsets,
+                                      matrix.indices, matrix.values, Id(), Id(), unit);
+  };
 
   for (const FrameBlock& block : blocks) {
-    if (!block.noise || !block.noise->model) continue;
+    if (!block.noise || !block.noise->model) {
+      // No published noise model is not a zero variance: the rows of this frame
+      // carry an unknown contribution and the joint model says so.
+      any_unknown = true;
+      UnknownTerm term;
+      term.id = "frame_noise_missing_" + std::to_string(block.offset);
+      term.reason = "the frame publishes no noise model; its variance is unknown, not zero";
+      operators::CsrMatrix identity;
+      identity.rows = block.leaves.size();
+      identity.cols = block.leaves.size();
+      identity.offsets.assign(static_cast<std::size_t>(identity.rows) + 1, 0);
+      for (U64 i = 0; i < identity.rows; ++i) {
+        identity.indices.push_back(i);
+        identity.values.push_back(1.0);
+        identity.offsets[static_cast<std::size_t>(i) + 1] = identity.indices.size();
+      }
+      const operators::CsrMatrix placed = sky::shift_rows(identity, block.offset, joint_rows);
+      Result<Ref<LinearAction>> action = make_rows(placed, identity.cols, joint->variance_unit);
+      if (!ok(action)) {
+        return model::fail<Ref<NoiseModel>>(action.code, "an unknown term cannot be built",
+                                            "build_sky_controls",
+                                            "the joint noise cannot be built");
+      }
+      term.influence = val(action);
+      unknown_terms.push_back(term);
+      continue;
+    }
     const NoiseModel& noise = *block.noise->model;
     std::vector<Ref<NoiseRoot>> roots;
     roots.insert(roots.end(), noise.innovations.begin(), noise.innovations.end());
@@ -660,6 +813,7 @@ Result<Ref<NoiseModel>> build_joint_noise(Context& context, const std::vector<Fr
                                           "the influence count does not match the root count",
                                           "build_sky_controls", "the joint noise cannot be built");
     }
+    if (noise.state != NoiseState::known) any_unknown = true;
     for (std::size_t k = 0; k < roots.size(); ++k) {
       const U64 columns = sky::action_domain_size(noise.influence[k]);
       Result<operators::CsrMatrix> matrix =
@@ -669,9 +823,10 @@ Result<Ref<NoiseModel>> build_joint_noise(Context& context, const std::vector<Fr
                                             "build_sky_controls", "the joint noise cannot be built");
       }
       if (k < noise.innovations.size()) {
-        Result<Ref<LinearAction>> action = operators::make_csr_action(
-            context, val(matrix).rows, val(matrix).cols, val(matrix).offsets, val(matrix).indices,
-            val(matrix).values, Id(), Id(), noise.variance_unit);
+        // The innovation belongs to this frame only: its rows are placed at the
+        // frame offset in the concatenated leaf space.
+        const operators::CsrMatrix placed = sky::shift_rows(val(matrix), block.offset, joint_rows);
+        Result<Ref<LinearAction>> action = make_rows(placed, columns, noise.variance_unit);
         if (!ok(action)) {
           return model::fail<Ref<NoiseModel>>(action.code, "an influence cannot be built",
                                               "build_sky_controls",
@@ -689,37 +844,60 @@ Result<Ref<NoiseModel>> build_joint_noise(Context& context, const std::vector<Fr
         shared_index[key] = shared_roots.size();
         shared_roots.push_back(roots[k]);
         shared_blocks.emplace_back();
+        shared_offsets.emplace_back();
       }
       shared_blocks[shared_index[key]].push_back(val(matrix));
+      shared_offsets[shared_index[key]].push_back(block.offset);
+    }
+    // The unknown terms of the frame are carried into the joint space.  An
+    // unknown term that influences a row makes the complete variance of that
+    // row unknown; it is never dropped and never turned into a zero.
+    for (const UnknownTerm& term : noise.unknown_terms) {
+      if (!term.influence) continue;
+      const U64 columns = sky::action_domain_size(term.influence);
+      Result<operators::CsrMatrix> matrix =
+          sky::to_csr(context, term.influence, block.leaves.size(), columns);
+      if (!ok(matrix)) {
+        return model::fail<Ref<NoiseModel>>(matrix.code, "an unknown term cannot be converted",
+                                            "build_sky_controls",
+                                            "the joint noise cannot be built");
+      }
+      const operators::CsrMatrix placed = sky::shift_rows(val(matrix), block.offset, joint_rows);
+      Result<Ref<LinearAction>> action = make_rows(placed, columns, joint->variance_unit);
+      if (!ok(action)) {
+        return model::fail<Ref<NoiseModel>>(action.code, "an unknown term cannot be built",
+                                            "build_sky_controls",
+                                            "the joint noise cannot be built");
+      }
+      UnknownTerm copy = term;
+      copy.influence = val(action);
+      unknown_terms.push_back(copy);
+      any_unknown = true;
     }
   }
 
-  joint->variance_unit =
-      (blocks.empty() || !blocks.front().noise || !blocks.front().noise->model)
-          ? model::unit_variance("unknown")
-          : blocks.front().noise->model->variance_unit;
   joint->innovations = innovations;
   joint->shared_factors = shared_roots;
   joint->influence = innovation_influences;
-  for (std::vector<operators::CsrMatrix>& blocks_of_root : shared_blocks) {
-    const operators::CsrMatrix merged = sky::block_diagonal(blocks_of_root, {});
-    Result<Ref<LinearAction>> action = operators::make_csr_action(
-        context, merged.rows, merged.cols, merged.offsets, merged.indices, merged.values, Id(), Id(),
-        joint->variance_unit);
+  for (std::size_t k = 0; k < shared_blocks.size(); ++k) {
+    const operators::CsrMatrix merged =
+        sky::block_diagonal(shared_blocks[k], shared_offsets[k], joint_rows);
+    Result<Ref<LinearAction>> action = make_rows(merged, merged.cols, joint->variance_unit);
     if (!ok(action)) {
       return model::fail<Ref<NoiseModel>>(action.code, "a shared influence cannot be built",
                                           "build_sky_controls", "the joint noise cannot be built");
     }
     joint->influence.push_back(val(action));
   }
-  joint->state = NoiseState::known;
+  joint->unknown_terms = unknown_terms;
+  joint->state = any_unknown ? NoiseState::unknown : NoiseState::known;
   joint->identity = model::make_identity("acsd.NoiseModel", 2, 0,
                                           model::hash_index(Index::Kind::latent,
                                                             joint->influence.size(), 0, {}),
                                           "acsd");
   joint->assessment = model::make_assessment(Code::ok);
   joint->assessment.complete = true;
-  joint->assessment.noise = NoiseState::known;
+  joint->assessment.noise = joint->state;
   return model::ok_result(Ref<NoiseModel>(std::shared_ptr<const NoiseModel>(joint)));
 }
 
@@ -892,6 +1070,10 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
   }
 
   // ---- the control rows ---------------------------------------------------
+  // One row per frame and patch.  The mask of a row is fixed once and produces
+  // both the control value c = T y and the row of T.  Building c from one mask
+  // and T from another lets the difference enter the difference model as a fake
+  // sky offset (CE of the audit: the mask gives c = 2 while the T row gives 6).
   std::vector<double> control_values;
   std::vector<SkyICRS> control_positions;
   std::vector<U64> component_frame;
@@ -901,8 +1083,13 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
   std::size_t control_count = 0;
 
   if (!explicit_model) {
-    // One row per frame and patch; the mask is the set of leaves of the patch
-    // that every frame of the group supports and that pass the quality test.
+    struct ControlRow {
+      std::size_t frame = 0;
+      std::size_t patch = 0;
+      std::vector<std::size_t> mask;  // leaf rows of the frame
+      double value = 0.0;
+    };
+    std::vector<ControlRow> rows;
     for (std::size_t g = 0; g < request.groups.size(); ++g) {
       const Comparability& group = request.groups[g];
       for (std::size_t f = 0; f < blocks.size(); ++f) {
@@ -934,7 +1121,9 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
           }
           common[{leaf.order, leaf.ipix}] = supported;
         }
-        // The mask of every patch of this frame.
+        // The mask of every patch of this frame: the common support of the
+        // group and the data quality of this frame.  This is the one mask that
+        // the control value and the control operator of the row share.
         std::map<std::size_t, std::vector<std::size_t>> masks;
         for (std::size_t row = 0; row < blocks[f].leaves.size(); ++row) {
           const HealpixLeaf& leaf = blocks[f].leaves[row];
@@ -943,47 +1132,38 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
           masks[blocks[f].patch_of_leaf[row]].push_back(row);
         }
         for (const auto& entry : masks) {
-          const std::size_t patch = entry.first;
-          const std::vector<std::size_t>& mask = entry.second;
-          if (mask.empty()) continue;
+          if (entry.second.empty()) continue;
+          ControlRow row;
+          row.frame = f;
+          row.patch = entry.first;
+          row.mask = entry.second;
           double sum = 0.0;
-          for (std::size_t row : mask) sum += blocks[f].signal[row];
-          control_values.push_back(sum / static_cast<double>(mask.size()));
-          control_positions.push_back(patches[patch].center);
-          component_frame.push_back(static_cast<U64>(f));
-          control_patch.push_back(patch);
-          ++control_count;
+          for (std::size_t leaf_row : row.mask) sum += blocks[f].signal[leaf_row];
+          row.value = sum / static_cast<double>(row.mask.size());
+          rows.push_back(std::move(row));
         }
       }
     }
-    if (control_count == 0) {
+    if (rows.empty()) {
       return model::fail<Ref<SkyControls>>(
           Code::no_support, "no control survives the support and the quality mask",
           "build_sky_controls", "no control can be built");
     }
+    control_count = rows.size();
     T = Matrix(static_cast<std::size_t>(control_count), static_cast<std::size_t>(leaf_total), 0.0);
-    H = Matrix(static_cast<std::size_t>(control_count), static_cast<std::size_t>(patches.size()), 0.0);
-    // The masks are rebuilt to fill the rows of T.
-    for (std::size_t row = 0; row < control_count; ++row) {
-      const std::size_t f = static_cast<std::size_t>(component_frame[row]);
-      const std::size_t patch = control_patch[row];
-      std::vector<std::size_t> mask;
-      for (std::size_t leaf_row = 0; leaf_row < blocks[f].leaves.size(); ++leaf_row) {
-        if (blocks[f].patch_of_leaf[leaf_row] != patch) continue;
-        if (blocks[f].state[leaf_row] != 1) continue;
-        if (!blocks[f].dq.empty() && (blocks[f].dq[leaf_row] & kBadQualityMask) != 0) continue;
-        mask.push_back(leaf_row);
+    H = Matrix(static_cast<std::size_t>(control_count),
+               static_cast<std::size_t>(patches.size()), 0.0);
+    for (std::size_t row = 0; row < rows.size(); ++row) {
+      const ControlRow& control = rows[row];
+      const double weight = 1.0 / static_cast<double>(control.mask.size());
+      for (std::size_t leaf_row : control.mask) {
+        T(row, static_cast<std::size_t>(blocks[control.frame].offset + leaf_row)) = weight;
       }
-      if (mask.empty()) {
-        return model::fail<Ref<SkyControls>>(Code::no_support, "a control mask became empty",
-                                             "build_sky_controls", "no control can be built");
-      }
-      const double weight = 1.0 / static_cast<double>(mask.size());
-      for (std::size_t leaf_row : mask) {
-        T(static_cast<std::size_t>(row),
-          static_cast<std::size_t>(blocks[f].offset + leaf_row)) = weight;
-      }
-      H(static_cast<std::size_t>(row), static_cast<std::size_t>(patch)) = 1.0;
+      H(row, control.patch) = 1.0;
+      control_values.push_back(control.value);
+      control_positions.push_back(patches[control.patch].center);
+      component_frame.push_back(static_cast<U64>(control.frame));
+      control_patch.push_back(control.patch);
     }
   } else {
     const U64 rows = sky::action_codomain_size(request.T);
@@ -1013,11 +1193,15 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
       }
       control_values.push_back(value);
       // The control position is the weighted centre of the leaves of the row.
+      // A row that spans more than one frame has no single component identity,
+      // and the component of a control row is what the gauge and the connected
+      // components of the fit are built from; such a row is refused by name
+      // instead of being assigned to the largest entry.
       double sx = 0.0;
       double sy = 0.0;
       double sz = 0.0;
       std::size_t owner = 0;
-      double best = -1.0;
+      bool owner_known = false;
       for (U64 j = 0; j < cols; ++j) {
         const double weight = std::fabs(T(static_cast<std::size_t>(i), static_cast<std::size_t>(j)));
         if (weight == 0.0) continue;
@@ -1030,15 +1214,21 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
             break;
           }
         }
+        if (!owner_known) {
+          owner = frame_index;
+          owner_known = true;
+        } else if (owner != frame_index) {
+          return model::fail<Ref<SkyControls>>(
+              Code::unsupported,
+              "a control row of the explicit operator spans more than one frame; the component "
+              "identity of the row and the per frame gauge are not defined",
+              "build_sky_controls", "no control can be built");
+        }
         const SkyICRS position = sky::local_leaf_center(
             blocks[frame_index].order, blocks[frame_index].leaves[leaf_index].ipix);
         sx += weight * position.nx;
         sy += weight * position.ny;
         sz += weight * position.nz;
-        if (weight > best) {
-          best = weight;
-          owner = frame_index;
-        }
       }
       const double norm = std::sqrt(sx * sx + sy * sy + sz * sz);
       control_positions.push_back(norm > 0.0 ? SkyICRS{sx / norm, sy / norm, sz / norm}
@@ -1050,6 +1240,8 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
   }
 
   // ---- the chart, the basis and the matrices ------------------------------
+  const std::size_t terms = sky::basis_term_count(request.basis);
+  const std::size_t parameters = blocks.size() * terms;
   Vec3 mean{0.0, 0.0, 0.0};
   for (const SkyICRS& position : control_positions) {
     mean[0] += position.nx;
@@ -1060,33 +1252,77 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
   const SkyICRS chart_center =
       mean_norm > 0.0 ? SkyICRS{mean[0] / mean_norm, mean[1] / mean_norm, mean[2] / mean_norm}
                       : SkyICRS{0.0, 0.0, 1.0};
+  // The gnomonic chart is only valid inside a hemisphere, so a chart radius of
+  // pi is not a radius at all: project_to_chart refuses every direction with
+  // cos <= 1e-9 and evaluate_basis then returns an empty row, which used to
+  // leave the constant column of A and E at zero without an error.  The radius
+  // is now the largest angle that the controls and the output leaves actually
+  // span, and a set that does not fit into one chart is rejected by name.
+  auto angle_from_center = [&](const SkyICRS& position) {
+    const double dot = position.nx * chart_center.nx + position.ny * chart_center.ny +
+                       position.nz * chart_center.nz;
+    return std::acos(std::max(-1.0, std::min(1.0, dot)));
+  };
+  constexpr double kMaxChartRadius = 1.4;  // rad, about 80 degrees
+  double chart_radius = 0.0;
+  for (const SkyICRS& position : control_positions) {
+    chart_radius = std::max(chart_radius, angle_from_center(position));
+  }
+  for (std::size_t f = 0; f < blocks.size(); ++f) {
+    for (std::size_t leaf_row = 0; leaf_row < blocks[f].leaves.size(); ++leaf_row) {
+      const SkyICRS position =
+          sky::local_leaf_center(blocks[f].order, blocks[f].leaves[leaf_row].ipix);
+      chart_radius = std::max(chart_radius, angle_from_center(position));
+    }
+  }
+  // The constant basis is one everywhere and needs no chart at all.
+  const bool needs_chart = terms > 1;
+  if (needs_chart && chart_radius > kMaxChartRadius) {
+    return model::fail<Ref<SkyControls>>(
+        Code::unsupported,
+        "the controls span more than one gnomonic chart; the basis cannot be evaluated with one "
+        "chart centre and the control rows would silently lose their spatial columns",
+        "build_sky_controls", "no control can be built");
+  }
   sky::ChartProjection projection;
-  if (!sky::make_chart_projection(chart_center, M_PI, projection)) {
+  if (!sky::make_chart_projection(chart_center, needs_chart ? chart_radius : 0.0, projection)) {
     return model::fail<Ref<SkyControls>>(Code::invalid_model, "the chart cannot be built",
                                          "build_sky_controls", "no control can be built");
   }
-  const std::size_t terms = sky::basis_term_count(request.basis);
-  const std::size_t parameters = blocks.size() * terms;
-  Matrix A(static_cast<std::size_t>(control_count), static_cast<std::size_t>(parameters), 0.0);
   Matrix E(static_cast<std::size_t>(leaf_total), static_cast<std::size_t>(parameters), 0.0);
   for (std::size_t f = 0; f < blocks.size(); ++f) {
     for (std::size_t leaf_row = 0; leaf_row < blocks[f].leaves.size(); ++leaf_row) {
       const SkyICRS position =
           sky::local_leaf_center(blocks[f].order, blocks[f].leaves[leaf_row].ipix);
       const std::vector<double> values = sky::evaluate_basis(request.basis, projection, position);
-      for (std::size_t term = 0; term < terms && term < values.size(); ++term) {
+      if (values.size() < terms) {
+        return model::fail<Ref<SkyControls>>(
+            Code::invalid_model,
+            "the basis cannot be evaluated at a leaf position; the output model would lose a "
+            "column without an error",
+            "build_sky_controls", "no control can be built");
+      }
+      for (std::size_t term = 0; term < terms; ++term) {
         E(static_cast<std::size_t>(blocks[f].offset + leaf_row),
           static_cast<std::size_t>(f * terms + term)) = values[term];
       }
     }
   }
-  for (std::size_t row = 0; row < control_count; ++row) {
-    const std::size_t f = static_cast<std::size_t>(component_frame[row]);
-    const std::vector<double> values =
-        sky::evaluate_basis(request.basis, projection, control_positions[row]);
-    for (std::size_t term = 0; term < terms && term < values.size(); ++term) {
-      A(static_cast<std::size_t>(row), static_cast<std::size_t>(f * terms + term)) = values[term];
-    }
+  // A = T E, not a second evaluation at another position: the difference model
+  // of a control row is the control operator applied to the output model of the
+  // leaves.  Evaluating the basis at the patch centre instead gives A = (1,0)
+  // while T E = (1,1) for a mask that only keeps x = +1, and a true a = 0, b = 1
+  // is then fitted as a fake offset beta = 1.
+  if (E.rows != T.cols) {
+    return model::fail<Ref<SkyControls>>(Code::invalid_model,
+                                         "the output model does not match the control operator",
+                                         "build_sky_controls", "no control can be built");
+  }
+  const Matrix A = numerics::matmul(T, E);
+  if (A.rows != static_cast<std::size_t>(control_count) || A.cols != parameters) {
+    return model::fail<Ref<SkyControls>>(Code::invalid_model,
+                                         "the difference model does not match the controls",
+                                         "build_sky_controls", "no control can be built");
   }
   if (explicit_model) {
     const U64 rows = static_cast<U64>(control_count);
@@ -1102,23 +1338,72 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
   // ---- the control covariance ---------------------------------------------
   Ref<CovarianceAction> control_noise = request.control_noise;
   bool equal_weights = false;
+  std::string covariance_failure_reason;
   if (!control_noise) {
     Result<Ref<NoiseModel>> joint = build_joint_noise(context, blocks);
+    Code failure = Code::ok;
+    std::string failure_reason;
     Result<Ref<CovarianceAction>> control_covariance_result;
-    if (ok(joint)) {
+    if (!ok(joint)) {
+      failure = joint.code;
+      failure_reason = joint.assessment.issues.empty() ? "the joint noise cannot be built"
+                                                       : joint.assessment.issues.front().reason;
+    } else {
       Result<Ref<CovarianceAction>> joint_covariance = make_covariance(context, val(joint));
-      if (ok(joint_covariance)) {
+      if (!ok(joint_covariance)) {
+        failure = joint_covariance.code;
+        failure_reason = joint_covariance.assessment.issues.empty()
+                             ? "the joint covariance cannot be built"
+                             : joint_covariance.assessment.issues.front().reason;
+      } else {
         Result<Ref<LinearAction>> t_action =
             sky::dense_to_action(context, T, Id(), Id(), model::unit_dimensionless());
-        if (ok(t_action)) {
+        if (!ok(t_action)) {
+          failure = t_action.code;
+          failure_reason = "the control operator cannot be built";
+        } else {
           control_covariance_result =
               control_covariance(context, val(joint_covariance), val(t_action));
+          if (!ok(control_covariance_result)) {
+            failure = control_covariance_result.code;
+            failure_reason = control_covariance_result.assessment.issues.empty()
+                                 ? "the control covariance cannot be built"
+                                 : control_covariance_result.assessment.issues.front().reason;
+          }
         }
       }
+    }
+    // A control covariance with no known part at all (every frame publishes an
+    // unknown or an absent noise model) defines no whitening and no GLS: the
+    // declared equal weights are used instead, named, with an unknown state.
+    if (ok(control_covariance_result) && val(control_covariance_result) &&
+        val(control_covariance_result)->model &&
+        val(control_covariance_result)->model->innovations.empty() &&
+        val(control_covariance_result)->model->shared_factors.empty()) {
+      failure = Code::unavailable;
+      failure_reason =
+          "the control covariance has no known part: the published noise of the frames carries no "
+          "known covariance root";
+      control_covariance_result =
+          model::fail<Ref<CovarianceAction>>(Code::unavailable, failure_reason,
+                                             "build_sky_controls",
+                                             "the control covariance is unknown");
     }
     if (ok(control_covariance_result)) {
       control_noise = val(control_covariance_result);
     } else {
+      // A malformed model is an input error and is never turned into a
+      // scientific fallback: only a covariance that is unavailable because the
+      // closure is unknown degrades to the declared equal weights, and that
+      // degradation is named, carries its reason and publishes unknown noise.
+      const bool malformed = failure == Code::invalid_model ||
+                             failure == Code::identity_conflict ||
+                             failure == Code::invalid_request ||
+                             failure == Code::invalid_covariance;
+      if (malformed) {
+        return model::fail<Ref<SkyControls>>(failure, failure_reason, "build_sky_controls",
+                                             "the control covariance cannot be built");
+      }
       Result<Ref<CovarianceAction>> equal =
           equal_weight_covariance(context, static_cast<U64>(control_count));
       if (!ok(equal)) {
@@ -1128,6 +1413,9 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
       }
       control_noise = val(equal);
       equal_weights = true;
+      covariance_failure_reason = failure_reason.empty()
+                                      ? "the joint control covariance is not available"
+                                      : failure_reason;
     }
   }
 
@@ -1218,8 +1506,27 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
     out.assessment.science = ScienceState::conditional;
     model::set_omitted(out.assessment, "known_control_covariance");
     model::set_included(out.assessment, "equal_weights_unknown_covariance");
+    model::add_issue(out.assessment, Code::unavailable,
+                     "the joint control covariance is not available, the equal weights are used "
+                     "and no known control variance is claimed: " + covariance_failure_reason,
+                     "build_sky_controls", "the control covariance is unknown");
   } else {
     model::set_included(out.assessment, "control_covariance_from_the_shared_roots");
+    // A declared covariance whose model carries an unknown term is not a known
+    // covariance: the controls publish the state of the model they were built
+    // from and never promote it to known.
+    if (control_noise && control_noise->model &&
+        control_noise->model->state != NoiseState::known) {
+      controls->assessment.noise = NoiseState::unknown;
+      controls->assessment.science = ScienceState::conditional;
+      out.assessment.noise = NoiseState::unknown;
+      out.assessment.science = ScienceState::conditional;
+      model::set_omitted(out.assessment, "known_control_covariance");
+      model::add_issue(out.assessment, Code::unavailable,
+                       "the control covariance model carries an unknown contribution; the "
+                       "complete control variance is unknown",
+                       "build_sky_controls", "the control covariance is unknown");
+    }
   }
   model::set_included(out.assessment, "basis_chart_centre_is_the_mean_control_direction");
   model::set_omitted(out.assessment, "sky_prediction_outside_the_training_support");
@@ -1232,44 +1539,46 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
 
 namespace {
 
-// Complete orthogonal factorisation: the first m columns of the result span
-// the column space of v, the remaining columns span the complement.
+// Orthonormal completion: the first k columns of the result span the column
+// space of the orthonormal columns of v, the remaining columns span the
+// orthogonal complement.
+//
+// The previous implementation returned the transpose of the Householder product
+// that triangularises v.  That is the complement only when v has a single
+// column: for k >= 2 its columns are a rotation of the input and its trailing
+// columns are not orthogonal to the column space, so a projector built from it
+// (Q_w for the common sky, the null space of the design) was not the projector
+// it claimed to be.  The completion is formed here by a twice orthogonalised
+// Gram-Schmidt sweep over the standard basis.
 Matrix complete_orthogonal_factorisation(const Matrix& v) {
   const std::size_t n = v.rows;
-  const std::size_t m = std::min(v.cols, v.rows);
-  Matrix work = v;
+  const std::size_t k = v.cols;
   Matrix h(n, n, 0.0);
-  for (std::size_t i = 0; i < n; ++i) h(i, i) = 1.0;
-  std::vector<double> u(n, 0.0);
-  for (std::size_t k = 0; k < m; ++k) {
+  if (k > n) return h;
+  for (std::size_t j = 0; j < k; ++j) {
+    for (std::size_t i = 0; i < n; ++i) h(i, j) = v(i, j);
+  }
+  std::size_t filled = k;
+  std::vector<double> candidate(n, 0.0);
+  for (std::size_t basis = 0; basis < n && filled < n; ++basis) {
+    std::fill(candidate.begin(), candidate.end(), 0.0);
+    candidate[basis] = 1.0;
+    // Two passes of classical Gram-Schmidt: the second pass removes the
+    // component that the first one lost to rounding.
+    for (int pass = 0; pass < 2; ++pass) {
+      for (std::size_t j = 0; j < filled; ++j) {
+        double dot = 0.0;
+        for (std::size_t i = 0; i < n; ++i) dot += candidate[i] * h(i, j);
+        if (dot == 0.0) continue;
+        for (std::size_t i = 0; i < n; ++i) candidate[i] -= dot * h(i, j);
+      }
+    }
     double norm = 0.0;
-    for (std::size_t i = k; i < n; ++i) norm += work(i, k) * work(i, k);
+    for (double value : candidate) norm += value * value;
     norm = std::sqrt(norm);
-    if (!(norm > 0.0)) continue;
-    const double alpha = work(k, k) > 0.0 ? -norm : norm;
-    for (std::size_t i = k; i < n; ++i) u[i] = work(i, k);
-    u[k] -= alpha;
-    double uu = 0.0;
-    for (std::size_t i = k; i < n; ++i) uu += u[i] * u[i];
-    if (!(uu > 0.0)) continue;
-    const double tau = 2.0 / uu;
-    for (std::size_t j = k + 1; j < m; ++j) {
-      double s = 0.0;
-      for (std::size_t i = k; i < n; ++i) s += u[i] * work(i, j);
-      s *= tau;
-      for (std::size_t i = k; i < n; ++i) work(i, j) -= s * u[i];
-    }
-    std::vector<double> uh(n, 0.0);
-    for (std::size_t j = 0; j < n; ++j) {
-      double s = 0.0;
-      for (std::size_t i = k; i < n; ++i) s += u[i] * h(i, j);
-      uh[j] = s;
-    }
-    for (std::size_t j = 0; j < n; ++j) {
-      const double s = tau * uh[j];
-      if (s == 0.0) continue;
-      for (std::size_t i = k; i < n; ++i) h(i, j) -= s * u[i];
-    }
+    if (!(norm > 1e-12)) continue;
+    for (std::size_t i = 0; i < n; ++i) h(i, filled) = candidate[i] / norm;
+    ++filled;
   }
   return h;
 }
@@ -1381,6 +1690,30 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
   if (!controls->noise) {
     return model::fail<Ref<SkyFit>>(Code::invalid_request, "the control covariance is missing",
                                     "fit_relative_sky", "the sky cannot be fitted");
+  }
+  // The state of the declared control covariance is checked before a SkyFit is
+  // published.  A model that carries an unknown contribution (or is marked
+  // unknown, for example because the controls were built with the declared
+  // equal weights) still defines the declared point estimator, but its
+  // parameter covariance is not a measured variance: the fit publishes the
+  // unknown state and never reports a known variance for it.
+  bool control_covariance_unknown = false;
+  std::string control_covariance_reason;
+  if (controls->noise->model) {
+    if (controls->noise->model->state != NoiseState::known) {
+      control_covariance_unknown = true;
+      control_covariance_reason =
+          "the control covariance model is marked " +
+          std::string(controls->noise->model->state == NoiseState::unknown ? "unknown"
+                                                                          : "not known");
+    }
+    for (const UnknownTerm& term : controls->noise->model->unknown_terms) {
+      if (!term.influence) continue;
+      control_covariance_unknown = true;
+      control_covariance_reason = term.reason.empty()
+                                      ? "an unknown term of the control covariance influences the fit"
+                                      : term.reason;
+    }
   }
 
   // ---- the connected components -------------------------------------------
@@ -1578,7 +1911,8 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
                                     "the control covariance does not match the controls",
                                     "fit_relative_sky", "the sky cannot be fitted");
   }
-  numerics::SvdResult factor_svd = numerics::jacobi_svd(val(factor), 1e-12);
+  const double rank_relative = request.solve.rank_relative > 0.0 ? request.solve.rank_relative : 1e-12;
+  numerics::SvdResult factor_svd = numerics::jacobi_svd(val(factor), rank_relative);
   Matrix W(static_cast<std::size_t>(control_count), static_cast<std::size_t>(control_count), 0.0);
   for (std::size_t j = 0; j < factor_svd.rank; ++j) {
     const double sigma = factor_svd.singular_values[j];
@@ -1590,13 +1924,48 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
       }
     }
   }
+
+  // The exact zero variance directions of a PSD control covariance.  They are
+  // noiseless equations U0^T c = U0^T [H, A G] eta, not infinitely uncertain
+  // ones: the whitening W only covers the range of C_c, so solving with W alone
+  // drops them (CE-E: the point estimate is 0 instead of 1 and a known zero
+  // variance becomes 1).  They are solved first, as hard equations, and the GLS
+  // is then restricted to their solution set.  No epsilon floor is added to the
+  // covariance and the discarded directions are not re-weighted.
+  const std::size_t exact_count =
+      control_count > factor_svd.rank ? control_count - factor_svd.rank : 0;
+  Matrix U0(static_cast<std::size_t>(control_count), exact_count, 0.0);
+  if (exact_count > 0) {
+    // The range of the factor, completed to an orthonormal basis of the whole
+    // control space: the columns past the rank span the exact null space.  The
+    // completion is taken from the range columns only: the zero singular value
+    // columns of the SVD are already orthogonal to the range, but a square
+    // left factor has no spare column and completing the full left factor would
+    // rotate the null directions away.
+    Matrix range_basis(static_cast<std::size_t>(control_count),
+                       static_cast<std::size_t>(factor_svd.rank), 0.0);
+    for (std::size_t j = 0; j < factor_svd.rank; ++j) {
+      for (std::size_t i = 0; i < control_count; ++i) {
+        range_basis(static_cast<std::size_t>(i), j) =
+            factor_svd.u(static_cast<std::size_t>(i), j);
+      }
+    }
+    const Matrix completed = complete_orthogonal_factorisation(range_basis);
+    for (std::size_t i = 0; i < control_count; ++i) {
+      for (std::size_t j = 0; j < exact_count; ++j) {
+        U0(static_cast<std::size_t>(i), j) =
+            completed(static_cast<std::size_t>(i), factor_svd.rank + j);
+      }
+    }
+  }
+
   // Q_w is the orthogonal complement of the column space of W H.
   Result<Matrix> whitened_h = multiply(W, val(H));
   if (!ok(whitened_h)) {
     return model::fail<Ref<SkyFit>>(whitened_h.code, "the whitened common sky cannot be formed",
                                     "fit_relative_sky", "the sky cannot be fitted");
   }
-  numerics::SvdResult h_svd = numerics::jacobi_svd(val(whitened_h), 1e-12);
+  numerics::SvdResult h_svd = numerics::jacobi_svd(val(whitened_h), rank_relative);
   Matrix basis_h(static_cast<std::size_t>(control_count), h_svd.rank, 0.0);
   for (std::size_t j = 0; j < h_svd.rank; ++j) {
     for (std::size_t i = 0; i < control_count; ++i) {
@@ -1615,7 +1984,8 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
 
   // The effective design D = Q_w^T W A G and the projected data Q_w^T W c.
   const Matrix qw_transpose = numerics::transpose(Qw);
-  Result<Matrix> whitened_design = multiply(W, val(A));
+  const Matrix ag = numerics::matmul(val(A), G);
+  Result<Matrix> whitened_design = multiply(W, ag);
   if (!ok(whitened_design)) {
     return model::fail<Ref<SkyFit>>(whitened_design.code, "the whitened design cannot be formed",
                                     "fit_relative_sky", "the sky cannot be fitted");
@@ -1625,11 +1995,7 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
     return model::fail<Ref<SkyFit>>(projected_design.code, "the projected design cannot be formed",
                                     "fit_relative_sky", "the sky cannot be fitted");
   }
-  Result<Matrix> design = multiply(val(projected_design), G);
-  if (!ok(design)) {
-    return model::fail<Ref<SkyFit>>(design.code, "the effective design cannot be formed",
-                                    "fit_relative_sky", "the sky cannot be fitted");
-  }
+  const Matrix design_matrix = val(projected_design);
 
   std::vector<double> data(static_cast<std::size_t>(control_count), 0.0);
   for (std::size_t i = 0; i < control_count; ++i) data[i] = val(c)[i];
@@ -1645,29 +2011,190 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
     return model::fail<Ref<SkyFit>>(whitened_data.code, "the projected data cannot be formed",
                                     "fit_relative_sky", "the sky cannot be fitted");
   }
-
-  // The minimum norm solution of the projected least squares problem.
-  numerics::SvdResult design_svd = numerics::jacobi_svd(val(design), 1e-12);
   std::vector<double> projected_data(complement_size, 0.0);
   for (std::size_t i = 0; i < complement_size; ++i) {
     projected_data[i] = val(whitened_data)(static_cast<std::size_t>(i), 0);
   }
-  // The pseudo inverse of the projected design comes from the base, so that
-  // the threshold of the singular values is the same everywhere.
-  const Matrix pseudoinverse =
-      numerics::pseudo_inverse(design_svd, static_cast<std::size_t>(gauge_size), 1e-12);
-  // K = G (Q_w W A G)^+ Q_w W.
+
+  // The numerical rank at one threshold, so that the pseudo inverses, the null
+  // spaces and the rank report all use the same classification.  The default
+  // threshold is relative to the largest singular value of the same matrix;
+  // the exact equations use an absolute threshold on the scale of the problem
+  // instead, because a matrix of rounding noise would otherwise always be
+  // classified as rank one (a 1e-16 value is "larger than 1e-12 times itself").
+  auto rank_at = [&](const numerics::SvdResult& svd, double threshold) {
+    std::size_t rank = 0;
+    for (double value : svd.singular_values) {
+      if (value > threshold) ++rank;
+    }
+    return rank;
+  };
+  auto numerical_rank = [&](const numerics::SvdResult& svd) {
+    const double largest = svd.singular_values.empty() ? 0.0 : svd.singular_values.front();
+    return rank_at(svd, rank_relative * largest);
+  };
+  auto pseudo_inverse_at = [&](const numerics::SvdResult& svd, std::size_t columns,
+                               double threshold) {
+    Matrix out(columns, svd.u.rows, 0.0);
+    for (std::size_t i = 0; i < svd.singular_values.size(); ++i) {
+      const double sigma = svd.singular_values[i];
+      if (!(sigma > threshold) || sigma <= 0.0) continue;
+      const double reciprocal = 1.0 / sigma;
+      for (std::size_t r = 0; r < svd.v.rows; ++r) {
+        const double vr = svd.v(r, i);
+        if (vr == 0.0) continue;
+        for (std::size_t c = 0; c < svd.u.rows; ++c) out(r, c) += vr * svd.u(c, i) * reciprocal;
+      }
+    }
+    return out;
+  };
+
+  // ---- the exact equations of the zero variance directions -----------------
+  Matrix constraint_matrix(0, static_cast<std::size_t>(gauge_size), 0.0);
+  Matrix constraint_data(0, 1, 0.0);
+  std::size_t constraint_rank = 0;
+  Matrix constraint_pinv(static_cast<std::size_t>(gauge_size), 0, 0.0);
+  Matrix constraint_eta(static_cast<std::size_t>(gauge_size), 1, 0.0);
+  Matrix constraint_null(static_cast<std::size_t>(gauge_size), static_cast<std::size_t>(gauge_size), 0.0);
+  std::size_t constraint_null_columns = static_cast<std::size_t>(gauge_size);
+  if (exact_count > 0) {
+    // N_s = U0^T H: the part of the noiseless equation that the free common sky
+    // can satisfy without constraining the difference model.  The rank of the
+    // noiseless block is judged on the scale of the model, not on its own
+    // magnitude: U0^T H is a difference of entries of H and is zero up to
+    // rounding when the exact direction is orthogonal to the common sky.
+    const double model_scale =
+        std::max(1.0, std::max(numerics::frobenius_norm(val(H)), numerics::frobenius_norm(ag)));
+    const double exact_threshold = rank_relative * model_scale;
+    const Matrix u0_transposed = numerics::transpose(U0);
+    const Matrix n_s = numerics::matmul(u0_transposed, val(H));
+    Matrix p0 = numerics::identity_matrix(exact_count);
+    if (n_s.cols > 0) {
+      numerics::SvdResult ns_svd = numerics::jacobi_svd(n_s, rank_relative);
+      const std::size_t ns_rank = rank_at(ns_svd, exact_threshold);
+      if (ns_rank > 0) {
+        const Matrix ns_pinv = pseudo_inverse_at(ns_svd, n_s.cols, exact_threshold);
+        const Matrix projection = numerics::matmul(n_s, ns_pinv);
+        for (std::size_t i = 0; i < exact_count; ++i) {
+          for (std::size_t j = 0; j < exact_count; ++j) {
+            p0(static_cast<std::size_t>(i), static_cast<std::size_t>(j)) -= projection(i, j);
+          }
+        }
+      }
+    }
+    const Matrix n_eta = numerics::matmul(u0_transposed, ag);
+    const Matrix b0 = numerics::matmul(u0_transposed, c_column);
+    constraint_matrix = numerics::matmul(p0, n_eta);
+    constraint_data = numerics::matmul(p0, b0);
+    numerics::SvdResult constraint_svd = numerics::jacobi_svd(constraint_matrix, rank_relative);
+    constraint_rank = rank_at(constraint_svd, exact_threshold);
+    constraint_pinv = pseudo_inverse_at(constraint_svd, static_cast<std::size_t>(gauge_size),
+                                        exact_threshold);
+    constraint_eta = numerics::matmul(constraint_pinv, constraint_data);
+    // The noiseless equations must be consistent with the model.  A residual
+    // that is not numerical noise means the declared covariance says a
+    // direction has exactly zero variance while the data contradict it: the
+    // model is invalid, not merely imprecise.
+    const Matrix residual =
+        numerics::matmul(constraint_matrix, constraint_eta);
+    double residual_norm = 0.0;
+    double data_norm = 0.0;
+    for (std::size_t i = 0; i < exact_count; ++i) {
+      const double difference = constraint_data(i, 0) - residual(i, 0);
+      residual_norm = std::max(residual_norm, std::fabs(difference));
+      data_norm = std::max(data_norm, std::fabs(constraint_data(i, 0)));
+    }
+    const double consistency_tolerance = 1e-8 * std::max(1.0, data_norm);
+    if (!(residual_norm <= consistency_tolerance)) {
+      return model::fail<Ref<SkyFit>>(
+          Code::invalid_model,
+          "the zero variance directions of the control covariance are inconsistent with the "
+          "declared model; the noiseless equations have no solution",
+          "fit_relative_sky", "the sky cannot be fitted");
+    }
+    // The null space of the exact equations: the directions of the gauge that
+    // remain free after the noiseless equations are satisfied.
+    constraint_null_columns = gauge_size - constraint_rank;
+    if (constraint_null_columns > 0) {
+      numerics::SvdResult transposed =
+          numerics::jacobi_svd(numerics::transpose(constraint_matrix), rank_relative);
+      Matrix range(static_cast<std::size_t>(gauge_size),
+                   static_cast<std::size_t>(constraint_rank), 0.0);
+      for (std::size_t j = 0; j < constraint_rank; ++j) {
+        for (std::size_t i = 0; i < gauge_size; ++i) {
+          range(static_cast<std::size_t>(i), j) =
+              transposed.u(static_cast<std::size_t>(i), j);
+        }
+      }
+      const Matrix completed = complete_orthogonal_factorisation(range);
+      for (std::size_t i = 0; i < gauge_size; ++i) {
+        for (std::size_t j = 0; j < constraint_null_columns; ++j) {
+          constraint_null(static_cast<std::size_t>(i), j) =
+              completed(static_cast<std::size_t>(i), constraint_rank + j);
+        }
+      }
+    }
+  } else {
+    // No exact direction: every gauge direction is free.
+    constraint_null = numerics::identity_matrix(static_cast<std::size_t>(gauge_size));
+  }
+
+  // ---- the constrained GLS on the range of the covariance ------------------
+  Matrix Z(static_cast<std::size_t>(gauge_size), constraint_null_columns, 0.0);
+  for (std::size_t i = 0; i < gauge_size; ++i) {
+    for (std::size_t j = 0; j < constraint_null_columns; ++j) {
+      Z(static_cast<std::size_t>(i), static_cast<std::size_t>(j)) = constraint_null(i, j);
+    }
+  }
+  const Matrix design_z = numerics::matmul(design_matrix, Z);
+  numerics::SvdResult design_z_svd = numerics::jacobi_svd(design_z, rank_relative);
+  const Matrix design_z_pinv =
+      numerics::pseudo_inverse(design_z_svd, constraint_null_columns, rank_relative);
+  Matrix residual_data(complement_size, 1, 0.0);
+  {
+    const Matrix fitted = numerics::matmul(design_matrix, constraint_eta);
+    for (std::size_t i = 0; i < complement_size; ++i) {
+      residual_data(i, 0) = projected_data[i] - fitted(i, 0);
+    }
+  }
+  const Matrix alpha = numerics::matmul(design_z_pinv, residual_data);
+  const Matrix eta = [&]() {
+    const Matrix shift = numerics::matmul(Z, alpha);
+    Matrix out = constraint_eta;
+    for (std::size_t i = 0; i < gauge_size; ++i) out(i, 0) += shift(i, 0);
+    return out;
+  }();
+
+  // ---- the estimator K: beta = K c ---------------------------------------
+  // K = G [ C^+ P0 U0^T + Z (D Z)^+ ( Q_w^T W - D C^+ P0 U0^T ) ].
   Result<Matrix> projector = multiply(qw_transpose, W);
   if (!ok(projector)) {
     return model::fail<Ref<SkyFit>>(projector.code, "the whitened projector cannot be formed",
                                     "fit_relative_sky", "the sky cannot be fitted");
   }
-  Result<Matrix> inverse = multiply(pseudoinverse, val(projector));
-  if (!ok(inverse)) {
-    return model::fail<Ref<SkyFit>>(inverse.code, "the estimator cannot be formed",
-                                    "fit_relative_sky", "the sky cannot be fitted");
+  Matrix exact_estimator(static_cast<std::size_t>(gauge_size),
+                         static_cast<std::size_t>(control_count), 0.0);
+  if (exact_count > 0) {
+    const Matrix u0_transposed = numerics::transpose(U0);
+    exact_estimator = numerics::matmul(constraint_pinv, u0_transposed);
   }
-  Result<Matrix> k_matrix = multiply(G, val(inverse));
+  const Matrix design_exact = numerics::matmul(design_matrix, exact_estimator);
+  Matrix range_estimator(complement_size, static_cast<std::size_t>(control_count), 0.0);
+  for (std::size_t i = 0; i < complement_size; ++i) {
+    for (std::size_t j = 0; j < control_count; ++j) {
+      range_estimator(i, j) = val(projector)(i, j) - design_exact(i, j);
+    }
+  }
+  const Matrix alpha_estimator = numerics::matmul(design_z_pinv, range_estimator);
+  const Matrix shift_estimator = numerics::matmul(Z, alpha_estimator);
+  Matrix gauge_estimator(static_cast<std::size_t>(gauge_size),
+                         static_cast<std::size_t>(control_count), 0.0);
+  for (std::size_t i = 0; i < gauge_size; ++i) {
+    for (std::size_t j = 0; j < control_count; ++j) {
+      gauge_estimator(i, j) = exact_estimator(i, j) + shift_estimator(i, j);
+    }
+  }
+  Result<Matrix> k_matrix = multiply(G, gauge_estimator);
   if (!ok(k_matrix)) {
     return model::fail<Ref<SkyFit>>(k_matrix.code, "the estimator cannot be formed",
                                     "fit_relative_sky", "the sky cannot be fitted");
@@ -1683,27 +2210,49 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
   std::vector<double> beta(static_cast<std::size_t>(parameters), 0.0);
   for (std::size_t p = 0; p < parameters; ++p) beta[p] = beta_column(static_cast<std::size_t>(p), 0);
 
-  // The null space of the design, mapped back to the parameter space.  The
-  // null space of the design is the orthogonal complement of its row space in
-  // the space of the gauge, so the range of the transposed design is
-  // completed to an orthonormal basis of the space of the gauge.
-  const std::size_t null_count = (gauge_size > design_svd.rank) ? gauge_size - design_svd.rank : 0;
+  // The directions that neither the whitened data nor the exact equations
+  // determine.  They are the null space of the stacked system [D; C], mapped
+  // back to the parameter space through the gauge.
+  const std::size_t stacked_rows = complement_size + exact_count;
+  Matrix stacked(stacked_rows, static_cast<std::size_t>(gauge_size), 0.0);
+  for (std::size_t i = 0; i < complement_size; ++i) {
+    for (std::size_t j = 0; j < gauge_size; ++j) {
+      stacked(i, static_cast<std::size_t>(j)) = design_matrix(i, static_cast<std::size_t>(j));
+    }
+  }
+  for (std::size_t i = 0; i < exact_count; ++i) {
+    for (std::size_t j = 0; j < gauge_size; ++j) {
+      stacked(complement_size + i, static_cast<std::size_t>(j)) =
+          constraint_matrix(i, static_cast<std::size_t>(j));
+    }
+  }
+  numerics::SvdResult stacked_svd = numerics::jacobi_svd(stacked, rank_relative);
+  // The stacked system mixes the whitened design with the exact equations; its
+  // rank is judged on the scale of both blocks so that a rounding sized
+  // constraint row does not count as an equation.
+  const double stacked_scale =
+      std::max({1.0, numerics::frobenius_norm(design_matrix),
+                exact_count > 0 ? numerics::frobenius_norm(constraint_matrix) : 0.0,
+                numerics::frobenius_norm(val(H)), numerics::frobenius_norm(ag)});
+  const std::size_t stacked_rank = rank_at(stacked_svd, rank_relative * stacked_scale);
+  const std::size_t null_count = gauge_size > stacked_rank ? gauge_size - stacked_rank : 0;
   Matrix null_parameters(static_cast<std::size_t>(parameters), null_count, 0.0);
   if (null_count > 0) {
-    numerics::SvdResult transposed = numerics::jacobi_svd(numerics::transpose(val(design)), 1e-12);
-    Matrix range(static_cast<std::size_t>(gauge_size), static_cast<std::size_t>(transposed.rank), 0.0);
-    for (std::size_t j = 0; j < transposed.rank; ++j) {
+    numerics::SvdResult transposed =
+        numerics::jacobi_svd(numerics::transpose(stacked), rank_relative);
+    Matrix range(static_cast<std::size_t>(gauge_size), stacked_rank, 0.0);
+    for (std::size_t j = 0; j < stacked_rank; ++j) {
       for (std::size_t i = 0; i < gauge_size; ++i) {
         range(static_cast<std::size_t>(i), j) = transposed.u(static_cast<std::size_t>(i), j);
       }
     }
-    const Matrix complete = complete_orthogonal_factorisation(range);
+    const Matrix completed = complete_orthogonal_factorisation(range);
     for (std::size_t j = 0; j < null_count; ++j) {
       for (std::size_t p = 0; p < parameters; ++p) {
         double sum = 0.0;
         for (std::size_t i = 0; i < gauge_size; ++i) {
           sum += G(static_cast<std::size_t>(p), static_cast<std::size_t>(i)) *
-                 complete(static_cast<std::size_t>(i), transposed.rank + j);
+                 completed(static_cast<std::size_t>(i), stacked_rank + j);
         }
         null_parameters(static_cast<std::size_t>(p), j) = sum;
       }
@@ -1756,12 +2305,24 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
     noise_model->shared_factors = source.shared_factors;
     noise_model->influence.reserve(source.influence.size());
     for (const Ref<LinearAction>& influence : source.influence) {
-      Result<Ref<LinearAction>> composed = compose(context, val(k_action), influence);
-      if (!ok(composed)) {
-        return model::fail<Ref<SkyFit>>(composed.code, "the parameter covariance cannot be built",
+      // The parameter covariance is K C_c K^T.  The influences of the roots are
+      // K L_k, formed as an exact sparse product: the composition helper of the
+      // operators module applies the transpose of a composition in the wrong
+      // order, so a covariance built through it would answer quadratic_form
+      // with (K L)^T instead of (K L).
+      Result<operators::CsrMatrix> product = sky::multiply_csr(context, val(k_action), influence);
+      if (!ok(product)) {
+        return model::fail<Ref<SkyFit>>(product.code, "the parameter covariance cannot be built",
                                         "fit_relative_sky", "the sky cannot be fitted");
       }
-      noise_model->influence.push_back(val(composed));
+      Result<Ref<LinearAction>> action = operators::make_csr_action(
+          context, val(product).rows, val(product).cols, val(product).offsets,
+          val(product).indices, val(product).values, Id(), Id(), noise_model->variance_unit);
+      if (!ok(action)) {
+        return model::fail<Ref<SkyFit>>(action.code, "the parameter covariance cannot be built",
+                                        "fit_relative_sky", "the sky cannot be fitted");
+      }
+      noise_model->influence.push_back(val(action));
     }
     if (null_parameters.cols > 0) {
       UnknownTerm term;
@@ -1794,13 +2355,15 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
 
   RankReport rank;
   rank.columns = gauge_size;
-  rank.rank = design_svd.rank;
-  rank.singular_error_bound = design_svd.sigma_error_bound;
-  rank.certified = (design_svd.rank == gauge_size) && (null_count == 0);
+  // The rank of the stacked system [D; C]: the whitened data and the exact
+  // equations together decide which gauge directions are measured.
+  rank.rank = stacked_rank;
+  rank.singular_error_bound = stacked_svd.sigma_error_bound;
+  rank.certified = (stacked_rank == gauge_size) && (null_count == 0);
   {
     Result<ArrayRef> singular = operators::write_f64(
-        context, design_svd.singular_values,
-        std::vector<U64>{static_cast<U64>(design_svd.singular_values.size())},
+        context, stacked_svd.singular_values,
+        std::vector<U64>{static_cast<U64>(stacked_svd.singular_values.size())},
         model::unit_dimensionless(), "sky_parameter");
     if (!ok(singular)) {
       return model::fail<Ref<SkyFit>>(singular.code, "the singular values cannot be stored",
@@ -1850,8 +2413,23 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
   model::set_included(out.assessment, "gauge_subspace");
   model::set_included(out.assessment, "whitened_profile_of_the_common_sky");
   model::set_included(out.assessment, "corrected_covariance_action");
+  if (exact_count > 0) {
+    model::set_included(out.assessment, "exact_zero_variance_control_constraints");
+  }
+  if (control_covariance_unknown) {
+    model::set_omitted(out.assessment, "known_control_covariance");
+    model::set_included(out.assessment, "declared_nominal_control_covariance");
+    fit->assessment.noise = NoiseState::unknown;
+    out.assessment.noise = NoiseState::unknown;
+    model::add_issue(out.assessment, Code::unavailable,
+                     "the control covariance is not known; the published parameter covariance is "
+                     "not a measured variance: " + control_covariance_reason,
+                     "fit_relative_sky", "the sky variance is unknown");
+    out.assessment.science = ScienceState::conditional;
+  }
   if (null_parameters.cols > 0) {
     model::set_omitted(out.assessment, "not_estimable_sky_directions");
+    fit->assessment.noise = NoiseState::unknown;
     out.assessment.noise = NoiseState::unknown;
     model::add_issue(out.assessment, Code::not_identifiable,
                      "the difference model has directions that the common sky cannot separate",
@@ -1897,8 +2475,13 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
                                             "apply_sky", "the correction cannot be applied");
   }
 
-  // A direction of E that is not estimable gets no correction at all.
+  // A direction of E that is not estimable gets no correction at all, and the
+  // published covariance of that position must belong to the same estimator:
+  // the corrected signal of such a row is y_i, so its variance is the row of
+  // C_y and not the row of P C_y P^T.  The mask below is what makes the signal
+  // and the covariance the same linear functional of the data.
   std::size_t unavailable_count = 0;
+  std::vector<char> correction_available(val(values).size(), 1);
   if (fit->rank.nullspace && fit->rank.nullspace->shape.size() == 2) {
     const U64 columns = fit->rank.nullspace->shape[1];
     const U64 rows = fit->rank.nullspace->shape[0];
@@ -1927,6 +2510,7 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
         }
         if (std::sqrt(norm) > 1e-12) {
           mutable_correction[i] = 0.0;
+          correction_available[i] = 0;
           ++unavailable_count;
         }
       }
@@ -1946,42 +2530,88 @@ Result<Ref<SignalEstimate>> apply_sky(Context& context, Ref<SignalEstimate> sign
                                             "apply_sky", "the correction cannot be applied");
   }
 
-  // The corrected covariance is (I - E K T) C_y (I - E K T)^T.
-  Ref<CovarianceAction> corrected_noise = signal->noise;
-  if (signal->noise && signal->noise->model && fit->P) {
-    auto noise_model = std::make_shared<NoiseModel>();
-    const NoiseModel& source = *signal->noise->model;
-    noise_model->variance_unit = source.variance_unit;
-    noise_model->condition = source.condition;
-    noise_model->state = source.state;
-    noise_model->unknown_terms = source.unknown_terms;
-    noise_model->innovations = source.innovations;
-    noise_model->shared_factors = source.shared_factors;
-    noise_model->influence.reserve(source.influence.size());
-    for (const Ref<LinearAction>& influence : source.influence) {
-      Result<Ref<LinearAction>> composed = compose(context, fit->P, influence);
-      if (!ok(composed)) {
-        return model::fail<Ref<SignalEstimate>>(composed.code,
-                                                "the corrected covariance cannot be built",
-                                                "apply_sky", "the correction cannot be applied");
-      }
-      noise_model->influence.push_back(val(composed));
+  // The corrected covariance is (I - E K T) C_y (I - E K T)^T for the rows
+  // that are corrected, and C_y for the rows that keep no correction.  Both are
+  // written as one action P' = I - M E K T with the diagonal mask M: P' y is
+  // exactly the published corrected signal.
+  Ref<LinearAction> effective_p = fit->P;
+  if (unavailable_count > 0) {
+    if (!fit->E || !fit->K || !fit->T) {
+      return model::fail<Ref<SignalEstimate>>(
+          Code::invalid_model, "the correction action is incomplete", "apply_sky",
+          "the correction cannot be applied");
     }
-    noise_model->identity = model::make_identity("acsd.NoiseModel", 2, 0,
-                                                 model::hash_index(Index::Kind::latent,
-                                                                   noise_model->influence.size(),
-                                                                   0, {}),
-                                                 "acsd");
-    noise_model->assessment = model::make_assessment(Code::ok);
-    noise_model->assessment.complete = true;
-    Result<Ref<CovarianceAction>> covariance = make_covariance(
-        context, Ref<NoiseModel>(std::shared_ptr<const NoiseModel>(noise_model)));
-    if (!ok(covariance)) {
-      return model::fail<Ref<SignalEstimate>>(covariance.code,
-                                              "the corrected covariance cannot be built",
+    std::vector<double> mask_values(correction_available.size(), 0.0);
+    for (std::size_t i = 0; i < mask_values.size(); ++i) {
+      mask_values[i] = correction_available[i] ? 1.0 : 0.0;
+    }
+    Result<ArrayRef> mask_array = operators::write_f64(
+        context, mask_values,
+        std::vector<U64>{static_cast<U64>(mask_values.size())}, model::unit_dimensionless(), Id());
+    if (!ok(mask_array)) {
+      return model::fail<Ref<SignalEstimate>>(mask_array.code, "the correction mask cannot be stored",
                                               "apply_sky", "the correction cannot be applied");
     }
-    corrected_noise = val(covariance);
+    ActionRecipe mask_recipe;
+    mask_recipe.kind = ActionRecipe::Kind::diagonal;
+    mask_recipe.algorithm = "canonical_diagonal_v1";
+    mask_recipe.version = 1;
+    mask_recipe.arrays = {"sky_correction_mask"};
+    const std::vector<ArrayRef> mask_arrays{val(mask_array)};
+    Result<Ref<LinearAction>> mask = make_action(
+        context, mask_recipe, std::span<const Ref<LinearAction>>{}, mask_arrays);
+    if (!ok(mask)) {
+      return model::fail<Ref<SignalEstimate>>(mask.code, "the correction mask cannot be built",
+                                              "apply_sky", "the correction cannot be applied");
+    }
+    Result<Ref<LinearAction>> masked_e = compose(context, val(mask), fit->E);
+    if (!ok(masked_e)) {
+      return model::fail<Ref<SignalEstimate>>(masked_e.code, "the masked output model cannot be built",
+                                              "apply_sky", "the correction cannot be applied");
+    }
+    ActionRecipe masked_recipe;
+    masked_recipe.kind = ActionRecipe::Kind::sky;
+    masked_recipe.algorithm = "canonical_sky_masked_v1";
+    masked_recipe.version = 1;
+    masked_recipe.children = {"masked_E", "K", "T"};
+    const std::vector<Ref<LinearAction>> masked_children{val(masked_e), fit->K, fit->T};
+    Result<Ref<LinearAction>> masked_p =
+        make_action(context, masked_recipe, masked_children, std::span<const ArrayRef>{});
+    if (!ok(masked_p)) {
+      return model::fail<Ref<SignalEstimate>>(masked_p.code,
+                                              "the masked correction action cannot be built",
+                                              "apply_sky", "the correction cannot be applied");
+    }
+    effective_p = val(masked_p);
+  }
+
+  // The corrected covariance is (I - E K T) C_y (I - E K T)^T.  The outer
+  // action of a CovarianceAction is exactly this kind of left/right factor:
+  // C_out(v) = P (C_y (P^T v)), so the corrected covariance keeps the model of
+  // the input and publishes P as its outer influence.  The two negative cross
+  // terms of the expansion are then carried by the action itself instead of
+  // being reconstructed root by root.
+  Ref<CovarianceAction> corrected_noise = signal->noise;
+  if (signal->noise && signal->noise->model && effective_p) {
+    if (signal->noise->influence) {
+      return model::fail<Ref<SignalEstimate>>(
+          Code::unsupported,
+          "the corrected covariance cannot be formed: the input covariance already carries an "
+          "outer influence, and composing the two outer actions needs the transpose of a "
+          "composition, which the operators module applies in the wrong order",
+          "apply_sky", "the correction cannot be applied");
+    }
+    auto covariance = std::make_shared<CovarianceAction>(*signal->noise);
+    covariance->influence = effective_p;
+    covariance->identity = model::make_identity("acsd.CovarianceAction", 2, 0,
+                                                 model::hash_index(Index::Kind::latent,
+                                                                   static_cast<U64>(corrected.size()),
+                                                                   0, {}),
+                                                 "acsd");
+    covariance->assessment = model::make_assessment(Code::ok);
+    covariance->assessment.complete = true;
+    covariance->assessment.noise = signal->noise->model->state;
+    corrected_noise = std::shared_ptr<const CovarianceAction>(covariance);
   }
 
   auto estimate = std::make_shared<SignalEstimate>();

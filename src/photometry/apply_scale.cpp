@@ -389,8 +389,18 @@ Result<Ref<NativeObservation>> apply_scale(Context& context, Ref<PhotoSolution> 
   // ---------------------------------------------------------------------
   const Id native_index_id =
       observation->native_index ? observation->native_index->identity.object_id : Id();
+  // The applied factor is dimensionless but it changes the named linear scale
+  // of the samples: the calibrated ADU and the photometrically scaled samples
+  // are not the same quantity, and unit_adu == unit_signal, so a consumer that
+  // only looks at the unit can no longer see the difference.  The new unit
+  // carries the applied application_id in its scale name; the linear power and
+  // the multiplier are unchanged (a positive multiplicative factor).
+  Unit scaled_unit = observation->unit;
+  scaled_unit.scale = (observation->unit.scale.empty() ? std::string("1")
+                                                       : observation->unit.scale) +
+                      "*scale/" + solution->application_id;
   Result<ArrayRef> values =
-      copy_f64(context, scaled, {static_cast<U64>(scaled.size())}, observation->unit, native_index_id);
+      copy_f64(context, scaled, {static_cast<U64>(scaled.size())}, scaled_unit, native_index_id);
   if (!ok(values)) {
     return model::fail<Ref<NativeObservation>>(values.code, "the scaled values cannot be stored",
                                                kOrigin, "the scale cannot be applied");
@@ -404,7 +414,7 @@ Result<Ref<NativeObservation>> apply_scale(Context& context, Ref<PhotoSolution> 
   scaled_observation->scale_applications = observation->scale_applications;
   scaled_observation->scale_applications.push_back(solution->application_id);
   scaled_observation->noise = noise;
-  scaled_observation->unit = observation->unit;
+  scaled_observation->unit = scaled_unit;
   scaled_observation->response = observation->response;
   scaled_observation->context = observation->context;
   scaled_observation->frame = observation->frame;
@@ -429,9 +439,9 @@ Result<Ref<NativeObservation>> apply_scale(Context& context, Ref<PhotoSolution> 
     // enclosure is the one of the root level and is marked conditional when a
     // regrouping is present.
     Result<ArrayRef> low_array = copy_f64(context, low, {static_cast<U64>(low.size())},
-                                           observation->unit, native_index_id);
+                                           scaled_unit, native_index_id);
     Result<ArrayRef> high_array = copy_f64(context, high, {static_cast<U64>(high.size())},
-                                            observation->unit, native_index_id);
+                                            scaled_unit, native_index_id);
     if (ok(low_array) && ok(high_array)) {
       scaled_observation->numerical_lower = val(low_array);
       scaled_observation->numerical_upper = val(high_array);
@@ -482,6 +492,14 @@ Result<Ref<NativeObservation>> apply_scale(Context& context, Ref<PhotoSolution> 
           "the numerical enclosure of the regrouped levels was not reconstructed from the parent "
           "enclosures");
     }
+    // P1-5: d x' / d root = -diag(alpha x) H L_theta (then the transfer G) is
+    // not in the noise model.  The parameter covariance of the solution cannot
+    // be used as L_theta until photometry/api.cpp builds its eigen factor with
+    // sqrt(lambda) instead of 1/sqrt(lambda): the current action returns a
+    // precision-like matrix, and a wrongly scaled term in the image noise is
+    // worse than an explicit unknown.
+    error->unknown_model_terms.push_back(
+        "the_random_influence_of_the_fitted_parameters_on_the_image_is_not_in_the_noise_model");
     scaled_observation->error = error;
   }
 
@@ -497,13 +515,40 @@ Result<Ref<NativeObservation>> apply_scale(Context& context, Ref<PhotoSolution> 
   scaled_observation->assessment = model::make_assessment(Code::ok);
   scaled_observation->assessment.complete = has_enclosure && has_parameter_box;
   scaled_observation->assessment.execution = ExecutionState::complete;
-  scaled_observation->assessment.science =
-      (has_enclosure && has_parameter_box) ? ScienceState::bounded : ScienceState::conditional;
+  // The image noise misses the random influence of the fitted scale, so the
+  // complete variance is unknown even when the numerical enclosure is present.
+  if (scaled_observation->noise) {
+    auto patched = std::make_shared<NoiseModel>(*scaled_observation->noise);
+    patched->unknown_terms.push_back(
+        UnknownTerm{"theta_random_influence_omitted",
+                    "the random influence -diag(alpha x) H L_theta of the fitted parameters on the "
+                    "image is missing from the noise model, so the complete variance is unknown",
+                    {}, std::nullopt});
+    patched->state = NoiseState::unknown;
+    scaled_observation->noise = std::shared_ptr<const NoiseModel>(patched);
+  }
+  scaled_observation->assessment.noise =
+      scaled_observation->noise ? scaled_observation->noise->state : NoiseState::unknown;
+  scaled_observation->assessment.science = ScienceState::conditional;
   scaled_observation->assessment.condition =
       model::make_condition("scaled_native_observation", "photometric_scale");
   model::set_included(scaled_observation->assessment, "per_native_sample_spatial_factor");
   model::set_included(scaled_observation->assessment, "physical_regrouping_after_the_factor");
   model::set_included(scaled_observation->assessment, "noise_chain_scaled_with_the_same_factor");
+  model::set_included(scaled_observation->assessment,
+                      "the_unit_names_the_applied_photometric_scale: " + scaled_unit.scale);
+  // P1-5: the random influence of the fitted parameters on the image,
+  //   d x' / d root = -diag(alpha x) H L_theta,   then the transfer G,
+  // is NOT in the scaled noise model.  The published parameter covariance of
+  // PhotoSolution cannot be used as L_theta here: photometry/api.cpp builds the
+  // eigen factor with 1/sqrt(lambda) instead of sqrt(lambda), so the action
+  // returns a precision-like matrix rather than the covariance.  Using it would
+  // put a wrongly scaled term into the image noise, which is worse than an
+  // explicit unknown; the omission is therefore recorded and the noise state
+  // is unknown (the assessment is conditional), never certified.
+  model::set_omitted(scaled_observation->assessment,
+                     "the_random_influence_of_the_fitted_scale_-diag(alpha_x)_H_L_theta_is_not_in_"
+                     "the_image_noise");
   if (!has_enclosure || !has_parameter_box) {
     model::add_issue(scaled_observation->assessment, Code::unavailable,
                      "the scaled values have no unconditional numerical certificate", kOrigin,

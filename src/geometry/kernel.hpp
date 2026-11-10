@@ -7,10 +7,13 @@
 // decided inside the budget keeps its full mass as an unresolved domain.
 #include <array>
 #include <map>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "acsd/contracts.hpp"
 #include "model/exact.hpp"
+#include "model/hash.hpp"
 
 namespace acsd::geometry {
 
@@ -109,5 +112,42 @@ Dyadic rational_to_dyadic(const Rational& value, bool upper);
 // The larger and the smaller of two exact dyadics.
 Dyadic dyadic_max(const Dyadic& a, const Dyadic& b);
 Dyadic dyadic_min(const Dyadic& a, const Dyadic& b);
+
+// Exact dyadic arithmetic for the conservation checks of the area ledger
+// (sum(a_p) + coarse - A = 0 and a_p <= min(A, Omega_H)); the operands are
+// brought onto the common finer grid, so the result is exact.
+Dyadic dyadic_add(const Dyadic& a, const Dyadic& b);
+Dyadic dyadic_sub(const Dyadic& a, const Dyadic& b);
+int dyadic_compare(const Dyadic& a, const Dyadic& b);
+
+// Deterministic content digest of a geometry object (P0-3).
+//
+// Every field enters the SHA-256 stream with its name, so two different
+// objects cannot alias by concatenation, and a change of any geometry input
+// (order, pixfrac, primitive, constraint, revision dependency) changes the
+// content hash.  The digest is the only source of the object_id of the
+// geometry/drizzle objects; a constant string made every geometry revision
+// hash-identical and disabled the dependency invalidation.
+class ContentDigest {
+ public:
+  ContentDigest();
+  void add(std::string_view key, std::string_view value);
+  void add_u64(std::string_view key, U64 value);
+  void add_i64(std::string_view key, std::int64_t value);
+  void add_f64(std::string_view key, double value);
+  void add_leaf(std::string_view key, const HealpixLeaf& leaf);
+  void add_dyadic(std::string_view key, const Dyadic& value);
+  void add_area(std::string_view key, const SphericalAreaInterval& area);
+  // The exact payload of a CSR operator (offsets, ascending columns, values).
+  // The LinearAction of the operators module does not carry an identity of its
+  // own (its Model base identity is left empty by make_csr_action), so the
+  // geometry digests its coefficients directly.
+  void add_csr(std::string_view key, const std::vector<U64>& offsets,
+               const std::vector<U64>& indices, const std::vector<double>& values);
+  std::string hex() const;
+
+ private:
+  model::Sha256 hash_;
+};
 
 }  // namespace acsd::geometry

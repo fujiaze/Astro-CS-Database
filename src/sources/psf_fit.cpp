@@ -313,6 +313,87 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
   numerics::SvdResult svd;
   std::vector<double> step(parameter_count, 0.0);
 
+  // ---------------------------------------------------------------------
+  // The fixed declared noise of the fit.  The objective of the contract is
+  //  1/2 (d - H F - Z beta)^T C^-1 (d - H F - Z beta) with the declared C, and
+  // an unweighted sum silently claims C = I.  The covariance is used as the
+  // weight only when it is *certified diagonal*: every root factor of the noise
+  // model is a diagonal action, so C = sum_k diag(f_k)^2 is exactly diagonal
+  // and the diagonal is sum_k f_k^2 without any off diagonal approximation.
+  // Any composed or correlated influence keeps the unit working weight and the
+  // fit is marked conditional (it never pretends the off diagonal terms vanish).
+  // ---------------------------------------------------------------------
+  std::vector<double> sqrt_weight(static_cast<std::size_t>(fit_rows.size()), 1.0);
+  bool weighted_fit = false;
+  std::string weight_reason;
+  if (observation->noise && observation->noise->state == NoiseState::known) {
+    const std::size_t native_count =
+        observation->native_index ? observation->native_index->size : 0;
+    std::vector<double> variance(native_count, 0.0);
+    bool diagonal = true;
+    std::vector<Ref<NoiseRoot>> roots = observation->noise->innovations;
+    roots.insert(roots.end(), observation->noise->shared_factors.begin(),
+                 observation->noise->shared_factors.end());
+    for (const Ref<NoiseRoot>& root : roots) {
+      if (!root || !root->factor) {
+        diagonal = false;
+        weight_reason = "a noise root has no factor";
+        break;
+      }
+      Result<ActionRecipe> recipe = root->factor->serialize_recipe();
+      if (!ok(recipe) || val(recipe).kind != ActionRecipe::Kind::diagonal) {
+        diagonal = false;
+        weight_reason = "the noise covariance is not certified diagonal";
+        break;
+      }
+      std::vector<double> ones(native_count, 1.0);
+      Result<std::vector<double>> factor;
+      {
+        const std::vector<U64> shape{static_cast<U64>(ones.size())};
+        Result<ArrayRef> input =
+            write_f64_array(context, ones, shape, model::unit_dimensionless(), "psf-noise");
+        if (!ok(input)) {
+          diagonal = false;
+          weight_reason = "the noise factor cannot be applied";
+          break;
+        }
+        Result<ArrayRef> mapped = root->factor->apply(context, val(input));
+        if (!ok(mapped)) {
+          diagonal = false;
+          weight_reason = "the noise factor cannot be applied";
+          break;
+        }
+        Result<std::vector<double>> values = read_f64_array(context, val(mapped));
+        if (!ok(values) || val(values).size() != native_count) {
+          diagonal = false;
+          weight_reason = "the noise factor has the wrong size";
+          break;
+        }
+        factor = values;
+      }
+      for (std::size_t k = 0; k < native_count; ++k) {
+        const double f = val(factor)[k];
+        variance[k] += f * f;
+      }
+    }
+    if (diagonal) {
+      for (std::size_t k = 0; k < fit_rows.size(); ++k) {
+        const U64 row = fit_rows[k];
+        if (row >= variance.size() || !(variance[row] > 0.0) || !std::isfinite(variance[row])) {
+          diagonal = false;
+          weight_reason = "a fitted sample has no positive declared variance";
+          break;
+        }
+        sqrt_weight[k] = 1.0 / std::sqrt(variance[row]);
+      }
+    }
+    if (diagonal) {
+      weighted_fit = true;
+    }
+  } else {
+    weight_reason = "the observation has no known noise model";
+  }
+
   for (U32 iteration = 0; iteration < max_iterations; ++iteration) {
     // The cancellation is checked in every iteration of the fit; a cancelled
     // fit returns no kernel at all.
@@ -352,7 +433,7 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
       }
       const double measured =
           row < val(data).size() ? val(data)[static_cast<std::size_t>(row)] : 0.0;
-      residuals[k] = measured - model;
+      residuals[k] = (measured - model) * sqrt_weight[k];
     }
     objective = 0.0;
     for (double r : residuals) objective += 0.5 * r * r;
@@ -458,6 +539,14 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
       }
     }
 
+    // The whitened jacobian rows: the same declared weight as the residual.
+    if (weighted_fit) {
+      for (std::size_t k = 0; k < rows; ++k) {
+        for (std::size_t c = 0; c < parameter_count; ++c) {
+          jacobian(k, c) *= sqrt_weight[k];
+        }
+      }
+    }
     // The scaled Gauss-Newton step.
     std::vector<double> column_scale(parameter_count, 0.0);
     for (std::size_t c = 0; c < parameter_count; ++c) {
@@ -653,10 +742,8 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
         const double measured =
             row < val(data).size() ? val(data)[static_cast<std::size_t>(row)] : 0.0;
         const double residual = measured - model;
-        trial_objective += 0.5 * residual * residual;
+        trial_objective += 0.5 * sqrt_weight[k] * sqrt_weight[k] * residual * residual;
       }
-        std::fprintf(stderr, "[psf]   bt=%u lam=%.3g obj=%.9g trial=%.9g diff=%.9g\n", backtrack,
-                     lambda, objective, trial_objective, trial_objective - objective);
       if (trial_objective <= objective - 1.0e-4 * lambda * gradient * gradient ||
           trial_objective < objective) {
         theta = trial;
@@ -702,7 +789,7 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
           const double measured =
               row < val(data).size() ? val(data)[static_cast<std::size_t>(row)] : 0.0;
           const double residual = measured - model;
-          trial_objective += 0.5 * residual * residual;
+          trial_objective += 0.5 * sqrt_weight[k] * sqrt_weight[k] * residual * residual;
         }
         if (trial_objective < objective) {
           theta = trial;
@@ -825,9 +912,21 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
   }
 
   auto error = std::make_shared<ErrorRecord>();
-  error->linearization_selection = model::make_condition("psf_shape_fit", "gauss_newton_linearisation");
+  error->linearization_selection = model::make_condition(
+      "psf_shape_fit", weighted_fit ? "declared_diagonal_noise_gauss_newton" : "unit_weight_gauss_newton");
   error->unknown_model_terms.push_back("the_real_psf_shape_deviation_is_not_a_numerical_error");
   error->unknown_model_terms.push_back("the_parameter_box_is_conditional_on_the_gauss_newton_hessian");
+  error->unknown_model_terms.push_back(
+      "the_shape_parameter_box_is_the_first_order_gauss_newton_root_correction_and_not_a_verified_"
+      "score_root_enclosure; the statistical shape uncertainty is not published");
+  error->unknown_model_terms.push_back(
+      "the_position_and_shape_derivatives_are_central_differences_of_the_pixel_integral_with_"
+      "declared_steps_and_no_truncation_bound");
+  if (!weighted_fit) {
+    error->unknown_model_terms.push_back(
+        "the_fit_objective_uses_the_unit_working_weight: " + weight_reason +
+        "; the declared covariance is not used as the weight");
+  }
   error->identity = model::make_identity("acsd.ErrorRecord", 2, 0, model::sha256_hex("fit_psf"), "acsd");
   error->assessment = model::make_assessment(Code::ok);
   error->assessment.complete = true;
@@ -892,6 +991,18 @@ Result<Ref<EffectivePSF>> fit_psf(Context& context, Ref<NativeObservation> obser
     model::set_omitted(fitted->assessment, "the_requested_fit_accuracy_is_not_certified");
   }
   model::set_omitted(fitted->assessment, "chromatic_psf_is_not_modelled");
+  model::set_included(fitted->assessment,
+                      weighted_fit
+                          ? "the_objective_uses_the_declared_diagonal_covariance_as_the_weight"
+                          : "the_objective_uses_the_unit_working_weight (" + weight_reason + ")");
+  model::set_included(fitted->assessment,
+                      "the_parameter_box_radius_is_the_first_order_gauss_newton_root_correction");
+  model::set_omitted(fitted->assessment,
+                     "the_parameter_box_is_not_a_verified_score_root_enclosure_and_does_not_"
+                     "contain_the_statistical_shape_error");
+  model::set_omitted(fitted->assessment,
+                     "the_derivatives_of_the_pixel_integral_are_central_differences_without_a_"
+                     "truncation_bound");
   fitted->identity = model::make_identity(
       "acsd.EffectivePSF", 2, 0,
       model::sha256_hex(std::to_string(family_count) + ":" + std::to_string(term_count)), "acsd");

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 #include "coordinates/healpix.hpp"
 
@@ -13,6 +14,19 @@ constexpr double kPi = 3.14159265358979323846;
 // J_f and L_f of the equal area face chart (SPHERICAL_DRIZZLE section 2).
 constexpr int kJ[12] = {2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4};
 constexpr int kL[12] = {1, 3, 5, 7, 0, 2, 4, 6, 1, 3, 5, 7};
+
+// The polar faces (north f=0..3, south f=8..11) carry L_f in {1,3,5,7}; their
+// chart branch is the longitude quadrant [(L-1) pi/4, (L+1) pi/4], so
+// L = 2 floor(2 phi / pi) + 1 for a longitude already brought into its branch.
+// chart_partials has no face argument (the public declaration is frozen), so
+// the constant is recovered from the branch of the (absolute) longitude it is
+// handed.  A caller that hands a longitude outside the branch of its face is
+// already outside the chart domain of that face.
+int polar_longitude_constant(double phi) {
+  long long quadrant = static_cast<long long>(std::floor(2.0 * phi / kPi));
+  quadrant = ((quadrant % 4) + 4) % 4;
+  return static_cast<int>(2 * quadrant + 1);
+}
 
 // Brings the longitude into the branch that belongs to the face with offset L.
 double face_longitude(double phi, int l) {
@@ -106,7 +120,12 @@ bool chart_partials(double z, double phi, double& ds_dz, double& ds_dphi, double
     const double r = std::sqrt(3.0 * (1.0 - z));
     if (!(r > 0.0)) return false;
     const double dr_dz = -3.0 / (2.0 * r);
-    const double dd_dz = (4.0 * phi / kPi) * dr_dz;
+    // d = r (4 phi / pi - L), so dd/dz = (4 phi / pi - L) dr/dz.  The face
+    // constant L is not zero on a polar face: dropping it makes the affine
+    // model and its residual bound wrong together (SPHERICAL_DRIZZLE section
+    // 6.1, the chart partials must be the true ones).
+    const double l = static_cast<double>(polar_longitude_constant(phi));
+    const double dd_dz = (4.0 * phi / kPi - l) * dr_dz;
     const double dd_dphi = 4.0 * r / kPi;
     ds_dz = (-dr_dz + dd_dz) / 2.0;
     ds_dphi = dd_dphi / 2.0;
@@ -119,7 +138,9 @@ bool chart_partials(double z, double phi, double& ds_dz, double& ds_dphi, double
     if (!(w > 0.0)) return false;
     const double dw_dz = 3.0 / (2.0 * w);
     const double dr_dz = -dw_dz;
-    const double dd_dz = (4.0 * phi / kPi) * dw_dz;
+    // d = (4 phi / pi - L) w, so dd/dz = (4 phi / pi - L) dw/dz.
+    const double l = static_cast<double>(polar_longitude_constant(phi));
+    const double dd_dz = (4.0 * phi / kPi - l) * dw_dz;
     const double dd_dphi = 4.0 * w / kPi;
     ds_dz = (-dr_dz + dd_dz) / 2.0;
     ds_dphi = dd_dphi / 2.0;
@@ -137,8 +158,11 @@ bool chart_partials(double z, double phi, double& ds_dz, double& ds_dphi, double
 
 bool chart_partials_interval(const Iv& z, const Iv& phi, U32 face, Iv& ds_dz, Iv& ds_dphi, Iv& dt_dz,
                              Iv& dt_dphi) {
-  (void)face;
   const double two_thirds = 2.0 / 3.0;
+  // The polar chart branches carry the face longitude constant L: d = r (4 phi /
+  // pi - L) on the north cap and d = (4 phi / pi - L) w on the south cap, so the
+  // derivative enclosure must subtract L from 4 phi / pi as well.
+  const Iv l_const(static_cast<double>(chart_l(face)), static_cast<double>(chart_l(face)));
   const bool north = z.lower > two_thirds;
   const bool south = z.upper < -two_thirds;
   if (!north && !south) {
@@ -155,7 +179,7 @@ bool chart_partials_interval(const Iv& z, const Iv& phi, U32 face, Iv& ds_dz, Iv
     if (r.lower <= 0.0) return false;
     const Iv dr_dz = numerics::interval_div(Iv(-3.0, -3.0), numerics::interval_mul(Iv(2.0, 2.0), r));
     const Iv four_phi = numerics::interval_scale(phi, 4.0 / kPi);
-    const Iv dd_dz = numerics::interval_mul(four_phi, dr_dz);
+    const Iv dd_dz = numerics::interval_mul(numerics::interval_sub(four_phi, l_const), dr_dz);
     const Iv dd_dphi = numerics::interval_scale(r, 4.0 / kPi);
     ds_dz = numerics::interval_div(numerics::interval_add(numerics::interval_neg(dr_dz), dd_dz), Iv(2.0, 2.0));
     ds_dphi = numerics::interval_div(dd_dphi, Iv(2.0, 2.0));
@@ -170,7 +194,7 @@ bool chart_partials_interval(const Iv& z, const Iv& phi, U32 face, Iv& ds_dz, Iv
   const Iv dw_dz = numerics::interval_div(Iv(3.0, 3.0), numerics::interval_mul(Iv(2.0, 2.0), w));
   const Iv dr_dz = numerics::interval_neg(dw_dz);
   const Iv four_phi = numerics::interval_scale(phi, 4.0 / kPi);
-  const Iv dd_dz = numerics::interval_mul(four_phi, dw_dz);
+  const Iv dd_dz = numerics::interval_mul(numerics::interval_sub(four_phi, l_const), dw_dz);
   const Iv dd_dphi = numerics::interval_scale(w, 4.0 / kPi);
   ds_dz = numerics::interval_div(numerics::interval_add(numerics::interval_neg(dr_dz), dd_dz), Iv(2.0, 2.0));
   ds_dphi = numerics::interval_div(dd_dphi, Iv(2.0, 2.0));
@@ -219,11 +243,21 @@ bool chart_interval(U32 face, const Iv& z, const Iv& phi, Iv& s, Iv& t) {
 
 HealpixLeaf chart_leaf(U32 order, U32 face, U64 ix, U64 iy) {
   const U64 nside = nside_for(order);
-  const U64 cx = std::min<U64>(nside - 1, ix);
-  const U64 cy = std::min<U64>(nside - 1, iy);
+  // An index outside the face square is not a leaf of this face.  The former
+  // clamp (ix -> nside-1) silently mapped every out-of-range window of the
+  // face seam onto the last column, which attributes the mass of another face
+  // to the wrong leaf and double counts it in the containment fill
+  // (SPHERICAL_DRIZZLE section 3.3, I7).  The public declaration of this
+  // function is frozen, so an out-of-range cell is reported with the reserved
+  // ipix sentinel instead of a wrong leaf; every geometry caller validates the
+  // range and refines/keeps the block unresolved before it gets here.
   HealpixLeaf leaf;
   leaf.order = order;
-  leaf.ipix = static_cast<U64>(face) * nside * nside + healpix_face_index(order, cx, cy);
+  if (ix >= nside || iy >= nside) {
+    leaf.ipix = std::numeric_limits<U64>::max();
+    return leaf;
+  }
+  leaf.ipix = static_cast<U64>(face) * nside * nside + healpix_face_index(order, ix, iy);
   return leaf;
 }
 
@@ -233,10 +267,12 @@ bool chart_leaf_for_direction(U32 order, const SkyICRS& direction, HealpixLeaf& 
   const U64 nside = nside_for(order);
   U64 ix = static_cast<U64>(std::floor(point.s * static_cast<double>(nside)));
   U64 iy = static_cast<U64>(std::floor(point.t * static_cast<double>(nside)));
+  // chart_inverse accepts the closed square, so s or t can be exactly 1: that
+  // point is on the boundary of the last cell, not a cell of its own.
   if (ix >= nside) ix = nside - 1;
   if (iy >= nside) iy = nside - 1;
   leaf = chart_leaf(order, point.face, ix, iy);
-  return true;
+  return leaf.ipix != std::numeric_limits<U64>::max();
 }
 
 }  // namespace acsd::coordinates

@@ -366,6 +366,12 @@ struct WriterState {
   // metadata/builder working set declared by the build spec.
   std::shared_ptr<detail::ClaimImpl> staging_claim;
   std::shared_ptr<detail::ClaimImpl> metadata_claim;
+  // P1-3: the live spool of a spill-placement writer is capacity too.  The
+  // claim covers the declared output bytes on the spill domain, so a zero spill
+  // quota is refused at begin() and a sealed spool stays accounted while its
+  // files exist (seal_async hands the claim to the Array's lease).
+  std::shared_ptr<detail::ClaimImpl> spill_claim;
+  U64 spill_reserved_bytes = 0;
   bool use_zstd = false;
   std::atomic<std::uint64_t> stage_sequence{1};
 
@@ -464,6 +470,83 @@ void release_zstd(WriterState& writer) noexcept {
   }
 }
 
+// P1-4: a private spool that cannot be removed is an orphan, not "reclaimed".
+// FOUNDATION_API: "cleanup的unlink只试一次；失败留下具名orphan记录与其磁盘占用，
+// 不伪报空间已释放。Storage可由下次显式清理回收".  The record is kept in two
+// places: a process table (which keeps the capacity Lease alive, so the ledger
+// keeps counting the bytes that really still occupy the disk) and one JSONL
+// line under the scratch root, so the orphan survives the process and a later
+// explicit cleanup can find it.
+struct OrphanRecord {
+  std::string path;
+  U64 bytes = 0;
+  std::string reason;
+  std::shared_ptr<detail::ClaimImpl> claim;  // keeps the disk charge alive
+};
+std::mutex& orphan_mutex() {
+  static std::mutex mutex;
+  return mutex;
+}
+std::vector<OrphanRecord>& orphan_table() {
+  static std::vector<OrphanRecord> table;
+  return table;
+}
+
+U64 directory_bytes(const std::string& directory) noexcept {
+  // Bounded: one attempt, no recursion into unreadable entries.  The purpose is
+  // an honest order-of-magnitude record of the space that was not returned.
+  U64 total = 0;
+  std::error_code ec;
+  std::filesystem::recursive_directory_iterator it(directory, ec), end;
+  if (ec) return 0;
+  std::size_t examined = 0;
+  for (; it != end && examined < 65536; it.increment(ec), ++examined) {
+    if (ec) break;
+    if (!it->is_regular_file(ec)) continue;
+    const std::uintmax_t size = it->file_size(ec);
+    if (!ec) total += static_cast<U64>(size);
+  }
+  return total;
+}
+
+void record_orphan(std::string path, U64 bytes, std::string reason,
+                   std::shared_ptr<detail::ClaimImpl> claim) noexcept {
+  try {
+    if (claim) {
+      // The disk space still exists: charge it as allocated spill capacity.
+      {
+        std::lock_guard<std::mutex> lock(claim->mutex);
+        claim->committed = true;
+      }
+      detail::ledger_commit(claim->arena->scope, claim->bytes);
+    }
+    {
+      std::lock_guard<std::mutex> lock(orphan_mutex());
+      orphan_table().push_back(
+          OrphanRecord{path, bytes, reason, std::move(claim)});
+    }
+    // Best effort sidecar next to the spool root; a failure here never changes
+    // a scientific code (the in-process record already exists).
+    if (!path.empty()) {
+      // The record lives next to the private spool roots (the scratch root of
+      // the command), where a later explicit cleanup looks for it.
+      const std::filesystem::path parent =
+          std::filesystem::path(path).parent_path();
+      if (!parent.empty()) {
+        std::ofstream stream(parent / "runtime-orphans.jsonl",
+                             std::ios::binary | std::ios::app);
+        if (stream) {
+          stream << "{\"path\":\"" << path << "\",\"bytes\":" << bytes
+                 << ",\"reason\":\"" << reason << "\"}\n";
+          stream.flush();
+        }
+      }
+    }
+  } catch (...) {
+    // A cleanup failure never overrides the scientific/cancel code.
+  }
+}
+
 void cleanup_writer(WriterState& writer) noexcept {
   // Abort/failure returns the staging and metadata reservations immediately;
   // they must not stay charged while a WriterRef is still alive.
@@ -473,7 +556,20 @@ void cleanup_writer(WriterState& writer) noexcept {
   if (!writer.directory.empty()) {
     std::error_code ec;
     std::filesystem::remove_all(writer.directory, ec);
+    if (ec) {
+      // Never report a private directory as reclaimed when it still exists.
+      // The spill claim (if any) moves into the orphan record so the ledger and
+      // the disk agree.
+      const U64 left = directory_bytes(writer.directory);
+      record_orphan(writer.directory,
+                    left == 0 ? writer.spill_reserved_bytes : left,
+                    ec.message(), std::move(writer.spill_claim));
+    }
   }
+  // Everything else (no directory, or a successful removal) returns the spool
+  // capacity with the writer.
+  writer.spill_claim.reset();
+  writer.spill_reserved_bytes = 0;
   writer.memory.reset();
   writer.blocks.clear();
   writer.block_ids.clear();
@@ -687,16 +783,33 @@ Result<Done> feed_piece(InvocationContext task, const std::shared_ptr<WriterStat
   writer.block_raw_bytes += piece.size();
   writer.block_elements += elements;
   if (writer.placement == Placement::memory) {
-    const U64 memory_offset = writer.open_block_begin * writer.itemsize +
-                              (writer.block_raw_bytes - piece.size());
-    if (memory_offset + piece.size() > writer.memory_bytes) {
-      fail_writer_locked(writer, Code::internal,
-                         "memory placement offset overflow");
-      return model::fail<Done>(Code::internal, "memory placement overflow",
+    // P1-2: open_block_begin * itemsize and the byte offset inside the block
+    // are checked products; an overflow must be a named failure before the
+    // memcpy, not a wrapped offset that writes elsewhere.
+    U64 block_offset = 0;
+    if (!multiply_checked(writer.open_block_begin, writer.itemsize,
+                          block_offset) ||
+        writer.block_raw_bytes < piece.size() ||
+        piece.size() > (~U64{0}) - block_offset) {
+      fail_writer_locked(writer, Code::resource_exhausted,
+                         "memory placement offset overflows 64 bits");
+      return model::fail<Done>(Code::resource_exhausted,
+                               "memory placement offset overflows 64 bits",
                                "runtime.storage.append");
     }
-    std::memcpy(writer.memory->bytes->data() + memory_offset, piece.data(),
-                piece.size());
+    const U64 memory_offset = block_offset + (writer.block_raw_bytes - piece.size());
+    if (memory_offset > writer.memory_bytes ||
+        piece.size() > writer.memory_bytes - memory_offset) {
+      fail_writer_locked(writer, Code::resource_exhausted,
+                         "memory placement offset exceeds the output capacity");
+      return model::fail<Done>(
+          Code::resource_exhausted,
+          "memory placement offset exceeds the output capacity",
+          "runtime.storage.append");
+    }
+    std::memcpy(writer.memory->bytes->data() +
+                    static_cast<std::size_t>(memory_offset),
+                piece.data(), piece.size());
   } else {
     std::vector<std::byte> compressed;
     std::string error;
@@ -1041,15 +1154,27 @@ Result<Done> prepare_read(InvocationContext task,
     auto cached =
         state->services->blocks->find(state->array->identity.object_id);
     if (cached) {
-      const U64 expected = total * itemsize;
+      // P1-2: total*itemsize, begin*itemsize and count*itemsize are checked
+      // products.  An overflow cannot be allowed to look like a short read.
+      U64 expected = 0;
+      U64 byte_begin = 0;
+      U64 byte_count = 0;
+      if (!multiply_checked(total, itemsize, expected) ||
+          !multiply_checked(state->range.begin, itemsize, byte_begin) ||
+          !multiply_checked(state->range.count, itemsize, byte_count) ||
+          byte_begin > expected || byte_count > expected - byte_begin) {
+        return model::fail<Done>(
+            Code::resource_exhausted,
+            "the requested byte range overflows 64 bits",
+            "runtime.storage.read");
+      }
       if (cached->size() < expected) {
         return model::fail<Done>(Code::corrupt_product,
                                  "registered array bytes are shorter than shape",
                                  "runtime.storage.read");
       }
-      const U64 byte_begin = state->range.begin * itemsize;
-      const U64 byte_count = state->range.count * itemsize;
-      std::memcpy(state->target.values.data(), cached->data() + byte_begin,
+      std::memcpy(state->target.values.data(),
+                  cached->data() + static_cast<std::size_t>(byte_begin),
                   static_cast<std::size_t>(byte_count));
       // A cache hit reads no bytes from the I/O lane; only the copy work is
       // charged (usage compute), not read_bytes.
@@ -1087,7 +1212,11 @@ Result<Done> prepare_read(InvocationContext task,
                                  "block descriptor range is out of bounds",
                                  "runtime.storage.read");
       }
-      if (block->raw_bytes != block->count * itemsize) {
+      // P1-2: count*itemsize is a checked product; a wrapped value must not be
+      // mistaken for a matching descriptor.
+      U64 block_bytes = 0;
+      if (!multiply_checked(block->count, itemsize, block_bytes) ||
+          block->raw_bytes != block_bytes) {
         return model::fail<Done>(
             Code::invalid_model,
             "block byte count does not match its elements",
@@ -1100,6 +1229,8 @@ Result<Done> prepare_read(InvocationContext task,
                 return a.begin < b.begin;
               });
     const U64 required_begin = state->range.begin;
+    // range.begin + range.count was already validated against `total` above, so
+    // the sum cannot overflow here.
     const U64 required_end = state->range.begin + state->range.count;
     U64 cursor = required_begin;
     for (const BlockDescriptor& block : known) {
@@ -1376,8 +1507,18 @@ Task<WriterRef> begin_async(InvocationContext ctx, ArenaRef arena,
         } else {
           writer->canonical_elements = 1024;
         }
+        // P1-2: total * itemsize is checked before any allocation or file is
+        // created (OBJECTS: "shape乘积、count×itemsize、begin+count、stride/
+        // offset…都先checked …任一不适配返回invalid_request/resource_exhausted
+        // 且不开始分配/写入").
+        U64 total_bytes = 0;
+        if (itemsize != 0 && !multiply_checked(total, itemsize, total_bytes)) {
+          return model::fail<WriterRef>(
+              Code::resource_exhausted,
+              "the declared shape times element size overflows 64 bits",
+              "runtime.storage.begin");
+        }
         if (writer->placement == Placement::memory) {
-          const U64 total_bytes = total * itemsize;
           if (total_bytes > 0) {
             auto charged = charge_vector(task, arena, total_bytes);
             if (charged.code != Code::ok || !charged.value) {
@@ -1389,10 +1530,29 @@ Task<WriterRef> begin_async(InvocationContext ctx, ArenaRef arena,
             writer->memory_bytes = total_bytes;
           }
         } else {
+          // P1-3: a spill writer holds its live spool on the spill domain.  A
+          // budget without spill capacity refuses the builder here instead of
+          // silently writing an unaccounted private file, and the claim keeps
+          // the space charged for as long as the files exist.
+          if (total_bytes > 0) {
+            ResourceVector spill_need;
+            spill_need.spill_bytes = total_bytes;
+            auto spill_claim = detail::claim_capacity(arena, spill_need);
+            if (spill_claim.code != Code::ok || !spill_claim.value) {
+              return model::fail<WriterRef>(
+                  spill_claim.code == Code::ok ? Code::resource_exhausted
+                                               : spill_claim.code,
+                  "the spill quota cannot cover the builder output",
+                  "runtime.storage.begin");
+            }
+            writer->spill_claim = *spill_claim.value;
+            writer->spill_reserved_bytes = total_bytes;
+          }
           writer->directory = scratch_directory(ctx, sequence);
           std::error_code ec;
           std::filesystem::create_directories(writer->directory, ec);
           if (ec) {
+            cleanup_writer(*writer);
             return model::fail<WriterRef>(
                 Code::io_error,
                 "cannot create the private spool directory",
@@ -1467,12 +1627,18 @@ Task<U64> append_async(InvocationContext ctx, WriterRef writer, Block<T> block) 
       return then(
           ctx, append_async<T>(ctx, writer, first),
           [ctx, writer, rest](U64 written_first) -> Task<U64> {
+            (void)written_first;  // the next chunk's answer is already cumulative
             return then(
                 ctx, append_async<T>(ctx, writer, rest),
-                [ctx, written_first](U64 written_rest) -> Task<U64> {
+                [ctx](U64 written_rest) -> Task<U64> {
+                  // P1-1: append_async already answers the CUMULATIVE element
+                  // count of the writer (OBJECTS: "成功返回累计元素数"), so the
+                  // chunks must not be added: that double counted every chunk
+                  // (524288 elements were reported as 17039360).  The last
+                  // chunk's answer is the cumulative total of the append.
                   Result<U64> total;
                   total.code = Code::ok;
-                  total.value = written_first + written_rest;
+                  total.value = written_rest;
                   return ready<U64>(ctx, std::move(total));
                 });
           });
@@ -1683,6 +1849,7 @@ Task<ArrayRef> seal_async(InvocationContext ctx, WriterRef writer) {
           bool aborted = false;
           Code failure_code = Code::ok;
           ArrayRef sealed_array;
+          std::shared_ptr<detail::ClaimImpl> spill_claim_to_hand_over;
           {
             std::lock_guard<std::mutex> lock(state->mutex);
             state->seal_in_flight = false;
@@ -1711,6 +1878,22 @@ Task<ArrayRef> seal_async(InvocationContext ctx, WriterRef writer) {
                       identity.object_id, alias, state->dtype,
                       state->layout.shape, std::move(lease));
                 }
+              } else if (state->spill_claim) {
+                // P1-3: the sealed spool files are the array's durable backing.
+                // The claim is committed (the bytes really exist on disk) and
+                // handed to the Array lease below, so the live spool stays
+                // accounted for exactly as long as the immutable Array can be
+                // read; an unconditional reset here would report the space as
+                // freed while the block descriptors still read it.
+                const std::shared_ptr<detail::ClaimImpl> claim =
+                    std::move(state->spill_claim);
+                {
+                  std::lock_guard<std::mutex> lock(claim->mutex);
+                  claim->committed = true;
+                }
+                detail::ledger_commit(claim->arena->scope, claim->bytes);
+                spill_claim_to_hand_over = claim;
+                state->spill_reserved_bytes = 0;
               }
               ctx.services->blocks->register_blocks(identity.object_id,
                                                     state->blocks);
@@ -1734,6 +1917,10 @@ Task<ArrayRef> seal_async(InvocationContext ctx, WriterRef writer) {
               struct ArrayReaper {
                 std::weak_ptr<Services> services;
                 Id id;
+                // The sealed spool claim lives exactly as long as this Array
+                // handle: the disk space is charged until the last reader can
+                // reach the block descriptors (P1-3).
+                std::shared_ptr<detail::ClaimImpl> spill_claim;
                 void operator()(const Array* value) const {
                   delete value;
                   if (auto owner = services.lock())
@@ -1742,7 +1929,8 @@ Task<ArrayRef> seal_async(InvocationContext ctx, WriterRef writer) {
               };
               sealed_array = ArrayRef(
                   new Array(std::move(array)),
-                  ArrayReaper{ctx.services, identity.object_id});
+                  ArrayReaper{ctx.services, identity.object_id,
+                              std::move(spill_claim_to_hand_over)});
             }
           }
           if (cleanup) {
@@ -1888,6 +2076,15 @@ void BlockStore::register_array(
     DType dtype, std::vector<U64> shape, Lease lease, bool persistent) {
   if (!bytes) return;
   std::lock_guard<std::mutex> lock(mutex_);
+  auto it = entries_.find(id);
+  if (it != entries_.end() && it->second.bytes) {
+    // P1-15: an object id names one immutable payload.  A second registration
+    // of the same id must never replace the bytes that existing readers already
+    // hold a lease on (that would silently mix two scientific contents under
+    // one identity).  Keep the first payload and only extend its lifetime.
+    it->second.persistent = it->second.persistent || persistent;
+    return;
+  }
   auto& entry = entries_[id];
   entry.bytes = std::move(bytes);
   entry.dtype = dtype;
@@ -1914,6 +2111,27 @@ bool BlockStore::release_ref(const Id& id) {
     it->second.refs -= 1;
     return false;
   }
+  // P1-15: the block index is part of the entry, so it is released with it.
+  // Leaving the descriptors behind made a long lived command grow without
+  // bound and let a stale descriptor answer a later find_block().  A descriptor
+  // that another live array still lists stays indexed: canonical blocks are
+  // shared by identity, and erasing it here would break that reader.
+  const Id released = it->first;
+  const auto still_referenced = [this, &released](const Id& block_id) {
+    for (const auto& item : entries_) {
+      if (item.first == released) continue;
+      for (const BlockDescriptor& other : item.second.blocks)
+        if (other.id == block_id) return true;
+    }
+    return false;
+  };
+  for (const BlockDescriptor& block : it->second.blocks) {
+    if (still_referenced(block.id)) continue;
+    auto indexed = block_index_.find(block.id);
+    if (indexed != block_index_.end() &&
+        indexed->second.raw_sha256 == block.raw_sha256)
+      block_index_.erase(indexed);
+  }
   entries_.erase(it);
   return true;
 }
@@ -1922,6 +2140,23 @@ void BlockStore::register_blocks(const Id& array_id,
                                  const std::vector<BlockDescriptor>& blocks) {
   std::lock_guard<std::mutex> lock(mutex_);
   auto& entry = entries_[array_id];
+  // Replace the previous descriptor set of this array instead of appending to
+  // the process wide index forever (P1-15).
+  const auto still_referenced = [this, &array_id](const Id& block_id) {
+    for (const auto& item : entries_) {
+      if (item.first == array_id) continue;
+      for (const BlockDescriptor& other : item.second.blocks)
+        if (other.id == block_id) return true;
+    }
+    return false;
+  };
+  for (const BlockDescriptor& block : entry.blocks) {
+    if (still_referenced(block.id)) continue;
+    auto indexed = block_index_.find(block.id);
+    if (indexed != block_index_.end() &&
+        indexed->second.raw_sha256 == block.raw_sha256)
+      block_index_.erase(indexed);
+  }
   entry.blocks = blocks;
   for (const BlockDescriptor& block : blocks) block_index_[block.id] = block;
 }

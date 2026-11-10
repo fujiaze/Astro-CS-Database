@@ -31,8 +31,8 @@ Var_pix = (sky + dark + Σ_s F_s H_s)/gain² + (read/gain)²
 对 X01 的 B 组最暗源（`x01-06`, source 1003，weight 0.70），代入冻结真值的 sky/dark/gain/read、PSF σ=1.35、测量位置与 7 源联合设计：
 
 ```
-σ(M_i) ≈ 0.0585  (5.85%)
-观测 M_i − 1 = 10.33%  →  z = 1.77
+σ(M_i) ≈ 0.0585  (5.85%)   [OLS sandwich]
+观测 M_i − 1 = 10.33%  →  z ≈ 1.77–1.90（取决于位置/PSF 的参数化）
 ```
 
 即：**5% 阈值低于该估计量自身的 1σ**。在 8 帧 × 6 个非峰源 = 48 个相关残差上取最大值，即使估计量完全无偏，最大 |z| 的典型值也约 2.5–2.7，对应约 15% 的最大相对误差。因此“单次实现最大相对误差 ≤5%”在 B 组的 SNR 下不可达；它不是对算法的合理否证。
@@ -89,3 +89,15 @@ python3 validation/x01/compare_x01.py validation/x01/observed/normalize_trace.js
 ## 6. 遗留的 X01 夹具问题
 
 `audit-normalize.md` 发现 X01 的 `calibration.json` 写 `dark=4.8 ADU`，而 truth 注入 `12 e⁻/s × 100 s / gain = 480 ADU`；差值被联合拟合的 β 吸收，所以该案**从未真正检验 dark 单位/曝光比**。这是夹具缺陷，不是生产实现通过。修复需要同时改 truth 与 calibration 并重跑，且会改变旧证据；在修复前不得宣称“dark 路径已由 X01 覆盖”。
+
+## 7. 资源预算的夹具更正（不是科学容差）
+
+X01 的 `normalize.config.json` 原先写 `work=10,000,000`。该值在过去从未被工作流执行（workflow 硬编码 4e9），所以旧“三命令通过”并不表示它足够。C1 审查把用户 `Limits` 接入 Runtime 后，第一帧就消耗了几乎全部 10M，第二帧的 1e6 plan 无法准入，报 `TaskSpec.work_upper exceeds the declared max_work budget`。
+
+实际测量（本分支，默认 block=1，同一二进制）：
+
+- 单帧 A 组 normalize 在 10M 下成功；
+- 两帧 A 组在 20M 下成功、耗时约 8 分 9 秒；
+- 因此当前逐像素几何约 **10M work/帧**，8 帧需要约 80M。
+
+据此把 `normalize.config.json` 的 `work` 改为 **100,000,000**（10× 单帧的保守上界）。这是**资源输入**的更正，不是科学容差/真值的放宽：它不改变估计量、PSF、背景、WCS 或任何数值判据；它只让当前算法在声明的预算内完成。逐像素几何 ~10M work/帧本身是 C2/W6 的性能问题（runtime 审查测得每次 invoke 约 6.12 ms 固定 setup），应由 cohort 化降低，而不是靠预算掩盖。`mosaic.config.json`/`export.config.json` 暂保持 10M；若实跑超预算，必须同样测量并记录，不能静默提高。

@@ -51,8 +51,12 @@ Result<Ref<GeometryRevision>> refine_geometry(Context& context, const RefinableG
   std::vector<Replacement> replacements;
   GeometryStatus status;
   status.termination = Termination::tolerance_met;
-  status.bound_validity = Validity::certified;
-  status.support = SupportState::positive;
+  // Certified only after at least one block was actually recomputed: a default
+  // constructed status must not claim a certified geometry (P0-4).
+  status.bound_validity = Validity::invalid;
+  status.support = SupportState::absent;
+  bool any_refined = false;
+  bool any_failed = false;
 
   for (std::size_t index = 0; index < base->overlaps.size(); ++index) {
     const Ref<Overlaps>& old_overlaps = base->overlaps[index];
@@ -76,7 +80,18 @@ Result<Ref<GeometryRevision>> refine_geometry(Context& context, const RefinableG
       return fail<Ref<GeometryRevision>>(source_rows.code, "recipe_source_rows_unavailable",
                                          "refine_geometry");
     }
-    if (val(source_rows).empty()) continue;
+    if (val(source_rows).empty()) {
+      // The recipe names no source row: the block cannot be rebuilt.  The
+      // previous overlap is kept and the position in next->overlaps stays
+      // aligned with base->source_inputs, so the Drizzle operator of this index
+      // is rebuilt from the same observation instead of a shifted one.
+      next->overlaps.push_back(old_overlaps);
+      status.termination = Termination::unsupported;
+      status.bound_validity = Validity::invalid;
+      status.support = SupportState::bounded_undecided;
+      any_failed = true;
+      continue;
+    }
     const U64 row = val(source_rows).front();
     Result<Ref<DetectorFootprint>> detector =
         detector_footprint(context, recipe.footprints, row);
@@ -91,16 +106,28 @@ Result<Ref<GeometryRevision>> refine_geometry(Context& context, const RefinableG
       // A refinement that cannot be computed keeps the previous bounds and
       // reports the failure; the old snapshot stays readable.
       status.termination = Termination::unsupported;
+      status.bound_validity = Validity::invalid;
       status.support = SupportState::bounded_undecided;
+      any_failed = true;
       next->overlaps.push_back(old_overlaps);
       continue;
     }
     const Ref<Overlaps>& new_overlaps = val(refreshed);
     next->overlaps.push_back(new_overlaps);
+    any_refined = true;
+    if (status.bound_validity == Validity::invalid && !any_failed) {
+      status.bound_validity = Validity::certified;
+    }
+    if (!new_overlaps->contributions.empty()) status.support = SupportState::positive;
     affected_sources.push_back(footprint->source);
     for (const OverlapContribution& contribution : new_overlaps->contributions) {
       affected_leaves.push_back(contribution.leaf);
       affected_constraints.push_back(contribution.shared_geometry_constraints);
+    }
+    // The affected domains of the refinement: the unresolved detector boxes of
+    // the new overlap, which are the regions a further refinement would split.
+    for (const UnresolvedDomain& domain : new_overlaps->coarse_candidates) {
+      if (domain.detector) affected_domains.push_back(*domain.detector);
     }
     if (new_overlaps->primitives) {
       affected_constraints.push_back(new_overlaps->primitives->identity.object_id);
@@ -134,8 +161,37 @@ Result<Ref<GeometryRevision>> refine_geometry(Context& context, const RefinableG
     }
   }
 
-  next->identity = model::make_identity("acsd.GeometrySnapshot", 2, 0,
-                                        model::sha256_hex("acsd.geometry.snapshot"), "acsd");
+  if (!any_refined) {
+    status.bound_validity = Validity::invalid;
+    status.support = SupportState::absent;
+  }
+  if (any_failed) status.bound_validity = Validity::invalid;
+  {
+    // The identity of the snapshot is the identity of its content: the overlap
+    // objects, the drizzle operators and the dependency lists (P0-3).
+    geometry::ContentDigest digest;
+    digest.add("schema", "acsd.GeometrySnapshot");
+    digest.add_u64("overlaps", static_cast<U64>(next->overlaps.size()));
+    for (const Ref<Overlaps>& overlap : next->overlaps) {
+      digest.add("overlap", overlap ? overlap->identity.object_id : "");
+    }
+    digest.add_u64("operators", static_cast<U64>(next->operators.size()));
+    for (const Ref<DrizzleOperator>& op : next->operators) {
+      digest.add("operator", op ? op->identity.object_id : "");
+    }
+    digest.add_u64("recipes", static_cast<U64>(next->recipes.size()));
+    for (const Ref<GeometryRecipe>& recipe : next->recipes) {
+      digest.add("recipe", recipe ? recipe->identity.object_id : "");
+    }
+    digest.add_u64("dependents", static_cast<U64>(next->dependents.size()));
+    for (const Id& dependent : next->dependents) digest.add("dependent", dependent);
+    digest.add_u64("source_inputs", static_cast<U64>(next->source_inputs.size()));
+    for (const Ref<NativeObservation>& input : next->source_inputs) {
+      digest.add("source_input", input ? input->identity.object_id : "");
+    }
+    digest.add_u64("functionals", static_cast<U64>(next->functionals.size()));
+    next->identity = model::make_identity("acsd.GeometrySnapshot", 2, 0, digest.hex(), "acsd");
+  }
   next->assessment = model::make_assessment(Code::ok);
   next->assessment.complete = status.termination == Termination::tolerance_met;
   next->assessment.science = status.termination == Termination::tolerance_met
@@ -152,8 +208,26 @@ Result<Ref<GeometryRevision>> refine_geometry(Context& context, const RefinableG
   revision->replacements = replacements;
   revision->consumed = context.resources.usage();
   revision->status = status;
-  revision->identity = model::make_identity("acsd.GeometryRevision", 2, 0,
-                                            model::sha256_hex("acsd.geometry.revision"), "acsd");
+  {
+    geometry::ContentDigest digest;
+    digest.add("schema", "acsd.GeometryRevision");
+    digest.add("base", base->identity.object_id);
+    digest.add("next", next->identity.object_id);
+    digest.add_u64("replacements", static_cast<U64>(replacements.size()));
+    for (const Replacement& replacement : replacements) {
+      digest.add("old", replacement.old_hash);
+      digest.add("new", replacement.new_hash);
+    }
+    digest.add_u64("affected_sources", static_cast<U64>(affected_sources.size()));
+    digest.add_u64("affected_leaves", static_cast<U64>(affected_leaves.size()));
+    for (const HealpixLeaf& leaf : affected_leaves) digest.add_leaf("affected_leaf", leaf);
+    digest.add_u64("affected_domains", static_cast<U64>(affected_domains.size()));
+    digest.add_u64("affected_constraints", static_cast<U64>(affected_constraints.size()));
+    digest.add_u64("termination", static_cast<U64>(status.termination));
+    digest.add_u64("bound_validity", static_cast<U64>(status.bound_validity));
+    digest.add_u64("support", static_cast<U64>(status.support));
+    revision->identity = model::make_identity("acsd.GeometryRevision", 2, 0, digest.hex(), "acsd");
+  }
   revision->assessment = model::make_assessment(Code::ok);
   revision->assessment.complete = status.termination == Termination::tolerance_met;
   revision->assessment.science = status.termination == Termination::tolerance_met

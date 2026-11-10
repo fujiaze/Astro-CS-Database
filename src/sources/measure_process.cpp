@@ -196,10 +196,17 @@ Result<rt::InvocationPlan> plan_measure(rt::InvocationContext, Ref<MeasureScienc
   const U64 native = input->observation->native_index->size;
   const U64 samples = window_samples(input->request);
   const U64 design = saturating_mul(16, saturating_mul(stars, samples));
+  // The measurement may transfer the native background through a regrouping
+  // action: that needs one input array, one output array and their encoded
+  // buffers.  The plan must account for them, otherwise a legal invocation is
+  // refused by the storage broker as resource_exhausted.
+  const U64 transfer_temporary = saturating_mul(4, saturating_mul(8, native));
   const U64 progress = saturating_add(
       saturating_add(saturating_mul(26, native), design),
-      saturating_add(kWorkspaceUpper, saturating_add(kCohortControlBytes, kStageControlBytes)));
-  const U64 persistent = saturating_add(saturating_mul(96, stars), 256ull << 10);
+      saturating_add(saturating_add(kWorkspaceUpper, transfer_temporary),
+                     saturating_add(kCohortControlBytes, kStageControlBytes)));
+  const U64 persistent = saturating_add(
+      saturating_add(saturating_mul(96, stars), 256ull << 10), transfer_temporary);
   const U64 work = measure_work(*input);
   if (progress == std::numeric_limits<U64>::max() ||
       persistent == std::numeric_limits<U64>::max())

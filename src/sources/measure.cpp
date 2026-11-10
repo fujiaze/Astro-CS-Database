@@ -350,6 +350,123 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
   // ---------------------------------------------------------------------
   // The linear solve for the fluxes and the background.
   // ---------------------------------------------------------------------
+  // The background column Z.  Z = 1 holds only for a unit area photosite with
+  // a uniform response and an untransformed sample chain (sources.measure
+  // "only a unit area, uniform response and untransformed sample give Z=1;
+  // after a bin/gain it no longer holds").  The column is built from the same
+  // known response chain as the source templates instead of being hard-wired:
+  // z_j is the integrated relative response of the native sample j, and a
+  // transfer maps it to the measured output samples exactly like the source
+  // template.
+  // ---------------------------------------------------------------------
+  std::vector<double> background_native;
+  {
+    const FootprintSet* response_samples =
+        identity_transfer ? &footprints : (detector_samples ? detector_samples.get() : nullptr);
+    const U64 response_count =
+        identity_transfer ? sample_count
+                          : (detector_samples && detector_samples->index
+                                 ? detector_samples->index->size
+                                 : 0);
+    if (response_samples == nullptr || response_count == 0) {
+      return model::fail<Ref<SourceMeasurements>>(
+          Code::invalid_model, "the background column has no response samples", kOrigin,
+          "the measurement cannot be built");
+    }
+    background_native.assign(response_count, 1.0);
+    std::vector<double> gains;
+    if (response_samples->sample_response_gain) {
+      Result<std::vector<double>> read =
+          read_f64_array(context, response_samples->sample_response_gain);
+      if (!ok(read) || val(read).size() != response_count) {
+        return model::fail<Ref<SourceMeasurements>>(
+            Code::invalid_model, "the sample response gain does not cover the native samples",
+            kOrigin, "the measurement cannot be built");
+      }
+      gains = val(read);
+    }
+    // The area weighted mean of the in-pixel PRF over the photosite: one for a
+    // relative_mean_one response over a full partition, otherwise the
+    // response actually collected by that photosite.
+    std::vector<double> prf_mean(response_count, 1.0);
+    bool have_prf = false;
+    if (response_samples->pixel_response && !response_samples->pixel_response->cells.empty()) {
+      const PixelResponse& response = *response_samples->pixel_response;
+      Result<std::vector<double>> read = read_f64_array(context, response.gains);
+      if (!ok(read) || val(read).size() % response.cells.size() != 0) {
+        return model::fail<Ref<SourceMeasurements>>(
+            Code::invalid_model, "the pixel response gains do not cover its cells", kOrigin,
+            "the measurement cannot be built");
+      }
+      const std::size_t bins = val(read).size() / response.cells.size();
+      if (bins != 1) {
+        return model::fail<Ref<SourceMeasurements>>(
+            Code::unsupported,
+            "the pixel response carries more than one wavelength bin while the PSF is achromatic",
+            kOrigin, "the background response is not known");
+      }
+      double area = 0.0;
+      double weighted = 0.0;
+      bool valid = true;
+      for (std::size_t c = 0; c < response.cells.size(); ++c) {
+        const double dx = response.cells[c].upper[0] - response.cells[c].lower[0];
+        const double dy = response.cells[c].upper[1] - response.cells[c].lower[1];
+        if (!(dx > 0.0) || !(dy > 0.0)) {
+          valid = false;
+          break;
+        }
+        area += dx * dy;
+        weighted += val(read)[c] * dx * dy;
+      }
+      if (!valid || !(area > 0.0)) {
+        return model::fail<Ref<SourceMeasurements>>(
+            Code::invalid_model, "the pixel response cells are degenerate", kOrigin,
+            "the background response is not known");
+      }
+      const double mean = weighted / area;
+      for (U64 j = 0; j < response_count; ++j) prf_mean[j] = mean;
+      have_prf = true;
+    }
+    for (U64 j = 0; j < response_count; ++j) {
+      background_native[j] = prf_mean[j] * (j < gains.size() ? gains[j] : 1.0);
+    }
+    (void)have_prf;
+  }
+  std::vector<double> background_column;
+  if (identity_transfer) {
+    background_column = background_native;
+  } else {
+    if (!transfer || !transfer->spaces.domain || !transfer->spaces.codomain) {
+      return model::fail<Ref<SourceMeasurements>>(Code::invalid_model,
+                                                  "the transfer has no declared spaces", kOrigin,
+                                                  "the measurement cannot be built");
+    }
+    if (transfer->spaces.domain->size != background_native.size()) {
+      return model::fail<Ref<SourceMeasurements>>(
+          Code::invalid_model, "the transfer domain does not match the native response samples",
+          kOrigin, "the measurement cannot be built");
+    }
+    const std::vector<U64> shape{static_cast<U64>(background_native.size())};
+    Result<ArrayRef> input = write_f64_array(context, background_native, shape,
+                                              model::unit_dimensionless(), "measurement");
+    if (!ok(input)) {
+      return model::fail<Ref<SourceMeasurements>>(input.code, "the response cannot be stored",
+                                                  kOrigin, "the measurement cannot be built");
+    }
+    Result<ArrayRef> mapped = apply(context, transfer, val(input));
+    if (!ok(mapped)) {
+      return model::fail<Ref<SourceMeasurements>>(mapped.code, "the transfer cannot be applied",
+                                                  kOrigin, "the measurement cannot be built");
+    }
+    Result<std::vector<double>> column = read_f64_array(context, val(mapped));
+    if (!ok(column) || val(column).size() != output_count) {
+      return model::fail<Ref<SourceMeasurements>>(Code::invalid_model,
+                                                  "the transferred response has the wrong size",
+                                                  kOrigin, "the measurement cannot be built");
+    }
+    background_column = val(column);
+  }
+  bool background_is_one = true;
   const std::size_t parameters = sources + 1;
   Matrix design(rows, parameters);
   std::vector<double> measurement(rows, 0.0);
@@ -360,7 +477,9 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
     for (std::size_t s = 0; s < sources; ++s) {
       design(k, s) = val(template_values)[k * sources + s];
     }
-    design(k, sources) = 1.0;
+    const double z = row < background_column.size() ? background_column[row] : 1.0;
+    design(k, sources) = z;
+    if (z != 1.0) background_is_one = false;
     measurement[k] = row < val(data).size() ? val(data)[static_cast<std::size_t>(row)] : 0.0;
     measurement_lower[k] =
         row < data_lower.size() ? data_lower[static_cast<std::size_t>(row)] : measurement[k];
@@ -403,26 +522,49 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
   // ---------------------------------------------------------------------
   // The numerical bounds of the flux.  The interval of the native input and
   // the interval of the template enter the same design matrix.
+  //
+  // The solve is the column scaled one: theta = S^-1 y with
+  // y = (D S^-1)^+ d, so the perturbation of the solution is
+  //   d theta = S^-1 (D S^-1)^+ (d d - dD theta) = D^+ (d d - dD theta),
+  // where D^+ = S^-1 (D S^-1)^+ is the pseudo inverse of the design itself.
+  // The column scaling therefore MUST be part of the radius: a radius built
+  // from 1/sigma_min(D S^-1) alone is short by the factor ||S^-1|| and is not
+  // an enclosure (the audit counterexample C2 puts the truth outside it).
+  //
+  // Every flux component uses the 2-norm of its own row of D^+ instead of one
+  // isotropic radius; that is rigorous and already carries S^-1 because the
+  // row of D^+ is the row of S^-1 (D S^-1)^+.  The design perturbation is
+  // bounded in the Frobenius norm and the non-linearity of the inverse is
+  // paid by 1/(1 - ||D^+|| ||dD||): when that factor does not exist (the
+  // perturbation reaches the reciprocal condition number) the linearisation
+  // proves nothing and the enclosure is not certified.
   // ---------------------------------------------------------------------
   std::vector<double> flux_lower;
   std::vector<double> flux_upper;
   bool flux_certified = false;
   double flux_radius = 0.0;
+  double flux_amplification = 0.0;
+  double data_norm = 0.0;
+  double design_norm = 0.0;
   double residual_enclosure = 0.0;
   if (rank_certified) {
+    // The interval half width is not enough: the nominal sample has to lie
+    // inside its own interval, so the deviation is measured from the nominal
+    // value to the farther endpoint.
     std::vector<double> data_error(rows, 0.0);
-    double data_norm = 0.0;
     for (std::size_t k = 0; k < rows; ++k) {
-      data_error[k] = 0.5 * std::fabs(measurement_upper[k] - measurement_lower[k]);
+      data_error[k] =
+          std::max(std::fabs(measurement_upper[k] - measurement[k]),
+                   std::fabs(measurement[k] - measurement_lower[k]));
       data_norm += data_error[k] * data_error[k];
     }
     data_norm = std::sqrt(data_norm);
-    double design_norm = 0.0;
     for (std::size_t k = 0; k < rows; ++k) {
       for (std::size_t c = 0; c < sources; ++c) {
         const double lower = val(template_lower)[k * sources + c];
         const double upper = val(template_upper)[k * sources + c];
-        const double error = 0.5 * std::fabs(upper - lower);
+        const double nominal = design(k, c);
+        const double error = std::max(std::fabs(upper - nominal), std::fabs(nominal - lower));
         design_norm += error * error;
       }
     }
@@ -430,20 +572,34 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
     double solution_norm = 0.0;
     for (double value : solution) solution_norm += value * value;
     solution_norm = std::sqrt(solution_norm);
-    double inverse_norm = 0.0;
-    for (double sigma : svd.singular_values) {
-      if (!(sigma > 0.0)) continue;
-      inverse_norm = std::max(inverse_norm, 1.0 / sigma);
-    }
-    // The perturbation of the solution: d theta = A^-1 (d data - d A theta).
-    flux_radius = inverse_norm * (data_norm + design_norm * solution_norm);
-    flux_lower.assign(sources, 0.0);
-    flux_upper.assign(sources, 0.0);
+    // The norm of every row of D^+ = S^-1 (D S^-1)^+; the flux columns are
+    // the first `sources` columns.
+    std::vector<double> row_norm(sources, 0.0);
     for (std::size_t s = 0; s < sources; ++s) {
-      flux_lower[s] = solution[s] - flux_radius;
-      flux_upper[s] = solution[s] + flux_radius;
+      double sum = 0.0;
+      for (std::size_t k = 0; k < rows; ++k) {
+        const double value = inverse[k][s];
+        sum += value * value;
+      }
+      row_norm[s] = std::sqrt(sum);
     }
-    // The residual enclosure of the validation solve.
+    double largest_row_norm = 0.0;
+    for (double value : row_norm) largest_row_norm = std::max(largest_row_norm, value);
+    // The residual of the nominal solve.  It is the floating point residual of
+    // the linear solve, not the interval of the data: the data and template
+    // intervals are already in data_norm and design_norm and must not be
+    // counted twice.
+    double residual_norm = 0.0;
+    for (std::size_t k = 0; k < rows; ++k) {
+      double model = 0.0;
+      for (std::size_t c = 0; c < parameters; ++c) model += design(k, c) * solution[c];
+      const double residual = measurement[k] - model;
+      residual_norm += residual * residual;
+    }
+    residual_norm = std::sqrt(residual_norm);
+    // The enclosure residual of the validation solve, reported with the
+    // result: the elementwise residual of the nominal model against the data
+    // interval and the template interval.
     for (std::size_t k = 0; k < rows; ++k) {
       double model = 0.0;
       for (std::size_t c = 0; c < parameters; ++c) model += design(k, c) * solution[c];
@@ -456,7 +612,24 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
       error += data_error[k];
       residual_enclosure = std::max(residual_enclosure, error);
     }
-    flux_certified = true;
+    const double contraction = largest_row_norm * design_norm;
+    if (largest_row_norm > 0.0 && std::isfinite(contraction) && contraction < 1.0) {
+      flux_amplification = 1.0 / (1.0 - contraction);
+      const double common = data_norm + design_norm * solution_norm + residual_norm;
+      flux_lower.assign(sources, 0.0);
+      flux_upper.assign(sources, 0.0);
+      for (std::size_t s = 0; s < sources; ++s) {
+        double radius = flux_amplification * row_norm[s] * common;
+        // The outward rounding of the interval arithmetic: a few ulp of the
+        // end points, never a change of the declared tolerance.
+        radius += 4.0 * std::numeric_limits<double>::epsilon() *
+                  (std::fabs(solution[s]) + radius);
+        flux_lower[s] = solution[s] - radius;
+        flux_upper[s] = solution[s] + radius;
+        if (s == 0) flux_radius = radius;
+      }
+      flux_certified = true;
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -622,6 +795,43 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
   result->assessment.science = flux_certified ? ScienceState::bounded : ScienceState::conditional;
   model::set_included(result->assessment, "psf_template_pixel_integral");
   model::set_omitted(result->assessment, "the_window_is_not_renormalised_to_the_total_flux");
+  // P1-8: the condition under which the background column is one, or the fact
+  // that it was built from the same response chain as the templates.
+  if (background_is_one) {
+    model::set_included(result->assessment,
+                        "background_column_Z_equals_one: unit area samples, uniform relative "
+                        "response and an identity transfer");
+  } else {
+    model::set_included(result->assessment,
+                        "background_column_Z_is_built_from_the_same_PRF/sample_gain_and_transfer_"
+                        "chain_as_the_templates; Z_is_not_one");
+  }
+  // P1-7: the model identity of the measured position.  fit_psf fits continuous
+  // source positions while this entry evaluates the template at the catalogue
+  // position inverted through the WCS; that difference is recorded instead of
+  // being silent (a position offset enters the flux only at second order for a
+  // symmetric PSF, but it is a model difference and not a numerical error).
+  model::set_omitted(result->assessment,
+                     "the_template_is_evaluated_at_the_wcs_position_while_fit_psf_fits_a_free_"
+                     "continuous_position");
+  error->unknown_model_terms.push_back(
+      "the_source_position_used_here_is_the_catalogue_position_inverted_through_the_wcs_and_not_"
+      "the_free_position_estimated_by_fit_psf");
+  model::set_omitted(result->assessment,
+                     "the_flux_interval_is_a_numerical_enclosure_of_the_linear_solve_and_not_a_"
+                     "statistical_or_model_error");
+  if (flux_certified) {
+    // The composition of the enclosure is kept with the result: the radius of
+    // every component is
+    //   1/(1-||D^+|| ||dD||) * ||D^+_s|| * (||dd|| + ||dD|| ||theta|| + ||r||).
+    model::set_included(
+        result->assessment,
+        "the_flux_radius_includes_the_column_scaling_because_every_component_uses_the_row_norm_of_"
+        "the_pseudo_inverse_D^+_=_S^-1_(D_S^-1)^+; amplification=" +
+            std::to_string(flux_amplification) + " data_norm=" + std::to_string(data_norm) +
+            " design_norm=" + std::to_string(design_norm) +
+            " residual_enclosure=" + std::to_string(residual_enclosure));
+  }
   if (!flux_certified) {
     model::add_issue(result->assessment, Code::not_identifiable,
                      "the flux bounds could not be certified; the nominal flux is kept", kOrigin,

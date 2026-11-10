@@ -109,129 +109,13 @@ SkyICRS forward_point(const WcsModel& wcs, double u, double v) {
   return coordinates::direction_from_tangent(wcs, q);
 }
 
-bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& model,
-                       bool& outcome_reason_apex) {
-  ++geometry::kernel_counts().chart_models;
-  model.cu = 0.5 * (block.u0 + block.u1);
-  model.cv = 0.5 * (block.v0 + block.v1);
-  const double hu = 0.5 * (block.u1 - block.u0);
-  const double hv = 0.5 * (block.v1 - block.v0);
-
-  const SkyICRS centre = forward_point(wcs, model.cu, model.cv);
-  coordinates::ChartPoint chart;
-  if (!coordinates::chart_inverse(centre, chart)) return false;
-  model.face = chart.face;
-  model.s0 = chart.s;
-  model.t0 = chart.t;
-
+// The solid angle density model g(u,v) of one detector sub rectangle.  It does
+// not use the equal area chart, so it stays available for a block that crosses
+// a chart branch (the native area of a large footprint in footprint_area).
+bool build_density_model(const WcsModel& wcs, const Block& block, BlockModel& model, double hu,
+                         double hv) {
   const Iv u(block.u0, block.u1);
   const Iv v(block.v0, block.v1);
-  Iv nx;
-  Iv ny;
-  Iv nz;
-  coordinates::forward_interval_iv(wcs, u, v, nx, ny, nz);
-  if (!nx.is_finite() || !ny.is_finite() || !nz.is_finite()) return false;
-
-  // The angular radius of the block on the sky, from the enclosure of J_W.
-  Iv jw[3][2];
-  coordinates::jacobian_interval_iv(wcs, u, v, jw);
-  double dn_max = 0.0;
-  for (int col = 0; col < 2; ++col) {
-    double magnitude = 0.0;
-    for (int row = 0; row < 3; ++row) magnitude += abs_max(jw[row][col]);
-    dn_max = std::max(dn_max, magnitude * (col == 0 ? hu : hv));
-  }
-  const double angle_bound = dn_max * (1.0 + 1.0e-9) + 1.0e-12;
-
-  // The chart coordinates of a face are defined with respect to the longitude
-  // of that face, so the chart API must be fed the face relative longitude
-  // (the same branch that chart_inverse uses), never the absolute one.
-  const double phi_absolute = std::atan2(centre.ny, centre.nx);
-  const double phi_centre = coordinates::chart_face_longitude(phi_absolute, model.face);
-  const double branch_centre = static_cast<double>(coordinates::chart_l(model.face)) * kPi / 4.0;
-  const double branch_half = kPi / 4.0;
-  const Iv phi(phi_centre - angle_bound, phi_centre + angle_bound);
-  const Iv z = nz;
-  // The block must stay inside the branch of the face; otherwise the chart
-  // case is ambiguous and the block has to be refined.
-  if (phi.lower < branch_centre - branch_half || phi.upper > branch_centre + branch_half) {
-    return false;
-  }
-
-  // The chart case must be unambiguous over the whole block.
-  const double two_thirds = 2.0 / 3.0;
-  const bool pure_band = z.lower >= -two_thirds && z.upper <= two_thirds;
-  const bool pure_north = z.lower > two_thirds;
-  const bool pure_south = z.upper < -two_thirds;
-
-  Iv s;
-  Iv t;
-  if (!coordinates::chart_interval(model.face, z, phi, s, t)) return false;
-  if (!s.is_finite() || !t.is_finite()) return false;
-  model.s_lo = s.lower;
-  model.s_hi = s.upper;
-  model.t_lo = t.lower;
-  model.t_hi = t.upper;
-
-  // The analytic gradient of the chart at the centre.
-  double ds_dz = 0.0;
-  double ds_dphi = 0.0;
-  double dt_dz = 0.0;
-  double dt_dphi = 0.0;
-  if (!coordinates::chart_partials(centre.nz, phi_centre, ds_dz, ds_dphi, dt_dz, dt_dphi)) { return false; }
-  double jacobian_matrix[3][2];
-  coordinates::jacobian(wcs, model.cu, model.cv, jacobian_matrix);
-  const double nxy2 = centre.nx * centre.nx + centre.ny * centre.ny;
-  if (!(nxy2 > 0.0)) return false;
-  const double dphi_du = (-centre.ny * jacobian_matrix[0][0] + centre.nx * jacobian_matrix[1][0]) / nxy2;
-  const double dphi_dv = (-centre.ny * jacobian_matrix[0][1] + centre.nx * jacobian_matrix[1][1]) / nxy2;
-  const double dz_du = jacobian_matrix[2][0];
-  const double dz_dv = jacobian_matrix[2][1];
-  model.gs_u = ds_dz * dz_du + ds_dphi * dphi_du;
-  model.gs_v = ds_dz * dz_dv + ds_dphi * dphi_dv;
-  model.gt_u = dt_dz * dz_du + dt_dphi * dphi_du;
-  model.gt_v = dt_dz * dz_dv + dt_dphi * dphi_dv;
-
-  // The residual bound of the affine chart model (SPHERICAL_DRIZZLE Eq. 16):
-  //   |e| <= mag(f(c) - f0) + sum_k mag(d_k f(U) - J0_k) * h_k
-  // With f0 = f(c) only the second order remainder survives.
-  Iv ds_dz_iv;
-  Iv ds_dphi_iv;
-  Iv dt_dz_iv;
-  Iv dt_dphi_iv;
-  if (!coordinates::chart_partials_interval(z, phi, model.face, ds_dz_iv, ds_dphi_iv, dt_dz_iv,
-                                            dt_dphi_iv)) {
-    // The block touches the apex of a polar face: the chart derivative of the
-    // face is singular there, so the affine cut cell model cannot be built.
-    // The reason is named, never silent.
-    outcome_reason_apex = true;
-    return false;
-  }
-  const Iv nxy2_iv = numerics::interval_add(numerics::interval_mul(nx, nx),
-                                            numerics::interval_mul(ny, ny));
-  if (nxy2_iv.lower <= 0.0) return false;
-  const Iv dphi_du_iv =
-      numerics::interval_div(numerics::interval_add(numerics::interval_mul(numerics::interval_neg(ny),
-                                                                           jw[0][0]),
-                                                   numerics::interval_mul(nx, jw[1][0])),
-                            nxy2_iv);
-  const Iv dphi_dv_iv =
-      numerics::interval_div(numerics::interval_add(numerics::interval_mul(numerics::interval_neg(ny),
-                                                                           jw[0][1]),
-                                                   numerics::interval_mul(nx, jw[1][1])),
-                            nxy2_iv);
-  const Iv ds_du_iv = numerics::interval_add(numerics::interval_mul(ds_dz_iv, jw[2][0]),
-                                             numerics::interval_mul(ds_dphi_iv, dphi_du_iv));
-  const Iv ds_dv_iv = numerics::interval_add(numerics::interval_mul(ds_dz_iv, jw[2][1]),
-                                             numerics::interval_mul(ds_dphi_iv, dphi_dv_iv));
-  const Iv dt_du_iv = numerics::interval_add(numerics::interval_mul(dt_dz_iv, jw[2][0]),
-                                             numerics::interval_mul(dt_dphi_iv, dphi_du_iv));
-  const Iv dt_dv_iv = numerics::interval_add(numerics::interval_mul(dt_dz_iv, jw[2][1]),
-                                             numerics::interval_mul(dt_dphi_iv, dphi_dv_iv));
-  model.e_s = deviation(ds_du_iv, model.gs_u) * hu + deviation(ds_dv_iv, model.gs_v) * hv;
-  model.e_t = deviation(dt_du_iv, model.gt_u) * hu + deviation(dt_dv_iv, model.gt_v) * hv;
-
-  // The solid angle density model.
   double g = 0.0;
   double dgu = 0.0;
   double dgv = 0.0;
@@ -245,6 +129,155 @@ bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& mode
   model.e_g = std::max(std::fabs(g_range.lower - (g + g_span)), std::fabs(g_range.upper - (g - g_span)));
   if (model.e_g < 0.0) model.e_g = 0.0;
   return true;
+}
+
+// The affine model of the chart coordinates and of the solid angle density over
+// one detector sub rectangle.  With require_chart = false only the density
+// model is built: the native area A_j of a footprint that crosses a chart
+// branch still has to be measurable, and it does not need the chart.
+bool build_block_model(const WcsModel& wcs, const Block& block, BlockModel& model,
+                       bool& outcome_reason_apex, bool require_chart) {
+  ++geometry::kernel_counts().chart_models;
+  model.cu = 0.5 * (block.u0 + block.u1);
+  model.cv = 0.5 * (block.v0 + block.v1);
+  // SPHERICAL_DRIZZLE Eq. (16): h_k >= max(c_k - U_k^L, U_k^U - c_k) with the
+  // representative c_k that is actually used.  The rounding half width
+  // 0.5*(u1-u0) can be one ulp smaller than that maximum when c is the rounded
+  // midpoint, and the missing ulp would leave the mean value remainder
+  // uncovered.  The maximum is evaluated directly.
+  const double hu = std::max(model.cu - block.u0, block.u1 - model.cu);
+  const double hv = std::max(model.cv - block.v0, block.v1 - model.cv);
+
+  const SkyICRS centre = forward_point(wcs, model.cu, model.cv);
+  if (require_chart) {
+    coordinates::ChartPoint chart;
+    if (!coordinates::chart_inverse(centre, chart)) return false;
+    model.face = chart.face;
+    model.s0 = chart.s;
+    model.t0 = chart.t;
+
+    const Iv u(block.u0, block.u1);
+    const Iv v(block.v0, block.v1);
+    Iv nx;
+    Iv ny;
+    Iv nz;
+    coordinates::forward_interval_iv(wcs, u, v, nx, ny, nz);
+    if (!nx.is_finite() || !ny.is_finite() || !nz.is_finite()) return false;
+
+    // The angular radius of the block on the sky, from the enclosure of J_W.
+    Iv jw[3][2];
+    coordinates::jacobian_interval_iv(wcs, u, v, jw);
+    double dn_max = 0.0;
+    for (int col = 0; col < 2; ++col) {
+      double magnitude = 0.0;
+      for (int row = 0; row < 3; ++row) magnitude += abs_max(jw[row][col]);
+      dn_max = std::max(dn_max, magnitude * (col == 0 ? hu : hv));
+    }
+    const double angle_bound = dn_max * (1.0 + 1.0e-9) + 1.0e-12;
+
+    // The chart coordinates of a face are defined with respect to the longitude
+    // of that face, so the chart API must be fed the face relative longitude
+    // (the same branch that chart_inverse uses), never the absolute one.
+    const double phi_absolute = std::atan2(centre.ny, centre.nx);
+    const double phi_centre = coordinates::chart_face_longitude(phi_absolute, model.face);
+    const double branch_centre = static_cast<double>(coordinates::chart_l(model.face)) * kPi / 4.0;
+    const double branch_half = kPi / 4.0;
+    const Iv phi(phi_centre - angle_bound, phi_centre + angle_bound);
+    const Iv z = nz;
+    // The block must stay inside the branch of the face; otherwise the chart
+    // case is ambiguous and the block has to be refined.
+    if (phi.lower < branch_centre - branch_half || phi.upper > branch_centre + branch_half) {
+      return false;
+    }
+
+    // The chart case must be unambiguous over the whole block.  SPHERICAL_DRIZZLE
+    // section 2: the chart is piecewise in r = J - s - t, with the polar caps at
+    // r < 1 and r > 3 (z > 2/3 and z < -2/3).  A block that straddles z = +-2/3
+    // is in two chart cases at once; the interval enclosure of one branch would
+    // then be applied to points of the other branch.  Such a block is refused
+    // (the caller refines it) instead of being evaluated with the band formula.
+    const double two_thirds = 2.0 / 3.0;
+    const bool pure_band = z.lower >= -two_thirds && z.upper <= two_thirds;
+    const bool pure_north = z.lower > two_thirds;
+    const bool pure_south = z.upper < -two_thirds;
+    if (!pure_band && !pure_north && !pure_south) return false;
+
+    Iv s;
+    Iv t;
+    if (!coordinates::chart_interval(model.face, z, phi, s, t)) return false;
+    if (!s.is_finite() || !t.is_finite()) return false;
+    // The block must stay inside the face square.  The longitude branch check
+    // above only proves |d| <= 1; the equatorial faces need the stricter
+    // |d| <= min(3 - r, r - 1) (s, t in [0,1]), and the polar faces reach the
+    // face seam through s or t as well.  A block whose enclosure leaves the
+    // square crosses the seam between two faces: its cells belong to another
+    // face, so it is refused (refined, or kept unresolved at max depth) instead
+    // of being clamped onto the last column of this face.
+    if (s.lower < 0.0 || s.upper > 1.0 || t.lower < 0.0 || t.upper > 1.0) return false;
+    model.s_lo = s.lower;
+    model.s_hi = s.upper;
+    model.t_lo = t.lower;
+    model.t_hi = t.upper;
+
+    // The analytic gradient of the chart at the centre.
+    double ds_dz = 0.0;
+    double ds_dphi = 0.0;
+    double dt_dz = 0.0;
+    double dt_dphi = 0.0;
+    if (!coordinates::chart_partials(centre.nz, phi_centre, ds_dz, ds_dphi, dt_dz, dt_dphi)) { return false; }
+    double jacobian_matrix[3][2];
+    coordinates::jacobian(wcs, model.cu, model.cv, jacobian_matrix);
+    const double nxy2 = centre.nx * centre.nx + centre.ny * centre.ny;
+    if (!(nxy2 > 0.0)) return false;
+    const double dphi_du = (-centre.ny * jacobian_matrix[0][0] + centre.nx * jacobian_matrix[1][0]) / nxy2;
+    const double dphi_dv = (-centre.ny * jacobian_matrix[0][1] + centre.nx * jacobian_matrix[1][1]) / nxy2;
+    const double dz_du = jacobian_matrix[2][0];
+    const double dz_dv = jacobian_matrix[2][1];
+    model.gs_u = ds_dz * dz_du + ds_dphi * dphi_du;
+    model.gs_v = ds_dz * dz_dv + ds_dphi * dphi_dv;
+    model.gt_u = dt_dz * dz_du + dt_dphi * dphi_du;
+    model.gt_v = dt_dz * dz_dv + dt_dphi * dphi_dv;
+
+    // The residual bound of the affine chart model (SPHERICAL_DRIZZLE Eq. 16):
+    //   |e| <= mag(f(c) - f0) + sum_k mag(d_k f(U) - J0_k) * h_k
+    // With f0 = f(c) only the second order remainder survives.
+    Iv ds_dz_iv;
+    Iv ds_dphi_iv;
+    Iv dt_dz_iv;
+    Iv dt_dphi_iv;
+    if (!coordinates::chart_partials_interval(z, phi, model.face, ds_dz_iv, ds_dphi_iv, dt_dz_iv,
+                                              dt_dphi_iv)) {
+      // The block touches the apex of a polar face: the chart derivative of the
+      // face is singular there, so the affine cut cell model cannot be built.
+      // The reason is named, never silent.
+      outcome_reason_apex = true;
+      return false;
+    }
+    const Iv nxy2_iv = numerics::interval_add(numerics::interval_mul(nx, nx),
+                                              numerics::interval_mul(ny, ny));
+    if (nxy2_iv.lower <= 0.0) return false;
+    const Iv dphi_du_iv =
+        numerics::interval_div(numerics::interval_add(numerics::interval_mul(numerics::interval_neg(ny),
+                                                                             jw[0][0]),
+                                                     numerics::interval_mul(nx, jw[1][0])),
+                              nxy2_iv);
+    const Iv dphi_dv_iv =
+        numerics::interval_div(numerics::interval_add(numerics::interval_mul(numerics::interval_neg(ny),
+                                                                             jw[0][1]),
+                                                     numerics::interval_mul(nx, jw[1][1])),
+                              nxy2_iv);
+    const Iv ds_du_iv = numerics::interval_add(numerics::interval_mul(ds_dz_iv, jw[2][0]),
+                                               numerics::interval_mul(ds_dphi_iv, dphi_du_iv));
+    const Iv ds_dv_iv = numerics::interval_add(numerics::interval_mul(ds_dz_iv, jw[2][1]),
+                                               numerics::interval_mul(ds_dphi_iv, dphi_dv_iv));
+    const Iv dt_du_iv = numerics::interval_add(numerics::interval_mul(dt_dz_iv, jw[2][0]),
+                                               numerics::interval_mul(dt_dphi_iv, dphi_du_iv));
+    const Iv dt_dv_iv = numerics::interval_add(numerics::interval_mul(dt_dz_iv, jw[2][1]),
+                                               numerics::interval_mul(dt_dphi_iv, dphi_dv_iv));
+    model.e_s = deviation(ds_du_iv, model.gs_u) * hu + deviation(ds_dv_iv, model.gs_v) * hv;
+    model.e_t = deviation(dt_du_iv, model.gt_u) * hu + deviation(dt_dv_iv, model.gt_v) * hv;
+  }
+  return build_density_model(wcs, block, model, hu, hv);
 }
 
 // Exact integration of the affine density model over a polygon.
@@ -275,26 +308,55 @@ struct HalfSpace {
   ExactFraction c;
 };
 
-// The affine chart model satisfies  s_model(u,v) = (gs_u u + gs_v v) + k.
-HalfSpace chart_half_space_le(const BlockModel& model, bool s_axis, double bound) {
+// The affine chart model satisfies  s_model(u,v) = (gs_u u + gs_v v) + k with
+// k = value - gu cu - gv cv.  The constant is evaluated in interval arithmetic:
+// its own binary64 rounding is part of the certified clip and must not be
+// dropped between the model and the half space (SPHERICAL_DRIZZLE 6.1: the
+// half-space constants enter the inner/outer constraints outward).
+struct HalfSpaceOffset {
+  double lower = 0.0;
+  double upper = 0.0;
+};
+
+HalfSpaceOffset chart_offset(const BlockModel& model, bool s_axis, double bound) {
   const double gu = s_axis ? model.gs_u : model.gt_u;
   const double gv = s_axis ? model.gs_v : model.gt_v;
   const double value = s_axis ? model.s0 : model.t0;
+  const Iv offset = numerics::interval_add(
+      numerics::interval_sub(Iv(bound, bound), Iv(value, value)),
+      numerics::interval_add(
+          numerics::interval_mul(Iv(gu, gu), Iv(model.cu, model.cu)),
+          numerics::interval_mul(Iv(gv, gv), Iv(model.cv, model.cv))));
+  HalfSpaceOffset out;
+  out.lower = offset.lower;
+  out.upper = offset.upper;
+  return out;
+}
+
+// s_model <= bound  <=>  gu u + gv v <= offset.  `outer` selects the endpoint
+// that enlarges the region (the outer polygon), the other endpoint shrinks it
+// (the inner polygon).
+HalfSpace chart_half_space_le(const BlockModel& model, bool s_axis, double bound, bool outer) {
+  const double gu = s_axis ? model.gs_u : model.gt_u;
+  const double gv = s_axis ? model.gs_v : model.gt_v;
+  const HalfSpaceOffset offsets = chart_offset(model, s_axis, bound);
   HalfSpace space;
   space.a = ExactFraction::from_double_exact(gu);
   space.b = ExactFraction::from_double_exact(gv);
-  // s_model(u,v) = gu*u + gv*v + (value - gu*cu - gv*cv), so
-  // s_model <= bound  <=>  gu*u + gv*v <= bound - value + gu*cu + gv*cv.
-  const double offset = bound - value + gu * model.cu + gv * model.cv;
-  space.c = ExactFraction::from_double_exact(offset);
+  space.c = ExactFraction::from_double_exact(outer ? offsets.upper : offsets.lower);
   return space;
 }
 
-HalfSpace chart_half_space_ge(const BlockModel& model, bool s_axis, double bound) {
-  HalfSpace space = chart_half_space_le(model, s_axis, bound);
-  space.a = -space.a;
-  space.b = -space.b;
-  space.c = -space.c;
+// s_model >= bound  <=>  -gu u - gv v <= -offset.  The sign flip swaps which
+// endpoint of the offset interval enlarges the region.
+HalfSpace chart_half_space_ge(const BlockModel& model, bool s_axis, double bound, bool outer) {
+  const double gu = s_axis ? model.gs_u : model.gt_u;
+  const double gv = s_axis ? model.gs_v : model.gt_v;
+  const HalfSpaceOffset offsets = chart_offset(model, s_axis, bound);
+  HalfSpace space;
+  space.a = ExactFraction::from_double_exact(-gu);
+  space.b = ExactFraction::from_double_exact(-gv);
+  space.c = ExactFraction::from_double_exact(-(outer ? offsets.lower : offsets.upper));
   return space;
 }
 
@@ -381,6 +443,80 @@ Dyadic dyadic_min(const Dyadic& a, const Dyadic& b) {
   return compare(left, right) <= 0 ? a : b;
 }
 
+int dyadic_compare(const Dyadic& a, const Dyadic& b) {
+  const int exponent = std::min(a.exponent2, b.exponent2);
+  return compare(scaled_to(a, exponent), scaled_to(b, exponent));
+}
+
+Dyadic dyadic_add(const Dyadic& a, const Dyadic& b) {
+  const int exponent = std::min(a.exponent2, b.exponent2);
+  const BigInt sum = scaled_to(a, exponent) + scaled_to(b, exponent);
+  Dyadic out;
+  out.signed_integer = sum.to_string();
+  out.exponent2 = static_cast<std::int32_t>(exponent);
+  return out;
+}
+
+Dyadic dyadic_sub(const Dyadic& a, const Dyadic& b) {
+  const int exponent = std::min(a.exponent2, b.exponent2);
+  const BigInt difference = scaled_to(a, exponent) - scaled_to(b, exponent);
+  Dyadic out;
+  out.signed_integer = difference.to_string();
+  out.exponent2 = static_cast<std::int32_t>(exponent);
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// The content digest of a geometry object
+// ---------------------------------------------------------------------------
+
+ContentDigest::ContentDigest() = default;
+
+void ContentDigest::add(std::string_view key, std::string_view value) {
+  hash_.field(key, value);
+}
+
+void ContentDigest::add_u64(std::string_view key, U64 value) { hash_.field(key, value); }
+
+void ContentDigest::add_i64(std::string_view key, std::int64_t value) {
+  hash_.field(key, std::to_string(value));
+}
+
+void ContentDigest::add_f64(std::string_view key, double value) { hash_.field_f64(key, value); }
+
+void ContentDigest::add_leaf(std::string_view key, const HealpixLeaf& leaf) {
+  hash_.field(std::string(key) + ".order", static_cast<U64>(leaf.order));
+  hash_.field(std::string(key) + ".ipix", leaf.ipix);
+}
+
+void ContentDigest::add_dyadic(std::string_view key, const Dyadic& value) {
+  hash_.field(std::string(key) + ".integer", value.signed_integer);
+  hash_.field(std::string(key) + ".exponent2",
+              static_cast<U64>(static_cast<std::int64_t>(value.exponent2)));
+}
+
+void ContentDigest::add_area(std::string_view key, const SphericalAreaInterval& area) {
+  hash_.field_f64(std::string(key) + ".lower_sr", area.lower_sr);
+  hash_.field_f64(std::string(key) + ".upper_sr", area.upper_sr);
+  hash_.field(std::string(key) + ".bound", area.simultaneous_bound);
+  add_dyadic(std::string(key) + ".exact.lower", area.exact.lower);
+  add_dyadic(std::string(key) + ".exact.upper", area.exact.upper);
+  hash_.field(std::string(key) + ".exact.precision_bits",
+              static_cast<U64>(area.exact.precision_bits));
+}
+
+void ContentDigest::add_csr(std::string_view key, const std::vector<U64>& offsets,
+                            const std::vector<U64>& indices,
+                            const std::vector<double>& values) {
+  hash_.field(std::string(key) + ".rows", static_cast<U64>(offsets.empty() ? 0 : offsets.size() - 1));
+  hash_.field(std::string(key) + ".nnz", static_cast<U64>(indices.size()));
+  for (U64 offset : offsets) hash_.field(std::string(key) + ".offset", offset);
+  for (U64 index : indices) hash_.field(std::string(key) + ".index", index);
+  for (double value : values) hash_.field_f64(std::string(key) + ".value", value);
+}
+
+std::string ContentDigest::hex() const { return hash_.hex(); }
+
 double dyadic_to_double(const Dyadic& value) {
   double result = 0.0;
   const std::string& text = value.signed_integer;
@@ -411,7 +547,7 @@ bool chart_enclosure(const WcsModel& wcs, double u0, double u1, double v0, doubl
   block.v1 = v1;
   BlockModel model;
   bool apex = false;
-  if (!build_block_model(wcs, block, model, apex)) return false;
+  if (!build_block_model(wcs, block, model, apex, true)) return false;
   out.valid = true;
   out.face = model.face;
   out.s_lo = model.s_lo;
@@ -519,7 +655,7 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
     bool modelled = false;
     {
       geometry::StageTimer timer(geometry::kernel_timings().chart_model_ns);
-      modelled = build_block_model(wcs, block, model, apex);
+      modelled = build_block_model(wcs, block, model, apex, true);
     }
     if (!modelled) {
       if (apex && block.depth + 1 >= max_depth) {
@@ -540,17 +676,44 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
     }
 
     ++geometry::kernel_counts().blocks;
-    // The candidate cells of the block.
+    // The candidate cells of the block.  build_block_model proved that the
+    // chart enclosure stays inside the face square, so s,t in [0,1] and the
+    // only index outside [0, nside-1] is floor(1 * nside) = nside: that is the
+    // closed boundary of the last cell, not a cell of its own.  An enclosure
+    // that leaves the square (a face seam crossing) is refused here, never
+    // clamped onto a cell of this face.
     long long ix_lo = 0;
     long long ix_hi = 0;
     long long iy_lo = 0;
     long long iy_hi = 0;
+    bool candidate_range_ok = true;
     {
       geometry::StageTimer enumeration_timer(geometry::kernel_timings().candidate_enumeration_ns);
       ix_lo = static_cast<long long>(std::floor(model.s_lo * static_cast<double>(nside)));
       ix_hi = static_cast<long long>(std::floor(model.s_hi * static_cast<double>(nside)));
       iy_lo = static_cast<long long>(std::floor(model.t_lo * static_cast<double>(nside)));
       iy_hi = static_cast<long long>(std::floor(model.t_hi * static_cast<double>(nside)));
+      const long long last = static_cast<long long>(nside) - 1;
+      candidate_range_ok = ix_lo >= 0 && iy_lo >= 0 && ix_hi >= 0 && iy_hi >= 0 &&
+                           ix_lo <= last && iy_lo <= last && ix_hi <= last + 1 &&
+                           iy_hi <= last + 1;
+      ix_lo = std::min(ix_lo, last);
+      ix_hi = std::min(ix_hi, last);
+      iy_lo = std::min(iy_lo, last);
+      iy_hi = std::min(iy_hi, last);
+    }
+    if (!candidate_range_ok) {
+      if (block.depth + 1 < max_depth) {
+        const double cu = 0.5 * (block.u0 + block.u1);
+        const double cv = 0.5 * (block.v0 + block.v1);
+        queue.push_back(Block{block.u0, cu, block.v0, cv, block.depth + 1});
+        queue.push_back(Block{cu, block.u1, block.v0, cv, block.depth + 1});
+        queue.push_back(Block{block.u0, cu, cv, block.v1, block.depth + 1});
+        queue.push_back(Block{cu, block.u1, cv, block.v1, block.depth + 1});
+        continue;
+      }
+      keep_unresolved(block);
+      continue;
     }
     const double cells = static_cast<double>(ix_hi - ix_lo + 1) * static_cast<double>(iy_hi - iy_lo + 1);
     if (cells > static_cast<double>(kMaxCandidatesPerBlock)) {
@@ -582,6 +745,14 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
         }
         const HealpixLeaf leaf = coordinates::chart_leaf(order, model.face, static_cast<U64>(ix),
                                                           static_cast<U64>(iy));
+        if (leaf.ipix == std::numeric_limits<U64>::max()) {
+          // The cell index left the face: the block is not a cell of this
+          // face.  Refuse it instead of attributing its mass to a wrong leaf.
+          outcome.termination = Termination::unsupported;
+          outcome.reason = "candidate_cell_outside_face";
+          cancelled_in_cells = true;
+          break;
+        }
         const double s_lo = static_cast<double>(ix) * inv_nside;
         const double s_hi = static_cast<double>(ix + 1) * inv_nside;
         const double t_lo = static_cast<double>(iy) * inv_nside;
@@ -590,23 +761,23 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
         ++geometry::kernel_counts().candidate_cells;
         StageCounts& counts = geometry::kernel_counts();
         RationalPolygon inner = rectangle;
-        HalfSpace space = chart_half_space_le(model, true, s_hi - model.e_s);
+        HalfSpace space = chart_half_space_le(model, true, s_hi - model.e_s, false);
         inner = clip_half_space(inner, space.a, space.b, space.c);
-        space = chart_half_space_ge(model, true, s_lo + model.e_s);
+        space = chart_half_space_ge(model, true, s_lo + model.e_s, false);
         inner = clip_half_space(inner, space.a, space.b, space.c);
-        space = chart_half_space_le(model, false, t_hi - model.e_t);
+        space = chart_half_space_le(model, false, t_hi - model.e_t, false);
         inner = clip_half_space(inner, space.a, space.b, space.c);
-        space = chart_half_space_ge(model, false, t_lo + model.e_t);
+        space = chart_half_space_ge(model, false, t_lo + model.e_t, false);
         inner = clip_half_space(inner, space.a, space.b, space.c);
 
         RationalPolygon outer = rectangle;
-        space = chart_half_space_le(model, true, s_hi + model.e_s);
+        space = chart_half_space_le(model, true, s_hi + model.e_s, true);
         outer = clip_half_space(outer, space.a, space.b, space.c);
-        space = chart_half_space_ge(model, true, s_lo - model.e_s);
+        space = chart_half_space_ge(model, true, s_lo - model.e_s, true);
         outer = clip_half_space(outer, space.a, space.b, space.c);
-        space = chart_half_space_le(model, false, t_hi + model.e_t);
+        space = chart_half_space_le(model, false, t_hi + model.e_t, true);
         outer = clip_half_space(outer, space.a, space.b, space.c);
-        space = chart_half_space_ge(model, false, t_lo - model.e_t);
+        space = chart_half_space_ge(model, false, t_lo - model.e_t, true);
         outer = clip_half_space(outer, space.a, space.b, space.c);
 
         counts.rational_clips += 8;
@@ -632,6 +803,13 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
         }
       }
     }
+
+    // A cancellation inside the candidate loop leaves the current block half
+    // processed.  The cells already processed are in the ledger; the whole
+    // block mass is kept as the unresolved upper bound of the part that was
+    // not processed.  An upper bound may over-count (it is safe), but the mass
+    // of the block being processed must never be dropped (I8).
+    if (cancelled_in_cells) keep_unresolved(block);
 
     // The candidate cells of the block are charged to the shared ledger after
     // they are processed; an exhausted ledger stops the kernel with a named
@@ -669,9 +847,35 @@ KernelOutcome cut_cell_overlap(Context& context, const WcsModel& wcs, const Box&
   outcome.total_upper = total_upper.dyadic();
   outcome.unresolved_upper = unresolved_upper.dyadic();
   outcome.unresolved_lower = Dyadic{"0", 0};
-  if (outcome.termination == Termination::tolerance_met && !outcome.unresolved.empty()) {
-    outcome.termination = Termination::depth;
-    outcome.reason = "unresolved_domains_remain";
+  // The certified stop is the requested absolute area budget of the whole drop,
+  // not merely an empty undecided queue (SPHERICAL_DRIZZLE section 3.3 and
+  // 5.2): sum(Up) <= area_absolute_sr.  The remaining undecided mass stays an
+  // upper bound, and a run that does not reach the requested budget is named
+  // unconverged instead of certified.
+  if (outcome.termination == Termination::tolerance_met) {
+    const double unresolved_mass = dyadic_to_double(outcome.unresolved_upper);
+    const bool area_budget_declared = std::isfinite(budget.area_absolute_sr);
+    if (!area_budget_declared || unresolved_mass > budget.area_absolute_sr) {
+      outcome.termination = Termination::depth;
+      outcome.reason = "area_absolute_sr_not_met";
+    }
+  }
+  // The per-leaf absolute area limits of the request: a leaf whose certified
+  // width exceeds its requested limit is not at tolerance.
+  if (outcome.termination == Termination::tolerance_met) {
+    for (const LeafAreaLimit& limit : budget.per_leaf_absolute_area) {
+      if (!(limit.absolute_sr >= 0.0)) continue;
+      for (const LeafAreaBound& bound : outcome.leaves) {
+        if (bound.leaf.order != limit.leaf.order || bound.leaf.ipix != limit.leaf.ipix) continue;
+        const double width = dyadic_to_double(dyadic_sub(bound.upper, bound.lower));
+        if (width > limit.absolute_sr) {
+          outcome.termination = Termination::depth;
+          outcome.reason = "per_leaf_absolute_area_not_met";
+          break;
+        }
+      }
+      if (outcome.termination != Termination::tolerance_met) break;
+    }
   }
   return outcome;
 }
@@ -708,7 +912,9 @@ RationalAreaBound footprint_area_rational(const WcsModel& wcs,
   block.v1 = v_hi;
   BlockModel model;
   bool apex = false;
-  if (!build_block_model(wcs, block, model, apex)) return bound;
+  // The native area does not need the chart of a single face: a footprint that
+  // crosses a chart branch still has a well defined area.
+  if (!build_block_model(wcs, block, model, apex, false)) return bound;
 
   Rational area(0, 1);
   Rational moment_u(0, 1);

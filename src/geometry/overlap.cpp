@@ -111,19 +111,43 @@ std::vector<std::vector<std::array<double, 2>>> footprint_rings(const DetectorFo
   return rings;
 }
 
+// True when the rings are exactly one closed axis aligned rectangle.
+//
+// A general four vertex ring (a rotated or sheared collection domain) is not a
+// rectangle: the cut cell kernel integrates over the rectangle, while A_j comes
+// from the shoelace area of the true quadrilateral, so sum_p a_jp would no
+// longer be an enclosure of A_j (P1, report section 2.3).  Such a footprint is
+// refused as unsupported, never silently replaced by its bounding box.
 bool rings_are_axis_aligned_rectangle(const std::vector<std::vector<std::array<double, 2>>>& rings,
                                       Box& rectangle) {
   if (rings.size() != 1 || rings[0].size() != 4) return false;
+  const auto& ring = rings[0];
   double x_lo = std::numeric_limits<double>::infinity();
   double x_hi = -std::numeric_limits<double>::infinity();
   double y_lo = std::numeric_limits<double>::infinity();
   double y_hi = -std::numeric_limits<double>::infinity();
-  for (const auto& vertex : rings[0]) {
-    x_lo = std::min(x_lo, vertex[0]);
-    x_hi = std::max(x_hi, vertex[0]);
-    y_lo = std::min(y_lo, vertex[1]);
-    y_hi = std::max(y_hi, vertex[1]);
+  bool has_x_edge = false;
+  bool has_y_edge = false;
+  for (std::size_t i = 0; i < ring.size(); ++i) {
+    const auto& a = ring[i];
+    const auto& b = ring[(i + 1) % ring.size()];
+    const double dx = b[0] - a[0];
+    const double dy = b[1] - a[1];
+    if (dx == 0.0 && dy == 0.0) return false;  // a degenerate edge
+    if (dx == 0.0) {
+      has_y_edge = true;
+    } else if (dy == 0.0) {
+      has_x_edge = true;
+    } else {
+      return false;  // an oblique edge: not an axis aligned rectangle
+    }
+    x_lo = std::min(x_lo, a[0]);
+    x_hi = std::max(x_hi, a[0]);
+    y_lo = std::min(y_lo, a[1]);
+    y_hi = std::max(y_hi, a[1]);
   }
+  if (!has_x_edge || !has_y_edge) return false;
+  if (!(x_hi > x_lo) || !(y_hi > y_lo)) return false;
   rectangle = Box{{x_lo, y_lo}, {x_hi, y_hi}};
   return true;
 }
@@ -522,19 +546,58 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   for (const geometry::LeafAreaBound& leaf : kernel.leaves) {
     published[{leaf.leaf.order, leaf.leaf.ipix}] = {leaf.lower, leaf.upper};
   }
+  // The overlap mass of a leaf can never exceed the solid angle of the leaf,
+  // Omega_H = pi/(3 N^2) (I6): a_jp = Omega(D_j cap H_p) <= Omega(H_p).  The
+  // enclosure is tightened by that exact bound, which is a valid tightening
+  // (the true value is inside the leaf either way) and keeps the declared
+  // constraint a_p <= Omega_H consistent with the published primitive.
+  const geometry::DyadicInterval pi_interval = geometry::pi_enclosure();
+  const U64 nside = 1ull << order;
+  const model::BigInt leaf_divisor =
+      model::BigInt(3) * model::BigInt(static_cast<std::int64_t>(nside)) *
+      model::BigInt(static_cast<std::int64_t>(nside));
+  model::BigInt omega_numerator = model::BigInt::from_string(pi_interval.upper.signed_integer);
+  model::BigInt omega_quotient = omega_numerator / leaf_divisor;
+  if (!(omega_numerator % leaf_divisor).is_zero()) {
+    omega_quotient = omega_quotient + model::BigInt(1);
+  }
+  Dyadic omega_leaf_upper;
+  omega_leaf_upper.signed_integer = omega_quotient.to_string();
+  omega_leaf_upper.exponent2 = -geometry::DyadicLedger::kScaleBits;
+  bool omega_contradiction = false;
+  for (auto& entry : published) {
+    entry.second.second = geometry::dyadic_min(entry.second.second, omega_leaf_upper);
+    if (geometry::dyadic_compare(entry.second.first, entry.second.second) > 0) {
+      // A lower bound above the leaf solid angle is a contradiction inside the
+      // cut cell ledger (the true a cannot exceed Omega_H).  The interval is
+      // kept as a point above Omega_H so that it stays ordered, and the
+      // validity is downgraded below; it is never silently clamped to a
+      // "consistent" value.
+      entry.second.second = entry.second.first;
+      omega_contradiction = true;
+    }
+  }
   // The containment algorithm is the fallback for the leaves that the cut cell
-  // kernel could not resolve.  It is only used for a leaf without any kernel
-  // contribution: the two algorithms cover different cell sets for such a
-  // leaf, so their masses add instead of intersecting.
-  model::BigInt containment_added_lower(0);
-  model::BigInt containment_added_upper(0);
+  // kernel left undecided.  Both algorithms are valid enclosures of the same
+  // overlap mass a_jp, so for a leaf that both of them bound the published
+  // enclosure is their intersection (SPHERICAL_DRIZZLE section 6.2: independent
+  // valid bounds merge by intersection).  An empty intersection is a
+  // contradiction between the two algorithms: the kernel bound is kept (it is
+  // the primary certified path) and the result is not certified.
+  std::vector<HealpixLeaf> contradictory_leaves;
   for (const auto& entry : containment_leaves) {
-    if (published.find(entry.first) != published.end()) continue;
-    published[entry.first] = {entry.second.lower, entry.second.upper};
-    containment_added_lower =
-        containment_added_lower + model::BigInt::from_string(entry.second.lower.signed_integer);
-    containment_added_upper =
-        containment_added_upper + model::BigInt::from_string(entry.second.upper.signed_integer);
+    auto it = published.find(entry.first);
+    if (it == published.end()) {
+      published[entry.first] = {entry.second.lower, entry.second.upper};
+      continue;
+    }
+    const Dyadic lower = geometry::dyadic_max(it->second.first, entry.second.lower);
+    const Dyadic upper = geometry::dyadic_min(it->second.second, entry.second.upper);
+    if (geometry::dyadic_compare(lower, upper) > 0) {
+      contradictory_leaves.push_back(HealpixLeaf{entry.first.first, entry.first.second});
+      continue;
+    }
+    it->second = {lower, upper};
   }
   for (const auto& entry : published) {
     const HealpixLeaf leaf{entry.first.first, entry.first.second};
@@ -554,22 +617,39 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
     contribution.native_area = area_interval(native.lower, native.upper, "primitive:native");
     contribution.drop_area = area_interval(drop.lower, drop.upper, "primitive:drop");
     contribution.overlap_area = area_interval(lower, upper, "primitive:overlap");
-    contribution.shared_geometry_constraints = "geometry:constraints";
     contributions.push_back(std::move(contribution));
   }
 
+  // The coarse row is the unresolved mass of the kernel.  The containment
+  // fallback decides cells that the kernel left undecided; its mass is
+  // additional evidence, not a subtraction from the kernel's unresolved upper
+  // bound (the two algorithms partition the detector differently, so their
+  // difference is not a proven bound).
   const U64 coarse_row = primitive_source.size();
-  Dyadic coarse_upper = kernel.unresolved_upper;
-  {
-    // The mass that the containment algorithm proved inside the source region
-    // leaves the unresolved mass.  Only the proven part is removed, so the
-    // coarse row stays an upper bound of the unresolved mass.
-    const model::BigInt kernel_upper = model::BigInt::from_string(coarse_upper.signed_integer);
-    const model::BigInt removed = containment_added_upper;
-    const model::BigInt remaining = kernel_upper > removed ? kernel_upper - removed : model::BigInt(0);
-    coarse_upper.signed_integer = remaining.to_string();
-  }
+  const Dyadic coarse_upper = kernel.unresolved_upper;
   push_primitive(3, std::nullopt, Dyadic{"0", 0}, coarse_upper);
+
+  // --- I5/I6: the area ledger conservation check ---------------------------
+  // The true overlap masses partition the drop area: sum_p a_p = A.  The
+  // published enclosures must therefore satisfy
+  //   sum_p a_L <= A_U,   A_L <= sum_p a_U + coarse_U,
+  // and every leaf must satisfy a_L <= a_U <= min(A_U, Omega_H).  A violation
+  // is a defect of the geometry, never a value to clamp: it is named and the
+  // bound is not certified.
+  Dyadic sum_lower = Dyadic{"0", 0};
+  Dyadic sum_upper = Dyadic{"0", 0};
+  bool area_ledger_consistent = !omega_contradiction;
+  for (const OverlapContribution& contribution : contributions) {
+    const Dyadic& lower = contribution.overlap_area.exact.lower;
+    const Dyadic& upper = contribution.overlap_area.exact.upper;
+    if (geometry::dyadic_compare(lower, upper) > 0) area_ledger_consistent = false;
+    sum_lower = geometry::dyadic_add(sum_lower, lower);
+    sum_upper = geometry::dyadic_add(sum_upper, upper);
+  }
+  if (geometry::dyadic_compare(sum_lower, drop.upper) > 0) area_ledger_consistent = false;
+  if (geometry::dyadic_compare(drop.lower, geometry::dyadic_add(sum_upper, coarse_upper)) > 0) {
+    area_ledger_consistent = false;
+  }
 
   const Id primitive_index = "acsd.geometry.primitives";
   Result<ArrayRef> source_rows_array = store_u64(context, primitive_source, primitive_index);
@@ -607,13 +687,33 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   primitives->lower = val(lower_array);
   primitives->upper = val(upper_array);
   primitives->precision_bits = 53;
-  primitives->identity = model::make_identity("acsd.GeometryPrimitiveTable", 2, 0,
-                                              model::sha256_hex(primitive_index), "acsd");
+  {
+    // The identity of the primitive table is the identity of its content: the
+    // source index and every primitive row.  A constant string made a changed
+    // area, leaf or kind hash-identical, so no dependent object could be
+    // invalidated (P0-3).
+    geometry::ContentDigest digest;
+    digest.add("schema", "acsd.GeometryPrimitiveTable");
+    digest.add("source_index",
+               primitives->source_index ? primitives->source_index->identity.object_id : "");
+    digest.add_u64("precision_bits", primitives->precision_bits);
+    digest.add_u64("rows", static_cast<U64>(primitive_source.size()));
+    for (std::size_t i = 0; i < primitive_source.size(); ++i) {
+      digest.add_u64("source_row", primitive_source[i]);
+      digest.add_u64("leaf_order", primitive_orders[i]);
+      digest.add_u64("leaf_ipix", primitive_ipix[i]);
+      digest.add_u64("kind", primitive_kinds[i]);
+      digest.add_dyadic("lower", primitive_lower[i]);
+      digest.add_dyadic("upper", primitive_upper[i]);
+    }
+    primitives->identity =
+        model::make_identity("acsd.GeometryPrimitiveTable", 2, 0, digest.hex(), "acsd");
+  }
   primitives->assessment = model::make_assessment(Code::ok);
   primitives->assessment.complete = true;
 
   // --- the constraint matrix ----------------------------------------------
-  // Rows:  a >= 0,  a - A <= 0,  A - Omega <= 0,  sum(a) + coarse - A = 0.
+  // Rows:  a >= 0,  a <= A,  A <= Omega,  a <= Omega_H,  sum(a) + coarse - A = 0.
   std::vector<U64> offsets;
   std::vector<U64> indices;
   std::vector<double> values;
@@ -640,6 +740,8 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
     add_row({{row, 1.0}}, Dyadic{"0", 0}, drop_upper);
     add_row({{row, 1.0}, {drop_row, -1.0}}, geometry::rational_to_dyadic(Rational(0, 1), false),
             geometry::rational_to_dyadic(Rational(0, 1), false));
+    // The overlap of one leaf cannot exceed the solid angle of the leaf (I6).
+    add_row({{row, 1.0}}, Dyadic{"0", 0}, omega_leaf_upper);
   }
   add_row({{drop_row, 1.0}, {native_row, -1.0}},
           geometry::rational_to_dyadic(Rational(0, 1), false),
@@ -676,8 +778,22 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   constraints->matrix = val(matrix);
   constraints->lower = val(constraint_lower_array);
   constraints->upper = val(constraint_upper_array);
-  constraints->identity = model::make_identity("acsd.GeometryConstraints", 2, 0,
-                                                model::sha256_hex("acsd.geometry.constraints"), "acsd");
+  {
+    geometry::ContentDigest digest;
+    digest.add("schema", "acsd.GeometryConstraints");
+    digest.add("primitives", primitives->identity.object_id);
+    digest.add_csr("matrix", offsets, indices, values);
+    digest.add("lower", val(constraint_lower_array)->identity.object_id);
+    digest.add("upper", val(constraint_upper_array)->identity.object_id);
+    digest.add_u64("rows", static_cast<U64>(constraint_lower.size()));
+    constraints->identity =
+        model::make_identity("acsd.GeometryConstraints", 2, 0, digest.hex(), "acsd");
+  }
+  // Every contribution names the constraint set it obeys: the same primitive
+  // and the same constraint identity are part of the R closure (I2).
+  for (OverlapContribution& contribution : contributions) {
+    contribution.shared_geometry_constraints = constraints->identity.object_id;
+  }
   constraints->assessment = model::make_assessment(Code::ok);
   constraints->assessment.complete = true;
 
@@ -714,8 +830,17 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   table->native_primitive = val(table_native);
   table->drop_primitive = val(table_drop);
   table->overlap_primitive = val(table_overlap);
-  table->identity = model::make_identity("acsd.OverlapTable", 2, 0, model::sha256_hex(table_index),
-                                         "acsd");
+  {
+    geometry::ContentDigest digest;
+    digest.add("schema", "acsd.OverlapTable");
+    digest.add("source_rows", val(table_source)->identity.object_id);
+    digest.add("leaf_orders", val(table_orders)->identity.object_id);
+    digest.add("leaf_ipix", val(table_ipix)->identity.object_id);
+    digest.add("native_primitive", val(table_native)->identity.object_id);
+    digest.add("drop_primitive", val(table_drop)->identity.object_id);
+    digest.add("overlap_primitive", val(table_overlap)->identity.object_id);
+    table->identity = model::make_identity("acsd.OverlapTable", 2, 0, digest.hex(), "acsd");
+  }
   table->assessment = model::make_assessment(Code::ok);
   table->assessment.complete = true;
 
@@ -730,9 +855,26 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   footprint_set->wcs = model;
   footprint_set->pixel_response = source->pixel_response;
   footprint_set->detector_frame = model->detector_frame;
-  footprint_set->identity = model::make_identity("acsd.FootprintSet", 2, 0,
-                                                 model::sha256_hex("acsd.geometry.footprint_set"),
-                                                 "acsd");
+  {
+    geometry::ContentDigest digest;
+    digest.add("schema", "acsd.FootprintSet");
+    digest.add("source_index", primitives->source_index->identity.object_id);
+    digest.add("wcs", model ? model->identity.object_id : "");
+    digest.add("detector_frame", footprint_set->detector_frame);
+    digest.add_u64("width", footprint_set->width);
+    digest.add_u64("height", footprint_set->height);
+    digest.add_f64("matrix_00", footprint_set->detector_from_sample[0]);
+    digest.add_f64("matrix_01", footprint_set->detector_from_sample[1]);
+    digest.add_f64("matrix_10", footprint_set->detector_from_sample[2]);
+    digest.add_f64("matrix_11", footprint_set->detector_from_sample[3]);
+    digest.add_f64("offset_x", footprint_set->offset[0]);
+    digest.add_f64("offset_y", footprint_set->offset[1]);
+    digest.add_f64("local_cell_x0", footprint_set->local_cell.lower[0]);
+    digest.add_f64("local_cell_y0", footprint_set->local_cell.lower[1]);
+    digest.add_f64("local_cell_x1", footprint_set->local_cell.upper[0]);
+    digest.add_f64("local_cell_y1", footprint_set->local_cell.upper[1]);
+    footprint_set->identity = model::make_identity("acsd.FootprintSet", 2, 0, digest.hex(), "acsd");
+  }
   footprint_set->assessment = model::make_assessment(Code::ok);
   footprint_set->assessment.complete = true;
 
@@ -750,8 +892,37 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   recipe->arithmetic = request.arithmetic;
   recipe->algorithm = "affine_strip_cut_cell";
   recipe->version = 2;
-  recipe->identity = model::make_identity("acsd.GeometryRecipe", 2, 0,
-                                           model::sha256_hex("acsd.geometry.recipe"), "acsd");
+  {
+    // The recipe identity carries every input that changes the overlap: the
+    // footprint set and WCS, the source rows, the order, the pixfrac, the
+    // algorithm/version and the initial budget (P0-3, I10).
+    geometry::ContentDigest digest;
+    digest.add("schema", "acsd.GeometryRecipe");
+    digest.add("footprints", footprint_set->identity.object_id);
+    digest.add("source_index", primitives->source_index->identity.object_id);
+    digest.add("source_rows", val(recipe_rows)->identity.object_id);
+    digest.add_u64("order", order);
+    digest.add_f64("pixfrac", pixfrac);
+    digest.add("algorithm", recipe->algorithm);
+    digest.add_u64("version", recipe->version);
+    digest.add_f64("area_absolute_sr", request.area_absolute_sr);
+    digest.add_f64("normalizer_min_sr", request.normalizer_min_sr);
+    digest.add_u64("max_work", request.max_work);
+    digest.add_u64("max_bytes", request.max_bytes);
+    digest.add_u64("max_depth", request.max_depth);
+    digest.add("arithmetic_mode", request.arithmetic.mode == Arithmetic::Mode::outward
+                                        ? "outward"
+                                        : "approximate");
+    digest.add_u64("arithmetic_initial_bits", request.arithmetic.initial_bits);
+    digest.add_u64("arithmetic_max_bits", request.arithmetic.max_bits);
+    digest.add_u64("allow_target_fallback", request.arithmetic.allow_target_fallback ? 1 : 0);
+    digest.add_u64("per_leaf_limits", static_cast<U64>(request.per_leaf_absolute_area.size()));
+    for (const LeafAreaLimit& limit : request.per_leaf_absolute_area) {
+      digest.add_leaf("per_leaf", limit.leaf);
+      digest.add_f64("per_leaf_sr", limit.absolute_sr);
+    }
+    recipe->identity = model::make_identity("acsd.GeometryRecipe", 2, 0, digest.hex(), "acsd");
+  }
   recipe->assessment = model::make_assessment(Code::ok);
   recipe->assessment.complete = true;
 
@@ -766,6 +937,11 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   overlaps->status.termination = kernel.termination;
   overlaps->status.bound_validity =
       kernel.termination == Termination::tolerance_met ? Validity::certified : Validity::invalid;
+  overlaps->assessment = model::make_assessment(Code::ok);
+  overlaps->assessment.complete = kernel.termination == Termination::tolerance_met;
+  overlaps->assessment.science = kernel.termination == Termination::tolerance_met
+                                     ? ScienceState::bounded
+                                     : ScienceState::unconverged;
   // The precision budget: the certified endpoints are exact dyadics, so the
   // working precision must be able to carry them.  When the budget does not
   // allow it the termination is named precision and no bound is certified.
@@ -789,13 +965,70 @@ Result<Ref<Overlaps>> compute_overlap(Context& context, const FootprintProvider&
   }
   overlaps->status.support = kernel.unresolved.empty() ? SupportState::positive
                                                         : SupportState::bounded_undecided;
-  overlaps->identity = model::make_identity("acsd.Overlaps", 2, 0, model::sha256_hex("acsd.overlaps"),
-                                             "acsd");
-  overlaps->assessment = model::make_assessment(Code::ok);
-  overlaps->assessment.complete = kernel.termination == Termination::tolerance_met;
-  overlaps->assessment.science = kernel.termination == Termination::tolerance_met
-                                     ? ScienceState::bounded
-                                     : ScienceState::unconverged;
+  if (!area_ledger_consistent) {
+    // The published enclosures violate the area conservation identity of the
+    // overlap ledger (I5/I6).  The values are not clamped to a consistent set:
+    // the defect is named and no bound is certified.
+    overlaps->status.bound_validity = Validity::invalid;
+    model::add_issue(overlaps->assessment, Code::invalid_model, "area_conservation_violated",
+                     "compute_overlap:area_ledger",
+                     "the per leaf overlap enclosures do not contain a partition of the drop "
+                     "area: sum(a_L) <= A_U or A_L <= sum(a_U) + coarse_U failed",
+                     "refine the geometry or report the contradictory primitive table");
+  }
+  if (!contradictory_leaves.empty()) {
+    // The two independent algorithms bound the same leaf by disjoint intervals.
+    overlaps->status.bound_validity = Validity::invalid;
+    model::add_issue(overlaps->assessment, Code::invalid_model,
+                     "independent_algorithms_contradict", "compute_overlap:target_containment",
+                     "the cut cell kernel and the target containment fallback give disjoint "
+                     "enclosures for " + std::to_string(contradictory_leaves.size()) +
+                         " leaves; the kernel bounds are published and not certified",
+                     "refine the chart model or investigate the containment proof");
+  }
+  {
+    // The identity of the Overlaps object is the identity of its content: the
+    // contribution table, the coarse unresolved domains, the primitive table,
+    // the constraint set, the recipe and the status (P0-3, I10).  A geometry
+    // change therefore changes the object_id and the dependency closure can be
+    // invalidated.
+    geometry::ContentDigest digest;
+    digest.add("schema", "acsd.Overlaps");
+    digest.add_u64("contributions", static_cast<U64>(overlaps->contributions.size()));
+    for (const OverlapContribution& contribution : overlaps->contributions) {
+      digest.add_u64("source_sample", contribution.source.sample);
+      digest.add("source_dataset", contribution.source.dataset);
+      digest.add("source_exposure", contribution.source.exposure);
+      digest.add("source_detector", contribution.source.detector);
+      digest.add("source_channel", contribution.source.channel);
+      digest.add_leaf("leaf", contribution.leaf);
+      digest.add_area("native_area", contribution.native_area);
+      digest.add_area("drop_area", contribution.drop_area);
+      digest.add_area("overlap_area", contribution.overlap_area);
+      digest.add("constraints", contribution.shared_geometry_constraints);
+    }
+    digest.add_u64("coarse_domains", static_cast<U64>(overlaps->coarse_candidates.size()));
+    for (const UnresolvedDomain& domain : overlaps->coarse_candidates) {
+      digest.add_u64("coarse_has_detector", domain.detector ? 1 : 0);
+      if (domain.detector) {
+        digest.add_f64("coarse_u0", domain.detector->lower[0]);
+        digest.add_f64("coarse_v0", domain.detector->lower[1]);
+        digest.add_f64("coarse_u1", domain.detector->upper[0]);
+        digest.add_f64("coarse_v1", domain.detector->upper[1]);
+      }
+      digest.add_dyadic("coarse_mass_lower", domain.mass_sr.lower);
+      digest.add_dyadic("coarse_mass_upper", domain.mass_sr.upper);
+    }
+    digest.add("primitives", primitives->identity.object_id);
+    digest.add("constraints", constraints->identity.object_id);
+    digest.add("recipe", recipe->identity.object_id);
+    digest.add("table", table->identity.object_id);
+    digest.add_u64("termination", static_cast<U64>(overlaps->status.termination));
+    digest.add_u64("bound_validity", static_cast<U64>(overlaps->status.bound_validity));
+    digest.add_u64("support", static_cast<U64>(overlaps->status.support));
+    digest.add_u64("unresolved_status", static_cast<U64>(overlaps->status.unresolved.size()));
+    overlaps->identity = model::make_identity("acsd.Overlaps", 2, 0, digest.hex(), "acsd");
+  }
   if (!kernel.reason.empty()) {
     model::add_issue(overlaps->assessment, Code::nonconverged, kernel.reason, "compute_overlap",
                      "the overlap bounds keep the unresolved mass instead of dropping it",

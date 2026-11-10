@@ -750,33 +750,76 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
 
   // ---------------------------------------------------------------------
   // The fixed joint Gaussian covariance of [counts, c_Gaia].
+  //
+  // The measures of one frame publish the covariance of the flux/background
+  // vector of the linear measurement: `joint_noise` maps the flux coordinates
+  // onto themselves, its codomain is the flux index (one entry per measured
+  // star plus the single background column) and its `domain` is the native
+  // sample index of the observation.  The counts covariance of the fit is the
+  // flux block of that matrix, so the background row and column are dropped
+  // (the background is not a photometric measurement) and no off diagonal
+  // term is lost.  Comparing the native domain size with the total number of
+  // measurements of every frame, as the previous code did, never matched, so
+  // the joint path never ran and the measured correlation Cov(F1,F2) was
+  // silently replaced by zero.
   // ---------------------------------------------------------------------
   numerics::Matrix counts_covariance(problem.n_meas, problem.n_meas);
-  bool joint_counts_covariance = false;
-  for (std::size_t frame_index = 0; frame_index < frames.size(); ++frame_index) {
+  bool joint_counts_covariance = true;
+  std::string counts_covariance_reason;
+  for (std::size_t frame_index = 0; frame_index < frames.size() && joint_counts_covariance;
+       ++frame_index) {
     const FrameInput& frame = frames[frame_index];
     if (!frame.measurements || !frame.measurements->joint_noise) {
-      continue;
+      joint_counts_covariance = false;
+      counts_covariance_reason =
+          "the frame " + frame.frame + " publishes no joint flux covariance";
+      break;
     }
     const Ref<CovarianceAction>& noise = frame.measurements->joint_noise;
-    const std::size_t domain = noise->input_output.domain ? noise->input_output.domain->size : 0;
-    if (domain != problem.n_meas) {
-      continue;
+    const std::size_t codomain =
+        noise->input_output.codomain ? noise->input_output.codomain->size : 0;
+    const std::size_t m = frame.counts.size();
+    if (m == 0) continue;
+    // The codomain is the flux vector, optionally with the single background
+    // column appended by measure_science_sources (the last coordinate).
+    if (codomain != m && codomain != m + 1) {
+      joint_counts_covariance = false;
+      counts_covariance_reason =
+          "the joint flux covariance of the frame " + frame.frame + " has " +
+          std::to_string(codomain) + " coordinates for " + std::to_string(m) +
+          " measured sources; the flux block cannot be identified";
+      break;
     }
-    Result<numerics::Matrix> dense = dense_covariance(context, noise, problem.n_meas);
+    Result<numerics::Matrix> dense = dense_covariance(context, noise, codomain);
     if (!ok(dense)) {
-      continue;
+      joint_counts_covariance = false;
+      counts_covariance_reason =
+          "the joint flux covariance of the frame " + frame.frame + " cannot be applied";
+      break;
     }
-    counts_covariance = val(dense);
-    joint_counts_covariance = true;
-    break;
+    for (std::size_t r = 0; r < m; ++r) {
+      for (std::size_t c = 0; c < m; ++c) {
+        const std::size_t row = problem.frame_meas[frame_index][r];
+        const std::size_t column = problem.frame_meas[frame_index][c];
+        counts_covariance(row, column) = val(dense)(r, c);
+      }
+    }
   }
   if (!joint_counts_covariance) {
-    // The per measurement variance is used as the diagonal of the joint
-    // covariance.  A missing variance is never replaced by zero.
+    // The measured correlations are not available.  The declared per
+    // measurement variance is used as the working weight and the missing
+    // correlation is recorded: the fit never silently claims that the off
+    // diagonal terms are zero.  A measurement whose variance is unknown keeps
+    // the unit working weight (the document allows a conditional fit with unit
+    // weights) and is recorded by the variance check below.
     for (std::size_t i = 0; i < problem.n_meas; ++i) {
-      counts_covariance(i, i) = problem.meas_variance[i];
+      const double variance = problem.meas_variance[i];
+      counts_covariance(i, i) = (is_normal(variance) && variance > 0.0) ? variance : 1.0;
     }
+    result.unknown_terms.push_back(
+        "the measured flux correlation is unavailable (" + counts_covariance_reason +
+        "); the count rows use the declared diagonal variance as the working weight and the "
+        "off diagonal terms are unknown, not zero");
   }
   std::string whitener_note;
   Result<Whitener> counts_whitener =
@@ -804,15 +847,38 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
           dense = true;
         }
       }
+      if (!dense) {
+        // The covariance object is supplied but cannot be read on the latent
+        // coordinates.  The absolute scale is then not identifiable, and the
+        // fit says so instead of inventing a covariance.
+        result.failure =
+            "the XP coefficient covariance of source " + std::to_string(stars[star].source_id) +
+            " cannot be read on the " + std::to_string(problem.latent_dim) +
+            " latent coordinates; the absolute scale is not identifiable";
+        result.identifiable = false;
+        return model::ok_result(std::move(result));
+      }
     }
     if (!dense) {
-      // Equal weights; the missing XP covariance is recorded as an unknown
-      // model term rather than as a zero variance.
+      // No XP coefficient covariance is supplied.  The identity matrix here is
+      // a WORKING WEIGHT that keeps the latent determinate, not a claimed
+      // measurement covariance; the previous code published it as if the
+      // catalogue had a unit variance, which turns an exact catalogue into an
+      // arbitrary ~38% absolute scale error for seven stars (audit C3).  The
+      // unknown and the actual non-identifiable direction are recorded, and
+      // the equal weight is named as a working weight in the notes.
       for (std::size_t i = 0; i < problem.latent_dim; ++i) {
         covariance(i, i) = 1.0;
       }
-      result.unknown_terms.push_back("the XP coefficient covariance of source " +
-                                     std::to_string(stars[star].source_id) + " is unknown");
+      result.unknown_terms.push_back(
+          "the XP coefficient covariance of source " + std::to_string(stars[star].source_id) +
+          " is not supplied; the latent uses an equal working weight (a working prior, NOT a "
+          "declared measurement covariance)");
+      result.notes.push_back(
+          "source " + std::to_string(stars[star].source_id) +
+          ": the absolute scale direction (all log a_k of its frames shifted by the same delta "
+          "with c_s scaled by exp(delta)) is fixed by the equal working weight and is NOT "
+          "measured; the XP covariance is unknown");
     }
     std::string note;
     Result<Whitener> whitener = build_whitener(covariance, settings.rank_relative, note);
