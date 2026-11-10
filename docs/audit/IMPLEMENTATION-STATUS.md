@@ -67,3 +67,31 @@
 后续**由审查人员逐项核对**：manifest状态/attempts与case比较文件相合；必需科学泛函缺项或零有效样本不能取得实验通过结论；源码依赖、fixture/oracle/判据/flags任一实质变化时，旧结论仅为历史证据或须重新分析。只改文档而未影响已经验证的数学命题时，可保留原有限实验记录，但不得说成新运行。不实施自动门禁；试验程序只负责实际实验，不负责代替推理作科学判决。
 
 对M0—M6只建立人读的逐项证据和责任记录，不以自动汇总器、计数或脚本生成总通过结论；本页只作审计导航，冻结manifest的实际身份必须被解释清楚。规范语义改变也要标待按新要求验证，即使二进制相同；不能因为source hash相同就把新科学断言认证为已测。每个修复保留旧失败attempt、新运行与影响范围，禁止覆盖历史证据以凑通过。详见[第二轮整改记录](round2-algorithm-contracts.md)。
+
+## 2026-11-10 重建批次：A0–C2 的实际状态
+
+> 本节只描述本轮 `rebuild/acsd-v2` 的实际提交与证据，不把设计或局部探针当全链认证。最新远端提交 `18c923fa1`。
+
+### 已完成并有独立证据
+
+| 阶段 | 提交 | 证据 |
+|---|---|---|
+| A0 基线 | `ca7de6d4d` | 22 process 注册、57 operation；X01 旧基线；结构缺口清单 `a0-baseline-audit.md` |
+| A1 文献 | `688adeac7` | 10 张 primary paper 卡 + 未读项标注 `docs/references/` |
+| A2 R1–R5 | `688adeac7` | 历史 oracle 重跑逐位相同；仅 R2 为方法候选 `r1-r5-research-audit.md` |
+| B1 数值 | `fa4649d57` | 定向舍入四则/sqrt；精确有理 oracle 20000 例 0 失败；超越函数明确为条件性界 |
+| B2 Normalize 审计/修复 | `77a13c89c`、`79346a8ee` | 独立审计 + 两轮实现 + 独立复核：P0-1 C2 修后 [8,12]；R1 数据残差移出半径（旧 1055 ADU → 2.2e-8 ADU）；R1b/R2/R3/P1-2/P1-6 已修；R4 跨帧共享根记录 unknown |
+| B3 Geometry 审计/修复 | `77a13c89c`、`79346a8ee` | 独立审计 + 复核：P0-1/P0-2/P0-3/P0-5 关闭；常量场 B=b0 与顺序无关；极区残差覆盖真误差；seam work 20000→1525、47s→0.8s；A_L=0 B 1.6667→2；裁剪 13–52× 加速且 dyadic 逐位不变 |
+| B4 Statistics 审计/修复 | `77a13c89c`、`79346a8ee` | 独立审计 + 复核：等权 V=tᵀΓt（CE-G 0.25→2.5）；coadd W C Wᵀ（CE-H 和 2→6、差 2）；sky c/T/A 同源；PSD 零空间 (β=(1,−1),V≈0)；apply_sky 按帧身份与 coadd 外层 influence 已接线 |
+| C1 Runtime 审计/修复 | `77a13c89c`、`b600b9e2d`、`79346a8ee` | 独立审计 + 复核：用户 Limits 唯一账本、低 H 具名拒绝、broadcast 取消唤醒、无线程 facade、bridge 先 claim 后分配、spill/cleanup/路径/有界读/fdatasync |
+| 产品闭包 | `ef91befb7`、`1139f7ec7`、`1f48c58ad`、`79346a8ee` | 引用闭包校验；profile=full 有 omitted 时拒绝发布；signal_only 产品 complete=true 且 assessment.complete=false/conditional/unknown；estimate 携带 issue；无悬空 ref |
+| X01 全链 | `18c923fa1` | **79346a8ee 上默认 block=1**：normalize 8/8、mosaic 1、export 1、exit 0；blind RMS 0.2109 px；48 个比值残差 max|z|=1.9007、48/48 ≤3σ；旧 5% 失败（10.33%）保留为 superseded |
+
+### 仍开/未认证
+
+- B2 的 R4 跨帧共享母版精确交叉块未实现（当前记录 unknown），P1-5 θ 随机影响未实现，P1-7 位置身份未统一；X01 的 dark 4.8 vs 480 ADU 与 XP 系数 [1,0,0] 是夹具缺陷，未修。
+- B3 的 `Identity::revision` 仍恒 1（内容 hash 已内容化）、SupportMap 真 Boolean union 未实现、`block_size>1` 仍拒绝、`normalizer_min_sr`/`max_bytes` 未接；历史 `validation/geo/geo_validation.cpp` 行和检查是旧 w 语义。
+- B4 的 `CoaddRequest` POD 未初始化（src/model）、exact-constraint 绝对容差、same_factor undecided→true、降级白名单吞执行失败、负方差启发式。
+- C1 的 `acsd-contract` 驱动仍不建 Services（独立 API 路径的 Limits 未生效）、`close_command` 无生产调用者、未知 recipe→identity、product 侧无 fsync/整数组单块/root path 约束、ingest 零计费、Unit 默认初始化、事件流写失败。
+- 22 process 中只有 X01 覆盖的链有全链实跑；其余 21 个 process 仍按 operation 级 IMPLEMENTED_NOT_VERIFIED/PASS_SCOPED，不能写“全部完成”。
+- 未跑 ASan/UBSan/TSan、掉电/满盘注入、Windows；第三方库线程安全/fenv 未认证。
