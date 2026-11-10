@@ -328,8 +328,12 @@ Result<Ref<CovarianceAction>> make_covariance(Context& context, Ref<NoiseModel> 
                                               model::hash_index(Index::Kind::latent, merged_count, 0, {}),
                                               "acsd");
   covariance->assessment = model::make_assessment(Code::ok);
-  covariance->assessment.complete = true;
+  covariance->assessment.complete = model->state == NoiseState::known;
   covariance->assessment.noise = model->state;
+  if (model->state != NoiseState::known || !model->unknown_terms.empty()) {
+    covariance->assessment.science = ScienceState::conditional;
+    model::set_omitted(covariance->assessment, "known_complete_variance");
+  }
   if (!model->unknown_terms.empty()) {
     // A non-zero influence of an unknown term makes the complete variance
     // unknown; the known part is still available for diagnostics.

@@ -2622,6 +2622,9 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
     model::set_omitted(out.assessment, "known_control_covariance");
     model::set_included(out.assessment, "declared_nominal_control_covariance");
     fit->assessment.noise = NoiseState::unknown;
+    fit->assessment.science = ScienceState::conditional;
+    fit->assessment.complete = false;
+    model::set_omitted(fit->assessment, "known_control_covariance");
     out.assessment.noise = NoiseState::unknown;
     model::add_issue(out.assessment, Code::unavailable,
                      "the control covariance is not known; the published parameter covariance is "
@@ -2632,6 +2635,9 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
   if (null_parameters.cols > 0) {
     model::set_omitted(out.assessment, "not_estimable_sky_directions");
     fit->assessment.noise = NoiseState::unknown;
+    fit->assessment.science = ScienceState::conditional;
+    fit->assessment.complete = false;
+    model::set_omitted(fit->assessment, "not_estimable_sky_directions");
     out.assessment.noise = NoiseState::unknown;
     model::add_issue(out.assessment, Code::not_identifiable,
                      "the difference model has directions that the common sky cannot separate",

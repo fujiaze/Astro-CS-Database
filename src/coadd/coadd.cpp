@@ -1988,6 +1988,22 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
     }
   }
 
+  if (sky) {
+    for (const std::string& item : sky->assessment.omitted) {
+      if (std::find(estimate->assessment.omitted.begin(), estimate->assessment.omitted.end(),
+                    item) == estimate->assessment.omitted.end()) {
+        estimate->assessment.omitted.push_back(item);
+      }
+    }
+    for (const Issue& issue : sky->assessment.issues) {
+      estimate->assessment.issues.push_back(issue);
+    }
+    if (sky->assessment.science == ScienceState::conditional) {
+      estimate->assessment.science = ScienceState::conditional;
+    }
+    if (!sky->assessment.complete) estimate->assessment.complete = false;
+  }
+
   CoaddResult result;
   result.estimate = std::shared_ptr<const SignalEstimate>(estimate);
   result.selection = selection;
