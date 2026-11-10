@@ -99,3 +99,9 @@ X01 在 `677e1a808` 再次全链通过：normalize 8/8、mosaic 1、export 1，b
 - 两处均加入能力上界：latent 或行数 > 4096 时返回 `unavailable` 并具名原因，调用方保留协方差 unknown，不阻塞工作流。2 帧全噪声链从 >40 s 挂起变为秒级完成，发布 `signal_only` + `omitted:no_noise`，export 继续发布但 noise unknown。
 - 这是**有界失败**而不是科学修复：full 协方差仍需 sparse 组合（不做逐列物化）；但它消除了一个会让三命令永久挂起的工程缺陷。
 - X01 在 `2840f1ac7` 再次全链通过（signal_only）：normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007，旧 5% 失败保留。
+
+## 12. 第八轮补充（2026-11-11，`c858bb130`）
+
+- **B5 常场解析 Oracle（新证据）**：`validation/projection/export_constant_probe.cpp` 发布单叶常面亮度产品，1×1 TAN 像元 `supported_flux = b0·|det CD|`（相对误差 1.76e-11）、`supported_mean = b0`；远离叶的像元返回 **NaN**（非 0）。这验证 Q 定义、pixfrac=1、mean/flux 区分与无支持语义。
+- **D0 四语义映射**：`docs/audit/d0-error-semantics.md` 把确定数值包围/随机统计/物理系统偏差/未知映射到 `Interval`、`CovarianceAction`、`ErrorRecord`、`UnknownTerm/noise=null`，并列出数据残差进半径、unknown 填零、逐叶对角化等反例；D0 仍因 full 协方差端到端未闭合而不能 PASS。
+- **C0 22 Process 审计**：已启动独立审查（报告 `docs/audit/c0-process-audit.md` 由 subagent 产出），本轮结束时尚未返回；下一轮收集其 P0/P1 并按序修复。
