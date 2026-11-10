@@ -84,3 +84,5 @@ bash validation/lib/build_native.sh u01_driver c01_driver   # 只编译原生驱
 ## 本次新增工程验收目标（尚未实施）
 
 本轮保留上述独立性规则、运行方法与历史case记录；当前状态仍以各case原始证据及后续阶段报告为准，不由本次文档修改重新认证。新增A01/B01/H01/D01/K01尚无对应生产服务验收：后续需有调用归因/高水位、远大于H的流式输出、规范块/Dyadic等值、探针OFF零求值/ON惰性与失败隔离、设备事件/驻留/回退的实际证据。schema检查或设计推演不能替代服务实跑。完整构型见[VERIFICATION](../docs/engineering/rebuild/VERIFICATION.md)。
+
+- `projection/export_constant_probe.cpp`: constant surface brightness -> supported_flux equals b0 * |det CD| (analytic oracle), supported_mean equals b0.

@@ -66,3 +66,18 @@ Export 的 Q 定义、NaN/负/零语义、单位与 full 协方差重开已可�
 把 X01 三个 config 的 `product_profile` 改为 `full` 后，normalize 8/8、mosaic 1、export 1 **都能发布 full 产品**，导出值约 2679 ADU（输入约 2800 ADU），说明 normalize→mosaic→export 的 full 链已能跑通；但最终 export 的 `SignalEstimate.noise` 仍为 null，issue 为 “the export covariance cannot be built: the noise model carries no uncertainty root; a covariance cannot be built without inventing one”。根因是 coadd 路径发布的 `NoiseModel` 没有 innovations/shared_factors/influence（空模型），`make_covariance` 正确地拒绝为它发明一个根。
 
 因此本轮的裁决是：**空协方差模型必须降级为 noise=null + 具名 no_noise，不能以 full 发布**；`product.cpp` 已实现该降级，并把任何 material unavailable/unsupported issue 记为 omission，使 full 发布被拒绝。X01 返回显式 `signal_only`，在 `5cdb27c15` 通过（normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007，旧 5% 失败保留）。**full profile 的端到端证据目前只到 2 帧 /tmp 链（导出 2279 ADU）**；coadd 的根模型修复是下一轮 B4/B5 的前置。
+
+## 8. 常场解析 Oracle（本轮新增）
+
+`validation/projection/export_constant_probe.cpp`：发布一个单叶、常面亮度 \(b_0=10^6\)、`signal_only` 的产品，重开后在 1×1 target TAN 像元上调用 `build_export`。目标像元完全落在叶内，中心 \(q=0\)，故
+\[
+\Omega_{\rm pix}=|\det C|=\left(0.0002777778^\circ{\pi\over180}\right)^2.
+\]
+实测：
+
+```
+supported_flux actual=2.35044305387e-05  expected=b0*|det C|=2.35044305391e-05  rel=1.76e-11
+supported_mean actual=1.000000e+06     expected=b0
+```
+
+即 `supported_flux` 与解析球面像元面积一致到 \(1.8\times10^{-11}\)，`supported_mean` 精确等于常场。这验证了 Q 的定义、pixfrac=1 不二次收缩、支持均值/积分的区分，以及导出信号未被 clamp/归一污染。仍未覆盖：部分支持像素、非对称 CRPIX、旋转/镜像 CD、跨 face、极大目标像元与重复 pixfrac 的独立反例。
