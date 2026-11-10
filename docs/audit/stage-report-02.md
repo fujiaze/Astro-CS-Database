@@ -205,3 +205,9 @@ max_abs_diff=2.84217e-14  max_abs=59.2686  rel=4.8e-16
 ## 22. 第十八轮：X01 dark 夹具（2026-11-11，`f3b72c3ea`）
 
 `calibration.json` 的 dark 从 4.8 ADU 改为 truth 对应的 480 ADU（`12 e⁻/s × 100 s / 2.5`），曝光时间同为 100 s。此前 475.2 ADU 被 β 吸收，N0 的 dark 路径未被真实覆盖。X01 full 全链在 `f3b72c3ea` 仍通过，blind RMS/48 残差不变；dark 路径现在有数据覆盖。
+
+## 23. 第十九轮：support states 重开 P0（2026-11-11，`6889aa307`）
+
+- `decode_support_map` 漏解码 support 数组引用，重开产品时 `states=null`，export 把所有几何重叠叶当作 supported；`states=0` 的叶仍导出非零。
+- `read_states` 读失败还静默返回空 vector，同样等于“全支持”。
+- 修复后：`states present=1`、`states=0` 叶导出 NaN；读失败具名拒绝。X01 full 在 `6889aa307` 通过，blind RMS 0.2109、48 残差 max|z|1.9007 不变。

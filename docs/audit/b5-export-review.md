@@ -93,3 +93,22 @@ supported_mean actual=1.000000e+06     expected=b0
 | 2×2, CRPIX=(0.3,0.7), CD 镜像 (det>0) | 9.401772214783947e-05 | 9.401771879383529e-05 | 3.57e-8 |
 
 这覆盖了非中心像元、旋转 CD、非对称 CRPIX 与 det>0 镜像 CD；仍未覆盖部分支持像素、跨 face、极大目标像元与重复 pixfrac。
+
+## 9. P0：重开后 support states 被静默丢弃（`6889aa307`）
+
+`decode_support_map` 只恢复 `kind`/`primitives`/`geometry_snapshot`，没有解码 `states`/`area_lower_sr`/`area_upper_sr` 等数组引用；reader 因 `support.states == null` 跳过这些链接。结果：**重开的产品在 export 时把所有几何重叠叶都当成 supported**，即使原产品 `states=0`。`read_states` 读失败时还返回空 vector，同样被当成“全支持”。
+
+修复：
+- `decode_support_map` 解码全部 support 数组引用；
+- `read_states` 返回 `Result`，读失败即具名拒绝 export；
+- 删除 `product_io.cpp` 中重复的 `decode_ref` 定义（造成重载歧义）。
+
+证据（`validation/projection/export_constant_probe.cpp nosupport`）：
+
+```
+states present=1
+zero-support value=nan
+zero support state gives NaN, not zero
+```
+
+修复前同一产品导出 `b0·area`；修复后为 NaN。正常常场 export 仍与解析球面面积一致。X01 full 在 `6889aa307` 通过，blind RMS/48 残差不变。
