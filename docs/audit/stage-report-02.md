@@ -48,3 +48,19 @@ historical 5% criterion: max relative error 0.10333067715982192, FAIL, kept as s
 ## 5. 结论
 
 本轮完成了 A0–B4 与 C1 的“审计—修复—独立复核”闭环中的主要 P0，并首次在默认算法（block=1）下跑通 X01 三命令全链且保留旧失败。它不是“ACSD V2 全部完成”：协方差产品闭包、暗/绝对标度、剩余 process 与平台可靠性仍开。后续应按 `docs/workplans/v2-science-engineering/README.md` 的 B5/C0/C2/D1 继续，且不得把本报告的 X01 pass 扩大为全系统认证。
+
+## 6. 第二轮补充（2026-11-11，`677e1a808`）
+
+在阶段 02 的首次 X01 通过之后，继续闭合产品协方差闭包：
+
+| 项 | 内容 |
+|---|---|
+| 产品 reader | 新增 `LinearAction`/`NoiseRoot`/`NoiseModel`/`CovarianceAction` 的重开；未知或 `solve` recipe 显式失败，不再静默 identity |
+| 动作身份 | 所有 action 由 kind/children/payload/size 内容寻址；CSR 的 offsets/indices/values 作为产品数组序列化并列入 recipe；diagonal/CSR 的 domain/codomain Index 与 error record 进入闭包 |
+| 发布 | 只有整个协方差闭包可写时才存 noise；否则 unknown + 具名 `no_noise`，estimate 自身带 issue；profile=full 有遗漏时拒绝发布 |
+| 独立 round-trip | `validation/product/roundtrip_probe.cpp`：发布带 covariance 的 full 产品，重开，`C·1 = 4·1`，0 失败 |
+| 真实链 | 2 帧 mosaic 产品重开后 export 成功（旧 `action cannot be rebuilt` 消失） |
+| DTO/Identity | `Unit`、`SolvePolicy`、`RejectionPolicy`、`CoaddRequest` 默认初始化；`make_identity` 接受显式 revision，refine 递增 |
+| 信息 | `control_covariance` 的 unknown term influence 随 T 变换 |
+
+X01 在 `677e1a808` 再次全链通过：normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007、全部 ≤3σ；旧 5% 失败保留。注意 X01 仍是 signal_only，所以这次通过**不**等于协方差链端到端认证；协方差链的证据是 roundtrip probe 与 2 帧 mosaic→export 实测。
