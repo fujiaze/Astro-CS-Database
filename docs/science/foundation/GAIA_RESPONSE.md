@@ -1,6 +1,8 @@
 > 当前科学设计状态：已完成独立科学及工程完整性复核，未发现尚存P0/P1设计阻碍；结论与范围见[最终审核记录](../../audit/final-review.md#科学审核状态)。不再以重复的通用独立科学审核作为启动实现前置；负责人启动授权、实现后的独立数值/产品/性能验证及真实数据适用性验证仍分别成立。公共字段、签名与枚举只由[contracts.hpp](../../../include/acsd/contracts.hpp)拥有。
 >
 > 历史证据边界：下文所有“已运行/生产探针/本轮/独立脚本”、研究性能数字及研究文件名均指[固定基线档案c5fee09fe](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)。这些脚本及旧生产源码不在当前工作树；复算只能在该提交的单独历史checkout及其依赖环境中进行，不能在本分支根目录直接运行，也不能用其结果验收新实现。当前可运行内容仅为[根README](../../../README.md)列出的设计/schema/声明检查，未来科学测试另按VERIFICATION重新编写。
+>
+> 当前实现/产品裁决不由此页继承：见[阶段报告 02](../../audit/stage-report-02.md)与[实施状态](../../audit/IMPLEMENTATION-STATUS.md)。
 
 
 # Gaia XP、经验标度与响应
@@ -67,6 +69,28 @@ Gaia synthetic photometry 原文 Appendix B 定义 \(R_f=\mathrm{FWHM}_{band}/\m
 星位、PSF积分域及光度应用共享[观测合同](OBSERVATION_COORDINATES.md)的 `PixelCenter0/WcsModel/DetectorFootprint`，不在Gaia或PSF接口再补原点偏移。输出积分 x 的单位与 `SignalEstimate` 一致，数值求积/拟合舍入界、XP随机误差和响应模型偏差分别保留；有限确定偏差不自动作为独立方差。后续面积区间按[几何规范 §5](SPHERICAL_DRIZZLE.md)传播到同一R、B与Cov，若x也有数值区间，signed numerator按完整端点积取界，或用 `ΣR_U δx` 增加确定信号误差界。该数值项不覆盖未知谱线和真实response失配。
 
 n 星、p 参数，固定小 p 的一次稠密局部拟合 O(np²+p³)，共享星的谱 covariance 用按 source 分块算子；大型多帧求解用稀疏 QR/LSQR。不能生成全图 N² covariance。`α=exp(−h^Tθ)` 时 `∂x'/∂θ=−x' h^T`；与同图拟合共用数据的交叉项交给[统一统计](STATISTICS_SKY_COADD.md)，一次归属。
+
+### 3.1 联合似然的秩、gauge 与空间标度
+
+对每颗星 \(s\) 令 \(\ell_s=\log a_s\)、颜色/空间参数 \(\theta\)，
+\(\log q_{ks}=b(u_s)^T\theta+\log q^{0}_{ks}\)，counts 模型
+\[
+\log C_{ks}=\ell_s+b(u_s)^T\theta+\log q^{0}_{ks}.
+\]
+若 \(b\) 含常数项 \(b_0\)，则
+\[
+\ell_s\to\ell_s-b_0\delta,\qquad \theta\to\theta+\delta
+\]
+对所有星给出同一 counts：**整体加性标度与常数颜色项不可分**。这是 gauge，不是数值退化；必须固定 \(\sum_s \ell_s=0\)、选参考星或固定 \(b_0=0\)，并把选取写进 `Condition`。
+
+更一般地，联合设计矩阵的列若线性相关（例如所有训练星 \(u_s\) 相同、或颜色与空间基共线），则只有列空间上的组合可估；秩亏方向必须由 QR/SVD 的零空间识别并返回 `not_identifiable`，不能用 ridge 或伪逆造一个有限方差。XP 潜变量 \(c_s\) 与 \(\theta\) 之间还有每星尺度：若 \(C_{ks}=a_k\exp(b^T\theta)v^T c_s\) 且 \(c_s\) 只出现在本星，则 \(c_s\to\lambda_s c_s,\ a_k\to a_k/\lambda_s\) 对每颗星不可分；Gaia XP 的观测方程 \(c_{\rm Gaia}=c+\eta\) 是打破该退化的唯一数据，缺它时只能给相对颜色/形状。
+
+空间标度 \(\alpha(u)\) 必须作用在**每个像元的实际 PSF 积分**上：
+\[
+x_i'=\alpha(u_i)\,x_i,\qquad
+\hbox{星总通量}=\sum_i \alpha(u_i)\,P_i\ \neq\ \alpha(u_*)\sum_i P_i,
+\]
+除非 \(\alpha\) 在星的支持内为常数。用中心位置 \(\alpha(u_*)\) 乘整颗星，在梯度/色差场景下会有 \(O(\nabla\alpha\cdot\)PSF 宽度\()\) 的偏差；该偏差是模型误差，不与统计方差混算。
 
 ## 4. 参考 SED、跨通带及不可辨识证明
 

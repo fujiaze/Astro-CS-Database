@@ -1,6 +1,8 @@
 > 当前科学设计状态：已完成独立科学及工程完整性复核，未发现尚存P0/P1设计阻碍；结论与范围见[最终审核记录](../../audit/final-review.md#科学审核状态)。不再以重复的通用独立科学审核作为启动实现前置；负责人启动授权、实现后的独立数值/产品/性能验证及真实数据适用性验证仍分别成立。公共字段、签名与枚举只由[contracts.hpp](../../../include/acsd/contracts.hpp)拥有。
 >
 > 历史证据边界：下文所有“已运行/生产探针/本轮/独立脚本”、研究性能数字及研究文件名均指[固定基线档案c5fee09fe](https://github.com/fujiaze/Astro-CS-Database/tree/c5fee09fedb97ccbe39cb47ea0985e0d8a339db2/%E5%AE%9E%E9%AA%8C/science-foundation)。这些脚本及旧生产源码不在当前工作树；复算只能在该提交的单独历史checkout及其依赖环境中进行，不能在本分支根目录直接运行，也不能用其结果验收新实现。当前可运行内容仅为[根README](../../../README.md)列出的设计/schema/声明检查，未来科学测试另按VERIFICATION重新编写。
+>
+> 当前实现/产品裁决不由此页继承：见[阶段报告 02](../../audit/stage-report-02.md)与[实施状态](../../audit/IMPLEMENTATION-STATUS.md)。
 
 
 # 统一误差、相对天光和传统合成
@@ -90,6 +92,43 @@ I_{F|β}=\|(I-\Pi_{Z_w})h_w\|^2,\quad V_F=1/I_{F|β}.\tag{3}
 独立 `round2_science_budget.py` 以标准库有理数实现分式盒极值，和三个各64顶点的独立枚举逐分数相等；八类科学场景及58个真实等面积 chart 矩形目标叶都包含已知真值。它检验已给面积区间的传播，不认证 WCS 相交器。signed 孔径方差真值 `.8369525738`，错误独立输出算法 `4.9512278532`；几何 perturbation 给有限误差界。进一步 BLUE 初始 `ρ=1.27217465` 显式未决，面积半径缩小100倍后 `.01270681` 得有保证区间，再缩小100倍为 `.0001270666`。全部失败、精确端点、精度请求与资源见 `evidence/round2_science_budget.json` 和研究记录 `ROUND2_SCIENCE_BUDGET.md`。确定数学界和这些有限真值检查分开，也不等价于新 C++ 机器浮点的形式化证明。
 
 `round2_cpp_science_bridge.py` 把实际 C++ 原型的六个无SIP构型、九个目标叶接入同一传播，独立60位区间 TAN 球三角计算 Ω/A；构造近1e9/−2 L/sr的亮/暗两贡献，并计算 R 与 covariance 界。B目标 .001 时，fine_subleaf 误差界1.65e−5达标；normal_tan 误差界126–5137、coarse_many_leaf 2408–16877仍为 `science_unconverged`。两个有独立解析交叠真值的例子，真实 B 误差约4961和29980，均落在其更宽预测界内。其他叶没有解析真值，明确仅给条件区间，不把中心值当真值。面积proxy达到要求、几何有界与最终高动态科学精度达标必须分别报告，详见 `evidence/round2_cpp_science_bridge.json`。
+
+### 2.3 \(P=I-EKT\) 的逐行推导与同数据交叉项
+
+控制统计 \(c=Ty\)，拟合参数 \(\hat\beta=Kc\)，校正信号
+\(z=y-E\hat\beta\)。把 \(\hat\beta\) 代回：
+
+\[
+z=(I-EKT)y=Py,\qquad P=I-EKT .
+\]
+
+因此 \(C_z=P C_y P^T\)。展开：
+
+\[
+C_z=C_y-EKT C_y-C_y T^TK^TE^T
++EKT C_y T^TK^TE^T . \tag{6a}
+\]
+
+中间两项是**负交叉项**，不是“先减天光再加回参数方差”可以省略的。只有控制行与被预测行完全不共享随机输入时，\(T\) 的行与 \(P\) 的行正交，这两项才为零；空间上的 holdout 像元仍可能与训练控制共享 flat/Gaia/Drizzle 根，此时必须保留式 (6a) 的第三项与交叉项。
+
+**最小反例**：两帧、每帧一个像元，\(y=(y_1,y_2)\)，\(C_y=\sigma^2 I\)，\(T=(1,1)/2\)（共同均值控制），\(E=(1,1)^T\)，\(K=(T C_y T^T)^{-1}T C_y=(1,1)/2\)。则 \(EKT=(1/2)11^T\)，\(P=I-(1/2)11^T\)。于是
+
+\[
+C_z=\sigma^2\left(I-{1\over2}11^T\right),\qquad
+\mathrm{Var}(z_1)=\sigma^2/2,\quad
+\mathrm{Cov}(z_1,z_2)=-\sigma^2/2 .
+\]
+
+若按“每帧独立减去自身均值、再加回参数方差”处理，会得到零方差或 \(\sigma^2\)，都错；两帧校正后是强负相关，因为它们的均值被同一个 \(\hat\beta\) 扣除。
+
+**选择后的 coverage**：式 (6a) 是固定 mask/权/排异规则下的**条件**协方差。若接受集合是数据依赖事件 \(\mathcal A(y)\)，则
+
+\[
+\mathrm{Cov}(z\mid \mathcal A)=
+E[zz^T\mid\mathcal A]-E[z\mid\mathcal A]E[z\mid\mathcal A]^T,
+\]
+
+一般不等于 \(P C_y P^T\)。要发布无条件 coverage，必须对完整选择过程（含被拒帧）做前向 Monte Carlo 或按独立来源分组的 bootstrap；只对保留样本套固定权公式，只能声明条件 coverage。有效样本数 \(K_{\rm eff}=1/\sum_i t_i^2\) 仅对独立同方差权有意义，不能把相关帧的选择后方差写成 \(1/K_{\rm eff}\)。
 
 ## 3. 亿级叶网格可执行的 covariance 表示
 
