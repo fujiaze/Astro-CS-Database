@@ -4,7 +4,7 @@
  "inputs": [
   {
    "path": "products/mosaic",
-   "expected_hash": "sha256:61b23648288b6c14b2a39b6e0010780ddffc6e4cffac4b195f3a1bb8a304cd8b"
+   "expected_hash": "sha256:632b82741da269ff25b278fb9f5b5de8ad073fcc0826a540613553cefe94fb88"
   }
  ],
  "scientific": "export.scientific.json",

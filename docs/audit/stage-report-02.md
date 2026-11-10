@@ -219,3 +219,10 @@ export 的 P0（`6889aa307`）修复后，继续检查同一类“重开即放�
 - `coadd::read_frame` 与 `sky::read_frame` 在 `query_support` 失败、support 为空或 `states` 为空时都 `assign(count,1)`，即把所有叶当 supported。权重和控制统计会静默使用生产者排除的行。
 - 两处现在都返回具名失败（`the frame publishes no support states`），不再默认 1。2 帧 full 链仍发布；X01 full 在 `7775f6a14` 通过，blind RMS 0.2109、48 残差 max|z|1.9007 不变。
 - 仍未处理的同类点：DQ 数组缺失时 coadd 的 `view.dq` 为空，选择是否把它当“全部质量良好”需单独审查（X01 有 DQ，不在本轮覆盖）。
+
+## 25. 第二十一轮：DQ 缺失与条件传播（2026-11-11，`aa1c7931e`）
+
+- **DQ 缺失语义**：`coadd` 旧逻辑对 `view.dq.empty()` 直接放行，等于“全部质量良好”。现在缺 DQ 的行仍可选（没有 bit 可拒），但 selection 记录 `the_quality_mask_is_absent_for_at_least_one_frame`、`science=conditional`、`complete=false`；DQ 数组长度与 index 不一致则具名拒绝（避免越界）。
+- **条件传播**：coadd estimate 曾用全新 `complete=true/bounded` assessment，selection 的 conditional/omitted 丢失；现在合并 selection 的 included/omitted/issues，并继承 conditional/incomplete。
+- **export 传播**：export estimate 同样曾重置为 bounded/complete；现在继承源 estimate 的 omitted/issues/conditional/incomplete，线性映射不能把条件结果升级为 bounded。
+- X01 full 在 `aa1c7931e` 通过；mosaic 与 export 均为 `full`、`science=conditional`、携带 `the_quality_mask_is_absent_for_at_least_one_frame`；blind RMS 0.2109、48 残差 max|z|1.9007 不变。
