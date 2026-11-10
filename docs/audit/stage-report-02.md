@@ -79,3 +79,10 @@ X01 在 `677e1a808` 再次全链通过：normalize 8/8、mosaic 1、export 1，b
 - coadd 的 `to_csr` 在把非 CSR 的帧影响（diagonal/compose）物化时失败：`the diagonal cannot be read`。这是 full 协方差的直接阻塞点；coadd 的未知模型现在保留 root 结构，但该物化路径仍需修。
 - 空协方差模型（无 root/influence）在 `product.cpp` 已降级为 `noise=null` + `no_noise`；material unavailable/unsupported issue 使 full 发布被拒绝。X01 因此保持显式 `signal_only`，在 `5cdb27c15` 通过；`5c320706b` 仅增加 coadd 根保留与诊断，不改变 X01 结果。
 - 下一步最小修复：在 `to_csr` 用 impact 的声明 domain 大小（`action->spaces.domain` 或 root coordinates）而不是 `domain_size()`，并对 diagonal 读取按实际输入长度校验；然后重跑 full X01。
+
+## 9. 第五轮补充（2026-11-11，`61531d170`）
+
+- 修正 `compose(outer, inner)` 的 spaces：组合的 domain 必须是 inner 的 domain、codomain 是 outer 的 codomain；旧实现整套用 outer spaces，使 latent→leaf 的影响声称 leaf domain，coadd 物化时读错尺寸。
+- 进一步定位 full coadd 协方差的阻塞：`to_csr` 读取帧影响数组时报 `missing_dependency`，根因是跨 Host 边界后这些数组没有 ingest 到 runtime storage。`ingest_noise` 只搬 coordinate index，不搬 factor/influence 的 payload arrays/children；临时加入的 `ingest_action` 能修复读取，但随后 `to_csr` 按 latent 列逐列 apply，2 帧即 >22 min，8 帧不可接受。因此未提交该路径。
+- 正确修法是直接在 leaf/latent 稀疏结构上组合（embedding ∘ influence），避免逐列物化；这仍是 full profile 的下一前置。
+- X01 在 `61531d170` 再次全链通过（signal_only）：normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007，旧 5% 失败保留。

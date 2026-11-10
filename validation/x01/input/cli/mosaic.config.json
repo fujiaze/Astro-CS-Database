@@ -4,19 +4,19 @@
  "inputs": [
   {
    "path": "products/x01-00",
-   "expected_hash": "sha256:439440edfc97829cb589053b76e97169cbb599629cbae1c4e0041e2c952b3440"
+   "expected_hash": "sha256:63c4f3d80f8c196c730883815fc6c2f531169cfeea907c38d3c0a90a723a2568"
   },
   {
    "path": "products/x01-01",
-   "expected_hash": "sha256:8b4bdb3fedfedea0c70570717aefc5caaf5c11980777334ae361a2ddb5fb8dd9"
+   "expected_hash": "sha256:a07b4ba28865e61cff8ee0036a58a212600f0a89fd65db1fc99630e689ae2cf1"
   },
   {
    "path": "products/x01-02",
-   "expected_hash": "sha256:02479efa785d7dcd9fe6146850db3162224cb8913997de18fb5917cdf04b978d"
+   "expected_hash": "sha256:3126ad946e6f9e48035b4c5afb6a350d10d77fde8ca05d26b763380a621b9629"
   },
   {
    "path": "products/x01-03",
-   "expected_hash": "sha256:2be46dbe385d7c1c76ef372450650aa7072f57051fe14db3e08dce6bc326a563"
+   "expected_hash": "sha256:aff3f4aa7722a08560a11bed963e0c469ee0bf980da83ce67ba288f4e2fe1162"
   }
  ],
  "publication": {
