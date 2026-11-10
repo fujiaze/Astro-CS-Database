@@ -371,9 +371,30 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
       }
     }
     if (noise_complete) {
-      store_object(builder, estimate.noise->identity.object_id, "acsd.CovarianceAction",
-                   workflows::encode_covariance_action(*estimate.noise));
-    } else {
+      // The covariance action names its input/output indices; they are part
+      // of the closure and must be written before the action object.
+      for (const Ref<Index>& space : {estimate.noise->input_output.domain,
+                                      estimate.noise->input_output.codomain}) {
+        if (!space) continue;
+        store_object(builder, space->identity.object_id, "acsd.Index",
+                     workflows::encode_index(*space));
+        if (space->ids) {
+          Result<Id> stored_ids = persist_array(context, builder, space->ids);
+          if (!ok(stored_ids)) {
+            noise_complete = false;
+            noise_reason = "the covariance space ids cannot be stored";
+            break;
+          }
+        }
+      }
+      if (!noise_complete) {
+        // fall through to the unknown branch below
+      } else {
+        store_object(builder, estimate.noise->identity.object_id, "acsd.CovarianceAction",
+                     workflows::encode_covariance_action(*estimate.noise));
+      }
+    }
+    if (!noise_complete) {
       effective.noise = nullptr;
       builder.omitted.push_back("no_noise: " + noise_reason);
       effective.assessment.complete = false;
