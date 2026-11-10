@@ -53,3 +53,13 @@ different=1
 - export 数值界漏 overlap 面积区间。
 - `Information` 的 `V_F` 单位不随模板 h 传播、参数数组 px/rad 混存。
 - 11 个 process 无 driver；8 份 comparison 仍是旧基线。
+
+## P1-2 lookup 的 complete 与 unknown 并存
+
+`src/catalogue/provider.cpp` 的 `lookup` 在缺标识符或 topocentric 修正无界时仍置 `complete=true`。现在：
+- 缺标识符 → `missing_identifier`，结束置 `complete=false`；
+- 无界 omitted bound → `noise=unknown`、`science=conditional`、`complete=false`。
+
+## P1-3 bind 的 detector 域检查用 sample 网格
+
+`bind_wcs` 现在把 footprint 的 sample 包围盒（`[-0.5,width-0.5]×[-0.5,height-0.5]`）经 `detector_from_sample` 与 offset 映射到 detector 坐标，再要求 `wcs.domain` 覆盖该 bbox；恒等映射与旧的 `[-0.5,width-0.5]` 检查一致，非恒等/旋转映射不再误判。

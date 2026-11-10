@@ -8,6 +8,7 @@
 // that holds the old object keeps reading the old model.
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -78,12 +79,30 @@ Result<Ref<NativeObservation>> bind_wcs(Context& context, Ref<NativeObservation>
           "the frame model cannot be bound");
     }
   }
-  // The whole detector domain has to be covered by the frame model.
+  // The whole detector domain has to be covered by the frame model.  The
+  // footprint set is stored in sample coordinates; the detector extent is
+  // obtained by mapping its bounding corners through detector_from_sample,
+  // not by assuming the sample grid is the detector grid.
   const Box& domain = wcs->domain;
   const double width = static_cast<double>(observation->footprints->width);
   const double height = static_cast<double>(observation->footprints->height);
-  if (domain.lower[0] > -0.5 || domain.lower[1] > -0.5 ||
-      domain.upper[0] < width - 0.5 || domain.upper[1] < height - 0.5) {
+  const Mat2& m = observation->footprints->detector_from_sample;
+  double det_lower[2] = {std::numeric_limits<double>::infinity(),
+                         std::numeric_limits<double>::infinity()};
+  double det_upper[2] = {-std::numeric_limits<double>::infinity(),
+                         -std::numeric_limits<double>::infinity()};
+  for (double sx : {-0.5, width - 0.5}) {
+    for (double sy : {-0.5, height - 0.5}) {
+      const double dx = m[0] * sx + m[1] * sy + observation->footprints->offset[0];
+      const double dy = m[2] * sx + m[3] * sy + observation->footprints->offset[1];
+      det_lower[0] = std::min(det_lower[0], dx);
+      det_upper[0] = std::max(det_upper[0], dx);
+      det_lower[1] = std::min(det_lower[1], dy);
+      det_upper[1] = std::max(det_upper[1], dy);
+    }
+  }
+  if (domain.lower[0] > det_lower[0] || domain.lower[1] > det_lower[1] ||
+      domain.upper[0] < det_upper[0] || domain.upper[1] < det_upper[1]) {
     return model::fail<Ref<NativeObservation>>(
         Code::domain, "the frame model does not cover the whole detector domain", kOrigin,
         "the frame model cannot be bound");

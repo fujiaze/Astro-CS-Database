@@ -572,6 +572,7 @@ Result<std::vector<CatalogueStar>> CatalogueProviderImpl::lookup(
   stars.reserve(source_ids.size());
   Assessment assessment = model::make_assessment(Code::ok);
   assessment.complete = true;
+  bool missing_identifier = false;
   // The catalogue carries no observer: the published positions are
   // barycentric and the topocentric correction is omitted.  The omission is
   // published with the result; its bound is the parallax of the sources and
@@ -586,6 +587,7 @@ Result<std::vector<CatalogueStar>> CatalogueProviderImpl::lookup(
       model::add_issue(assessment, Code::no_support,
                        "the source identifier is not present in the catalogue",
                        "catalogue.lookup", "the identifier is missing from the result");
+      missing_identifier = true;
       continue;
     }
     const StarRow& row = stars_[found->second];
@@ -610,10 +612,14 @@ Result<std::vector<CatalogueStar>> CatalogueProviderImpl::lookup(
   }
   if (unbounded) {
     assessment.noise = NoiseState::unknown;
+    assessment.science = ScienceState::conditional;
     assessment.omitted_position_bound_rad = std::nullopt;
   } else {
     assessment.omitted_position_bound_rad = bound;
   }
+  // A result that misses identifiers or has an unbounded omitted correction is
+  // not a complete answer; complete=true alongside unknown is contradictory.
+  assessment.complete = !unbounded && !missing_identifier;
   Result<std::vector<CatalogueStar>> out = model::ok_result(std::move(stars));
   out.assessment = assessment;
   out.usage = context.resources.usage();

@@ -5,7 +5,7 @@
 #include "model/result.hpp"
 #include "model/units.hpp"
 #include "storage/local_storage.hpp"
-#include "../workspace/Astro CS Database/validation/stats/harness.hpp"
+#include "validation/stats/harness.hpp"
 
 using namespace acsd;
 using namespace acsd::model;
