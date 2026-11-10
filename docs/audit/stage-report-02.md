@@ -142,3 +142,16 @@ X01 在 `3fa331a90` 再次全链通过（signal_only）：normalize 8/8、mosaic
 - `validation/process/information.reference/information_reference.cpp`：\(C=\mathrm{diag}(4,9)\)、\(h=[1,0]\)，`estimate_flux_information` 给 \(V_F=4\) 精确；把 `NoiseModel.state` 改为 unknown 后 `V_F=nullopt/unknown`。补上 information.reference 的独立数值证据（仍非完整 process driver）。
 - B5 镜像 CD：`export_grid_probe` 增加 det>0 模式；2×2、CRPIX=(0.3,0.7)、CD 旋转 30° 镜像，export sum 与 Astropy 球面面积相对差 3.57e-8。
 - X01 最新全链通过仍在 `7b470005`；本轮改动不在 X01 链上。
+
+## 18. 第十四轮：full profile 协方差路径诊断（2026-11-11）
+
+在 `sky::to_csr` 增加 compose-diagonal/通用 sparse 组合、并在 `dense_covariance_factor` 增加 diagonal factor 快路径后，2 帧全噪声链仍只在数秒内完成但**没有协方差对象**。逐层打印显示帧影响是：
+
+```
+factor_kind=diagonal (16384), influence_kind=compose
+  child0=csr, child1=compose
+```
+
+即影响不是简单的 `CSR ∘ diagonal`，而是 `CSR ∘ (…∘…)`；快路径未命中，4096 列物化上界仍在 `to_csr` 处返回 unavailable，joint covariance 继续降级。尝试的通用 sparse 组合未经充分反例验证，本轮未保留，`sky.cpp` 已退回 HEAD。
+
+结论：full profile 的下一最小步骤是**扁平化 selection/compose 链并直接得到每一列的稀疏模式**（或在 build_joint_noise 里用 action 组合 + 对控制向量做二次型，不做列物化）；在此之前 full 仍应保持不可用，不能靠提高 4096 上界来“通过”。
