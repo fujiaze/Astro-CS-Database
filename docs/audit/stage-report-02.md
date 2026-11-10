@@ -115,3 +115,9 @@ C0 审计报告 `docs/audit/c0-process-audit.md` 返回 2 个 P0、若干 P1；�
 - **P1**：apply_scale 记录 frame-median gauge 与绝对零点未测；astrometry 检查 `query_quads` 后再解引用；information 把非 known 协方差视为 unknown。
 
 X01 在 `3fa331a90` 再次全链通过（signal_only）：normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007，旧 5% 失败保留。C0 其余 P1（bind 域检查、regroup 维度/区间、export 数值界、information 单位、11 个无 driver process）仍开。
+
+## 14. 第十轮：C0 其余 P1（2026-11-11，`9ffeb7e37`）
+
+- **export 数值界**：旧实现只把叶值区间通过中点 Q 作用，漏掉 overlap 面积区间。现保留每个 (pixel,leaf) 的系数区间 [cL,cU]，按 `min/max(c_i x_i)` 对 c、x 两个区间求端点点积；`supported_mean` 用分母区间。常场探针验证 `lower ≤ flux ≤ upper`，且 1×1 解析通量仍为 1.76e-11 相对误差。
+- **regroup 顺序**：`input_is_mean` 的恢复因子 S 作用在原生样本上，正确算子是 `G∘S`；旧 `compose(S,G)` 对非方 G 是形状错误、对方 G 会算错。已改为 `compose(G,S)`，regroup driver 通过。
+- X01 在 `9ffeb7e37` 通过（signal_only；normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007）。本轮 e2e 从 `ba94d9265` 启动、结束时 `regroup` 提交已存在；regroup 不在 X01 链上，行为等价。
