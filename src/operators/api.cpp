@@ -198,6 +198,23 @@ Result<Ref<LinearAction>> make_action(Context& context, const ActionRecipe& reci
     }
   }
 
+  // Every action is content addressed: its id covers the recipe kind, the
+  // child identities, the payload array identities and the declared sizes.
+  // Without it a noise model would encode a null influence.
+  if (action->identity.object_id.empty()) {
+    std::string digest = "acsd.LinearAction|";
+    digest += recipe.algorithm;
+    digest += "|" + std::to_string(static_cast<int>(recipe.kind));
+    for (const Id& child : recipe.children) digest += "|c:" + child;
+    for (const ArrayRef& array : arrays) {
+      digest += "|a:";
+      if (array) digest += array->identity.object_id;
+    }
+    digest += "|d:" + std::to_string(recipe.spaces.domain ? recipe.spaces.domain->size : 0);
+    digest += "|o:" + std::to_string(recipe.spaces.codomain ? recipe.spaces.codomain->size : 0);
+    action->identity = model::make_identity("acsd.LinearAction", 2, 0,
+                                            model::sha256_hex(digest), "acsd");
+  }
   return model::ok_result(std::shared_ptr<const LinearAction>(action));
 }
 

@@ -164,6 +164,19 @@ Result<std::string> collect_action(Context& context, ProductBuilder& builder,
     }
     children.push_back(name);
   }
+  Result<std::vector<ArrayRef>> payloads = action.dependency_arrays();
+  if (!ok(payloads)) {
+    return fail<std::string>(payloads.code, "the action payload cannot be read", "product.write",
+                             "the product loses the action closure");
+  }
+  for (const ArrayRef& payload : val(payloads)) {
+    if (!payload) continue;
+    Result<Id> stored = persist_array(context, builder, payload);
+    if (!ok(stored)) {
+      return fail<std::string>(stored.code, "the action array cannot be stored", "product.write",
+                               "the product cannot be published");
+    }
+  }
   std::vector<Id> arrays;
   for (const Id& name : val(recipe).arrays) {
     auto it = builder.arrays.find(name);

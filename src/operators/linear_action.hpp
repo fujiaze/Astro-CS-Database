@@ -38,6 +38,12 @@ class ActionImpl final : public LinearAction {
   Result<ArrayRef> apply(Context& context, ArrayRef values) const override;
   Result<ArrayRef> transpose_apply(Context& context, ArrayRef values) const override;
   Result<std::vector<Id>> dependency_blocks(BlockRequest range, bool transpose) const override;
+  Result<std::vector<ArrayRef>> dependency_arrays() const override {
+    Result<std::vector<ArrayRef>> result;
+    result.code = Code::ok;
+    result.value = arrays_;
+    return result;
+  }
   Result<ActionRecipe> serialize_recipe() const override;
   Result<std::vector<ExactInterval>> row_enclosure(Context& context, U64 row) const override;
 

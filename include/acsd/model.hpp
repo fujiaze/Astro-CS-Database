@@ -197,6 +197,10 @@ struct LinearAction : Model { DomainUnits spaces;
   virtual Result<ArrayRef> apply(Context&,ArrayRef) const=0;
   virtual Result<ArrayRef> transpose_apply(Context&,ArrayRef) const=0;
   virtual Result<std::vector<Id>> dependency_blocks(BlockRequest,bool transpose) const=0;
+  // The arrays that carry the operator payload (diagonal values, CSR tables,
+  // sum coefficients).  A product writer must persist them or the action
+  // cannot be reopened.
+  virtual Result<std::vector<ArrayRef>> dependency_arrays() const=0;
   virtual Result<ActionRecipe> serialize_recipe() const=0;
   virtual Result<std::vector<ExactInterval>> row_enclosure(Context&,U64 row) const=0;
   virtual ~LinearAction()=default; };
