@@ -271,6 +271,16 @@ Result<Ref<CovarianceAction>> build_joint_covariance(Context& context,
                                                "coadd.covariance",
                                                "the joint noise cannot be built");
     }
+    // A latent space larger than this cannot be materialised column by
+    // column within a bounded time; keep the joint covariance unknown rather
+    // than hanging the workflow.
+    if (columns > (1ull << 12) || rows > (1ull << 12)) {
+      return model::fail<operators::CsrMatrix>(
+          Code::unavailable,
+          "the frame influence is too large to materialise (" + std::to_string(rows) + "x" +
+              std::to_string(columns) + "); the joint covariance stays unknown",
+          "coadd.covariance", "the joint noise cannot be built");
+    }
     matrix.cols = columns;
     matrix.offsets.assign(static_cast<std::size_t>(rows) + 1, 0);
     for (U64 j = 0; j < columns; ++j) {

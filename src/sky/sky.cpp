@@ -389,6 +389,16 @@ Result<Matrix> dense_action(Context& context, Ref<LinearAction> action, U64 rows
     return model::fail<Matrix>(Code::invalid_model, "the action has no usable shape", "sky.dense",
                                 "the action cannot be materialised");
   }
+  // Materialising a large latent space column by column is not a bounded
+  // operation.  This is a capability limit, not a scientific result: the
+  // caller keeps the covariance unknown instead of hanging.
+  if (rows > (1ull << 12) || cols > (1ull << 12)) {
+    return model::fail<Matrix>(Code::unavailable,
+                               "the influence is too large to materialise (" +
+                                   std::to_string(rows) + "x" + std::to_string(cols) +
+                                   "); the covariance stays unknown",
+                               "sky.dense", "the covariance is unknown");
+  }
   Matrix out(static_cast<std::size_t>(rows), static_cast<std::size_t>(cols));
   std::vector<double> unit(static_cast<std::size_t>(cols), 0.0);
   for (U64 j = 0; j < cols; ++j) {
