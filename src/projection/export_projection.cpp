@@ -669,6 +669,22 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
   export_estimate->assessment = model::make_assessment(Code::ok);
   export_estimate->assessment.complete = true;
   export_estimate->assessment.science = ScienceState::bounded;
+  // The export is a linear map of the source estimate, so a conditional or
+  // incomplete source cannot become bounded/complete here.
+  for (const std::string& item : estimate.assessment.omitted) {
+    if (std::find(export_estimate->assessment.omitted.begin(),
+                  export_estimate->assessment.omitted.end(),
+                  item) == export_estimate->assessment.omitted.end()) {
+      export_estimate->assessment.omitted.push_back(item);
+    }
+  }
+  for (const Issue& issue : estimate.assessment.issues) {
+    export_estimate->assessment.issues.push_back(issue);
+  }
+  if (estimate.assessment.science == ScienceState::conditional) {
+    export_estimate->assessment.science = ScienceState::conditional;
+  }
+  if (!estimate.assessment.complete) export_estimate->assessment.complete = false;
   // The noise state of the published estimate is the state of its covariance:
   // a known covariance is not reported as unknown, and an absent one is.
   export_estimate->assessment.noise =
