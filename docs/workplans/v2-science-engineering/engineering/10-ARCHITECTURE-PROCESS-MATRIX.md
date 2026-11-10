@@ -4,7 +4,7 @@
 
 **重构的重点是统一源码真正计算的数学算法，而不是为了代码量把已有实现重写一遍。** 当前分支中 `src/observation`、`src/coordinates`、`src/catalogue`、`src/sources`、`src/response`、`src/photometry`、`src/geometry`、`src/operators`、`src/uncertainty`、`src/information`、`src/sky`、`src/coadd`、`src/projection`、`src/runtime`、`src/workflows` 均有源码；需逐一做“可原样保留／需纠正／需要替换／科学规格有缺口”的实证裁决，不预先判全部失效或全部完成。公共字段只在 `include/acsd/model.hpp`、`runtime/*.hpp`、`modules/*.hpp` 声明；`contracts.hpp` 聚合，不另建立一套当前接口。
 
-本任务属于工程实现，**数学命题以对应 Foundation／NUMERICS／Process 为唯一正本**。本文件只规定责任、审查路径、工作包和交付。历史 `M0–M6` 和 [22 process 索引](../../engineering/rebuild/processes/README.md) 是输入参考；本任务不自动重新标记其中完成情况。
+本任务属于工程实现，**数学命题以对应 Foundation／NUMERICS／Process 为唯一正本**。本文件只规定责任、审查路径、工作包和交付。历史 `M0–M6` 和 [22 process 索引](../../../engineering/rebuild/processes/README.md) 是输入参考；本任务不自动重新标记其中完成情况。
 
 ## 一、逐个 Process 的实现责任、核心正确性命题和必须观察的失败
 
@@ -33,7 +33,7 @@
 | 21 | `coadd.integrate` → `src/coadd/coadd_integrate_process.cpp`、`coadd.cpp` | 仅消费同版本Selection/WeightSolution/已校Sky，输出有效kernel | 内部隐藏二次求权、同一raw frame重复贡献、异谱变固定滤镜 |
 | 22 | `projection.export` → `src/projection`、`src/workflows/export_workflow.cpp` | 目标真实WCS交叠`Q`/支持平均或积分、同leaf相关、可读FITS | 全像元分母错用、二次pixfrac、负值丢失、写头与模型不一致 |
 
-**特别规则**：57 个具体 operation 的归属白名单仍在 [现有目录](../../engineering/rebuild/processes/README.md)；逐项审查时必须将该 Process 下所有操作展开为单独记录，不得因为表格只有22行而遗漏例如 WCS 的正向/逆向/导数、geometry 的 refine 和 action 的 transpose。文档/registry 映射是核对手段，不能代替每个 operation 的数学意义检查。
+**特别规则**：57 个具体 operation 的归属白名单仍在 [现有目录](../../../engineering/rebuild/processes/README.md)；逐项审查时必须将该 Process 下所有操作展开为单独记录，不得因为表格只有22行而遗漏例如 WCS 的正向/逆向/导数、geometry 的 refine 和 action 的 transpose。文档/registry 映射是核对手段，不能代替每个 operation 的数学意义检查。
 
 ## 二、工程侧五种可交付的证明义务
 

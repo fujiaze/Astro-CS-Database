@@ -8,7 +8,7 @@
 
 ## W0：真实主线总装与显式数据边
 
-1. `src/workflows/normalize.cpp` 严格按 [WORKFLOWS](../../engineering/rebuild/standards/WORKFLOWS.md) 组织校准、盲解/给定WCS、独立源测量、Gaia标度、Native应用、geometry/R、information与发布。不同帧复用同Gaia/source/master noise root必须是真共享；若外部相关依赖不完整，状态降conditional而不是伪独立。
+1. `src/workflows/normalize.cpp` 严格按 [WORKFLOWS](../../../engineering/rebuild/standards/WORKFLOWS.md) 组织校准、盲解/给定WCS、独立源测量、Gaia标度、Native应用、geometry/R、information与发布。不同帧复用同Gaia/source/master noise root必须是真共享；若外部相关依赖不完整，状态降conditional而不是伪独立。
 2. `src/workflows/frames_provider.cpp`、`mosaic.cpp` 从完整manifest构造同一leaf order的合法帧集合，按响应/PSF可比较性做Sky control，先完成全局SkyFit屏障后创建只读`P后FramesProvider`，再调用 select/weights/integrate；不允许在迭代写最终tile时改β。
 3. `src/workflows/export_workflow.cpp` 和 `src/projection` 必须只对已冻结的目标信号/支持做目标WCS的正确`Q`，同步解释response/covariance与partial，无原始FITS的全链product reopen路径也可运行。
 4. 注册表、公开API、配置schema、应用参数必须互相可追溯，但不依赖“脚本检查了字段个数”证明真实业务已实现。实际载荷变更由本任务同步修正消费者、示例及真实输入。
