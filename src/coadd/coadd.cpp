@@ -207,6 +207,13 @@ Result<FrameView> read_frame(Context& context, const FramesProvider& frames, con
     view.dq = val(dq);
   }
   Result<Ref<SupportMap>> support = frames.query_support(context, frame, description.index);
+  if (!ok(support) || !val(support) || !val(support)->states) {
+    // A missing support map is not "every leaf supported": the weights and the
+    // control statistics would silently use rows the producer excluded.
+    return model::fail<FrameView>(ok(support) ? Code::invalid_model : support.code,
+                                  "the frame publishes no support states", "coadd.read",
+                                  "the frame cannot be used");
+  }
   if (ok(support) && val(support) && val(support)->states) {
     Result<std::vector<std::uint8_t>> states = read_u8_array(context, val(support)->states);
     if (!ok(states)) {
@@ -218,8 +225,6 @@ Result<FrameView> read_frame(Context& context, const FramesProvider& frames, con
                                     "coadd.read", "the frame cannot be used");
     }
     view.state = val(states);
-  } else {
-    view.state.assign(count, 1);
   }
   return model::ok_result(std::move(view));
 }
