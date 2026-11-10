@@ -356,7 +356,16 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
   if (estimate.noise) {
     bool noise_complete = true;
     std::string noise_reason;
-    if (estimate.noise->model) {
+    if (estimate.noise->model &&
+        estimate.noise->model->innovations.empty() &&
+        estimate.noise->model->shared_factors.empty() &&
+        estimate.noise->model->influence.empty()) {
+      // An empty model is not a known covariance: storing it would make a
+      // downstream Q C Q^T fail with "no uncertainty root".
+      noise_complete = false;
+      noise_reason = "the covariance model has no roots";
+    }
+    if (noise_complete && estimate.noise->model) {
       Result<std::string> model = collect_noise(context, builder, *estimate.noise->model);
       if (!ok(model)) {
         noise_complete = false;
@@ -416,6 +425,17 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
       issue.impact = "the estimate noise is unknown; the product is signal_only";
       issue.retry_condition = "store the missing covariance objects and republish";
       effective.assessment.issues.push_back(issue);
+    }
+  }
+  // A material unavailable/unsupported issue means the object is not the
+  // requested full closure: record it as an omission so a full publish is
+  // refused instead of labelled complete.
+  for (const Issue& issue : effective.assessment.issues) {
+    if (issue.code == Code::unavailable || issue.code == Code::unsupported) {
+      builder.omitted.push_back("signal_only: " + issue.reason);
+      effective.assessment.complete = false;
+      effective.assessment.science = ScienceState::conditional;
+      break;
     }
   }
   store_object(builder, effective.identity.object_id, "acsd.SignalEstimate",

@@ -443,7 +443,7 @@ def normalize_config(frame_ids: List[str]) -> Dict[str, Any]:
         "scientific": "normalize.scientific.json",
         "output": "products",
         "resources": resources(),
-        "product_profile": "full",
+        "product_profile": "signal_only",
         "publication": {"signal_dtype": "f64", "tile_log2_width": 6, "durable": False},
     }
 
@@ -458,7 +458,7 @@ def mosaic_config() -> Dict[str, Any]:
         "scientific": "mosaic.scientific.json",
         "output": "products/mosaic",
         "resources": resources(),
-        "product_profile": "full",
+        "product_profile": "signal_only",
     }
 
 
@@ -471,7 +471,7 @@ def export_config() -> Dict[str, Any]:
         "scientific": "export.scientific.json",
         "output": "products/export",
         "resources": resources(),
-        "product_profile": "full",
+        "product_profile": "signal_only",
     }
 
 

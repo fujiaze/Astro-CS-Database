@@ -477,6 +477,13 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
           compose(context, val(row_action), estimate.noise->influence);
       if (!ok(composed)) {
         usable = false;
+        pending_issues.push_back(
+            {composed.code,
+             composed.assessment.issues.empty()
+                 ? "the export covariance cannot be pushed through Q"
+                 : "the export covariance cannot be pushed through Q: " +
+                       composed.assessment.issues.front().reason,
+             "build_export", "the exported noise stays unknown"});
       } else {
         outer = val(composed);
       }
@@ -494,6 +501,13 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
         Result<Ref<LinearAction>> composed = compose(context, outer, influence);
         if (!ok(composed)) {
           usable = false;
+          pending_issues.push_back(
+              {composed.code,
+               composed.assessment.issues.empty()
+                   ? "the noise influence cannot be composed with Q"
+                   : "the noise influence cannot be composed with Q: " +
+                         composed.assessment.issues.front().reason,
+               "build_export", "the exported noise stays unknown"});
           break;
         }
         noise_model->influence.push_back(val(composed));
@@ -537,6 +551,13 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
           export_estimate->noise = std::shared_ptr<const CovarianceAction>(wrapped);
         } else {
           usable = false;
+          pending_issues.push_back(
+              {covariance.code,
+               covariance.assessment.issues.empty()
+                   ? "the export covariance cannot be built"
+                   : "the export covariance cannot be built: " +
+                         covariance.assessment.issues.front().reason,
+               "build_export", "the exported noise stays unknown"});
         }
       }
     }
