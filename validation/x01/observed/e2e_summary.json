@@ -1,7 +1,7 @@
 {
- "status": "fail",
- "git_commit": "fa4649d57992281a8ecc17bad282529c794f0bcb",
- "binary_sha256": "f3e65cb202daccb9e42a36ecbe983a26c1f9f162d5b7bde1455b76f515cb244d",
+ "status": "pass",
+ "git_commit": "79346a8ee2a16ff8e39ece3c61b68b53af42e9ae",
+ "binary_sha256": "df89d3d28286eaf211041602b38ba4ebe07073d4d2b82da3fcd467f44cd3773c",
  "frame_hashes": {
   "frame_00_A.fits": "9f7bb23aeb7cf9115023ee19be0cae670bb96d77c3922441ae1ba1f8480fff75",
   "frame_01_A.fits": "1bcbeed379b228b29fd5f42aa69318a0225e20b477b1ea2d7efc0b5bb858e2ca",
@@ -56,7 +56,7 @@
   }
  ],
  "stdout_is_pure_jsonl": true,
- "science_comparison": "fail",
+ "science_comparison": "pass",
  "foreign_stdout_lines": [],
  "commands": [
   {
@@ -64,7 +64,7 @@
    "exit_code": 0,
    "published": 8,
    "unsolved": 0,
-   "stderr": "551 diff=-4.00095014e-05\n[psf]   bt=0 lam=1 obj=781953.551 trial=781953.551 diff=-8.04313459e-07\n[psf]   bt=0 lam=1 obj=781953.551 trial=781953.551 diff=-1.7345883e-08\n[psf]   bt=0 lam=1 obj=781953.551 trial=781953.551 diff=1.28056854e-09\n[psf]   bt=1 lam=0.5 obj=781953.551 trial=781953.551 diff=1.16415322e-09\n[psf]   bt=2 lam=0.25 obj=781953.551 trial=781953.551 diff=4.65661287e-10\n[psf]   bt=3 lam=0.125 obj=781953.551 trial=781953.551 diff=8.14907253e-10\n[psf]   bt=4 lam=0.0625 obj=781953.551 trial=781953.551 diff=5.82076609e-10\n[psf]   bt=5 lam=0.0312 obj=781953.551 trial=781953.551 diff=0\n"
+   "stderr": ""
   },
   {
    "command": "mosaic",

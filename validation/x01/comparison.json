@@ -1,11 +1,11 @@
 {
  "case": "X01",
- "status": "pending_at_current_head",
+ "status": "pass",
  "functionals": [
   {
    "kind": "value",
    "name": "three_commands_on_disk",
-   "reason": "normalize 8/8, mosaic 1, export 1, exit 0 at fa4649d57 with ACSD_DRIZZLE_BLOCK=16. Block>1 is refused after the geometry audit; a block=1 rerun at the final HEAD is required.",
+   "reason": "normalize 8/8, mosaic 1, export 1, all exit 0, default block=1 at 79346a8ee",
    "status": "pass",
    "tolerance": 0.0,
    "truth": "ok",
@@ -14,7 +14,7 @@
   {
    "kind": "value",
    "name": "blind_solve",
-   "reason": "measured-source comparison of the blind B group: RMS 0.211 px (tolerance 0.5)",
+   "reason": "measured-source comparison of the blind B group: RMS 0.2109 px (tolerance 0.5)",
    "status": "pass",
    "tolerance": 0.5,
    "truth": "astrometry_rms_pixel",
@@ -24,7 +24,7 @@
   {
    "kind": "value",
    "name": "historical_5pct_max_relative",
-   "reason": "largest relative signal error 0.1033 > 0.05 (faintest B-group source). The criterion is below the estimator's own 1-sigma for the B group (predicted sigma_ratio about 5.85%); it is retained as a reported failure, not used as the gating proposition.",
+   "reason": "largest relative signal error 0.1033 > 0.05 (faintest B source). The criterion is below the estimator's own 1-sigma (5.4% for that source); it is retained as a reported failure, not gating.",
    "status": "superseded",
    "tolerance": 0.05,
    "truth": "signal_relative_error",
@@ -34,12 +34,12 @@
   {
    "kind": "value",
    "name": "signal_normalized_residual",
-   "reason": "48 non-peak source/frame ratio residuals; max |z| 1.901 < 4, 48/48 within 4 sigma, mean z 0.156, rms z 0.907. The covariance is the exact joint flux+background covariance from the frozen truth model, including the source-peak covariance; no production helper is called.",
+   "reason": "48 non-peak source/frame ratio residuals; max |z| 1.9007, 48/48 within 3 and 4 sigma, mean z 0.156, rms z 0.905. Joint OLS sandwich covariance from the frozen truth model, no production helper.",
    "status": "pass",
    "tolerance": 4.0,
    "truth": "ratio_residual_z",
    "unit": "sigma",
-   "observed": 1.9014561374441075
+   "observed": 1.9006702794601922
   },
   {
    "kind": "value",
@@ -52,7 +52,7 @@
   }
  ],
  "failures": [],
- "notes": "The 5% single-sample proposition was shown unattainable at the B group's signal-to-noise (predicted sigma_ratio 5.85%, observed max 10.3% = 1.9 sigma) by validation/x01/uncertainty_x01.py; the old failure is preserved as the superseded functional. The gating test is now the normalized residual of the ratio-to-peak. The recorded run is at fa4649d57 with block=16; block>1 is now refused by the workflow (geometry audit P0-6), so this record must be regenerated with the default block=1 at the final commit before it can be read as a current pass. See docs/audit/x01-photometry-statistical-analysis.md.",
+ "notes": "Final run at 79346a8ee with the default block=1 and the enforced 1e8 work budget: normalize 8/8, mosaic 1, export 1, e2e exit 0. The old 5% single-sample criterion is preserved as a superseded failure (max 10.33%). The gating test is the normalized ratio residual (48 residuals, max |z| 1.90). The X01 dark fixture (4.8 vs 480 ADU) and the XP coefficients ([1,0,0]) remain case defects documented in docs/audit/x01-photometry-statistical-analysis.md; they do not affect this pass but mean the dark/gauge paths are not exercised.",
  "status_vocabulary": {
   "pass": "every requested functional is inside the frozen tolerance",
   "fail": "at least one functional is outside the frozen tolerance",
@@ -60,5 +60,6 @@
   "not_applicable": "the case does not exercise the requested functional",
   "superseded": "the criterion was shown invalid/unattainable; the old failure is preserved and the functional is not gating",
   "pending_at_current_head": "the recorded evidence is from an earlier commit and must be regenerated at the current HEAD"
- }
+ },
+ "tested_source_sha": "79346a8ee"
 }

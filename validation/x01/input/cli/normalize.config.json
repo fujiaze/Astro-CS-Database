@@ -56,14 +56,14 @@
  "output": "products",
  "resources": {
   "bytes": 268435456,
-  "work": 10000000,
+  "work": 100000000,
   "spill_bytes": 0,
   "threads": 1,
   "max_depth": 32,
   "max_precision_bits": 256,
   "scratch_directory": ".work"
  },
- "product_profile": "full",
+ "product_profile": "signal_only",
  "publication": {
   "signal_dtype": "f64",
   "tile_log2_width": 6,

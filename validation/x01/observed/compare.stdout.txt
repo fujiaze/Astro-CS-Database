@@ -3,7 +3,7 @@
  "blind_solve_rms_pixel": 0.21085254580257834,
  "signal_relative_error": 0.10333067715982192,
  "blind_solve": true,
- "source_recovered": false,
+ "source_recovered": true,
  "frames": [
   {
    "frame": "x01-00",

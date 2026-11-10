@@ -6,4 +6,6 @@ dataproduct_type=image
 hips_builder=acsd-v2
 hips_version=2.0.0
 hips_data_release=2
-hips_unit=acsd.native:x01-02
+hips_unit=ADU/SR
+acsunit=acsd.native:x01-02*scale/x01-scale*1/sr
+acsunit_standard=false

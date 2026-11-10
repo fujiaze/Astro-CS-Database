@@ -4,19 +4,19 @@
  "inputs": [
   {
    "path": "products/mosaic",
-   "expected_hash": "sha256:8381253a7301bd1db6d3b7d7cd6225a156ec1677e1b0f4abd2aace83d61660d6"
+   "expected_hash": "sha256:6755c263d6790128ec95c1397580e5981dc696c31bfada7206e328eca2f56ff0"
   }
  ],
  "scientific": "export.scientific.json",
  "output": "products/export",
  "resources": {
   "bytes": 268435456,
-  "work": 10000000,
+  "work": 100000000,
   "spill_bytes": 0,
   "threads": 1,
   "max_depth": 32,
   "max_precision_bits": 256,
   "scratch_directory": ".work"
  },
- "product_profile": "full"
+ "product_profile": "signal_only"
 }

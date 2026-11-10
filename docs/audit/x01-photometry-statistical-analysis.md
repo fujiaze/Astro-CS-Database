@@ -84,7 +84,7 @@ python3 validation/x01/uncertainty_x01.py validation/x01/observed/normalize_trac
 python3 validation/x01/compare_x01.py validation/x01/observed/normalize_trace.jsonl
 ```
 
-**当前未完成**：`comparison.json` 记录的数值来自 `fa4649d57` 且使用 `block=16`。几何审计 P0-6 证明 block>1 改变了 drizzle 的估计量，工作流已改为拒绝 block≠1；因此该记录标为 `pending_at_current_head`，必须在最终 HEAD 用默认 block=1 重跑后才能作为当前 PASS。旧 10.3% 失败在任何情况下都保留在 Git 历史与本文件中。
+**当前已完成**：最终跑在 `79346a8ee`、默认 `block=1`、强制 1e8 work 预算下：normalize 8/8、mosaic 1、export 1，e2e exit 0，blind RMS 0.2109 px；48 个比值残差最大 |z|=1.9007、均值 0.156、RMS 0.905，全部 ≤3σ；`comparison.json` 记为 pass。旧 10.3% 单样本失败仍保留为 superseded。
 
 ## 6. 遗留的 X01 夹具问题
 
