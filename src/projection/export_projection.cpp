@@ -221,6 +221,9 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
   const U64 pixel_count = request.target.width * request.target.height;
 
   std::vector<std::vector<std::pair<U64, double>>> rows_of_pixel(pixel_count);
+  // Coefficient interval [cL,cU] for every (pixel, leaf) entry: the midpoint
+  // is the point Q, the interval is needed for the numerical bound.
+  std::vector<std::vector<std::array<double, 3>>> rows_interval(pixel_count);
   std::vector<double> pixel_area(pixel_count, 0.0);
   std::vector<char> pixel_supported(pixel_count, 0);
 
@@ -260,6 +263,8 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
       // The same leaf may be touched by several pieces; the pieces are merged
       // before the row is formed.
       std::map<U64, double> merged;
+      std::map<U64, double> merged_lower;
+      std::map<U64, double> merged_upper;
       double native_area = 0.0;
       for (const OverlapContribution& contribution : val(overlaps)->contributions) {
         const auto key = std::make_pair(contribution.leaf.order, contribution.leaf.ipix);
@@ -268,31 +273,53 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
         if (!states.empty() && states[row->second] == 0) continue;  // no support at all
         // Q is a point operator: use the midpoint of the certified overlap
         // interval.  The lower endpoint would bias every exported flux low;
-        // the interval is still available for the numerical bound.
+        // the interval is kept for the numerical bound.
         const double area = 0.5 * (contribution.overlap_area.lower_sr +
                                    contribution.overlap_area.upper_sr);
         if (!(area > 0.0) || !std::isfinite(area)) continue;
         merged[row->second] += area;
+        merged_lower[row->second] += contribution.overlap_area.lower_sr;
+        merged_upper[row->second] += contribution.overlap_area.upper_sr;
         const double native = 0.5 * (contribution.native_area.lower_sr +
                                      contribution.native_area.upper_sr);
         native_area = std::max(native_area, native);
       }
       double total = 0.0;
+      double total_lower = 0.0;
+      double total_upper = 0.0;
       for (const auto& entry : merged) total += entry.second;
+      for (const auto& entry : merged_lower) total_lower += entry.second;
+      for (const auto& entry : merged_upper) total_upper += entry.second;
       if (!(total > 0.0)) continue;  // no support: the pixel stays NaN
       pixel_supported[pixel] = 1;
       pixel_area[pixel] = native_area;
       for (const auto& entry : merged) {
         double coefficient = 0.0;
+        double coefficient_lower = 0.0;
+        double coefficient_upper = 0.0;
+        const double entry_lower = merged_lower.count(entry.first)
+                                       ? merged_lower[entry.first]
+                                       : entry.second;
+        const double entry_upper = merged_upper.count(entry.first)
+                                       ? merged_upper[entry.first]
+                                       : entry.second;
         switch (request.quantity) {
           case ExportRequest::Quantity::supported_mean:
             coefficient = entry.second / total;
+            coefficient_lower = total_upper > 0.0 ? entry_lower / total_upper : 0.0;
+            coefficient_upper = total_lower > 0.0 ? entry_upper / total_lower : 0.0;
             break;
           case ExportRequest::Quantity::supported_flux:
             coefficient = entry.second;
+            coefficient_lower = entry_lower;
+            coefficient_upper = entry_upper;
             break;
           case ExportRequest::Quantity::extrapolated_full_flux:
             coefficient = native_area * entry.second / total;
+            coefficient_lower =
+                total_upper > 0.0 ? native_area * entry_lower / total_upper : 0.0;
+            coefficient_upper =
+                total_lower > 0.0 ? native_area * entry_upper / total_lower : 0.0;
             break;
         }
         if (request.support_policy == SupportMap::Kind::effective_area_approx) {
@@ -303,8 +330,14 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
                                      : area_lower[entry.first] /
                                            leaf_area_sr(val(leaves)[entry.first].order);
           coefficient = native_area * fraction;
+          coefficient_lower = coefficient;
+          coefficient_upper = coefficient;
         }
-        if (coefficient != 0.0) rows_of_pixel[pixel].emplace_back(entry.first, coefficient);
+        if (coefficient != 0.0) {
+          rows_of_pixel[pixel].emplace_back(entry.first, coefficient);
+          rows_interval[pixel].push_back(
+              {static_cast<double>(entry.first), coefficient_lower, coefficient_upper});
+        }
       }
     }
   }
@@ -423,16 +456,52 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
                               "build_export", "the export cannot be built");
   }
 
-  // The numerical bounds travel through the same row: every coefficient of the
-  // row is non negative, so the leaf bounds map onto the target bounds.
+  // The numerical bound must include BOTH the leaf value interval and the
+  // coefficient interval: output = sum c_i x_i with c_i in [cL,cU] and
+  // x_i in [xL,xU].  Using only the leaf bounds (or only the midpoint Q)
+  // would understate the exported uncertainty.
   ArrayRef lower_bound;
   ArrayRef upper_bound;
   if (estimate.numerical_lower && estimate.numerical_upper) {
-    Result<ArrayRef> lower = apply(context, val(row_action), estimate.numerical_lower);
-    Result<ArrayRef> upper = apply(context, val(row_action), estimate.numerical_upper);
-    if (ok(lower) && ok(upper)) {
-      lower_bound = val(lower);
-      upper_bound = val(upper);
+    Result<std::vector<double>> leaf_low =
+        operators::read_f64(context, estimate.numerical_lower, 0, leaf_count);
+    Result<std::vector<double>> leaf_high =
+        operators::read_f64(context, estimate.numerical_upper, 0, leaf_count);
+    if (ok(leaf_low) && ok(leaf_high)) {
+      std::vector<double> low(pixel_count, std::nan(""));
+      std::vector<double> high(pixel_count, std::nan(""));
+      for (U64 pixel = 0; pixel < pixel_count; ++pixel) {
+        if (!pixel_supported[pixel]) continue;
+        double lo = 0.0;
+        double hi = 0.0;
+        for (const std::array<double, 3>& entry : rows_interval[pixel]) {
+          const U64 row = static_cast<U64>(entry[0]);
+          const double c_lo = entry[1];
+          const double c_hi = entry[2];
+          const double x_lo = val(leaf_low)[row];
+          const double x_hi = val(leaf_high)[row];
+          const double p1 = c_lo * x_lo;
+          const double p2 = c_lo * x_hi;
+          const double p3 = c_hi * x_lo;
+          const double p4 = c_hi * x_hi;
+          lo += std::min(std::min(p1, p2), std::min(p3, p4));
+          hi += std::max(std::max(p1, p2), std::max(p3, p4));
+        }
+        low[pixel] = lo;
+        high[pixel] = hi;
+      }
+      Result<ArrayRef> low_array =
+          context.storage.copy(context, DType::f64, model::encode_f64(low),
+                               std::vector<U64>{pixel_count}, estimate.unit,
+                               "acsd.export.pixels");
+      Result<ArrayRef> high_array =
+          context.storage.copy(context, DType::f64, model::encode_f64(high),
+                               std::vector<U64>{pixel_count}, estimate.unit,
+                               "acsd.export.pixels");
+      if (ok(low_array) && ok(high_array)) {
+        lower_bound = val(low_array);
+        upper_bound = val(high_array);
+      }
     }
   }
 

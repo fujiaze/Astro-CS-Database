@@ -57,8 +57,16 @@ int main() {
   support->states = *states.value;
   support->identity = make_identity("acsd.SupportMap", 2, 0, sha256_hex(std::string("exp-support")), "exp");
 
+  Result<ArrayRef> bound_low = storage.copy(context, DType::f64, encode_f64(std::vector<double>{b0 - 1.0}),
+                                            std::vector<U64>{1}, unit_dimensionless(),
+                                            index->identity.object_id);
+  Result<ArrayRef> bound_high = storage.copy(context, DType::f64, encode_f64(std::vector<double>{b0 + 1.0}),
+                                             std::vector<U64>{1}, unit_dimensionless(),
+                                             index->identity.object_id);
   auto estimate = std::make_shared<SignalEstimate>();
   estimate->signal = *signal.value;
+  estimate->numerical_lower = *bound_low.value;
+  estimate->numerical_upper = *bound_high.value;
   estimate->unit = unit_dimensionless();
   estimate->support = support;
   estimate->identity = make_identity("acsd.SignalEstimate", 2, 0, sha256_hex(std::string("exp-est")), "exp");
@@ -127,6 +135,10 @@ int main() {
                 std::fabs(actual - expected) / expected);
     check(std::fabs(actual - expected) <= 1e-6 * expected,
           "supported_flux equals b0 * pixel solid angle");
+    auto lo = operators::read_f64(context, (*flux.value).estimate->numerical_lower, 0, 1);
+    auto hi = operators::read_f64(context, (*flux.value).estimate->numerical_upper, 0, 1);
+    check(ok(lo) && ok(hi) && val(lo)[0] <= actual && actual <= val(hi)[0],
+          "exported numerical bound contains the flux");
   }
 
   request.quantity = ExportRequest::Quantity::supported_mean;
