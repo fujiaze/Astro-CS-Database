@@ -608,7 +608,23 @@ Result<Ref<CovarianceAction>> control_covariance(Context& context, Ref<Covarianc
   model->variance_unit = source.variance_unit;
   model->condition = source.condition;
   model->state = source.state;
-  model->unknown_terms = source.unknown_terms;
+  // An omitted term is a random quantity too: when the control statistic is
+  // T y its influence is T L_term.  Copying the term unchanged would leave a
+  // non-material unknown with the wrong map.
+  for (const UnknownTerm& term : source.unknown_terms) {
+    UnknownTerm copy = term;
+    if (term.influence) {
+      Result<Ref<LinearAction>> composed = compose(context, T, term.influence);
+      if (!ok(composed)) {
+        return model::fail<Ref<CovarianceAction>>(composed.code,
+                                                  "the unknown term cannot be composed",
+                                                  "control_covariance",
+                                                  "the control covariance cannot be built");
+      }
+      copy.influence = val(composed);
+    }
+    model->unknown_terms.push_back(copy);
+  }
   model->innovations = source.innovations;
   model->shared_factors = source.shared_factors;
   model->influence.reserve(source.influence.size());
