@@ -84,7 +84,7 @@ python3 validation/x01/uncertainty_x01.py validation/x01/observed/normalize_trac
 python3 validation/x01/compare_x01.py validation/x01/observed/normalize_trace.jsonl
 ```
 
-**当前已完成**：最终跑在 `79346a8ee`、默认 `block=1`、强制 1e8 work 预算下：normalize 8/8、mosaic 1、export 1，e2e exit 0，blind RMS 0.2109 px；48 个比值残差最大 |z|=1.9007、均值 0.156、RMS 0.905，全部 ≤3σ；`comparison.json` 记为 pass。旧 10.3% 单样本失败仍保留为 superseded。
+**当前已完成**：最终跑在 `033073ab3`、默认 `block=1`、强制 1e8 work 预算下：normalize 8/8、mosaic 1、export 1，e2e exit 0，blind RMS 0.2109 px；48 个比值残差最大 |z|=1.9007、均值 0.156、RMS 0.905，全部 ≤3σ；`comparison.json` 记为 pass。旧 10.3% 单样本失败仍保留为 superseded。
 
 ## 6. 遗留的 X01 夹具问题
 
