@@ -181,6 +181,22 @@ Result<Information> estimate_flux_information(Context& context, const Informatio
   information.flux_variance.unit = request.covariance->model
                                        ? request.covariance->model->variance_unit
                                        : model::unit_variance("unknown");
+  // V_F is the variance of the flux F in y = F h + noise, so its unit is
+  // Var(y) / h^2.  When h is dimensionless this is the covariance unit; a
+  // template with a linear/sr power changes it.
+  if (request.h) {
+    const Unit& h_unit = request.h->unit;
+    if (h_unit.multiplier != 0.0 && h_unit.multiplier != 1.0) {
+      information.flux_variance.unit.multiplier /= h_unit.multiplier * h_unit.multiplier;
+    }
+    information.flux_variance.unit.linear_power -= 2 * h_unit.linear_power;
+    information.flux_variance.unit.sr_power -= 2 * h_unit.sr_power;
+    information.flux_variance.unit.pixel_power -= 2 * h_unit.pixel_power;
+    information.flux_variance.unit.nm_power -= 2 * h_unit.nm_power;
+    if (h_unit.scale != "1" && !h_unit.scale.empty()) {
+      information.flux_variance.unit.scale += "/(" + h_unit.scale + "^2)";
+    }
+  }
   information.flux_variance.state = NoiseState::known;
 
   // An unknown model term with a non zero influence makes the complete
