@@ -34,6 +34,9 @@ ACSD 是天文观测的 `Normalize → Mosaic → Export` 科学计算系统，�
 - [ ] **D0** [13 独立证明/反例/真实数据](review/13-INDEPENDENT-REVIEW-AND-EXPERIMENTS.md)：证据从数学命题出发；审查者不依赖生产 helper；反向审计最终产品。
 - [ ] **D1** [14 集成顺序、责任和最终裁决](review/14-EXECUTION-AND-CLOSEOUT.md)：逐阶段交付、阻塞、科学/工程分别签核，最终审查无必需 P0/P1/未决能力。
 
+### E. 论文资料与独立审查交接
+- [ ] **E0** [一手参考文献索引](../../references/README.md)：原文和DOI、可合法获取PDF、算法页/式号与对应Process人工核对，明确哪些仍待原文审阅。
+
 ## 2. 实际实施次序
 
 `A0 → A1+A2 → B0 → B1`。B2/B3/B4/B5 在基础数学条件成立且数据合同冻结后可分写域推进；先审其推导，再实现相应 `C0` 模块。`C1` 可提前修复不改变科学模型的资源错误，但所有优化均受科学不变量约束。`B2+B3+B4+B5+C0+C1 → C2 → D0 → D1`。任意科学反例发现前提错误，回到归属科学正本，不绕开前提改判据。
@@ -51,4 +54,4 @@ ACSD 是天文观测的 `Normalize → Mosaic → Export` 科学计算系统，�
 5. GPU 后端与 SACoadd 新型求解器都不是本轮必做；首期完成可信 CPU 传统 coadd，并留接口而非预装桩。
 6. 原始真实观测 FITS 如有隐私/版权/体积限制不提交公开仓库，只记录私有数据清单/hash、模型域与可复现命令；研究小型 Oracle 可入库。
    
-**执行入口**：从 [01](01-BASELINE-AND-PROTOCOL.md) 开始；科研原始证据的冻结入口为 [main@adc7f33d/实验/science-foundation](https://github.com/fujiaze/Astro-CS-Database/tree/adc7f33d58359ac3d65014f239d7f53fe92e4912/%E5%AE%9E%E9%AA%8C/science-foundation)。本计划只写任务书；其清单框本次均未以“编写任务书”而勾选完成。
+**执行入口**：从 [01](01-BASELINE-AND-PROTOCOL.md) 开始；科研原始证据的冻结入口为 [main@adc7f33d/实验/science-foundation](https://github.com/fujiaze/Astro-CS-Database/tree/adc7f33d58359ac3d65014f239d7f53fe92e4912/%E5%AE%9E%E9%AA%8C/science-foundation)。本计划已编制总清单及14个编号专题（01—14）和一手论文索引。其清单框代表**后续真正的科学、代码与产品任务**；不因任务书已写就勾选完成。

@@ -8,15 +8,7 @@
 
 本分支已经从纯设计推进至 Runtime（M0—M4）和部分 typed 科学模块（M5）的实际实现。**当前唯一进度与缺口入口**：[实施与验收状态](docs/audit/IMPLEMENTATION-STATUS.md)。Runtime已有较新16/16 case的冻结PASS，但共享interval/严格矩阵证书仍有阻碍；具体被测SHA、当前复验和科学链状态仅以该状态页为准。新增/修改算法继续通过模块 process 文档和唯一 typed descriptor 接入，不向 Host 增加算法分支。
 
-```text
-python -m pip install -r validation/requirements.txt
-cmake --preset design
-cmake --build --preset design
-ctest --preset design
-python tools/check_design.py
-```
-
-上述是现有设计检查入口，实际科学构建/运行状态依CMakePresets与冻结验证记录。[本次更正与复核](docs/audit/process-framework.md)记录文档范围和验证边界。继续在rebuild/acsd-v2追加提交，完整保留已有历史。
+既有CMake/测试工具可以用于编译、复现实验和观察错误，但**不作为科学或文档是否正确的自动门槛**，不启动CI，文档的数学正确性依赖一手论文、正向推导及独立审查。科学与工程重构任务入口：[V2总任务组](docs/workplans/v2-science-engineering/README.md)。实际程序运行情况以源代码、可重现证据和独立审核结果为准。[本次更正与复核](docs/audit/process-framework.md)记录文档范围和验证边界。继续在rebuild/acsd-v2追加提交，完整保留已有历史。
 
 
 
