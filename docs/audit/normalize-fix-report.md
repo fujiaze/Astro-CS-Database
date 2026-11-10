@@ -426,3 +426,7 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -frounding-math -mfpmath=sse
 ## 13. 复核后补丁（Lead，2026-11-10）
 
 独立复核 §13.5 指出 R4 的跨帧共享根虽然记录了 unknown，但没有把 `covariance_state_known` 置 false，导致 XP 协方差已知时 `PhotoSolution.covariance` 仍标 `state=known`（n 帧共享 flat 时绝对标度方差被低估 n 倍）。已在 `joint_fit.cpp` 的跨帧共享根分支置 `result.covariance_state_known = false`，与 XP working-prior 分支同一规则；跨帧交叉块本体仍需 U9 的按根影响 API，未在本轮实现。R6（帧 ADU/SR → mosaic 1 → export ADU 的单位链）、R7（γ 只用 m）、R8（residual_enclosure 证书串）、R9（offset→bias 别名）作为 P1/P2 留给 B4/B5。
+
+## 14. Lead 修正：X01 产品量级与 fittable gauge（2026-11-11）
+
+审计发现 X01 normalize 产品 signal 达 \(5\times10^{29}\) ADU/sr，根因是 `apply_scale` 直接使用绝对 \(1/a\)：合成谱系数为 O(1) 时 \(q\sim10^{19}\)，fit 的 \(a\) 吸收该量级，\(\alpha\) 变成 \(2.3\times10^{16}\)。绝对标度在无物理响应锚时不可辨识，因此改为帧内中位数 gauge（\(\alpha/\mathrm{median}\,\alpha\)），协方差同因子缩放；同帧 signal 回到 \(8.8\times10^{13}\) ADU/sr（2800 ADU/pix ÷ 2.35e-11 sr），量级正确。同时把 X01 `xp_coefficients` 从全 `[1,0,0]` 改为 `[weight,0,0]`，消除夹具与注入亮度 \(0.7\)–\(1.0\) 的错配。该修正不改变 measured_stars 或旧 5% 失败；Export 的物理量级此前因此错误，B5 必须在新量级上重验。

@@ -89,7 +89,12 @@ def catalogue_document() -> Dict[str, Any]:
                         2016.0, 0.0, 0.0, 0.0, 0.0, 0.0]
                        for entry in positions],
         "brightness_mag": [magnitude_of(entry["weight"]) for entry in positions],
-        "xp_coefficients": [[1.0] + [0.0] * 2 for _ in positions],
+        # The XP coefficient c_s must represent the same relative brightness
+        # as the injected star rate (star_rate * weight); the constant basis
+        # then predicts q_s proportional to weight.  Before this fix every
+        # star had c_s=[1,0,0], so the fit had to absorb a 0.7-1.0 brightness
+        # range in the colour/scale term and produced an enormous alpha.
+        "xp_coefficients": [[entry["weight"], 0.0, 0.0] for entry in positions],
         "xp_basis": {
             "knots_nm": [400.0, 550.0, 700.0],
             "basis_coefficients": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],

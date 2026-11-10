@@ -266,10 +266,16 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
         auto row = rows.find(key);
         if (row == rows.end()) continue;  // a leaf outside the product support
         if (!states.empty() && states[row->second] == 0) continue;  // no support at all
-        const double area = contribution.overlap_area.lower_sr;
-        if (!(area > 0.0)) continue;
+        // Q is a point operator: use the midpoint of the certified overlap
+        // interval.  The lower endpoint would bias every exported flux low;
+        // the interval is still available for the numerical bound.
+        const double area = 0.5 * (contribution.overlap_area.lower_sr +
+                                   contribution.overlap_area.upper_sr);
+        if (!(area > 0.0) || !std::isfinite(area)) continue;
         merged[row->second] += area;
-        native_area = std::max(native_area, contribution.native_area.lower_sr);
+        const double native = 0.5 * (contribution.native_area.lower_sr +
+                                     contribution.native_area.upper_sr);
+        native_area = std::max(native_area, native);
       }
       double total = 0.0;
       for (const auto& entry : merged) total += entry.second;

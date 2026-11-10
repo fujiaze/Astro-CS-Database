@@ -17,6 +17,8 @@
 // physical bin never uses the alpha of its centre (SYSTEM N3).
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <cstddef>
 #include <limits>
 #include <string>
@@ -291,6 +293,21 @@ Result<Ref<NativeObservation>> apply_scale(Context& context, Ref<PhotoSolution> 
   }
 
   // ---------------------------------------------------------------------
+  // Gauge: the fit's absolute scale a is degenerate with the normalization of
+  // the synthetic response q (GAIA_RESPONSE §3.1).  Only relative alpha is
+  // measured.  Fix the gauge by making the frame median factor one, so the
+  // corrected frame stays in the same relative scale instead of inheriting an
+  // arbitrary 1/q magnitude.  Covariance is scaled with the same factors.
+  if (!factors.empty()) {
+    std::vector<double> sorted = factors;
+    std::sort(sorted.begin(), sorted.end());
+    const double gauge = sorted[sorted.size() / 2];
+    if (gauge > 0.0 && std::isfinite(gauge)) {
+      for (double& value : factors) value /= gauge;
+      for (double& value : factor_low) value /= gauge;
+      for (double& value : factor_high) value /= gauge;
+    }
+  }
   // The signal: the factor acts on the root samples, the physical regrouping
   // afterwards.
   // ---------------------------------------------------------------------

@@ -119,3 +119,5 @@ K_{eff}(p,\omega,\lambda)=\sum_k t_{kp} c_k K_k(p,\omega,\lambda).\tag{4}
 3. [GaiaXPy 官方实现](https://github.com/gaia-dpci/GaiaXPy)：对已知有效通带复核谱合成，不无条件复用其 standardisation 为任意 T×QE。
 4. [Padmanabhan et al. 2008，ubercal](https://doi.org/10.1086/524677)：采用全局相对标度、共享星与 gauge 的成熟方法；不据此辨认未知 gain。
 5. [Bessell & Murphy 2012](https://doi.org/10.1086/664083)：photon/energy passband 身份和零点定义。
+
+**Gauge in the synthetic case.** 本文的 \(q_{ks}\) 是绝对响应积分；当响应/谱只给相对值时，\(a_k\) 会吸收 \(1/q\) 的量级，使 \(\alpha=1/a\) 可以任意大。绝对标度在缺少物理响应锚时不可辨识（§1），因此 `apply_scale` 取**帧内因子的中位数**为 gauge（\(\alpha\leftarrow\alpha/\mathrm{median}\,\alpha\)），只应用相对 \(\alpha\)；协方差随同一因子缩放。该选择必须记录在 assessment 中，不能把相对标度写成绝对物理标定。
