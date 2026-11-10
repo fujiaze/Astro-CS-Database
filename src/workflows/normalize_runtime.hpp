@@ -95,6 +95,32 @@ inline Result<Done> ingest_index(Context& source, WorkflowRuntime& runtime,
   return ingest_array(source, runtime, index->ids);
 }
 
+inline Result<Done> ingest_action(Context& source, WorkflowRuntime& runtime,
+                                 const Ref<LinearAction>& action) {
+  if (!action) return model::ok_result(Done{});
+  Result<std::vector<ArrayRef>> arrays = action->dependency_arrays();
+  if (!ok(arrays)) {
+    return model::fail<Done>(arrays.code, "the action payload cannot be read", "runtime.ingest",
+                             "the action cannot be served");
+  }
+  for (const ArrayRef& array : val(arrays)) {
+    Result<Done> step = ingest_array(source, runtime, array);
+    if (!step.value) return step;
+  }
+  Result<std::vector<Ref<LinearAction>>> children = action->dependency_children();
+  if (!ok(children)) {
+    return model::fail<Done>(children.code, "the action children cannot be read", "runtime.ingest",
+                             "the action cannot be served");
+  }
+  for (const Ref<LinearAction>& child : val(children)) {
+    Result<Done> step = ingest_action(source, runtime, child);
+    if (!step.value) return step;
+  }
+  Result<Done> domain = ingest_index(source, runtime, action->spaces.domain);
+  if (!domain.value) return domain;
+  return ingest_index(source, runtime, action->spaces.codomain);
+}
+
 inline Result<Done> ingest_noise(Context& source, WorkflowRuntime& runtime,
                                  const Ref<NoiseModel>& model) {
   if (!model) return model::ok_result(Done{});
@@ -102,10 +128,18 @@ inline Result<Done> ingest_noise(Context& source, WorkflowRuntime& runtime,
     if (!root) continue;
     Result<Done> step = ingest_index(source, runtime, root->coordinates);
     if (!step.value) return step;
+    step = ingest_action(source, runtime, root->factor);
+    if (!step.value) return step;
   }
   for (const auto& root : model->shared_factors) {
     if (!root) continue;
     Result<Done> step = ingest_index(source, runtime, root->coordinates);
+    if (!step.value) return step;
+    step = ingest_action(source, runtime, root->factor);
+    if (!step.value) return step;
+  }
+  for (const auto& influence : model->influence) {
+    Result<Done> step = ingest_action(source, runtime, influence);
     if (!step.value) return step;
   }
   return model::ok_result(Done{});
@@ -115,7 +149,13 @@ inline Result<Done> ingest_covariance(Context& source,
                                       WorkflowRuntime& runtime,
                                       const Ref<CovarianceAction>& covariance) {
   if (!covariance) return model::ok_result(Done{});
-  return ingest_noise(source, runtime, covariance->model);
+  Result<Done> step = ingest_noise(source, runtime, covariance->model);
+  if (!step.value) return step;
+  step = ingest_action(source, runtime, covariance->influence);
+  if (!step.value) return step;
+  step = ingest_index(source, runtime, covariance->input_output.domain);
+  if (!step.value) return step;
+  return ingest_index(source, runtime, covariance->input_output.codomain);
 }
 
 inline Result<Done> ingest_pixel_response(Context& source,

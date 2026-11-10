@@ -995,6 +995,178 @@ Result<Ref<Selection>> select_samples(Context& context, const FramesProvider& fr
 }
 
 // ---------------------------------------------------------------------------
+// Sparse joint covariance: embed each frame influence with E_f (total leaves
+// x frame leaves) and compose, instead of materialising every latent column.
+Result<Ref<CovarianceAction>> build_joint_covariance_sparse(
+    Context& context, const std::vector<FrameView>& frames) {
+  auto joint = std::make_shared<NoiseModel>();
+  joint->variance_unit = frames.empty() || !frames.front().noise || !frames.front().noise->model
+                             ? model::unit_variance("unknown")
+                             : frames.front().noise->model->variance_unit;
+  U64 total_rows = 0;
+  std::vector<U64> frame_offsets(frames.size(), 0);
+  for (std::size_t f = 0; f < frames.size(); ++f) {
+    frame_offsets[f] = total_rows;
+    total_rows += frames[f].leaves.size();
+  }
+  bool any_unknown = false;
+  struct SharedEntry {
+    Ref<NoiseRoot> root;
+    std::vector<Ref<LinearAction>> influences;
+  };
+  std::map<std::string, SharedEntry> shared;
+  std::vector<std::string> shared_order;
+  for (std::size_t f = 0; f < frames.size(); ++f) {
+    const FrameView& frame = frames[f];
+    const U64 offset = frame_offsets[f];
+    operators::CsrMatrix embedding;
+    embedding.rows = total_rows;
+    embedding.cols = frame.leaves.size();
+    embedding.offsets.assign(static_cast<std::size_t>(total_rows) + 1, 0);
+    for (U64 row = 0; row < total_rows; ++row) {
+      if (row >= offset && row < offset + frame.leaves.size()) {
+        embedding.indices.push_back(row - offset);
+        embedding.values.push_back(1.0);
+      }
+      embedding.offsets[static_cast<std::size_t>(row) + 1] = embedding.indices.size();
+    }
+    Result<Ref<LinearAction>> embed = operators::make_csr_action(
+        context, embedding.rows, embedding.cols, embedding.offsets, embedding.indices,
+        embedding.values, Id(), Id(), joint->variance_unit);
+    if (!ok(embed)) {
+      return model::fail<Ref<CovarianceAction>>(embed.code, "the frame embedding cannot be built",
+                                                "coadd.covariance",
+                                                "the joint noise cannot be built");
+    }
+    if (!frame.noise || !frame.noise->model) {
+      any_unknown = true;
+      UnknownTerm term;
+      term.id = "frame_noise_missing_" + std::to_string(offset);
+      term.reason = "the frame publishes no noise model; its variance is unknown, not zero";
+      term.influence = val(embed);
+      joint->unknown_terms.push_back(term);
+      continue;
+    }
+    const NoiseModel& noise = *frame.noise->model;
+    std::vector<Ref<NoiseRoot>> roots;
+    roots.insert(roots.end(), noise.innovations.begin(), noise.innovations.end());
+    roots.insert(roots.end(), noise.shared_factors.begin(), noise.shared_factors.end());
+    if (roots.size() != noise.influence.size()) {
+      return model::fail<Ref<CovarianceAction>>(Code::invalid_model,
+                                                "the influence count does not match the roots",
+                                                "coadd.covariance",
+                                                "the joint noise cannot be built");
+    }
+    if (noise.state != NoiseState::known) any_unknown = true;
+    for (std::size_t k = 0; k < roots.size(); ++k) {
+      Ref<LinearAction> influence = noise.influence[k];
+      if (frame.noise->influence) {
+        Result<Ref<LinearAction>> folded =
+            compose(context, frame.noise->influence, influence);
+        if (!ok(folded)) {
+          return model::fail<Ref<CovarianceAction>>(folded.code,
+                                                    "the frame outer influence cannot be folded",
+                                                    "coadd.covariance",
+                                                    "the joint noise cannot be built");
+        }
+        influence = val(folded);
+      }
+      Result<Ref<LinearAction>> placed = compose(context, val(embed), influence);
+      if (!ok(placed)) {
+        return model::fail<Ref<CovarianceAction>>(placed.code,
+                                                  "the frame influence cannot be embedded",
+                                                  "coadd.covariance",
+                                                  "the joint noise cannot be built");
+      }
+      if (k < noise.innovations.size()) {
+        joint->innovations.push_back(roots[k]);
+        joint->influence.push_back(val(placed));
+      } else {
+        const SharedId& id = roots[k]->shared_id;
+        const std::string key = id.external_namespace + "\x1f" + id.entity + "\x1f" +
+                                id.model_revision + "\x1f" + id.component;
+        auto found = shared.find(key);
+        if (found == shared.end()) {
+          shared_order.push_back(key);
+          SharedEntry entry;
+          entry.root = roots[k];
+          entry.influences.push_back(val(placed));
+          shared.emplace(key, std::move(entry));
+        } else {
+          found->second.influences.push_back(val(placed));
+        }
+      }
+    }
+    for (const UnknownTerm& term : noise.unknown_terms) {
+      UnknownTerm copy = term;
+      if (term.influence) {
+        Result<Ref<LinearAction>> placed = compose(context, val(embed), term.influence);
+        if (!ok(placed)) {
+          return model::fail<Ref<CovarianceAction>>(placed.code,
+                                                    "the unknown term cannot be embedded",
+                                                    "coadd.covariance",
+                                                    "the joint noise cannot be built");
+        }
+        copy.influence = val(placed);
+      }
+      joint->unknown_terms.push_back(copy);
+      any_unknown = true;
+    }
+  }
+  for (const std::string& key : shared_order) {
+    SharedEntry& entry = shared[key];
+    Ref<LinearAction> total = entry.influences.front();
+    if (entry.influences.size() > 1) {
+      std::vector<double> coefficients(entry.influences.size(), 1.0);
+      Result<ArrayRef> stored = operators::write_f64(
+          context, coefficients,
+          std::vector<U64>{static_cast<U64>(coefficients.size())},
+          model::unit_dimensionless(), Id());
+      if (!ok(stored)) {
+        return model::fail<Ref<CovarianceAction>>(stored.code,
+                                                  "the shared root coefficients cannot be stored",
+                                                  "coadd.covariance",
+                                                  "the joint noise cannot be built");
+      }
+      ActionRecipe recipe;
+      recipe.kind = ActionRecipe::Kind::sum;
+      recipe.algorithm = "shared_root_sum_v1";
+      recipe.version = 1;
+      std::vector<Id> children;
+      for (const Ref<LinearAction>& part : entry.influences) {
+        children.push_back(part->identity.object_id);
+      }
+      recipe.children = children;
+      recipe.arrays = {val(stored)->identity.object_id};
+      std::vector<ArrayRef> arrays{val(stored)};
+      Result<Ref<LinearAction>> summed =
+          make_action(context, recipe, entry.influences, arrays);
+      if (!ok(summed)) {
+        return model::fail<Ref<CovarianceAction>>(summed.code,
+                                                  "the shared root sum cannot be built",
+                                                  "coadd.covariance",
+                                                  "the joint noise cannot be built");
+      }
+      total = val(summed);
+    }
+    joint->shared_factors.push_back(entry.root);
+    joint->influence.push_back(total);
+  }
+  if (joint->innovations.empty() && joint->shared_factors.empty()) {
+    return model::fail<Ref<CovarianceAction>>(
+        Code::unavailable, "the joint model has no uncertainty root",
+        "coadd.covariance", "the joint noise cannot be built");
+  }
+  joint->state = any_unknown ? NoiseState::unknown : NoiseState::known;
+  joint->assessment = model::make_assessment(Code::ok);
+  joint->assessment.complete = !any_unknown;
+  joint->assessment.noise = joint->state;
+  joint->identity = model::make_identity(
+      "acsd.NoiseModel", 2, 0,
+      model::sha256_hex("coadd:joint:" + std::to_string(total_rows)), "acsd");
+  return make_covariance(context, Ref<NoiseModel>(joint));
+}
+
 // solve_weights
 // ---------------------------------------------------------------------------
 
@@ -1083,7 +1255,7 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
   std::string covariance_failure_reason;
   bool joint_available = false;
   {
-    Result<Ref<CovarianceAction>> built = build_joint_covariance(context, views);
+    Result<Ref<CovarianceAction>> built = build_joint_covariance_sparse(context, views);
     if (!ok(built)) {
       // A malformed model is an input error, not a science limitation.
       const bool malformed = built.code == Code::invalid_model ||

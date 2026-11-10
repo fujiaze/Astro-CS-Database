@@ -603,6 +603,79 @@ operators::CsrMatrix block_diagonal(const std::vector<operators::CsrMatrix>& blo
   return out;
 }
 
+// C_c = sum_k (L_k F_k)(L_k F_k)^T on the control space.  When every factor
+// is diagonal this is built column by column of the influence, never by
+// materialising a latent-sized identity.  A non-diagonal factor falls back to
+// the generic factor builder.
+Result<Matrix> dense_control_covariance(Context& context, Ref<CovarianceAction> covariance) {
+  if (!covariance || !covariance->model) {
+    return model::fail<Matrix>(Code::unavailable, "no covariance model supplied",
+                                "sky.control_covariance", "the covariance is unknown");
+  }
+  const NoiseModel& noise = *covariance->model;
+  std::vector<Ref<NoiseRoot>> roots;
+  roots.insert(roots.end(), noise.innovations.begin(), noise.innovations.end());
+  roots.insert(roots.end(), noise.shared_factors.begin(), noise.shared_factors.end());
+  if (roots.size() != noise.influence.size() || roots.empty()) {
+    return model::fail<Matrix>(Code::unavailable, "the influence count does not match the roots",
+                                "sky.control_covariance", "the covariance is unknown");
+  }
+  U64 rows = 0;
+  for (const Ref<LinearAction>& influence : noise.influence) {
+    const U64 size = action_codomain_size(influence);
+    if (size == 0) {
+      return model::fail<Matrix>(Code::unavailable, "an influence has no codomain",
+                                  "sky.control_covariance", "the covariance is unknown");
+    }
+    if (rows == 0) rows = size;
+    if (rows != size) {
+      return model::fail<Matrix>(Code::unavailable, "the influences disagree on the codomain",
+                                  "sky.control_covariance", "the covariance is unknown");
+    }
+  }
+  Matrix out(static_cast<std::size_t>(rows), static_cast<std::size_t>(rows), 0.0);
+  for (std::size_t k = 0; k < roots.size(); ++k) {
+    const auto* factor_impl =
+        dynamic_cast<const operators::ActionImpl*>(roots[k]->factor.get());
+    if (!factor_impl || factor_impl->recipe().kind != ActionRecipe::Kind::diagonal) {
+      return model::fail<Matrix>(Code::unavailable, "a non-diagonal root factor",
+                                  "sky.control_covariance", "the covariance is unknown");
+    }
+    const std::vector<double>& d = factor_impl->diagonal();
+    const U64 latent = d.size();
+    if (latent == 0) {
+      return model::fail<Matrix>(Code::unavailable, "a noise factor has no domain",
+                                  "sky.control_covariance", "the covariance is unknown");
+    }
+    Result<operators::CsrMatrix> influence =
+        to_csr(context, noise.influence[k], rows, latent);
+    if (!ok(influence)) {
+      return model::fail<Matrix>(Code::unavailable, "an influence cannot be converted",
+                                  "sky.control_covariance", "the covariance is unknown");
+    }
+    std::vector<std::vector<std::pair<U64, double>>> columns(
+        static_cast<std::size_t>(latent));
+    for (U64 i = 0; i < rows; ++i) {
+      for (U64 a = val(influence).offsets[i]; a < val(influence).offsets[i + 1]; ++a) {
+        const U64 column = val(influence).indices[a];
+        const double value = val(influence).values[a];
+        if (value != 0.0) columns[column].emplace_back(i, value);
+      }
+    }
+    for (U64 column = 0; column < latent; ++column) {
+      const double scale = d[column] * d[column];
+      if (!(scale > 0.0) || columns[column].empty()) continue;
+      for (const auto& a : columns[column]) {
+        for (const auto& b : columns[column]) {
+          out(static_cast<std::size_t>(a.first), static_cast<std::size_t>(b.first)) +=
+              scale * a.second * b.second;
+        }
+      }
+    }
+  }
+  return model::ok_result(std::move(out));
+}
+
 Result<Matrix> dense_covariance_factor(Context& context, Ref<CovarianceAction> covariance) {
   if (!covariance || !covariance->model) {
     return model::fail<Matrix>(Code::invalid_request, "no covariance model supplied",
@@ -2008,7 +2081,24 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
   }
 
   // ---- whitening and the profile -----------------------------------------
-  Result<Matrix> factor = sky::dense_covariance_factor(context, controls->noise);
+  Result<Matrix> factor = sky::dense_control_covariance(context, controls->noise);
+  if (ok(factor)) {
+    // Factorise C_c = U diag(lambda) U^T into B = U diag(sqrt(lambda)); the
+    // existing SVD whitening then sees exactly the control covariance without
+    // ever forming a latent-sized identity.
+    numerics::SvdResult eigen = numerics::jacobi_svd(val(factor), 0.0);
+    Matrix rebuilt(static_cast<std::size_t>(control_count),
+                   static_cast<std::size_t>(control_count), 0.0);
+    for (std::size_t j = 0; j < control_count; ++j) {
+      const double sigma = std::sqrt(std::max(0.0, eigen.singular_values[j]));
+      for (std::size_t i = 0; i < control_count; ++i) {
+        rebuilt(i, j) = eigen.u(i, j) * sigma;
+      }
+    }
+    factor = model::ok_result(std::move(rebuilt));
+  } else {
+    factor = sky::dense_covariance_factor(context, controls->noise);
+  }
   if (!ok(factor)) {
     return model::fail<Ref<SkyFit>>(factor.code, "the control covariance factor cannot be built",
                                     "fit_relative_sky", "the sky cannot be fitted");
