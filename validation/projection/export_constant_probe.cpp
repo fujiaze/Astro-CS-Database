@@ -23,14 +23,15 @@ static void check(bool ok, const char* what) {
 }
 
 int main(int argc, char** argv) {
-  const bool no_support = argc > 1 && std::string(argv[1]) == "nosupport";
+  const std::string mode = argc > 1 ? argv[1] : "";
+  const bool no_support = mode == "nosupport";
+  const double b0 = mode == "negative" ? -1.0e6 : (mode == "zero" ? 0.0 : 1.0e6);
   std::filesystem::remove_all("/tmp/expr");
   acsd_validation::CountingResources resources;
   acsd_validation::NoCancellation cancellation;
   storage::LocalStorage storage;
   Context context{resources, cancellation, storage};
 
-  const double b0 = 1.0e6;
   const U32 order = 6;
   const U64 ipix = 0;
   const HealpixLeaf leaf{order, ipix};
@@ -177,7 +178,7 @@ int main(int argc, char** argv) {
     const double actual = val(values)[0];
     std::printf("  flux actual=%.12g expected=%.12g rel=%.3g\n", actual, expected,
                 std::fabs(actual - expected) / expected);
-    check(std::fabs(actual - expected) <= 1e-6 * expected,
+    check(std::fabs(actual - expected) <= 1e-6 * std::fabs(expected),
           "supported_flux equals b0 * pixel solid angle");
     auto lo = operators::read_f64(context, (*flux.value).estimate->numerical_lower, 0, 1);
     auto hi = operators::read_f64(context, (*flux.value).estimate->numerical_upper, 0, 1);
@@ -192,7 +193,7 @@ int main(int argc, char** argv) {
     auto values = operators::read_f64(context, (*mean.value).estimate->signal, 0, 1);
     const double actual = val(values)[0];
     std::printf("  mean actual=%.12g expected=%.12g\n", actual, b0);
-    check(std::fabs(actual - b0) <= 1e-9 * b0, "supported_mean equals b0");
+    check(std::fabs(actual - b0) <= 1e-9 * std::fabs(b0), "supported_mean equals b0");
   }
   // A target pixel far from the supported leaf must be NaN, not zero.
   auto away = std::make_shared<WcsModel>(*wcs);
