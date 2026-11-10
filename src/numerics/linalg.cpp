@@ -1,5 +1,7 @@
 #include "numerics/linalg.hpp"
 
+#include "numerics/interval.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -9,6 +11,87 @@ namespace acsd::numerics {
 namespace {
 
 constexpr double kEps = std::numeric_limits<double>::epsilon();
+
+// Upper bound of the Frobenius norm of a matrix of intervals.  Every square
+// and every accumulation is enclosed with the directed-rounding primitives;
+// the returned value is therefore an upper bound, not the round-to-nearest
+// norm that a field called "error bound" must not silently be.
+double enclosed_frobenius_upper(const Matrix& matrix) {
+  Interval sum(0.0, 0.0);
+  for (double value : matrix.data) {
+    const Interval square = interval_mul(Interval(value, value), Interval(value, value));
+    sum = interval_add(sum, square);
+  }
+  return interval_sqrt(sum).upper;
+}
+
+// Upper bound of ||Q^T Q - I||_F for a factor whose columns should be
+// orthonormal.  The bound is what the certificate uses; the naive point value
+// can be smaller than the true defect because every dot product is rounded.
+double orthogonality_defect_upper(const Matrix& q) {
+  Interval sum(0.0, 0.0);
+  for (std::size_t i = 0; i < q.cols; ++i) {
+    for (std::size_t j = 0; j < q.cols; ++j) {
+      Interval dot(0.0, 0.0);
+      for (std::size_t k = 0; k < q.rows; ++k) {
+        dot = interval_add(dot, interval_mul(Interval(q(k, i), q(k, i)),
+                                             Interval(q(k, j), q(k, j))));
+      }
+      if (i == j) dot = interval_sub(dot, Interval(1.0, 1.0));
+      sum = interval_add(sum, interval_mul(dot, dot));
+    }
+  }
+  return interval_sqrt(sum).upper;
+}
+
+// Upper bound of ||A - U S V^T||_F.
+double reconstruction_residual_upper(const Matrix& a, const SvdResult& svd) {
+  Interval sum(0.0, 0.0);
+  for (std::size_t i = 0; i < a.rows; ++i) {
+    for (std::size_t j = 0; j < a.cols; ++j) {
+      Interval entry(0.0, 0.0);
+      for (std::size_t k = 0; k < svd.singular_values.size(); ++k) {
+        const Interval left(svd.u(i, k), svd.u(i, k));
+        const Interval sigma(svd.singular_values[k], svd.singular_values[k]);
+        const Interval right(svd.v(j, k), svd.v(j, k));
+        entry = interval_add(entry, interval_mul(left, interval_mul(sigma, right)));
+      }
+      const Interval difference = interval_sub(entry, Interval(a(i, j), a(i, j)));
+      sum = interval_add(sum, interval_mul(difference, difference));
+    }
+  }
+  return interval_sqrt(sum).upper;
+}
+
+// The standard perturbation bound for a computed SVD:
+//   |sigma_i(A) - sigma_i(U S V^T)| <= e_R,
+//   orthogonality defects add e_U ||S||_2 sqrt(1 + delta_V)
+//   and e_V ||S||_2.
+// Every operation below is outward: the inputs are already upper bounds and
+// the arithmetic uses interval primitives.
+double sigma_error_upper(double residual, double delta_u, double delta_v,
+                         double spectral_upper) {
+  const double e_u =
+      delta_u >= 1.0 ? std::numeric_limits<double>::infinity()
+                     : delta_u / (1.0 + std::sqrt(1.0 - delta_u));
+  const double e_v =
+      delta_v >= 1.0 ? std::numeric_limits<double>::infinity()
+                     : delta_v / (1.0 + std::sqrt(1.0 - delta_v));
+  if (!std::isfinite(e_u) || !std::isfinite(e_v) || !std::isfinite(spectral_upper)) {
+    return std::numeric_limits<double>::infinity();
+  }
+  const Interval one_plus_delta_v =
+      interval_add(Interval(1.0, 1.0), Interval(delta_v, delta_v));
+  const Interval first =
+      interval_mul(Interval(e_u, e_u),
+                   interval_mul(Interval(spectral_upper, spectral_upper),
+                                interval_sqrt(one_plus_delta_v)));
+  const Interval second =
+      interval_mul(Interval(e_v, e_v), Interval(spectral_upper, spectral_upper));
+  const Interval total =
+      interval_add(interval_add(Interval(residual, residual), first), second);
+  return total.upper;
+}
 
 }  // namespace
 
@@ -139,6 +222,39 @@ SvdResult jacobi_svd(const Matrix& a, double rank_relative) {
       for (std::size_t i = 0; i < m; ++i) u(i, j) /= sigma[j];
     }
   }
+  // A zero singular value leaves the corresponding column of U undefined.
+  // Completing it with an orthonormal direction keeps U a basis, so the
+  // orthogonality defect and the spectral error bound stay finite for a
+  // rank-deficient input.  Without this completion ||U^T U - I|| = 1 and no
+  // rank could ever be certified.
+  for (std::size_t j = 0; j < n; ++j) {
+    if (sigma[j] > 0.0) continue;
+    double best_norm = -1.0;
+    std::vector<double> best(m, 0.0);
+    for (std::size_t basis = 0; basis < m; ++basis) {
+      std::vector<double> candidate(m, 0.0);
+      candidate[basis] = 1.0;
+      for (int pass = 0; pass < 2; ++pass) {
+        for (std::size_t k = 0; k < n; ++k) {
+          if (k == j) continue;
+          if (sigma[k] <= 0.0 && k > j) continue;  // not completed yet
+          double dot = 0.0;
+          for (std::size_t i = 0; i < m; ++i) dot += candidate[i] * u(i, k);
+          for (std::size_t i = 0; i < m; ++i) candidate[i] -= dot * u(i, k);
+        }
+      }
+      double norm = 0.0;
+      for (double value : candidate) norm += value * value;
+      norm = std::sqrt(norm);
+      if (norm > best_norm) {
+        best_norm = norm;
+        best = candidate;
+      }
+    }
+    if (best_norm > 1.0e-12) {
+      for (std::size_t i = 0; i < m; ++i) u(i, j) = best[i] / best_norm;
+    }
+  }
   std::vector<std::size_t> order(n);
   std::iota(order.begin(), order.end(), 0);
   std::sort(order.begin(), order.end(),
@@ -165,45 +281,28 @@ SvdResult jacobi_svd(const Matrix& a, double rank_relative) {
     out.v = v_sorted;   // k x n
   }
 
-  // Orthogonality defects of the returned factors.
-  auto defect = [](const Matrix& q) {
-    Matrix gram(q.cols, q.cols);
-    for (std::size_t i = 0; i < q.cols; ++i)
-      for (std::size_t j = 0; j < q.cols; ++j) {
-        double sum = 0.0;
-        for (std::size_t k = 0; k < q.rows; ++k) sum += q(k, i) * q(k, j);
-        gram(i, j) = sum;
-      }
-    for (std::size_t i = 0; i < gram.cols; ++i) gram(i, i) -= 1.0;
-    return frobenius_norm(gram);
-  };
-  out.delta_u = defect(out.u);
-  out.delta_v = defect(out.v);
+  // Orthogonality defects and reconstruction residual are evaluated with the
+  // directed-rounding primitives, so the certificate does not rest on a
+  // round-to-nearest residual that may be smaller than the true defect.
+  out.delta_u = orthogonality_defect_upper(out.u);
+  out.delta_v = orthogonality_defect_upper(out.v);
+  out.residual = reconstruction_residual_upper(a, out);
 
-  Matrix reconstructed(out.u.rows, out.v.rows);
-  for (std::size_t i = 0; i < reconstructed.rows; ++i)
-    for (std::size_t j = 0; j < reconstructed.cols; ++j) {
-      double sum = 0.0;
-      for (std::size_t k = 0; k < out.singular_values.size(); ++k)
-        sum += out.u(i, k) * out.singular_values[k] * out.v(j, k);
-      reconstructed(i, j) = sum;
-    }
-  out.residual = frobenius_norm_diff(a, reconstructed);
+  // The spectral norm is bounded above by the Frobenius norm, which is
+  // available outward.  The tighter upper bound |sigma_max| + residual would
+  // need the true sigma_max, so it is not used here: a loose but valid bound
+  // keeps the certificate honest.
   out.spectral_norm = out.singular_values.empty() ? 0.0 : out.singular_values[0];
+  const double spectral_upper = enclosed_frobenius_upper(a);
+  out.sigma_error_bound =
+      sigma_error_upper(out.residual, out.delta_u, out.delta_v, spectral_upper);
 
-  const double eU = out.delta_u >= 1.0 ? std::numeric_limits<double>::infinity()
-                                       : out.delta_u / (1.0 + std::sqrt(1.0 - out.delta_u));
-  const double eV = out.delta_v >= 1.0 ? std::numeric_limits<double>::infinity()
-                                       : out.delta_v / (1.0 + std::sqrt(1.0 - out.delta_v));
-  out.sigma_error_bound = out.residual + eU * out.spectral_norm * std::sqrt(1.0 + out.delta_v) +
-                          eV * out.spectral_norm;
-
-  const double threshold = rank_relative * out.spectral_norm;
+  const double threshold_upper = rank_relative * (out.spectral_norm + out.sigma_error_bound);
   out.rank = 0;
   for (double s : out.singular_values) {
-    if (s > threshold) ++out.rank;
+    if (s - out.sigma_error_bound > threshold_upper) ++out.rank;
   }
-  out.converged = converged;
+  out.converged = converged && std::isfinite(out.sigma_error_bound);
   return out;
 }
 
@@ -212,22 +311,31 @@ RankReport classify_rank(const SvdResult& svd, std::size_t columns, double rank_
   report.columns = columns;
   report.singular_values = svd.singular_values;
   report.singular_error_bound = svd.sigma_error_bound;
-  const double threshold = rank_relative * svd.spectral_norm;
+  // The threshold itself depends on the (uncertain) spectral norm.  A value is
+  // classified only when the decision holds for every threshold in the
+  // interval implied by the singular-value bound; otherwise the rank is
+  // reported unresolved instead of being silently decided by a point value.
+  const double spectral_lower =
+      std::max(0.0, svd.spectral_norm - svd.sigma_error_bound);
+  const double spectral_upper = svd.spectral_norm + svd.sigma_error_bound;
+  const double threshold_lower = rank_relative * spectral_lower;
+  const double threshold_upper = rank_relative * spectral_upper;
   std::size_t rank = 0;
   bool unresolved = false;
   for (double s : svd.singular_values) {
     const double lo = s - svd.sigma_error_bound;
     const double hi = s + svd.sigma_error_bound;
-    if (lo > threshold) {
+    if (lo > threshold_upper) {
       ++rank;
-    } else if (hi < threshold) {
-      // provably below the threshold
+    } else if (hi < threshold_lower) {
+      // provably below every admissible threshold
     } else {
       unresolved = true;
     }
   }
   report.rank = rank;
-  report.certified = svd.converged && !unresolved && report.singular_error_bound < threshold;
+  report.certified = svd.converged && !unresolved && std::isfinite(svd.sigma_error_bound) &&
+                     svd.sigma_error_bound < threshold_lower;
   report.note = unresolved ? "rank_unresolved: singular value interval crosses the threshold"
                            : (report.certified ? "rank_certified" : "numerical_rank");
   // Null space basis: the right singular vectors whose singular value is at or
@@ -389,23 +497,33 @@ LeastSquaresResult least_squares(const Matrix& a, const std::vector<double>& rhs
     out.solution[factor.permutation[j]] = y[j] / factor.column_scales[j];
   }
 
-  const std::vector<double> fitted = matvec(a, out.solution);
-  double residual_norm = 0.0;
-  double inf_norm = 0.0;
-  for (std::size_t i = 0; i < rhs.size() && i < fitted.size(); ++i) {
-    const double d = rhs[i] - fitted[i];
-    residual_norm += d * d;
-    inf_norm = std::max(inf_norm, std::fabs(d));
+  // Residuals are evaluated as enclosures.  The reported value is the upper
+  // endpoint: a point residual computed in binary64 can be smaller than the
+  // true residual and must not be called a bound.
+  Interval residual_square(0.0, 0.0);
+  double inf_bound = 0.0;
+  for (std::size_t i = 0; i < rhs.size() && i < a.rows; ++i) {
+    Interval fitted(0.0, 0.0);
+    for (std::size_t j = 0; j < n; ++j) {
+      fitted = interval_add(fitted, interval_mul(Interval(a(i, j), a(i, j)),
+                                                 Interval(out.solution[j], out.solution[j])));
+    }
+    const Interval difference = interval_sub(Interval(rhs[i], rhs[i]), fitted);
+    residual_square = interval_add(residual_square, interval_mul(difference, difference));
+    const double magnitude =
+        std::max(std::fabs(difference.lower), std::fabs(difference.upper));
+    inf_bound = std::max(inf_bound, std::nextafter(magnitude, std::numeric_limits<double>::infinity()));
   }
-  out.residuals.push_back(std::sqrt(residual_norm));
-  out.scaled_residual = inf_norm;
+  out.residuals.push_back(interval_sqrt(residual_square).upper);
+  out.scaled_residual = inf_bound;
 
   const SvdResult svd = jacobi_svd(a, rank_relative);
-  out.rank = svd.rank;
-  out.rank_certified = svd.converged;
+  const RankReport rank_report = classify_rank(svd, n, rank_relative);
+  out.rank = rank_report.rank;
+  out.rank_certified = rank_report.certified;
   out.rank_error = svd.sigma_error_bound;
   out.singular_values = svd.singular_values;
-  out.converged = true;
+  out.converged = std::isfinite(out.residuals.back()) && std::isfinite(out.rank_error);
   return out;
 }
 
@@ -413,15 +531,28 @@ LeastSquaresResult least_squares(const Matrix& a, const std::vector<std::vector<
                                   double rank_relative) {
   LeastSquaresResult combined;
   combined.converged = true;
+  combined.rank_certified = true;
+  combined.rank_error = 0.0;
+  bool first = true;
   for (const std::vector<double>& column : rhs) {
     LeastSquaresResult single = least_squares(a, column, rank_relative);
     combined.solutions.push_back(single.solution);
     combined.residuals.push_back(single.residuals.empty() ? 0.0 : single.residuals[0]);
     combined.scaled_residual = std::max(combined.scaled_residual, single.scaled_residual);
-    combined.rank = single.rank;
-    combined.rank_certified = single.rank_certified;
-    combined.rank_error = single.rank_error;
-    combined.singular_values = single.singular_values;
+    if (first) {
+      combined.rank = single.rank;
+      combined.singular_values = single.singular_values;
+      first = false;
+    } else if (combined.rank != single.rank) {
+      // The rank of the design is a property of the matrix, so a right hand
+      // side cannot change it.  Keep the larger value only as a conservative
+      // diagnostic and refuse the certificate.
+      combined.rank = std::max(combined.rank, single.rank);
+      combined.rank_certified = false;
+    }
+    combined.converged = combined.converged && single.converged;
+    combined.rank_certified = combined.rank_certified && single.rank_certified;
+    combined.rank_error = std::max(combined.rank_error, single.rank_error);
   }
   if (!combined.solutions.empty()) combined.solution = combined.solutions.front();
   return combined;
@@ -508,20 +639,25 @@ EigenResult symmetric_eigen(const Matrix& a) {
   out.eigenvalues.resize(n);
   for (std::size_t i = 0; i < n; ++i) out.eigenvalues[i] = m(i, i);
   out.eigenvectors = v;
-  Matrix gram(n, n);
-  for (std::size_t i = 0; i < n; ++i)
+  // Orthogonality defect and residual ||A V - V diag(lambda)||_F are bounded
+  // outward.  A point residual can be smaller than the true one and cannot be
+  // used to certify the spectral decomposition.
+  out.delta_u = orthogonality_defect_upper(v);
+  Interval sum(0.0, 0.0);
+  for (std::size_t i = 0; i < n; ++i) {
     for (std::size_t j = 0; j < n; ++j) {
-      double sum = 0.0;
-      for (std::size_t k = 0; k < n; ++k) sum += v(k, i) * v(k, j);
-      gram(i, j) = sum;
+      Interval left(0.0, 0.0);
+      for (std::size_t k = 0; k < n; ++k) {
+        left = interval_add(left, interval_mul(Interval(a(i, k), a(i, k)),
+                                               Interval(v(k, j), v(k, j))));
+      }
+      const Interval right(out.eigenvalues[j] * v(i, j), out.eigenvalues[j] * v(i, j));
+      const Interval difference = interval_sub(left, right);
+      sum = interval_add(sum, interval_mul(difference, difference));
     }
-  for (std::size_t i = 0; i < n; ++i) gram(i, i) -= 1.0;
-  out.delta_u = frobenius_norm(gram);
-  Matrix reconstructed = matmul(a, v);
-  for (std::size_t j = 0; j < n; ++j)
-    for (std::size_t i = 0; i < n; ++i) reconstructed(i, j) -= out.eigenvalues[j] * v(i, j);
-  out.residual = frobenius_norm(reconstructed);
-  out.converged = true;
+  }
+  out.residual = interval_sqrt(sum).upper;
+  out.converged = out.delta_u < 1.0 && std::isfinite(out.residual);
   return out;
 }
 

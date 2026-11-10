@@ -267,6 +267,15 @@ if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/num
   add_test(NAME numerics_selftest COMMAND acsd_numerics_selftest)
 endif()
 
+# Independent exact-rational containment oracle for the interval primitives.
+# It is an experiment tool, not a gate: a pass on random cases is evidence, not
+# a proof over all inputs.
+if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/interval_oracle.cpp)
+  add_executable(acsd_interval_oracle validation/lead/interval_oracle.cpp)
+  target_link_libraries(acsd_interval_oracle PRIVATE numerics)
+  target_compile_options(acsd_interval_oracle PRIVATE ${ACSD_NUMERIC_FLAGS})
+endif()
+
 if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/operators_selftest.cpp)
   add_executable(acsd_operators_selftest validation/lead/operators_selftest.cpp)
   target_link_libraries(acsd_operators_selftest PRIVATE operators resources storage model)
