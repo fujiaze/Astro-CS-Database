@@ -262,7 +262,14 @@ Result<Ref<LinearAction>> compose(Context& context, Ref<LinearAction> outer, Ref
     return model::fail<Ref<LinearAction>>(outer_recipe.code, "the outer action cannot be described",
                                           "compose", "the composition cannot be built");
   }
-  recipe.spaces = val(outer_recipe).spaces;
+  // compose(outer, inner) applies inner first, then outer: the domain is the
+  // inner domain and the codomain is the outer codomain.  Using the outer
+  // spaces wholesale made the composed action claim the leaf space as its
+  // domain, so materialising a latent->leaf influence read the wrong size.
+  recipe.spaces.domain = inner->spaces.domain;
+  recipe.spaces.codomain = outer->spaces.codomain;
+  recipe.spaces.input = inner->spaces.input;
+  recipe.spaces.output = outer->spaces.output;
   // The recipe must declare its dependencies: make_action requires the child
   // list of the recipe to match the supplied children one for one.
   recipe.children = {child_identity(outer, "outer"), child_identity(inner, "inner")};
