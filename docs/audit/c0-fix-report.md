@@ -63,3 +63,7 @@ different=1
 ## P1-3 bind 的 detector 域检查用 sample 网格
 
 `bind_wcs` 现在把 footprint 的 sample 包围盒（`[-0.5,width-0.5]×[-0.5,height-0.5]`）经 `detector_from_sample` 与 offset 映射到 detector 坐标，再要求 `wcs.domain` 覆盖该 bbox；恒等映射与旧的 `[-0.5,width-0.5]` 检查一致，非恒等/旋转映射不再误判。
+
+## P1-4 information 的 V_F 单位
+
+`estimate_flux_information` 现在把 template `h` 的单位传播到 `flux_variance.unit`：方差单位减去 `2×h` 的 linear/sr/pixel/nm power，并按 `multiplier` 调整；`h` 无量纲时保持协方差单位。参数数组 px/rad 混存仍未修。

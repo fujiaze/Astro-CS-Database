@@ -121,3 +121,10 @@ X01 在 `3fa331a90` 再次全链通过（signal_only）：normalize 8/8、mosaic
 - **export 数值界**：旧实现只把叶值区间通过中点 Q 作用，漏掉 overlap 面积区间。现保留每个 (pixel,leaf) 的系数区间 [cL,cU]，按 `min/max(c_i x_i)` 对 c、x 两个区间求端点点积；`supported_mean` 用分母区间。常场探针验证 `lower ≤ flux ≤ upper`，且 1×1 解析通量仍为 1.76e-11 相对误差。
 - **regroup 顺序**：`input_is_mean` 的恢复因子 S 作用在原生样本上，正确算子是 `G∘S`；旧 `compose(S,G)` 对非方 G 是形状错误、对方 G 会算错。已改为 `compose(G,S)`，regroup driver 通过。
 - X01 在 `9ffeb7e37` 通过（signal_only；normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007）。本轮 e2e 从 `ba94d9265` 启动、结束时 `regroup` 提交已存在；regroup 不在 X01 链上，行为等价。
+
+## 15. 第十一轮：C0 身份/单位/域（2026-11-11，`7b470005`）
+
+- `catalogue.lookup`：缺标识符或无界 topocentric 修正时 `complete=false`，后者同时 `noise=unknown/science=conditional`。
+- `bind_wcs`：sample 包围盒经 `detector_from_sample`/offset 映射到 detector 后再检查 `wcs.domain`，不再假设 sample 网格等于 detector 网格；bind 身份探针仍给不同像素值不同 hash。
+- `information`：`V_F` 单位按 `h` 的 linear/sr/pixel/nm power 与 multiplier 传播；`h` 无量纲时保持协方差单位。参数数组 px/rad 混存仍未修。
+- X01 在 `7b470005` 通过（signal_only）：normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007，旧 5% 失败保留。
