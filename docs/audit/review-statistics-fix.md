@@ -132,3 +132,99 @@ equal V = 2 ;   P C P^T gives 0.5 (per frame 1),  C_y gives 2 (per frame 4)
 - 我没有跑 `mosaic` 端到端：`validation/x01/input/cli/products/*` 在工作树中已被删除（`git status` 显示 D），且运行会写他人目录。§2 的接线判据来自源码 + 对同一调用形状的探针复现，不是端到端实跑。
 - 探针链接的 `build/science` 是修复后代码（sky/coadd/uncertainty 库 mtime 晚于其源码；旧行为 0.25/4 已不再出现），但 `src/workflows/mosaic.cpp`（19:10）与 `src/projection/export_projection.cpp`（20:09）之后的 `libworkflows.a`/`libprojection.a` 分别为 20:11/20:10，故 §2/§3 的接线判断对应当前构建。
 - 本复核不主张任何真实数据/覆盖结论；`V_F/V_B`、`K H=0`、`tᵀΓt` 均为线性/Gaussian 条件下结论。
+
+---
+
+# 第二轮复核（round 3，HEAD `79346a8ee`）
+
+复核对象：`79346a8ee`（已推送）+ [statistics-fix-report.md](statistics-fix-report.md) §11 + Lead 的 `mosaic.cpp`/codec 改动。
+方法：读 diff 逐行 + 3 个新独立探针（`/tmp/audit2/probe6.cpp` 导出链、`probe7.cpp` 按帧 apply_sky、`probe4.cpp` 重跑 coadd 外层影响），全部只依赖 `include/` + `validation/stats/harness.hpp`，期望值在探针内按定义独立重算。**未改 `src/`。** 结论：三项中 **coadd 外层影响已关闭**，**export 三项在内存路径已关闭**，**按帧 apply_sky 的信号已正确、但其发布的协方差不是发布信号的协方差（P0 仍未关闭）**。
+
+## 8.1 按帧 `apply_sky`：信号对、协方差错（P0 未关闭）
+
+**管线（已关闭）**：`ApplySkyInput.frame` + codec（`inputs.hpp`/`schemas`/`codecs.cpp` 同步）、`mosaic.cpp` 传 `descriptions[i]->frame`、`apply_sky_impl` 用 `fit->support->index->partitions` 定位行块（`sky.cpp` 的 `build_training_support` 发布 `channel=frame Id`、`index_begin`、`count`）。我的探针（`probe7`，2 帧×4 叶、同一批叶、offset 2，`C=I₄`）：
+
+```
+training support index size=8 partitions=2
+  channel=frame_a begin=0 count=4 ; channel=frame_b begin=4 count=4
+3 参数版：code=2 "the signal's leaves match more than one training frame; pass the frame identity ..."
+apply_sky(frame_a) → (1,1,1,1)    参考帧不变 ✓
+apply_sky(frame_b) → (1,1,1,1)    3→1，偏移被正确减掉 ✓
+apply_sky(frame_c) → 拒绝（不在训练叶空间）✓
+```
+
+**协方差（仍失败）**。同一探针里，发布信号 `z_b = y_b − E_b β̂`（`β̂` 来自联合 `c`）的真值可纸面算出：
+`β̂_b = c_b − c_a`，`z_{b,i} = y_{b,i} − mean(y_b) + mean(y_a)`，
+`Var(z_{b,i}) = 1 + 1/4 + 1/4 − 2·(1/4) = **1**`，`Cov(z_{b,i},z_{b,j}) = 0 (i≠j)`，`Var(Σz_b) = **4**`。
+实测发布值：
+
+```
+published Var(z_b,0)   = 0.75   （真值 1）
+published Var(sum z_b) = 0      （真值 4）
+assessment: science=bounded(0), noise=unknown(3), omitted=1（fit_parameter_variance…）
+```
+
+原因：`P_f = I − E_f K T_f`，其中 `T_f = T·Sᵀ` 只含**本帧**控制行（`sky.cpp` 的 `block_t = multiply_csr(fit->T, selection_transposed)`）。于是它建模的泛函是 `y_f − E_f K T_f y_f`（本帧均值），而发布信号用的是 `y_f − E_f K T y`（联合 `c`）——**两者是不同的线性估计量**。`P_f C_f P_fᵀ = I − J/4`（对角 0.75、和方差 0），既不是发布信号的协方差，也不是“给定 β̂ 的条件协方差”（后者应为 `C_f = I`）。这不是“少了一项方差”，而是发布方差的估计量错配：小尺度上 25% 低估，和量纲上 0 vs 4。
+
+**链路后果**：`mosaic` 把校正后的 provider 交给 `coadd.select/weights`。用同一探针继续跑 `solve_weights`（equal）：
+```
+coadd equal V(leaf 0) = 0.4375 ; 正确 Γ = [[1,1/4],[1/4,1]] 的真值 0.625
+```
+差 30%：既继承了按帧协方差的 0.75（而非 1），又丢掉 `Cov(z_a,i, z_b,j) = 1/4` 的跨帧项（单帧对象无法表达）。因此在 `mosaic` 里 BLUE 权重不是 BLUE，若把该协方差发布出去就是错的方差；当前产品层把协方差丢掉（§8.4）才使错误没有外泄到产品。
+
+**建议**（最小、可判定）：按帧路径在无法拿到联合跨帧协方差时**发布 `noise=nullptr`（unknown）**，而不是一个看似已知的近似；或者只保留**联合入口**（一次 `apply_sky` 覆盖整个训练叶空间，`C_z=P C Pᵀ` 精确）。若确实要“帧内条件协方差”，必须同时把**信号**改成同一泛函（`y_f − E_f K T_f y_f`）并把 `science` 标为 `conditional`——目前两者都没有。
+
+**次生（P1）**：`science` 仍是 `bounded`（枚举 0），只加了 `omitted` 标记；报告 §11.1 “science=conditional” 与代码不符（`sky.cpp` 只在 `unavailable_count>0` 时置 conditional）。
+
+## 8.2 coadd 外层 `CovarianceAction.influence`：已关闭
+
+`probe4` 重跑（单叶两帧、`C_y=4`、外层 `P=1/2`）：
+```
+equal V = 0.5   （= 两帧 P C P^T = 1 的等权方差；旧实现 2）
+```
+`build_joint_covariance` 现按 `frame.noise->influence` 折进每个根（`I0·L_k`），`unknown_terms` 同样处理，并有 `rows·cols > 2^26` 的具名拒绝。数值与解析预期一致。
+
+## 8.3 export 的 `Q C Qᵀ` 三项：内存路径已关闭（用真实 `build_export` 验证）
+
+`probe6` 构造最小内存 `ProductProvider`（1 叶 order 6、叶面亮度单位 `L sr⁻¹`、叶方差 7、WCS 4×4 像元 1″、`supported_flux`），调用真实 `build_export`：
+
+```
+unit: sr_power=0 （supported_flux 信号单位 ✓）
+variance_unit.sr_power=0 （= signal_unit² ✓）
+domain size=16 kind=4(pixel) codomain=16 ✓
+Var = 9.90005192413e-19 ; 独立重算 (Σ_p b_p)²·7 = 9.90005192413e-19 ✓
+assessment.noise = known ✓
+输入 noise=null：导出的 noise 仍为 null，issue "the leaf estimate publishes no covariance"
+             保留（未被 make_assessment 清掉），noise 报 unknown ✓
+supported_mean: 信号单位 sr⁻¹ ✓
+```
+
+即：**值（含跨叶共享根）、单位幂、目标像元 domain/codomain、issue 保留**四项均成立。两个限制：
+- 该路径只在**内存**产品上可达；真实产品层目前把协方差丢掉（§8.4），所以 X01 的 export 并没有走到这些字段。
+- `compose` 不校验中段维度（`operators` 写域）：我构造一个 16×16 的错误外层影响，`compose(Q,I0)` 仍返回 ok，错误被推迟到应用时，`build_export` 不会置 `usable=false`。属 P2（应让 `compose` 校验 `inner.codomain == outer.domain`）。
+
+## 8.4 4 帧 X01 “mosaic 1 / export 1 通过”是否与修复一致
+
+**一致，但不能作为这三项的验证**。我核对了 `validation/x01/observed/e2e_summary.json`（`status=pass`、`git_commit=79346a8ee`、mosaic 1、export 1）与产品对象：
+
+- mosaic 产品：`profile=signal_only`，`assessment.science=conditional`；其 `SignalEstimate.noise = null`，issue = “the covariance action cannot be reopened (no LinearAction reader); the product is signal_only”。
+- export 产品（4 帧与 `/tmp/x01two` 的 2 帧同型）：`noise=null`，issue = “the leaf estimate publishes no covariance, so the exported covariance is unknown”，`science=conditional`；信号单位 `sr⁰` 正确但没有协方差。
+
+所以该 pass 证明的是：命令链能跑通、按帧校正的**信号**正确、产品层诚实地降级为 `signal_only/unknown`。它**没有**证明：按帧协方差正确（本文 §8.1 显示不正确）、coadd 的 Γ 正确（§8.1 的 0.4375 vs 0.625）、export 的单位/domain 生效（export 输入就没有协方差）。产品层 “no LinearAction reader” 是当前把整条协方差链挡在验证之外的直接原因，属 P1（产品/重开闭包，写域外）。
+
+## 8.5 本轮裁决汇总
+
+| 项 | 裁决 |
+|---|---|
+| apply_sky 帧身份管线 + 参考帧不变 + 歧义拒绝 | **关闭**（`probe7`） |
+| apply_sky 按帧发布的协方差 | **仍失败（P0）**：0.75 vs 1；Var(Σ)=0 vs 4；与发布信号不是同一估计量 |
+| 按帧 estimate 的 `science` | **仍失败（P1）**：`bounded` + omitted，而非 conditional |
+| coadd 折外层 influence | **关闭**（`probe4` 0.5） |
+| coadd 在“按帧校正 provider”上的方差 | **仍失败（P0 链路后果）**：0.4375 vs 0.625（继承 §8.1 并缺跨帧项） |
+| export `Q C Qᵀ` 值/单位/domain/issue（内存路径） | **关闭**（`probe6` 全绿） |
+| export 经真实产品 | **不可达**：产品层丢协方差（`noise=null`），故 X01 未覆盖 |
+| X01 4 帧 pass | **与修复一致但无统计认证价值**（signal_only / conditional / noise=unknown） |
+| `compose` 中段维度校验 | 新增 P2（`operators` 写域） |
+| 上轮遗留 R4/R5、`same_factor`、降级白名单、负方差启发式、身份/`effective_response`、`evaluate_scene_variance` | 仍未修（报告 §11.5 已列，本文确认） |
+
+**建议顺序**：① 按帧路径改为 unknown 或改用联合入口（同时把 `science` 改 conditional 若保留条件语义）；② 产品层支持重开新协方差（csr/compose/sky action 的 reader），否则整条协方差链永远无法端到端验证；③ 再补 `compose` 中段维度校验与上轮遗留项。

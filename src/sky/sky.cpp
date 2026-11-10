@@ -2866,7 +2866,7 @@ Result<Ref<SignalEstimate>> apply_sky_impl(Context& context, Ref<SignalEstimate>
       // The published P of the fit is the whole-space action; the block (and
       // the mask) need their own action.
       Ref<LinearAction> masked_e = e_action;
-      if (unavailable_count > 0) {
+      if (frame_block) {
         std::vector<double> mask_values(correction_available.size(), 0.0);
         for (std::size_t i = 0; i < mask_values.size(); ++i) {
           mask_values[i] = correction_available[i] ? 1.0 : 0.0;
@@ -3024,8 +3024,20 @@ Result<Ref<SignalEstimate>> apply_sky_impl(Context& context, Ref<SignalEstimate>
       wrapped->input_output.domain = signal->support->index;
       wrapped->input_output.codomain = signal->support->index;
     }
-    corrected_noise = std::shared_ptr<const CovarianceAction>(wrapped);
-    covariance_written = true;
+    if (frame_block) {
+      // The published signal subtracts the JOINT beta (which uses the other
+      // frames), while this block models y_f - E_f K T_f y_f (the frame's own
+      // control rows only).  P_f C_f P_f^T is therefore not the covariance of
+      // the published signal, and the cross-frame term cannot be represented
+      // in a per-frame object.  Publish unknown instead of a wrong covariance;
+      // the joint entry remains exact.
+      corrected_noise = nullptr;
+      estimate_omitted.push_back(
+          "per_frame_covariance_does_not_match_the_joint_beta_estimand");
+    } else {
+      corrected_noise = std::shared_ptr<const CovarianceAction>(wrapped);
+      covariance_written = true;
+    }
   }
   (void)covariance_written;
 
@@ -3042,7 +3054,11 @@ Result<Ref<SignalEstimate>> apply_sky_impl(Context& context, Ref<SignalEstimate>
   estimate->identity = model::make_identity("acsd.SignalEstimate", 2, 0, signal->identity.content_hash,
                                              "acsd");
   estimate->assessment = model::make_assessment(Code::ok);
-  estimate->assessment.complete = true;
+  estimate->assessment.complete = !frame_block;
+  if (frame_block) {
+    estimate->assessment.science = ScienceState::conditional;
+    estimate->assessment.noise = NoiseState::unknown;
+  }
   estimate->assessment.condition = signal->estimator.condition;
   for (const std::string& omitted : estimate_omitted) {
     model::set_omitted(estimate->assessment, omitted);
@@ -3054,9 +3070,12 @@ Result<Ref<SignalEstimate>> apply_sky_impl(Context& context, Ref<SignalEstimate>
     model::set_omitted(out.assessment, omitted);
   }
   model::set_included(out.assessment, "relative_sky_correction");
-  model::set_included(out.assessment, "corrected_covariance_with_both_negative_cross_terms");
+  if (!frame_block) {
+    model::set_included(out.assessment, "corrected_covariance_with_both_negative_cross_terms");
+  }
   if (frame_block) {
     model::set_included(out.assessment, "correction_of_one_frame_block_of_the_training_space");
+    out.assessment.science = ScienceState::conditional;
   }
   if (unavailable_count > 0) {
     model::add_issue(out.assessment, Code::unavailable,
