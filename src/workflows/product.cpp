@@ -154,6 +154,24 @@ Result<std::string> collect_action(Context& context, ProductBuilder& builder,
     return fail<std::string>(recipe.code, "the action cannot be described", "product.write",
                              "the product cannot be published");
   }
+  // The recipe declares its domain and codomain indices; the encoded action
+  // references them, so they are part of the closure.
+  for (const Ref<Index>& space : {val(recipe).spaces.domain, val(recipe).spaces.codomain}) {
+    if (!space) continue;
+    store_object(builder, space->identity.object_id, "acsd.Index",
+                 workflows::encode_index(*space));
+    if (space->ids) {
+      Result<Id> stored_ids = persist_array(context, builder, space->ids);
+      if (!ok(stored_ids)) {
+        return fail<std::string>(stored_ids.code, "the action index ids cannot be stored",
+                                 "product.write", "the product cannot be published");
+      }
+    }
+  }
+  if (val(recipe).error_record) {
+    store_object(builder, val(recipe).error_record->identity.object_id, "acsd.ErrorRecord",
+                 workflows::encode_error_record(*val(recipe).error_record));
+  }
   std::vector<Id> children;
   for (const Id& name : val(recipe).children) {
     if (builder.objects.count(name) == 0) {
