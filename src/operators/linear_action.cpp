@@ -502,6 +502,29 @@ Result<Ref<LinearAction>> make_csr_action(Context& context, U64 rows, U64 cols,
       }
     }
   }
+  // The CSR tables are the payload of the operator: persist them as arrays so
+  // the action can be stored in a product and rebuilt later.
+  const std::vector<U64> offsets_shape{static_cast<U64>(offsets.size())};
+  const std::vector<U64> indices_shape{static_cast<U64>(indices.size())};
+  const std::vector<U64> values_shape{static_cast<U64>(values.size())};
+  Result<ArrayRef> offsets_array = context.storage.copy(
+      context, DType::u64, model::encode_u64(offsets), offsets_shape, unit, Id());
+  if (!ok(offsets_array)) {
+    return model::fail<Ref<LinearAction>>(offsets_array.code, "the CSR offsets cannot be stored",
+                                          "operators.make_csr", "the action cannot be built");
+  }
+  Result<ArrayRef> indices_array = context.storage.copy(
+      context, DType::u64, model::encode_u64(indices), indices_shape, unit, Id());
+  if (!ok(indices_array)) {
+    return model::fail<Ref<LinearAction>>(indices_array.code, "the CSR indices cannot be stored",
+                                          "operators.make_csr", "the action cannot be built");
+  }
+  Result<ArrayRef> values_array = context.storage.copy(
+      context, DType::f64, model::encode_f64(values), values_shape, unit, Id());
+  if (!ok(values_array)) {
+    return model::fail<Ref<LinearAction>>(values_array.code, "the CSR values cannot be stored",
+                                          "operators.make_csr", "the action cannot be built");
+  }
   auto action = std::make_shared<ActionImpl>();
   CsrMatrix matrix;
   matrix.rows = rows;
@@ -511,10 +534,14 @@ Result<Ref<LinearAction>> make_csr_action(Context& context, U64 rows, U64 cols,
   matrix.values = values;
   action->set_csr(std::move(matrix));
   action->set_sizes(cols, rows);
+  action->set_arrays({*offsets_array.value, *indices_array.value, *values_array.value});
   ActionRecipe recipe;
   recipe.kind = ActionRecipe::Kind::csr;
   recipe.algorithm = "canonical_csr_v1";
   recipe.version = 1;
+  recipe.arrays = {(*offsets_array.value)->identity.object_id,
+                   (*indices_array.value)->identity.object_id,
+                   (*values_array.value)->identity.object_id};
   // The action always describes its own spaces: a consumer that only sees the
   // action (a covariance action, a drizzle recipe, an external implementation)
   // has to know the size of the domain and of the codomain.  An unnamed space

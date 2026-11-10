@@ -187,6 +187,7 @@ Result<std::string> collect_action(Context& context, ProductBuilder& builder,
     return fail<std::string>(payloads.code, "the action payload cannot be read", "product.write",
                              "the product loses the action closure");
   }
+  std::vector<Id> arrays;
   for (const ArrayRef& payload : val(payloads)) {
     if (!payload) continue;
     Result<Id> stored = persist_array(context, builder, payload);
@@ -194,23 +195,17 @@ Result<std::string> collect_action(Context& context, ProductBuilder& builder,
       return fail<std::string>(stored.code, "the action array cannot be stored", "product.write",
                                "the product cannot be published");
     }
+    arrays.push_back(payload->identity.object_id);
   }
-  std::vector<Id> arrays;
+  // The recipe's array list must be a subset of the payload arrays; a recipe
+  // that names an array the action does not expose cannot be reopened.
   for (const Id& name : val(recipe).arrays) {
-    auto it = builder.arrays.find(name);
-    if (it == builder.arrays.end()) {
+    if (std::find(arrays.begin(), arrays.end(), name) == arrays.end()) {
       return fail<std::string>(Code::unsupported,
                                "the action closure is not reopenable: the array " + name +
-                                   " is not part of the product",
+                                   " is not part of the action payload",
                                "product.write", "the product loses the action closure");
     }
-    Result<Id> stored = persist_array(context, builder,
-                                      std::make_shared<const Array>(it->second));
-    if (!ok(stored)) {
-      return fail<std::string>(stored.code, "the action array cannot be stored", "product.write",
-                               "the product cannot be published");
-    }
-    arrays.push_back(name);
   }
   workflows::json payload = workflows::encode_linear_action(action, children, arrays);
   store_object(builder, action.identity.object_id, "acsd.LinearAction", payload);
@@ -793,8 +788,13 @@ class ProductReader {
     if (!influence_ref.empty()) {
       Result<Ref<LinearAction>> resolved = action(influence_ref);
       if (!ok(resolved)) {
-        return fail<Ref<CovarianceAction>>(resolved.code, "the covariance influence cannot be reopened",
-                                           "product.read", "the covariance cannot be reopened");
+        return fail<Ref<CovarianceAction>>(
+            resolved.code,
+            resolved.assessment.issues.empty()
+                ? "the covariance influence cannot be reopened"
+                : "the covariance influence cannot be reopened: " +
+                      resolved.assessment.issues.front().reason,
+            "product.read", "the covariance cannot be reopened");
       }
       result->influence = val(resolved);
     }
@@ -928,8 +928,13 @@ class ProductReader {
     if (!noise_ref.empty()) {
       Result<Ref<CovarianceAction>> resolved = covariance(noise_ref);
       if (!ok(resolved)) {
-        return fail<Ref<SignalEstimate>>(resolved.code, "the estimate noise cannot be reopened",
-                                         "product.read", "the product cannot be reopened");
+        return fail<Ref<SignalEstimate>>(
+            resolved.code,
+            resolved.assessment.issues.empty()
+                ? "the estimate noise cannot be reopened"
+                : "the estimate noise cannot be reopened: " +
+                      resolved.assessment.issues.front().reason,
+            "product.read", "the product cannot be reopened");
       }
       estimate.noise = val(resolved);
     }

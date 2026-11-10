@@ -60,6 +60,7 @@ class ActionImpl final : public LinearAction {
   // The CSR payload when the action is a csr kind (empty otherwise).
   const CsrMatrix& csr() const { return csr_; }
   void set_csr(CsrMatrix matrix) { csr_ = std::move(matrix); }
+  void set_arrays(std::vector<ArrayRef> arrays) { arrays_ = std::move(arrays); }
   // Diagonal payload for the diagonal kind.
   const std::vector<double>& diagonal() const { return diagonal_; }
   void set_diagonal(std::vector<double> values) { diagonal_ = std::move(values); }
