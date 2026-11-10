@@ -387,12 +387,16 @@ Result<std::string> write_export_image(Context& context, const std::filesystem::
   cards.emplace_back("CD1_2", numeric_value(wcs.cd_rad_per_pixel[1] * radians_to_degrees));
   cards.emplace_back("CD2_1", numeric_value(wcs.cd_rad_per_pixel[2] * radians_to_degrees));
   cards.emplace_back("CD2_2", numeric_value(wcs.cd_rad_per_pixel[3] * radians_to_degrees));
-  // The unit of the signal: the named linear scale with its solid angle
-  // power.  A non standard model unit is never presented as a standard SI
-  // unit.
-  std::string bunit = image.estimate->unit.scale;
-  if (image.estimate->unit.sr_power < 0) bunit += "/sr";
+  // BUNIT must stay a standard FITS unit.  A model scale such as
+  // "acsd.native:x01-00*scale/x01-scale" is not a FITS unit; it is written
+  // to the ACSUNIT card and BUNIT keeps the dimensionless/per-steradian
+  // standard form.  A reader that needs the exact model scale uses ACSUNIT.
+  std::string bunit = image.estimate->unit.sr_power < 0 ? "1/SR" : "1";
   cards.emplace_back("BUNIT", bunit);
+  if (!image.estimate->unit.scale.empty() &&
+      image.estimate->unit.scale != "1") {
+    cards.emplace_back("ACSUNIT", image.estimate->unit.scale);
+  }
   return write_fits_image(root / "signal.fits", width, height, values, cards);
 }
 
