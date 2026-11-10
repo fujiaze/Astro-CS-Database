@@ -1,7 +1,7 @@
 {
  "status": "pass",
- "git_commit": "2a85553dc9c46e3ef360b5269a5e289c58a54196",
- "binary_sha256": "18be97a02f3ae9434f3b667956987be6c7e9ab73b0f516d16cd53e04ea2162a8",
+ "git_commit": "6c3f8d7aff38c78b676b58592b42f7c0c93dcc5b",
+ "binary_sha256": "4ae6c4f40a6f834ce58f58973a2a2a782f421134f5e1b2d32c45eca60de5c40c",
  "frame_hashes": {
   "frame_00_A.fits": "9f7bb23aeb7cf9115023ee19be0cae670bb96d77c3922441ae1ba1f8480fff75",
   "frame_01_A.fits": "1bcbeed379b228b29fd5f42aa69318a0225e20b477b1ea2d7efc0b5bb858e2ca",
@@ -80,6 +80,5 @@
    "unsolved": 0,
    "stderr": ""
   }
- ],
- "profile": "full"
+ ]
 }

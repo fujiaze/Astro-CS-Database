@@ -170,3 +170,13 @@ factor_kind=diagonal (16384), influence_kind=compose
 结果：X01 以 `product_profile=full` 全链通过（normalize 8/8、mosaic 1、export 1），mosaic/export 均发布 `profile=full` 且带 `CovarianceAction`；`covariance_apply(C,1)` 在 mosaic（domain 1）与 export（domain 16384）上均有限，mosaic max|C·1|=2.62e22、export 236906。状态仍是 `noise=unknown`，因为帧噪声本身 conditional（P1-5 等），不是协方差对象缺失。
 
 数值证据不变：blind RMS 0.2109，48 残差 max|z|1.9007，旧 5% 失败保留。
+
+## 20. 第十六轮：full 协方差的单位与 PSD（2026-11-11，`6c3f8d7af`）
+
+- **单位矛盾修复**：`C=Var(y)`，故 `unit(C)=unit(y)^2`。X01 的 target unit 显式写成 `"1"`，旧 coadd 直接把它当输出单位，而协方差仍是 native ADU²。现在未指定单位（`"1"` 且各 power 为 0）继承帧的公共 variance unit（signal 取平方根）；显式给出不同单位则 `invalid_request` 拒绝。
+- **full 证据**：X01 全链 `product_profile=full` 通过（normalize 8/8、mosaic 1、export 1），blind RMS 0.2109、48 残差 max|z|1.9007 不变。`validation/product/covariance_semantics_probe.cpp` 对 mosaic/export 的 C 检查：
+  - `signal_unit == var_unit == cov_unit`（`acsd.native:x01-03`）；
+  - `x·Cy = y·Cx`（相对差 2.2e-16 / 1.9e-14）；
+  - `x·Cx > 0`（PSD）；
+  - `C·1` 有限（mosaic 2.62e22、export 2.37e5）。
+- 状态仍 `noise=unknown`（帧噪声 conditional），但协方差对象、单位、对称性与 PSD 现在一致。
