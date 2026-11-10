@@ -1439,29 +1439,6 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 18446744073709551615
-        },
-        "huber": {
-          "type": "boolean"
-        },
-        "huber_delta": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "f64"
-              ],
-              "properties": {
-                "f64": {
-                  "type": "string",
-                  "pattern": "^[0-9a-f]{16}$"
-                }
-              }
-            }
-          ]
         }
       },
       "required": [
@@ -1469,9 +1446,7 @@
         "absolute_residual",
         "rank_relative",
         "max_iterations",
-        "dense_max_bytes",
-        "huber",
-        "huber_delta"
+        "dense_max_bytes"
       ]
     },
     "HeaderField": {
