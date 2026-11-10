@@ -204,6 +204,11 @@ Result<FrameView> read_frame(Context& context, const FramesProvider& frames, con
       return model::fail<FrameView>(dq.code, "the frame quality cannot be read", "coadd.read",
                                     "the frame cannot be used");
     }
+    if (val(dq).size() != count) {
+      return model::fail<FrameView>(Code::invalid_model,
+                                    "the frame quality array disagrees with the index", "coadd.read",
+                                    "the frame cannot be used");
+    }
     view.dq = val(dq);
   }
   Result<Ref<SupportMap>> support = frames.query_support(context, frame, description.index);
@@ -978,6 +983,19 @@ Result<Ref<Selection>> select_samples(Context& context, const FramesProvider& fr
                                              "acsd");
   selection->assessment = model::make_assessment(Code::ok);
   selection->assessment.complete = true;
+  // A frame without a quality array is not a frame whose pixels are known
+  // good: it has no quality evidence.  The rows stay selectable (the DQ policy
+  // has no bit to reject), but the selection is conditional and says so.
+  bool missing_quality = false;
+  for (const FrameView& view : views) {
+    if (view.dq.empty()) missing_quality = true;
+  }
+  if (missing_quality) {
+    model::set_omitted(selection->assessment,
+                       "the_quality_mask_is_absent_for_at_least_one_frame");
+    selection->assessment.science = ScienceState::conditional;
+    selection->assessment.complete = false;
+  }
 
   Result<Ref<Selection>> out = model::ok_result(std::shared_ptr<const Selection>(selection));
   out.assessment.condition = selection->condition;
