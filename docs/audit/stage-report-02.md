@@ -86,3 +86,9 @@ X01 在 `677e1a808` 再次全链通过：normalize 8/8、mosaic 1、export 1，b
 - 进一步定位 full coadd 协方差的阻塞：`to_csr` 读取帧影响数组时报 `missing_dependency`，根因是跨 Host 边界后这些数组没有 ingest 到 runtime storage。`ingest_noise` 只搬 coordinate index，不搬 factor/influence 的 payload arrays/children；临时加入的 `ingest_action` 能修复读取，但随后 `to_csr` 按 latent 列逐列 apply，2 帧即 >22 min，8 帧不可接受。因此未提交该路径。
 - 正确修法是直接在 leaf/latent 稀疏结构上组合（embedding ∘ influence），避免逐列物化；这仍是 full profile 的下一前置。
 - X01 在 `61531d170` 再次全链通过（signal_only）：normalize 8/8、mosaic 1、export 1，blind RMS 0.2109，48 残差 max|z|1.9007，旧 5% 失败保留。
+
+## 10. 第六轮诊断（2026-11-11）
+
+尝试用稀疏 `embedding ∘ influence` 替代 `to_csr` 逐列物化，并给 `ingest_action` 补齐 factor/influence 的 payload arrays/children。两项改动本身可编译，但真实 2 帧全噪声链在 **`sky.controls` 入口之后挂起**（>40 s，CPU 100%，尚未进入 coadd），说明 full 噪声路径的阻塞点比 coadd 的 `to_csr` 更早：`build_sky_controls` 处理带协方差/大 action 的帧时进入了不受控的展开。为避免把 hang 留在分支上，本轮撤回 `coadd.cpp`、`normalize_runtime.hpp`、`mosaic.cpp` 的实验改动；分支退回到 `61531d170` 的可运行状态（X01 signal_only 通过）。
+
+下一步必须先定位 `build_sky_controls` 里对 `FrameDescription.noise` 的使用：如果它只需要 signal/DQ/index，应显式拒绝/跳过协方差，而不是展开 action；或者把 full 协方差的产品保留到 coadd 阶段，不在 sky 控制里处理。该点未解决前，full profile 不应重新启用。
