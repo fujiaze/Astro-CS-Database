@@ -222,6 +222,15 @@ Result<Ref<LinearAction>> compose(Context& context, Ref<LinearAction> outer, Ref
     return model::fail<Ref<LinearAction>>(Code::invalid_request, "compose needs two actions",
                                           "compose", "the composition cannot be built");
   }
+  // The middle dimension must agree: apply() computes outer(inner(x)), so the
+  // inner codomain is the outer domain.  A mismatch is a semantic error, not
+  // something to discover later in apply().
+  if (outer->spaces.domain && inner->spaces.codomain &&
+      outer->spaces.domain->size != inner->spaces.codomain->size) {
+    return model::fail<Ref<LinearAction>>(
+        Code::invalid_model, "the composition middle dimension does not match",
+        "compose", "the composition cannot be built");
+  }
   ActionRecipe recipe;
   recipe.kind = ActionRecipe::Kind::compose;
   recipe.algorithm = "canonical_compose_v1";
