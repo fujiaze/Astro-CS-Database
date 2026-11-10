@@ -205,7 +205,12 @@ Result<Ref<LinearAction>> make_action(Context& context, const ActionRecipe& reci
     std::string digest = "acsd.LinearAction|";
     digest += recipe.algorithm;
     digest += "|" + std::to_string(static_cast<int>(recipe.kind));
-    for (const Id& child : recipe.children) digest += "|c:" + child;
+    // Use the actual child identities, not recipe.children: the latter may be
+    // symbolic space/name ids and would make two different actions collide.
+    for (const Ref<LinearAction>& child : children) {
+      digest += "|c:";
+      if (child) digest += child->identity.object_id;
+    }
     for (const ArrayRef& array : arrays) {
       digest += "|a:";
       if (array) digest += array->identity.object_id;

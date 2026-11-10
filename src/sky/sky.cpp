@@ -2883,7 +2883,7 @@ Result<Ref<SignalEstimate>> apply_sky_impl(Context& context, Ref<SignalEstimate>
         mask_recipe.kind = ActionRecipe::Kind::diagonal;
         mask_recipe.algorithm = "canonical_diagonal_v1";
         mask_recipe.version = 1;
-        mask_recipe.arrays = {"sky_correction_mask"};
+        mask_recipe.arrays = {val(mask_array)->identity.object_id};
         const std::vector<ArrayRef> mask_arrays{val(mask_array)};
         Result<Ref<LinearAction>> mask = make_action(
             context, mask_recipe, std::span<const Ref<LinearAction>>{}, mask_arrays);
@@ -2949,19 +2949,23 @@ Result<Ref<SignalEstimate>> apply_sky_impl(Context& context, Ref<SignalEstimate>
     noise_model->state = source.state;
     noise_model->innovations = source.innovations;
     noise_model->shared_factors = source.shared_factors;
+    // Fold the correction into each influence: outer * influence.  A CSR
+    // product is preferred, but the input noise may carry a diagonal/compose
+    // influence, so an exact composition is the fallback.
+    const auto fold = [&](const Ref<LinearAction>& influence)
+        -> Result<Ref<LinearAction>> {
+      Result<operators::CsrMatrix> product = sky::multiply_csr(context, outer, influence);
+      if (ok(product)) {
+        return sky::action_from_csr(context, val(product), source.variance_unit);
+      }
+      return compose(context, outer, influence);
+    };
     noise_model->influence.reserve(source.influence.size());
     for (const Ref<LinearAction>& influence : source.influence) {
-      Result<operators::CsrMatrix> product = sky::multiply_csr(context, outer, influence);
-      if (!ok(product)) {
-        return model::fail<Ref<SignalEstimate>>(product.code,
-                                                "the corrected influence cannot be formed",
-                                                "apply_sky", "the correction cannot be applied");
-      }
-      Result<Ref<LinearAction>> action =
-          sky::action_from_csr(context, val(product), source.variance_unit);
+      Result<Ref<LinearAction>> action = fold(influence);
       if (!ok(action)) {
         return model::fail<Ref<SignalEstimate>>(action.code,
-                                                "the corrected influence cannot be built",
+                                                "the corrected influence cannot be formed",
                                                 "apply_sky", "the correction cannot be applied");
       }
       noise_model->influence.push_back(val(action));
@@ -2969,17 +2973,10 @@ Result<Ref<SignalEstimate>> apply_sky_impl(Context& context, Ref<SignalEstimate>
     for (const UnknownTerm& term : source.unknown_terms) {
       UnknownTerm copy = term;
       if (term.influence) {
-        Result<operators::CsrMatrix> product = sky::multiply_csr(context, outer, term.influence);
-        if (!ok(product)) {
-          return model::fail<Ref<SignalEstimate>>(product.code,
-                                                  "the corrected unknown term cannot be formed",
-                                                  "apply_sky", "the correction cannot be applied");
-        }
-        Result<Ref<LinearAction>> action =
-            sky::action_from_csr(context, val(product), source.variance_unit);
+        Result<Ref<LinearAction>> action = fold(term.influence);
         if (!ok(action)) {
           return model::fail<Ref<SignalEstimate>>(action.code,
-                                                  "the corrected unknown term cannot be built",
+                                                  "the corrected unknown term cannot be formed",
                                                   "apply_sky", "the correction cannot be applied");
         }
         copy.influence = val(action);

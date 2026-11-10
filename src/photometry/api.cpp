@@ -118,7 +118,9 @@ Result<Ref<LinearAction>> make_dense_action(Context& context, const numerics::Ma
   recipe.version = 1;
   // The recipe declares the arrays it consumes; the names are resolved by the
   // product reader, the public entry point only checks the count.
-  recipe.arrays = {"offsets", "indices", "values"};
+  recipe.arrays = {val(offset_storage)->identity.object_id,
+                   val(index_storage)->identity.object_id,
+                   val(value_storage)->identity.object_id};
   recipe.spaces.domain = nullptr;
   recipe.spaces.codomain = nullptr;
   recipe.spaces.input = unit;

@@ -44,6 +44,12 @@ class ActionImpl final : public LinearAction {
     result.value = arrays_;
     return result;
   }
+  Result<std::vector<Ref<LinearAction>>> dependency_children() const override {
+    Result<std::vector<Ref<LinearAction>>> result;
+    result.code = Code::ok;
+    result.value = children_;
+    return result;
+  }
   Result<ActionRecipe> serialize_recipe() const override;
   Result<std::vector<ExactInterval>> row_enclosure(Context& context, U64 row) const override;
 

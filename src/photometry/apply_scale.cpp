@@ -95,7 +95,7 @@ Result<Ref<LinearAction>> make_diagonal_action(Context& context, const std::vect
   recipe.kind = ActionRecipe::Kind::diagonal;
   recipe.algorithm = "canonical_diagonal_v1";
   recipe.version = 1;
-  recipe.arrays = {"spatial_factor"};
+  recipe.arrays = {val(values)->identity.object_id};
   recipe.spaces.domain = index;
   recipe.spaces.codomain = index;
   recipe.spaces.input = model::unit_dimensionless();

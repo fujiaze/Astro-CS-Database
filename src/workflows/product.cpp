@@ -173,14 +173,24 @@ Result<std::string> collect_action(Context& context, ProductBuilder& builder,
                  workflows::encode_error_record(*val(recipe).error_record));
   }
   std::vector<Id> children;
-  for (const Id& name : val(recipe).children) {
-    if (builder.objects.count(name) == 0) {
-      return fail<std::string>(Code::unsupported,
-                               "the action closure is not reopenable: the child " + name +
-                                   " is not part of the product",
-                               "product.write", "the product loses the action closure");
+  Result<std::vector<Ref<LinearAction>>> child_refs = action.dependency_children();
+  if (!ok(child_refs)) {
+    return fail<std::string>(child_refs.code, "the action children cannot be read", "product.write",
+                             "the product loses the action closure");
+  }
+  for (const Ref<LinearAction>& child : val(child_refs)) {
+    if (!child) continue;
+    Result<std::string> stored_child = collect_action(context, builder, *child);
+    if (!ok(stored_child)) {
+      return fail<std::string>(
+          stored_child.code,
+          std::string("the action child cannot be stored: ") +
+              (stored_child.assessment.issues.empty()
+                   ? std::string("no reason")
+                   : stored_child.assessment.issues.front().reason),
+          "product.write", "the product loses the action closure");
     }
-    children.push_back(name);
+    children.push_back(child->identity.object_id);
   }
   Result<std::vector<ArrayRef>> payloads = action.dependency_arrays();
   if (!ok(payloads)) {
@@ -387,6 +397,9 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
       } else {
         store_object(builder, estimate.noise->identity.object_id, "acsd.CovarianceAction",
                      workflows::encode_covariance_action(*estimate.noise));
+        if (estimate.noise->model) {
+          effective.assessment.noise = estimate.noise->model->state;
+        }
       }
     }
     if (!noise_complete) {

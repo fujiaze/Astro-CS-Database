@@ -203,6 +203,8 @@ struct LinearAction : Model { DomainUnits spaces;
   // sum coefficients).  A product writer must persist them or the action
   // cannot be reopened.
   virtual Result<std::vector<ArrayRef>> dependency_arrays() const=0;
+  // The child actions of a composition/solve/sky action.
+  virtual Result<std::vector<Ref<LinearAction>>> dependency_children() const=0;
   virtual Result<ActionRecipe> serialize_recipe() const=0;
   virtual Result<std::vector<ExactInterval>> row_enclosure(Context&,U64 row) const=0;
   virtual ~LinearAction()=default; };

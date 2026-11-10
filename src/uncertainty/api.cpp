@@ -169,10 +169,9 @@ Result<Ref<NoiseModel>> merge_shared_roots(Context& context, Ref<NoiseModel> mod
     recipe.version = 1;
     recipe.children.clear();
     for (const Ref<LinearAction>& member : influences) {
-      recipe.children.push_back(member->spaces.domain ? member->spaces.domain->identity.object_id
-                                                      : Id());
+      recipe.children.push_back(member ? member->identity.object_id : Id());
     }
-    recipe.arrays = {"shared_root_merge_coefficients"};
+    recipe.arrays = {val(stored)->identity.object_id};
     std::vector<ArrayRef> arrays{val(stored)};
     Result<Ref<LinearAction>> total = make_action(context, recipe, influences, arrays);
     if (!ok(total)) {
