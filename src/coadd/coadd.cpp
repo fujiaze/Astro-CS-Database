@@ -1960,6 +1960,33 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
                                              "acsd");
   estimate->assessment = model::make_assessment(Code::ok);
   estimate->assessment.complete = true;
+  // The estimate inherits the selection/weights conditions: a conditional
+  // selection (for example a frame without a quality mask) must not disappear
+  // at the coadd output.
+  if (selection) {
+    for (const std::string& item : selection->assessment.included) {
+      if (std::find(estimate->assessment.included.begin(), estimate->assessment.included.end(),
+                    item) == estimate->assessment.included.end()) {
+        estimate->assessment.included.push_back(item);
+      }
+    }
+    for (const std::string& item : selection->assessment.omitted) {
+      if (std::find(estimate->assessment.omitted.begin(), estimate->assessment.omitted.end(),
+                    item) == estimate->assessment.omitted.end()) {
+        estimate->assessment.omitted.push_back(item);
+      }
+    }
+    for (const Issue& issue : selection->assessment.issues) {
+      estimate->assessment.issues.push_back(issue);
+    }
+    if (selection->assessment.science == ScienceState::conditional) {
+      estimate->assessment.science = ScienceState::conditional;
+    }
+    if (!selection->assessment.complete) estimate->assessment.complete = false;
+    if (estimate->assessment.condition.kind.empty()) {
+      estimate->assessment.condition = selection->condition;
+    }
+  }
 
   CoaddResult result;
   result.estimate = std::shared_ptr<const SignalEstimate>(estimate);
