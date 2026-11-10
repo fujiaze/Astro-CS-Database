@@ -1308,6 +1308,16 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
                                ? joint->model->variance_unit
                                : model::unit_variance("unknown");
     noise->state = NoiseState::unknown;
+    // Keep the actual root structure even when the covariance is unknown: an
+    // empty model cannot be pushed through Q (C = Q C_model Q^T) and would
+    // make the export covariance impossible to build.  The unknown term below
+    // records why the total is not a known covariance.
+    if (joint_available && joint->model) {
+      noise->innovations = joint->model->innovations;
+      noise->shared_factors = joint->model->shared_factors;
+      noise->influence = joint->model->influence;
+      noise->unknown_terms = joint->model->unknown_terms;
+    }
     operators::CsrMatrix identity;
     identity.rows = static_cast<U64>(total_leaves);
     identity.cols = static_cast<U64>(total_leaves);
