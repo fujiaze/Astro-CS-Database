@@ -319,3 +319,74 @@ git show HEAD:src/geometry/kernel.cpp > /tmp/prefix/src/geometry/kernel.cpp  (�
 ar rcs /tmp/prefix/libgeom_prefix.a /tmp/prefix/obj/*.o
 ```
 构建库的时间戳（`build/science/*.a`）晚于全部被改源码，故我链接的是修复后的实现。
+
+---
+
+## 11. 复核后修复的独立复核（`79346a8ee`，2026-11-10 第三轮）
+
+> 本节针对本文件 §3.1/§3.2/§3.4/§3.5 与 §4 第 2 条的新 P1/P2 做复验；其余结论仍以 §0–§6 为准。
+> 受检：`79346a8ee`（HEAD 为 `48fa046ac`），工作树干净；`build/science` 库时间戳晚于全部被改源码。
+> 我仍然只用自己的 probe（`/tmp/review_probe.cpp` 扩展）与独立的 prefix 库对照，未复用实现者
+> `validation/geometry_probe.cpp` 的断言。
+
+### 11.1 裁决
+
+| 上一轮项 | 本轮裁决 | 我的证据 |
+|---|---|---|
+| §3.1 seam/z=±2/3 吃光预算 | **关闭**（工作有界、质量守恒、无错叶） | 1″ 像素、order 6、`max_work=20000`、`max_depth=64`：φ-缝 work **20000→1525**、**47.5 s→0.36–0.43 s**、unresolved **0→276**；z=2/3 work **20001→1259**、**52.7 s→0.28–0.32 s**、unresolved 234；16×16 缝块 work 1525、0.31–0.59 s |
+| 同上：未决质量是否丢弃 | **关闭**（精确守恒） | φ-缝：`Σa=2.192064e-11`、`unresolved_U=1.583795e-12`、`A=2.350443e-11` ⇒ 和 = A；z=2/3：`2.216165e-11+1.342782e-12=A`；16×16 块：`5.611683e-09+4.054514e-10=A`。我独立用 `footprint_area` 复算 A |
+| 同上：是否静默错叶 | **关闭**（order 12 抽样，0 错叶） | 对 1″ drop 做 25×25 独立 chart 抽样（`chart_inverse`→cell→`chart_leaf`），published 的 4/4/3/4 个叶全部命中抽样集，`wrong_leaves=0`、`sampled_not_published=0`；面缝两侧由子块中心各自选 face，缝带留在 unresolved |
+| §3.1 连带：seam 激活 apex fallback | **关闭** | `KernelOutcome::apex_singular` + `overlap.cpp` 只在 apex 时调用；缝像素 contributions **8192→4**（无 2·N² 全格填充） |
+| §3.2 work 头判丢队列 | **关闭** | `kernel.cpp` 头判 `break` 前 drain；实测 `unresolved` 非 0 且与 A 精确闭合 |
+| §3.4 `A_L=0` 点值 | **关闭** | 我的 R3：B **1.666667→2.000000**，区间 **[2,2]**（w=[a_L/A_U,1] 而非 [0,1]） |
+| §3.5 estimate 状态 | **关闭** | 我的 R3d：`complete 1→0`、`science bounded→unconverged`、`validity certified→invalid`，与 `op.validity=invalid` 一致 |
+| §4 第 2 条 N/union 端点向外 | **union 关闭并给出可判别反例；N 由构造向外但未构造出可判别反例** | union：源 a_U=(1, 2⁻⁵³) ⇒ 旧 `area_upper=1.0` **< 精确 1+2⁻⁵³**（上界失效），新 `1.0000000000000007` ≥；N：源码已改 `interval_mul`，但我的单源判别搜索里旧实现的 N 1 ulp 误差被 interval 原语自带的数 ulp 松弛吸收，B 区间仍包含真值（详见 11.3） |
+| §5.1 精确裁剪性能/精度 | **关闭（更快且逐位不变）** | 内部像素：prefix(79346a8ee^) **1319.0 ms → 39.97 ms（33×）**，且**叶 dyadic 上下界逐位相同**；缝像素 25.2/32.0/28.0 s → 0.51/0.39/0.34 s（49–82×，界按设计变化）；另把新源码的"快速路径"三处短路强制关闭后与开启版对拍 4 个构型 **BIT_IDENTICAL** |
+
+**仍失败的**：无新增失败（本轮 5 项均通过）。**仍存的两处表述问题**见 11.4。
+
+### 11.2 我自己的数（原样）
+
+```
+kernel interior:        term=0 work=5      unresolved=0   A=2.350443e-11  sum(a)=2.350443e-11  un=0           39.8 ms
+kernel phi-seam pixel:  term=2 work=1525   unresolved=276 A=2.350443e-11  sum(a)=2.192064e-11  un=1.583795e-12 428.7 ms
+kernel z=2/3 pixel:     term=2 work=1259   unresolved=234 A=2.350443e-11  sum(a)=2.216165e-11  un=1.342782e-12 321.3 ms
+kernel phi-seam 16x16:  term=2 work=1525   unresolved=276 A=6.017134e-09  sum(a)=5.611683e-09  un=4.054514e-10 592.0 ms
+leak order-12: interior 4/4 wrong=0; phi-seam 4/4 wrong=0; z=2/3 3/3 wrong=0; 16x16 4/4 wrong=0
+R3  A_L=0: B=2.000000 interval [2,2]
+R3d status: complete=0 science=1(unconverged) validity=2(invalid)  op.validity=2
+outward-a (N, single source): B=[19.999999999999982,20.000000000000018]  (exact 2/0.1 略小于 20 → 包含)
+outward-b (union):      old area_upper=1.0   new area_upper=1.0000000000000007   (exact 1+2^-53)
+A/B case0: prefix2 1318.99 ms vs new 39.97 ms，LEAF_BOUNDS_IDENTICAL（33×）
+快速路径开/关: case0..3 全部 BIT_IDENTICAL（同一源码、同一库，只把三处短路置 false）
+```
+
+`term=2` = `Termination::depth`，reason=`area_absolute_sr_not_met`：seam 像素的未决前沿
+（1.58e-12 sr）大于 1e-12 的请求预算，所以是**诚实未收敛**；这正是"工作有界 + 质量保留 +
+不冒充 certified"的语义。
+
+### 11.3 关于 N 端点的说明（我未能构造可判别反例）
+- 源码层面：`n_interval = add(n_interval, multiply(weight, omega))`、`union_upper` 走 `add`、
+  `leaf_solid_angle_upper` 两次 `nextafter(+inf)` —— 与"向外"一致（我逐行读过）。
+- 数值层面：我按"旧实现用最近舍入的 `w·Ω` 端点"构造单源判别式（B=x/Ω 与 w 无关），
+  精确有理数下旧 B 的端点本应漏掉真值；但**实测**旧库也给出
+  `[19.999999999999986, 20.000000000000014]`，比精确值宽 ~8 ulp —— 即 `numerics::interval_*`
+  的既有松弛吸收了这 1 ulp 的 N 误差。所以这一项我只能判"**由构造成立**"，
+  不能像 union 那样给出"旧错新对"的可判别反例；**union 的反例是可判别的**（见上表）。
+- 这不影响裁决：union/N 的改动方向正确，且 union 的旧失效已被实测钉死。
+
+### 11.4 报告里仍略偏乐观的两处（不影响裁决，需在文档里写准）
+1. §10.1 "1″ 像素在 6 层后未决前沿 ≈ 2⁻⁶ px ≈ 4e-13 sr < 1e-12，仍可 `tolerance_met`"：
+   我的实测是 **276 个前沿块 × 2⁻¹² 像素 = 6.7% 像素 = 1.583795e-12 sr > 1e-12**
+   ⇒ 1″ 缝像素是 **depth/unconverged**，不是 tolerance_met。该句只对"不跨缝的像素"成立
+   （不跨缝时 unresolved=0，本就不需要这 6 层）。前沿块数随缝的链长 ~2^d 增长，
+   所以质量比例 ≈ 2^(d)/(4^d) 的链长因子，比 2^-d 的估算大 4×。
+2. §10.1 的 "unresolved 有界（276/66）"：276 我在 1″/order-6 上复现；66 来自 0.5°/px 构型，
+   我的同构型是 234（z=2/3）。数量级与"有界"结论一致，但不同构型不可直接比较，
+   文档应写明构型。
+
+### 11.5 我这一轮没有覆盖的
+- apex（极点真的在 drop 内）路径未重跑；只确认了"seam 不再误触发 apex"（contributions 4 而非 8192）。
+- 0.5°/px 生产构型未重跑（我用 1″/px，order 6/12）；报告 §10.5 的 13–52× 我在自己的构型上得到 33×（内部）
+  与 49–82×（缝），方向一致。
+- `ctest`、X01 全链依赖他人记录。

@@ -928,6 +928,10 @@ Result<FitResult> run_joint_fit(Context& context, const std::vector<FrameInput>&
           "; their measured fluxes are correlated through that one random amplitude, while the "
           "assembled counts covariance is block diagonal over frames. The cross frame block "
           "Cov(F_k,F_l) = (dF_k/dr)(dF_l/dr) sigma_r^2 is unknown, not zero");
+      // The covariance object must not claim to be known: the block-diagonal
+      // assembly omits a real cross-frame term.  This is the same rule as the
+      // XP working-prior branch.
+      result.covariance_state_known = false;
       result.notes.push_back(
           "the omitted cross frame term of the shared master root '" + entry.first +
           "' is Cov(F_k,F_l) = (dF_k/dr)(dF_l/dr) sigma_r^2; for a flat role "

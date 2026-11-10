@@ -422,3 +422,7 @@ g++ -std=c++20 -O2 -fno-fast-math -ffp-contract=off -frounding-math -mfpmath=sse
 | P1-6 BUNIT 泄漏 | **已修** | `fits_writer.cpp:229,268,298,397,441,530,552` | 实测三例：`ADU/SR`+ACSUNIT+ACSSTD / `L/sr` / `1` |
 | X01 dark 夹具 | 未修（域外） | `validation/x01/...` | §12.10 修法与影响 |
 | X01 XP 系数 | 未修（域外） | `cli_inputs.py:91` | §12.10 修法与影响 |
+
+## 13. 复核后补丁（Lead，2026-11-10）
+
+独立复核 §13.5 指出 R4 的跨帧共享根虽然记录了 unknown，但没有把 `covariance_state_known` 置 false，导致 XP 协方差已知时 `PhotoSolution.covariance` 仍标 `state=known`（n 帧共享 flat 时绝对标度方差被低估 n 倍）。已在 `joint_fit.cpp` 的跨帧共享根分支置 `result.covariance_state_known = false`，与 XP working-prior 分支同一规则；跨帧交叉块本体仍需 U9 的按根影响 API，未在本轮实现。R6（帧 ADU/SR → mosaic 1 → export ADU 的单位链）、R7（γ 只用 m）、R8（residual_enclosure 证书串）、R9（offset→bias 别名）作为 P1/P2 留给 B4/B5。
