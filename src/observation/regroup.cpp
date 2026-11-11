@@ -357,9 +357,17 @@ Result<Ref<NativeObservation>> regroup_observation(Context& context,
   }
   noise_model->assessment = model::make_assessment(Code::ok);
   noise_model->assessment.noise = noise_model->state;
-  noise_model->identity = model::make_identity("acsd.NoiseModel", 2, 0,
-                                               model::sha256_hex("regroup:" + observation->frame),
-                                               "acsd");
+  noise_model->assessment.complete =
+      noise_model->state == NoiseState::known && noise_model->unknown_terms.empty();
+  if (!noise_model->assessment.complete) {
+    noise_model->assessment.science = ScienceState::conditional;
+    model::set_omitted(noise_model->assessment, "known_complete_variance");
+  }
+  noise_model->identity = model::make_identity(
+      "acsd.NoiseModel", 2, 0,
+      model::sha256_hex("regroup:" + observation->frame + ":" +
+                        std::to_string(static_cast<int>(noise_model->state))),
+      "acsd");
 
   // ---------------------------------------------------------------------
   // The regrouped observation.

@@ -657,12 +657,20 @@ Result<Ref<CovarianceAction>> control_covariance(Context& context, Ref<Covarianc
     }
     model->influence.push_back(val(composed));
   }
-  model->identity = model::make_identity("acsd.NoiseModel", 2, 0,
-                                         model::hash_index(Index::Kind::latent, roots.size(), 0, {}),
-                                         "acsd");
+  model->state = source.state;
+  model->identity = model::make_identity(
+      "acsd.NoiseModel", 2, 0,
+      model::sha256_hex("control:" + std::to_string(roots.size()) + ":" +
+                        std::to_string(static_cast<int>(source.state))),
+      "acsd");
   model->assessment = model::make_assessment(Code::ok);
-  model->assessment.complete = true;
+  model->assessment.complete =
+      source.state == NoiseState::known && source.unknown_terms.empty();
   model->assessment.noise = source.state;
+  if (!model->assessment.complete) {
+    model->assessment.science = ScienceState::conditional;
+    model::set_omitted(model->assessment, "known_complete_variance");
+  }
   Ref<NoiseModel> owned = std::shared_ptr<const NoiseModel>(model);
   return make_covariance(context, owned);
 }
