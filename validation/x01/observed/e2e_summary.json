@@ -1,7 +1,7 @@
 {
  "status": "pass",
- "git_commit": "94d2700b01076a5d09c8331ac6e87afec85cdcef",
- "binary_sha256": "12042df9c1e1670afda8e2f5347154ab0ee87ff464ce17e86ef66a0b20e35665",
+ "git_commit": "fab93102d86a95201d8b88b7cf28cc6e92390eaa",
+ "binary_sha256": "28879ed9d0533fd22c33e16f6d2192f8efce8c4041f47f48508eab0dc344981d",
  "frame_hashes": {
   "frame_00_A.fits": "9f7bb23aeb7cf9115023ee19be0cae670bb96d77c3922441ae1ba1f8480fff75",
   "frame_01_A.fits": "1bcbeed379b228b29fd5f42aa69318a0225e20b477b1ea2d7efc0b5bb858e2ca",

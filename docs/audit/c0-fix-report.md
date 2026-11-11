@@ -118,3 +118,13 @@ mismatched parameter units refused=1
 - 负例：`NoiseState::unknown` 的 C，`covariance_apply` 返回 `unavailable`（此前错误地返回 ok）。
 
 该负例暴露并修复了一个语义漏洞：`covariance_apply` 只检查 material unknown term，没有拒绝 `state != known`。现在未知协方差不再能当作已知矩阵作用。
+
+## C0 driver：operators.action
+
+`validation/process/operators.action/action_driver.cpp`（typed Host）：
+
+- 正例：identity 2×2 作用 `[1,2] → [1,2]`；
+- 负例：越界 CSR 列被拒（`invalid_request`）；
+- 负例：`compose(1×1 outer, 2×2 inner)` 中间维不一致——**修复前 make_action 返回 ok**，现在 `invalid_model`。
+
+这暴露并修复了 `make_action` 只检查 children 数量、不检查 compose 中间维的漏洞；canonical `compose()` 已有检查，typed 入口此前漏掉。
