@@ -89,3 +89,13 @@ known V_F=4: ok; unknown propagated: ok
 ```
 
 仍未闭合：`parameters` 数组本身仍是单一 Unit，`covariance_apply`/`quadratic_form` 不按块解释 `parameter_noise`；跨参数 functional 的单位推导仍可能错。彻底修法是按块拆 covariance 或让 functional 携带块索引。
+
+## P1-6 后续：bind 的参数/单位/协方差一致性
+
+`bind_wcs` 现在要求：`parameter_units` 非空时必须与 `parameters` 元素数一致；`parameter_noise` 的 domain 必须等于参数个数。反例（探针）：
+
+```
+mismatched parameter units refused=1
+```
+
+两个参数只给一个 Unit 的 solution 被 `invalid_model` 拒绝，不再把错配的单位/协方差带进绑定后的观测。

@@ -61,5 +61,18 @@ int main() {
   const Id hb = (*bb.value)->identity.content_hash;
   std::printf("a=%s\nb=%s\n", ha.c_str(), hb.c_str());
   std::printf("different=%d\n", ha != hb);
-  return ha != hb ? 0 : 1;
+  // A parameter vector with a mismatched unit declaration must be refused.
+  auto solution = std::make_shared<AstrometricSolution>();
+  solution->wcs = wcs;
+  Result<ArrayRef> params = storage.copy(context, DType::f64, encode_f64(std::vector<double>{1.0, 2.0}),
+                                        std::vector<U64>{2}, unit_dimensionless(),
+                                        index->identity.object_id);
+  solution->parameters = *params.value;
+  solution->parameter_units.push_back(unit_dimensionless());  // only one unit for two params
+  solution->identity = make_identity("acsd.AstrometricSolution", 2, 0,
+                                     sha256_hex(std::string("bind-solution")), "bind");
+  Result<Ref<NativeObservation>> guarded = bind_wcs(context, a, wcs, solution);
+  std::printf("mismatched parameter units refused=%d\n",
+              guarded.code == Code::invalid_model ? 1 : 0);
+  return (ha != hb && guarded.code == Code::invalid_model) ? 0 : 1;
 }

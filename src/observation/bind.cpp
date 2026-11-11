@@ -78,6 +78,29 @@ Result<Ref<NativeObservation>> bind_wcs(Context& context, Ref<NativeObservation>
           Code::identity_conflict, "the astrometric solution belongs to another frame model", kOrigin,
           "the frame model cannot be bound");
     }
+    // The parameter vector, its per-block units and its covariance must
+    // describe the same number of parameters.  A mismatch would let a
+    // covariance or a unit declaration silently refer to another parameter.
+    if (solution->parameters) {
+      U64 parameter_count = 1;
+      for (U64 extent : solution->parameters->shape) parameter_count *= extent;
+      if (!solution->parameter_units.empty() &&
+          solution->parameter_units.size() != parameter_count) {
+        return model::fail<Ref<NativeObservation>>(
+            Code::invalid_model, "the parameter units do not match the parameter vector", kOrigin,
+            "the frame model cannot be bound");
+      }
+      if (solution->parameter_noise) {
+        const U64 domain = solution->parameter_noise->input_output.domain
+                               ? solution->parameter_noise->input_output.domain->size
+                               : 0;
+        if (domain != parameter_count) {
+          return model::fail<Ref<NativeObservation>>(
+              Code::invalid_model, "the parameter covariance does not match the parameter vector",
+              kOrigin, "the frame model cannot be bound");
+        }
+      }
+    }
   }
   // The whole detector domain has to be covered by the frame model.  The
   // footprint set is stored in sample coordinates; the detector extent is
