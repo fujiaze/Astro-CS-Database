@@ -47,3 +47,9 @@ historical 5% = 0.10333067715982192 FAIL (retained, superseded)
 - `validation/product/shared_root_projection_probe.cpp`：单/双 shared root，多叶投影误差 0；
 - `validation/projection/export_constant_probe.cpp`：常场解析、无支持 NaN、负/零信号、单位界；
 - 上述探针在 UBSan 与 `-static-libasan` 的 ASan 下通过（生产静态库未整体 ASan 编译）。
+
+## 5. 2026-11-11 追加：未知协方差不可 apply
+
+`covariance_apply` 现在在 `NoiseModel.state != known` 时返回 `unavailable`（以前只拒绝带 material unknown term 的模型）。typed driver `uncertainty.covariance` 正/负例通过。
+
+因此 X01 full 产品（`noise=unknown`）的 `C·1` / `C_out=QCQᵀ` **不再有数值证据**：这些探针现在正确报告“apply refused”。`C_out=QCQᵀ` 的代数关系只在**已知协方差**的合成反例（`shared_root_projection_probe`，`max_abs_err=0`）上验证。此前在 unknown C 上给出的 4.8e-16 数值不再作为当前证据。

@@ -358,6 +358,11 @@ Result<ArrayRef> covariance_apply(Context& context, Ref<CovarianceAction> covari
     return model::fail<ArrayRef>(Code::invalid_request, "no covariance supplied",
                                   "covariance_apply", "the covariance cannot be applied");
   }
+  if (!covariance->model || covariance->model->state != NoiseState::known) {
+    return model::fail<ArrayRef>(Code::unavailable,
+                                  "the covariance state is unknown",
+                                  "covariance_apply", "the covariance cannot be applied");
+  }
   if (!covariance->model || !covariance->model->unknown_terms.empty()) {
     bool material = false;
     if (covariance->model) {

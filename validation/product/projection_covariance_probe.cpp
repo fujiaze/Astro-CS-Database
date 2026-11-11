@@ -51,7 +51,14 @@ int main(int argc, char** argv) {
                                        unit_dimensionless(), Id());
   Result<ArrayRef> cx = covariance_apply(c, cout, *xa.value);
   Result<ArrayRef> u = q->transpose_apply(c, *xa.value);
-  if (!ok(cx) || !ok(u)) { std::printf("step failed\n"); return 1; }
+  if (!ok(cx) || !ok(u)) {
+    if (cout && cout->model && cout->model->state != NoiseState::known) {
+      std::printf("C_out state is unknown; apply correctly refused\n");
+      return 0;
+    }
+    std::printf("step failed\n");
+    return 1;
+  }
   Result<ArrayRef> v = covariance_apply(c, cleaf, *u.value);
   if (!ok(v)) { std::printf("leaf cov failed\n"); return 1; }
   Result<ArrayRef> w = apply(c, q, *v.value);

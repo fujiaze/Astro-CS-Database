@@ -60,7 +60,14 @@ int main(int argc, char** argv) {
   }
   std::vector<double> cx = apply(context, cov, x);
   std::vector<double> cy = apply(context, cov, y);
-  if (cx.empty() || cy.empty()) { std::printf("apply failed\n"); return 1; }
+  if (cx.empty() || cy.empty()) {
+    if (cov->model->state != NoiseState::known) {
+      std::printf("apply correctly unavailable for an unknown covariance state\n");
+      return 0;
+    }
+    std::printf("apply failed for a known covariance\n");
+    return 1;
+  }
   const double xcy = dot(x, cy);
   const double ycx = dot(y, cx);
   const double xcx = dot(x, cx);

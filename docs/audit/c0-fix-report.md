@@ -109,3 +109,12 @@ mismatched parameter units refused=1
 - 负例：同一模型 `NoiseState::unknown` → `V_F=nullopt`、`state=unknown`。
 
 驱动 17 checks 全过。这是 10 个无 driver process 中第一个补齐的 typed driver（不是独立探针）。
+
+## C0 driver：uncertainty.covariance
+
+`validation/process/uncertainty.covariance/covariance_driver.cpp` 通过 typed Host 注册 `operators.action` + `uncertainty.covariance`：
+
+- 正例：C=diag(4,9)，`C*[1,2]=[4,18]`；`quadratic_form([1,0])=4`；
+- 负例：`NoiseState::unknown` 的 C，`covariance_apply` 返回 `unavailable`（此前错误地返回 ok）。
+
+该负例暴露并修复了一个语义漏洞：`covariance_apply` 只检查 material unknown term，没有拒绝 `state != known`。现在未知协方差不再能当作已知矩阵作用。
