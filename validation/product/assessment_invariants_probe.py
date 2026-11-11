@@ -29,14 +29,17 @@ SKIP_TYPES = (
 def load_objects(root):
     for path in glob.glob(os.path.join(root, "objects", "*.json")):
         base = os.path.basename(path)
-        if any(t in base for t in SKIP_TYPES):
-            continue
         try:
             with open(path, "rb") as handle:
                 payload = json.load(handle)
         except (OSError, ValueError):
             continue
-        data = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(payload, dict):
+            continue
+        kind = str(payload.get("type", ""))
+        if any(t in kind for t in SKIP_TYPES):
+            continue
+        data = payload.get("data")
         if isinstance(data, dict) and isinstance(data.get("assessment"), dict):
             yield base, data["assessment"]
 

@@ -304,3 +304,16 @@ assessment invariants: 0 violation(s)
   - 单 root `L=[1,2]`：`C_out=[[1,3],[3,9]]`，误差 0；
   - 两 root（同 SharedId，分别影响两叶）：合并后同一 `C_out`，误差 0。
 - 结论：`merge_shared_roots` 的合并语义（先求和再平方，保留交叉项）在该反例下成立；不记生产 P1。
+
+## 34. 第三十轮：support/export/CRS 身份与全对象 assessment（2026-11-11，`4ebdd3136`）
+
+- SupportMap 的 assessment 现在显式 `noise=known/science=bounded`（支持几何不是噪声模型），不再继承 `make_assessment` 的 unknown/bounded。
+- export ProductGraph 继承 estimate 的 `complete`，不再强制 `true`（此前出现 `science=conditional, complete=true`）。
+- `make_csr_action` 的合成 domain/codomain Index 现在填满 run_id/revision/schema_major/minor，并给出 sha256 content hash；此前 `acsd.drizzle.native` 之类对象带 garbage revision/schema 字段。
+- `assessment_invariants_probe.py` 改为按对象 `type` 过滤（Array/Index/LinearAction/NoiseRoot 跳过），扫描所有有 assessment 的语义对象。X01：
+  ```
+  mosaic: 5 model assessments checked
+  export: 5 model assessments checked
+  assessment invariants: 0 violation(s)
+  ```
+- X01 full 在 `4ebdd3136` 通过，blind RMS 0.2109、48 残差 max|z|1.9007。
