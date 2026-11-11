@@ -652,9 +652,17 @@ Result<Ref<NativeObservation>> assemble_calibrated_native(
   noise_model->state = noise_state;
   noise_model->assessment = model::make_assessment(Code::ok);
   noise_model->assessment.noise = noise_state;
+  noise_model->assessment.complete =
+      noise_state == NoiseState::known && noise_model->unknown_terms.empty();
+  if (!noise_model->assessment.complete) {
+    noise_model->assessment.science = ScienceState::conditional;
+    model::set_omitted(noise_model->assessment, "known_complete_variance");
+  }
   noise_model->identity = model::make_identity(
       "acsd.NoiseModel", 2, 0,
-      model::sha256_hex(raw_observation->frame + ":" + std::to_string(count)), "acsd");
+      model::sha256_hex(raw_observation->frame + ":" + std::to_string(count) + ":" +
+                        std::to_string(static_cast<int>(noise_state))),
+      "acsd");
 
   const std::vector<U64> shape{count};
   Result<Ref<LinearAction>> identity_action =
