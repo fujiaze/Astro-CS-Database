@@ -289,6 +289,8 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
       std::map<U64, double> merged_lower;
       std::map<U64, double> merged_upper;
       double native_area = 0.0;
+      double native_area_lower = 0.0;
+      double native_area_upper = 0.0;
       for (const OverlapContribution& contribution : val(overlaps)->contributions) {
         const auto key = std::make_pair(contribution.leaf.order, contribution.leaf.ipix);
         auto row = rows.find(key);
@@ -309,6 +311,12 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
         const double native = 0.5 * (contribution.native_area.lower_sr +
                                      contribution.native_area.upper_sr);
         native_area = std::max(native_area, native);
+        if (contribution.native_area.lower_sr > 0.0) {
+          native_area_lower = native_area_lower > 0.0
+                                  ? std::min(native_area_lower, contribution.native_area.lower_sr)
+                                  : contribution.native_area.lower_sr;
+          native_area_upper = std::max(native_area_upper, contribution.native_area.upper_sr);
+        }
       }
       double total = 0.0;
       double total_lower = 0.0;
@@ -346,10 +354,15 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
           case ExportRequest::Quantity::extrapolated_full_flux:
             coefficient = native_area * entry.second / total;
             coefficient_lower =
-                total_upper > 0.0 ? native_area * entry_lower / total_upper : 0.0;
+                total_upper > 0.0
+                    ? (native_area_lower > 0.0 ? native_area_lower : native_area) *
+                          entry_lower / total_upper
+                    : 0.0;
             coefficient_upper =
-                total_lower > 0.0 ? native_area * entry_upper / total_lower
-                                  : std::numeric_limits<double>::infinity();
+                total_lower > 0.0
+                    ? (native_area_upper > 0.0 ? native_area_upper : native_area) *
+                          entry_upper / total_lower
+                    : std::numeric_limits<double>::infinity();
             if (!(total_lower > 0.0)) normalizer_unresolved = true;
             break;
         }
@@ -361,8 +374,10 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
                                      : area_lower[entry.first] /
                                            leaf_area_sr(val(leaves)[entry.first].order);
           coefficient = native_area * fraction;
-          coefficient_lower = coefficient;
-          coefficient_upper = coefficient;
+          coefficient_lower =
+              (native_area_lower > 0.0 ? native_area_lower : native_area) * fraction;
+          coefficient_upper =
+              (native_area_upper > 0.0 ? native_area_upper : native_area) * fraction;
         }
         if (coefficient != 0.0) {
           rows_of_pixel[pixel].emplace_back(entry.first, coefficient);

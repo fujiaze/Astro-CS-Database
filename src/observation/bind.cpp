@@ -153,6 +153,7 @@ Result<Ref<NativeObservation>> bind_wcs(Context& context, Ref<NativeObservation>
           ":" + wcs->identity.content_hash);
   bound->assessment = observation->assessment;
   bound->assessment.complete = true;
+  bool complete = true;
   if (solution && solution->parameter_noise &&
       solution->parameter_noise->assessment.noise != NoiseState::known) {
     // The astrometric solution is bound, but its parameter covariance is
@@ -160,6 +161,7 @@ Result<Ref<NativeObservation>> bind_wcs(Context& context, Ref<NativeObservation>
     bound->assessment.noise = NoiseState::unknown;
     bound->assessment.science = ScienceState::conditional;
     model::set_omitted(bound->assessment, "astrometric_parameter_covariance_is_unknown");
+    complete = false;
   }
   model::set_included(bound->assessment, "wcs_bound_to_the_observation");
   if (solution) {
@@ -171,15 +173,19 @@ Result<Ref<NativeObservation>> bind_wcs(Context& context, Ref<NativeObservation>
       model::add_issue(bound->assessment, Code::unavailable,
                         "the astrometric parameters carry no error identity", kOrigin,
                         "the astrometric uncertainty is unknown");
+      complete = false;
     }
     if (!solution->model_bias_rad.has_value()) {
       model::set_omitted(bound->assessment, "astrometric_model_bias_is_unknown");
+      complete = false;
     }
   } else {
     // An externally supplied frame model without a solution has no declared
     // error identity either.
     model::set_omitted(bound->assessment, "astrometric_parameter_error_is_unknown");
+    complete = false;
   }
+  bound->assessment.complete = complete;
 
   (void)context;
   return model::ok_result(std::shared_ptr<const NativeObservation>(bound));
