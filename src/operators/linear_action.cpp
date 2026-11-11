@@ -548,7 +548,8 @@ Result<Ref<LinearAction>> make_csr_action(Context& context, U64 rows, U64 cols,
   // gets a synthetic identity that carries its size.
   DomainUnits spaces;
   {
-    Index domain;
+    Index domain{};
+    domain.assessment = model::make_assessment(Code::ok);
     domain.size = cols;
     domain.kind = Index::Kind::parameter;
     domain.identity.object_id = domain_index.empty() ? Id("csr-domain-" + std::to_string(cols))
@@ -563,7 +564,8 @@ Result<Ref<LinearAction>> make_csr_action(Context& context, U64 rows, U64 cols,
     spaces.domain = std::make_shared<const Index>(domain);
   }
   {
-    Index codomain;
+    Index codomain{};
+    codomain.assessment = model::make_assessment(Code::ok);
     codomain.size = rows;
     codomain.kind = Index::Kind::parameter;
     codomain.identity.object_id =

@@ -317,3 +317,10 @@ assessment invariants: 0 violation(s)
   assessment invariants: 0 violation(s)
   ```
 - X01 full 在 `4ebdd3136` 通过，blind RMS 0.2109、48 残差 max|z|1.9007。
+
+## 35. 第三十一轮：UBSan 未初始化 Assessment（2026-11-11）
+
+- UBSan 在 export 常场探针报 `include/acsd/model.hpp:61 load of value 112, not a valid bool`，栈落在 `make_csr_action` 的合成 `Index`：`Index domain;` 未初始化 `Assessment.complete`，拷贝到 `make_shared<const Index>` 时读取未初始化 bool。
+- 修复：`Index domain{}; Index codomain{};` 并显式 `assessment = make_assessment(Code::ok)`。
+- UBSan 复跑：常场/negative/zero/nosupport 四种模式、covariance semantic probe、bind probe 全部 exit 0，无 runtime error。
+- 这是 C1 内存初始化修复，不是科学判据；X01 数值路径未变。
