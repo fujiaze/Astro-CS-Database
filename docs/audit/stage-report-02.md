@@ -296,3 +296,11 @@ assessment invariants: 0 violation(s)
 - **export P1-16**：`extrapolated_full_flux` 与 `effective_area_approx` 的系数界现在使用 `native_area` 的 lower/upper 区间，而不是中点；常场/负/零/无支持探针仍通过。
 - X01 full 在 `085f1206f` 通过：blind RMS 0.2109、48 残差 max|z|1.9007；assessment 扫描 0 violation。
 - 仍开（D0）：证据工具类型过滤/自证、shared-root 多叶投影反例、identity 其余对象、P1-5 θ influence。
+
+## 33. 第二十九轮：shared-root 合并反例更正（2026-11-11，`ab8f912e0` 后）
+
+- 上一轮报告的“两条同 SharedId root 合并段错误”经追查是**探针构造错误**：CSR offsets 长度为 rows+2，`make_action` 返回 invalid_request，探针解引用失败 Result 导致 UB。
+- 修正后 `validation/product/shared_root_projection_probe.cpp` 同时验证：
+  - 单 root `L=[1,2]`：`C_out=[[1,3],[3,9]]`，误差 0；
+  - 两 root（同 SharedId，分别影响两叶）：合并后同一 `C_out`，误差 0。
+- 结论：`merge_shared_roots` 的合并语义（先求和再平方，保留交叉项）在该反例下成立；不记生产 P1。

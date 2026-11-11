@@ -47,4 +47,12 @@ QCQ^\top=\begin{pmatrix}1&3\\3&9\end{pmatrix}.
 \]
 生产路径 `make_covariance → control_covariance → covariance_apply` 给出完全相同矩阵，`max_abs_err=0`。这触发了 shared root 的跨叶交叉项与多叶投影，补上了 X01 `nleaf=1/shared_roots=0` 未覆盖的证据面。
 
-**仍开（新发现）**：把同一 `SharedId` 拆成两个 root（各自影响不同叶）时，`make_covariance` 在非 ASan 构建下段错误、ASan 下报 `an influence is missing`。该合并路径在真实数据中出现 shared master（bias/flat/dark）时会触发，应作为下一轮 P1 优先修复；当前不声称 shared-root 合并已验证。
+**更正**：最初把同一 `SharedId` 拆成两个 root 的探针出现段错误/`an influence is missing`，追查后确认是**探针自身错误**：CSR offsets 长度写成 `rows+2`，`make_action` 返回 `Code::invalid_request`，探针仍解引用失败 Result。修正 offsets 后，两条同 `SharedId` root 的合并路径通过：
+
+```
+single: C_out=[1.000 3.000; 3.000 9.000] max_abs_err=0
+split : C_out=[1.000 3.000; 3.000 9.000] max_abs_err=0
+shared-root projection: single=1 split=1
+```
+
+因此 `merge_shared_roots` 的“先合并再平方、保留交叉项”在本反例下成立；这不是生产 bug。
