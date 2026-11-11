@@ -70,7 +70,7 @@ different=1
 
 ## C0 覆盖：information.reference 解析探针
 
-`validation/product/information_reference_probe.cpp` 用 \(C=\mathrm{diag}(4,9)\)、\(h=[1,0]\) 调 `estimate_flux_information`，解析真值 \(V_F=1/(h^\top C^{-1}h)=4\)：
+`validation/process/information.reference/reference_driver.cpp`（typed Host 驱动）用 \(C=\mathrm{diag}(4,9)\)、\(h=[1,0]\) 调 `estimate_flux_information`，解析真值 \(V_F=1/(h^\top C^{-1}h)=4\)：
 
 ```
 cov code=0
@@ -99,3 +99,13 @@ mismatched parameter units refused=1
 ```
 
 两个参数只给一个 Unit 的 solution 被 `invalid_model` 拒绝，不再把错配的单位/协方差带进绑定后的观测。
+
+
+## C0 driver：information.reference（typed Host）
+
+`validation/process/information.reference/reference_driver.cpp` 通过 `vpf::start` 注册 `operators.action`、`uncertainty.covariance`、`information.reference`，用 typed `MakeActionInput`/`MakeCovarianceInput`/`EstimateFluxInformationInput` 走 Host 边界：
+
+- 正例：C=diag(4,9)、h=[1,0] → `V_F=4`、`state=known`；
+- 负例：同一模型 `NoiseState::unknown` → `V_F=nullopt`、`state=unknown`。
+
+驱动 17 checks 全过。这是 10 个无 driver process 中第一个补齐的 typed driver（不是独立探针）。

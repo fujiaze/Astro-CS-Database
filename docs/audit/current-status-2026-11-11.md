@@ -33,7 +33,7 @@ historical 5% = 0.10333067715982192 FAIL (retained, superseded)
 ## 3. 仍开（不能宣称 D0/D1 PASS）
 
 1. **帧噪声仍 unknown**：P1-5 θ random influence 缺 `H` 因子；无 DQ 证据；控制协方差未测。full 产品是 conditional，不是已知协方差。
-2. **C0 无 driver**：coadd.select/weights、information.*、photometry.apply、projection.export、sky.controls/fit、uncertainty、operators、drizzle 仍缺 process-level driver；现有的是独立探针。
+2. **C0 无 driver**：information.reference 已补 typed driver；coadd.select/weights、information.scene、photometry.apply、projection.export、sky.controls/fit、uncertainty、operators、drizzle 仍缺 process-level driver。
 3. **B0/D0**：Export 正本已写，但系统性偏差的有限界实例、D0 对证据工具的独立性批评（类型过滤、Q 两侧同源）未完全闭合。
 4. **B5 边界**：部分支持、跨 face、极大目标像元、重复 pixfrac 未覆盖。
 5. **C2**：Windows/双平台、GUI 协议、真实性能未验收。
