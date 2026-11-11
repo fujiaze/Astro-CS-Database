@@ -1564,12 +1564,16 @@ Result<Ref<WeightSolution>> solve_weights(Context& context, const FramesProvider
     term.reason = covariance_failure_reason;
     term.influence = val(unknown_influence);
     noise->unknown_terms.push_back(term);
-    noise->identity = model::make_identity("acsd.NoiseModel", 2, 0,
-                                            model::hash_index(Index::Kind::latent, 1, 0, {}),
-                                            "acsd");
+    noise->identity = model::make_identity(
+        "acsd.NoiseModel", 2, 0,
+        model::sha256_hex("coadd:combined_unknown:" +
+                          std::to_string(static_cast<int>(NoiseState::unknown))),
+        "acsd");
     noise->assessment = model::make_assessment(Code::ok);
-    noise->assessment.complete = true;
+    noise->assessment.complete = false;
     noise->assessment.noise = NoiseState::unknown;
+    noise->assessment.science = ScienceState::conditional;
+    model::set_omitted(noise->assessment, "known_complete_variance");
     Result<Ref<CovarianceAction>> built =
         make_covariance(context, Ref<NoiseModel>(std::shared_ptr<const NoiseModel>(noise)));
     if (!ok(built)) {
