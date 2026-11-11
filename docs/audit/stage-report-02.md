@@ -233,3 +233,19 @@ export 的 P0（`6889aa307`）修复后，继续检查同一类“重开即放�
 - `make_covariance` 现在在 `model->state != known` 或存在 unknown term 时把协方差 assessment 置 `conditional`、`complete=false`、`omitted=known_complete_variance`，不再发布“complete covariance”。
 - coadd estimate 同时合并 `SkyFit` 的条件/omitted/issues。
 - X01 full 在 `7223b34ad` 通过；mosaic/export 均 `full, science=conditional, noise=unknown`，omitted 含 `the_quality_mask_is_absent...` 与 `known_control_covariance`；blind RMS/48 残差不变。
+
+## 27. 第二十三轮：assessment 与 state 的一致性（2026-11-11，`f6e49552d`）
+
+用产品 JSON 扫描 `SignalEstimate/CovarianceAction/NoiseModel/SkyFit/Selection/WeightSolution/ProductGraph` 的不变量：
+
+- `noise=unknown` 不得 `science=bounded`；
+- `complete=true` 不得同时含非 ok issue；
+- `science=conditional` 不得 `complete=true`。
+
+初始 mosaic/export 各有 1 个违规 `NoiseModel`（id `06a825…` = `hash_index(latent,1)`）。逐个根因修复：
+
+1. calibration/regroup/coadd-fallback/sky-parameter/apply_sky/export 的 NoiseModel 在 state=unknown 时仍 `complete=true`；
+2. 它们的 identity 未覆盖 state，导致旧 bounded 对象被复用（同一 id 内容不变）；
+3. 逐一改为 `complete = state==known && unknown_terms.empty()`，unknown 时 `science=conditional`、`omitted=known_complete_variance`，identity 纳入 state。
+
+最终扫描：mosaic/export 各 3 个模型对象，**0 violations**。X01 full 在 `f6e49552d` 通过，blind RMS 0.2109、48 残差 max|z|1.9007 不变；mosaic/export 仍 `full, science=conditional, noise=unknown`。

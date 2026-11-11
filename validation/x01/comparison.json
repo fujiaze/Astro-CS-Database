@@ -61,6 +61,6 @@
   "superseded": "the criterion was shown invalid/unattainable; the old failure is preserved and the functional is not gating",
   "pending_at_current_head": "the recorded evidence is from an earlier commit and must be regenerated at the current HEAD"
  },
- "tested_source_sha": "7223b34ad",
+ "tested_source_sha": "f6e49552d",
  "profile": "full"
 }
