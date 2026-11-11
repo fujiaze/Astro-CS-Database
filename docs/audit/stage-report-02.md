@@ -289,3 +289,10 @@ assessment invariants: 0 violation(s)
 - **P1-2**：mean 归一分母下界为 0 时系数上界取 `+inf`，并记录 `normalisation_denominator…`，不再发布低于点值的上界。
 - X01 full 在 `8b3f41ebd` 通过：blind RMS 0.2109、48 残差 max|z|1.9007；assessment 扫描 0 violation。
 - 仍开：bind 的 complete/omitted 全面审查、`Ω(E_q)` 区间、identity 覆盖面、证据工具独立性、shared-root/多叶投影反例。
+
+## 32. 第二十八轮：bind complete 与 native-area 区间（2026-11-11，`085f1206f`）
+
+- **bind P1-3**：`bind_wcs` 在参数协方差未知、无参数误差身份、无模型偏差、无 astrometric solution 时不再发布 `complete=true`；这些 omitted/unavailable 现在同时使 `complete=false`。
+- **export P1-16**：`extrapolated_full_flux` 与 `effective_area_approx` 的系数界现在使用 `native_area` 的 lower/upper 区间，而不是中点；常场/负/零/无支持探针仍通过。
+- X01 full 在 `085f1206f` 通过：blind RMS 0.2109、48 残差 max|z|1.9007；assessment 扫描 0 violation。
+- 仍开（D0）：证据工具类型过滤/自证、shared-root 多叶投影反例、identity 其余对象、P1-5 θ influence。
