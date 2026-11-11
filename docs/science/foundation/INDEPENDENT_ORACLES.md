@@ -256,3 +256,46 @@ C++构建命令和编译器/可执行文件hash在性能JSON的build中；需GCC
 **DERIVED**：面积到signed分式估计、支持/覆盖区别、Cov和求解扰动、affine-strip包含及WCS规范化/导数。**INDEPENDENTLY_TESTED**：上述有限解析真值、A/B重算、C++独立实现/成员及实际微测。**ASSUMPTION**：所用IEEE/MPFR/GMP/mpmath区间原语的正确性、固定WCS/PRF/PSF/response与噪声物理模型。**REQUIRES_REAL_DATA**：§7的真实物理模型及吞吐/星云/孔径/coverage问题。
 
 当前科学与工程设计已完成最终独立复核，状态及范围以页首和最终审核记录为准；历史#111的待外部复审/未建分支措辞不是当前启动门槛。新实现仍须以公开合同自行生成真值，检验预算反推、高精度fallback、边界支持和真实模型输入身份；这些属于实现与产品验证，不把历史研究吞吐转记为生产通过。
+
+## 9. Export 的独立定义与已验证恒等式
+
+本节只写 Export 自身的数学定义和可用独立量复核的恒等式；实现审查归 B5/C0，证据文件在下文列出。
+
+### 9.1 定义
+
+设叶 \(j\) 的支持面积为 \(A_j=\Omega(D_j)\)，目标像元 \(p\) 的几何为 \(\Omega_p\)，二者重叠 \(a_{jp}=\Omega(D_j\cap H_p)\)。导出算子 \(Q\) 按需求分为：
+
+\[
+Q^{\rm flux}_{pj}=\frac{a_{jp}}{A_j},\qquad
+Q^{\rm mean}_{pj}=\frac{a_{jp}}{\sum_{j'}a_{j'p}}.
+\]
+
+对 product 信号 \(x_j\)：
+
+\[
+\hat s_p=(Qx)_p,\qquad
+C_{\rm out}=Q\,C_{\rm leaf}\,Q^\top ,
+\]
+
+无支持像元（\(Q\) 行为空）输出 NaN，而不是 0；合法负信号与零信号原样保留。
+
+### 9.2 恒等式与已测数值
+
+1. **常面亮度**：若 \(D_j\) 覆盖目标像元且 \(x_j=b_0\)，则
+   \[
+   \hat s^{\rm flux}_p=b_0\,\Omega_p,\qquad \hat s^{\rm mean}_p=b_0.
+   \]
+   实测 1×1 TAN：`flux=2.35044305387e-05`，解析 \(b_0|\det C|=2.35044305391e-05\)，相对差 \(1.8\times10^{-11}\)；`mean=b_0` 精确。
+2. **旋转/镜像/非对称 CRPIX**：2×2、CD 旋转 30°、CRPIX=(0.5,0.5) 与 (0.3,0.7)、det<0 与 det>0，导出和与 Astropy 单位球面多边形面积（Van Oosterom–Strackee）相对差 \(3.6\times10^{-8}\)–\(2.5\times10^{-7}\)。
+3. **协方差**：对 X01 的 mosaic/export，随机像素向量 \(x\) 上
+   \[
+   \|C_{\rm out}x-QC_{\rm leaf}(Q^\top x)\|_\infty/\|C_{\rm out}x\|_\infty
+   =4.8\times10^{-16}
+   \]
+   （2 帧链为 \(3.1\times10^{-16}\)），且 \(C_{\rm out}\) 对称、PSD。
+4. **无支持**：`states=0` 的叶或远离叶的像元返回 NaN；修复 `decode_support_map` 前曾错误返回 \(b_0\Omega_p\)，该反例已保留在 `validation/projection/export_constant_probe.cpp nosupport`。
+5. **符号**：\(b_0=-10^6\) 给出 \(-b_0\Omega_p\)，\(b_0=0\) 给出 0（非 NaN）。
+
+### 9.3 边界
+
+以上只证明给定 \(Q\) 下的代数/几何恒等式。仍未覆盖：部分支持像素的 \(a_{jp}\) 与 `effective_area_approx`、跨 HEALPix face、极大目标像元（TAN 高阶项）、重复 pixfrac 的有效核，以及真实 PSF/响应下的 \(Q\) 语义。\(C_{\rm out}\) 的数值正确不等于 \(C_{\rm leaf}\) 的未知项已闭合（当前 X01 仍 `noise=unknown`）。
