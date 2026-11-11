@@ -37,3 +37,14 @@ cov_unit   =…*1/sr (sr=-2, L=2)
 - P1-3 bind 的 complete=true 与 omitted 并存（本轮只传播参数协方差未知，未全面重审）。
 - P1-16 `Ω(E_q)`/native_area 区间仍取中点。
 - identity 覆盖面、证据工具独立性、真实 shared-root/多叶投影反例。
+
+## 补充：shared-root / 多叶投影反例（本轮新增）
+
+`validation/product/shared_root_projection_probe.cpp` 独立构造 2 叶、1 个 shared root、影响 \(L=[1,2]^\top\)，以及 \(Q=[[1,0],[1,1]]\)。解析真值
+\[
+C=LL^\top=\begin{pmatrix}1&2\\2&4\end{pmatrix},\quad
+QCQ^\top=\begin{pmatrix}1&3\\3&9\end{pmatrix}.
+\]
+生产路径 `make_covariance → control_covariance → covariance_apply` 给出完全相同矩阵，`max_abs_err=0`。这触发了 shared root 的跨叶交叉项与多叶投影，补上了 X01 `nleaf=1/shared_roots=0` 未覆盖的证据面。
+
+**仍开（新发现）**：把同一 `SharedId` 拆成两个 root（各自影响不同叶）时，`make_covariance` 在非 ASan 构建下段错误、ASan 下报 `an influence is missing`。该合并路径在真实数据中出现 shared master（bias/flat/dark）时会触发，应作为下一轮 P1 优先修复；当前不声称 shared-root 合并已验证。
