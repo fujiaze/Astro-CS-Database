@@ -49,8 +49,10 @@ int main(int argc, char** argv) {
   std::printf("domain=%llu state=%d\n", (unsigned long long)n, (int)cov->assessment.noise);
   const Unit sig = estimate->unit;
   const Unit var = model::unit_multiply(sig, sig);
-  std::printf("signal_unit=%s var_unit=%s cov_unit=%s\n", sig.scale.c_str(), var.scale.c_str(),
-              cov->model->variance_unit.scale.c_str());
+  std::printf("signal_unit=%s(sr=%d,L=%d) var_unit=%s(sr=%d,L=%d) cov_unit=%s(sr=%d,L=%d)\n",
+              sig.scale.c_str(), sig.sr_power, sig.linear_power, var.scale.c_str(), var.sr_power,
+              var.linear_power, cov->model->variance_unit.scale.c_str(),
+              cov->model->variance_unit.sr_power, cov->model->variance_unit.linear_power);
   std::vector<double> x(static_cast<std::size_t>(n)), y(static_cast<std::size_t>(n));
   for (U64 i = 0; i < n; ++i) {
     x[i] = std::sin(0.7 * static_cast<double>(i) + 0.1);
