@@ -272,3 +272,8 @@ assessment invariants: 0 violation(s)
 - 在 `66f034456`（含 astrometry 参数块单位声明）重跑 X01 full：normalize 8/8、mosaic 1、export 1，exit 0；blind RMS 0.2109、48 残差 max|z|1.9007 不变。
 - 同一产品上运行 `assessment_invariants_probe.py`：mosaic/export 各 3 个模型，`0 violation(s)`。
 - 说明：参数块单位是声明层改动，数值路径未变；本次重跑使 evidence SHA 与 HEAD 一致。
+
+## 30. 第二十六轮：bind 参数一致性（2026-11-11，`853336c8a`）
+
+- `bind_wcs` 新增校验：`parameter_units` 非空必须覆盖全部参数；`parameter_noise` 的 domain 必须等于参数个数。反例探针：两参数只给一个 Unit → `invalid_model`（`mismatched parameter units refused=1`）。
+- X01 full 在 `853336c8a` 通过：normalize 8/8、mosaic 1、export 1，blind RMS 0.2109、48 残差 max|z|1.9007 不变；assessment 不变量扫描 0 violation。
