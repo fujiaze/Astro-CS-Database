@@ -657,6 +657,11 @@ Result<Ref<CovarianceAction>> control_covariance(Context& context, Ref<Covarianc
     }
     model->influence.push_back(val(composed));
   }
+  // C' = T C T^T, so the variance unit is transformed by unit(T)^2.  The
+  // drizzle T carries 1/sr; dropping it published a per-sr surface brightness
+  // with an sr^0 variance.
+  model->variance_unit = model::unit_multiply(source.variance_unit,
+                                              model::unit_square(T->spaces.output));
   model->state = source.state;
   model->identity = model::make_identity(
       "acsd.NoiseModel", 2, 0,

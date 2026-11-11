@@ -92,7 +92,11 @@ double leaf_area_sr(U32 order) { return 4.0 * M_PI / (12.0 * std::pow(4.0, stati
 Result<std::vector<std::uint8_t>> read_states(Context& context, const ArrayRef& array,
                                                U64 count) {
   std::vector<std::uint8_t> states;
-  if (!array) return model::ok_result(std::move(states));
+  if (!array) {
+    return model::fail<std::vector<std::uint8_t>>(
+        Code::unavailable, "the support map carries no states array", "build_export",
+        "the support of the product is unknown");
+  }
   Result<ArrayView> view = context.storage.read(context, array, BlockRequest{0, count});
   if (!ok(view)) {
     // An unreadable support state is not "all supported": silently returning an
