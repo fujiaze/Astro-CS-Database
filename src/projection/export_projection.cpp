@@ -17,6 +17,7 @@
 // uncovered assumption explicitly.
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <map>
 #include <memory>
 #include <set>
@@ -246,6 +247,8 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
   std::vector<std::vector<std::array<double, 3>>> rows_interval(pixel_count);
   std::vector<double> pixel_area(pixel_count, 0.0);
   std::vector<char> pixel_supported(pixel_count, 0);
+  bool undecided_support = false;
+  bool normalizer_unresolved = false;
 
   for (U64 y = 0; y < request.target.height; ++y) {
     for (U64 x = 0; x < request.target.width; ++x) {
@@ -290,7 +293,10 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
         const auto key = std::make_pair(contribution.leaf.order, contribution.leaf.ipix);
         auto row = rows.find(key);
         if (row == rows.end()) continue;  // a leaf outside the product support
-        if (!states.empty() && states[row->second] == 0) continue;  // no support at all
+        if (!states.empty() && states[row->second] != 1) {
+          if (states[row->second] > 1) undecided_support = true;
+          continue;  // no certain support
+        }
         // Q is a point operator: use the midpoint of the certified overlap
         // interval.  The lower endpoint would bias every exported flux low;
         // the interval is kept for the numerical bound.
@@ -327,7 +333,10 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
           case ExportRequest::Quantity::supported_mean:
             coefficient = entry.second / total;
             coefficient_lower = total_upper > 0.0 ? entry_lower / total_upper : 0.0;
-            coefficient_upper = total_lower > 0.0 ? entry_upper / total_lower : 0.0;
+            coefficient_upper =
+                total_lower > 0.0 ? entry_upper / total_lower
+                                  : std::numeric_limits<double>::infinity();
+            if (!(total_lower > 0.0)) normalizer_unresolved = true;
             break;
           case ExportRequest::Quantity::supported_flux:
             coefficient = entry.second;
@@ -339,7 +348,9 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
             coefficient_lower =
                 total_upper > 0.0 ? native_area * entry_lower / total_upper : 0.0;
             coefficient_upper =
-                total_lower > 0.0 ? native_area * entry_upper / total_lower : 0.0;
+                total_lower > 0.0 ? native_area * entry_upper / total_lower
+                                  : std::numeric_limits<double>::infinity();
+            if (!(total_lower > 0.0)) normalizer_unresolved = true;
             break;
         }
         if (request.support_policy == SupportMap::Kind::effective_area_approx) {
@@ -618,9 +629,13 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
       if (usable) {
         noise_model->identity = model::make_identity(
             "acsd.NoiseModel", 2, 0,
-            model::sha256_hex("export:noise:" + std::to_string(pixel_count) + ":" +
-                               std::to_string(static_cast<int>(request.quantity)) + ":" +
-                               std::to_string(static_cast<int>(noise_model->state))),
+            model::sha256_hex(
+                "export:noise:" + val(pixel_array)->identity.object_id + ":" +
+                std::to_string(static_cast<int>(request.quantity)) + ":" +
+                std::to_string(static_cast<int>(noise_model->state)) + ":" +
+                std::to_string(noise_model->unknown_terms.size()) + ":" +
+                std::to_string(noise_model->variance_unit.sr_power) + ":" +
+                std::to_string(noise_model->variance_unit.linear_power)),
             "acsd");
         noise_model->assessment = model::make_assessment(Code::ok);
         noise_model->assessment.complete =
@@ -673,8 +688,10 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
   export_estimate->error = estimate.error;
   export_estimate->identity = model::make_identity(
       "acsd.SignalEstimate", 2, 0,
-      model::sha256_hex("export:signal:" + std::to_string(pixel_count) + ":" +
-                         std::to_string(static_cast<int>(request.quantity))),
+      model::sha256_hex(
+          "export:signal:" + val(pixel_array)->identity.object_id + ":" +
+          std::to_string(static_cast<int>(request.quantity)) + ":" +
+          std::to_string(signal_unit.sr_power) + ":" + std::to_string(signal_unit.linear_power)),
       "acsd");
   export_estimate->assessment = model::make_assessment(Code::ok);
   export_estimate->assessment.complete = true;
@@ -695,6 +712,24 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
     export_estimate->assessment.science = ScienceState::conditional;
   }
   if (!estimate.assessment.complete) export_estimate->assessment.complete = false;
+  if (undecided_support) {
+    export_estimate->assessment.science = ScienceState::conditional;
+    export_estimate->assessment.complete = false;
+    model::set_omitted(export_estimate->assessment,
+                       "at_least_one_leaf_has_an_undecided_support_state");
+    model::add_issue(export_estimate->assessment, Code::unavailable,
+                     "a leaf support state is undecided", "build_export",
+                     "the support is conditional on the undecided state");
+  }
+  if (normalizer_unresolved) {
+    export_estimate->assessment.science = ScienceState::conditional;
+    export_estimate->assessment.complete = false;
+    model::set_omitted(export_estimate->assessment,
+                       "the_normalisation_denominator_is_not_bounded_away_from_zero");
+    model::add_issue(export_estimate->assessment, Code::unavailable,
+                     "the mean normalisation denominator has a zero lower bound",
+                     "build_export", "the supported mean has an unbounded numerical interval");
+  }
   // The noise state of the published estimate is the state of its covariance:
   // a known covariance is not reported as unknown, and an absent one is.
   export_estimate->assessment.noise =

@@ -748,6 +748,7 @@ Result<Ref<Selection>> select_samples(Context& context, const FramesProvider& fr
   std::vector<std::uint8_t> eligibility(leaf_count * frame_count, 0);
   std::vector<std::uint8_t> accepted(leaf_count * frame_count, 0);
   std::vector<std::uint16_t> reasons(leaf_count * frame_count, kAccepted);
+  bool undecided_support = false;
   for (std::size_t leaf = 0; leaf < leaf_count; ++leaf) {
     // The cancellation checkpoint of the selection: the selection stops with a
     // named failure and without a partial selection.
@@ -764,6 +765,7 @@ Result<Ref<Selection>> select_samples(Context& context, const FramesProvider& fr
       }
       const std::size_t row = found->second;
       if (views[f].state[row] != 1) {
+        if (views[f].state[row] == 2) undecided_support = true;
         reasons[flat] = kNoSupport;
         continue;
       }
@@ -993,6 +995,12 @@ Result<Ref<Selection>> select_samples(Context& context, const FramesProvider& fr
   if (missing_quality) {
     model::set_omitted(selection->assessment,
                        "the_quality_mask_is_absent_for_at_least_one_frame");
+    selection->assessment.science = ScienceState::conditional;
+    selection->assessment.complete = false;
+  }
+  if (undecided_support) {
+    model::set_omitted(selection->assessment,
+                       "at_least_one_frame_has_an_undecided_support_state");
     selection->assessment.science = ScienceState::conditional;
     selection->assessment.complete = false;
   }
@@ -1966,9 +1974,15 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
   estimate->effective_response = nullptr;
   estimate->noise = weights->covariance;
   estimate->error = nullptr;
-  estimate->identity = model::make_identity("acsd.SignalEstimate", 2, 0,
-                                             model::hash_index(Index::Kind::leaf, leaf_count, 0, {}),
-                                             "acsd");
+  estimate->identity = model::make_identity(
+      "acsd.SignalEstimate", 2, 0,
+      model::sha256_hex(
+          "coadd:signal:" + estimate->signal->identity.object_id + ":" +
+          (estimate->noise ? estimate->noise->identity.object_id : Id()) + ":" +
+          std::to_string(output_unit.sr_power) + ":" +
+          std::to_string(output_unit.linear_power) + ":" +
+          std::to_string(output_unit.multiplier)),
+      "acsd");
   estimate->assessment = model::make_assessment(Code::ok);
   estimate->assessment.complete = true;
   // The estimate inherits the selection/weights conditions: a conditional
