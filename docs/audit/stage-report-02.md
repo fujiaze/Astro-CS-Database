@@ -277,3 +277,15 @@ assessment invariants: 0 violation(s)
 
 - `bind_wcs` 新增校验：`parameter_units` 非空必须覆盖全部参数；`parameter_noise` 的 domain 必须等于参数个数。反例探针：两参数只给一个 Unit → `invalid_model`（`mismatched parameter units refused=1`）。
 - X01 full 在 `853336c8a` 通过：normalize 8/8、mosaic 1、export 1，blind RMS 0.2109、48 残差 max|z|1.9007 不变；assessment 不变量扫描 0 violation。
+
+## 31. 第二十七轮：D0 复核 P0/P1 响应（2026-11-11，`8b3f41ebd`）
+
+独立复核报告 `docs/audit/d0-independent-review-2026-11-11.md` 给出 2 P0 + 9 P1；响应见 `docs/audit/d0-response.md`。
+
+- **P0-1**：`read_states` 对 `!array` 由 `ok(empty)` 改为 `unavailable`；缺失 states 不再当全支持。
+- **P0-2**：`control_covariance` 把 `unit(T)^2` 作用到方差单位。X01 复测信号 `sr=-1,L=1`，协方差 `sr=-2,L=2`（此前方差 sr=0）。
+- **P1-5**：export/coadd 的 estimate identity 纳入实际 signal/noise id、单位幂与 state，不再只是 `(count,state,quantity)` 哈希。
+- **P1-1**：`state != 1` 在 coadd 与 export 都视为非确定支持，并置 conditional/incomplete。
+- **P1-2**：mean 归一分母下界为 0 时系数上界取 `+inf`，并记录 `normalisation_denominator…`，不再发布低于点值的上界。
+- X01 full 在 `8b3f41ebd` 通过：blind RMS 0.2109、48 残差 max|z|1.9007；assessment 扫描 0 violation。
+- 仍开：bind 的 complete/omitted 全面审查、`Ω(E_q)` 区间、identity 覆盖面、证据工具独立性、shared-root/多叶投影反例。
