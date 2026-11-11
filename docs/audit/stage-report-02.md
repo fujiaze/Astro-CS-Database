@@ -324,3 +324,15 @@ assessment invariants: 0 violation(s)
 - 修复：`Index domain{}; Index codomain{};` 并显式 `assessment = make_assessment(Code::ok)`。
 - UBSan 复跑：常场/negative/zero/nosupport 四种模式、covariance semantic probe、bind probe 全部 exit 0，无 runtime error。
 - 这是 C1 内存初始化修复，不是科学判据；X01 数值路径未变。
+
+## 36. 第三十二轮：ASan 复核（2026-11-11）
+
+`-fsanitize=address -static-libasan`（此前未加 `-static-libasan` 时 ASan runtime 顺序失败）复跑关键独立探针，全部 exit 0、无 ASan 报告：
+
+- `export_constant_probe`：常场/无支持/负/零模式；
+- `shared_root_projection_probe`：单 root 与双 shared root，`C_out=[[1,3],[3,9]]`；
+- `covariance_semantics_probe`：X01 mosaic，C 对称/PSD，`sr=-2`；
+- `projection_covariance_probe`：X01 `C_out=QCQᵀ` rel 4.8e-16；
+- `bind_identity_probe`：身份区分与参数单位错配拒绝。
+
+边界：生产静态库本身未用 ASan 编译，因此这只覆盖探针路径上的堆/越界使用；`acsd` 主程序与完整 X01 仍未在 ASan 下运行。TSan 未跑。
