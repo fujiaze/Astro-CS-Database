@@ -153,6 +153,14 @@ Result<Ref<NativeObservation>> bind_wcs(Context& context, Ref<NativeObservation>
           ":" + wcs->identity.content_hash);
   bound->assessment = observation->assessment;
   bound->assessment.complete = true;
+  if (solution && solution->parameter_noise &&
+      solution->parameter_noise->assessment.noise != NoiseState::known) {
+    // The astrometric solution is bound, but its parameter covariance is
+    // conditional/unknown; the bound observation must not look fully known.
+    bound->assessment.noise = NoiseState::unknown;
+    bound->assessment.science = ScienceState::conditional;
+    model::set_omitted(bound->assessment, "astrometric_parameter_covariance_is_unknown");
+  }
   model::set_included(bound->assessment, "wcs_bound_to_the_observation");
   if (solution) {
     model::set_included(bound->assessment, "astrometric_solution_bound");
