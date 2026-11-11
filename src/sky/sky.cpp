@@ -999,8 +999,12 @@ Result<Ref<NoiseModel>> build_joint_noise(Context& context, const std::vector<Fr
                                                             joint->influence.size(), 0, {}),
                                           "acsd");
   joint->assessment = model::make_assessment(Code::ok);
-  joint->assessment.complete = true;
+  joint->assessment.complete = joint->state == NoiseState::known;
   joint->assessment.noise = joint->state;
+  if (joint->state != NoiseState::known) {
+    joint->assessment.science = ScienceState::conditional;
+    model::set_omitted(joint->assessment, "known_complete_variance");
+  }
   return model::ok_result(Ref<NoiseModel>(std::shared_ptr<const NoiseModel>(joint)));
 }
 

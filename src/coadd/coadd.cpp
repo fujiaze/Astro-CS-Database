@@ -1196,6 +1196,10 @@ Result<Ref<CovarianceAction>> build_joint_covariance_sparse(
   joint->assessment = model::make_assessment(Code::ok);
   joint->assessment.complete = !any_unknown;
   joint->assessment.noise = joint->state;
+  if (any_unknown) {
+    joint->assessment.science = ScienceState::conditional;
+    model::set_omitted(joint->assessment, "known_complete_variance");
+  }
   joint->identity = model::make_identity(
       "acsd.NoiseModel", 2, 0,
       model::sha256_hex("coadd:joint:" + std::to_string(total_rows)), "acsd");

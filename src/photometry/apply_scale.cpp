@@ -544,6 +544,10 @@ Result<Ref<NativeObservation>> apply_scale(Context& context, Ref<PhotoSolution> 
                     "image is missing from the noise model, so the complete variance is unknown",
                     {}, std::nullopt});
     patched->state = NoiseState::unknown;
+    patched->assessment.science = ScienceState::conditional;
+    patched->assessment.complete = false;
+    patched->assessment.noise = NoiseState::unknown;
+    model::set_omitted(patched->assessment, "theta_random_influence");
     scaled_observation->noise = std::shared_ptr<const NoiseModel>(patched);
   }
   scaled_observation->assessment.noise =
