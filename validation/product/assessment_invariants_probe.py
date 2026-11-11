@@ -14,10 +14,16 @@ import json
 import os
 import sys
 
-# Objects whose assessment has noise semantics.  Pure data arrays/indexes are
-# excluded: their assessment is not a noise statement.  Everything else with an
-# assessment is checked, including SupportMap/ErrorRecord/NoiseRoot.
-SKIP_TYPES = ("Array", "Index")
+# Objects whose assessment has noise semantics.  Pure data arrays/indexes and
+# structural operators/roots are excluded: their assessment is not a noise
+# statement.  Everything else with an assessment is checked, including
+# SupportMap/ErrorRecord.
+SKIP_TYPES = (
+    "Array",
+    "Index",
+    "LinearAction",
+    "NoiseRoot",
+)
 
 
 def load_objects(root):

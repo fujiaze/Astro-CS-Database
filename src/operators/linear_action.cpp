@@ -553,18 +553,28 @@ Result<Ref<LinearAction>> make_csr_action(Context& context, U64 rows, U64 cols,
     domain.kind = Index::Kind::parameter;
     domain.identity.object_id = domain_index.empty() ? Id("csr-domain-" + std::to_string(cols))
                                                      : domain_index;
-    domain.identity.content_hash = domain.identity.object_id;
+    domain.identity.content_hash =
+        model::content_id(model::sha256_hex(domain.identity.object_id));
+    domain.identity.run_id = "acsd";
+    domain.identity.revision = 1;
     domain.identity.schema_id = "acsd.Index";
+    domain.identity.schema_major = 2;
+    domain.identity.schema_minor = 0;
     spaces.domain = std::make_shared<const Index>(domain);
   }
   {
     Index codomain;
     codomain.size = rows;
     codomain.kind = Index::Kind::parameter;
-    codomain.identity.object_id = codomain_index.empty() ? Id("csr-codomain-" + std::to_string(rows))
-                                                         : codomain_index;
-    codomain.identity.content_hash = codomain.identity.object_id;
+    codomain.identity.object_id =
+        codomain_index.empty() ? Id("csr-codomain-" + std::to_string(rows)) : codomain_index;
+    codomain.identity.content_hash =
+        model::content_id(model::sha256_hex(codomain.identity.object_id));
+    codomain.identity.run_id = "acsd";
+    codomain.identity.revision = 1;
     codomain.identity.schema_id = "acsd.Index";
+    codomain.identity.schema_major = 2;
+    codomain.identity.schema_minor = 0;
     spaces.codomain = std::make_shared<const Index>(codomain);
   }
   spaces.input = unit;
