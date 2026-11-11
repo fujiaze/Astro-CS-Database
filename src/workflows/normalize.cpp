@@ -27,6 +27,7 @@
 #include "model/result.hpp"
 #include "model/units.hpp"
 #include "operators/linear_action.hpp"
+#include "sources/psf_internal.hpp"
 #include <acsd/modules/catalogue.hpp>
 #include <acsd/modules/coordinates.hpp>
 #include <acsd/modules/generated/status.hpp>
@@ -383,11 +384,17 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
   }
   runtime->registry = value_of(frozen);
 
-  rt::ScopeLimits limits;
-  limits.ceiling.host_bytes = 1ull << 30;
-  limits.ceiling.spill_bytes = 64ull << 20;
-  limits.ceiling.cpu_tokens = 2;
-  limits.max_work = 4000000000ull;
+  // The command scope is the process limit that the caller established.  A
+  // workflow must not invent a narrower budget: real 4096x4096 frame
+  // calibration needs a few GiB of persistent workspace, and the earlier
+  // hard-coded 1 GiB made every real frame fail before its first process.
+  Result<rt::ScopeLimits> process_limits = rt::process_limits(runtime->services);
+  if (!ok(process_limits)) {
+    return fail<NormalizeResult>(process_limits.code,
+                                 "the process limits cannot be read", "normalize",
+                                 "no frame was processed");
+  }
+  rt::ScopeLimits limits = value_of(process_limits);
   Result<InvocationContext> command =
       rt::open_command(runtime->services, "normalize", limits, 1);
   if (!ok(command)) {
@@ -422,6 +429,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     if (!plan.assessment.issues.empty())
       trace << ",\"plan_reason\":\"" << plan.assessment.issues.front().reason << "\"";
     trace << ",\"identity\":\"" << identity << "\"}\n";
+    trace.flush();
   };
 
   // Ingests the CLI-owned immutable arrays into the runtime BlockStore.  The
@@ -610,11 +618,69 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       outcome.assessment = star_ingest.assessment;
       continue;
     }
-    auto star_ref = std::make_shared<const std::vector<CatalogueStar>>(std::move(stars));
+    // The science sources are the catalogue stars that actually fall inside
+    // this detector.  A catalogue page cell can reach outside the frame; a
+    // source whose window is entirely outside the detector contributes no
+    // sample and no fit row, but the template builder still walks it.  The
+    // in-frame filter is the same projection the measurement uses, and it also
+    // bounds the joint fit to a bright subset: every extra star multiplies
+    // the template work (positions, shapes and line search), while a kernel is
+    // constrained by a handful of high-SNR stars.
+    std::vector<CatalogueStar> in_frame;
+    std::vector<PixelCenter0> in_frame_positions;
+    const double margin = request.psf.window_radius_pixel + 4.0;
+    for (const CatalogueStar& star : stars) {
+      Result<PixelCenter0> position = sources::psfmodel::detector_position(
+          context, wcs, star, observation->context, request.psf.budget);
+      if (!position.value) continue;
+      if (position.value->x < -margin || position.value->x > static_cast<double>(width) + margin ||
+          position.value->y < -margin || position.value->y > static_cast<double>(height) + margin)
+        continue;
+      in_frame.push_back(star);
+      in_frame_positions.push_back(*position.value);
+    }
+    // Brightest first, then a greedy isolation pass.  Two sources whose
+    // measurement windows overlap cannot be separated by a joint constant
+    // background: the design is ill-conditioned and the flux is exchanged
+    // between them.  The measurement process enforces the same disjoint-window
+    // rule; applying it here keeps the PSF fit on isolated stars too.
+    std::vector<std::size_t> order(in_frame.size());
+    for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
+    std::stable_sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) {
+      return in_frame[a].brightness_mag < in_frame[b].brightness_mag;
+    });
+    const double isolation = 2.0 * request.psf.window_radius_pixel;
+    std::vector<CatalogueStar> selected_stars;
+    std::vector<PixelCenter0> selected_positions;
+    for (std::size_t index : order) {
+      bool isolated = true;
+      for (const PixelCenter0& other : selected_positions) {
+        const double dx = other.x - in_frame_positions[index].x;
+        const double dy = other.y - in_frame_positions[index].y;
+        if (std::sqrt(dx * dx + dy * dy) < isolation) {
+          isolated = false;
+          break;
+        }
+      }
+      if (!isolated) continue;
+      selected_stars.push_back(in_frame[index]);
+      selected_positions.push_back(in_frame_positions[index]);
+    }
+    if (selected_stars.empty()) selected_stars = in_frame;
+    std::vector<CatalogueStar> in_frame_selected = std::move(selected_stars);
+    constexpr std::size_t kMaxScienceStars = 4;
+    if (in_frame_selected.size() > kMaxScienceStars) in_frame_selected.resize(kMaxScienceStars);
+    in_frame = std::move(in_frame_selected);
+    std::vector<CatalogueStar> psf_selection = in_frame;
+    constexpr std::size_t kMaxPsfStars = 4;
+    if (psf_selection.size() > kMaxPsfStars) psf_selection.resize(kMaxPsfStars);
+    auto star_ref = std::make_shared<const std::vector<CatalogueStar>>(std::move(in_frame));
+    auto psf_star_ref =
+        std::make_shared<const std::vector<CatalogueStar>>(std::move(psf_selection));
 
     // fit_psf
     auto psf_input = std::make_shared<const FitPsfInput>(
-        FitPsfInput{observation, wcs, star_ref, request.psf});
+        FitPsfInput{observation, wcs, psf_star_ref, request.psf});
     Result<rt::InvocationPlan> psf_plan =
         plan_fit_psf_op(runtime->command, psf_input, runtime->options);
     Result<Ref<EffectivePSF>> psf =
@@ -633,6 +699,10 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     }
 
     // measure_science_sources
+    if (trace.is_open()) {
+      trace << "{\"frame\":\"" << frame.frame << "\",\"step\":\"measure_start\"}\n";
+      trace.flush();
+    }
     auto measure_input = std::make_shared<const MeasureScienceSourcesInput>(
         MeasureScienceSourcesInput{observation, wcs, star_ref, value_of(psf), request.psf});
     Result<rt::InvocationPlan> measure_plan =

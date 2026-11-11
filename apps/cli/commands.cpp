@@ -22,6 +22,7 @@
 #include "model/units.hpp"
 #include "resources/cpu_resources.hpp"
 #include "storage/local_storage.hpp"
+#include "observation/observation.hpp"
 
 namespace acsd::cli {
 namespace {
@@ -593,8 +594,24 @@ bool header_double(const HeaderFields& header, const std::string& key, double& v
 Result<Ref<RawObservation>> build_raw_observation(Context& context, const FitsImage& image,
                                                    const std::string& frame_id) {
   const U64 count = image.width * image.height;
+  // The raw frame carries no DQ extension and its FITS header has no
+  // SATURATE keyword.  The FLI Proline 16803 stores a 16-bit unsigned ADC
+  // value (BZERO=32768), so a full-scale sample is at 65535.  A saturated
+  // sample is marked in DQ here; without it the PSF fit and the source
+  // measurement would treat the flat-topped core of a bright star as data and
+  // return an arbitrary (often negative) flux.  The threshold is the ADC full
+  // scale, not a scientific tolerance; a lower device-specific threshold can
+  // be supplied later through the DQ input.
+  std::vector<std::uint16_t> quality(count, 0);
+  for (U64 i = 0; i < count; ++i) {
+    if (!std::isfinite(image.values[i])) {
+      quality[i] = observation::kDqBad;
+    } else if (image.values[i] >= 65535.0) {
+      quality[i] = observation::kDqSaturated;
+    }
+  }
   const std::vector<std::byte> adu_bytes = model::encode_f64(image.values);
-  const std::vector<std::byte> dq_bytes = model::encode_u16(image.dq);
+  const std::vector<std::byte> dq_bytes = model::encode_u16(quality);
   const std::vector<U64> shape{count};
   Result<ArrayRef> adu = context.storage.copy(context, DType::f64, adu_bytes, shape,
                                                model::unit_adu("detector:" + frame_id),
@@ -758,7 +775,36 @@ Result<Calibration> load_calibration(Context& context, const std::filesystem::pa
                              std::string("the calibration is not valid JSON: ") + failure.what(),
                              "cli.calibration", "the frame cannot be processed");
   }
+  // A calibration plane is either an inline JSON array (small synthetic
+  // frames) or the path of a FITS image (real master frames).  The FITS form
+  // is the only practical one for 4096x4096 masters: a text array is hundreds
+  // of megabytes and loses the original float32 values.
   auto load_plane = [&](const char* key) -> Result<ArrayRef> {
+    const std::string file_key = std::string(key) + "_file";
+    if (has(document, file_key.c_str())) {
+      const std::string relative = string_field(document, file_key.c_str());
+      if (relative.empty()) {
+        return fail<ArrayRef>(Code::invalid_request,
+                              std::string("the ") + file_key + " is empty", "cli.calibration",
+                              "the frame cannot be processed");
+      }
+      const std::filesystem::path plane_path =
+          path.parent_path() / std::filesystem::path(relative);
+      Result<FitsImage> image = read_fits_image(plane_path);
+      if (!ok(image)) {
+        return fail<ArrayRef>(image.code,
+                              std::string("the ") + key + " plane cannot be read: " +
+                                  image.assessment.issues.front().reason,
+                              "cli.calibration", "the frame cannot be processed");
+      }
+      if (val(image).values.size() != shape.front()) {
+        return fail<ArrayRef>(Code::invalid_request,
+                              std::string("the ") + key + " plane does not match the frame",
+                              "cli.calibration", "the frame cannot be processed");
+      }
+      return context.storage.copy(context, DType::f64, model::encode_f64(val(image).values),
+                                  shape, model::unit_adu("detector"), key);
+    }
     if (!has(document, key)) {
       Result<ArrayRef> out;
       out.code = Code::ok;
@@ -1386,6 +1432,42 @@ int run_mosaic(Config& config, EventWriter& events, CancellationSource& cancella
         if (basis.contains("normalization_domain"))
           request.sky.basis.normalization_domain =
               decode_box(basis.at("normalization_domain"));
+      }
+      // Explicit comparability groups.  The default group (empty) requires
+      // one response *and one spatial kernel identity*; real frames fitted
+      // independently have different PSF identities, so the request must be
+      // able to declare the actual proofs and the conditional assumption.
+      const json& groups = sky.contains("groups") ? sky.at("groups") : json::array();
+      if (groups.is_array()) {
+        for (const json& item : groups) {
+          Comparability group;
+          const json& frames = item.contains("frames") ? item.at("frames") : json::array();
+          if (frames.is_array()) {
+            for (const json& frame : frames) {
+              if (frame.is_string()) group.frames.push_back(Id(frame.get<std::string>()));
+            }
+          }
+          group.response_proof = Id(string_field(item, "response_proof"));
+          group.spatial_kernel_proof = Id(string_field(item, "spatial_kernel_proof"));
+          group.assumptions.kind =
+              string_field(item, "assumption_kind", "same_response_different_kernel_conditional");
+          const json& fixed = item.contains("fixed_objects") ? item.at("fixed_objects")
+                                                             : json::array();
+          if (fixed.is_array()) {
+            for (const json& object : fixed) {
+              if (object.is_string())
+                group.assumptions.fixed_objects.push_back(Id(object.get<std::string>()));
+            }
+          }
+          request.sky.groups.push_back(std::move(group));
+        }
+      }
+      if (sky.contains("gauge") && sky.at("gauge").is_object()) {
+        const json& gauge = sky.at("gauge");
+        request.sky.gauge.kind = string_field(gauge, "kind", "reference_frame") == "weighted_sum"
+                                     ? Gauge::Kind::weighted_sum
+                                     : Gauge::Kind::reference_frame;
+        request.sky.gauge.reference = Id(string_field(gauge, "reference"));
       }
     }
   }

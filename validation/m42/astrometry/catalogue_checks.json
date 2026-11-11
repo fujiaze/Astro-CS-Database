@@ -1,0 +1,115 @@
+{
+ "schema": "acsd.m42.gaia_catalogue_checks/1",
+ "xpsd_dr3_to_tap": {
+  "n_xpsd": 1772,
+  "n_tap": 2136,
+  "matched": 1772,
+  "unmatched": 0,
+  "sep_arcsec_max": 1.529259200469168e-06,
+  "sep_arcsec_median": 7.98793492047597e-07
+ },
+ "field_validation_vs_tap": {
+  "pmra_mas_yr": {
+   "n": 1726,
+   "median_abs_diff": 2.986729330523019e-08,
+   "p99_abs_diff": 9.210226359357421e-07,
+   "max_abs_diff": 7.1391036442491895e-06
+  },
+  "pmdec_mas_yr": {
+   "n": 1726,
+   "median_abs_diff": 2.2676989896996957e-08,
+   "p99_abs_diff": 1.4797181382419922e-06,
+   "max_abs_diff": 7.39211100153625e-06
+  },
+  "parallax_mas": {
+   "n": 1726,
+   "median_abs_diff": 4.3547576544789024e-08,
+   "p99_abs_diff": 2.497046165395034e-07,
+   "max_abs_diff": 9.50942162347701e-07
+  },
+  "G_mag": {
+   "n": 1772,
+   "median_abs_diff": 0.00025449999999960227,
+   "p99_abs_diff": 0.0004932900000008189,
+   "max_abs_diff": 0.0005000000000006111
+  }
+ },
+ "dr3sp_to_dr3": {
+  "n_xp": 458,
+  "matched": 458,
+  "unmatched": 0,
+  "sep_arcsec_max": 0.0
+ },
+ "catalogue": {
+  "n_stars": 820,
+  "n_dr3_total": 1772,
+  "xp_source_counts": {
+   "archive": 819,
+   "xpsd_only": 1
+  },
+  "xp_fraction_of_dr3": 0.46275395033860045,
+  "G_min": 4.485,
+  "G_max": 14.996,
+  "G_median": 13.720500000000001,
+  "G_hist": {
+   "le8": 24,
+   "le10": 62,
+   "le12": 171,
+   "le13": 286,
+   "le14": 471,
+   "le15": 820,
+   "le16": 820
+  },
+  "G_hist_all_dr3": {
+   "le8": 27,
+   "le10": 73,
+   "le12": 197,
+   "le13": 325,
+   "le14": 549,
+   "le15": 991,
+   "le16": 1772
+  },
+  "pmra_mas_yr_absmax": 169.4733123779297,
+  "pmdec_mas_yr_absmax": 297.5261535644531,
+  "parallax_mas_range": [
+   -2.5222678184509277,
+   22.32681655883789
+  ],
+  "n_negative_parallax": 5,
+  "n_synthetic_id": 0,
+  "n_duplicated_source_tap": 42,
+  "negative_xp_bins": 277,
+  "negative_xp_bins_fraction": 0.0009848538718623338,
+  "xpsd_vs_archive_xp": {
+   "n_stars": 457,
+   "median_abs_diff_W_m2_nm": 3.017603489999813e-19,
+   "p99_abs_diff_W_m2_nm": 6.723312349999994e-16,
+   "max_abs_diff_W_m2_nm": 4.065557500000022e-15
+  },
+  "xp_colour_vs_bp_rp": {
+   "n": 820,
+   "corr": -0.9923191977698561,
+   "note": "log10(mean XP 400-600nm / mean XP 700-900nm) vs BP-RP"
+  }
+ },
+ "inputs": {
+  "xpsd_dirs": [
+   "gaia/GaiaDR3",
+   "gaia/GaiaDR3SP"
+  ],
+  "xpsd_sha256_manifest": "run/m42-s1/inputs/manifest/gaia_sha256.json",
+  "tap_endpoint": "https://gaia.aip.de/tap/sync",
+  "tap_tables": [
+   "gaiadr3.gaia_source",
+   "gaiadr3.xp_sampled_mean_spectrum"
+  ],
+  "tap_cone_query": "CONTAINS(POINT('ICRS',ra,dec),CIRCLE('ICRS',84.2332,-5.4308,0.25)) x32 \u5206\u5757\uff0c\u5ba2\u6237\u7aef\u88c1\u5230 0.8\u00b0 \u9525",
+  "tap_xp_query": "SELECT source_id, flux FROM gaiadr3.xp_sampled_mean_spectrum WHERE source_id IN (...) x15 \u5757",
+  "xp_wavelength_grid_nm": {
+   "start": 336,
+   "step": 2,
+   "count": 343
+  },
+  "reference_epoch": "J2016.0 (Gaia DR3 ref_epoch)"
+ }
+}

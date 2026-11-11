@@ -1,0 +1,264 @@
+{
+ "schema": "acsd.m42.calibration/1",
+ "generated_utc": "2026-11-11T13:22:36Z",
+ "note": "XISF masters decoded READ-ONLY to FITS float32. Original XISF not modified.",
+ "bias_file": "/workspace/Astro CS Database/run/m42-s1/inputs/calibration/bias_adu.fits",
+ "dark_file": "/workspace/Astro CS Database/run/m42-s1/inputs/calibration/dark600_adu.fits",
+ "flat_file": "/workspace/Astro CS Database/run/m42-s1/inputs/calibration/flat_ha_normalized.fits",
+ "dark_contains_bias": true,
+ "exposure_seconds": 600,
+ "dark_exposure_seconds": 600,
+ "flat_normalization": 0.20615842938423157,
+ "flat_normalization_definition": "median(flat_ha_normalized)",
+ "units": {
+  "bias_file": "ADU = normalized_xisf_float32 * 65535",
+  "dark_file": "ADU = normalized_xisf_float32 * 65535 (contains bias)",
+  "flat_file": "normalized dimensionless (XISF [0,1] float32 kept as-is); median = flat_normalization"
+ },
+ "formula": "x = (raw_adu - bias_adu - beta * (dark_adu - bias_adu)) / (flat / flat_normalization)",
+ "adu_checks": {
+  "bias_adu_median": 1001.8666705023497,
+  "bias_adu_mean": 1002.1056626885262,
+  "dark600_adu_median": 1008.6333519173786,
+  "dark600_adu_mean": 1011.4055450894693,
+  "dark_current_adu_per_s_median": 0.011333343503065408,
+  "dark_minus_bias_adu_median": 6.800006101839244,
+  "flat_median": 0.20615842938423157,
+  "flat_mean": 0.20477999841151995,
+  "flat_min": 0.07356274127960205,
+  "flat_max": 0.9076946377754211,
+  "bias_contains_negative_pixels": false,
+  "dark_contains_negative_pixels": false
+ },
+ "frames": {
+  "bias": {
+   "source_xisf": "/workspace/Astro CS Database/testdata/T2 calibration files/masterBias_BIN-1_4096x4096.xisf",
+   "source_xisf_bytes": 67133440,
+   "source_sha256": "2d7e694c536c9a12d3ff3d4acf1565d88ad9495edbc4c5f48ec242a230193303",
+   "output_fits": "/workspace/Astro CS Database/run/m42-s1/inputs/calibration/bias_adu.fits",
+   "output_sha256": "56a16f1bceadc2bbbea32b0986aa697aad958bf215ce52b3ecfd13a0005c9d23",
+   "fits_header_xml": "/workspace/Astro CS Database/run/m42-s1/inputs/calibration/xisf_headers/bias_xisf_header.xml",
+   "xisf_image_tag": "<Image id=\"integration\" geometry=\"4096:4096:1\" sampleFormat=\"Float32\" bounds=\"0:1\" colorSpace=\"Gray\" location=\"attachment:24576:67108864\">",
+   "xisf_attrs": {
+    "id": "integration",
+    "geometry": "4096:4096:1",
+    "sampleFormat": "Float32",
+    "bounds": "0:1",
+    "colorSpace": "Gray",
+    "location": "attachment:24576:67108864"
+   },
+   "attachment_offset": 24576,
+   "attachment_length": 67108864,
+   "attachment_end": 67133440,
+   "file_size_equals_attachment_end": true,
+   "geometry": "4096:4096:1",
+   "sample_format": "Float32",
+   "byte_order": "little-endian (XISF 1.0)",
+   "data_unit": "ADU (float32) = normalized_float32 * 65535",
+   "conversion_factor": 65535.0,
+   "stats_normalized": {
+    "min": 0.015050990507006645,
+    "max": 0.1316985785961151,
+    "mean": 0.015291152249767681,
+    "median": 0.015287505462765694,
+    "std": 7.26967752350054e-05,
+    "mad": 1.4750286936759949e-05,
+    "p0.1": 0.015215788036584854,
+    "p99.9": 0.01570407673716545,
+    "nan_count": 0
+   },
+   "stats_written": {
+    "min": 986.3666381835938,
+    "max": 8630.8662109375,
+    "mean": 1002.1056632738837,
+    "median": 1001.86669921875,
+    "std": 4.764182098873809,
+    "mad": 0.9666748046875,
+    "p0.1": 997.1666870117188,
+    "p99.9": 1029.1666259765625,
+    "nan_count": 0
+   },
+   "checks": {
+    "is_float32": true,
+    "size_matches_geometry": true,
+    "finite": true,
+    "in_0_1": true
+   }
+  },
+  "dark": {
+   "source_xisf": "/workspace/Astro CS Database/testdata/T2 calibration files/masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf",
+   "source_xisf_bytes": 67129344,
+   "source_sha256": "b740556b237b20365c7302b990e273e0348151b6b9a14f4de02d3bf3c3b46f2b",
+   "output_fits": "/workspace/Astro CS Database/run/m42-s1/inputs/calibration/dark600_adu.fits",
+   "output_sha256": "e938eaf4e44573d34323b6f46731c889bf4a5251d96da91f89a0f4837adb16ff",
+   "fits_header_xml": "/workspace/Astro CS Database/run/m42-s1/inputs/calibration/xisf_headers/dark_xisf_header.xml",
+   "xisf_image_tag": "<Image id=\"integration\" geometry=\"4096:4096:1\" sampleFormat=\"Float32\" bounds=\"0:1\" colorSpace=\"Gray\" location=\"attachment:20480:67108864\">",
+   "xisf_attrs": {
+    "id": "integration",
+    "geometry": "4096:4096:1",
+    "sampleFormat": "Float32",
+    "bounds": "0:1",
+    "colorSpace": "Gray",
+    "location": "attachment:20480:67108864"
+   },
+   "attachment_offset": 20480,
+   "attachment_length": 67108864,
+   "attachment_end": 67129344,
+   "file_size_equals_attachment_end": true,
+   "geometry": "4096:4096:1",
+   "sample_format": "Float32",
+   "byte_order": "little-endian (XISF 1.0)",
+   "data_unit": "ADU (float32) = normalized_float32 * 65535",
+   "conversion_factor": 65535.0,
+   "stats_normalized": {
+    "min": 0.015139054507017136,
+    "max": 1.0,
+    "mean": 0.015433059358960388,
+    "median": 0.015390758402645588,
+    "std": 0.002319347149001042,
+    "mad": 1.8310733139514923e-05,
+    "p0.1": 0.015306324698030949,
+    "p99.9": 0.022591723678636145,
+    "nan_count": 0
+   },
+   "stats_written": {
+    "min": 992.137939453125,
+    "max": 65535.0,
+    "mean": 1011.4055455697235,
+    "median": 1008.6333618164062,
+    "std": 151.99841561960972,
+    "mad": 1.20001220703125,
+    "p0.1": 1003.0999755859375,
+    "p99.9": 1480.548619995286,
+    "nan_count": 0
+   },
+   "checks": {
+    "is_float32": true,
+    "size_matches_geometry": true,
+    "finite": true,
+    "in_0_1": true
+   }
+  },
+  "flat": {
+   "source_xisf": "/workspace/Astro CS Database/testdata/T2 calibration files/masterFlat_BIN-1_4096x4096_FILTER-H-alpha_mono.xisf",
+   "source_xisf_bytes": 67133440,
+   "source_sha256": "ad94f148c02d89c30bd03c35d33d98138643c69a61359535a001e4492e33b184",
+   "output_fits": "/workspace/Astro CS Database/run/m42-s1/inputs/calibration/flat_ha_normalized.fits",
+   "output_sha256": "78c3212edfcbb169cc301614aefe743e29ba62163fefd59aee8fb940ed7bed29",
+   "fits_header_xml": "/workspace/Astro CS Database/run/m42-s1/inputs/calibration/xisf_headers/flat_xisf_header.xml",
+   "xisf_image_tag": "<Image id=\"integration\" geometry=\"4096:4096:1\" sampleFormat=\"Float32\" bounds=\"0:1\" colorSpace=\"Gray\" location=\"attachment:24576:67108864\">",
+   "xisf_attrs": {
+    "id": "integration",
+    "geometry": "4096:4096:1",
+    "sampleFormat": "Float32",
+    "bounds": "0:1",
+    "colorSpace": "Gray",
+    "location": "attachment:24576:67108864"
+   },
+   "attachment_offset": 24576,
+   "attachment_length": 67108864,
+   "attachment_end": 67133440,
+   "file_size_equals_attachment_end": true,
+   "geometry": "4096:4096:1",
+   "sample_format": "Float32",
+   "byte_order": "little-endian (XISF 1.0)",
+   "data_unit": "normalized (XISF [0,1])",
+   "conversion_factor": null,
+   "stats_normalized": {
+    "min": 0.07356274127960205,
+    "max": 0.9076946377754211,
+    "mean": 0.20477999841151995,
+    "median": 0.20615842938423157,
+    "std": 0.007525411246692382,
+    "mad": 0.004616692662239075,
+    "p0.1": 0.17281884722411633,
+    "p99.9": 0.21606706932187086,
+    "nan_count": 0
+   },
+   "stats_written": {
+    "min": 0.07356274127960205,
+    "max": 0.9076946377754211,
+    "mean": 0.20477999841151995,
+    "median": 0.20615842938423157,
+    "std": 0.007525411246692382,
+    "mad": 0.004616692662239075,
+    "p0.1": 0.17281884722411633,
+    "p99.9": 0.21606706932187086,
+    "nan_count": 0
+   },
+   "checks": {
+    "is_float32": true,
+    "size_matches_geometry": true,
+    "finite": true,
+    "in_0_1": true
+   }
+  }
+ },
+ "formula_authority": "docs/engineering/rebuild/OBJECTS.md §Calibration and standards/CALIBRATION_WALKTHROUGH.md: x=(raw-b-beta*(D-b))/f, f=flat/flat_normalization, beta=exposure_seconds/dark_exposure_seconds",
+ "formula_beta": "beta = exposure_seconds/dark_exposure_seconds = 600/600 = 1",
+ "formula_note": "dark_contains_bias=true, so the dark's own bias pedestal is removed before scaling with beta: x=(raw-b-beta*(D-b))/f. With beta=1 the bias cancels algebraically and x=(raw-D)/f. Do NOT use the literal form (raw-b-beta*D)/flat when dark_contains_bias=true: that would subtract the bias twice (raw-D-b). The production authority is docs/engineering/rebuild/OBJECTS.md and CALIBRATION_WALKTHROUGH.md, not the shorthand formula.",
+ "production_loading": "apps/cli/commands.cpp load_calibration: *_file resolved relative to this JSON's directory (absolute paths stay absolute); planes loaded as f64. Response loader (load_response) expects wavelength_nm/throughput/convention/provenance/normalization/support_nm{lower,upper}.",
+ "unit_of_calibrated_output": "ADU after flat normalisation (flat/flat_normalization has median 1.0)",
+ "numerical_checks": {
+  "frame_used_geometry": "full 4096x4096 frame; sky patch = [3600:3856,3600:3856] (lower-left, lowest-signal corner)",
+  "bias_median_adu": 1001.8666705023497,
+  "bias_mean_adu": 1002.1056632738837,
+  "dark600_median_adu": 1008.6333519173786,
+  "dark600_minus_bias_median_adu": 6.800006101839244,
+  "dark_current_adu_per_s": 0.01133331298828125,
+  "flat_median": 0.20615842938423157,
+  "flat_relative_median": 1.0,
+  "frames": {
+   "M42_M5_T2_flying_dutchman-20251212@041842-600S-H-alpha.fts": {
+    "raw_median_adu": 1144.0,
+    "raw_mean_adu": 1706.9696732759476,
+    "raw_min_adu": 1035.0,
+    "raw_max_adu": 65535.0,
+    "saturated_pixels_fraction": 0.0013273358345031738,
+    "calibrated_median_adu_flatnorm": 132.88340955626404,
+    "calibrated_robust_sigma_adu": 58.39080967783425,
+    "sky_patch_LL_calibrated_median_adu": 90.08053950757986,
+    "sky_patch_LL_calibrated_mad_sigma_adu": 11.452494122965462,
+    "negative_fraction": 2.4437904357910156e-05
+   },
+   "M42_M5_T2_flying_dutchman-20251224@054358-600S-H-alpha.fts": {
+    "raw_median_adu": 1158.0,
+    "raw_mean_adu": 1815.3418509364128,
+    "raw_min_adu": 1042.0,
+    "raw_max_adu": 65535.0,
+    "saturated_pixels_fraction": 0.001951754093170166,
+    "calibrated_median_adu_flatnorm": 147.19922669511496,
+    "calibrated_robust_sigma_adu": 63.30576449199296,
+    "sky_patch_LL_calibrated_median_adu": 172.5787787982342,
+    "sky_patch_LL_calibrated_mad_sigma_adu": 24.684215096223088,
+    "negative_fraction": 1.6748905181884766e-05
+   },
+   "M42_M5_T2_flying_dutchman-20251228@051230-600S-H-alpha.fts": {
+    "raw_median_adu": 1141.0,
+    "raw_mean_adu": 1674.251630783081,
+    "raw_min_adu": 1032.0,
+    "raw_max_adu": 65535.0,
+    "saturated_pixels_fraction": 0.0013352036476135254,
+    "calibrated_median_adu_flatnorm": 130.08333606353162,
+    "calibrated_robust_sigma_adu": 52.29882659611579,
+    "sky_patch_LL_calibrated_median_adu": 151.2058410042624,
+    "sky_patch_LL_calibrated_mad_sigma_adu": 19.53306945504481,
+    "negative_fraction": 1.9431114196777344e-05
+   }
+  },
+  "interpretation": "raw H-alpha 600s sky ~1035-1158 ADU, bias+dark pedestal ~1008 ADU, so the real sky signal is ~30-150 ADU; flat normalisation multiplies the low-flat corner by ~1.04. Residual calibrated sky 90-173 ADU, single-pixel noise 11-25 ADU (MAD sigma) in the chosen low-signal corner. 0.13-0.20% of pixels are saturated in the M42 core (Trapezium) and must be DQ-masked, not treated as signal. A few 1e-5 pixels go negative after dark subtraction (hot-pixel over-subtraction); they are clipped/flagged, not evidence of a wrong bias level.",
+  "dark600_mean_adu": 1011.4055455697235
+ },
+ "warnings": [
+  "Master bias and H-alpha flat were acquired 2025-08-13; master dark 600s spans 2025-09-24..2025-10-11; the M42 lights are 2025-12-12..2026-01-08. The masters are 1.5-4 months older than the lights (temporal mismatch kept as an unknown systematic; not corrected here).",
+  "Master headers declare FOCALLEN=1877 while the M5 light headers declare FOCALLEN=1917.6 (+2.2%). The flat field illumination pattern may not match the light-frame optical configuration exactly; this is an unknown systematic, not a calibration scale error.",
+  "Master bias/flat headers carry RA=151.58 deg, DEC=-58.408 deg (sky-flat/twilight pointing), NOT the M42 field; master pointers must not be used as astrometric pointing.",
+  "bias_adu/dark_adu are float32 = normalized XISF float32 * 65535; the FITS files are BUNIT=ADU with no additional scaling. Flat is kept dimensionless with median 0.2061584; the pipeline divides by flat/flat_normalization."
+ ],
+ "verification": {
+  "roundtrip": "Re-decoded each XISF in this session and compared to the written FITS: max_abs_diff=0.0 for all three (bias*65535, dark*65535, flat as-is), i.e. the FITS float32 values are exactly the XISF little-endian Float32 values after the documented conversion.",
+  "fits_on_disk_byte_order": "big-endian IEEE-754 float32 (standard FITS); XISF attachment was little-endian, converted by numpy on write",
+  "attachment_checks": "offset+length == XISF file size for all three; geometry 4096:4096:1 and sampleFormat Float32 declared in XML",
+  "finite_and_unit_interval": "no NaN/Inf; normalized values in [0,1]; flat in [0.0736,0.9077], bias/dark in [0.0151,1.0]"
+ }
+}

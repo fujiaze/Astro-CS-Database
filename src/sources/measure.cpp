@@ -342,7 +342,7 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
     for (const Candidate& other : selected) {
       const double dx = other.position.x - candidate.position.x;
       const double dy = other.position.y - candidate.position.y;
-      if (std::sqrt(dx * dx + dy * dy) < 0.5 * window_radius) {
+      if (std::sqrt(dx * dx + dy * dy) < 2.0 * window_radius) {
         neighbour = true;
         break;
       }

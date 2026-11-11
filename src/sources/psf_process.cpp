@@ -242,14 +242,18 @@ U64 fit_work(const FitPsfInput& input) {
   const U64 stars = input.stars ? input.stars->size() : 0;
   const U64 samples = window_samples(input.request);
   const U64 template_work = saturating_mul(std::max<U64>(stars, 1), std::max<U64>(samples, 1));
-  // Every template evaluation charges samples*sources; the bounded iteration
-  // count is the multiplier of that charge.
-  // Declared conservative bound: the template evaluation charge times the
-  // bounded iteration count, with a floor that covers the finite-difference
-  // and SVD probe passes of the first implementation.
-  const U64 bounded =
-      saturating_mul(template_work,
-                     saturating_add(static_cast<U64>(input.request.budget.max_iterations), 2));
+  // Every template evaluation charges samples*sources.  One Gauss-Newton
+  // iteration is not one template: it evaluates the nominal template, four
+  // finite-difference templates per source for the position columns, two per
+  // shape parameter, a backtracking line search (bounded by 32) and a damping
+  // retry loop (bounded by 12).  A plan that charges only one template per
+  // iteration is exhausted by a real 4096x4096 frame before the first
+  // accepted step.  The factor below is the conservative structural upper
+  // bound 4*S + 64; it is a resource estimate, not a scientific tolerance.
+  const U64 passes = saturating_add(saturating_mul(4, stars), 128);
+  const U64 bounded = saturating_mul(
+      saturating_mul(saturating_mul(template_work, passes), 2),
+      saturating_add(static_cast<U64>(input.request.budget.max_iterations), 8));
   return std::max<U64>(bounded, 8ull << 20);
 }
 

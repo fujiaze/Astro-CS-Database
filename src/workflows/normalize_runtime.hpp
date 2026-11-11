@@ -379,10 +379,17 @@ inline Result<std::shared_ptr<WorkflowRuntime>> open_workflow_runtime(
         frozen.code, "the runtime registry cannot be frozen", "workflow.runtime",
         "the workflow cannot run");
   runtime->registry = *frozen.value;
-  rt::ScopeLimits limits;
-  limits.ceiling.host_bytes = host_bytes;
-  limits.ceiling.cpu_tokens = cpu_tokens;
-  limits.max_work = max_work;
+  // The command scope is the process limit that the caller established (or
+  // the pool this function just created when it is the first one).  A
+  // workflow must not invent a narrower budget: a real order-13 mosaic needs
+  // more than the old hard-coded 1 GiB / 4e9 work.
+  Result<rt::ScopeLimits> process = rt::process_limits(runtime->services);
+  if (!process.value) {
+    return model::fail<std::shared_ptr<WorkflowRuntime>>(
+        process.code, "the process limits cannot be read", "workflow.runtime",
+        "the workflow cannot run");
+  }
+  rt::ScopeLimits limits = *process.value;
   Result<InvocationContext> command = rt::open_command(runtime->services, name, limits, 1);
   if (!command.value)
     return model::fail<std::shared_ptr<WorkflowRuntime>>(

@@ -455,6 +455,10 @@ Task<T> run_region(InvocationContext, Ref<InvocationPlan>, U32 region_id,
 Task<Done> admit_epoch(InvocationContext, Ref<InvocationPlan>);
 
 Result<std::shared_ptr<Services>> make_services(PoolConfig);
+// The process-wide limits established by the first make_services call.  A
+// workflow command scope is narrowed from this ceiling instead of inventing a
+// second, smaller budget that can reject a legal real-data frame.
+Result<ScopeLimits> process_limits(std::shared_ptr<Services>);
 Result<InvocationContext> open_command(std::shared_ptr<Services>, Id command_id,
                                        ScopeLimits, U32 weight = 1);
 Result<std::shared_ptr<ProcessHost>> make_host(

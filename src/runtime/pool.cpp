@@ -1477,6 +1477,17 @@ Result<std::shared_ptr<Services>> make_services(PoolConfig config) {
   return result;
 }
 
+Result<ScopeLimits> process_limits(std::shared_ptr<Services> services) {
+  Result<ScopeLimits> result;
+  if (!services) {
+    result.code = Code::invalid_request;
+    return result;
+  }
+  result.code = Code::ok;
+  result.value = services->config().process;
+  return result;
+}
+
 Result<InvocationContext> open_command(std::shared_ptr<Services> services,
                                        Id command_id, ScopeLimits limits,
                                        U32 weight) {
