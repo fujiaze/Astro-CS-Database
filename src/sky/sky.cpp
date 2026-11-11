@@ -2544,13 +2544,18 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
       term.influence = val(influence);
       noise_model->unknown_terms.push_back(term);
     }
-    noise_model->identity = model::make_identity("acsd.NoiseModel", 2, 0,
-                                                 model::hash_index(Index::Kind::latent,
-                                                                   noise_model->influence.size(),
-                                                                   0, {}),
-                                                 "acsd");
+    noise_model->identity = model::make_identity(
+        "acsd.NoiseModel", 2, 0,
+        model::sha256_hex("sky:parameter:" + std::to_string(noise_model->influence.size()) + ":" +
+                          std::to_string(static_cast<int>(noise_model->state))),
+        "acsd");
     noise_model->assessment = model::make_assessment(Code::ok);
-    noise_model->assessment.complete = true;
+    noise_model->assessment.complete =
+        noise_model->state == NoiseState::known && noise_model->unknown_terms.empty();
+    if (!noise_model->assessment.complete) {
+      noise_model->assessment.science = ScienceState::conditional;
+      model::set_omitted(noise_model->assessment, "known_complete_variance");
+    }
     Result<Ref<CovarianceAction>> covariance = make_covariance(
         context, Ref<NoiseModel>(std::shared_ptr<const NoiseModel>(noise_model)));
     if (!ok(covariance)) {
@@ -3115,13 +3120,18 @@ Result<Ref<SignalEstimate>> apply_sky_impl(Context& context, Ref<SignalEstimate>
       estimate_omitted.push_back("fit_parameter_variance_in_the_per_frame_covariance");
     }
 
-    noise_model->identity = model::make_identity("acsd.NoiseModel", 2, 0,
-                                                 model::hash_index(Index::Kind::latent,
-                                                                   noise_model->influence.size(),
-                                                                   0, {}),
-                                                 "acsd");
+    noise_model->identity = model::make_identity(
+        "acsd.NoiseModel", 2, 0,
+        model::sha256_hex("sky:parameter:" + std::to_string(noise_model->influence.size()) + ":" +
+                          std::to_string(static_cast<int>(noise_model->state))),
+        "acsd");
     noise_model->assessment = model::make_assessment(Code::ok);
-    noise_model->assessment.complete = true;
+    noise_model->assessment.complete =
+        noise_model->state == NoiseState::known && noise_model->unknown_terms.empty();
+    if (!noise_model->assessment.complete) {
+      noise_model->assessment.science = ScienceState::conditional;
+      model::set_omitted(noise_model->assessment, "known_complete_variance");
+    }
     noise_model->assessment.noise = noise_model->state;
     Result<Ref<CovarianceAction>> covariance = make_covariance(
         context, Ref<NoiseModel>(std::shared_ptr<const NoiseModel>(noise_model)));
