@@ -249,3 +249,13 @@ export 的 P0（`6889aa307`）修复后，继续检查同一类“重开即放�
 3. 逐一改为 `complete = state==known && unknown_terms.empty()`，unknown 时 `science=conditional`、`omitted=known_complete_variance`，identity 纳入 state。
 
 最终扫描：mosaic/export 各 3 个模型对象，**0 violations**。X01 full 在 `f6e49552d` 通过，blind RMS 0.2109、48 残差 max|z|1.9007 不变；mosaic/export 仍 `full, science=conditional, noise=unknown`。
+
+### 证据工具：assessment 不变量扫描
+
+`validation/product/assessment_invariants_probe.py` 对产品 `objects/*.json` 中带 noise 语义的模型检查三条不变量（unknown→conditional、complete→无 issue、conditional→非 complete），只作人工证据、不设 CI 门禁。X01 mosaic/export 当前输出：
+
+```
+mosaic: 3 model assessments checked
+export: 3 model assessments checked
+assessment invariants: 0 violation(s)
+```
