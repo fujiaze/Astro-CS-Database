@@ -266,3 +266,9 @@ assessment invariants: 0 violation(s)
 - astrometry driver 新增 `parameter_units_cover_the_vector`（8 块）与 `parameter_units_are_block_specific`（px,px,rad,rad,rad/px×4）检查，均通过。
 - 这是声明层修复：`parameters` 仍是单一 Unit，`covariance_apply` 尚未按块解释 parameter_noise；跨参数 functional 的单位推导仍可能错。
 - 本改动不改变数值路径；最新 X01 全链证据仍在 `c351c2fd1`（本轮未重跑 X01）。
+
+## 29. 第二十五轮：X01 证据推进到当前 HEAD（2026-11-11，`66f034456`）
+
+- 在 `66f034456`（含 astrometry 参数块单位声明）重跑 X01 full：normalize 8/8、mosaic 1、export 1，exit 0；blind RMS 0.2109、48 残差 max|z|1.9007 不变。
+- 同一产品上运行 `assessment_invariants_probe.py`：mosaic/export 各 3 个模型，`0 violation(s)`。
+- 说明：参数块单位是声明层改动，数值路径未变；本次重跑使 evidence SHA 与 HEAD 一致。
