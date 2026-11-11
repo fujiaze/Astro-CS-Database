@@ -70,7 +70,7 @@ different=1
 
 ## C0 覆盖：information.reference 解析探针
 
-`validation/process/information.reference/information_reference.cpp` 用 \(C=\mathrm{diag}(4,9)\)、\(h=[1,0]\) 调 `estimate_flux_information`，解析真值 \(V_F=1/(h^\top C^{-1}h)=4\)：
+`validation/product/information_reference_probe.cpp` 用 \(C=\mathrm{diag}(4,9)\)、\(h=[1,0]\) 调 `estimate_flux_information`，解析真值 \(V_F=1/(h^\top C^{-1}h)=4\)：
 
 ```
 cov code=0
