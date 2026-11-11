@@ -129,11 +129,36 @@ Result<Ref<LinearAction>> make_action(Context& context, const ActionRecipe& reci
       break;
     }
     case ActionRecipe::Kind::compose:
-    case ActionRecipe::Kind::transpose:
-      if (children.size() != (recipe.kind == ActionRecipe::Kind::compose ? 2u : 1u) ||
-          !arrays.empty()) {
+      if (children.size() != 2u || !arrays.empty()) {
         return model::fail<Ref<LinearAction>>(Code::invalid_model,
                                               "the recipe does not match the composition contract",
+                                              "make_action", "the action cannot be built");
+      }
+      // compose(outer, inner): the middle dimension must agree, and the
+      // declared spaces must be the inner domain and the outer codomain.
+      if (children[0]->spaces.domain && children[1]->spaces.codomain &&
+          children[0]->spaces.domain->size != children[1]->spaces.codomain->size) {
+        return model::fail<Ref<LinearAction>>(
+            Code::invalid_model, "the composition middle dimension does not match",
+            "make_action", "the action cannot be built");
+      }
+      if (recipe.spaces.domain && children[1]->spaces.domain &&
+          recipe.spaces.domain->size != children[1]->spaces.domain->size) {
+        return model::fail<Ref<LinearAction>>(Code::invalid_model,
+                                              "the composition domain does not match the inner domain",
+                                              "make_action", "the action cannot be built");
+      }
+      if (recipe.spaces.codomain && children[0]->spaces.codomain &&
+          recipe.spaces.codomain->size != children[0]->spaces.codomain->size) {
+        return model::fail<Ref<LinearAction>>(Code::invalid_model,
+                                              "the composition codomain does not match the outer codomain",
+                                              "make_action", "the action cannot be built");
+      }
+      break;
+    case ActionRecipe::Kind::transpose:
+      if (children.size() != 1u || !arrays.empty()) {
+        return model::fail<Ref<LinearAction>>(Code::invalid_model,
+                                              "the recipe does not match the transpose contract",
                                               "make_action", "the action cannot be built");
       }
       break;
