@@ -1969,6 +1969,9 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
     support->identity = model::make_identity("acsd.SupportMap", 2, 0,
                                              model::sha256_hex("acsd.coadd.support"), "acsd");
     support->assessment = model::make_assessment(Code::ok);
+    support->assessment.complete = true;
+    support->assessment.noise = NoiseState::known;
+    support->assessment.science = ScienceState::bounded;
     estimate->support = std::shared_ptr<const SupportMap>(support);
   }
   estimate->effective_response = nullptr;

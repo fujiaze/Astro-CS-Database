@@ -1143,6 +1143,9 @@ Result<Ref<SupportMap>> build_training_support(Context& context,
                                             "acsd");
   support->assessment = model::make_assessment(Code::ok);
   support->assessment.complete = true;
+  // The support geometry is a deterministic statement, not a noise model.
+  support->assessment.noise = NoiseState::known;
+  support->assessment.science = ScienceState::bounded;
   return model::ok_result(std::shared_ptr<const SupportMap>(support));
 }
 

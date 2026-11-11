@@ -78,7 +78,8 @@ Result<ProductLocation> export_signal(Context& context, const ExportResult& imag
   graph->assessment = image.estimate->assessment;
   graph->identity = model::make_identity("acsd.ProductGraph", 2, 0,
                                           model::sha256_hex("acsd.export_image"), "acsd");
-  graph->assessment.complete = true;
+  // The graph cannot be more complete than the estimate it publishes.
+  graph->assessment.complete = image.estimate->assessment.complete;
   // The projection operator Q is part of the exported product: without it the
   // covariance C_out = Q C_leaf Q^T cannot be re-derived or audited after
   // reopening.  The influences are already folded with Q; this publishes Q

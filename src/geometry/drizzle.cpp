@@ -448,6 +448,9 @@ Result<DrizzleResult> build_drizzle(Context& context, Ref<Overlaps> overlaps,
   }
   support->assessment = model::make_assessment(Code::ok);
   support->assessment.complete = true;
+  // The support geometry is a deterministic statement, not a noise model.
+  support->assessment.noise = NoiseState::known;
+  support->assessment.science = ScienceState::bounded;
 
   // The error record.  The leaves without a certified interval keep no
   // achieved entry: an unknown error is not a zero error.

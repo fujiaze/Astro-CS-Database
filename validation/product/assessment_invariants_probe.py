@@ -14,21 +14,16 @@ import json
 import os
 import sys
 
-MODEL_TYPES = (
-    "SignalEstimate",
-    "CovarianceAction",
-    "NoiseModel",
-    "SkyFit",
-    "Selection",
-    "WeightSolution",
-    "ProductGraph",
-)
+# Objects whose assessment has noise semantics.  Pure data arrays/indexes are
+# excluded: their assessment is not a noise statement.  Everything else with an
+# assessment is checked, including SupportMap/ErrorRecord/NoiseRoot.
+SKIP_TYPES = ("Array", "Index")
 
 
 def load_objects(root):
     for path in glob.glob(os.path.join(root, "objects", "*.json")):
         base = os.path.basename(path)
-        if not any(t in base for t in MODEL_TYPES):
+        if any(t in base for t in SKIP_TYPES):
             continue
         try:
             with open(path, "rb") as handle:
