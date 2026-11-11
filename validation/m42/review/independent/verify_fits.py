@@ -81,11 +81,14 @@ def check_wcs(hdr):
     cd_ = np.cos(np.radians(dec))
     print(f" astropy(crop 0,0) vs JSON{tuple(np.round([X0, Y0], 0))}: "
           f"{np.hypot((got[0]-ra)*cd_, got[1]-dec)*3600:.3e} arcsec")
-    # inverse SIP missing: world->pixel round trip
-    back = w.world_to_pixel_values(w.wcs.crval[0], w.wcs.crval[1])
-    truth = (w.wcs.crpix[0] - 1.0, w.wcs.crpix[1] - 1.0)
-    print(f" AP/BP={w.sip.ap_order}/{w.sip.bp_order}; world2pix(CRVAL)={back}, "
-          f"CRPIX-1={truth}, err={np.hypot(back[0]-truth[0], back[1]-truth[1]):.4f} px")
+    # inverse SIP absent (AP/BP=0): test the actual forward->inverse round trip
+    worst = 0.0
+    for x, y in [(0, 0), (255, 0), (0, 255), (255, 255), (128, 128), (200, 50)]:
+        ra2, dec2 = w.pixel_to_world_values(x, y)
+        bx, by = w.world_to_pixel_values(ra2, dec2)
+        worst = max(worst, float(np.hypot(bx - x, by - y)))
+    print(f" AP/BP={w.sip.ap_order}/{w.sip.bp_order}; pixel->world->pixel "
+          f"max err={worst:.4f} px over 6 points")
 
 
 def check_astro():

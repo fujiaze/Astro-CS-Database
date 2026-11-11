@@ -44,7 +44,7 @@
 
 独立审核者 `m42-reviewer` 的裁决为 **FAIL（未完成），不允许阶段二**；报告与可复现脚本见
 [review/independent/REPORT.md](review/independent/REPORT.md)。其追加发现（tile FITS 头非法、
-`frame_science` 与 manifest 的 complete/conditional 矛盾、诊断 FITS 缺逆 SIP 的 0.054 px 往返差、
+`frame_science` 与 manifest 的 complete/conditional 矛盾、`SupportMap.primitives=[""]`、
 `fit_work` 上界与实测计费不符、隔离回退、负通量测量）已记录在执行记录 §5.2。
 
 ## 复现路径（本机）

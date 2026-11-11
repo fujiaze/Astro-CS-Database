@@ -12,7 +12,7 @@
 Mosaic/Export 未产出；本轮 PSF/测光在真实帧上只用 **2 颗星、其中一颗通量为负**，科学估计量未成立。
 本轮**真实取得**且经我独立复算的成果是：诊断 FITS（定标/NaN/WCS/天测）与天测解、酉良的低背景测光噪声；
 这些是 PASS 级证据，但不足以让阶段一整体通过。执行者自己的记录也写“阶段一未完成”，我确认该自评**没有夸大成功**，
-但**遗漏**了本报告 §3.3 的两条产品级缺陷与 §4.3 的资源上界失真。
+但**遗漏**了本报告 §3.1/§3.3 的产品级缺陷与 §4.1/§4.2 的资源上界失真。
 
 | 阶段一完成定义 | 我的裁决 | 依据 |
 |---|---|---|
@@ -53,10 +53,9 @@ python3 run/m42-s1/review/independent/verify_product.py   # 本报告 §3 产品
   而 `final_fits.median=28429.75` 是有效像素中位；两数不同不是错误，但报告没有说明口径（小瑕疵）。
 - WCS：`CRPIX=(255.651,1663.164)` 与全帧解 `(2047.651,2047.164)` 的差**精确等于** crop 偏移 `(1792,384)`；
   `CDELT=1`、`PC=CD`（deg/px）；`A/B` 阶 3、`AP/BP=0`；`CRVAL=(84.2332072218,-5.43081255368)`。
-- **一个真实的小自洽缺陷**：FITS 写了正向 SIP，但 `AP_ORDER=BP_ORDER=0`，即无逆 SIP。
-  astropy `all_world2pix(CRVAL)` 返回 0-based `(254.604,1662.138)`，而正确 CRPIX-1 是 `(254.651,1662.164)`，
-  往返误差 **≈0.054 px（0.052″）**。这比天测 0.31″ RMS 小，不影响天测结论，但“正向/逆向 WCS 一致”
-  只对 C++ cleanroom 解成立（verify JSON 的 3.9e-7 px），**不适用于交付 FITS**；报告未披露。
+- 我怀疑过“缺逆 SIP（AP/BP=0）会让 world→pixel 不自洽”，**实测否证**：在 crop 的 6 个像素
+  (0,0)/(255,0)/(0,255)/(255,255)/(128,128)/(200,50) 上 `pixel→world→pixel` 往返误差均为 **0.0000 px**
+  （astropy 自行数值反演）。因此交付 FITS 的正/逆 WCS 自洽，**不记缺陷**。
 
 ### 2.2 天测：独立解码 + 独立复算
 
@@ -67,9 +66,9 @@ python3 run/m42-s1/review/independent/verify_product.py   # 本报告 §3 产品
 - 直接从 CSV 重算：train n=449 RMS **0.31831 px**、holdout n=313 RMS **0.31757 px**，
   与 `fit_20251212.json` 的 0.318311/0.317577 **一致**；holdout 中位 0.0814 px、>0.5 px 占 7.99%，
   说明报告“RMS 被 8% 尾部主导、稳健 RMS 0.062″”是**诚实的**。
-- 星位落点独立检查（交付 crop 内 111 颗 Gaia 星）：**64/111** 的 WCS 预测位置落在原始 `65535` 饱和像素上
-  （M42 核心亮星，与“投到 65535 峰”相符）；**82/111** 的预测像素是 5×5 局部最大值；其余是 G>14 的暗星/星云梯度区，
-  不能要求可见峰。至少 5 颗最亮星（G=4.96/5.00/6.58/6.63/7.83）全部落在 65535 平台上。
+- 星位落点独立检查（交付 crop 内 111 颗 Gaia 星）：**78/111** 的 WCS 预测像素本身就是原始 `65535`；
+  **64/111** 的整个 5×5 窗口都处于 65535 平台（核心亮星，与“投到 65535 峰”相符）；**82/111** 的预测像素是 5×5 局部最大值；
+  其余是 G>14 的暗星/星云梯度区，不能要求可见峰。至少 5 颗最亮星（G=4.96/5.00/6.58/6.63/7.83）全部落在 65535 平台上。
 - 结论：天测链路（Gaia → TAN+SIP → 星位）**没有发现夸大**；0.307″ 是真实留出值，头部 PinPoint 5.2–5.7″ 的证伪可信。
 
 ## 3. 产品与工作流缺陷（独立检查）
@@ -85,9 +84,10 @@ python3 run/m42-s1/review/independent/verify_product.py   # 本报告 §3 产品
 - **发布 tiles**：20 个 `Dir*`、每 `Npix*.fits` 为 `(10000,64,64)` float64、`BUNIT='ADU/SR'`，总 6.5 GB。
   我抽样了 `Dir0`、`Dir130000`、`Dir20000` 各 5 个平面（共 15 个，不是全部 10,000×20）：
   **finite=0，全部 NaN**，与执行者结论一致（但执行者说“抽查 10,000 个平面”，我未复验 10,000 个，仅 15 个）。
-- **执行者遗漏的 P0**：tile FITS 头**不是合法 FITS**。`ACSUNIT = 'acsd.native:M42_M5_T2_flying_dutchman-20251212_041842-600S-H-alpha*1/`
-  超长且**没有闭合单引号**，astropy 读 header 直接抛 `VerifyError: Unparsable card (ACSUNIT)`（data 仍可 memmap 读）。
-  即这些“产品”连标准 FITS reader 的头解析都过不了，却被 publish 为 exit 0。这是“exit 0 ≠ 可交付”的**第二个独立反例**。
+- **执行者遗漏的 P0**：tile FITS 头含**非法卡片**。`ACSUNIT = 'acsd.native:M42_M5_T2_flying_dutchman-20251212_041842-600S-H-alpha*1/`
+  超长、**没有闭合单引号**；`fits.getheader` 能惰性载入，但访问该关键字即抛
+  `VerifyError: Unparsable card (ACSUNIT)`，严格校验的 reader 会拒绝该头（data 仍可 memmap 读）。
+  这是一个被 publish 为 exit 0 的“产品”头不合 FITS 标准，构成“exit 0 ≠ 可交付”的**第二个独立反例**。
 
 ### 3.2 真实帧上的 PSF/测光：N=2，且一颗通量为负
 
@@ -190,8 +190,8 @@ python3 run/m42-s1/review/independent/verify_product.py   # 本报告 §3 产品
 - 4 颗共同星比值中位 1.2766；物理噪声/协方差 unknown 的表述；X01 未完成不计回归。
 
 **遗漏**（报告未写、我实测发现）：
-1. tile FITS 头 `ACSUNIT` 截断/未闭合，astropy 头解析失败（§3.1）——产品级缺陷。
-2. 交付 FITS 缺逆 SIP（AP/BP=0），正/逆 WCS 往返差 ~0.05 px（§2.1）——“对拍 ≤1e-9″”只对 cleanroom 解成立。
+1. tile FITS 头 `ACSUNIT` 截断/未闭合；访问该 card 抛 `VerifyError`（§3.1）——产品级缺陷。
+2. `SupportMap.primitives=[""]`（空 primitive 标识）未被报告提及；support 的“叶”身份不可解析（§3.1）。
 3. `frame_science.json` 写 `complete:true/science:"bounded"`，与 manifest 的 `conditional/false` 矛盾（§3.3）。
 4. `metrics.json` 的 joint photometry 零点 ~2.7e20 未在正文点名（§3.3）。
 5. `measured_stars` 只有 2 颗且一颗 flux=-2.99e6（§3.2）。

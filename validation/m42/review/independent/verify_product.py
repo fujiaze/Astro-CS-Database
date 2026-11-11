@@ -65,10 +65,11 @@ def tiles():
     print(" ACSUNIT card:", bad)
     try:
         from astropy.io import fits as f2
-        f2.getheader(glob.glob(f"{PROD}/signal/Norder13/Dir0/*.fits")[0])
-        print(" astropy header parse: OK")
+        h = f2.getheader(glob.glob(f"{PROD}/signal/Norder13/Dir0/*.fits")[0])
+        _ = h["ACSUNIT"]  # malformed card: parsing this keyword raises
+        print(" astropy access ACSUNIT: OK")
     except Exception as exc:  # noqa: BLE001
-        print(" astropy header parse FAILED:", type(exc).__name__, exc)
+        print(" astropy access ACSUNIT FAILED:", type(exc).__name__, exc)
 
 
 def trace():
