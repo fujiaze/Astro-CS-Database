@@ -226,3 +226,10 @@ export 的 P0（`6889aa307`）修复后，继续检查同一类“重开即放�
 - **条件传播**：coadd estimate 曾用全新 `complete=true/bounded` assessment，selection 的 conditional/omitted 丢失；现在合并 selection 的 included/omitted/issues，并继承 conditional/incomplete。
 - **export 传播**：export estimate 同样曾重置为 bounded/complete；现在继承源 estimate 的 omitted/issues/conditional/incomplete，线性映射不能把条件结果升级为 bounded。
 - X01 full 在 `aa1c7931e` 通过；mosaic 与 export 均为 `full`、`science=conditional`、携带 `the_quality_mask_is_absent_for_at_least_one_frame`；blind RMS 0.2109、48 残差 max|z|1.9007 不变。
+
+## 26. 第二十二轮：sky/covariance 条件进入发布对象（2026-11-11，`7223b34ad`）
+
+- `SkyFit` 之前只把控制协方差未知/不可辨识条件放在返回的 `Result.assessment` 上，发布对象自身仍是 `complete=true, noise=known`；现在 `fit->assessment` 同步 unknown/conditional/incomplete 并记录 `known_control_covariance`/`not_estimable_sky_directions`。
+- `make_covariance` 现在在 `model->state != known` 或存在 unknown term 时把协方差 assessment 置 `conditional`、`complete=false`、`omitted=known_complete_variance`，不再发布“complete covariance”。
+- coadd estimate 同时合并 `SkyFit` 的条件/omitted/issues。
+- X01 full 在 `7223b34ad` 通过；mosaic/export 均 `full, science=conditional, noise=unknown`，omitted 含 `the_quality_mask_is_absent...` 与 `known_control_covariance`；blind RMS/48 残差不变。
