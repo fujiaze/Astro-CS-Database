@@ -815,6 +815,25 @@ Result<Ref<AstrometricSolution>> solve_astrometry(Context& context, Ref<NativeOb
       std::vector<double> published = parameter_values;
       published.insert(published.end(), fit.parameters.sip_a.begin(), fit.parameters.sip_a.end());
       published.insert(published.end(), fit.parameters.sip_b.begin(), fit.parameters.sip_b.end());
+      // Per-block units: crpix (px), ra/dec (rad), cd (rad/px), SIP (px^-n).
+      solution->parameter_units.clear();
+      solution->parameter_units.push_back(model::unit_dimensionless());
+      solution->parameter_units.back().scale = "px";
+      solution->parameter_units.push_back(model::unit_dimensionless());
+      solution->parameter_units.back().scale = "px";
+      for (int k = 0; k < 2; ++k) {
+        solution->parameter_units.push_back(model::unit_dimensionless());
+        solution->parameter_units.back().scale = "rad";
+      }
+      for (int k = 0; k < 4; ++k) {
+        solution->parameter_units.push_back(model::unit_dimensionless());
+        solution->parameter_units.back().scale = "rad/px";
+      }
+      for (std::size_t k = 0; k < fit.parameters.sip_a.size() + fit.parameters.sip_b.size(); ++k) {
+        solution->parameter_units.push_back(model::unit_dimensionless());
+        solution->parameter_units.back().scale = "px^-n";
+      }
+      model::set_included(solution->assessment, "per_parameter_block_units");
       const std::vector<Id> parameter_ids = [&] {
         std::vector<Id> ids;
         for (std::size_t k = 0; k < published.size(); ++k) {

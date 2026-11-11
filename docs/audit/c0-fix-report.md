@@ -78,3 +78,14 @@ known V_F=4: ok; unknown propagated: ok
 ```
 
 同一探针把 `NoiseModel.state` 改为 unknown，`V_F` 变为 `nullopt/unknown`（验证 §6 的 unknown 检查）。这补上了 11 个无 driver 中 information.reference 的独立数值证据（仍非完整 process driver）。
+
+## P1-6 参数数组单位（部分修复）
+
+`AstrometricSolution` 现在带 `parameter_units`，按块声明 `crpix=(px,px)`、`ra0/dec0=(rad,rad)`、`cd=(rad/px)×4`、`sip_a/b=(px^-n)`，并在 `solve_astrometry` 发布时填充。`validation/process/sources.astrometry/astrometry.cpp` 新增两项检查：
+
+```
+[ok] astrometry.parameter_units_cover_the_vector   (actual 8)
+[ok] astrometry.parameter_units_are_block_specific (actual px)
+```
+
+仍未闭合：`parameters` 数组本身仍是单一 Unit，`covariance_apply`/`quadratic_form` 不按块解释 `parameter_noise`；跨参数 functional 的单位推导仍可能错。彻底修法是按块拆 covariance 或让 functional 携带块索引。

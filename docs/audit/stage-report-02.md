@@ -259,3 +259,10 @@ mosaic: 3 model assessments checked
 export: 3 model assessments checked
 assessment invariants: 0 violation(s)
 ```
+
+## 28. 第二十四轮：astrometry 参数块单位（2026-11-11）
+
+- `AstrometricSolution.parameter_units` 按块声明 crpix(px)、ra/dec(rad)、cd(rad/px)、SIP(px^-n)，solve_astrometry 发布时填充。
+- astrometry driver 新增 `parameter_units_cover_the_vector`（8 块）与 `parameter_units_are_block_specific`（px,px,rad,rad,rad/px×4）检查，均通过。
+- 这是声明层修复：`parameters` 仍是单一 Unit，`covariance_apply` 尚未按块解释 parameter_noise；跨参数 functional 的单位推导仍可能错。
+- 本改动不改变数值路径；最新 X01 全链证据仍在 `c351c2fd1`（本轮未重跑 X01）。

@@ -305,6 +305,12 @@ struct SolverRequest { std::vector<SkySearchRegion> regions; Interval scale_rad_
   U32 max_candidates,max_hypotheses,sip_order; double detect_snr,match_radius_pixel;
   U32 min_matches; double quad_descriptor_tolerance; NumericBudget budget; }; // empty regions = full index
 struct AstrometricSolution : Model { Ref<WcsModel> wcs; ArrayRef parameters;
+  // The parameter vector mixes pixels, radians and rad/pixel; one Unit cannot
+  // describe it.  This is the per-parameter unit of the published blocks
+  // (crpix, ra0/dec0, cd, sip_a, sip_b in that order), so consumers of the
+  // covariance can interpret each block instead of treating all of them as
+  // dimensionless doubles.
+  std::vector<Unit> parameter_units;
   Ref<CovarianceAction> parameter_noise; FitInfluence influence;
   ArrayRef solver_detections; Box support; std::optional<double> model_bias_rad; };
 struct Basis { enum class Kind { constant,plane,polynomial } kind;

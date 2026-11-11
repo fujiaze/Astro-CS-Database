@@ -237,6 +237,19 @@ int main() {
       const std::vector<double> parameters = vpf::read_f64(chain.command, (*solution.value)->parameters, 8);
       for (std::size_t i = 0; i < parameters.size(); ++i)
         recorder.value("astrometry.parameter_" + std::to_string(i), parameters[i]);
+      const std::vector<Unit>& parameter_units = (*solution.value)->parameter_units;
+      recorder.check("astrometry.parameter_units_cover_the_vector",
+                     parameter_units.size() >= parameters.size(), ">= 8 block units",
+                     std::to_string(parameter_units.size()));
+      const char* expected_units[] = {"px", "px", "rad", "rad", "rad/px", "rad/px", "rad/px",
+                                      "rad/px"};
+      bool units_match = parameter_units.size() >= 8;
+      for (std::size_t i = 0; units_match && i < 8; ++i) {
+        units_match = parameter_units[i].scale == expected_units[i];
+      }
+      recorder.check("astrometry.parameter_units_are_block_specific", units_match,
+                     "px,px,rad,rad,rad/px x4",
+                     parameter_units.empty() ? "empty" : parameter_units[0].scale);
       recorder.check("astrometry.cd_close", cd_error <= 1e-12, "<=5e-7 rad/pixel",
                      vrt::number(cd_error));
       // Sky agreement at the field centre through both frame models.

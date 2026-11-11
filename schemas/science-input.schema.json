@@ -5110,6 +5110,12 @@
         "parameters": {
           "$ref": "#/$defs/ArrayRef"
         },
+        "parameter_units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Unit"
+          }
+        },
         "parameter_noise": {
           "$ref": "#/$defs/CovarianceActionRef"
         },
@@ -5153,6 +5159,7 @@
       "required": [
         "wcs",
         "parameters",
+        "parameter_units",
         "parameter_noise",
         "influence",
         "solver_detections",
