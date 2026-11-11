@@ -994,10 +994,11 @@ Result<Ref<NoiseModel>> build_joint_noise(Context& context, const std::vector<Fr
   }
   joint->unknown_terms = unknown_terms;
   joint->state = any_unknown ? NoiseState::unknown : NoiseState::known;
-  joint->identity = model::make_identity("acsd.NoiseModel", 2, 0,
-                                          model::hash_index(Index::Kind::latent,
-                                                            joint->influence.size(), 0, {}),
-                                          "acsd");
+  joint->identity = model::make_identity(
+      "acsd.NoiseModel", 2, 0,
+      model::sha256_hex("sky:joint:" + std::to_string(joint->influence.size()) + ":" +
+                        std::to_string(static_cast<int>(joint->state))),
+      "acsd");
   joint->assessment = model::make_assessment(Code::ok);
   joint->assessment.complete = joint->state == NoiseState::known;
   joint->assessment.noise = joint->state;

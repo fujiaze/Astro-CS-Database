@@ -1202,7 +1202,10 @@ Result<Ref<CovarianceAction>> build_joint_covariance_sparse(
   }
   joint->identity = model::make_identity(
       "acsd.NoiseModel", 2, 0,
-      model::sha256_hex("coadd:joint:" + std::to_string(total_rows)), "acsd");
+      model::sha256_hex("coadd:joint:" + std::to_string(total_rows) + ":" +
+                        std::to_string(static_cast<int>(joint->state)) + ":" +
+                        std::to_string(any_unknown ? 1 : 0)),
+      "acsd");
   return make_covariance(context, Ref<NoiseModel>(joint));
 }
 
