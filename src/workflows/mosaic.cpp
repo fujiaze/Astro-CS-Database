@@ -783,6 +783,104 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
       }
     }
   }
+  // Seam / low-frequency diagnostic in the product itself: for adjacent
+  // leaves with different frame coverage K the combined value steps by the
+  // unremoved flat-screen residual.  Signed median with MAD and the dim
+  // brightness band (independent S1 review, round 6, S1.5-2 form).
+  std::ostringstream seam_note;
+  bool seam_measured = false;
+  if (coadd_result.value && val(coadd_result).estimate && val(coadd_result).estimate->signal &&
+      ok(weights) && val(weights) && val(weights)->coefficients) {
+    workflows::WorkflowStorage seam_storage(context.storage, workflow_runtime.services);
+    Context seam_context{context.resources, context.cancellation, seam_storage};
+    Result<std::vector<double>> coef_values = operators::read_f64(
+        seam_context, val(weights)->coefficients, 0,
+        val(weights)->coefficients->shape.empty() ? 0
+                                                  : val(weights)->coefficients->shape[0]);
+    Result<std::vector<double>> signal_values = operators::read_f64(
+        seam_context, val(coadd_result).estimate->signal, 0,
+        val(coadd_result).estimate->signal->shape.empty()
+            ? 0
+            : val(coadd_result).estimate->signal->shape[0]);
+    Ref<Index> samples =
+        coadd_result.value && val(coadd_result).selection ? val(coadd_result).selection->index
+                                                          : Ref<Index>{};
+    if (ok(coef_values) && ok(signal_values) && samples && samples->ids) {
+      Result<ArrayView> ids_view = seam_storage.read(
+          seam_context, samples->ids, BlockRequest{0, samples->size * 2});
+      if (ok(ids_view)) {
+        const std::vector<U64> ids = model::decode_u64(val(ids_view).bytes);
+        const std::size_t count = std::min({ids.size() / 2, val(signal_values).size(),
+                                            val(coef_values).size() / 3});
+        std::vector<int> coverage(count, 0);
+        std::vector<double> level(count, 0.0);
+        std::vector<double> finite_levels;
+        for (std::size_t i = 0; i < count; ++i) {
+          int k = 0;
+          for (int f = 0; f < 3; ++f) {
+            if (val(coef_values)[i * 3 + f] != 0.0) ++k;
+          }
+          coverage[i] = k;
+          level[i] = val(signal_values)[i];
+          if (std::isfinite(level[i])) finite_levels.push_back(level[i]);
+        }
+        double median_level = 0.0;
+        if (!finite_levels.empty()) {
+          std::sort(finite_levels.begin(), finite_levels.end());
+          median_level = finite_levels[finite_levels.size() / 2];
+        }
+        std::vector<double> interior, boundary13, boundary23, interior_dim;
+        for (std::size_t i = 0; i + 1 < count; ++i) {
+          if (ids[2 * i] != ids[2 * i + 2]) continue;
+          if (ids[2 * i + 1] + 1 != ids[2 * i + 3]) continue;
+          const double a = level[i];
+          const double b = level[i + 1];
+          if (!std::isfinite(a) || !std::isfinite(b) || a + b == 0.0) continue;
+          const double delta = (b - a) / (0.5 * (std::fabs(a) + std::fabs(b)));
+          const int ka = coverage[i];
+          const int kb = coverage[i + 1];
+          if (ka == 3 && kb == 3) {
+            interior.push_back(delta);
+            const double mean = 0.5 * (std::fabs(a) + std::fabs(b));
+            if (median_level > 0 && mean >= 0.9 * median_level && mean <= 1.3 * median_level) {
+              interior_dim.push_back(delta);
+            }
+          } else if ((ka == 1 && kb == 3) || (ka == 3 && kb == 1)) {
+            boundary13.push_back(delta);
+          } else if ((ka == 2 && kb == 3) || (ka == 3 && kb == 2)) {
+            boundary23.push_back(delta);
+          }
+        }
+        auto stats = [](std::vector<double> values, double& median, double& mad) {
+          median = 0.0;
+          mad = 0.0;
+          if (values.empty()) return;
+          std::sort(values.begin(), values.end());
+          median = values[values.size() / 2];
+          std::vector<double> deviations;
+          deviations.reserve(values.size());
+          for (double value : values) deviations.push_back(std::fabs(value - median));
+          std::sort(deviations.begin(), deviations.end());
+          mad = deviations[deviations.size() / 2];
+        };
+        double i13 = 0, m13 = 0, i23 = 0, m23 = 0, i33 = 0, m33 = 0, idim = 0, mdim = 0;
+        stats(boundary13, i13, m13);
+        stats(boundary23, i23, m23);
+        stats(interior, i33, m33);
+        stats(interior_dim, idim, mdim);
+        seam_note.precision(4);
+        seam_note << "seam_low_frequency: K=1/K=3 boundary signed median " << 100.0 * i13
+                  << "% (MAD " << 100.0 * m13 << "%, n=" << boundary13.size()
+                  << "); K=2/K=3 " << 100.0 * i23 << "% (MAD " << 100.0 * m23
+                  << "%, n=" << boundary23.size() << "); interior K=3/K=3 " << 100.0 * i33
+                  << "% (MAD " << 100.0 * m33 << "%, n=" << interior.size()
+                  << "); dim band (0.9-1.3x median) boundary " << 100.0 * idim
+                  << "% (MAD " << 100.0 * mdim << "%, n=" << interior_dim.size()
+                  << "); the residual flat screen is not removed";
+        seam_measured = true;
+      }
+    }
+  }
   // The applied relative scale is named on a mutable copy of the coadd
   // estimate: the coadd core returns a const share and the assessment of a
   // published product is not rewritten in place.
@@ -828,6 +926,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
                 "systematic that is NOT removed, so the coadd is NOT a common quantity at this "
                 "amplitude";
       }
+      if (seam_measured) note << "; " << seam_note.str();
       model::set_included(copy->assessment, note.str());
       model::set_omitted(copy->assessment,
                          "numerical_intervals_unavailable: the coaddition does not propagate "
@@ -837,9 +936,10 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
                          "common unit, not a spatial response");
       if (faint_ratio_measured) {
         model::add_issue(copy->assessment, Code::unsupported,
-                         "the coadd is not a common quantity: the faint-sky frame-to-mosaic "
-                         "ratio spans the measured p16..p84 because the nights' master flat is "
-                         "not the same (the residual correlates with the rotated flat ratio)",
+                         "the coadd is not a common quantity: the 0.3-3x median level band "
+                         "ratio spans the measured p16..p84; a single common master flat cannot "
+                         "capture the per-night sky-projected throughput/illumination (the "
+                         "correlation with the orientation-dependent flat ratio is a hypothesis)",
                          "mosaic.common_quantity",
                          "the delivered mosaic is conditional on the flat/throughput residual; "
                          "it must not be used as a common surface-brightness product without "
