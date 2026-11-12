@@ -1002,6 +1002,10 @@ json encode_product_graph(const ProductGraph& graph) {
   node["sky_beta"] = encode_ref(graph.sky_beta ? graph.sky_beta->identity.object_id : Id());
   node["coadd_coefficients"] =
       encode_ref(graph.coadd_coefficients ? graph.coadd_coefficients->identity.object_id : Id());
+  node["sky_leaf_offsets"] =
+      encode_ref(graph.sky_leaf_offsets ? graph.sky_leaf_offsets->identity.object_id : Id());
+  node["relative_scales"] =
+      encode_ref(graph.relative_scales ? graph.relative_scales->identity.object_id : Id());
   node["inputs"] = graph.inputs;
   node["profile"] = graph.profile;
   return node;

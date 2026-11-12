@@ -442,6 +442,12 @@ struct ProductGraph : Model { enum class Stage { normalize,mosaic,export_image }
   // needs, without re-running the fit.
   ArrayRef sky_beta;
   ArrayRef coadd_coefficients;
+  // The per-leaf additive sky correction (one value per selection sample and
+  // frame, the layout of coadd_coefficients) and the applied relative scales
+  // (one value per frame).  Together with coadd_coefficients and sky_beta they
+  // make the combined signal exactly reproducible from the product.
+  ArrayRef sky_leaf_offsets;
+  ArrayRef relative_scales;
   std::vector<Id> inputs; std::string profile; };
 struct ObjectEntry { Id hash; std::string path,type; U32 major,minor; };
 struct AlgorithmIdentity { std::string name,version; Id source_hash; };

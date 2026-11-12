@@ -1071,6 +1071,38 @@ class ProductReader {
         graph.sky_beta = val(reopened);
       }
     }
+    if (val(payload).contains("sky_leaf_offsets")) {
+      const Id id = workflows::decode_ref(val(payload).at("sky_leaf_offsets"));
+      if (!id.empty()) {
+        Result<ArrayRef> reopened = array(id);
+        if (!ok(reopened)) {
+          return fail<Ref<ProductGraph>>(
+              reopened.code,
+              reopened.assessment.issues.empty()
+                  ? "the per-leaf sky correction cannot be reopened"
+                  : "the per-leaf sky correction cannot be reopened: " +
+                        reopened.assessment.issues.front().reason,
+              "product.read", "the product cannot be reopened");
+        }
+        graph.sky_leaf_offsets = val(reopened);
+      }
+    }
+    if (val(payload).contains("relative_scales")) {
+      const Id id = workflows::decode_ref(val(payload).at("relative_scales"));
+      if (!id.empty()) {
+        Result<ArrayRef> reopened = array(id);
+        if (!ok(reopened)) {
+          return fail<Ref<ProductGraph>>(
+              reopened.code,
+              reopened.assessment.issues.empty()
+                  ? "the relative scales cannot be reopened"
+                  : "the relative scales cannot be reopened: " +
+                        reopened.assessment.issues.front().reason,
+              "product.read", "the product cannot be reopened");
+        }
+        graph.relative_scales = val(reopened);
+      }
+    }
     if (val(payload).contains("coadd_coefficients")) {
       const Id id = workflows::decode_ref(val(payload).at("coadd_coefficients"));
       if (!id.empty()) {
@@ -1299,7 +1331,8 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
   // The numeric reopening data of a mosaic: the additive offsets and the
   // coadd weights.  A product whose sky fit or weights cannot be stored is not
   // published (fail-closed), exactly like its signal.
-  for (const ArrayRef& array : {graph->sky_beta, graph->coadd_coefficients}) {
+  for (const ArrayRef& array : {graph->sky_beta, graph->coadd_coefficients,
+                                graph->sky_leaf_offsets, graph->relative_scales}) {
     if (!array) continue;
     Result<Id> stored = persist_array(context, builder, array);
     if (!ok(stored)) {

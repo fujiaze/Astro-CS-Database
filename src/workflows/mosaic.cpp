@@ -295,6 +295,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   }
   std::vector<Ref<FrameDescription>> corrected_descriptions;
   std::vector<ArrayRef> corrected_signals;
+  std::vector<ArrayRef> unscaled_corrected;
   for (std::size_t i = 0; i < estimates.size(); ++i) {
     // Pass the frame identity: in a deep mosaic several frames observe the
     // same leaf, so the training-space match alone is ambiguous.
@@ -318,6 +319,9 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
     if (val(applied)->effective_response) description->response = val(applied)->effective_response;
     corrected_descriptions.push_back(description);
     corrected_signals.push_back(val(applied)->signal);
+    // The additive sky correction is the difference of the two arrays; keep
+    // the pre-scale corrected array so the per-leaf offset can be stored.
+    unscaled_corrected.push_back(val(applied)->signal);
   }
   // The night-to-night multiplicative scale, measured on the star sample that
   // each Normalize product carries in photometry.json (the fitted fluxes of the
@@ -509,6 +513,73 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
                                  "mosaic", "no product was published");
   }
 
+  // The per-leaf additive sky correction and the applied scales are stored in
+  // the product: with coadd_coefficients they make the combined signal exactly
+  // reproducible from the product (the second review asked for the SkyFit and
+  // WeightSolution in the closure; this is the numeric form the reader uses).
+  Ref<ArrayRef> sky_offsets_holder;  // (unused; the refs are graph fields)
+  (void)sky_offsets_holder;
+  ArrayRef sky_offsets_array;
+  ArrayRef relative_scales_array;
+  if (!estimates.empty() && coadd_result.value && val(coadd_result).selection &&
+      val(coadd_result).selection->index) {
+    const Ref<Index> sample_index = val(coadd_result).selection->index;
+    workflows::WorkflowStorage read_storage(context.storage, workflow_runtime.services);
+    Context read_context{context.resources, context.cancellation, read_storage};
+    Result<ArrayView> sample_ids_view = read_storage.read(
+        read_context, sample_index->ids, BlockRequest{0, sample_index->size * 2});
+    if (ok(sample_ids_view)) {
+      const std::vector<U64> sample_ids = model::decode_u64(val(sample_ids_view).bytes);
+      const std::size_t samples = sample_ids.size() / 2;
+      const std::size_t frames_count = estimates.size();
+      std::vector<double> offsets(samples * frames_count, 0.0);
+      for (std::size_t f = 0; f < frames_count; ++f) {
+        if (!estimates[f] || !estimates[f]->signal || !unscaled_corrected[f] ||
+            !descriptions[f] || !descriptions[f]->index) {
+          continue;
+        }
+        Result<std::vector<double>> original =
+            operators::read_f64(read_context, estimates[f]->signal, 0,
+                                estimates[f]->signal->shape.empty()
+                                    ? 0
+                                    : estimates[f]->signal->shape[0]);
+        Result<std::vector<double>> corrected =
+            operators::read_f64(read_context, unscaled_corrected[f], 0,
+                                unscaled_corrected[f]->shape.empty()
+                                    ? 0
+                                    : unscaled_corrected[f]->shape[0]);
+        Result<ArrayView> frame_ids_view = read_storage.read(
+            read_context, descriptions[f]->index->ids,
+            BlockRequest{0, descriptions[f]->index->size * 2});
+        if (!ok(original) || !ok(corrected) || !ok(frame_ids_view)) continue;
+        const std::vector<U64> frame_ids = model::decode_u64(val(frame_ids_view).bytes);
+        std::map<std::pair<U32, U64>, double> offset_of_leaf;
+        const std::size_t rows = std::min({val(original).size(), val(corrected).size(),
+                                           frame_ids.size() / 2});
+        for (std::size_t r = 0; r < rows; ++r) {
+          const double value = val(original)[r] - val(corrected)[r];
+          if (!std::isfinite(value)) continue;
+          offset_of_leaf[{static_cast<U32>(frame_ids[2 * r]),
+                          frame_ids[2 * r + 1]}] = value;
+        }
+        for (std::size_t sel = 0; sel < samples; ++sel) {
+          const auto found = offset_of_leaf.find(
+              {static_cast<U32>(sample_ids[2 * sel]), sample_ids[2 * sel + 1]});
+          if (found != offset_of_leaf.end()) offsets[sel * frames_count + f] = found->second;
+        }
+      }
+      Result<ArrayRef> stored_offsets = operators::write_f64(
+          context, offsets, std::vector<U64>{static_cast<U64>(samples),
+                                             static_cast<U64>(frames_count)},
+          model::unit_dimensionless(), Id());
+      if (ok(stored_offsets)) sky_offsets_array = val(stored_offsets);
+      std::vector<double> scales(night_scale.begin(), night_scale.end());
+      Result<ArrayRef> stored_scales = operators::write_f64(
+          context, scales, std::vector<U64>{static_cast<U64>(scales.size())},
+          model::unit_dimensionless(), Id());
+      if (ok(stored_scales)) relative_scales_array = val(stored_scales);
+    }
+  }
   // The applied relative scale is named on a mutable copy of the coadd
   // estimate: the coadd core returns a const share and the assessment of a
   // published product is not rewritten in place.
@@ -557,6 +628,8 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   // combined signal (second independent S1 review, blocking item 2).
   if (ok(sky) && val(sky)) graph->sky_beta = val(sky)->beta;
   if (ok(weights) && val(weights)) graph->coadd_coefficients = val(weights)->coefficients;
+  graph->sky_leaf_offsets = sky_offsets_array;
+  graph->relative_scales = relative_scales_array;
   for (const ProductLocation& location : request.inputs) graph->inputs.push_back(location.manifest_hash);
   // The coadded arrays were produced inside the Host and live in the runtime
   // BlockStore; publication reads them through the workflow storage view while
