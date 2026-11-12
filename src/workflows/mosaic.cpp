@@ -199,7 +199,123 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
     trace << "}\n";
   };
 
-  Result<Ref<FramesProvider>> frames = make_frames_provider(context, descriptions, signals, dq);
+  // The night-to-night multiplicative scale, measured on the star sample that
+  // each Normalize product carries in photometry.json (the fitted fluxes of the
+  // same Gaia sources), is APPLIED here: every corrected frame is divided by
+  // its scale relative to frame 0 before the coadd.  Without it the equal-weight
+  // coadd is an average of three frames whose effective scale varies with the
+  // coverage (the second independent S1 review measured 1.1506/0.9416, a 15%
+  // step at the K=1/K=2 boundaries).  The applied values and their p16..p84 are
+  // named in the mosaic assessment; a frame without a usable sample keeps 1 and
+  // the omission is named.
+  std::vector<double> night_scale(estimates.size(), 1.0);
+  std::vector<double> night_scale_p16(estimates.size(), 1.0);
+  std::vector<double> night_scale_p84(estimates.size(), 1.0);
+  std::vector<std::size_t> night_scale_stars(estimates.size(), 0);
+  std::vector<std::string> scale_notes;
+  // The scale is applied to the frames BEFORE the relative-sky fit: the sky
+  // model assumes a common scene, and fitting it on the raw frames let the
+  // multiplicative scale (1.226/0.963) be absorbed as an additive offset,
+  // leaving a scene-proportional S(1/g-1) residual (independent S1 review
+  // round 3: f1 67% / f2 34% of the median level).  Scaled first, the fit
+  // sees the common scene and estimates the true airglow offsets.
+  std::vector<ArrayRef> scaled_signals = signals;
+  if (estimates.size() > 1) {
+    std::vector<std::map<U64, double>> star_flux(estimates.size());
+    bool have_reference = false;
+    for (std::size_t f = 0; f < estimates.size(); ++f) {
+      const std::string path = request.inputs[f].directory + "/photometry.json";
+      std::ifstream stream(path, std::ios::binary);
+      if (!stream) {
+        scale_notes.push_back("frame " + std::to_string(f) +
+                              " has no photometry.json; its scale is not measured");
+        continue;
+      }
+      nlohmann::json doc;
+      try {
+        stream >> doc;
+      } catch (const std::exception&) {
+        scale_notes.push_back("frame " + std::to_string(f) +
+                              " photometry.json is not valid JSON; its scale is not measured");
+        continue;
+      }
+      for (const auto& star : doc.value("stars", nlohmann::json::array())) {
+        const double flux = star.value("flux", 0.0);
+        if (!(flux > 0.0) || !std::isfinite(flux)) continue;
+        star_flux[f][star.value("id", static_cast<U64>(0))] = flux;
+      }
+      if (f == 0) have_reference = !star_flux[0].empty();
+    }
+    if (have_reference) {
+      for (std::size_t f = 1; f < estimates.size(); ++f) {
+        std::vector<double> ratios;
+        for (const auto& entry : star_flux[0]) {
+          const auto found = star_flux[f].find(entry.first);
+          if (found == star_flux[f].end() || !(found->second > 0.0)) continue;
+          ratios.push_back(found->second / entry.second);
+        }
+        if (ratios.size() < 3) {
+          scale_notes.push_back("frame " + std::to_string(f) + "/frame 0 has only " +
+                                std::to_string(ratios.size()) +
+                                " common stars; its scale keeps 1");
+          continue;
+        }
+        std::sort(ratios.begin(), ratios.end());
+        night_scale[f] = ratios[ratios.size() / 2];
+        night_scale_p16[f] = ratios[ratios.size() * 16 / 100];
+        night_scale_p84[f] = ratios[ratios.size() * 84 / 100];
+        night_scale_stars[f] = ratios.size();
+        if (!(night_scale[f] > 0.0) || !std::isfinite(night_scale[f])) night_scale[f] = 1.0;
+      }
+      // Apply: divide the input signal of every measured frame by its scale.
+      workflows::WorkflowStorage scale_storage(context.storage, workflow_runtime.services);
+      Context scale_read_context{context.resources, context.cancellation, scale_storage};
+      for (std::size_t f = 1; f < estimates.size(); ++f) {
+        if (std::fabs(night_scale[f] - 1.0) <= 1e-12) continue;
+        const U64 count = signals[f]->shape.empty() ? 0 : signals[f]->shape[0];
+        Result<std::vector<double>> values =
+            operators::read_f64(scale_read_context, signals[f], 0, count);
+        if (!ok(values)) {
+          return fail<ProductLocation>(values.code, "the corrected signal cannot be read for the "
+                                                    "relative scale",
+                                       "mosaic", "no product was published");
+        }
+        std::vector<double> scaled_values = val(values);
+        for (double& value : scaled_values) {
+          if (std::isfinite(value)) value /= night_scale[f];
+        }
+        Result<ArrayRef> scaled = operators::write_f64(
+            context, scaled_values, signals[f]->shape, estimates[f]->unit,
+            signals[f]->index_id);
+        if (!ok(scaled)) {
+          return fail<ProductLocation>(scaled.code, "the scaled signal cannot be stored",
+                                       "mosaic", "no product was published");
+        }
+        scaled_signals[f] = val(scaled);
+      }
+    } else {
+      scale_notes.push_back("frame 0 has no usable star sample; no relative scale is applied");
+    }
+  }
+
+  // The scaled signals are the frames the sky fit and the coadd see.  The
+  // estimates are copied because apply_sky is a per-signal operation and the
+  // original product estimates stay untouched.
+  std::vector<Ref<SignalEstimate>> scaled_estimates;
+  for (std::size_t f = 0; f < estimates.size(); ++f) {
+    auto copy = std::make_shared<SignalEstimate>(*estimates[f]);
+    copy->signal = scaled_signals[f];
+    scaled_estimates.push_back(copy);
+    Result<Done> ingested_scaled =
+        workflows::ingest_array(context, workflow_runtime, scaled_signals[f]);
+    if (!ingested_scaled.value) {
+      return fail<ProductLocation>(ingested_scaled.code,
+                                   "a scaled signal cannot be served to the runtime", "mosaic",
+                                   "no product was published");
+    }
+  }
+
+  Result<Ref<FramesProvider>> frames = make_frames_provider(context, descriptions, scaled_signals, dq);
   if (!ok(frames)) {
     return fail<ProductLocation>(frames.code,
                                  frames.assessment.issues.empty()
@@ -285,7 +401,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   // The fitted relative sky is subtracted exactly once, here, before the
   // selection and the weight solve.  The coaddition only carries the frozen
   // fit; it must never apply it a second time.
-  for (const Ref<SignalEstimate>& estimate : estimates) {
+  for (const Ref<SignalEstimate>& estimate : scaled_estimates) {
     Result<Done> ingested_estimate = workflows::ingest_signal(context, workflow_runtime, estimate);
     if (!ingested_estimate.value) {
       return fail<ProductLocation>(ingested_estimate.code,
@@ -300,7 +416,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
     // Pass the frame identity: in a deep mosaic several frames observe the
     // same leaf, so the training-space match alone is ambiguous.
     auto apply_input = std::make_shared<const modules::ApplySkyInput>(
-        modules::ApplySkyInput{estimates[i], val(sky), descriptions[i]->frame});
+        modules::ApplySkyInput{scaled_estimates[i], val(sky), descriptions[i]->frame});
     Result<rt::InvocationPlan> apply_plan = modules::plan_sky_apply(
         workflow_runtime.command, apply_input, workflow_runtime.options);
     Result<Ref<SignalEstimate>> applied = rt::wait_external(
@@ -322,97 +438,6 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
     // The additive sky correction is the difference of the two arrays; keep
     // the pre-scale corrected array so the per-leaf offset can be stored.
     unscaled_corrected.push_back(val(applied)->signal);
-  }
-  // The night-to-night multiplicative scale, measured on the star sample that
-  // each Normalize product carries in photometry.json (the fitted fluxes of the
-  // same Gaia sources), is APPLIED here: every corrected frame is divided by
-  // its scale relative to frame 0 before the coadd.  Without it the equal-weight
-  // coadd is an average of three frames whose effective scale varies with the
-  // coverage (the second independent S1 review measured 1.1506/0.9416, a 15%
-  // step at the K=1/K=2 boundaries).  The applied values and their p16..p84 are
-  // named in the mosaic assessment; a frame without a usable sample keeps 1 and
-  // the omission is named.
-  std::vector<double> night_scale(estimates.size(), 1.0);
-  std::vector<double> night_scale_p16(estimates.size(), 1.0);
-  std::vector<double> night_scale_p84(estimates.size(), 1.0);
-  std::vector<std::size_t> night_scale_stars(estimates.size(), 0);
-  std::vector<std::string> scale_notes;
-  if (estimates.size() > 1) {
-    std::vector<std::map<U64, double>> star_flux(estimates.size());
-    bool have_reference = false;
-    for (std::size_t f = 0; f < estimates.size(); ++f) {
-      const std::string path = request.inputs[f].directory + "/photometry.json";
-      std::ifstream stream(path, std::ios::binary);
-      if (!stream) {
-        scale_notes.push_back("frame " + std::to_string(f) +
-                              " has no photometry.json; its scale is not measured");
-        continue;
-      }
-      nlohmann::json doc;
-      try {
-        stream >> doc;
-      } catch (const std::exception&) {
-        scale_notes.push_back("frame " + std::to_string(f) +
-                              " photometry.json is not valid JSON; its scale is not measured");
-        continue;
-      }
-      for (const auto& star : doc.value("stars", nlohmann::json::array())) {
-        const double flux = star.value("flux", 0.0);
-        if (!(flux > 0.0) || !std::isfinite(flux)) continue;
-        star_flux[f][star.value("id", static_cast<U64>(0))] = flux;
-      }
-      if (f == 0) have_reference = !star_flux[0].empty();
-    }
-    if (have_reference) {
-      for (std::size_t f = 1; f < estimates.size(); ++f) {
-        std::vector<double> ratios;
-        for (const auto& entry : star_flux[0]) {
-          const auto found = star_flux[f].find(entry.first);
-          if (found == star_flux[f].end() || !(found->second > 0.0)) continue;
-          ratios.push_back(found->second / entry.second);
-        }
-        if (ratios.size() < 3) {
-          scale_notes.push_back("frame " + std::to_string(f) + "/frame 0 has only " +
-                                std::to_string(ratios.size()) +
-                                " common stars; its scale keeps 1");
-          continue;
-        }
-        std::sort(ratios.begin(), ratios.end());
-        night_scale[f] = ratios[ratios.size() / 2];
-        night_scale_p16[f] = ratios[ratios.size() * 16 / 100];
-        night_scale_p84[f] = ratios[ratios.size() * 84 / 100];
-        night_scale_stars[f] = ratios.size();
-        if (!(night_scale[f] > 0.0) || !std::isfinite(night_scale[f])) night_scale[f] = 1.0;
-      }
-      // Apply: divide the corrected signal of every measured frame by its scale.
-      workflows::WorkflowStorage scale_storage(context.storage, workflow_runtime.services);
-      Context scale_read_context{context.resources, context.cancellation, scale_storage};
-      for (std::size_t f = 1; f < estimates.size(); ++f) {
-        if (std::fabs(night_scale[f] - 1.0) <= 1e-12) continue;
-        const U64 count = corrected_signals[f]->shape.empty() ? 0 : corrected_signals[f]->shape[0];
-        Result<std::vector<double>> values =
-            operators::read_f64(scale_read_context, corrected_signals[f], 0, count);
-        if (!ok(values)) {
-          return fail<ProductLocation>(values.code, "the corrected signal cannot be read for the "
-                                                    "relative scale",
-                                       "mosaic", "no product was published");
-        }
-        std::vector<double> scaled_values = val(values);
-        for (double& value : scaled_values) {
-          if (std::isfinite(value)) value /= night_scale[f];
-        }
-        Result<ArrayRef> scaled = operators::write_f64(
-            context, scaled_values, corrected_signals[f]->shape, estimates[f]->unit,
-            corrected_signals[f]->index_id);
-        if (!ok(scaled)) {
-          return fail<ProductLocation>(scaled.code, "the scaled signal cannot be stored",
-                                       "mosaic", "no product was published");
-        }
-        corrected_signals[f] = val(scaled);
-      }
-    } else {
-      scale_notes.push_back("frame 0 has no usable star sample; no relative scale is applied");
-    }
   }
   Result<Done> corrected_ingest = workflows::ingest_frame_inputs(
       context, workflow_runtime, corrected_descriptions, corrected_signals, dq);
@@ -554,15 +579,15 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
       }
       std::vector<double> offsets(samples * frames_count, 0.0);
       for (std::size_t f = 0; f < frames_count; ++f) {
-        if (!estimates[f] || !estimates[f]->signal || !unscaled_corrected[f] ||
+        if (!scaled_estimates[f] || !scaled_estimates[f]->signal || !unscaled_corrected[f] ||
             !descriptions[f] || !descriptions[f]->index) {
           continue;
         }
         Result<std::vector<double>> original =
-            operators::read_f64(read_context, estimates[f]->signal, 0,
-                                estimates[f]->signal->shape.empty()
+            operators::read_f64(read_context, scaled_estimates[f]->signal, 0,
+                                scaled_estimates[f]->signal->shape.empty()
                                     ? 0
-                                    : estimates[f]->signal->shape[0]);
+                                    : scaled_estimates[f]->signal->shape[0]);
         Result<std::vector<double>> corrected =
             operators::read_f64(read_context, unscaled_corrected[f], 0,
                                 unscaled_corrected[f]->shape.empty()
