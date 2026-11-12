@@ -340,6 +340,38 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   // the coaddition; the workflow supplies the group it verified above.
   CoaddRequest coadd_request = request.coaddition;
   coadd_request.groups = sky_request.groups;
+  // The coadded signal keeps the frames' physical surface-brightness unit: the
+  // per-frame declared scale embeds the frame identity, so the common unit is
+  // the shared linear/sr/pixel/nm dimension with a neutral scale.  Without
+  // this the unknown control covariance made the coadd fall back to
+  // scale="unknown" and the export wrote a bogus ACSUNIT="unknown^sr-1^L1".
+  {
+    Unit common;
+    bool first = true;
+    bool agree = true;
+    for (const Ref<SignalEstimate>& estimate : estimates) {
+      if (!estimate) {
+        agree = false;
+        break;
+      }
+      const Unit& unit = estimate->unit;
+      if (first) {
+        common = unit;
+        first = false;
+      } else if (unit.linear_power != common.linear_power || unit.sr_power != common.sr_power ||
+                 unit.pixel_power != common.pixel_power || unit.nm_power != common.nm_power ||
+                 unit.multiplier != common.multiplier) {
+        agree = false;
+        break;
+      }
+    }
+    if (agree && !first && coadd_request.target.unit.scale == "1" &&
+        coadd_request.target.unit.sr_power == 0 && coadd_request.target.unit.pixel_power == 0 &&
+        coadd_request.target.unit.nm_power == 0 && coadd_request.target.unit.linear_power == 0) {
+      common.scale = "1";
+      coadd_request.target.unit = common;
+    }
+  }
   auto select_input = std::make_shared<const modules::SelectSamplesInput>(
       modules::SelectSamplesInput{val(frames), coadd_request});
   Result<rt::InvocationPlan> select_plan = modules::plan_coadd_select(

@@ -1385,13 +1385,13 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
     }
     Result<std::string> tiles = workflows::write_hips_order(
         staging / "signal", order, tile_log2_width, leaves, val(values), support_states,
-        graph->signal->unit.scale);
+        graph->signal->unit);
     if (!ok(tiles)) {
       return fail<ProductLocation>(tiles.code, tiles.assessment.issues.front().reason,
                                    "publish_product", "the product cannot be published");
     }
     Result<std::string> properties = workflows::write_hips_properties(staging, order, tile_log2_width,
-                                                                       graph->signal->unit.scale);
+                                                                       graph->signal->unit);
     if (!ok(properties)) {
       return fail<ProductLocation>(properties.code, properties.assessment.issues.front().reason,
                                    "publish_product", "the product cannot be published");

@@ -481,7 +481,13 @@ Result<std::string> write_hips_order(const std::filesystem::path& root, U32 orde
                                       U32 tile_log2_width, const std::vector<HealpixLeaf>& leaves,
                                       const std::vector<double>& values,
                                       const std::vector<std::uint8_t>& states,
-                                      const std::string& bunit) {
+                                      const Unit& unit) {
+  // The tiles carry the same physical unit as the product; the former call
+  // passed only the declared scale string ("1" after a mosaic, a native
+  // identity for a frame), so every tile was written with BUNIT=1 even when
+  // the signal is ADU/SR.
+  const FitsUnitText tile_unit = fits_unit_text(unit);
+  const std::string& bunit = tile_unit.bunit;
   if (tile_log2_width < 6 || tile_log2_width > 9) {
     return fail<std::string>(Code::invalid_request, "the tile width is outside the allowed range",
                              "workflows.hips", "the product cannot be published");
@@ -540,7 +546,7 @@ Result<std::string> write_hips_order(const std::filesystem::path& root, U32 orde
                              "the product cannot be published");
   }
 
-  const FitsUnitText unit_text = fits_unit_text_from_scale(bunit);
+  const FitsUnitText unit_text = fits_unit_text(unit);
   std::vector<double> plane(tile_width * tile_width, std::nan(""));
   for (const auto& entry : tiles) {
     const U64 tile = entry.first;
@@ -589,9 +595,9 @@ Result<std::string> write_hips_order(const std::filesystem::path& root, U32 orde
     cards.emplace_back("CD1_2", numeric_value(-cd));
     cards.emplace_back("CD2_1", numeric_value(cd));
     cards.emplace_back("CD2_2", numeric_value(-cd));
-    cards.emplace_back("BUNIT", unit_text.bunit);
-    if (!unit_text.acsunit.empty()) cards.emplace_back("ACSUNIT", unit_text.acsunit);
-    if (unit_text.nonstandard) cards.emplace_back("ACSSTD", "nonstandard_model_unit");
+    cards.emplace_back("BUNIT", bunit);
+    if (!tile_unit.acsunit.empty()) cards.emplace_back("ACSUNIT", tile_unit.acsunit);
+    if (tile_unit.nonstandard) cards.emplace_back("ACSSTD", "nonstandard_model_unit");
     const std::filesystem::path directory =
         root / ("Norder" + std::to_string(order)) / ("Dir" + std::to_string(tile / 10000));
     const std::filesystem::path file = directory / ("Npix" + std::to_string(tile) + ".fits");
@@ -692,7 +698,7 @@ Result<std::string> write_export_image(Context& context, const std::filesystem::
 }
 
 Result<std::string> write_hips_properties(const std::filesystem::path& root, U32 order,
-                                          U32 tile_log2_width, const std::string& bunit) {
+                                          U32 tile_log2_width, const Unit& unit) {
   std::error_code ec;
   std::filesystem::create_directories(root, ec);
   std::ostringstream text;
@@ -707,7 +713,7 @@ Result<std::string> write_hips_properties(const std::filesystem::path& root, U32
   // hips_unit is external metadata as well: it carries the same standard
   // dimension, not the internal identity.  The exact unit and the explicit non
   // standard flag stay in the acsunit/acsunit_standard keys.
-  const FitsUnitText unit_text = fits_unit_text_from_scale(bunit);
+  const FitsUnitText unit_text = fits_unit_text(unit);
   if (!unit_text.bunit.empty()) text << "hips_unit=" << unit_text.bunit << "\n";
   if (!unit_text.acsunit.empty()) {
     text << "acsunit=" << unit_text.acsunit << "\n";

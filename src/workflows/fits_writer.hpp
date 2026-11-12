@@ -37,7 +37,7 @@ Result<std::string> write_hips_order(const std::filesystem::path& root, U32 orde
                                       const std::vector<HealpixLeaf>& leaves,
                                       const std::vector<double>& values,
                                       const std::vector<std::uint8_t>& support_states,
-                                      const std::string& bunit);
+                                      const Unit& unit);
 
 // Writes the two dimensional export image with its target WCS.  The image
 // keeps the size of the target: the given centre is placed at
@@ -48,6 +48,6 @@ Result<std::string> write_export_image(Context& context, const std::filesystem::
 
 // Writes the HiPS properties file.
 Result<std::string> write_hips_properties(const std::filesystem::path& root, U32 order,
-                                          U32 tile_log2_width, const std::string& bunit);
+                                          U32 tile_log2_width, const Unit& unit);
 
 }  // namespace acsd::workflows

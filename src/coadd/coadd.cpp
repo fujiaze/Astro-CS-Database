@@ -1918,8 +1918,11 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
     output_unit.linear_power = 1;
     output_unit.multiplier = std::sqrt(std::fabs(variance_unit.multiplier));
   } else {
+    // An unknown covariance has no unit to compare against: the declared
+    // target unit (the common physical unit of the frames) is kept and the
+    // covariance state stays named unknown.  A known covariance must agree.
     const Unit expected = model::unit_multiply(output_unit, output_unit);
-    if (!same_unit(expected, variance_unit)) {
+    if (variance_unit.scale != "unknown" && !same_unit(expected, variance_unit)) {
       return model::fail<CoaddResult>(
           Code::invalid_request, "the target unit contradicts the frame covariance unit",
           "coadd", "the combination is not available");
