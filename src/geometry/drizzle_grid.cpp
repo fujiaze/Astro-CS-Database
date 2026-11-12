@@ -88,7 +88,9 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
         acsd::observation::read_u16_values(context, observation->dq);
     if (ok(flags)) quality = val(flags);
   }
-  U64 saturated_samples = 0;
+  U64 saturated_samples = 0;      // (pixel, leaf) terms excluded
+  U64 saturated_pixels = 0;       // distinct native samples at the ADC ceiling
+  std::vector<std::uint8_t> saturated_row(0);
   const U64 window_samples = row_count * width;
 
   geometry::DrizzleAccumulator accumulator;
@@ -103,6 +105,11 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
     if (source_row < quality.size() &&
         (quality[source_row] & acsd::observation::kDqSaturated) != 0u) {
       ++saturated_samples;
+      if (saturated_row.size() < quality.size()) saturated_row.resize(quality.size(), 0);
+      if (saturated_row[static_cast<std::size_t>(source_row)] == 0) {
+        saturated_row[static_cast<std::size_t>(source_row)] = 1;
+        ++saturated_pixels;
+      }
       return model::ok_result(rt::Done{});
     }
     geometry::DrizzleTerm drizzle_term;
@@ -182,18 +189,17 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
     auto copy = std::make_shared<SignalEstimate>(*packaged.value->estimate);
     char text[256];
     std::snprintf(text, sizeof(text),
-                  "saturated_native_samples=%llu of %llu (%.2f%%) are excluded from the drizzle",
-                  static_cast<unsigned long long>(saturated_samples),
-                  static_cast<unsigned long long>(window_samples),
-                  window_samples == 0 ? 0.0
-                                      : 100.0 * static_cast<double>(saturated_samples) /
-                                            static_cast<double>(window_samples));
+                  "saturated_pixel_count=%llu (raw==65535); %llu (pixel,leaf) "
+                  "terms excluded from the drizzle",
+                  static_cast<unsigned long long>(saturated_pixels),
+                  static_cast<unsigned long long>(saturated_samples));
     model::add_issue(copy->assessment, Code::unsupported, text, "drizzle_grid",
                      "the saturated samples carry no usable flux; the photometry of the "
                      "saturated core is undefined",
                      "use unsaturated frames or a shorter exposure");
     model::set_included(copy->assessment,
-                        "saturated_native_samples_removed=" + std::to_string(saturated_samples));
+                        "saturated_pixel_count=" + std::to_string(saturated_pixels) +
+                            ";saturated_pixel_leaf_terms=" + std::to_string(saturated_samples));
     model::set_omitted(copy->assessment,
                        "no_nonlinearity_flag_below_the_adc_ceiling");
     packaged.value->estimate = copy;
