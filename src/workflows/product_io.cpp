@@ -1006,6 +1006,7 @@ json encode_product_graph(const ProductGraph& graph) {
       encode_ref(graph.sky_leaf_offsets ? graph.sky_leaf_offsets->identity.object_id : Id());
   node["relative_scales"] =
       encode_ref(graph.relative_scales ? graph.relative_scales->identity.object_id : Id());
+  node["coadd_frame_order"] = graph.coadd_frame_order;
   node["inputs"] = graph.inputs;
   node["profile"] = graph.profile;
   return node;

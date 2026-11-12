@@ -448,6 +448,9 @@ struct ProductGraph : Model { enum class Stage { normalize,mosaic,export_image }
   // make the combined signal exactly reproducible from the product.
   ArrayRef sky_leaf_offsets;
   ArrayRef relative_scales;
+  // The frame order of coadd_coefficients (the comparability group's frame ids
+  // sorted by id), so a reader can map a coefficient column to its frame.
+  std::vector<Id> coadd_frame_order;
   std::vector<Id> inputs; std::string profile; };
 struct ObjectEntry { Id hash; std::string path,type; U32 major,minor; };
 struct AlgorithmIdentity { std::string name,version; Id source_hash; };

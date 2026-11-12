@@ -532,6 +532,26 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
       const std::vector<U64> sample_ids = model::decode_u64(val(sample_ids_view).bytes);
       const std::size_t samples = sample_ids.size() / 2;
       const std::size_t frames_count = estimates.size();
+      // The coadd indexes its frames in the order it lists them (the frame ids
+      // of the comparability group, sorted); the coefficients are in that
+      // order, not in the input order.  The stored offsets and scales must use
+      // the same order, otherwise the reopened combination mis-assigns frames
+      // on the leaves where the frame sets differ (measured: 148 leaves).
+      std::vector<std::size_t> position_of_input(frames_count);
+      for (std::size_t i = 0; i < frames_count; ++i) position_of_input[i] = i;
+      if (!sky_request.groups.empty() &&
+          sky_request.groups.front().frames.size() == frames_count) {
+        const std::vector<Id>& group_frames = sky_request.groups.front().frames;
+        std::stable_sort(position_of_input.begin(), position_of_input.end(),
+                         [&](std::size_t a, std::size_t b) {
+                           return group_frames[a] < group_frames[b];
+                         });
+        std::vector<std::size_t> rank(frames_count);
+        for (std::size_t pos = 0; pos < frames_count; ++pos) {
+          rank[position_of_input[pos]] = pos;
+        }
+        position_of_input = rank;
+      }
       std::vector<double> offsets(samples * frames_count, 0.0);
       for (std::size_t f = 0; f < frames_count; ++f) {
         if (!estimates[f] || !estimates[f]->signal || !unscaled_corrected[f] ||
@@ -565,7 +585,9 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
         for (std::size_t sel = 0; sel < samples; ++sel) {
           const auto found = offset_of_leaf.find(
               {static_cast<U32>(sample_ids[2 * sel]), sample_ids[2 * sel + 1]});
-          if (found != offset_of_leaf.end()) offsets[sel * frames_count + f] = found->second;
+          if (found != offset_of_leaf.end()) {
+            offsets[sel * frames_count + position_of_input[f]] = found->second;
+          }
         }
       }
       Result<ArrayRef> stored_offsets = operators::write_f64(
@@ -574,6 +596,9 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
           model::unit_dimensionless(), Id());
       if (ok(stored_offsets)) sky_offsets_array = val(stored_offsets);
       std::vector<double> scales(night_scale.begin(), night_scale.end());
+      for (std::size_t f = 0; f < scales.size(); ++f) {
+        scales[position_of_input[f]] = night_scale[f];
+      }
       Result<ArrayRef> stored_scales = operators::write_f64(
           context, scales, std::vector<U64>{static_cast<U64>(scales.size())},
           model::unit_dimensionless(), Id());
@@ -630,6 +655,10 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   if (ok(weights) && val(weights)) graph->coadd_coefficients = val(weights)->coefficients;
   graph->sky_leaf_offsets = sky_offsets_array;
   graph->relative_scales = relative_scales_array;
+  if (!sky_request.groups.empty()) {
+    graph->coadd_frame_order = sky_request.groups.front().frames;
+    std::sort(graph->coadd_frame_order.begin(), graph->coadd_frame_order.end());
+  }
   for (const ProductLocation& location : request.inputs) graph->inputs.push_back(location.manifest_hash);
   // The coadded arrays were produced inside the Host and live in the runtime
   // BlockStore; publication reads them through the workflow storage view while
