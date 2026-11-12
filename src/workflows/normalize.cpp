@@ -1235,6 +1235,15 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       graph->inputs.push_back(observation->identity.object_id);
     if (request.frames[i].response && !request.frames[i].response->identity.object_id.empty())
       graph->inputs.push_back(request.frames[i].response->identity.object_id);
+    // The raw frame and the three calibration masters are the physical inputs
+    // of the calibrated observation; the former manifest recorded none of them.
+    if (request.frames[i].raw && !request.frames[i].raw->identity.object_id.empty())
+      graph->inputs.push_back(request.frames[i].raw->identity.object_id);
+    for (const ArrayRef& map : {request.frames[i].calibration.bias,
+                                request.frames[i].calibration.dark,
+                                request.frames[i].calibration.flat}) {
+      if (map && !map->identity.object_id.empty()) graph->inputs.push_back(map->identity.object_id);
+    }
     if (observation && observation->footprints && observation->footprints->wcs &&
         !observation->footprints->wcs->identity.object_id.empty())
       graph->inputs.push_back(observation->footprints->wcs->identity.object_id);

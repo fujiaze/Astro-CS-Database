@@ -846,9 +846,22 @@ Result<Ref<Response>> load_response(Context& context, const std::filesystem::pat
     response->support_nm.lower = wavelength_values.front();
     response->support_nm.upper = wavelength_values.back();
   }
-  response->identity = model::make_identity("acsd.Response", 2, 0,
-                                            model::sha256_hex("acsd.cli.response:" + frame_id),
-                                            "acsd");
+  // The response identity is its content: the convention, the wavelength
+  // grid, the throughput samples, the normalization and the support.  The
+  // former hash of "acsd.cli.response:<frame>" was a name, identical for two
+  // different response curves of the same frame (independent S1 review, P1
+  // provenance).
+  {
+    std::ostringstream content;
+    content << "acsd.response|convention=" << static_cast<int>(response->convention)
+            << "|wavelength=" << val(grid)->identity.object_id
+            << "|throughput=" << val(values)->identity.object_id
+            << "|normalization=" << response->normalization
+            << "|support=" << response->support_nm.lower << "," << response->support_nm.upper
+            << "|provenance=" << response->provenance;
+    response->identity = model::make_identity("acsd.Response", 2, 0,
+                                              model::sha256_hex(content.str()), "acsd");
+  }
   response->assessment = model::make_assessment(Code::ok);
   response->assessment.complete = true;
   return ok_result(std::shared_ptr<const Response>(response));

@@ -1537,7 +1537,11 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
   manifest.arithmetic.initial_bits = 64;
   manifest.arithmetic.max_bits = 256;
   manifest.arithmetic.allow_target_fallback = true;
-  manifest.assessment = graph->assessment;
+  // The manifest must mirror the assessment that collect_signal produced
+  // (the sidecar's effective assessment): the former assignment used the
+  // graph assessment, so the manifest silently dropped the issues that
+  // collect_signal added (independent S1 review, P2).
+  manifest.assessment = effective_assessment;
   manifest.assessment.execution = ExecutionState::complete;
   // `complete` describes the scientific closure, not the fact that the files
   // were written.  A named omission makes the closure conditional instead of
