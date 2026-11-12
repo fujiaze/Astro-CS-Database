@@ -212,8 +212,17 @@ Result<rt::InvocationPlan> plan_sky_controls(rt::InvocationContext,
   const U64 patch_workspace =
       sat_add(sat_mul(block, sat_mul(terms + 1, 8 * 3)), kWorkspaceUpper);
   const U64 progress_floor = patch_workspace;
-  const U64 work_upper =
-      sat_add(sat_mul(frames, sat_mul(terms + 1, 64)), 1024);
+  // build_sky_controls constructs the whole T/H/A/E assembly at once
+  // (one row per frame position, four CSR arrays each), not one patch per
+  // cohort: the former block*terms*24 byte declaration was three orders of
+  // magnitude short and the first full 4096 frame row failed to store its CSR
+  // offsets.  The position count is data dependent and the plan cannot read
+  // the provider, so the stage declares the documented dataset upper bound.
+  const U64 assembly_upper = 1ull << 30;  // 1 GiB: >12M leaves x 3 x 24 B
+  const U64 progress = sat_add(patch_workspace, assembly_upper);
+  const U64 work_upper = sat_add(
+      sat_add(sat_mul(frames, sat_mul(terms + 1, 64)), 1024),
+      assembly_upper / 8);
 
   rt::InvocationPlan plan;
   plan.epoch = 1;
@@ -225,7 +234,7 @@ Result<rt::InvocationPlan> plan_sky_controls(rt::InvocationContext,
   plan.block_elements = block;
   plan.cohorts = cohorts;
   plan.persistent = capacity(persistent);
-  plan.progress_floor = capacity(progress_floor);
+  plan.progress_floor = capacity(progress);
   plan.elastic = capacity(0);
   plan.control_bytes = kControlBytes;
   plan.cleanup_bytes = 8ull << 10;
@@ -237,11 +246,11 @@ Result<rt::InvocationPlan> plan_sky_controls(rt::InvocationContext,
   patches.kind = rt::RegionKind::stream;
   patches.cohorts = cohorts;
   patches.persistent = capacity(persistent);
-  patches.progress_floor = capacity(progress_floor);
+  patches.progress_floor = capacity(progress);
   StageSpec assembly;
   assembly.id = 0;
-  assembly.scratch = capacity(progress_floor);
-  assembly.output_upper = capacity(sat_mul(block, sat_mul(terms, 8 * 3)));
+  assembly.scratch = capacity(progress);
+  assembly.output_upper = capacity(assembly_upper);
   assembly.control_bytes = kControlBytes;
   assembly.work_upper = work_upper;
   patches.stages.push_back(std::move(assembly));

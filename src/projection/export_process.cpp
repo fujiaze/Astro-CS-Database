@@ -214,11 +214,37 @@ Result<rt::InvocationPlan> plan_build_export(rt::InvocationContext,
   const U64 r = wcs_metadata_bytes(input->request.target.model) +
                 product_bytes(graph) + sat_mul(leaves, 24) + 4096;
   // F: the target pixel workspace (signal, lower/upper bounds), the sparse
-  // target row Q itself (offsets + one index/value entry per touched
-  // pixel/leaf pair, worst case pixels x leaves) and the support spool.  The
-  // Q arrays are produced inside the invocation and stay alive until publish,
-  // so they are part of the admitted capacity, not an external input.
-  const U64 q_entries = sat_mul(pixels, leaves);
+  // target row Q itself (one index/value entry per touched pixel/leaf pair)
+  // and the support spool.  The Q arrays are produced inside the invocation
+  // and stay alive until publish, so they are part of the admitted capacity,
+  // not an external input.
+  //
+  // The former declaration used pixels x leaves (4e11 entries for a 4096x4096
+  // frame, ~6 TB) as the worst case; that is the dense overlap matrix, not the
+  // sparse row the streaming projection builds.  A target pixel of size d_i
+  // can meet only the leaves whose cells lie within its own footprint: the
+  // number of leaves along one axis is ceil(diagonal / leaf_size) + 1 and the
+  // entry count per pixel is its square (capped by the leaf count).  The
+  // 256x256 smoke measured 73151 entries for 65536 pixels (1.12 per pixel),
+  // below this geometric bound.
+  U64 per_pixel = leaves;
+  if (input->request.target.model && graph && graph->signal->support &&
+      graph->signal->support->index) {
+    const U64 order = graph->signal->support->index->order;
+    const double nside = std::ldexp(1.0, static_cast<int>(std::min<U64>(order, 29)));
+    const double leaf_rad = std::sqrt(4.0 * 3.14159265358979323846 / (12.0 * nside * nside));
+    const double& c0 = input->request.target.model->cd_rad_per_pixel[0];
+    const double& c1 = input->request.target.model->cd_rad_per_pixel[1];
+    const double& c2 = input->request.target.model->cd_rad_per_pixel[2];
+    const double& c3 = input->request.target.model->cd_rad_per_pixel[3];
+    const double diagonal = std::max(std::hypot(c0, c1), std::hypot(c2, c3)) * std::sqrt(2.0);
+    if (leaf_rad > 0.0 && diagonal > 0.0) {
+      const double axis = std::ceil(diagonal / leaf_rad) + 1.0;
+      const U64 bound = sat_mul(static_cast<U64>(axis), static_cast<U64>(axis));
+      per_pixel = std::min<U64>(leaves, std::max<U64>(1, bound));
+    }
+  }
+  const U64 q_entries = sat_mul(pixels, per_pixel);
   const U64 f = sat_mul(pixels, sizeof(double) * 8) +
                 sat_mul(q_entries, sizeof(double) + sizeof(U64)) +
                 sat_mul(leaves, sizeof(double) * 4 + sizeof(U64) + 3) +

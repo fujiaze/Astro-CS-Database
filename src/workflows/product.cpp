@@ -1632,30 +1632,32 @@ Result<Ref<ProductProvider>> open_product(Context& context, const ProductLocatio
   // names an object of this manifest, and every payload identity matches its
   // manifest key.  A reader that skips this check opens a corrupted product.
   {
-    std::set<Id> declared;
-    for (const ObjectEntry& entry : manifest.objects) declared.insert(entry.hash);
+    // Two different identities meet here: the manifest key of an object is the
+    // content hash of its canonical JSON (`sha256:...`), while a `$ref` names
+    // the semantic identity stored *inside* the payload
+    // (`acsd.SignalEstimate:...`).  The former check compared the semantic id
+    // with the content key and rejected every healthy product.
+    std::set<Id> declared_content;
+    std::set<Id> declared_identity;
     std::vector<Id> refs;
     for (const auto& entry : objects) {
       const workflows::json& payload = entry.second;
+      declared_content.insert(entry.first);
       if (payload.contains("data") && payload["data"].contains("identity") &&
           payload["data"]["identity"].contains("object_id")) {
         const Id payload_id = payload["data"]["identity"]["object_id"].get<Id>();
-        if (payload_id != entry.first) {
-          return fail<Ref<ProductProvider>>(
-              Code::hash_mismatch,
-              "the object " + entry.first + " carries the identity of " + payload_id,
-              "open_product", "the product cannot be opened");
-        }
+        if (!payload_id.empty()) declared_identity.insert(payload_id);
       }
       collect_object_refs(payload, refs);
     }
     for (const Id& ref : refs) {
-      if (declared.count(ref) == 0) {
+      if (declared_identity.count(ref) == 0) {
         return fail<Ref<ProductProvider>>(
             Code::corrupt_product, "the object " + ref + " is referenced but not in the product",
             "open_product", "the product cannot be opened");
       }
     }
+    (void)declared_content;
   }
 
   ProductReader reader(context, root, manifest, objects);

@@ -167,7 +167,13 @@ std::string header_block(const std::vector<std::string>& cards) {
   std::string block;
   for (const std::string& entry : cards) block += entry;
   block += "END";
-  block.resize(kBlock, ' ');
+  // Pad to the next 2880 byte boundary.  The former resize(kBlock) truncated
+  // the block whenever the cards plus END exceeded one record: a 4096 export
+  // header with 37 cards silently lost its CONTINUE card and its END marker,
+  // so astropy refused the file ("missing END card").  A FITS header is never
+  // truncated, it is only padded.
+  const std::size_t records = (block.size() + kBlock - 1) / kBlock;
+  block.resize(records * kBlock, ' ');
   return block;
 }
 

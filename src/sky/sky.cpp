@@ -1163,6 +1163,11 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
                                          "build_sky_controls", "no control can be built");
   }
   const bool explicit_model = (request.T != nullptr) || (request.H != nullptr);
+  if (std::getenv("ACSD_FLOW_DEBUG")) {
+    std::fprintf(stderr, "sky: explicit=%d T=%p H=%p groups=%zu\n", explicit_model ? 1 : 0,
+                 static_cast<const void*>(request.T.get()), static_cast<const void*>(request.H.get()),
+                 request.groups.size());
+  }
   if (explicit_model && (!request.T || !request.H)) {
     return model::fail<Ref<SkyControls>>(
         Code::invalid_request, "the control operator and the common sky must be given together",
@@ -1357,6 +1362,11 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
     }
     Result<Matrix> dense_t = sky::dense_action(context, request.T, rows, cols);
     if (!ok(dense_t)) {
+      if (std::getenv("ACSD_FLOW_DEBUG")) {
+        std::fprintf(stderr, "sky: dense_action rows=%zu cols=%zu code=%d reason=%s\n", rows, cols,
+                     static_cast<int>(dense_t.code),
+                     dense_t.assessment.issues.empty() ? "-" : dense_t.assessment.issues.front().reason.c_str());
+      }
       return model::fail<Ref<SkyControls>>(dense_t.code, "the control operator cannot be applied",
                                            "build_sky_controls", "no control can be built");
     }
@@ -1631,6 +1641,11 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
   Result<Ref<LinearAction>> e_ref =
       sky::dense_to_action(context, E, Id(), Id(), model::unit_dimensionless());
   if (!ok(e_ref)) {
+    if (std::getenv("ACSD_FLOW_DEBUG")) {
+      std::fprintf(stderr, "sky: E dims=%zux%zu code=%d reason=%s\n", E.rows, E.cols,
+                   static_cast<int>(e_ref.code),
+                   e_ref.assessment.issues.empty() ? "-" : e_ref.assessment.issues.front().reason.c_str());
+    }
     return model::fail<Ref<SkyControls>>(e_ref.code, "the output model cannot be built",
                                          "build_sky_controls", "no control can be built");
   }
@@ -1856,10 +1871,22 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
                                     "the control operator has an inconsistent shape",
                                     "fit_relative_sky", "the sky cannot be fitted");
   }
-  Result<Matrix> T = sky::dense_action(context, controls->T, t_rows, t_cols);
-  if (!ok(T)) {
-    return model::fail<Ref<SkyFit>>(T.code, "the control operator cannot be applied",
-                                   "fit_relative_sky", "the sky cannot be fitted");
+  // The control operator acts on the joint training leaf space: T is
+  // (control_count x leaf_total), e.g. 108 x 71368 for the three-frame 4096
+  // mosaic, while every matrix the estimator itself touches is at most
+  // control_count wide (the gauge, the whitening and the estimators are
+  // control-space objects).  Materialising T was dead work: the dense copy was
+  // never read after the shape check, and at 4096 scale the dense cap refused
+  // the shape although the fit needs no leaf-space matrix at all.  The
+  // operator is therefore validated through its sparse payload, which is
+  // exactly what the published correction action P = I - E K T applies.
+  {
+    Result<operators::CsrMatrix> t_sparse =
+        sky::to_csr(context, controls->T, t_rows, t_cols);
+    if (!ok(t_sparse)) {
+      return model::fail<Ref<SkyFit>>(t_sparse.code, "the control operator cannot be applied",
+                                      "fit_relative_sky", "the sky cannot be fitted");
+    }
   }
   const U64 h_rows = sky::action_codomain_size(controls->H);
   const U64 h_cols = sky::action_domain_size(controls->H);
