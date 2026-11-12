@@ -195,8 +195,20 @@ Result<rt::InvocationPlan> plan_coadd_integrate(rt::InvocationContext,
       sat_add(frame_views, coefficients),
       sat_add(combined, sat_add(workspace, kControlBytes)));
 
-  // R holds the final output signal array and the model/metadata refs.
-  const U64 persistent = sat_add(sat_add(combined, kMetadataBytes), kControlBytes);
+  // R holds every leaf-sized array that the combination stores and publishes,
+  // not only the combined signal: the estimate carries the combined signal
+  // (8 bytes per leaf), the support state (1 byte per leaf) and the support
+  // area (8 bytes per leaf, stored twice as lower/upper but as one array).
+  // Those three stores all claim the invocation's persistent arena.  The
+  // previous declaration reserved only the signal plus a fixed metadata
+  // budget, so at 4096 (71368 leaves: about 1.2 MB of arrays) the area store
+  // was refused as resource_exhausted although the estimator itself fits; the
+  // small smoke passed only because the fixed budget hid the missing term.
+  const U64 support_state = leaves;
+  const U64 support_area = sat_mul(leaves, 8);
+  const U64 output_arrays = sat_add(combined, sat_add(support_state, support_area));
+  const U64 persistent =
+      sat_add(sat_add(output_arrays, kMetadataBytes), kControlBytes);
   const U64 work_upper = sat_add(sat_mul(pairs, 16), 1024);
 
   rt::InvocationPlan plan;
@@ -224,7 +236,7 @@ Result<rt::InvocationPlan> plan_coadd_integrate(rt::InvocationContext,
   StageSpec stage;
   stage.id = 0;
   stage.scratch = capacity(progress_floor);
-  stage.output_upper = capacity(combined);
+  stage.output_upper = capacity(output_arrays);
   stage.control_bytes = kControlBytes;
   stage.work_upper = work_upper;
   region.stages.push_back(std::move(stage));

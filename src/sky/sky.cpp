@@ -1163,11 +1163,6 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
                                          "build_sky_controls", "no control can be built");
   }
   const bool explicit_model = (request.T != nullptr) || (request.H != nullptr);
-  if (std::getenv("ACSD_FLOW_DEBUG")) {
-    std::fprintf(stderr, "sky: explicit=%d T=%p H=%p groups=%zu\n", explicit_model ? 1 : 0,
-                 static_cast<const void*>(request.T.get()), static_cast<const void*>(request.H.get()),
-                 request.groups.size());
-  }
   if (explicit_model && (!request.T || !request.H)) {
     return model::fail<Ref<SkyControls>>(
         Code::invalid_request, "the control operator and the common sky must be given together",
@@ -1362,11 +1357,6 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
     }
     Result<Matrix> dense_t = sky::dense_action(context, request.T, rows, cols);
     if (!ok(dense_t)) {
-      if (std::getenv("ACSD_FLOW_DEBUG")) {
-        std::fprintf(stderr, "sky: dense_action rows=%zu cols=%zu code=%d reason=%s\n", rows, cols,
-                     static_cast<int>(dense_t.code),
-                     dense_t.assessment.issues.empty() ? "-" : dense_t.assessment.issues.front().reason.c_str());
-      }
       return model::fail<Ref<SkyControls>>(dense_t.code, "the control operator cannot be applied",
                                            "build_sky_controls", "no control can be built");
     }
@@ -1641,11 +1631,6 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
   Result<Ref<LinearAction>> e_ref =
       sky::dense_to_action(context, E, Id(), Id(), model::unit_dimensionless());
   if (!ok(e_ref)) {
-    if (std::getenv("ACSD_FLOW_DEBUG")) {
-      std::fprintf(stderr, "sky: E dims=%zux%zu code=%d reason=%s\n", E.rows, E.cols,
-                   static_cast<int>(e_ref.code),
-                   e_ref.assessment.issues.empty() ? "-" : e_ref.assessment.issues.front().reason.c_str());
-    }
     return model::fail<Ref<SkyControls>>(e_ref.code, "the output model cannot be built",
                                          "build_sky_controls", "no control can be built");
   }
