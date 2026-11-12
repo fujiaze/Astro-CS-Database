@@ -546,6 +546,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   (void)sky_offsets_holder;
   ArrayRef sky_offsets_array;
   ArrayRef relative_scales_array;
+  ArrayRef sky_beta_ordered_array;
   if (!estimates.empty() && coadd_result.value && val(coadd_result).selection &&
       val(coadd_result).selection->index) {
     const Ref<Index> sample_index = val(coadd_result).selection->index;
@@ -628,6 +629,23 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
           context, scales, std::vector<U64>{static_cast<U64>(scales.size())},
           model::unit_dimensionless(), Id());
       if (ok(stored_scales)) relative_scales_array = val(stored_scales);
+      // The additive offsets are stored in the same coadd frame order as the
+      // weights and the per-leaf offsets (the former beta array was in the
+      // input order).
+      if (ok(sky) && val(sky) && val(sky)->beta) {
+        Result<std::vector<double>> beta = operators::read_f64(
+            read_context, val(sky)->beta, 0,
+            val(sky)->beta->shape.empty() ? 0 : val(sky)->beta->shape[0]);
+        if (ok(beta) && val(beta).size() == frames_count) {
+          std::vector<double> ordered(val(beta).size(), 0.0);
+          for (std::size_t f = 0; f < frames_count; ++f) {
+            ordered[position_of_input[f]] = val(beta)[f];
+          }
+          Result<ArrayRef> stored_beta = operators::write_f64(
+              context, ordered, val(sky)->beta->shape, model::unit_dimensionless(), Id());
+          if (ok(stored_beta)) sky_beta_ordered_array = val(stored_beta);
+        }
+      }
     }
   }
   // The applied relative scale is named on a mutable copy of the coadd
@@ -649,7 +667,15 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
              << night_scale_p84[f] << "] over " << night_scale_stars[f] << " stars;";
       }
       note << " coadd is common in frame 0's scale; the p16..p84 spread is the named systematic";
+      note << "; the frames have different PSFs, so the coadded scene carries a named "
+              "different-kernel residual";
       model::set_included(copy->assessment, note.str());
+      model::set_omitted(copy->assessment,
+                         "numerical_intervals_unavailable: the coaddition does not propagate "
+                         "the frame signal intervals");
+      model::set_omitted(copy->assessment,
+                         "effective_response_unavailable: the coadded estimate carries the "
+                         "common unit, not a spatial response");
       model::add_issue(copy->assessment, Code::unsupported,
                        "relative_scale_applied_from_star_photometry; the per-frame scale "
                        "uncertainty is the p16..p84 spread of the star ratios",
@@ -676,7 +702,8 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   // The mosaic must reopen and reproduce from the product alone: store the
   // additive offsets of the relative sky and the coadd weights, not only the
   // combined signal (second independent S1 review, blocking item 2).
-  if (ok(sky) && val(sky)) graph->sky_beta = val(sky)->beta;
+  graph->sky_beta = sky_beta_ordered_array;
+  if (!graph->sky_beta && ok(sky) && val(sky)) graph->sky_beta = val(sky)->beta;
   if (ok(weights) && val(weights)) graph->coadd_coefficients = val(weights)->coefficients;
   graph->sky_leaf_offsets = sky_offsets_array;
   graph->relative_scales = relative_scales_array;

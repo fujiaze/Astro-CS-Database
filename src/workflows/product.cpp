@@ -300,8 +300,16 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
                                  "the product cannot be published");
       }
     }
-    store_object(builder, support.identity.object_id, "acsd.SupportMap",
-                 workflows::encode_support_map(support));
+    // The support map of the published estimate must carry the estimate's
+    // noise/science state: the stored object used to say noise=known while the
+    // estimate says unknown (independent S1 review, round 3).
+    SupportMap stored_support = support;
+    stored_support.assessment.noise = estimate.assessment.noise;
+    stored_support.assessment.science = estimate.assessment.science;
+    stored_support.assessment.complete = estimate.assessment.complete;
+    stored_support.assessment.validity = estimate.assessment.validity;
+    store_object(builder, stored_support.identity.object_id, "acsd.SupportMap",
+                 workflows::encode_support_map(stored_support));
   }
   if (estimate.effective_response) {
     // The weights and reference factors of the spatial response are arrays of
