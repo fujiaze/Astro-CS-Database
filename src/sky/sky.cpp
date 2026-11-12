@@ -1331,7 +1331,7 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
           Code::no_support, "no control survives the support and the quality mask",
           "build_sky_controls", "no control can be built");
     }
-    // The additive sky is fitted on the darkest 30% of the patches of each
+    // The additive sky is fitted on the darkest 10% of the patches of each
     // frame.  The sky is additive airglow; the bright patches are the nebula,
     // and a fit over every patch let the nebula gradient enter the offset.
     // Measured counterexample (S1 2026-11-12): the all-patch fit gave
@@ -1342,7 +1342,7 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
     {
       // The selection is by *sky* patch, not by each frame's own patches: the
       // frames of the group may have different detector orientations (the S1
-      // frames 20251224/20251228 are 180 deg flipped), so the darkest 30% of
+      // frames 20251224/20251228 are 180 deg flipped), so the darkest 10% of
       // one frame's detector patches is not the same sky region as another's.
       // A patch is dark when its brightest frame is dark; only then do the
       // rows estimate the same additive airglow.
@@ -1763,7 +1763,7 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
                                             ? "explicit_control_operator"
                                             : "standard_32x32_patch_control_operator");
   if (!explicit_model) {
-    // The additive sky is estimated on the darkest 30% of the patches; the
+    // The additive sky is estimated on the darkest 10% of the patches; the
     // residual multiplicative night-to-night scale is not fitted here and must
     // be named by the consuming mosaic.
     model::set_included(out.assessment, "sky_controls_dark_patch_fraction=0.10");

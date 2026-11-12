@@ -1266,9 +1266,10 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     result.published.push_back(value_of(published));
     // The measured star sample travels with the frame.  The mosaic needs the
     // per-frame flux ratios to apply the night-to-night multiplicative scale;
-    // the sample also carries the fitted detector position (not the catalogue
-    // position), which is what makes the Gaia residual an independent check
-    // rather than a WCS round trip.  A small side file next to the product
+    // the sample carries the catalogue detector position; the measurement does
+    // not expose a free astrometric solution, so the Gaia comparison is a WCS
+    // consistency check, not an independent astrometric residual (independent
+    // S1 review, round 4).  A small side file next to the product
     // manifest; its content hash is recorded by the mosaic.
     if (measurement_index < measurements.size() && measurements[measurement_index]) {
       const SourceMeasurements& measured_stars = *measurements[measurement_index];

@@ -452,7 +452,10 @@ struct ProductGraph : Model { enum class Stage { normalize,mosaic,export_image }
   // sorted by id), so a reader can map a coefficient column to its frame.
   std::vector<Id> coadd_frame_order;
   std::vector<Id> inputs; std::string profile; };
-struct ObjectEntry { Id hash; std::string path,type; U32 major,minor; };
+struct ObjectEntry { Id hash; std::string path,type; U32 major,minor;
+  // Canonical hash of the stored object file content; the reader verifies it
+  // so a tampered payload that keeps object_id cannot reopen the product.
+  Id content_sha256; };
 struct AlgorithmIdentity { std::string name,version; Id source_hash; };
 struct ProductManifest { std::string format; U32 major,minor; ProductGraph::Stage stage;
   Id product_id; U64 revision; Id root_object; std::string profile;

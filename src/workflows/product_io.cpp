@@ -1126,6 +1126,7 @@ json encode_manifest(const ProductManifest& manifest) {
     item["type"] = entry.type;
     item["major"] = entry.major;
     item["minor"] = entry.minor;
+    if (!entry.content_sha256.empty()) item["content_sha256"] = entry.content_sha256;
     objects.push_back(item);
   }
   node["objects"] = objects;
@@ -1178,6 +1179,7 @@ ProductManifest decode_manifest(const json& node) {
       entry.type = string_field(item, "type");
       entry.major = static_cast<U32>(u64_field(item, "major", 2));
       entry.minor = static_cast<U32>(u64_field(item, "minor", 0));
+      entry.content_sha256 = string_field(item, "content_sha256");
       manifest.objects.push_back(entry);
     }
   }

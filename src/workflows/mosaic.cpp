@@ -547,6 +547,14 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   ArrayRef sky_offsets_array;
   ArrayRef relative_scales_array;
   ArrayRef sky_beta_ordered_array;
+  // The measured frame-to-mosaic ratio in the faint-sky band: the coadd is
+  // expressed in frame 0's star scale, but the residual spatial multiplicative
+  // term (master-flat mismatch between nights) makes it non-common; the
+  // numbers are named in the assessment.
+  std::vector<double> faint_ratio_median(estimates.size(), 1.0);
+  std::vector<double> faint_ratio_p16(estimates.size(), 1.0);
+  std::vector<double> faint_ratio_p84(estimates.size(), 1.0);
+  bool faint_ratio_measured = false;
   if (!estimates.empty() && coadd_result.value && val(coadd_result).selection &&
       val(coadd_result).selection->index) {
     const Ref<Index> sample_index = val(coadd_result).selection->index;
@@ -629,6 +637,59 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
           context, scales, std::vector<U64>{static_cast<U64>(scales.size())},
           model::unit_dimensionless(), Id());
       if (ok(stored_scales)) relative_scales_array = val(stored_scales);
+      // Measure the frame-to-mosaic ratio in a faint-sky band.  A common
+      // coadd would give 1.0 for every frame; the measured p16..p84 is the
+      // named amplitude of the spatial multiplicative residual.
+      Result<std::vector<double>> mosaic_values = operators::read_f64(
+          read_context, val(coadd_result).estimate->signal, 0,
+          val(coadd_result).estimate->signal->shape.empty()
+              ? 0
+              : val(coadd_result).estimate->signal->shape[0]);
+      if (ok(mosaic_values) && !val(mosaic_values).empty()) {
+        std::vector<double> finite_mosaic;
+        for (double value : val(mosaic_values)) {
+          if (std::isfinite(value)) finite_mosaic.push_back(value);
+        }
+        std::vector<std::vector<double>> ratios(frames_count);
+        if (!finite_mosaic.empty()) {
+          std::sort(finite_mosaic.begin(), finite_mosaic.end());
+          const double median = finite_mosaic[finite_mosaic.size() / 2];
+          const double lower = 0.3 * std::fabs(median);
+          const double upper = 3.0 * std::fabs(median);
+          for (std::size_t f = 0; f < frames_count; ++f) {
+            if (!unscaled_corrected[f] || !descriptions[f] || !descriptions[f]->index) continue;
+            Result<std::vector<double>> values = operators::read_f64(
+                read_context, unscaled_corrected[f], 0,
+                unscaled_corrected[f]->shape.empty() ? 0 : unscaled_corrected[f]->shape[0]);
+            Result<ArrayView> ids_view = read_storage.read(
+                read_context, descriptions[f]->index->ids,
+                BlockRequest{0, descriptions[f]->index->size * 2});
+            if (!ok(values) || !ok(ids_view)) continue;
+            const std::vector<U64> ids = model::decode_u64(val(ids_view).bytes);
+            std::map<std::pair<U32, U64>, double> corrected_of_leaf;
+            const std::size_t rows = std::min(val(values).size(), ids.size() / 2);
+            for (std::size_t r = 0; r < rows; ++r) {
+              corrected_of_leaf[{static_cast<U32>(ids[2 * r]), ids[2 * r + 1]}] = val(values)[r];
+            }
+            for (std::size_t p = 0; p < samples && p < val(mosaic_values).size(); ++p) {
+              const double m = val(mosaic_values)[p];
+              if (!std::isfinite(m) || m < lower || m > upper) continue;
+              const auto found = corrected_of_leaf.find(
+                  {static_cast<U32>(sample_ids[2 * p]), sample_ids[2 * p + 1]});
+              if (found == corrected_of_leaf.end() || !std::isfinite(found->second)) continue;
+              ratios[f].push_back(found->second / m);
+            }
+          }
+          for (std::size_t f = 0; f < frames_count; ++f) {
+            if (ratios[f].size() < 100) continue;
+            std::sort(ratios[f].begin(), ratios[f].end());
+            faint_ratio_median[f] = ratios[f][ratios[f].size() / 2];
+            faint_ratio_p16[f] = ratios[f][ratios[f].size() * 16 / 100];
+            faint_ratio_p84[f] = ratios[f][ratios[f].size() * 84 / 100];
+            faint_ratio_measured = true;
+          }
+        }
+      }
       // The additive offsets are stored in the same coadd frame order as the
       // weights and the per-leaf offsets (the former beta array was in the
       // input order).
@@ -666,9 +727,19 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
         note << " f" << f << "/f0=" << night_scale[f] << " [" << night_scale_p16[f] << ","
              << night_scale_p84[f] << "] over " << night_scale_stars[f] << " stars;";
       }
-      note << " coadd is common in frame 0's scale; the p16..p84 spread is the named systematic";
-      note << "; the frames have different PSFs, so the coadded scene carries a named "
-              "different-kernel residual";
+      note << " the coadd is expressed in frame 0's star scale; the p16..p84 spread is the "
+              "named star-scale systematic";
+      if (faint_ratio_measured) {
+        note << "; measured frame-to-mosaic ratio in the faint-sky band:";
+        for (std::size_t f = 0; f < faint_ratio_median.size(); ++f) {
+          note << " f" << f << "=" << faint_ratio_median[f] << " [" << faint_ratio_p16[f] << ","
+               << faint_ratio_p84[f] << "]";
+        }
+        note << " (a common coadd would be 1.0); the residual is a spatially varying "
+                "multiplicative term correlated with the rotated master flat, a calibration "
+                "systematic that is NOT removed, so the coadd is NOT a common quantity at this "
+                "amplitude";
+      }
       model::set_included(copy->assessment, note.str());
       model::set_omitted(copy->assessment,
                          "numerical_intervals_unavailable: the coaddition does not propagate "
@@ -676,13 +747,25 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
       model::set_omitted(copy->assessment,
                          "effective_response_unavailable: the coadded estimate carries the "
                          "common unit, not a spatial response");
-      model::add_issue(copy->assessment, Code::unsupported,
-                       "relative_scale_applied_from_star_photometry; the per-frame scale "
-                       "uncertainty is the p16..p84 spread of the star ratios",
-                       "mosaic.relative_scale",
-                       "the coadd combines frames in one scale; the residual systematic is the "
-                       "star-ratio spread",
-                       "measure the scale on more stars if a tighter common quantity is needed");
+      if (faint_ratio_measured) {
+        model::add_issue(copy->assessment, Code::unsupported,
+                         "the coadd is not a common quantity: the faint-sky frame-to-mosaic "
+                         "ratio spans the measured p16..p84 because the nights' master flat is "
+                         "not the same (the residual correlates with the rotated flat ratio)",
+                         "mosaic.common_quantity",
+                         "the delivered mosaic is conditional on the flat/throughput residual; "
+                         "it must not be used as a common surface-brightness product without "
+                         "reducing the residual",
+                         "build a per-night flat or model the multiplicative screen");
+      } else {
+        model::add_issue(copy->assessment, Code::unsupported,
+                         "relative_scale_applied_from_star_photometry; the per-frame scale "
+                         "uncertainty is the p16..p84 spread of the star ratios",
+                         "mosaic.relative_scale",
+                         "the coadd combines frames in one scale; the residual systematic is the "
+                         "star-ratio spread",
+                         "measure the scale on more stars if a tighter common quantity is needed");
+      }
       published_estimate = copy;
     }
     if (!scale_notes.empty() && published_estimate) {

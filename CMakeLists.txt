@@ -19,10 +19,16 @@ execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} rev-parse HEAD
 if(NOT ACSD_GIT_HEAD)
   set(ACSD_GIT_HEAD "unknown")
 endif()
-execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} status --porcelain
-                OUTPUT_VARIABLE ACSD_GIT_STATUS
-                ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
-if(ACSD_GIT_STATUS)
+# The dirty marker must reflect the *tracked* tree only: untracked run
+# products and audit files are not source revisions.  git status --porcelain
+# counted them, so every build of a clean tracked tree recorded a "-dirty"
+# source hash while the recovery record said "clean" (independent S1 review,
+# round 4, P0 provenance).
+execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} diff --quiet
+                RESULT_VARIABLE ACSD_TRACKED_DIFF ERROR_QUIET)
+execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} diff --cached --quiet
+                RESULT_VARIABLE ACSD_STAGED_DIFF ERROR_QUIET)
+if(NOT ACSD_TRACKED_DIFF EQUAL 0 OR NOT ACSD_STAGED_DIFF EQUAL 0)
   set(ACSD_GIT_HEAD "${ACSD_GIT_HEAD}-dirty")
 endif()
 add_compile_definitions(ACSD_SOURCE_ID="${ACSD_GIT_HEAD}")

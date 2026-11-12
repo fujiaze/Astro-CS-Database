@@ -1515,6 +1515,8 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
     object.type = entry.second.at("type").get<std::string>();
     object.major = 2;
     object.minor = 0;
+    // The canonical hash of the exact file content the reader will verify.
+    object.content_sha256 = workflows::canonical_id(entry.second);
     manifest.objects.push_back(object);
   }
   ObjectEntry root_entry;
@@ -1523,6 +1525,7 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
   root_entry.type = "acsd.ProductGraph";
   root_entry.major = 2;
   root_entry.minor = 0;
+  root_entry.content_sha256 = workflows::canonical_id(root_object);
   manifest.objects.push_back(root_entry);
   manifest.blocks = builder.blocks;
   manifest.configuration_hash = workflows::canonical_id(workflows::json{
@@ -1722,6 +1725,13 @@ Result<Ref<ProductProvider>> open_product(Context& context, const ProductLocatio
       return fail<Ref<ProductProvider>>(Code::corrupt_product,
                                         std::string("the object is not valid JSON: ") + failure.what(),
                                         "open_product", "the product cannot be opened");
+    }
+    if (!entry.content_sha256.empty() &&
+        workflows::canonical_id(parsed) != entry.content_sha256) {
+      return fail<Ref<ProductProvider>>(
+          Code::corrupt_product,
+          "the object " + entry.hash + " does not hash to its recorded content",
+          "open_product", "the product cannot be opened");
     }
     objects[entry.hash] = parsed;
   }

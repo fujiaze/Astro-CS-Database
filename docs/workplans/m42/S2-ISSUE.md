@@ -1,4 +1,4 @@
-# S2: process all 196 M42 frames into the formal four-channel FITS (authorized after S1 PASS)
+# S2: process all 196 M42 frames into the formal four-channel FITS (authorized only after an independent S1 PASS)
 
 This issue is created by the S1 recovery run (issue #124) after the three-frame
 4096x4096 Normalize -> Mosaic -> Export chain passed independent review.  It is
