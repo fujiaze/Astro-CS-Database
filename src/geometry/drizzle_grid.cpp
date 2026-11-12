@@ -181,21 +181,24 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
       appended.push_back(HealpixLeaf{id.first, id.second});
     }
     if (!appended.empty()) {
-      // Merge by (order, ipix) to keep the leaf list sorted like the
-      // accumulator output.
-      std::vector<std::size_t> order(leaf_output.leaves.size() + appended.size());
-      for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
+      // Merge by (order, ipix), keeping the operator rows of the present
+      // leaves in the same relative order and giving every absent leaf an
+      // empty CSR row (offsets monotone, length leaves+1).
       std::vector<HealpixLeaf> all = leaf_output.leaves;
       all.insert(all.end(), appended.begin(), appended.end());
+      std::vector<std::size_t> order(all.size());
+      for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
       std::stable_sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) {
         if (all[a].order != all[b].order) return all[a].order < all[b].order;
         return all[a].ipix < all[b].ipix;
       });
+      const std::size_t old_count = leaf_output.leaves.size();
       std::vector<HealpixLeaf> leaves;
       std::vector<double> normalizer, signal, signal_lower, signal_upper, area_lower, area_upper;
       std::vector<std::uint8_t> states, normalization, observational;
-      std::vector<U64> row_offsets;
-      const std::size_t old_count = leaf_output.leaves.size();
+      std::vector<U64> merged_offsets{0};
+      std::vector<U64> merged_indices;
+      std::vector<double> merged_values;
       for (std::size_t index : order) {
         if (index < old_count) {
           leaves.push_back(leaf_output.leaves[index]);
@@ -208,7 +211,13 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
           observational.push_back(leaf_output.observational_states[index]);
           area_lower.push_back(leaf_output.area_lower[index]);
           area_upper.push_back(leaf_output.area_upper[index]);
-          row_offsets.push_back(leaf_output.row_offsets[index]);
+          const U64 begin = leaf_output.row_offsets[index];
+          const U64 finish = leaf_output.row_offsets[index + 1];
+          for (U64 k = begin; k < finish; ++k) {
+            merged_indices.push_back(leaf_output.row_indices[k]);
+            merged_values.push_back(leaf_output.row_values[k]);
+          }
+          merged_offsets.push_back(static_cast<U64>(merged_indices.size()));
         } else {
           leaves.push_back(all[index]);
           normalizer.push_back(0.0);
@@ -220,7 +229,7 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
           observational.push_back(1);
           area_lower.push_back(0.0);
           area_upper.push_back(0.0);
-          row_offsets.push_back(static_cast<U64>(leaf_output.row_indices.size()));
+          merged_offsets.push_back(static_cast<U64>(merged_indices.size()));
         }
       }
       leaf_output.leaves = std::move(leaves);
@@ -233,7 +242,9 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
       leaf_output.observational_states = std::move(observational);
       leaf_output.area_lower = std::move(area_lower);
       leaf_output.area_upper = std::move(area_upper);
-      leaf_output.row_offsets = std::move(row_offsets);
+      leaf_output.row_offsets = std::move(merged_offsets);
+      leaf_output.row_indices = std::move(merged_indices);
+      leaf_output.row_values = std::move(merged_values);
       leaf_output.any_absent = true;
     }
   }
