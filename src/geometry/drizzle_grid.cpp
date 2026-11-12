@@ -11,6 +11,7 @@
 #include <cmath>
 #include <limits>
 #include <map>
+#include <set>
 #include <memory>
 #include <vector>
 
@@ -90,6 +91,7 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
   }
   U64 saturated_samples = 0;      // (pixel, leaf) terms excluded
   U64 saturated_pixels = 0;       // distinct native samples at the ADC ceiling
+  std::set<std::pair<U32, U64>> saturated_leaves;
   std::vector<std::uint8_t> saturated_row(0);
   const U64 window_samples = row_count * width;
 
@@ -110,23 +112,15 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
         saturated_row[static_cast<std::size_t>(source_row)] = 1;
         ++saturated_pixels;
       }
-      // Keep the leaf in the output even when every one of its samples is
-      // saturated: a zero-overlap term makes it an absent leaf (state 0, NaN
-      // signal) instead of letting it vanish from the index.  The former
-      // behaviour dropped ~5 leaves of the S1 frames entirely, so the export
-      // had NaN pixels with no named absent leaf.
-      geometry::DrizzleTerm absent_term;
-      absent_term.source_row = source_row;
-      absent_term.order = term.order;
-      absent_term.ipix = term.ipix;
-      absent_term.overlap_lower = 0.0;
-      absent_term.overlap_upper = 0.0;
-      absent_term.drop_lower = 0.0;
-      absent_term.drop_upper = 0.0;
-      absent_term.omega_lower = 0.0;
-      absent_term.omega_upper = 0.0;
-      absent_term.value = 0.0;
-      return accumulator.add(absent_term);
+      // The saturated sample contributes nothing to the drizzle operator: its
+      // weight is not a measurement.  The leaf is remembered only so that an
+      // all-saturated leaf can be appended to the index as absent after the
+      // walk.  A zero-overlap accumulator term would be given weight_nominal
+      // 0.5 and would enter the CSR as R = 0.5/N (measured: 20k saturated
+      // (pixel,leaf) entries and 113 leaves with sum(Rx) != signal); the term
+      // must stay outside the operator.
+      saturated_leaves.insert({term.order, term.ipix});
+      return model::ok_result(rt::Done{});
     }
     geometry::DrizzleTerm drizzle_term;
     drizzle_term.source_row = source_row;
@@ -173,7 +167,76 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
                                    ? "the pixel grid overlap failed"
                                    : walked.assessment.issues.front().reason);
   }
-  const geometry::DrizzleLeafOutput leaf_output = accumulator.finish();
+  geometry::DrizzleLeafOutput leaf_output = accumulator.finish();
+  // Append the all-saturated leaves that the walk touched but that have no
+  // usable sample: they stay in the index as absent (NaN signal, zero area)
+  // and the export's NaN pixels can be attributed to them.  They never enter
+  // the operator.
+  if (!saturated_leaves.empty()) {
+    std::set<std::pair<U32, U64>> present;
+    for (const HealpixLeaf& leaf : leaf_output.leaves) present.insert({leaf.order, leaf.ipix});
+    std::vector<HealpixLeaf> appended;
+    for (const auto& id : saturated_leaves) {
+      if (present.count(id) != 0) continue;
+      appended.push_back(HealpixLeaf{id.first, id.second});
+    }
+    if (!appended.empty()) {
+      // Merge by (order, ipix) to keep the leaf list sorted like the
+      // accumulator output.
+      std::vector<std::size_t> order(leaf_output.leaves.size() + appended.size());
+      for (std::size_t i = 0; i < order.size(); ++i) order[i] = i;
+      std::vector<HealpixLeaf> all = leaf_output.leaves;
+      all.insert(all.end(), appended.begin(), appended.end());
+      std::stable_sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) {
+        if (all[a].order != all[b].order) return all[a].order < all[b].order;
+        return all[a].ipix < all[b].ipix;
+      });
+      std::vector<HealpixLeaf> leaves;
+      std::vector<double> normalizer, signal, signal_lower, signal_upper, area_lower, area_upper;
+      std::vector<std::uint8_t> states, normalization, observational;
+      std::vector<U64> row_offsets;
+      const std::size_t old_count = leaf_output.leaves.size();
+      for (std::size_t index : order) {
+        if (index < old_count) {
+          leaves.push_back(leaf_output.leaves[index]);
+          normalizer.push_back(leaf_output.normalizer[index]);
+          signal.push_back(leaf_output.signal[index]);
+          signal_lower.push_back(leaf_output.signal_lower[index]);
+          signal_upper.push_back(leaf_output.signal_upper[index]);
+          states.push_back(leaf_output.support_states[index]);
+          normalization.push_back(leaf_output.normalization_states[index]);
+          observational.push_back(leaf_output.observational_states[index]);
+          area_lower.push_back(leaf_output.area_lower[index]);
+          area_upper.push_back(leaf_output.area_upper[index]);
+          row_offsets.push_back(leaf_output.row_offsets[index]);
+        } else {
+          leaves.push_back(all[index]);
+          normalizer.push_back(0.0);
+          signal.push_back(std::numeric_limits<double>::quiet_NaN());
+          signal_lower.push_back(std::numeric_limits<double>::quiet_NaN());
+          signal_upper.push_back(std::numeric_limits<double>::quiet_NaN());
+          states.push_back(0);
+          normalization.push_back(0);
+          observational.push_back(1);
+          area_lower.push_back(0.0);
+          area_upper.push_back(0.0);
+          row_offsets.push_back(static_cast<U64>(leaf_output.row_indices.size()));
+        }
+      }
+      leaf_output.leaves = std::move(leaves);
+      leaf_output.normalizer = std::move(normalizer);
+      leaf_output.signal = std::move(signal);
+      leaf_output.signal_lower = std::move(signal_lower);
+      leaf_output.signal_upper = std::move(signal_upper);
+      leaf_output.support_states = std::move(states);
+      leaf_output.normalization_states = std::move(normalization);
+      leaf_output.observational_states = std::move(observational);
+      leaf_output.area_lower = std::move(area_lower);
+      leaf_output.area_upper = std::move(area_upper);
+      leaf_output.row_offsets = std::move(row_offsets);
+      leaf_output.any_absent = true;
+    }
+  }
   if (leaf_output.any_absent && !leaf_output.any_present) {
     return fail<DrizzleResult>(Code::no_support, "no_support_rows_present", "drizzle_grid",
                                "no target leaf has a positive support");
