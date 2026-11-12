@@ -1445,7 +1445,12 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
   AlgorithmIdentity algorithm;
   algorithm.name = "acsd.publish_product_v1";
   algorithm.version = "1";
-  algorithm.source_hash = model::content_id(model::sha256_hex("acsd.publish_product_v1"));
+#if defined(ACSD_SOURCE_ID)
+  algorithm.source_hash = model::content_id(model::sha256_hex(
+      std::string("acsd.source:") + ACSD_SOURCE_ID));
+#else
+  algorithm.source_hash = model::content_id(model::sha256_hex("acsd.source:unknown"));
+#endif
   manifest.algorithm_set.push_back(algorithm);
   manifest.arithmetic.mode = Arithmetic::Mode::outward;
   manifest.arithmetic.initial_bits = 64;

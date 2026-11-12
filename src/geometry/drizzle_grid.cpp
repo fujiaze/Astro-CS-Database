@@ -23,6 +23,7 @@
 #include "model/array.hpp"
 #include "model/result.hpp"
 #include "model/units.hpp"
+#include "observation/observation.hpp"
 #include "operators/linear_action.hpp"
 
 namespace acsd {
@@ -76,6 +77,20 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
   const std::vector<double>& x = val(values);
   const U64 source_count = static_cast<U64>(x.size());
 
+  // Saturated samples carry no usable signal: integrating 65535 as if it were a
+  // measurement published a saturation plateau (the S1 review measured 22k-33k
+  // such pixels per frame and an output maximum of 2.98e15, exactly the ADC
+  // ceiling).  They are excluded from both the numerator and the normaliser and
+  // the removed count is named on the estimate.
+  std::vector<std::uint16_t> quality;
+  if (observation->dq) {
+    Result<std::vector<std::uint16_t>> flags =
+        acsd::observation::read_u16_values(context, observation->dq);
+    if (ok(flags)) quality = val(flags);
+  }
+  U64 saturated_samples = 0;
+  const U64 window_samples = row_count * width;
+
   geometry::DrizzleAccumulator accumulator;
   bool failed = false;
   Result<rt::Done> failure;
@@ -84,6 +99,11 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
     if (source_row >= source_count) {
       return fail<rt::Done>(Code::invalid_model, "source_row_out_of_range", "drizzle_grid",
                             "a pixel row of the window is outside the native values");
+    }
+    if (source_row < quality.size() &&
+        (quality[source_row] & acsd::observation::kDqSaturated) != 0u) {
+      ++saturated_samples;
+      return model::ok_result(rt::Done{});
     }
     geometry::DrizzleTerm drizzle_term;
     drizzle_term.source_row = source_row;
@@ -153,7 +173,32 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
   digest.add_f64("pixfrac", request.pixfrac);
   source.geometry_id = "acsd.drizzle.grid:" + digest.hex();
 
-  return package_drizzle(context, leaf_output, observation, request, source_count, source);
+  Result<DrizzleResult> packaged =
+      package_drizzle(context, leaf_output, observation, request, source_count, source);
+  if (!ok(packaged)) {
+    return packaged;
+  }
+  if (saturated_samples > 0 && packaged.value->estimate) {
+    auto copy = std::make_shared<SignalEstimate>(*packaged.value->estimate);
+    char text[256];
+    std::snprintf(text, sizeof(text),
+                  "saturated_native_samples=%llu of %llu (%.2f%%) are excluded from the drizzle",
+                  static_cast<unsigned long long>(saturated_samples),
+                  static_cast<unsigned long long>(window_samples),
+                  window_samples == 0 ? 0.0
+                                      : 100.0 * static_cast<double>(saturated_samples) /
+                                            static_cast<double>(window_samples));
+    model::add_issue(copy->assessment, Code::unsupported, text, "drizzle_grid",
+                     "the saturated samples carry no usable flux; the photometry of the "
+                     "saturated core is undefined",
+                     "use unsaturated frames or a shorter exposure");
+    model::set_included(copy->assessment,
+                        "saturated_native_samples_removed=" + std::to_string(saturated_samples));
+    model::set_omitted(copy->assessment,
+                       "no_nonlinearity_flag_below_the_adc_ceiling");
+    packaged.value->estimate = copy;
+  }
+  return packaged;
 }
 
 }  // namespace acsd

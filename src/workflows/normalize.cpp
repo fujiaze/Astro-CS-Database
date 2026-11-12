@@ -1224,6 +1224,19 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     graph->identity = model::make_identity(
         "acsd.ProductGraph", 2, 0,
         model::sha256_hex("acsd.normalize:" + request.frames[i].frame), "acsd");
+    // The provenance of a Normalize product: the calibrated observation, the
+    // drizzle response and the WCS solution.  The former manifest had
+    // inputs=[] (independent S1 review, P1).  The raw/calibration masters are
+    // not reachable from this loop; the observation identity is the calibrated
+    // product of that chain and the calibration configuration is in the
+    // scientific file.
+    if (observation && !observation->identity.object_id.empty())
+      graph->inputs.push_back(observation->identity.object_id);
+    if (request.frames[i].response && !request.frames[i].response->identity.object_id.empty())
+      graph->inputs.push_back(request.frames[i].response->identity.object_id);
+    if (observation && observation->footprints && observation->footprints->wcs &&
+        !observation->footprints->wcs->identity.object_id.empty())
+      graph->inputs.push_back(observation->footprints->wcs->identity.object_id);
     WorkflowStorage storage(context.storage, runtime->services);
     Context publish_context{context.resources, context.cancellation, storage};
     Result<ProductLocation> published = publish_product(publish_context, graph, request.outputs[i]);

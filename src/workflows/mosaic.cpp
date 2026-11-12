@@ -417,12 +417,101 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
                                  "mosaic", "no product was published");
   }
 
+  // The night-to-night multiplicative scale is not part of the additive sky
+  // model.  It is measured here, on the corrected frames and on the bright
+  // leaves where the nebula signal dominates, and named in the estimate
+  // assessment.  An equal-weight coadd that silently averages frames with a
+  // 1.28 scale would be a false common quantity; the review measured exactly
+  // that failure.  A deviation larger than 2% is named with its value.
+  std::vector<std::string> scale_notes;
+  if (estimates.size() > 1 && coadd_result.value && coadd_result.value->estimate) {
+    workflows::WorkflowStorage read_storage(context.storage, workflow_runtime.services);
+    Context read_context{context.resources, context.cancellation, read_storage};
+    std::vector<std::map<std::pair<U32, U64>, double>> corrected(estimates.size());
+    bool readable = true;
+    for (std::size_t i = 0; i < estimates.size(); ++i) {
+      if (!descriptions[i] || !descriptions[i]->index || !corrected_signals[i]) {
+        readable = false;
+        break;
+      }
+      Result<ArrayView> ids_view = context.storage.read(
+          context, descriptions[i]->index->ids,
+          BlockRequest{0, descriptions[i]->index->size * 2});
+      if (!ok(ids_view)) {
+        readable = false;
+        break;
+      }
+      const std::vector<U64> ids = model::decode_u64(val(ids_view).bytes);
+      const U64 count = corrected_signals[i]->shape.empty() ? 0 : corrected_signals[i]->shape[0];
+      Result<std::vector<double>> values = operators::read_f64(read_context, corrected_signals[i], 0, count);
+      if (!ok(values)) {
+        readable = false;
+        break;
+      }
+      for (std::size_t k = 0; k + 1 < ids.size() && k / 2 < val(values).size(); k += 2) {
+        corrected[i][{static_cast<U32>(ids[k]), ids[k + 1]}] = val(values)[k / 2];
+      }
+    }
+    if (readable) {
+      std::vector<double> reference;
+      for (const auto& entry : corrected[0]) {
+        if (std::isfinite(entry.second)) reference.push_back(std::fabs(entry.second));
+      }
+      if (!reference.empty()) {
+        std::sort(reference.begin(), reference.end());
+        const double bright_cut = 2.0 * reference[reference.size() / 2];
+        std::vector<std::string> named;
+        for (std::size_t f = 1; f < corrected.size(); ++f) {
+          std::vector<double> ratios;
+          for (const auto& entry : corrected[0]) {
+            if (!(std::fabs(entry.second) > bright_cut)) continue;
+            const auto found = corrected[f].find(entry.first);
+            if (found == corrected[f].end()) continue;
+            if (!std::isfinite(found->second) || std::fabs(found->second) <= 0.0) continue;
+            ratios.push_back(found->second / entry.second);
+          }
+          if (ratios.size() < 16) continue;
+          std::sort(ratios.begin(), ratios.end());
+          const double median = ratios[ratios.size() / 2];
+          const double p16 = ratios[ratios.size() * 16 / 100];
+          const double p84 = ratios[ratios.size() * 84 / 100];
+          if (std::fabs(median - 1.0) > 0.02) {
+            char text[256];
+            std::snprintf(text, sizeof(text),
+                          "frame %zu/frame 0 multiplicative scale is unseparated: "
+                          "median %.4f (p16 %.4f, p84 %.4f) over %zu bright leaves",
+                          f, median, p16, p84, ratios.size());
+            named.emplace_back(text);
+            scale_notes.emplace_back(text);
+          }
+        }
+        (void)named;
+      }
+    }
+  }
+  // The named residual scale issues are attached to a mutable copy of the
+  // coadd estimate: the coadd core returns a const share and the assessment of
+  // a published product is not rewritten in place.
+  Ref<SignalEstimate> published_estimate = val(coadd_result).estimate;
+  if (!scale_notes.empty() && published_estimate) {
+    auto copy = std::make_shared<SignalEstimate>(*published_estimate);
+    for (const std::string& text : scale_notes) {
+      model::add_issue(copy->assessment, Code::unsupported, text, "mosaic.relative_scale",
+                       "the equal-weight coadd does not apply the scale; the mosaic is a "
+                       "conditional common quantity",
+                       "estimate the per-frame scale by the declared photometry path, or group "
+                       "the frames by night");
+    }
+    model::set_included(copy->assessment,
+                        "relative_scale_named_in_issues=" + std::to_string(scale_notes.size()));
+    published_estimate = copy;
+  }
   // The publication.
   auto graph = std::make_shared<ProductGraph>();
   graph->stage = ProductGraph::Stage::mosaic;
-  graph->signal = val(coadd_result).estimate;
+  graph->signal = published_estimate;
   graph->profile = request.output.profile.empty() ? "full" : request.output.profile;
-  graph->assessment = val(coadd_result).estimate->assessment;
+  graph->assessment = published_estimate->assessment;
   graph->identity = model::make_identity("acsd.ProductGraph", 2, 0,
                                           model::sha256_hex("acsd.mosaic"), "acsd");
   for (const ProductLocation& location : request.inputs) graph->inputs.push_back(location.manifest_hash);

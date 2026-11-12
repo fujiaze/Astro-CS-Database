@@ -66,7 +66,7 @@ inline const char* code_name(Code code) {
 }  // namespace
 
 Result<ProductLocation> export_signal(Context& context, const ExportResult& image,
-                                      const PublishRequest& request) {
+                                      const PublishRequest& request, const Id& input_hash) {
   if (!image.estimate) {
     return fail<ProductLocation>(Code::invalid_request, "the export has no estimate",
                                   "export_signal", "the product cannot be published");
@@ -78,6 +78,10 @@ Result<ProductLocation> export_signal(Context& context, const ExportResult& imag
   graph->assessment = image.estimate->assessment;
   graph->identity = model::make_identity("acsd.ProductGraph", 2, 0,
                                           model::sha256_hex("acsd.export_image"), "acsd");
+  // The exported image records the manifest of the product it projected.  The
+  // former export had inputs=[] so the normalize->mosaic->export chain was
+  // broken at the last edge (independent S1 review, P1 provenance).
+  if (!input_hash.empty()) graph->inputs.push_back(input_hash);
   // The graph cannot be more complete than the estimate it publishes.
   graph->assessment.complete = image.estimate->assessment.complete;
   // The projection operator Q is part of the exported product: without it the
@@ -150,7 +154,8 @@ Result<ProductLocation> export_image(Context& context, const ExportWorkflowReque
   }
   workflows::WorkflowStorage storage(context.storage, workflow_runtime.services);
   Context publish_context{context.resources, context.cancellation, storage};
-  return export_signal(publish_context, value_of(image), request.output);
+  return export_signal(publish_context, value_of(image), request.output,
+                       request.input.manifest_hash);
 }
 
 }  // namespace acsd

@@ -10,6 +10,23 @@ option(ACSD_BUILD_SCIENCE "Build the ACSD v2 science implementation" OFF)
 option(ACSD_DEV_MODE "Enable ACSD internal development probes" OFF)
 option(ACSD_BUILD_CONTRACT_DRIVER "Build the acsd-contract driver" ON)
 
+# The source revision that produced a product.  The product manifest used to
+# record sha256("acsd.publish_product_v1") — the hash of an algorithm *name*,
+# identical for every code version (independent S1 review, P1 provenance).
+execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} rev-parse HEAD
+                OUTPUT_VARIABLE ACSD_GIT_HEAD
+                ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(NOT ACSD_GIT_HEAD)
+  set(ACSD_GIT_HEAD "unknown")
+endif()
+execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} status --porcelain
+                OUTPUT_VARIABLE ACSD_GIT_STATUS
+                ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(ACSD_GIT_STATUS)
+  set(ACSD_GIT_HEAD "${ACSD_GIT_HEAD}-dirty")
+endif()
+add_compile_definitions(ACSD_SOURCE_ID="${ACSD_GIT_HEAD}")
+
 add_library(acsd_contracts INTERFACE)
 target_include_directories(acsd_contracts INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(acsd_contracts INTERFACE cxx_std_20)

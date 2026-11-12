@@ -1331,6 +1331,76 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
           Code::no_support, "no control survives the support and the quality mask",
           "build_sky_controls", "no control can be built");
     }
+    // The additive sky is fitted on the darkest 30% of the patches of each
+    // frame.  The sky is additive airglow; the bright patches are the nebula,
+    // and a fit over every patch let the nebula gradient enter the offset.
+    // Measured counterexample (S1 2026-11-12): the all-patch fit gave
+    // beta = +3.84e12/-1.04e12 while the dark leaves differ by +1.9e11/-1.5e11,
+    // and the mosaic then sat ~10% below the frames and correlated 0.95 with
+    // the nebula brightness.  The residual *multiplicative* scale is not
+    // absorbed here; the mosaic names it as an unseparated systematic.
+    {
+      // The selection is by *sky* patch, not by each frame's own patches: the
+      // frames of the group may have different detector orientations (the S1
+      // frames 20251224/20251228 are 180 deg flipped), so the darkest 30% of
+      // one frame's detector patches is not the same sky region as another's.
+      // A patch is dark when its brightest frame is dark; only then do the
+      // rows estimate the same additive airglow.
+      std::map<std::size_t, std::vector<double>> by_patch;
+      for (const ControlRow& row : rows) by_patch[row.patch].push_back(row.value);
+      std::vector<std::pair<std::size_t, double>> metric;
+      metric.reserve(by_patch.size());
+      for (const auto& entry : by_patch) {
+        double brightest = -std::numeric_limits<double>::infinity();
+        for (double value : entry.second) brightest = std::max(brightest, value);
+        metric.emplace_back(entry.first, brightest);
+      }
+      std::sort(metric.begin(), metric.end(),
+                [](const auto& a, const auto& b) { return a.second < b.second; });
+      std::size_t keep = std::max<std::size_t>(4, (metric.size() * 10) / 100);
+      keep = std::min(keep, metric.size());
+      std::set<std::size_t> selected;
+      for (std::size_t i = 0; i < keep; ++i) selected.insert(metric[i].first);
+      // Every frame must keep at least one equation, otherwise its offset is
+      // unconstrained and the fit is rank deficient.
+      for (const auto& entry : by_patch) {
+        bool present = false;
+        std::size_t best_row = rows.size();
+        double best_value = std::numeric_limits<double>::infinity();
+        for (std::size_t i = 0; i < rows.size(); ++i) {
+          if (rows[i].patch != entry.first) continue;
+          present = true;
+          if (rows[i].value < best_value) {
+            best_value = rows[i].value;
+            best_row = i;
+          }
+        }
+        (void)present;
+        if (best_row == rows.size()) continue;
+        const std::size_t frame = rows[best_row].frame;
+        bool frame_has_selected = false;
+        for (std::size_t i = 0; i < rows.size(); ++i) {
+          if (rows[i].frame == frame && selected.count(rows[i].patch) != 0) {
+            frame_has_selected = true;
+            break;
+          }
+        }
+        if (!frame_has_selected && present) {
+          selected.insert(entry.first);
+          break;
+        }
+      }
+      rows.erase(std::remove_if(rows.begin(), rows.end(),
+                                [&](const ControlRow& row) {
+                                  return selected.count(row.patch) == 0;
+                                }),
+                 rows.end());
+    }
+    if (rows.empty()) {
+      return model::fail<Ref<SkyControls>>(
+          Code::no_support, "no dark control patch survives the support and the quality mask",
+          "build_sky_controls", "no control can be built");
+    }
     control_count = rows.size();
     T = Matrix(static_cast<std::size_t>(control_count), static_cast<std::size_t>(leaf_total), 0.0);
     H = Matrix(static_cast<std::size_t>(control_count),
@@ -1692,6 +1762,12 @@ Result<Ref<SkyControls>> build_sky_controls(Context& context, const FramesProvid
   model::set_included(out.assessment, explicit_model
                                             ? "explicit_control_operator"
                                             : "standard_32x32_patch_control_operator");
+  if (!explicit_model) {
+    // The additive sky is estimated on the darkest 30% of the patches; the
+    // residual multiplicative night-to-night scale is not fitted here and must
+    // be named by the consuming mosaic.
+    model::set_included(out.assessment, "sky_controls_dark_patch_fraction=0.10");
+  }
   if (equal_weights) {
     controls->assessment.noise = NoiseState::unknown;
     controls->assessment.science = ScienceState::conditional;
@@ -2620,6 +2696,11 @@ Result<Ref<SkyFit>> fit_relative_sky(Context& context, Ref<SkyControls> controls
   fit->basis = request.basis;
   fit->gauge = resolved_gauge;
   fit->beta = val(beta_array);
+  if (std::getenv("ACSD_FLOW_DEBUG")) {
+    for (std::size_t i = 0; i < beta.size(); ++i) {
+      std::fprintf(stderr, "skyfit: beta[%zu]=%.12g\n", i, beta[i]);
+    }
+  }
   fit->K = val(k_action);
   fit->T = controls->T;
   fit->E = controls->E;
