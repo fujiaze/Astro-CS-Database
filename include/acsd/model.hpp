@@ -434,6 +434,14 @@ struct ProductGraph : Model { enum class Stage { normalize,mosaic,export_image }
   // untyped list stays for the historical encoding and is never populated.
   std::vector<Ref<LinearAction>> closure_actions;
   std::vector<Ref<Model>> closure;
+  // The numeric reopening data of a mosaic: the additive offsets of the
+  // relative sky (per parameter, in the fitted gauge) and the coadd weights
+  // (one coefficient per sample and frame, in the order of the support leaf
+  // index).  The second independent S1 review found that the published mosaic
+  // could not be reopened or reproduced; these two arrays are what the reader
+  // needs, without re-running the fit.
+  ArrayRef sky_beta;
+  ArrayRef coadd_coefficients;
   std::vector<Id> inputs; std::string profile; };
 struct ObjectEntry { Id hash; std::string path,type; U32 major,minor; };
 struct AlgorithmIdentity { std::string name,version; Id source_hash; };

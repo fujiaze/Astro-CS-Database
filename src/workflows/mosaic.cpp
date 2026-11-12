@@ -552,6 +552,11 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   graph->assessment = published_estimate->assessment;
   graph->identity = model::make_identity("acsd.ProductGraph", 2, 0,
                                           model::sha256_hex("acsd.mosaic"), "acsd");
+  // The mosaic must reopen and reproduce from the product alone: store the
+  // additive offsets of the relative sky and the coadd weights, not only the
+  // combined signal (second independent S1 review, blocking item 2).
+  if (ok(sky) && val(sky)) graph->sky_beta = val(sky)->beta;
+  if (ok(weights) && val(weights)) graph->coadd_coefficients = val(weights)->coefficients;
   for (const ProductLocation& location : request.inputs) graph->inputs.push_back(location.manifest_hash);
   // The coadded arrays were produced inside the Host and live in the runtime
   // BlockStore; publication reads them through the workflow storage view while

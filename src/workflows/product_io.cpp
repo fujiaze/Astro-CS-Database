@@ -999,6 +999,9 @@ json encode_product_graph(const ProductGraph& graph) {
     closure_actions.push_back(encode_ref(action ? action->identity.object_id : Id()));
   }
   node["closure_actions"] = closure_actions;
+  node["sky_beta"] = encode_ref(graph.sky_beta ? graph.sky_beta->identity.object_id : Id());
+  node["coadd_coefficients"] =
+      encode_ref(graph.coadd_coefficients ? graph.coadd_coefficients->identity.object_id : Id());
   node["inputs"] = graph.inputs;
   node["profile"] = graph.profile;
   return node;

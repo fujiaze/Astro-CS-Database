@@ -110,7 +110,23 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
         saturated_row[static_cast<std::size_t>(source_row)] = 1;
         ++saturated_pixels;
       }
-      return model::ok_result(rt::Done{});
+      // Keep the leaf in the output even when every one of its samples is
+      // saturated: a zero-overlap term makes it an absent leaf (state 0, NaN
+      // signal) instead of letting it vanish from the index.  The former
+      // behaviour dropped ~5 leaves of the S1 frames entirely, so the export
+      // had NaN pixels with no named absent leaf.
+      geometry::DrizzleTerm absent_term;
+      absent_term.source_row = source_row;
+      absent_term.order = term.order;
+      absent_term.ipix = term.ipix;
+      absent_term.overlap_lower = 0.0;
+      absent_term.overlap_upper = 0.0;
+      absent_term.drop_lower = 0.0;
+      absent_term.drop_upper = 0.0;
+      absent_term.omega_lower = 0.0;
+      absent_term.omega_upper = 0.0;
+      absent_term.value = 0.0;
+      return accumulator.add(absent_term);
     }
     geometry::DrizzleTerm drizzle_term;
     drizzle_term.source_row = source_row;

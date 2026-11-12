@@ -1053,6 +1053,40 @@ class ProductReader {
         graph.closure_actions.push_back(val(reopened));
       }
     }
+    // The mosaic reopening arrays.  A ref that names no stored array is a
+    // real closure failure, not an optional decoration.
+    if (val(payload).contains("sky_beta")) {
+      const Id id = workflows::decode_ref(val(payload).at("sky_beta"));
+      if (!id.empty()) {
+        Result<ArrayRef> reopened = array(id);
+        if (!ok(reopened)) {
+          return fail<Ref<ProductGraph>>(
+              reopened.code,
+              reopened.assessment.issues.empty()
+                  ? "the sky offsets cannot be reopened"
+                  : "the sky offsets cannot be reopened: " +
+                        reopened.assessment.issues.front().reason,
+              "product.read", "the product cannot be reopened");
+        }
+        graph.sky_beta = val(reopened);
+      }
+    }
+    if (val(payload).contains("coadd_coefficients")) {
+      const Id id = workflows::decode_ref(val(payload).at("coadd_coefficients"));
+      if (!id.empty()) {
+        Result<ArrayRef> reopened = array(id);
+        if (!ok(reopened)) {
+          return fail<Ref<ProductGraph>>(
+              reopened.code,
+              reopened.assessment.issues.empty()
+                  ? "the coadd weights cannot be reopened"
+                  : "the coadd weights cannot be reopened: " +
+                        reopened.assessment.issues.front().reason,
+              "product.read", "the product cannot be reopened");
+        }
+        graph.coadd_coefficients = val(reopened);
+      }
+    }
     if (val(payload).contains("closure")) {
       for (const json& ref : val(payload).at("closure")) {
         const Id id = workflows::decode_ref(ref);
@@ -1261,6 +1295,20 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
                             ? "the signal closure cannot be stored"
                             : collected.assessment.issues.front().reason,
         "publish_product", "the product cannot be published");
+  }
+  // The numeric reopening data of a mosaic: the additive offsets and the
+  // coadd weights.  A product whose sky fit or weights cannot be stored is not
+  // published (fail-closed), exactly like its signal.
+  for (const ArrayRef& array : {graph->sky_beta, graph->coadd_coefficients}) {
+    if (!array) continue;
+    Result<Id> stored = persist_array(context, builder, array);
+    if (!ok(stored)) {
+      return fail<ProductLocation>(
+          stored.code, stored.assessment.issues.empty()
+                           ? "the mosaic reopening array cannot be stored"
+                           : stored.assessment.issues.front().reason,
+          "publish_product", "the product cannot be published");
+    }
   }
   // Every typed closure object (the export projection Q) is part of the
   // product: it is stored with its full action closure before publication.
