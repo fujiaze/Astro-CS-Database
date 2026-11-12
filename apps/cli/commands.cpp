@@ -201,8 +201,34 @@ Ref<WcsModel> decode_wcs(const json& node) {
     wcs->epoch_frame_observer = decode_astrometric(node.at("epoch_frame_observer"));
   }
   wcs->detector_frame = string_field(node, "detector_frame", "acsd.target");
-  wcs->identity = model::make_identity("acsd.WcsModel", 2, 0,
-                                        model::sha256_hex("acsd.cli.target.wcs"), "acsd");
+  // The identity is the content of the solution, not a constant: every
+  // supplied WCS used to carry the same `acsd.cli.target.wcs` hash, so two
+  // different frames' solutions were indistinguishable in the dependency
+  // graph and in every provenance record.
+  {
+    std::ostringstream text;
+    text.precision(17);
+    for (double value : wcs->c) text << value << ",";
+    for (double value : wcs->e) text << value << ",";
+    for (double value : wcs->north) text << value << ",";
+    for (double value : wcs->cd_rad_per_pixel) text << value << ",";
+    for (double value : wcs->crpix_fits1) text << value << ",";
+    text << wcs->detector_frame << ",";
+    text << wcs->epoch_frame_observer.epoch_julian_year << ","
+         << wcs->epoch_frame_observer.observation_jd_tdb << ","
+         << (wcs->epoch_frame_observer.barycentric_observer_au.has_value() ? 1 : 0) << ","
+         << (wcs->epoch_frame_observer.geodetic_lon_lat_height_rad_m.has_value() ? 1 : 0);
+    text << ";sip_a=" << wcs->sip_a.order;
+    for (const Term2& term : wcs->sip_a.terms) {
+      text << "|" << term.x_power << ":" << term.y_power << ":" << term.coefficient;
+    }
+    text << ";sip_b=" << wcs->sip_b.order;
+    for (const Term2& term : wcs->sip_b.terms) {
+      text << "|" << term.x_power << ":" << term.y_power << ":" << term.coefficient;
+    }
+    wcs->identity = model::make_identity("acsd.WcsModel", 2, 0,
+                                          model::sha256_hex(text.str()), "acsd");
+  }
   wcs->assessment = model::make_assessment(Code::ok);
   wcs->assessment.complete = true;
   return std::shared_ptr<const WcsModel>(wcs);

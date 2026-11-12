@@ -1902,6 +1902,14 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
     combined[leaf] = sum;
     leaf_state[leaf] = 1;
   }
+  // A leaf with no supported contribution is absent: its signal is NaN and its
+  // support area is zero.  The former code left the default 0.0 signal and gave
+  // every absent leaf a full leaf area, so the product claimed support where no
+  // frame had any (the 7 "absent" leaves of the S1 mosaic are really the
+  // unresolved grazing leaves of f1/f2, not regions outside all frames).
+  for (std::size_t leaf = 0; leaf < leaf_count; ++leaf) {
+    if (leaf_state[leaf] == 0) combined[leaf] = std::numeric_limits<double>::quiet_NaN();
+  }
   // The output unit must agree with the covariance unit: C is Var(y), so its
   // unit is unit(y)^2.  An unspecified target unit ("1") inherits the common
   // frame unit; an explicitly different unit is refused instead of silently
@@ -1955,7 +1963,10 @@ Result<CoaddResult> combine_sealed(Context& context, const FramesProvider& frame
     }
     const double leaf_area_sr =
         4.0 * 3.14159265358979323846 / (12.0 * static_cast<double>(1ull << (2 * (selection->index ? selection->index->order : 0))));
-    std::vector<double> area_values(leaf_state.size(), leaf_area_sr);
+    std::vector<double> area_values(leaf_state.size(), 0.0);
+    for (std::size_t leaf = 0; leaf < leaf_state.size(); ++leaf) {
+      if (leaf_state[leaf] == 1) area_values[leaf] = leaf_area_sr;
+    }
     Result<ArrayRef> area_array = operators::write_f64(
         context, area_values, std::vector<U64>{static_cast<U64>(area_values.size())},
         model::unit_sr(), "coadd_support_area");
