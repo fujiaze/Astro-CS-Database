@@ -554,7 +554,7 @@ Result<FitsImage> read_fits_image(const std::filesystem::path& path) {
   // The header cards of the world coordinate solution and of the exposure.
   static const char* kKeys[] = {"CTYPE1", "CTYPE2", "CUNIT1", "CUNIT2", "CRPIX1", "CRPIX2",
                                 "CRVAL1", "CRVAL2", "CD1_1",  "CD1_2",  "CD2_1",  "CD2_2",
-                                "RADESYS", "MJD-OBS", "DATE-OBS", "EXPTIME", "BUNIT"};
+                                "RADESYS", "MJD-OBS", "JD-OBS", "DATE-OBS", "EXPTIME", "BUNIT"};
   for (const char* key : kKeys) {
     char value[80] = {0};
     char comment[80] = {0};
@@ -586,6 +586,75 @@ bool header_double(const HeaderFields& header, const std::string& key, double& v
         return false;
       }
     }
+  }
+  return false;
+}
+
+// The string value of a header card.
+bool header_string(const HeaderFields& header, const std::string& key, std::string& value) {
+  for (const HeaderField& field : header) {
+    if (field.key != key) continue;
+    if (std::holds_alternative<std::string>(field.value)) {
+      value = std::get<std::string>(field.value);
+      return !value.empty();
+    }
+  }
+  return false;
+}
+
+// Julian Date from a civil DATE-OBS value (YYYY-MM-DDThh:mm:ss).  The
+// algorithm is the standard Fliegel-Van Flandern integer day number: it is
+// exact for the Gregorian calendar and needs no lookup table.
+bool civil_julian_date(const std::string& raw, double& jd) {
+  // CFITSIO returns a string card with its quotes (and short strings are
+  // padded): '2025-12-12T04:19:01'.  The date parser must see the content.
+  std::string text = raw;
+  while (!text.empty() && (text.front() == '\'' || text.front() == ' ')) text.erase(text.begin());
+  while (!text.empty() && (text.back() == '\'' || text.back() == ' ')) text.pop_back();
+  int year = 0;
+  int month = 0;
+  int day = 0;
+  int hour = 0;
+  int minute = 0;
+  double second = 0.0;
+  const int matched = std::sscanf(text.c_str(), "%d-%d-%dT%d:%d:%lf", &year, &month, &day, &hour,
+                                  &minute, &second);
+  if (matched < 3) {
+    // Some vendor headers separate the date and the time; accept that form.
+    if (std::sscanf(text.c_str(), "%d-%d-%d", &year, &month, &day) != 3) return false;
+  }
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  const int a = (14 - month) / 12;
+  const long y = static_cast<long>(year) + 4800 - a;
+  const int m = month + 12 * a - 3;
+  const long jdn = static_cast<long>(day) + (153 * m + 2) / 5 + 365 * y + y / 4 - y / 100 +
+                   y / 400 - 32045;
+  jd = static_cast<double>(jdn) - 0.5 +
+       (static_cast<double>(hour) + static_cast<double>(minute) / 60.0 + second / 3600.0) / 24.0;
+  return true;
+}
+
+// The observation epoch.  MJD-OBS is the primary key, JD-OBS the fallback and
+// DATE-OBS the last resort.  A missing epoch is recorded as an omission and
+// the catalogue query refuses to propagate proper motion with an unknown
+// epoch; the former code read only MJD-OBS (absent in all 196 M42 lights) and
+// silently propagated every star by dt = 0 - 2016 years.
+bool observation_mjd(const HeaderFields& header, double& mjd, std::string& source) {
+  if (header_double(header, "MJD-OBS", mjd)) {
+    source = "MJD-OBS";
+    return true;
+  }
+  double jd = 0.0;
+  if (header_double(header, "JD-OBS", jd)) {
+    mjd = jd - 2400000.5;
+    source = "JD-OBS";
+    return true;
+  }
+  std::string date;
+  if (header_string(header, "DATE-OBS", date) && civil_julian_date(date, jd)) {
+    mjd = jd - 2400000.5;
+    source = "DATE-OBS";
+    return true;
   }
   return false;
 }
@@ -667,9 +736,13 @@ Result<Ref<RawObservation>> build_raw_observation(Context& context, const FitsIm
   // The astrometric context of the exposure.
   AstrometricContext astrometric;
   double mjd = 0.0;
-  if (header_double(image.header, "MJD-OBS", mjd)) {
+  std::string epoch_source;
+  if (observation_mjd(image.header, mjd, epoch_source)) {
     astrometric.observation_jd_tdb = mjd + 2400000.5;
     astrometric.epoch_julian_year = 2000.0 + (mjd - 51544.5) / 365.25;
+  } else {
+    astrometric.omitted.push_back(
+        "epoch_unknown: no MJD-OBS, JD-OBS or DATE-OBS; proper motion is not propagated");
   }
 
   auto raw = std::make_shared<RawObservation>();
@@ -1287,10 +1360,12 @@ int run_normalize(Config& config, EventWriter& events, CancellationSource& cance
   U64 published = 0;
   U64 unsolved = 0;
   for (const auto& entry : val(result).frames) {
-    const std::string code = entry.second.issues.empty()
-                                 ? "ok"
-                                 : (entry.second.issues.back().code == Code::ok ? "ok" : "failed");
-    const bool solved = entry.second.complete && code == "ok";
+    // `complete` is the publication flag of the frame: an estimate that was
+    // published with a named conditional issue (a few grazing leaves without
+    // a certified normaliser, unknown noise) is still a product.  Only a
+    // frame that was not published has complete=false.
+    const bool solved = entry.second.complete;
+    const std::string code = solved ? "ok" : "failed";
     if (solved) {
       ++published;
       events.frame_finished(entry.first, "ok", published, config.inputs.size(),

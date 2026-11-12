@@ -185,6 +185,8 @@ OPERATIONS: list[OpBinding] = [
     # geometry.drizzle
     OpBinding("geometry.drizzle", "build_drizzle", "BuildDrizzleInput", FREE,
               "build_drizzle"),
+    OpBinding("geometry.drizzle", "drizzle_grid", "DrizzleGridInput", FREE,
+              "drizzle_grid"),
     # information
     OpBinding("information.reference", "estimate_flux_information",
               "EstimateFluxInformationInput", FREE,

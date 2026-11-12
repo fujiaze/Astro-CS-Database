@@ -156,6 +156,9 @@ template <>
 rt::TypeCodec<acsd::modules::BuildDrizzleInput> type_codec<acsd::modules::BuildDrizzleInput>();
 
 template <>
+rt::TypeCodec<acsd::modules::DrizzleGridInput> type_codec<acsd::modules::DrizzleGridInput>();
+
+template <>
 rt::TypeCodec<acsd::modules::EstimateFluxInformationInput> type_codec<acsd::modules::EstimateFluxInformationInput>();
 
 template <>

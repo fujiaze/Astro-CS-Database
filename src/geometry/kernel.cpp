@@ -445,6 +445,42 @@ RationalPolygon rectangle_polygon(const Block& block) {
 
 }  // namespace
 
+bool build_pixel_model(const WcsModel& wcs, double u0, double u1, double v0, double v1,
+                       PixelBlockModel& out, bool& apex_singular, bool& chart_domain_failure) {
+  Block block;
+  block.u0 = u0;
+  block.u1 = u1;
+  block.v0 = v0;
+  block.v1 = v1;
+  block.depth = 0;
+  BlockModel model;
+  apex_singular = false;
+  chart_domain_failure = false;
+  if (!build_block_model(wcs, block, model, apex_singular, chart_domain_failure, true)) {
+    return false;
+  }
+  out.face = model.face;
+  out.cu = model.cu;
+  out.cv = model.cv;
+  out.s0 = model.s0;
+  out.t0 = model.t0;
+  out.gs_u = model.gs_u;
+  out.gs_v = model.gs_v;
+  out.gt_u = model.gt_u;
+  out.gt_v = model.gt_v;
+  out.e_s = model.e_s;
+  out.e_t = model.e_t;
+  out.s_lo = model.s_lo;
+  out.s_hi = model.s_hi;
+  out.t_lo = model.t_lo;
+  out.t_hi = model.t_hi;
+  out.g0 = model.g0;
+  out.gu = model.gu;
+  out.gv = model.gv;
+  out.e_g = model.e_g;
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // The dyadic ledger
 // ---------------------------------------------------------------------------

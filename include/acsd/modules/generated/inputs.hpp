@@ -322,6 +322,14 @@ struct BuildDrizzleInput {
   Ref<NativeObservation> observation;
   DrizzleRequest request;
 };
+// geometry.drizzle / drizzle_grid
+// Derived from: Result<DrizzleResult> (Context &, Ref<FootprintProvider>, Ref<NativeObservation>, const Box &, const DrizzleRequest &) drizzle_grid(...)
+struct DrizzleGridInput {
+  Ref<FootprintProvider> provider;
+  Ref<NativeObservation> observation;
+  Box window;
+  DrizzleRequest request;
+};
 // information.reference / estimate_flux_information
 // Derived from: Result<Information> (Context &, const InformationRequest &) estimate_flux_information(...)
 struct EstimateFluxInformationInput {

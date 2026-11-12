@@ -85,6 +85,33 @@ struct ChartBox {
 };
 bool chart_enclosure(const WcsModel& wcs, double u0, double u1, double v0, double v1, ChartBox& out);
 
+// The affine chart/density model of one detector rectangle, exposed for the
+// streaming pixel grid.  The values are the same ones cut_cell_overlap uses;
+// the model is the certified enclosure (s_lo..s_hi includes the residual e_s).
+struct PixelBlockModel {
+  U32 face = 0;
+  double cu = 0.0;
+  double cv = 0.0;
+  double s0 = 0.0;
+  double t0 = 0.0;
+  double gs_u = 0.0;
+  double gs_v = 0.0;
+  double gt_u = 0.0;
+  double gt_v = 0.0;
+  double e_s = 0.0;
+  double e_t = 0.0;
+  double s_lo = 0.0;
+  double s_hi = 0.0;
+  double t_lo = 0.0;
+  double t_hi = 0.0;
+  double g0 = 0.0;
+  double gu = 0.0;
+  double gv = 0.0;
+  double e_g = 0.0;
+};
+bool build_pixel_model(const WcsModel& wcs, double u0, double u1, double v0, double v1,
+                       PixelBlockModel& out, bool& apex_singular, bool& chart_domain_failure);
+
 // Overlap of a rectangular detector region with the leaves of the given order.
 //
 // The work is charged to the shared ledger of the context (one unit per

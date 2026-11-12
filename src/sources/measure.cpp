@@ -307,6 +307,24 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
   double window_radius = request.window_radius_pixel;
   if (!(window_radius > 0.0)) window_radius = 8.0 * request.initial_width_pixel;
 
+  // The regular grid is the production detector layout: the sample row is
+  // y*width+x (the same convention candidate_rows verifies).  The former scan
+  // over every sample for every source was both O(stars*native) and fragile
+  // when the DQ index did not match the footprint order.
+  bool regular_grid = footprints.width > 0 && footprints.height > 0 &&
+                      footprints.index->size == footprints.width * footprints.height;
+  for (U64 row = 0; regular_grid && row < sample_count && row < 64; ++row) {
+    const sources::psfmodel::SampleFootprint footprint =
+        sources::psfmodel::sample_footprint(footprints, row);
+    if (!footprint.valid) continue;
+    const U64 x = row % footprints.width;
+    const U64 y = row / footprints.width;
+    regular_grid = footprint.x0 == static_cast<double>(x) - 0.5 &&
+                   footprint.y0 == static_cast<double>(y) - 0.5 &&
+                   footprint.x1 == static_cast<double>(x) + 0.5 &&
+                   footprint.y1 == static_cast<double>(y) + 0.5;
+    break;
+  }
   for (const CatalogueStar& star : stars) {
     Result<PixelCenter0> position = sources::psfmodel::detector_position(
         context, wcs, star, observation->context, request.budget);
@@ -314,17 +332,31 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
     const PixelCenter0& point = val(position);
     // The saturation mask: the samples around the source must be usable.
     bool saturated = false;
-    for (U64 row = 0; row < sample_count && !saturated; ++row) {
-      if ((row & 0x3F) == 0 && context.cancellation.requested()) {
-        return model::fail<Ref<SourceMeasurements>>(Code::cancelled, "cancelled", kOrigin,
-                                                    "the measurement was cancelled");
+    if (regular_grid && !quality.empty()) {
+      const long long cx = static_cast<long long>(std::llround(point.x));
+      const long long cy = static_cast<long long>(std::llround(point.y));
+      if (cx >= 0 && cy >= 0 && cx < static_cast<long long>(footprints.width) &&
+          cy < static_cast<long long>(footprints.height)) {
+        const U64 row = static_cast<U64>(cy) * footprints.width + static_cast<U64>(cx);
+        if (row < quality.size() &&
+            (quality[static_cast<std::size_t>(row)] & observation::kDqSaturated) != 0u) {
+          saturated = true;
+        }
       }
-      const sources::psfmodel::SampleFootprint footprint =
-          sources::psfmodel::sample_footprint(footprints, row);
-      if (!footprint.valid) continue;
-      if (point.x < footprint.x0 || point.x > footprint.x1) continue;
-      if (point.y < footprint.y0 || point.y > footprint.y1) continue;
-      if (row < quality.size() && (quality[row] & observation::kDqSaturated) != 0u) saturated = true;
+    } else {
+      for (U64 row = 0; row < sample_count && !saturated; ++row) {
+        if ((row & 0x3F) == 0 && context.cancellation.requested()) {
+          return model::fail<Ref<SourceMeasurements>>(Code::cancelled, "cancelled", kOrigin,
+                                                      "the measurement was cancelled");
+        }
+        const sources::psfmodel::SampleFootprint footprint =
+            sources::psfmodel::sample_footprint(footprints, row);
+        if (!footprint.valid) continue;
+        if (point.x < footprint.x0 || point.x > footprint.x1) continue;
+        if (point.y < footprint.y0 || point.y > footprint.y1) continue;
+        if (row < quality.size() && (quality[row] & observation::kDqSaturated) != 0u)
+          saturated = true;
+      }
     }
     if (saturated) continue;
     Candidate candidate;
@@ -348,6 +380,10 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
       }
     }
     if (!neighbour) selected.push_back(candidate);
+  }
+  if (std::getenv("ACSD_FLOW_DEBUG")) {
+    std::fprintf(stderr, "measure: candidates=%zu selected=%zu stars=%zu quality=%zu\n",
+                 candidates.size(), selected.size(), stars.size(), quality.size());
   }
   if (selected.empty()) {
     return model::fail<Ref<SourceMeasurements>>(Code::no_support,
@@ -379,6 +415,10 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
     }
     if (inside) window_rows.push_back(row);
   }
+  if (std::getenv("ACSD_FLOW_DEBUG")) {
+    std::fprintf(stderr, "measure: window_rows=%zu positions=%zu\n", window_rows.size(),
+                 positions.size());
+  }
   if (window_rows.empty()) {
     return model::fail<Ref<SourceMeasurements>>(Code::no_support,
                                                 "the measurement window has no sample", kOrigin,
@@ -398,7 +438,15 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
   Ref<FootprintSet> detector_samples;
   Ref<LinearAction> transfer;
   psf_transfer(context, observation, detector_samples, transfer);
-  const bool identity_transfer = !transfer;
+  // A transfer whose domain and codomain are the same index maps the native
+  // samples onto themselves (a diagonal calibration scale): the dependency set
+  // of a window row is the same row, so the per-row unit-vector scan is both
+  // unnecessary and quadratic in the frame size.  The scientific dependency is
+  // the identity of the index, exactly as in evaluate_psf.
+  const bool same_index_transfer =
+      transfer && transfer->spaces.domain && transfer->spaces.codomain &&
+      transfer->spaces.domain == transfer->spaces.codomain;
+  const bool identity_transfer = !transfer || same_index_transfer;
   U64 output_count = sample_count;
   if (transfer) {
     if (!transfer->spaces.codomain) {
@@ -460,6 +508,10 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
     std::sort(measurement_rows.begin(), measurement_rows.end());
     measurement_rows.erase(std::unique(measurement_rows.begin(), measurement_rows.end()),
                            measurement_rows.end());
+  }
+  if (std::getenv("ACSD_FLOW_DEBUG")) {
+    std::fprintf(stderr, "measure: measurement_rows=%zu identity=%d\n",
+                 measurement_rows.size(), identity_transfer ? 1 : 0);
   }
   if (measurement_rows.empty()) {
     return model::fail<Ref<SourceMeasurements>>(Code::no_support,
@@ -615,8 +667,31 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
     }
     background_column = val(column);
   }
+  // The background model of every source: a local plane (constant + two
+  // linear terms) over its own window, not one constant shared by the whole
+  // frame.  A constant over a 21x21 window in the M42 nebula leaves a
+  // background gradient of ~1e3 ADU/px in the residuals and drives the flux
+  // of a real star to -1.2e6 ADU; the plane is the minimal model that removes
+  // the local tilt while keeping the flux orthogonal to it.  The windows are
+  // disjoint, so the background blocks are block-diagonal.
+  std::vector<std::size_t> row_source(rows, sources);
+  for (std::size_t k = 0; k < rows; ++k) {
+    const U64 row = measurement_rows[k];
+    const sources::psfmodel::SampleFootprint sample =
+        sources::psfmodel::sample_footprint(footprints, row);
+    if (!sample.valid) continue;
+    const double cx = 0.5 * (sample.x0 + sample.x1);
+    const double cy = 0.5 * (sample.y0 + sample.y1);
+    for (std::size_t s = 0; s < sources; ++s) {
+      const Candidate& candidate = selected[s];
+      if (cx < candidate.window.lower[0] || cx > candidate.window.upper[0]) continue;
+      if (cy < candidate.window.lower[1] || cy > candidate.window.upper[1]) continue;
+      row_source[k] = s;
+      break;
+    }
+  }
   bool background_is_one = true;
-  const std::size_t parameters = sources + 1;
+  const std::size_t parameters = sources + 3 * sources;
   Matrix design(rows, parameters);
   std::vector<double> measurement(rows, 0.0);
   std::vector<double> measurement_lower(rows, 0.0);
@@ -627,7 +702,16 @@ Result<Ref<SourceMeasurements>> measure_science_sources(Context& context,
       design(k, s) = val(template_values)[k * sources + s];
     }
     const double z = row < background_column.size() ? background_column[row] : 1.0;
-    design(k, sources) = z;
+    const std::size_t star = row_source[k] < sources ? row_source[k] : 0;
+    if (row_source[k] < sources) {
+      const sources::psfmodel::SampleFootprint sample =
+          sources::psfmodel::sample_footprint(footprints, row);
+      const double cx = 0.5 * (sample.x0 + sample.x1);
+      const double cy = 0.5 * (sample.y0 + sample.y1);
+      design(k, sources + 3 * star) = z;
+      design(k, sources + 3 * star + 1) = z * (cx - selected[star].position.x);
+      design(k, sources + 3 * star + 2) = z * (cy - selected[star].position.y);
+    }
     if (z != 1.0) background_is_one = false;
     measurement[k] = row < val(data).size() ? val(data)[static_cast<std::size_t>(row)] : 0.0;
     measurement_lower[k] =

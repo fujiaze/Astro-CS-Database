@@ -309,7 +309,10 @@ Result<rt::InvocationPlan> plan_calibration(rt::InvocationContext, Ref<Calibrate
   calibrate_stage.id = 1;
   calibrate_stage.predecessors = {0};
   calibrate_stage.scratch.host_bytes = workspace;
-  calibrate_stage.output_upper.host_bytes = output_payload;
+  // The five output buffers are 3*8n + 2n = 26n bytes exactly; the arena
+  // charges a per-buffer header/alignment, so an exact-fit declaration made
+  // the last (DQ) allocation fail by a few bytes on a full-frame cohort.
+  calibrate_stage.output_upper.host_bytes = saturating_add(output_payload, 64 * 1024);
   calibrate_stage.control_bytes = kStageControlBytes;
   // One work unit per native sample, including the data quality skips.
   calibrate_stage.work_upper = n;

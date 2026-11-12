@@ -158,9 +158,32 @@ U64 measure_elements(const MeasureScienceSourcesInput& input) {
 U64 measure_work(const MeasureScienceSourcesInput& input) {
   const U64 stars = measure_elements(input);
   const U64 samples = window_samples(input.request);
-  const U64 bounded =
+  U64 bounded =
       saturating_mul(saturating_mul(stars, samples),
                      saturating_add(static_cast<U64>(input.request.budget.max_iterations), 2));
+  // evaluate_psf scans the native samples that can carry each source's mass
+  // (candidate_rows): one work unit per candidate per source.  Without this
+  // term a 24-source measurement of a 4096x4096 frame exceeds the declared
+  // upper bound and is refused as resource_exhausted.
+  const U64 native = input.observation && input.observation->native_index
+                         ? input.observation->native_index->size
+                         : 0;
+  bounded = saturating_add(bounded, saturating_mul(stars, native));
+  // A grouping action whose domain and codomain are the same index is a
+  // diagonal scale: the window dependency is the window itself.  Only a real
+  // regrouping (a different codomain) needs one apply per window row, and that
+  // cost is native-sized.
+  const Ref<NativeObservation>& observation = input.observation;
+  const bool regrouping = observation && observation->regrouping &&
+                          observation->regrouping->spaces.domain &&
+                          observation->regrouping->spaces.codomain &&
+                          !(observation->regrouping->spaces.domain ==
+                            observation->regrouping->spaces.codomain);
+  if (regrouping) {
+    const U64 native = observation->native_index ? observation->native_index->size : 0;
+    const U64 scan = saturating_mul(saturating_mul(stars, samples), native);
+    bounded = saturating_add(bounded, scan);
+  }
   return std::max<U64>(bounded, 1ull << 20);
 }
 

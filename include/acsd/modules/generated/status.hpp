@@ -29,7 +29,7 @@ const std::vector<Id>& bounds_provisional_operations();
 // order (shared model/output codecs first, Input wrappers afterwards).
 const std::vector<std::pair<Id, U32>>& registered_type_ids();
 
-// The 57 Input TypeId schemas, in whitelist order.
+// The 58 Input TypeId schemas, in whitelist order.
 const std::vector<Id>& input_type_ids();
 
 // One generated status manifest: process/operation, TypeIds, run integration

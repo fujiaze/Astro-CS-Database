@@ -261,7 +261,8 @@ Result<std::string> collect_noise(Context& context, ProductBuilder& builder,
 }
 
 Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
-                                   const SignalEstimate& estimate) {
+                                   const SignalEstimate& estimate,
+                                   Assessment* effective_assessment = nullptr) {
   Result<Id> signal = persist_array(context, builder, estimate.signal);
   if (!ok(signal)) {
     return fail<std::string>(signal.code, "the signal cannot be stored", "product.write",
@@ -440,6 +441,7 @@ Result<std::string> collect_signal(Context& context, ProductBuilder& builder,
   }
   store_object(builder, effective.identity.object_id, "acsd.SignalEstimate",
                workflows::encode_signal_estimate(effective));
+  if (effective_assessment) *effective_assessment = effective.assessment;
   return ok_result(std::string());
 }
 
@@ -890,6 +892,30 @@ class ProductReader {
       }
       *link.second = val(array);
     }
+    // The spatial actions are the response operator itself: dropping them
+    // (the old reader did) leaves a response whose id no longer describes its
+    // content, and the export cannot apply the published response.
+    if (val(payload).contains("spatial_actions")) {
+      for (const json& ref : val(payload).at("spatial_actions")) {
+        const Id id = workflows::decode_ref(ref);
+        if (id.empty()) continue;
+        Result<Ref<LinearAction>> resolved = action(id);
+        if (!ok(resolved)) {
+          return fail<Ref<SpatialResponse>>(
+              resolved.code,
+              resolved.assessment.issues.empty() ? "a response action cannot be reopened"
+                                                 : "a response action cannot be reopened: " +
+                                                       resolved.assessment.issues.front().reason,
+              "product.read", "the product cannot be reopened");
+        }
+        response.spatial_actions.push_back(val(resolved));
+      }
+    }
+    if (val(payload).contains("responses") && !val(payload).at("responses").empty()) {
+      return fail<Ref<SpatialResponse>>(
+          Code::unsupported, "the response factors have no product codec",
+          "product.read", "the response cannot be reopened");
+    }
     auto result = std::make_shared<SpatialResponse>(response);
     return ok_result(std::shared_ptr<const SpatialResponse>(result));
   }
@@ -1010,6 +1036,23 @@ class ProductReader {
     // operator Q here so that C_out = Q C_leaf Q^T remains auditable after a
     // reopen.  A closure entry that is not an action is left to its own typed
     // reader; an action that cannot be reopened is a real closure failure.
+    if (val(payload).contains("closure_actions")) {
+      for (const json& ref : val(payload).at("closure_actions")) {
+        const Id id = workflows::decode_ref(ref);
+        if (id.empty()) continue;
+        Result<Ref<LinearAction>> reopened = action(id);
+        if (!ok(reopened)) {
+          return fail<Ref<ProductGraph>>(
+              reopened.code,
+              reopened.assessment.issues.empty()
+                  ? "the typed action closure cannot be reopened"
+                  : "the typed action closure cannot be reopened: " +
+                        reopened.assessment.issues.front().reason,
+              "product.read", "the product cannot be reopened");
+        }
+        graph.closure_actions.push_back(val(reopened));
+      }
+    }
     if (val(payload).contains("closure")) {
       for (const json& ref : val(payload).at("closure")) {
         const Id id = workflows::decode_ref(ref);
@@ -1206,18 +1249,31 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
   }
 
   ProductBuilder builder;
-  Result<std::string> collected = collect_signal(context, builder, *graph->signal);
+  Assessment effective_assessment = graph->assessment;
+  Result<std::string> collected =
+      collect_signal(context, builder, *graph->signal, &effective_assessment);
   if (!ok(collected)) {
-    // The signal is published without the closure that could not be reopened.
-    builder.omitted.push_back(collected.assessment.issues.empty()
-                                   ? "the closure is incomplete"
-                                   : collected.assessment.issues.front().reason);
-    builder.objects.clear();
-    builder.blocks.clear();
-    builder.arrays.clear();
-    builder.capabilities.clear();
-    Result<std::string> retry = collect_signal(context, builder, *graph->signal);
-    (void)retry;
+    // A product whose closure cannot be written is not published at all: the
+    // former retry path published a partial product with a "complete"
+    // manifest, which is exactly the fail-open defect the review found.
+    return fail<ProductLocation>(
+        collected.code, collected.assessment.issues.empty()
+                            ? "the signal closure cannot be stored"
+                            : collected.assessment.issues.front().reason,
+        "publish_product", "the product cannot be published");
+  }
+  // Every typed closure object (the export projection Q) is part of the
+  // product: it is stored with its full action closure before publication.
+  for (const Ref<LinearAction>& action : graph->closure_actions) {
+    if (!action) continue;
+    Result<std::string> stored = collect_action(context, builder, *action);
+    if (!ok(stored)) {
+      return fail<ProductLocation>(
+          stored.code, stored.assessment.issues.empty()
+                           ? "a closure action cannot be stored"
+                           : stored.assessment.issues.front().reason,
+          "publish_product", "the product cannot be published");
+    }
   }
 
   // The staging directory lives on the same file system as the destination.
@@ -1253,8 +1309,12 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
                                                    "publish_product", "the product cannot be published");
   }
 
-  // The sidecar: the root object of the graph.
-  const workflows::json root_payload = workflows::encode_product_graph(*graph);
+  // The sidecar: the root object of the graph.  Its assessment is the one of
+  // the estimate that was actually stored (the downgraded effective state),
+  // never the pre-downgrade request state.
+  ProductGraph sidecar_graph = *graph;
+  sidecar_graph.assessment = effective_assessment;
+  const workflows::json root_payload = workflows::encode_product_graph(sidecar_graph);
   const Id root_hash = workflows::canonical_id(root_payload);
   const workflows::json root_object = workflows::json{{"type", "acsd.ProductGraph"},
                                                        {"data", root_payload}};
@@ -1311,9 +1371,21 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
         }
       }
     }
-    Result<std::string> tiles = workflows::write_hips_order(staging / "signal", order, tile_log2_width,
-                                                             leaves, val(values),
-                                                             graph->signal->unit.scale);
+    std::vector<std::uint8_t> support_states;
+    if (support->states) {
+      U64 count = 1;
+      for (U64 extent : support->states->shape) count *= extent;
+      Result<ArrayView> view =
+          context.storage.read(context, support->states, BlockRequest{0, count});
+      if (!ok(view)) {
+        return fail<ProductLocation>(Code::io_error, "the support states cannot be read",
+                                     "publish_product", "the product cannot be published");
+      }
+      support_states = model::decode_u8(val(view).bytes);
+    }
+    Result<std::string> tiles = workflows::write_hips_order(
+        staging / "signal", order, tile_log2_width, leaves, val(values), support_states,
+        graph->signal->unit.scale);
     if (!ok(tiles)) {
       return fail<ProductLocation>(tiles.code, tiles.assessment.issues.front().reason,
                                    "publish_product", "the product cannot be published");
@@ -1384,8 +1456,8 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
   // `complete` describes the scientific closure, not the fact that the files
   // were written.  A named omission makes the closure conditional instead of
   // silently upgrading it to complete.
-  manifest.assessment.complete = builder.omitted.empty();
-  if (!builder.omitted.empty()) {
+  manifest.assessment.complete = builder.omitted.empty() && effective_assessment.complete;
+  if (!builder.omitted.empty() || !effective_assessment.complete) {
     manifest.assessment.science = ScienceState::conditional;
   }
 
@@ -1554,6 +1626,36 @@ Result<Ref<ProductProvider>> open_product(Context& context, const ProductLocatio
                                         "open_product", "the product cannot be opened");
     }
     objects[entry.hash] = parsed;
+  }
+
+  // The product must be closed: every $ref reachable from a stored object
+  // names an object of this manifest, and every payload identity matches its
+  // manifest key.  A reader that skips this check opens a corrupted product.
+  {
+    std::set<Id> declared;
+    for (const ObjectEntry& entry : manifest.objects) declared.insert(entry.hash);
+    std::vector<Id> refs;
+    for (const auto& entry : objects) {
+      const workflows::json& payload = entry.second;
+      if (payload.contains("data") && payload["data"].contains("identity") &&
+          payload["data"]["identity"].contains("object_id")) {
+        const Id payload_id = payload["data"]["identity"]["object_id"].get<Id>();
+        if (payload_id != entry.first) {
+          return fail<Ref<ProductProvider>>(
+              Code::hash_mismatch,
+              "the object " + entry.first + " carries the identity of " + payload_id,
+              "open_product", "the product cannot be opened");
+        }
+      }
+      collect_object_refs(payload, refs);
+    }
+    for (const Id& ref : refs) {
+      if (declared.count(ref) == 0) {
+        return fail<Ref<ProductProvider>>(
+            Code::corrupt_product, "the object " + ref + " is referenced but not in the product",
+            "open_product", "the product cannot be opened");
+      }
+    }
   }
 
   ProductReader reader(context, root, manifest, objects);

@@ -8,7 +8,7 @@ output is a deterministic, reviewable set of files:
   include/acsd/modules/generated/codecs.hpp     type_codec<T> specialisations
   include/acsd/modules/generated/status.hpp     coverage/bounds/run status
   src/runtime/generated/codecs.cpp              schema + decode/encode + types
-  src/runtime/generated/typed_operations.cpp    57 Operation hook sets
+  src/runtime/generated/typed_operations.cpp    58 Operation hook sets
   src/runtime/generated/builtin_processes.cpp   22 ProcessDescriptors
   src/runtime/generated/status.cpp              generated status/report data
 
@@ -371,7 +371,7 @@ CONTAINER_KINDS = ("vector", "array", "optional", "variant")
 
 
 class CodecRegistry:
-    """All wire codec functions reachable from the 57 Inputs and their Outputs."""
+    """All wire codec functions reachable from the 58 Inputs and their Outputs."""
 
     def __init__(self, model: DeclarationModel):
         self.model = model
@@ -1145,7 +1145,7 @@ const std::vector<Id>& bounds_provisional_operations();
 // order (shared model/output codecs first, Input wrappers afterwards).
 const std::vector<std::pair<Id, U32>>& registered_type_ids();
 
-// The 57 Input TypeId schemas, in whitelist order.
+// The 58 Input TypeId schemas, in whitelist order.
 const std::vector<Id>& input_type_ids();
 
 // One generated status manifest: process/operation, TypeIds, run integration
@@ -1892,7 +1892,7 @@ def generate(root: Path, check_only: bool) -> list[Path]:
                 f"{process_id}: generated operations "
                 f"{sorted(generated[process_id])} differ from the whitelist "
                 f"{sorted(operations)}")
-    if len(specs) != 57 or len(metadata) != 22:
+    if len(specs) != 58 or len(metadata) != 22:
         raise SystemExit(f"coverage mismatch: {len(metadata)} processes / "
                          f"{len(specs)} operations")
 

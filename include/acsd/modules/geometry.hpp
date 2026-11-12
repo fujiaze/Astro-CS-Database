@@ -51,5 +51,7 @@ Result<rt::InvocationPlan> plan_geometry_overlap_refinable_refine(
 // Host uses and never reserves capacity or runs science.
 Result<rt::InvocationPlan> plan_geometry_drizzle_build_drizzle(
     rt::InvocationContext, Ref<BuildDrizzleInput>, rt::PlanOptions);
+Result<rt::InvocationPlan> plan_geometry_drizzle_drizzle_grid(
+    rt::InvocationContext, Ref<DrizzleGridInput>, rt::PlanOptions);
 
 }  // namespace acsd::modules

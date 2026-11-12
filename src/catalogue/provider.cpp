@@ -359,6 +359,15 @@ Result<CataloguePage> CatalogueProviderImpl::query(Context& context,
     return model::fail<CataloguePage>(Code::invalid_request, "the epoch must be finite",
                                       "catalogue.query", "the page cannot be produced");
   }
+  if (!(request.epoch_julian_year > 0.0)) {
+    // An unknown epoch is not "J2000": propagating a proper motion with a
+    // zero epoch moves every star by the full catalogue baseline (2016 years
+    // for Gaia DR3) and silently corrupts every position downstream.
+    return model::fail<CataloguePage>(
+        Code::unavailable,
+        "the observation epoch is unknown; proper motion cannot be propagated",
+        "catalogue.query", "the page cannot be produced");
+  }
   const double norm = std::sqrt(request.region.center.nx * request.region.center.nx +
                                 request.region.center.ny * request.region.center.ny +
                                 request.region.center.nz * request.region.center.nz);

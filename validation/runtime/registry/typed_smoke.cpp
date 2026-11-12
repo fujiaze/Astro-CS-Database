@@ -1,7 +1,7 @@
 // Independent smoke test of the generated typed bindings (M0).
 //
 // Only public headers and the generated headers are included: the test proves
-// that the frozen registry is fully populated (22 processes / 57 operations),
+// that the frozen registry is fully populated (22 processes / 58 operations),
 // that the generated manifest and TypeId table are complete and stable, that
 // the wire codecs are real (they reject malformed/unknown payloads instead of
 // fabricating defaults) and that the registry refuses duplicate registration
@@ -126,8 +126,8 @@ int main() {
   check(expected.size() == 22,
         "22 processes are declared (got " +
             std::to_string(expected.size()) + ")");
-  check(operation_count == 57,
-        "57 operations are declared (got " +
+  check(operation_count == 58,
+        "58 operations are declared (got " +
             std::to_string(operation_count) + ")");
   check(!registry->has("observation.calibrate", "not_an_operation"),
         "an unknown operation is not registered");
@@ -158,8 +158,8 @@ int main() {
     check(contains(manifest, "\"schema\":\"" + type_id + "\""),
           "manifest lists input TypeId " + type_id);
   }
-  check(generated::input_type_ids().size() == 57,
-        "57 Input TypeIds are generated");
+  check(generated::input_type_ids().size() == 58,
+        "58 Input TypeIds are generated");
 
   // ---------------------------------------------------------------------
   // Every registered TypeCodec is complete, unique and its schema carries the

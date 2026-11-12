@@ -96,6 +96,8 @@ Result<rt::Done> check_input_units_MakeActionInput(
     const acsd::modules::MakeActionInput& value, std::string_view origin);
 Result<rt::Done> check_input_units_BuildDrizzleInput(
     const acsd::modules::BuildDrizzleInput& value, std::string_view origin);
+Result<rt::Done> check_input_units_DrizzleGridInput(
+    const acsd::modules::DrizzleGridInput& value, std::string_view origin);
 Result<rt::Done> check_input_units_EstimateFluxInformationInput(
     const acsd::modules::EstimateFluxInformationInput& value, std::string_view origin);
 Result<rt::Done> check_input_units_SelectSamplesInput(

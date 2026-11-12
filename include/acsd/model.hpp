@@ -428,7 +428,12 @@ struct ExportRequest { OutputWcs target; enum class Quantity { supported_mean,su
   bool assume_uniform_uncovered; DType output_dtype; GeometryBudget budget; };
 struct ExportResult { Ref<LinearAction> Q; Ref<SignalEstimate> estimate; OutputWcs target; };
 struct ProductGraph : Model { enum class Stage { normalize,mosaic,export_image } stage;
-  Ref<SignalEstimate> signal; std::vector<Ref<Model>> closure;
+  Ref<SignalEstimate> signal;
+  // Typed closure objects: the export projection Q (and any future closure
+  // action) is a LinearAction, not an untyped Model reference.  The legacy
+  // untyped list stays for the historical encoding and is never populated.
+  std::vector<Ref<LinearAction>> closure_actions;
+  std::vector<Ref<Model>> closure;
   std::vector<Id> inputs; std::string profile; };
 struct ObjectEntry { Id hash; std::string path,type; U32 major,minor; };
 struct AlgorithmIdentity { std::string name,version; Id source_hash; };
@@ -490,6 +495,11 @@ Result<Ref<SpectralPrediction>> integrate_response(Context& context,Ref<Response
 Result<Ref<PhotoSolution>> fit_photometry(Context& context,std::span<const Ref<SourceMeasurements>> measurements,std::span<const CatalogueStar> stars,std::span<const Ref<SpectralPrediction>> predictions,const PhotometryRequest& request);
 Result<Ref<NativeObservation>> apply_scale(Context& context,Ref<PhotoSolution> solution,Ref<NativeObservation> observation,Id frame);
 Result<DrizzleResult> build_drizzle(Context& context,Ref<Overlaps> overlaps,Ref<NativeObservation> observation,const DrizzleRequest& request);
+// The streaming form of the same drizzle: it walks the detector pixel grid
+// directly (window = [lower,upper) pixel indices, 0-based) and never
+// materialises one OverlapContribution per (pixel, leaf) pair.  The estimand
+// and every enclosure are those of build_drizzle.
+Result<DrizzleResult> drizzle_grid(Context& context,Ref<FootprintProvider> provider,Ref<NativeObservation> observation,const Box& window,const DrizzleRequest& request);
 Result<Ref<GeometryRevision>> refine_geometry(Context& context,const RefinableGeometryProvider& provider,Ref<GeometrySnapshot> base,const GeometryBudget& request);
 Result<ArrayRef> apply(Context& context,Ref<LinearAction> action,ArrayRef values);
 Result<ArrayRef> transpose_apply(Context& context,Ref<LinearAction> action,ArrayRef values);

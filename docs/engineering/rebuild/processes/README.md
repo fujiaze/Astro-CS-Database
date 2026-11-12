@@ -17,7 +17,7 @@
 | [geometry.overlap](geometry.overlap.md) | geometry | make_footprint_provider,detector_footprint,footprint,measure,compute_overlap,refine_geometry,footprint.forward_interval,footprint.boundary_interval,footprint.derivative_interval,refinable.open,refinable.refine |
 | [operators.action](operators.action.md) | operators | make_action,apply,transpose_apply,compose,action.dependency_blocks,action.serialize_recipe,action.row_enclosure |
 | [uncertainty.covariance](uncertainty.covariance.md) | uncertainty | make_covariance,covariance_apply,quadratic_form,geometry_covariance_bound,control_covariance |
-| [geometry.drizzle](geometry.drizzle.md) | geometry | build_drizzle |
+| [geometry.drizzle](geometry.drizzle.md) | geometry | build_drizzle,drizzle_grid |
 | [information.reference](information.reference.md) | information | estimate_flux_information |
 | [information.scene](information.scene.md) | information | evaluate_scene_variance,build_supported_triangulation,reconstruct_scene_variance |
 | [sky.controls](sky.controls.md) | sky | build_sky_controls |

@@ -284,6 +284,146 @@ rt::Task<DrizzleResult> finalize_build_drizzle(
   return rt::ready<DrizzleResult>(ctx, std::move(partial));
 }
 
+
+// ---------------------------------------------------------------------------
+// drizzle_grid: the streaming form of the same drizzle (pixel grid window)
+// ---------------------------------------------------------------------------
+
+Result<Done> validate_drizzle_grid(rt::InvocationContext ctx,
+                                   Ref<DrizzleGridInput> input) {
+  if (!input)
+    return failure<Done>(Code::invalid_request, "the typed input is null",
+                         "the drizzle cannot run");
+  if (!ctx.ids.process.empty() && ctx.ids.process != kProcess)
+    return failure<Done>(Code::invalid_request,
+                         "the invocation process id does not match " + std::string(kProcess),
+                         "the drizzle cannot run");
+  if (!ctx.ids.operation.empty() && ctx.ids.operation != "drizzle_grid")
+    return failure<Done>(Code::invalid_request,
+                         "the invocation operation id does not match drizzle_grid",
+                         "the drizzle cannot run");
+  if (!input->provider || !input->provider->model())
+    return failure<Done>(Code::invalid_request,
+                         "the pixel grid needs a footprint provider with a model",
+                         "the drizzle cannot run");
+  if (!input->observation || !input->observation->integrated_values)
+    return failure<Done>(Code::invalid_request,
+                         "the native observation has no integrated values",
+                         "the drizzle cannot run");
+  if (!input->observation->footprints || input->observation->footprints->width == 0 ||
+      input->observation->footprints->height == 0)
+    return failure<Done>(Code::invalid_request,
+                         "the native observation has no pixel grid",
+                         "the drizzle cannot run");
+  if (input->request.order > coordinates::kMaxOrder)
+    return failure<Done>(Code::invalid_request,
+                         "order exceeds the supported HEALPix order",
+                         "the drizzle cannot run");
+  if (!(input->request.pixfrac > 0.0) || input->request.pixfrac > 1.0)
+    return failure<Done>(Code::invalid_request, "pixfrac must be within (0,1]",
+                         "the drizzle cannot run");
+  const Box& window = input->window;
+  if (!(window.lower[0] >= 0.0) || !(window.lower[1] >= 0.0) ||
+      !(window.upper[0] <= static_cast<double>(input->observation->footprints->width)) ||
+      !(window.upper[1] <= static_cast<double>(input->observation->footprints->height)) ||
+      !(window.upper[0] > window.lower[0]) || !(window.upper[1] > window.lower[1]))
+    return failure<Done>(Code::invalid_request,
+                         "the window is not a non-empty sub-rectangle of the pixel grid",
+                         "the drizzle cannot run");
+  return model::ok_result(Done{});
+}
+
+Result<rt::PlanBounds> bounds_drizzle_grid(rt::InvocationContext,
+                                           Ref<DrizzleGridInput> input) {
+  const double rows = input->window.upper[1] - input->window.lower[1];
+  const double cols = input->window.upper[0] - input->window.lower[0];
+  const U64 pixels = static_cast<U64>(std::max(1.0, rows * cols));
+  return model::ok_result(bounds_of(pixels, false));
+}
+
+Result<rt::InvocationPlan> plan_drizzle_grid(rt::InvocationContext,
+                                             Ref<DrizzleGridInput> input,
+                                             rt::PlanOptions options) {
+  const double rows = input->window.upper[1] - input->window.lower[1];
+  const double cols = input->window.upper[0] - input->window.lower[0];
+  const U64 pixels = static_cast<U64>(std::max(1.0, rows * cols));
+  // Each pixel costs one traversal unit; a boundary pixel adds a bounded clip.
+  // The plan declares a safe upper bound; the kernel charges its real work.
+  const U64 work = sat_mul(pixels, 24) + 1024;
+  // R: the observation arrays and the immutable WCS/metadata.
+  const U64 r = observation_bytes(input->observation) + 64 * 1024;
+  // F: the accumulator members (one (source, weight) pair per contribution)
+  // plus the compact CSR rows; both are source-sized.
+  const U64 f = sat_mul(pixels, 2 * (sizeof(U64) + sizeof(double)) + 8 * 3) +
+                sat_mul(pixels, sizeof(double) * 2) + 16 * 1024 * 1024;
+  return model::ok_result(plan_of(
+      options, work, r, f,
+      digest({"drizzle_grid", input->provider->model()->identity.object_id,
+              input->observation->identity.object_id, std::to_string(pixels),
+              std::to_string(input->request.order),
+              std::to_string(input->request.pixfrac)})));
+}
+
+rt::Task<DrizzleResult> run_drizzle_grid(rt::InvocationContext ctx,
+                                         Ref<DrizzleGridInput> input,
+                                         Ref<rt::InvocationPlan> plan) {
+  if (!plan)
+    return rt::ready<DrizzleResult>(
+        ctx, failure<DrizzleResult>(Code::invalid_request, "no invocation plan supplied",
+                                    "the drizzle cannot run"));
+  U64 work = plan->elements;
+  if (!plan->regions.empty() && !plan->regions.front().stages.empty())
+    work = plan->regions.front().stages.front().work_upper;
+  rt::TaskSpec spec;
+  spec.key = rt::Key{plan->epoch, 0, 0, 0};
+  spec.running.cpu_tokens = 1;
+  spec.work_upper = std::max<U64>(1, work);
+  spec.semantic = Id("drizzle_grid");
+  return rt::submit_cpu<DrizzleResult>(
+      ctx, spec, [input](rt::InvocationContext task) -> Result<DrizzleResult> {
+        Result<std::shared_ptr<rt::detail::ScienceContext>> bridge =
+            rt::detail::make_science_context(task, task.progress);
+        if (!ok(bridge) || !bridge.value)
+          return failure<DrizzleResult>(
+              bridge.code == Code::ok ? Code::internal : bridge.code,
+              "the runtime science-context bridge cannot be created",
+              "the drizzle cannot run");
+        return drizzle_grid((*bridge.value)->context(), input->provider, input->observation,
+                            input->window, input->request);
+      });
+}
+
+rt::Task<DrizzleResult> finalize_drizzle_grid(rt::InvocationContext ctx,
+                                              Ref<DrizzleGridInput>,
+                                              Ref<rt::InvocationPlan>,
+                                              Result<DrizzleResult> partial) {
+  if (partial.code != Code::ok || !partial.value)
+    return rt::ready<DrizzleResult>(ctx, std::move(partial));
+  const DrizzleResult& result = *partial.value;
+  Result<Done> checked = model::ok_result(Done{});
+  if (!result.op)
+    checked = failure<Done>(Code::invalid_model, "the drizzle operator is null",
+                            "not publishable");
+  else if (!result.estimate || !result.estimate->signal)
+    checked = failure<Done>(Code::invalid_model, "the drizzle estimate carries no signal",
+                            "not publishable");
+  else if (result.estimate->numerical_lower &&
+           result.estimate->numerical_upper &&
+           element_count(result.estimate->numerical_lower->shape) !=
+               element_count(result.estimate->signal->shape))
+    checked = failure<Done>(Code::invalid_model,
+                            "the drizzle lower bound is not co-indexed with the signal",
+                            "not publishable");
+  if (!ok(checked)) {
+    Result<DrizzleResult> failed =
+        failure<DrizzleResult>(checked.code,
+                               "the drizzle result violates its immutable output contract",
+                               "the result is not published");
+    return rt::ready<DrizzleResult>(ctx, std::move(failed));
+  }
+  return rt::ready<DrizzleResult>(ctx, std::move(partial));
+}
+
 }  // namespace
 
 // Public plan introspection for the independent process tests.
@@ -291,6 +431,11 @@ Result<rt::InvocationPlan> plan_geometry_drizzle_build_drizzle(
     rt::InvocationContext ctx, Ref<BuildDrizzleInput> input,
     rt::PlanOptions options) {
   return plan_build_drizzle(ctx, std::move(input), options);
+}
+
+Result<rt::InvocationPlan> plan_geometry_drizzle_drizzle_grid(
+    rt::InvocationContext ctx, Ref<DrizzleGridInput> input, rt::PlanOptions options) {
+  return plan_drizzle_grid(ctx, std::move(input), options);
 }
 
 Result<rt::Done> register_geometry_drizzle(rt::RegistryBuilder& builder) {
@@ -307,13 +452,20 @@ Result<rt::Done> register_geometry_drizzle(rt::RegistryBuilder& builder) {
     return failure<Done>(process.code,
                          "the geometry.drizzle process cannot be begun",
                          "the process cannot be registered");
-  return builder.add<BuildDrizzleInput, DrizzleResult>(
+  Result<Done> added = builder.add<BuildDrizzleInput, DrizzleResult>(
       *process.value,
       rt::Operation<BuildDrizzleInput, DrizzleResult>{
           "build_drizzle", {"acsd.input.BuildDrizzleInput", 1},
           {"acsd.DrizzleResult", 1}, &validate_build_drizzle,
           &bounds_build_drizzle, &plan_build_drizzle, &run_build_drizzle,
           &finalize_build_drizzle});
+  if (!ok(added)) return added;
+  return builder.add<DrizzleGridInput, DrizzleResult>(
+      *process.value,
+      rt::Operation<DrizzleGridInput, DrizzleResult>{
+          "drizzle_grid", {"acsd.input.DrizzleGridInput", 1},
+          {"acsd.DrizzleResult", 1}, &validate_drizzle_grid, &bounds_drizzle_grid,
+          &plan_drizzle_grid, &run_drizzle_grid, &finalize_drizzle_grid});
 }
 
 }  // namespace acsd::modules

@@ -113,6 +113,8 @@ Result<acsd::modules::ControlCovarianceInput> wire_decode__input_ControlCovarian
 Result<json> wire_encode__input_ControlCovarianceInput(const acsd::modules::ControlCovarianceInput& value, std::string_view origin, rt::WireObjects& objects);
 Result<acsd::modules::BuildDrizzleInput> wire_decode__input_BuildDrizzleInput(const json& node, std::string_view origin, rt::WireObjects& objects);
 Result<json> wire_encode__input_BuildDrizzleInput(const acsd::modules::BuildDrizzleInput& value, std::string_view origin, rt::WireObjects& objects);
+Result<acsd::modules::DrizzleGridInput> wire_decode__input_DrizzleGridInput(const json& node, std::string_view origin, rt::WireObjects& objects);
+Result<json> wire_encode__input_DrizzleGridInput(const acsd::modules::DrizzleGridInput& value, std::string_view origin, rt::WireObjects& objects);
 Result<acsd::modules::EstimateFluxInformationInput> wire_decode__input_EstimateFluxInformationInput(const json& node, std::string_view origin, rt::WireObjects& objects);
 Result<json> wire_encode__input_EstimateFluxInformationInput(const acsd::modules::EstimateFluxInformationInput& value, std::string_view origin, rt::WireObjects& objects);
 Result<acsd::modules::EvaluateSceneVarianceInput> wire_decode__input_EvaluateSceneVarianceInput(const json& node, std::string_view origin, rt::WireObjects& objects);
@@ -474,6 +476,7 @@ constexpr std::string_view kSchema_input_QuadraticFormInput = R"acsd({"$id":"acs
 constexpr std::string_view kSchema_input_GeometryCovarianceBoundInput = R"acsd({"$id":"acsd.input.GeometryCovarianceBoundInput","title":"acsd.input.GeometryCovarianceBoundInput","type":"object","additionalProperties":false,"required":["covariance","nominal","absolute_error","functional"],"properties":{"covariance":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"CovarianceAction"},"nominal":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"LinearAction"},"absolute_error":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"LinearAction"},"functional":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"Array"}},"x-acsd-process":"uncertainty.covariance","x-acsd-operation":"geometry_covariance_bound"})acsd";
 constexpr std::string_view kSchema_input_ControlCovarianceInput = R"acsd({"$id":"acsd.input.ControlCovarianceInput","title":"acsd.input.ControlCovarianceInput","type":"object","additionalProperties":false,"required":["covariance","T"],"properties":{"covariance":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"CovarianceAction"},"T":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"LinearAction"}},"x-acsd-process":"uncertainty.covariance","x-acsd-operation":"control_covariance"})acsd";
 constexpr std::string_view kSchema_input_BuildDrizzleInput = R"acsd({"$id":"acsd.input.BuildDrizzleInput","title":"acsd.input.BuildDrizzleInput","type":"object","additionalProperties":false,"required":["overlaps","observation","request"],"properties":{"overlaps":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"Overlaps"},"observation":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"NativeObservation"},"request":{"type":"object","required":["order","pixfrac","budget"],"properties":{"order":{"type":"integer"},"pixfrac":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"budget":{"type":"object","required":["requested_functionals","per_leaf_absolute_area","area_absolute_sr","normalizer_min_sr","max_work","max_bytes","max_depth","arithmetic"],"properties":{"requested_functionals":{"type":"array","items":{"type":"object","required":["id","kind","index","left","right","tolerance","condition"],"properties":{"id":{"type":"string","minLength":1},"kind":{"type":"string","enum":["brightness","assigned_flux","supported_flux","aperture","covariance","area"]},"index":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"Index"},"left":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"Array"},"right":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"Array"},"tolerance":{"type":"object","additionalProperties":false,"required":["absolute","relative","absolute_floor","unit"],"properties":{"absolute":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"relative":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"absolute_floor":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"unit":{"type":"object","additionalProperties":false,"required":["scale","sr_power","pixel_power","nm_power","multiplier","linear_power"],"properties":{"scale":{"type":"string"},"sr_power":{"type":"integer"},"pixel_power":{"type":"integer"},"nm_power":{"type":"integer"},"multiplier":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"linear_power":{"type":"integer"}}}}},"condition":{"type":"object","additionalProperties":false,"required":["estimator","kind","fixed_objects","assumptions"],"properties":{"estimator":{"type":"string","minLength":1},"kind":{"type":"string"},"fixed_objects":{"type":"array","items":{"type":"string"}},"assumptions":{"type":"array","items":{"type":"string"}}}}},"additionalProperties":false}},"per_leaf_absolute_area":{"type":"array","items":{"type":"object","required":["leaf","absolute_sr"],"properties":{"leaf":{"type":"object","additionalProperties":false,"required":["order","ipix"],"properties":{"order":{"type":"integer"},"ipix":{"type":"integer"}}},"absolute_sr":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]}},"additionalProperties":false}},"area_absolute_sr":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"normalizer_min_sr":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"max_work":{"type":"integer"},"max_bytes":{"type":"integer"},"max_depth":{"type":"integer"},"arithmetic":{"type":"object","additionalProperties":false,"required":["mode","initial_bits","max_bits","allow_target_fallback"],"properties":{"mode":{"type":"string","enum":["outward","approximate"]},"initial_bits":{"type":"integer"},"max_bits":{"type":"integer"},"allow_target_fallback":{"type":"boolean"}}}},"additionalProperties":false}},"additionalProperties":false}},"x-acsd-process":"geometry.drizzle","x-acsd-operation":"build_drizzle"})acsd";
+constexpr std::string_view kSchema_input_DrizzleGridInput = R"acsd({"$id":"acsd.input.DrizzleGridInput","title":"acsd.input.DrizzleGridInput","type":"object","additionalProperties":false,"required":["provider","observation","window","request"],"properties":{"provider":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"FootprintProvider"},"observation":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"NativeObservation"},"window":{"type":"object","additionalProperties":false,"required":["lower","upper"],"properties":{"lower":{"type":"array","items":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"minItems":2,"maxItems":2},"upper":{"type":"array","items":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"minItems":2,"maxItems":2}}},"request":{"type":"object","required":["order","pixfrac","budget"],"properties":{"order":{"type":"integer"},"pixfrac":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"budget":{"type":"object","required":["requested_functionals","per_leaf_absolute_area","area_absolute_sr","normalizer_min_sr","max_work","max_bytes","max_depth","arithmetic"],"properties":{"requested_functionals":{"type":"array","items":{"type":"object","required":["id","kind","index","left","right","tolerance","condition"],"properties":{"id":{"type":"string","minLength":1},"kind":{"type":"string","enum":["brightness","assigned_flux","supported_flux","aperture","covariance","area"]},"index":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"Index"},"left":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"Array"},"right":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"Array"},"tolerance":{"type":"object","additionalProperties":false,"required":["absolute","relative","absolute_floor","unit"],"properties":{"absolute":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"relative":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"absolute_floor":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"unit":{"type":"object","additionalProperties":false,"required":["scale","sr_power","pixel_power","nm_power","multiplier","linear_power"],"properties":{"scale":{"type":"string"},"sr_power":{"type":"integer"},"pixel_power":{"type":"integer"},"nm_power":{"type":"integer"},"multiplier":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"linear_power":{"type":"integer"}}}}},"condition":{"type":"object","additionalProperties":false,"required":["estimator","kind","fixed_objects","assumptions"],"properties":{"estimator":{"type":"string","minLength":1},"kind":{"type":"string"},"fixed_objects":{"type":"array","items":{"type":"string"}},"assumptions":{"type":"array","items":{"type":"string"}}}}},"additionalProperties":false}},"per_leaf_absolute_area":{"type":"array","items":{"type":"object","required":["leaf","absolute_sr"],"properties":{"leaf":{"type":"object","additionalProperties":false,"required":["order","ipix"],"properties":{"order":{"type":"integer"},"ipix":{"type":"integer"}}},"absolute_sr":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]}},"additionalProperties":false}},"area_absolute_sr":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"normalizer_min_sr":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"max_work":{"type":"integer"},"max_bytes":{"type":"integer"},"max_depth":{"type":"integer"},"arithmetic":{"type":"object","additionalProperties":false,"required":["mode","initial_bits","max_bits","allow_target_fallback"],"properties":{"mode":{"type":"string","enum":["outward","approximate"]},"initial_bits":{"type":"integer"},"max_bits":{"type":"integer"},"allow_target_fallback":{"type":"boolean"}}}},"additionalProperties":false}},"additionalProperties":false}},"x-acsd-process":"geometry.drizzle","x-acsd-operation":"drizzle_grid"})acsd";
 constexpr std::string_view kSchema_input_EstimateFluxInformationInput = R"acsd({"$id":"acsd.input.EstimateFluxInformationInput","title":"acsd.input.EstimateFluxInformationInput","type":"object","additionalProperties":false,"required":["request"],"properties":{"request":{"type":"object","required":["h","background","covariance","reference","solve","template_evaluation","template_column"],"properties":{"h":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"Array"},"background":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"LinearAction"},"covariance":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"CovarianceAction"},"reference":{"type":"object","required":["id","quantity","unit","condition"],"properties":{"id":{"type":"string","minLength":1},"quantity":{"type":"string"},"unit":{"type":"object","additionalProperties":false,"required":["scale","sr_power","pixel_power","nm_power","multiplier","linear_power"],"properties":{"scale":{"type":"string"},"sr_power":{"type":"integer"},"pixel_power":{"type":"integer"},"nm_power":{"type":"integer"},"multiplier":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"linear_power":{"type":"integer"}}},"condition":{"type":"object","additionalProperties":false,"required":["estimator","kind","fixed_objects","assumptions"],"properties":{"estimator":{"type":"string","minLength":1},"kind":{"type":"string"},"fixed_objects":{"type":"array","items":{"type":"string"}},"assumptions":{"type":"array","items":{"type":"string"}}}},"reference_sed":{"oneOf":[{"type":"string","minLength":1},{"type":"null"}]}},"additionalProperties":false},"solve":{"type":"object","additionalProperties":false,"required":["relative_residual","absolute_residual","rank_relative","max_iterations","dense_max_bytes","huber","huber_delta"],"properties":{"relative_residual":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"absolute_residual":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"rank_relative":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"max_iterations":{"type":"integer"},"dense_max_bytes":{"type":"integer"},"huber":{"type":"boolean"},"huber_delta":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]}}},"template_evaluation":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"PsfEvaluation"},"template_column":{"type":"integer"}},"additionalProperties":false}},"x-acsd-process":"information.reference","x-acsd-operation":"estimate_flux_information"})acsd";
 constexpr std::string_view kSchema_input_EvaluateSceneVarianceInput = R"acsd({"$id":"acsd.input.EvaluateSceneVarianceInput","title":"acsd.input.EvaluateSceneVarianceInput","type":"object","additionalProperties":false,"required":["frames","frame","leaves"],"properties":{"frames":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"FramesProvider"},"frame":{"type":"string","minLength":1},"leaves":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"std::vector<HealpixLeaf>"}},"x-acsd-process":"information.scene","x-acsd-operation":"evaluate_scene_variance"})acsd";
 constexpr std::string_view kSchema_input_BuildSupportedTriangulationInput = R"acsd({"$id":"acsd.input.BuildSupportedTriangulationInput","title":"acsd.input.BuildSupportedTriangulationInput","type":"object","additionalProperties":false,"required":["controls","chart","support"],"properties":{"controls":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"PrecisionControls"},"chart":{"type":"object","required":["center","maximum_radius_rad"],"properties":{"center":{"type":"object","additionalProperties":false,"required":["nx","ny","nz"],"properties":{"nx":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"ny":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]},"nz":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]}}},"maximum_radius_rad":{"oneOf":[{"type":"number"},{"type":"object","required":["f64"],"properties":{"f64":{"type":"string","pattern":"^[0-9a-f]{16}$"}},"additionalProperties":false}]}},"additionalProperties":false},"support":{"type":"object","additionalProperties":false,"required":["$ref"],"properties":{"$ref":{"type":"string","minLength":1}},"x-acsd-object":"SupportMap"}},"x-acsd-process":"information.scene","x-acsd-operation":"build_supported_triangulation"})acsd";
@@ -2802,6 +2805,72 @@ Result<json> wire_encode__input_BuildDrizzleInput(const acsd::modules::BuildDriz
     auto encoded = wire_encode__ref_NativeObservation(value.observation, origin, objects);
     if (encoded.code != Code::ok) return codec::remap<json>(encoded);
     node["observation"] = std::move(*encoded.value);
+  }
+  {
+    auto encoded = wire_encode__DrizzleRequest(value.request, origin, objects);
+    if (encoded.code != Code::ok) return codec::remap<json>(encoded);
+    node["request"] = std::move(*encoded.value);
+  }
+  return codec::ok<json>(std::move(node));
+}
+
+Result<acsd::modules::DrizzleGridInput> wire_decode__input_DrizzleGridInput(const json& node,
+    std::string_view origin, rt::WireObjects& objects) {
+  if (!node.is_object()) {
+    return codec::failure<acsd::modules::DrizzleGridInput>(Code::invalid_request, origin,
+                                 "expected a JSON object");
+  }
+  auto known = codec::reject_unknown(node, {"provider", "observation", "window", "request"}, origin);
+  if (known.code != Code::ok) return codec::remap<acsd::modules::DrizzleGridInput>(known);
+  acsd::modules::DrizzleGridInput value{};
+  {
+    auto member = codec::require_member(node, "provider", origin);
+    if (member.code != Code::ok) return codec::remap<acsd::modules::DrizzleGridInput>(member);
+    auto decoded = wire_decode__ref_FootprintProvider(**member.value, origin, objects);
+    if (decoded.code != Code::ok) return codec::remap<acsd::modules::DrizzleGridInput>(decoded);
+    value.provider = std::move(*decoded.value);
+  }
+  {
+    auto member = codec::require_member(node, "observation", origin);
+    if (member.code != Code::ok) return codec::remap<acsd::modules::DrizzleGridInput>(member);
+    auto decoded = wire_decode__ref_NativeObservation(**member.value, origin, objects);
+    if (decoded.code != Code::ok) return codec::remap<acsd::modules::DrizzleGridInput>(decoded);
+    value.observation = std::move(*decoded.value);
+  }
+  {
+    auto member = codec::require_member(node, "window", origin);
+    if (member.code != Code::ok) return codec::remap<acsd::modules::DrizzleGridInput>(member);
+    auto decoded = wire_decode__Box(**member.value, origin, objects);
+    if (decoded.code != Code::ok) return codec::remap<acsd::modules::DrizzleGridInput>(decoded);
+    value.window = std::move(*decoded.value);
+  }
+  {
+    auto member = codec::require_member(node, "request", origin);
+    if (member.code != Code::ok) return codec::remap<acsd::modules::DrizzleGridInput>(member);
+    auto decoded = wire_decode__DrizzleRequest(**member.value, origin, objects);
+    if (decoded.code != Code::ok) return codec::remap<acsd::modules::DrizzleGridInput>(decoded);
+    value.request = std::move(*decoded.value);
+  }
+  return codec::ok<acsd::modules::DrizzleGridInput>(std::move(value));
+}
+
+Result<json> wire_encode__input_DrizzleGridInput(const acsd::modules::DrizzleGridInput& value,
+    std::string_view origin, rt::WireObjects& objects) {
+  json node = json::object();
+  {
+    auto encoded = wire_encode__ref_FootprintProvider(value.provider, origin, objects);
+    if (encoded.code != Code::ok) return codec::remap<json>(encoded);
+    node["provider"] = std::move(*encoded.value);
+  }
+  {
+    auto encoded = wire_encode__ref_NativeObservation(value.observation, origin, objects);
+    if (encoded.code != Code::ok) return codec::remap<json>(encoded);
+    node["observation"] = std::move(*encoded.value);
+  }
+  {
+    auto encoded = wire_encode__Box(value.window, origin, objects);
+    if (encoded.code != Code::ok) return codec::remap<json>(encoded);
+    node["window"] = std::move(*encoded.value);
   }
   {
     auto encoded = wire_encode__DrizzleRequest(value.request, origin, objects);
@@ -8564,6 +8633,7 @@ Result<Done> wire_check_units__input_RefineGeometryInput(const acsd::modules::Re
 Result<Done> wire_check_units__input_RefinableRefineInput(const acsd::modules::RefinableRefineInput& value, std::string_view origin, std::string_view path);
 Result<Done> wire_check_units__input_MakeActionInput(const acsd::modules::MakeActionInput& value, std::string_view origin, std::string_view path);
 Result<Done> wire_check_units__input_BuildDrizzleInput(const acsd::modules::BuildDrizzleInput& value, std::string_view origin, std::string_view path);
+Result<Done> wire_check_units__input_DrizzleGridInput(const acsd::modules::DrizzleGridInput& value, std::string_view origin, std::string_view path);
 Result<Done> wire_check_units__input_EstimateFluxInformationInput(const acsd::modules::EstimateFluxInformationInput& value, std::string_view origin, std::string_view path);
 Result<Done> wire_check_units__input_SelectSamplesInput(const acsd::modules::SelectSamplesInput& value, std::string_view origin, std::string_view path);
 Result<Done> wire_check_units__input_SolveWeightsInput(const acsd::modules::SolveWeightsInput& value, std::string_view origin, std::string_view path);
@@ -9109,6 +9179,18 @@ Result<Done> wire_check_units__input_MakeActionInput(const acsd::modules::MakeAc
 }
 
 Result<Done> wire_check_units__input_BuildDrizzleInput(const acsd::modules::BuildDrizzleInput& value,
+    std::string_view origin, std::string_view path) {
+  (void)path;
+  for (std::size_t unit_index = 0; unit_index < value.request.budget.requested_functionals.size();
+       ++unit_index) {
+    auto checked = wire_check_units__QuantityRequest(value.request.budget.requested_functionals[unit_index],
+                                                         origin, path);
+    if (checked.code != Code::ok) return checked;
+  }
+  return codec::ok<Done>(Done{});
+}
+
+Result<Done> wire_check_units__input_DrizzleGridInput(const acsd::modules::DrizzleGridInput& value,
     std::string_view origin, std::string_view path) {
   (void)path;
   for (std::size_t unit_index = 0; unit_index < value.request.budget.requested_functionals.size();
@@ -10126,6 +10208,26 @@ Result<std::string> codec_encode__input_BuildDrizzleInput(
   (void)ctx;
   constexpr std::string_view origin = "wire.encode.input_BuildDrizzleInput";
   auto encoded = wire_encode__input_BuildDrizzleInput(value, origin, objects);
+  if (encoded.code != Code::ok) return codec::remap<std::string>(encoded);
+  return codec::ok<std::string>(encoded.value->dump());
+}
+
+Result<acsd::modules::DrizzleGridInput> codec_decode__input_DrizzleGridInput(
+    rt::InvocationContext ctx, std::string_view text,
+    rt::WireObjects& objects) {
+  (void)ctx;
+  constexpr std::string_view origin = "wire.decode.input_DrizzleGridInput";
+  auto parsed = codec::parse_json_object(text, origin);
+  if (parsed.code != Code::ok) return codec::remap<acsd::modules::DrizzleGridInput>(parsed);
+  return wire_decode__input_DrizzleGridInput(*parsed.value, origin, objects);
+}
+
+Result<std::string> codec_encode__input_DrizzleGridInput(
+    rt::InvocationContext ctx, const acsd::modules::DrizzleGridInput& value,
+    rt::WireObjects& objects) {
+  (void)ctx;
+  constexpr std::string_view origin = "wire.encode.input_DrizzleGridInput";
+  auto encoded = wire_encode__input_DrizzleGridInput(value, origin, objects);
   if (encoded.code != Code::ok) return codec::remap<std::string>(encoded);
   return codec::ok<std::string>(encoded.value->dump());
 }
@@ -11379,6 +11481,13 @@ Result<Done> check_input_units_BuildDrizzleInput(const acsd::modules::BuildDrizz
 }  // namespace detail
 
 namespace detail {
+Result<Done> check_input_units_DrizzleGridInput(const acsd::modules::DrizzleGridInput& value,
+                                       std::string_view origin) {
+  return wire_check_units__input_DrizzleGridInput(value, origin, "");
+}
+}  // namespace detail
+
+namespace detail {
 Result<Done> check_input_units_EstimateFluxInformationInput(const acsd::modules::EstimateFluxInformationInput& value,
                                        std::string_view origin) {
   return wire_check_units__input_EstimateFluxInformationInput(value, origin, "");
@@ -12324,6 +12433,16 @@ rt::TypeCodec<acsd::modules::BuildDrizzleInput> type_codec<acsd::modules::BuildD
 }
 
 template <>
+rt::TypeCodec<acsd::modules::DrizzleGridInput> type_codec<acsd::modules::DrizzleGridInput>() {
+  rt::TypeCodec<acsd::modules::DrizzleGridInput> codec;
+  codec.id = rt::TypeId{"acsd.input.DrizzleGridInput", 1};
+  codec.schema_json = kSchema_input_DrizzleGridInput;
+  codec.decode = &codec_decode__input_DrizzleGridInput;
+  codec.encode = &codec_encode__input_DrizzleGridInput;
+  return codec;
+}
+
+template <>
 rt::TypeCodec<acsd::modules::EstimateFluxInformationInput> type_codec<acsd::modules::EstimateFluxInformationInput>() {
   rt::TypeCodec<acsd::modules::EstimateFluxInformationInput> codec;
   codec.id = rt::TypeId{"acsd.input.EstimateFluxInformationInput", 1};
@@ -12619,6 +12738,8 @@ Result<rt::Done> register_builtin_types(rt::RegistryBuilder& builder) {
   step = builder.register_type(type_codec<acsd::modules::ControlCovarianceInput>());
   if (step.code != Code::ok) return step;
   step = builder.register_type(type_codec<acsd::modules::BuildDrizzleInput>());
+  if (step.code != Code::ok) return step;
+  step = builder.register_type(type_codec<acsd::modules::DrizzleGridInput>());
   if (step.code != Code::ok) return step;
   step = builder.register_type(type_codec<acsd::modules::EstimateFluxInformationInput>());
   if (step.code != Code::ok) return step;

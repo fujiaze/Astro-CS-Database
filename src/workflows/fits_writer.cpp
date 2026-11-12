@@ -26,6 +26,8 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <map>
+#include <set>
 #include <sstream>
 
 #include "workflows/fits_writer.hpp"
@@ -48,7 +50,12 @@ constexpr std::size_t kBlock = 2880;
 // value starts in column 11).  A strict reader (astropy) refuses a file
 // whose SIMPLE card does not follow that rule.
 std::string card(const std::string& keyword, const std::string& value, const std::string& comment,
-                 bool right_justified = true) {
+                 bool right_justified = true, bool* fits = nullptr) {
+  if (fits) *fits = true;
+  if (keyword.size() > 8) {
+    if (fits) *fits = false;
+    return std::string();
+  }
   std::string text = keyword;
   text.resize(8, ' ');
   text += "= ";
@@ -58,9 +65,64 @@ std::string card(const std::string& keyword, const std::string& value, const std
   text += value;
   if (text.size() < 30) text.resize(30, ' ');
   if (!comment.empty()) text += " / " + comment;
-  // Every card is exactly 80 characters long.
+  // Every card is exactly 80 characters long; a value that does not fit is a
+  // product defect, never padded away.  The old code truncated a long ACSUNIT
+  // string and published an unparsable card.
+  if (text.size() > 80) {
+    if (fits) *fits = false;
+    return std::string();
+  }
   text.resize(80, ' ');
   return text;
+}
+
+// A quoted FITS string value (single quotes doubled).
+std::string quoted_string(const std::string& value) {
+  std::string text = "'";
+  for (char character : value) {
+    if (character == '\'') text += "''";
+    else text += character;
+  }
+  text += "'";
+  return text;
+}
+
+// A long string card.  FITS limits a quoted value field to 68 characters; a
+// longer value is split with the standard CONTINUE convention (the last
+// character of each non-final chunk is '&'; astropy and cfitsio parse it).
+bool append_long_string(std::vector<std::string>& header, const std::string& keyword,
+                        const std::string& value) {
+  if (keyword.size() > 8) return false;
+  std::string escaped;
+  for (char character : value) {
+    if (character == '\'') escaped += "''";
+    else escaped += character;
+  }
+  const std::size_t chunk = 66;
+  std::size_t offset = 0;
+  bool first = true;
+  while (offset < escaped.size() || first) {
+    const std::size_t count = std::min(chunk, escaped.size() - offset);
+    const bool more = offset + count < escaped.size();
+    std::string content = escaped.substr(offset, count);
+    if (more) content += "&";
+    std::string text;
+    if (first) {
+      text = keyword;
+      text.resize(8, ' ');
+      text += "= '";
+      first = false;
+    } else {
+      text = "CONTINUE  '";
+    }
+    text += content;
+    text += "'";
+    if (text.size() > 80) return false;
+    text.resize(80, ' ');
+    header.push_back(text);
+    offset += count;
+  }
+  return true;
 }
 
 // The value of a numeric card.
@@ -173,18 +235,34 @@ FaceAnchor face_anchor(U32 face) {
   return anchor;
 }
 
-void append_header(const std::vector<HeaderCard>& cards, std::vector<std::string>& header) {
+bool append_header(const std::vector<HeaderCard>& cards, std::vector<std::string>& header) {
+  bool fits = true;
   for (const HeaderCard& entry : cards) {
-    const bool numeric = entry.first == "CRPIX1" || entry.first == "CRPIX2" ||
+    const bool sip_numeric =
+        entry.first == "A_ORDER" || entry.first == "B_ORDER" ||
+        entry.first.rfind("A_", 0) == 0 || entry.first.rfind("B_", 0) == 0;
+    const bool numeric = sip_numeric || entry.first == "CRPIX1" || entry.first == "CRPIX2" ||
                          entry.first == "CRVAL1" || entry.first == "CRVAL2" ||
                          entry.first == "CD1_1" || entry.first == "CD1_2" ||
                          entry.first == "CD2_1" || entry.first == "CD2_2";
     if (numeric) {
-      header.push_back(card(entry.first, numeric_value(std::stod(entry.second)), ""));
+      bool card_fits = true;
+      const std::string text = card(entry.first, numeric_value(std::stod(entry.second)), "", true,
+                                    &card_fits);
+      if (card_fits) header.push_back(text);
+      else fits = false;
     } else {
-      header.push_back(card(entry.first, string_value(entry.second), "", false));
+      bool card_fits = true;
+      const std::string text = card(entry.first, quoted_string(entry.second), "", false,
+                                    &card_fits);
+      if (card_fits) {
+        header.push_back(text);
+      } else if (!append_long_string(header, entry.first, entry.second)) {
+        fits = false;
+      }
     }
   }
+  return fits;
 }
 
 // ---------------------------------------------------------------------------
@@ -334,41 +412,70 @@ Result<std::string> write_fits_image(const std::filesystem::path& path, U64 widt
   header.push_back(card("NAXIS", "2", "number of data axes"));
   header.push_back(card("NAXIS1", std::to_string(width), "length of data axis 1"));
   header.push_back(card("NAXIS2", std::to_string(height), "length of data axis 2"));
-  append_header(cards, header);
-  std::vector<unsigned char> bytes;
+  if (!append_header(cards, header)) {
+    return fail<std::string>(Code::invalid_model,
+                             "a FITS header card does not fit in 80 columns",
+                             "workflows.fits", "the product cannot be published");
+  }
   const std::string block = header_block(header);
-  bytes.insert(bytes.end(), block.begin(), block.end());
-  const std::vector<unsigned char> data = encode_big_endian(values);
-  bytes.insert(bytes.end(), data.begin(), data.end());
-  const std::size_t padding = (kBlock - (bytes.size() % kBlock)) % kBlock;
-  bytes.insert(bytes.end(), padding, 0);
-  return write_bytes(path, bytes);
+  std::error_code ec;
+  std::filesystem::create_directories(path.parent_path(), ec);
+  std::ofstream stream(path, std::ios::binary | std::ios::trunc);
+  if (!stream) {
+    return fail<std::string>(Code::io_error, "the FITS file cannot be opened", "workflows.fits",
+                             "the product cannot be published");
+  }
+  stream.write(block.data(), static_cast<std::streamsize>(block.size()));
+  // The data unit is streamed in bounded chunks: a 4096x4096 image is 128 MiB
+  // and the product writer must not hold a second full copy.
+  constexpr std::size_t kChunk = 8192;
+  std::vector<unsigned char> buffer(kChunk * 8);
+  std::size_t offset = 0;
+  while (offset < values.size()) {
+    const std::size_t count = std::min(kChunk, values.size() - offset);
+    for (std::size_t i = 0; i < count; ++i) {
+      std::uint64_t bits = 0;
+      std::memcpy(&bits, &values[offset + i], sizeof(bits));
+      for (int byte = 0; byte < 8; ++byte) {
+        buffer[i * 8 + byte] = static_cast<unsigned char>((bits >> (8 * (7 - byte))) & 0xffull);
+      }
+    }
+    stream.write(reinterpret_cast<const char*>(buffer.data()),
+                 static_cast<std::streamsize>(count * 8));
+    offset += count;
+  }
+  const std::size_t data_bytes = values.size() * 8;
+  const std::size_t padding = (kBlock - ((block.size() + data_bytes) % kBlock)) % kBlock;
+  if (padding != 0) {
+    const std::vector<unsigned char> zeros(padding, 0);
+    stream.write(reinterpret_cast<const char*>(zeros.data()),
+                 static_cast<std::streamsize>(zeros.size()));
+  }
+  stream.flush();
+  if (!stream) {
+    return fail<std::string>(Code::io_error, "the FITS file cannot be written", "workflows.fits",
+                             "the product cannot be published");
+  }
+  return ok_result(std::string());
 }
 
-Result<std::string> write_tile_file(const std::filesystem::path& path, U64 tile_width,
-                                    U64 tile_count_in_file, const std::vector<double>& pixels,
-                                    const std::vector<HeaderCard>& cards) {
-  std::vector<std::string> header;
-  header.push_back(card("SIMPLE", "T", "file does conform to FITS standard"));
-  header.push_back(card("BITPIX", "-64", "number of bits per data pixel"));
-  header.push_back(card("NAXIS", "3", "number of data axes"));
-  header.push_back(card("NAXIS1", std::to_string(tile_width), "length of data axis 1"));
-  header.push_back(card("NAXIS2", std::to_string(tile_width), "length of data axis 2"));
-  header.push_back(card("NAXIS3", std::to_string(tile_count_in_file), "length of data axis 3"));
-  append_header(cards, header);
-  std::vector<unsigned char> bytes;
-  const std::string block = header_block(header);
-  bytes.insert(bytes.end(), block.begin(), block.end());
-  const std::vector<unsigned char> data = encode_big_endian(pixels);
-  bytes.insert(bytes.end(), data.begin(), data.end());
-  const std::size_t padding = (kBlock - (bytes.size() % kBlock)) % kBlock;
-  bytes.insert(bytes.end(), padding, 0);
-  return write_bytes(path, bytes);
-}
-
+// ---------------------------------------------------------------------------
+// HiPS tiles
+// ---------------------------------------------------------------------------
+//
+// The published tile layer keeps the standard NESTED identity of the signal
+// index: tile T = ipix >> (2*tile_log2_width), the tile-local (ix,iy) are the
+// standard LSB-first interleave of the leaf index (the same bit order as
+// coordinates::healpix_face_index), and only tiles that actually contain a
+// supported leaf are written.  One 64x64 image per tile, one tile per file.
+// The old writer enumerated all 12*4^(order-tile_width) tiles, packed 10000
+// planes per file and used a bit-reversed NESTED index: it produced a 6 GiB
+// product whose sky positions were 27-32 degrees away from the signal.
 Result<std::string> write_hips_order(const std::filesystem::path& root, U32 order,
                                       U32 tile_log2_width, const std::vector<HealpixLeaf>& leaves,
-                                      const std::vector<double>& values, const std::string& bunit) {
+                                      const std::vector<double>& values,
+                                      const std::vector<std::uint8_t>& states,
+                                      const std::string& bunit) {
   if (tile_log2_width < 6 || tile_log2_width > 9) {
     return fail<std::string>(Code::invalid_request, "the tile width is outside the allowed range",
                              "workflows.hips", "the product cannot be published");
@@ -377,96 +484,113 @@ Result<std::string> write_hips_order(const std::filesystem::path& root, U32 orde
     return fail<std::string>(Code::invalid_request, "the leaf order is below the tile width",
                              "workflows.hips", "the product cannot be published");
   }
+  if (leaves.size() != values.size() || (!states.empty() && states.size() != leaves.size())) {
+    return fail<std::string>(Code::invalid_model, "the signal and support sizes differ",
+                             "workflows.hips", "the product cannot be published");
+  }
   const U32 tile_order = order - tile_log2_width;
   const U64 tile_width = 1ull << tile_log2_width;
-  const U64 tiles = tile_count(tile_order);
   const U64 nside = 1ull << order;
+  const U64 nside_tile = 1ull << tile_order;
+  const U64 npix = 12ull * nside * nside;
 
-  // The signal of every leaf of the order, indexed by the nested index.
-  std::vector<double> sky(nside * nside * 12, std::nan(""));
-  for (std::size_t i = 0; i < leaves.size() && i < values.size(); ++i) {
-    if (leaves[i].order != order) continue;
-    if (leaves[i].ipix >= sky.size()) continue;
-    sky[leaves[i].ipix] = values[i];
+  // Group the supported leaves by tile identity.  A supported leaf with a
+  // non-finite signal is a product defect: the tile layer never hides it.
+  std::map<U64, std::vector<std::pair<U64, double>>> tiles;
+  std::set<U64> seen;
+  for (std::size_t i = 0; i < leaves.size(); ++i) {
+    if (leaves[i].order != order || leaves[i].ipix >= npix) {
+      return fail<std::string>(Code::invalid_model, "a leaf is outside the published index",
+                               "workflows.hips", "the product cannot be published");
+    }
+    if (!seen.insert(leaves[i].ipix).second) {
+      return fail<std::string>(Code::invalid_model, "a leaf appears twice in the signal index",
+                               "workflows.hips", "the product cannot be published");
+    }
+    const bool supported = states.empty() || states[i] == 1;
+    if (!supported) continue;
+    if (!std::isfinite(values[i])) {
+      return fail<std::string>(Code::invalid_model,
+                               "a supported leaf carries no finite signal", "workflows.hips",
+                               "the product cannot be published");
+    }
+    const U64 tile = leaves[i].ipix >> (2 * tile_log2_width);
+    const U64 local = leaves[i].ipix % (nside_tile * nside_tile);
+    U64 ix = 0;
+    U64 iy = 0;
+    for (U32 bit = 0; bit < tile_order; ++bit) {
+      if ((local >> (2 * bit)) & 1ull) ix |= 1ull << bit;
+      if ((local >> (2 * bit + 1)) & 1ull) iy |= 1ull << bit;
+    }
+    const U64 dx = ix % tile_width;
+    const U64 dy = iy % tile_width;
+    // Standard HiPS tile orientation: row = W-1-x, col = y.  The verified
+    // HPX header below reproduces every tile pixel centre to <0.01 arcsec.
+    const U64 pixel = (tile_width - 1 - dx) * tile_width + dy;
+    tiles[tile].emplace_back(pixel, values[i]);
+  }
+  if (tiles.empty()) {
+    return fail<std::string>(Code::no_support, "no supported leaf to publish", "workflows.hips",
+                             "the product cannot be published");
   }
 
-  const U64 group_size = 10000;
-  // The unit of every tile of this order: BUNIT is a standard (dimension)
-  // expression, the exact internal scale stays in ACSUNIT with an explicit
-  // non standard marker.
   const FitsUnitText unit_text = fits_unit_text_from_scale(bunit);
-  for (U64 first = 0; first < tiles; first += group_size) {
-    const U64 count = std::min(group_size, tiles - first);
-    std::vector<double> pixels(static_cast<std::size_t>(tile_width) * tile_width * count,
-                               std::nan(""));
-    std::vector<HeaderCard> cards;
-    for (U64 tile = first; tile < first + count; ++tile) {
-      const U32 face = static_cast<U32>(tile / (1ull << (2 * tile_order)));
-      const U64 in_face = tile % (1ull << (2 * tile_order));
-      U64 tile_ix = 0;
-      U64 tile_iy = 0;
-      for (U32 level = 0; level < tile_order; ++level) {
-        const U64 shift = tile_order - 1 - level;
-        if ((in_face >> (2 * level)) & 1ull) tile_ix |= 1ull << shift;
-        if ((in_face >> (2 * level + 1)) & 1ull) tile_iy |= 1ull << shift;
-      }
-      // The reference pixel of the tile comes from the linear offset of the
-      // tile inside its face; the centred TAN reference is not used.
-      const FaceAnchor anchor = face_anchor(face);
-      const double s_first = static_cast<double>(tile_ix) / static_cast<double>(1ull << tile_order) +
-                             (1.0 - 0.5 / static_cast<double>(tile_width));
-      const double t_first = static_cast<double>(tile_iy) / static_cast<double>(1ull << tile_order) +
-                             0.5 / static_cast<double>(tile_width);
-      const double u = 45.0 * (s_first - t_first);
-      const double v = 45.0 * (s_first + t_first) + anchor.centre_latitude_deg;
-      const double n = static_cast<double>(tile_width);
-      const double crpix1 = 1.0 - n * (v - anchor.centre_latitude_deg - u) / 90.0;
-      const double crpix2 = 1.0 + n * (u + v - anchor.centre_latitude_deg) / 90.0;
-      if (tile == first) {
-        cards.clear();
-        cards.emplace_back("CTYPE1", "RA---HPX");
-        cards.emplace_back("CTYPE2", "DEC--HPX");
-        cards.emplace_back("CUNIT1", "deg");
-        cards.emplace_back("CUNIT2", "deg");
-        cards.emplace_back("RADESYS", "ICRS");
-        cards.emplace_back("CRVAL1", numeric_value(anchor.centre_longitude_deg));
-        cards.emplace_back("CRVAL2", numeric_value(anchor.centre_latitude_deg));
-        cards.emplace_back("CRPIX1", numeric_value(crpix1));
-        cards.emplace_back("CRPIX2", numeric_value(crpix2));
-        cards.emplace_back("CD1_1", numeric_value(-45.0 / n));
-        cards.emplace_back("CD1_2", numeric_value(-45.0 / n));
-        cards.emplace_back("CD2_1", numeric_value(45.0 / n));
-        cards.emplace_back("CD2_2", numeric_value(-45.0 / n));
-        cards.emplace_back("BUNIT", unit_text.bunit);
-        if (!unit_text.acsunit.empty()) cards.emplace_back("ACSUNIT", unit_text.acsunit);
-        if (unit_text.nonstandard) {
-          cards.emplace_back("ACSSTD", "nonstandard_model_unit");
-        }
-      }
-      for (U64 dy = 0; dy < tile_width; ++dy) {
-        for (U64 dx = 0; dx < tile_width; ++dx) {
-          const U64 ix = tile_ix * tile_width + dx;
-          const U64 iy = tile_iy * tile_width + dy;
-          U64 nested = 0;
-          for (U32 level = 0; level < order; ++level) {
-            const U64 shift = order - 1 - level;
-            if ((ix >> shift) & 1ull) nested |= 1ull << (2 * level);
-            if ((iy >> shift) & 1ull) nested |= 1ull << (2 * level + 1);
-          }
-          const U64 ipix = static_cast<U64>(face) * nside * nside + nested;
-          // The standard orientation: row = W - 1 - x, col = y.
-          const std::size_t row = static_cast<std::size_t>(tile_width - 1 - dx);
-          const std::size_t col = static_cast<std::size_t>(iy % tile_width);
-          const std::size_t offset =
-              (static_cast<std::size_t>(tile - first) * tile_width + row) * tile_width + col;
-          if (ipix < sky.size() && offset < pixels.size()) pixels[offset] = sky[ipix];
-        }
-      }
+  std::vector<double> plane(tile_width * tile_width, std::nan(""));
+  for (const auto& entry : tiles) {
+    const U64 tile = entry.first;
+    const U64 face = tile / (nside_tile * nside_tile);
+    const U64 local_tile = tile % (nside_tile * nside_tile);
+    if (face < 4 || face > 7) {
+      // Only the four equatorial faces share the flat HPX chart.  The polar
+      // faces are diamonds in the HPX plane; claiming the equatorial formula
+      // there would place the tile at the wrong sky position.  Refuse instead.
+      return fail<std::string>(Code::unsupported,
+                               "a supported leaf lies on a polar HPX face", "workflows.hips",
+                               "the tile layer cannot be published for this footprint");
     }
+    U64 tile_ix = 0;
+    U64 tile_iy = 0;
+    for (U32 bit = 0; bit < tile_order; ++bit) {
+      if ((local_tile >> (2 * bit)) & 1ull) tile_ix |= 1ull << bit;
+      if ((local_tile >> (2 * bit + 1)) & 1ull) tile_iy |= 1ull << bit;
+    }
+    std::fill(plane.begin(), plane.end(), std::nan(""));
+    for (const auto& pixel : entry.second) plane[pixel.first] = pixel.second;
+    // The HPX reference of the equatorial face: lon = 90*(face-4), lat = 0.
+    const double centre_lon = 90.0 * static_cast<double>(face - 4);
+    // Signed arithmetic: tile_iy may exceed tile_ix, and the U64 subtraction
+    // would wrap to 2^64 instead of a negative offset.
+    const double a = (static_cast<double>(tile_ix) - static_cast<double>(tile_iy)) *
+                         static_cast<double>(tile_width) +
+                     static_cast<double>(tile_width) + 1.0;
+    const double b = (static_cast<double>(tile_ix) + static_cast<double>(tile_iy)) *
+                         static_cast<double>(tile_width) +
+                     static_cast<double>(tile_width) - static_cast<double>(nside);
+    const double crpix1 = 0.5 * (a - b);
+    const double crpix2 = 0.5 * (a + b);
+    const double cd = 45.0 / static_cast<double>(nside);
+    std::vector<HeaderCard> cards;
+    cards.emplace_back("CTYPE1", "RA---HPX");
+    cards.emplace_back("CTYPE2", "DEC--HPX");
+    cards.emplace_back("CUNIT1", "deg");
+    cards.emplace_back("CUNIT2", "deg");
+    cards.emplace_back("RADESYS", "ICRS");
+    cards.emplace_back("CRVAL1", numeric_value(centre_lon));
+    cards.emplace_back("CRVAL2", numeric_value(0.0));
+    cards.emplace_back("CRPIX1", numeric_value(crpix1));
+    cards.emplace_back("CRPIX2", numeric_value(crpix2));
+    cards.emplace_back("CD1_1", numeric_value(-cd));
+    cards.emplace_back("CD1_2", numeric_value(-cd));
+    cards.emplace_back("CD2_1", numeric_value(cd));
+    cards.emplace_back("CD2_2", numeric_value(-cd));
+    cards.emplace_back("BUNIT", unit_text.bunit);
+    if (!unit_text.acsunit.empty()) cards.emplace_back("ACSUNIT", unit_text.acsunit);
+    if (unit_text.nonstandard) cards.emplace_back("ACSSTD", "nonstandard_model_unit");
     const std::filesystem::path directory =
-        root / ("Norder" + std::to_string(order)) / ("Dir" + std::to_string(first));
-    const std::filesystem::path file = directory / ("Npix" + std::to_string(first) + ".fits");
-    Result<std::string> written = write_tile_file(file, tile_width, count, pixels, cards);
+        root / ("Norder" + std::to_string(order)) / ("Dir" + std::to_string(tile / 10000));
+    const std::filesystem::path file = directory / ("Npix" + std::to_string(tile) + ".fits");
+    Result<std::string> written =
+        write_fits_image(file, tile_width, tile_width, plane, cards);
     if (!ok(written)) return written;
   }
   return ok_result(std::string());
@@ -507,6 +631,16 @@ Result<std::string> write_export_image(Context& context, const std::filesystem::
   const double radians_to_degrees = 180.0 / M_PI;
   const double ra = std::atan2(wcs.c[1], wcs.c[0]) * radians_to_degrees;
   const double dec = std::asin(std::max(-1.0, std::min(1.0, wcs.c[2]))) * radians_to_degrees;
+  const bool has_sip = wcs.sip_a.order > 0 || wcs.sip_b.order > 0;
+  if (has_sip) {
+    // The published image is the projection of the leaf signal through a
+    // TAN+SIP model; a header without the SIP coefficients describes a
+    // different (undistorted) sky and is off by up to ~1 arcsec at the field
+    // corners.  The FITS SIP convention names the shifted coordinates u,v
+    // (u = x - CRPIX1) with A_p_q for u^p v^q.
+    if (ctype1.find("-SIP") == std::string::npos) ctype1 += "-SIP";
+    if (ctype2.find("-SIP") == std::string::npos) ctype2 += "-SIP";
+  }
   std::vector<HeaderCard> cards;
   cards.emplace_back("CTYPE1", ctype1);
   cards.emplace_back("CTYPE2", ctype2);
@@ -515,14 +649,31 @@ Result<std::string> write_export_image(Context& context, const std::filesystem::
   cards.emplace_back("RADESYS", "ICRS");
   cards.emplace_back("CRVAL1", numeric_value(ra));
   cards.emplace_back("CRVAL2", numeric_value(dec));
-  // The given centre is placed at ((width - 1) / 2, (height - 1) / 2); the
-  // reference pixel is CRPIX = ((width + 1) / 2, (height + 1) / 2).
-  cards.emplace_back("CRPIX1", numeric_value(0.5 * (static_cast<double>(width) + 1.0)));
-  cards.emplace_back("CRPIX2", numeric_value(0.5 * (static_cast<double>(height) + 1.0)));
+  // The reference pixel is the one of the target model: the projection built
+  // the image with u = x + 1 - CRPIX, so the header must state the same CRPIX.
+  // Recentring the header on the image centre while the data were projected
+  // around the model CRPIX would shift the WCS by the difference (the former
+  // code did exactly that).
+  cards.emplace_back("CRPIX1", numeric_value(wcs.crpix_fits1[0]));
+  cards.emplace_back("CRPIX2", numeric_value(wcs.crpix_fits1[1]));
   cards.emplace_back("CD1_1", numeric_value(wcs.cd_rad_per_pixel[0] * radians_to_degrees));
   cards.emplace_back("CD1_2", numeric_value(wcs.cd_rad_per_pixel[1] * radians_to_degrees));
   cards.emplace_back("CD2_1", numeric_value(wcs.cd_rad_per_pixel[2] * radians_to_degrees));
   cards.emplace_back("CD2_2", numeric_value(wcs.cd_rad_per_pixel[3] * radians_to_degrees));
+  if (has_sip) {
+    cards.emplace_back("A_ORDER", numeric_value(static_cast<double>(wcs.sip_a.order)));
+    for (const Term2& term : wcs.sip_a.terms) {
+      cards.emplace_back("A_" + std::to_string(term.x_power) + "_" +
+                             std::to_string(term.y_power),
+                         numeric_value(term.coefficient));
+    }
+    cards.emplace_back("B_ORDER", numeric_value(static_cast<double>(wcs.sip_b.order)));
+    for (const Term2& term : wcs.sip_b.terms) {
+      cards.emplace_back("B_" + std::to_string(term.x_power) + "_" +
+                             std::to_string(term.y_power),
+                         numeric_value(term.coefficient));
+    }
+  }
   // BUNIT is the physical dimension of the signal and never the internal model
   // identity.  The exact unit (with the applied photometric scale) is kept in
   // ACSUNIT and the fact that it is not a standard FITS unit is stated in

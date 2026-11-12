@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "acsd/contracts.hpp"
+#include "geometry/pixel_grid.hpp"
 #include "model/array.hpp"
 #include "model/result.hpp"
 #include "model/units.hpp"
@@ -241,180 +242,168 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
   }
   const U64 pixel_count = request.target.width * request.target.height;
 
-  std::vector<std::vector<std::pair<U64, double>>> rows_of_pixel(pixel_count);
-  // Coefficient interval [cL,cU] for every (pixel, leaf) entry: the midpoint
-  // is the point Q, the interval is needed for the numerical bound.
-  std::vector<std::vector<std::array<double, 3>>> rows_interval(pixel_count);
+  // The row Q as a sparse action, built by the streaming pixel grid.  The
+  // former loop invoked the certified overlap kernel once per target pixel
+  // (4096x4096 = 16.7 million host invocations, hours of wall time and one
+  // per-pixel vector pair); the grid emits the same (pixel, leaf, a, A) terms
+  // in pixel order and the row is accumulated here.
+  std::vector<U64> offsets;
+  offsets.reserve(static_cast<std::size_t>(pixel_count) + 1);
+  offsets.push_back(0);
+  std::vector<U64> indices;
+  std::vector<double> values;
+  std::vector<double> interval_lower;
+  std::vector<double> interval_upper;
+  indices.reserve(static_cast<std::size_t>(pixel_count) * 2);
+  values.reserve(static_cast<std::size_t>(pixel_count) * 2);
+  interval_lower.reserve(static_cast<std::size_t>(pixel_count) * 2);
+  interval_upper.reserve(static_cast<std::size_t>(pixel_count) * 2);
   std::vector<double> pixel_area(pixel_count, 0.0);
   std::vector<char> pixel_supported(pixel_count, 0);
   bool undecided_support = false;
   bool normalizer_unresolved = false;
-
-  for (U64 y = 0; y < request.target.height; ++y) {
-    for (U64 x = 0; x < request.target.width; ++x) {
-      const U64 pixel = y * request.target.width + x;
-      if (context.cancellation.requested()) {
-        return fail<ExportResult>(Code::cancelled, "the export was cancelled", "build_export",
-                                  "the export cannot be built");
-      }
-      Ref<DetectorFootprint> footprint = make_target_footprint(request.target.model, x, y);
-      // pixfrac = 1: the target pixel is never contracted a second time.
-      Result<Ref<Overlaps>> overlaps = compute_overlap(context, *val(provider), footprint, order, 1.0,
-                                                        request.budget);
-      if (ok(overlaps)) {
-        // A named termination of the kernel (the work or the precision budget
-        // exhausted) gives no certified bound: the export stops with that
-        // code instead of publishing a payload that differs from the
-        // baseline.
-        const Termination termination = val(overlaps)->status.termination;
-        if (termination != Termination::tolerance_met) {
-          const Code code = termination == Termination::work      ? Code::resource_exhausted
-                             : termination == Termination::precision ? Code::precision_exhausted
-                                                                   : Code::unsupported;
-          return fail<ExportResult>(code,
-                                    "the geometry did not reach the requested tolerance",
-                                    "build_export", "the export cannot be built");
-        }
-      }
-      if (!ok(overlaps)) {
-        return fail<ExportResult>(overlaps.code,
-                                  overlaps.assessment.issues.empty()
-                                      ? "the target overlap cannot be computed"
-                                      : overlaps.assessment.issues.front().reason,
-                                  "build_export", "the export cannot be built");
-      }
-      // The same leaf may be touched by several pieces; the pieces are merged
-      // before the row is formed.
-      std::map<U64, double> merged;
-      std::map<U64, double> merged_lower;
-      std::map<U64, double> merged_upper;
-      double native_area = 0.0;
-      double native_area_lower = 0.0;
-      double native_area_upper = 0.0;
-      for (const OverlapContribution& contribution : val(overlaps)->contributions) {
-        const auto key = std::make_pair(contribution.leaf.order, contribution.leaf.ipix);
-        auto row = rows.find(key);
-        if (row == rows.end()) continue;  // a leaf outside the product support
-        if (!states.empty() && states[row->second] != 1) {
-          if (states[row->second] > 1) undecided_support = true;
-          continue;  // no certain support
-        }
-        // Q is a point operator: use the midpoint of the certified overlap
-        // interval.  The lower endpoint would bias every exported flux low;
-        // the interval is kept for the numerical bound.
-        const double area = 0.5 * (contribution.overlap_area.lower_sr +
-                                   contribution.overlap_area.upper_sr);
-        if (!(area > 0.0) || !std::isfinite(area)) continue;
-        merged[row->second] += area;
-        merged_lower[row->second] += contribution.overlap_area.lower_sr;
-        merged_upper[row->second] += contribution.overlap_area.upper_sr;
-        const double native = 0.5 * (contribution.native_area.lower_sr +
-                                     contribution.native_area.upper_sr);
-        native_area = std::max(native_area, native);
-        if (contribution.native_area.lower_sr > 0.0) {
-          native_area_lower = native_area_lower > 0.0
-                                  ? std::min(native_area_lower, contribution.native_area.lower_sr)
-                                  : contribution.native_area.lower_sr;
-          native_area_upper = std::max(native_area_upper, contribution.native_area.upper_sr);
-        }
-      }
-      double total = 0.0;
-      double total_lower = 0.0;
-      double total_upper = 0.0;
-      for (const auto& entry : merged) total += entry.second;
-      for (const auto& entry : merged_lower) total_lower += entry.second;
-      for (const auto& entry : merged_upper) total_upper += entry.second;
-      if (!(total > 0.0)) continue;  // no support: the pixel stays NaN
-      pixel_supported[pixel] = 1;
-      pixel_area[pixel] = native_area;
-      for (const auto& entry : merged) {
-        double coefficient = 0.0;
-        double coefficient_lower = 0.0;
-        double coefficient_upper = 0.0;
-        const double entry_lower = merged_lower.count(entry.first)
-                                       ? merged_lower[entry.first]
-                                       : entry.second;
-        const double entry_upper = merged_upper.count(entry.first)
-                                       ? merged_upper[entry.first]
-                                       : entry.second;
-        switch (request.quantity) {
-          case ExportRequest::Quantity::supported_mean:
-            coefficient = entry.second / total;
-            coefficient_lower = total_upper > 0.0 ? entry_lower / total_upper : 0.0;
-            coefficient_upper =
-                total_lower > 0.0 ? entry_upper / total_lower
-                                  : std::numeric_limits<double>::infinity();
-            if (!(total_lower > 0.0)) normalizer_unresolved = true;
-            break;
-          case ExportRequest::Quantity::supported_flux:
-            coefficient = entry.second;
-            coefficient_lower = entry_lower;
-            coefficient_upper = entry_upper;
-            break;
-          case ExportRequest::Quantity::extrapolated_full_flux:
-            coefficient = native_area * entry.second / total;
-            coefficient_lower =
-                total_upper > 0.0
-                    ? (native_area_lower > 0.0 ? native_area_lower : native_area) *
-                          entry_lower / total_upper
-                    : 0.0;
-            coefficient_upper =
-                total_lower > 0.0
-                    ? (native_area_upper > 0.0 ? native_area_upper : native_area) *
-                          entry_upper / total_lower
-                    : std::numeric_limits<double>::infinity();
-            if (!(total_lower > 0.0)) normalizer_unresolved = true;
-            break;
-        }
-        if (request.support_policy == SupportMap::Kind::effective_area_approx) {
-          // The effective area approximation replaces the true sub leaf shape
-          // by the supported fraction of the leaf.
-          const double fraction = area_lower.empty() || area_lower[entry.first] <= 0.0
-                                     ? 0.0
-                                     : area_lower[entry.first] /
-                                           leaf_area_sr(val(leaves)[entry.first].order);
-          coefficient = native_area * fraction;
-          coefficient_lower =
-              (native_area_lower > 0.0 ? native_area_lower : native_area) * fraction;
-          coefficient_upper =
-              (native_area_upper > 0.0 ? native_area_upper : native_area) * fraction;
-        }
-        if (coefficient != 0.0) {
-          rows_of_pixel[pixel].emplace_back(entry.first, coefficient);
-          rows_interval[pixel].push_back(
-              {static_cast<double>(entry.first), coefficient_lower, coefficient_upper});
-        }
-      }
+  U64 current_pixel = std::numeric_limits<U64>::max();
+  std::map<U64, double> merged;
+  std::map<U64, double> merged_lower;
+  std::map<U64, double> merged_upper;
+  double native_area = 0.0;
+  double native_area_lower = 0.0;
+  double native_area_upper = 0.0;
+  const std::map<std::pair<U32, U64>, U64>& leaf_rows = rows;
+  auto flush_pixel = [&]() {
+    if (current_pixel == std::numeric_limits<U64>::max()) return;
+    double total = 0.0;
+    double total_lower = 0.0;
+    double total_upper = 0.0;
+    for (const auto& entry : merged) total += entry.second;
+    for (const auto& entry : merged_lower) total_lower += entry.second;
+    for (const auto& entry : merged_upper) total_upper += entry.second;
+    if (merged.empty() || !(total > 0.0)) {
+      offsets.push_back(indices.size());
+      merged.clear();
+      merged_lower.clear();
+      merged_upper.clear();
+      native_area = native_area_lower = native_area_upper = 0.0;
+      return;
     }
-  }
-
-  // The row Q as a sparse action: rows are the target pixels, columns the
-  // leaves of the product.
-  std::vector<U64> offsets;
-  std::vector<U64> indices;
-  std::vector<double> values;
-  offsets.push_back(0);
-  U64 last_column = 0;
-  for (U64 pixel = 0; pixel < pixel_count; ++pixel) {
-    std::vector<std::pair<U64, double>>& row = rows_of_pixel[pixel];
-    std::sort(row.begin(), row.end());
-    for (const auto& entry : row) {
-      indices.push_back(entry.first);
-      values.push_back(entry.second);
-      last_column = std::max(last_column, entry.first + 1);
+    pixel_supported[current_pixel] = 1;
+    pixel_area[current_pixel] = native_area;
+    for (const auto& entry : merged) {
+      double coefficient = 0.0;
+      double coefficient_lower = 0.0;
+      double coefficient_upper = 0.0;
+      const double entry_lower =
+          merged_lower.count(entry.first) ? merged_lower[entry.first] : entry.second;
+      const double entry_upper =
+          merged_upper.count(entry.first) ? merged_upper[entry.first] : entry.second;
+      switch (request.quantity) {
+        case ExportRequest::Quantity::supported_mean:
+          coefficient = entry.second / total;
+          coefficient_lower = total_upper > 0.0 ? entry_lower / total_upper : 0.0;
+          coefficient_upper = total_lower > 0.0 ? entry_upper / total_lower
+                                                : std::numeric_limits<double>::infinity();
+          if (!(total_lower > 0.0)) normalizer_unresolved = true;
+          break;
+        case ExportRequest::Quantity::supported_flux:
+          coefficient = entry.second;
+          coefficient_lower = entry_lower;
+          coefficient_upper = entry_upper;
+          break;
+        case ExportRequest::Quantity::extrapolated_full_flux:
+          coefficient = native_area * entry.second / total;
+          coefficient_lower =
+              total_upper > 0.0
+                  ? (native_area_lower > 0.0 ? native_area_lower : native_area) * entry_lower /
+                        total_upper
+                  : 0.0;
+          coefficient_upper =
+              total_lower > 0.0
+                  ? (native_area_upper > 0.0 ? native_area_upper : native_area) * entry_upper /
+                        total_lower
+                  : std::numeric_limits<double>::infinity();
+          if (!(total_lower > 0.0)) normalizer_unresolved = true;
+          break;
+      }
+      if (request.support_policy == SupportMap::Kind::effective_area_approx) {
+        const double fraction = area_lower.empty() || area_lower[entry.first] <= 0.0
+                                   ? 0.0
+                                   : area_lower[entry.first] /
+                                         leaf_area_sr(val(leaves)[entry.first].order);
+        coefficient = native_area * fraction;
+        coefficient_lower =
+            (native_area_lower > 0.0 ? native_area_lower : native_area) * fraction;
+        coefficient_upper =
+            (native_area_upper > 0.0 ? native_area_upper : native_area) * fraction;
+      }
+      if (coefficient != 0.0) {
+        indices.push_back(entry.first);
+        values.push_back(coefficient);
+        interval_lower.push_back(coefficient_lower);
+        interval_upper.push_back(coefficient_upper);
+      }
     }
     offsets.push_back(indices.size());
+    merged.clear();
+    merged_lower.clear();
+    merged_upper.clear();
+    native_area = native_area_lower = native_area_upper = 0.0;
+  };
+  const geometry::PixelTermSink sink =
+      [&](U64 source_row, const geometry::PixelTerm& term) -> Result<rt::Done> {
+        if (source_row != current_pixel) {
+          flush_pixel();
+          current_pixel = source_row;
+          // A pixel without support emits no term: its row is empty and the
+          // offset array must still have one entry per pixel.
+          while (offsets.size() < source_row + 1) offsets.push_back(indices.size());
+        }
+        const auto key = std::make_pair(term.order, term.ipix);
+        auto row = leaf_rows.find(key);
+        if (row == leaf_rows.end()) return model::ok_result(rt::Done{});
+        if (!states.empty() && states[row->second] != 1) {
+          if (states[row->second] > 1) undecided_support = true;
+          return model::ok_result(rt::Done{});
+        }
+        const double area = 0.5 * (term.overlap_lower + term.overlap_upper);
+        if (!(area > 0.0) || !std::isfinite(area)) return model::ok_result(rt::Done{});
+        merged[row->second] += area;
+        merged_lower[row->second] += term.overlap_lower;
+        merged_upper[row->second] += term.overlap_upper;
+        const double native = 0.5 * (term.native_lower + term.native_upper);
+        native_area = std::max(native_area, native);
+        if (term.native_lower > 0.0) {
+          native_area_lower = native_area_lower > 0.0
+                                  ? std::min(native_area_lower, term.native_lower)
+                                  : term.native_lower;
+          native_area_upper = std::max(native_area_upper, term.native_upper);
+        }
+        return model::ok_result(rt::Done{});
+      };
+  Result<rt::Done> grid = geometry::pixel_grid_overlap(
+      context, *request.target.model, request.target.width, request.target.height, 0,
+      request.target.height, order, 1.0, request.budget, sink);
+  flush_pixel();
+  while (offsets.size() < pixel_count + 1) offsets.push_back(indices.size());
+  if (!ok(grid)) {
+    return fail<ExportResult>(grid.code,
+                              grid.assessment.issues.empty()
+                                  ? "the target pixel grid overlap failed"
+                                  : grid.assessment.issues.front().reason,
+                              "build_export", "the export cannot be built");
   }
   if (indices.empty()) {
-    // No pixel has support: the action stays empty but well formed.
     offsets.assign(2, 0);
   }
+  U64 last_column = 0;
+  for (const U64 column : indices) last_column = std::max(last_column, column + 1);
   // The sparse action derives its column count from the largest index, so the
   // trailing leaves are padded with explicit zero entries.
   if (!indices.empty() && last_column < leaf_count) {
     for (U64 column = last_column; column < leaf_count; ++column) {
       indices.push_back(column);
       values.push_back(0.0);
+      interval_lower.push_back(0.0);
+      interval_upper.push_back(0.0);
     }
     offsets[offsets.size() - 1] = indices.size();
   }
@@ -520,10 +509,10 @@ Result<ExportResult> build_export(Context& context, const ProductProvider& produ
         if (!pixel_supported[pixel]) continue;
         double lo = 0.0;
         double hi = 0.0;
-        for (const std::array<double, 3>& entry : rows_interval[pixel]) {
-          const U64 row = static_cast<U64>(entry[0]);
-          const double c_lo = entry[1];
-          const double c_hi = entry[2];
+        for (U64 k = offsets[pixel]; k < offsets[pixel + 1]; ++k) {
+          const U64 row = indices[k];
+          const double c_lo = interval_lower[k];
+          const double c_hi = interval_upper[k];
           const double x_lo = val(leaf_low)[row];
           const double x_hi = val(leaf_high)[row];
           const double p1 = c_lo * x_lo;

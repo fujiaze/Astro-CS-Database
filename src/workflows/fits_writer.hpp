@@ -35,7 +35,9 @@ Result<std::string> write_fits_image(const std::filesystem::path& path, U64 widt
 Result<std::string> write_hips_order(const std::filesystem::path& root, U32 order,
                                       U32 tile_log2_width,
                                       const std::vector<HealpixLeaf>& leaves,
-                                      const std::vector<double>& values, const std::string& bunit);
+                                      const std::vector<double>& values,
+                                      const std::vector<std::uint8_t>& support_states,
+                                      const std::string& bunit);
 
 // Writes the two dimensional export image with its target WCS.  The image
 // keeps the size of the target: the given centre is placed at

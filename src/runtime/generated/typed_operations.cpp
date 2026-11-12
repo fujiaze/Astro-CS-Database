@@ -3752,6 +3752,89 @@ rt::Task<DrizzleResult> finalize_build_drizzle(
 }
 
 
+Result<rt::Done> validate_drizzle_grid(rt::InvocationContext ctx,
+                                          Ref<acsd::modules::DrizzleGridInput> input) {
+  const std::string_view origin = "drizzle_grid.validate";
+  if (!input) {
+    return invalid<rt::Done>(origin, "the typed input is null");
+  }
+  if (!ctx.ids.process.empty() && ctx.ids.process != "geometry.drizzle") {
+    return invalid<rt::Done>(
+        origin, "the invocation process id does not match geometry.drizzle");
+  }
+  if (!ctx.ids.operation.empty() && ctx.ids.operation != "drizzle_grid") {
+    return invalid<rt::Done>(
+        origin, "the invocation operation id does not match drizzle_grid");
+  }
+  if (!input->provider) {
+    return invalid<rt::Done>(origin,
+        "field 'provider' is a required object reference but is null");
+  }
+  if (!input->observation) {
+    return invalid<rt::Done>(origin,
+        "field 'observation' is a required object reference but is null");
+  }
+  auto units = detail::check_input_units_DrizzleGridInput(*input, origin);
+  if (units.code != Code::ok) return codec::remap<rt::Done>(units);
+  return codec::ok<rt::Done>(rt::Done{});
+}
+
+Result<rt::PlanBounds> bounds_drizzle_grid(
+    rt::InvocationContext ctx, Ref<acsd::modules::DrizzleGridInput> input) {
+  (void)ctx;
+  const std::string_view origin = "drizzle_grid.bounds";
+  if (!input) {
+    return invalid<rt::PlanBounds>(origin, "the typed input is null");
+  }
+  rt::PlanBounds bounds;
+  bounds.min_block_elements = 1;
+  bounds.max_block_elements = 65536;
+  bounds.max_window = 1;
+  // No process document grants a spill route yet; refusing spill is the
+  // conservative, always-safe answer.
+  bounds.allow_spill = false;
+  return codec::ok<rt::PlanBounds>(bounds);
+}
+
+Result<rt::InvocationPlan> plan_drizzle_grid(
+    rt::InvocationContext ctx, Ref<acsd::modules::DrizzleGridInput> input,
+    rt::PlanOptions options) {
+  (void)ctx;
+  (void)input;
+  (void)options;
+  return codec::failure<rt::InvocationPlan>(
+      Code::unsupported, "drizzle_grid.plan",
+      "not integrated before M5: geometry.drizzle owns the real "
+      "InvocationPlan (regions/stages/edges and the module resource model); "
+      "M0 registers the typed binding, schema, codec and conservative bounds",
+      "the Host stops after plan; run is never reached");
+}
+
+rt::Task<DrizzleResult> run_drizzle_grid(
+    rt::InvocationContext ctx, Ref<acsd::modules::DrizzleGridInput> input,
+    Ref<rt::InvocationPlan> plan) {
+  (void)input;
+  (void)plan;
+  return named_unsupported<acsd::modules::DrizzleGridInput, DrizzleResult>(
+      ctx, "drizzle_grid.run",
+      "not integrated before M5: the geometry.drizzle run hook must call the single existing implementation through the runtime model-context bridge (M4/M5). M0 registers the typed binding, schema, codec and conservative bounds; no mock value is returned");
+}
+
+rt::Task<DrizzleResult> finalize_drizzle_grid(
+    rt::InvocationContext ctx, Ref<acsd::modules::DrizzleGridInput> input,
+    Ref<rt::InvocationPlan> plan, Result<DrizzleResult> partial) {
+  (void)input;
+  (void)plan;
+  if (partial.code == Code::ok) {
+    return rt::ready<DrizzleResult>(ctx, std::move(partial));
+  }
+  // Failure keeps its original code, assessment, usage and dependencies; the
+  // value stays absent.  finalize never re-runs the science algorithm.
+  return rt::ready<DrizzleResult>(
+      ctx, rt::detail::remap_failure<DrizzleResult, DrizzleResult>(partial));
+}
+
+
 Result<rt::Done> validate_estimate_flux_information(rt::InvocationContext ctx,
                                           Ref<acsd::modules::EstimateFluxInformationInput> input) {
   const std::string_view origin = "estimate_flux_information.validate";
@@ -5416,6 +5499,20 @@ Result<rt::Done> add_operations_geometry_drizzle(
     operation.run = &run_build_drizzle;
     operation.finalize = &finalize_build_drizzle;
     auto added = builder.add<acsd::modules::BuildDrizzleInput, DrizzleResult>(
+        registration, operation);
+    if (added.code != Code::ok) return added;
+  }
+  {
+    rt::Operation<acsd::modules::DrizzleGridInput, DrizzleResult> operation;
+    operation.operation_id = "drizzle_grid";
+    operation.input_type = rt::TypeId{"acsd.input.DrizzleGridInput", 1};
+    operation.output_type = rt::TypeId{"acsd.DrizzleResult", 1};
+    operation.validate = &validate_drizzle_grid;
+    operation.bounds = &bounds_drizzle_grid;
+    operation.plan = &plan_drizzle_grid;
+    operation.run = &run_drizzle_grid;
+    operation.finalize = &finalize_drizzle_grid;
+    auto added = builder.add<acsd::modules::DrizzleGridInput, DrizzleResult>(
         registration, operation);
     if (added.code != Code::ok) return added;
   }

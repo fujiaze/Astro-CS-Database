@@ -29,7 +29,7 @@ const std::vector<std::pair<Id, std::vector<Id>>>& expected_value() {
       {"geometry.overlap", {"make_footprint_provider", "detector_footprint", "footprint", "measure", "compute_overlap", "refine_geometry", "footprint.forward_interval", "footprint.boundary_interval", "footprint.derivative_interval", "refinable.open", "refinable.refine"}},
       {"operators.action", {"make_action", "apply", "transpose_apply", "compose", "action.dependency_blocks", "action.serialize_recipe", "action.row_enclosure"}},
       {"uncertainty.covariance", {"make_covariance", "covariance_apply", "quadratic_form", "geometry_covariance_bound", "control_covariance"}},
-      {"geometry.drizzle", {"build_drizzle"}},
+      {"geometry.drizzle", {"build_drizzle", "drizzle_grid"}},
       {"information.reference", {"estimate_flux_information"}},
       {"information.scene", {"evaluate_scene_variance", "build_supported_triangulation", "reconstruct_scene_variance"}},
       {"sky.controls", {"build_sky_controls"}},
@@ -76,6 +76,7 @@ const std::vector<Id>& provisional_value() {
       "geometry_covariance_bound",
       "control_covariance",
       "build_drizzle",
+      "drizzle_grid",
       "estimate_flux_information",
       "evaluate_scene_variance",
       "build_supported_triangulation",
@@ -185,6 +186,7 @@ const std::vector<std::pair<Id, U32>>& registered_type_rows() {
       {"acsd.input.GeometryCovarianceBoundInput", 1},
       {"acsd.input.ControlCovarianceInput", 1},
       {"acsd.input.BuildDrizzleInput", 1},
+      {"acsd.input.DrizzleGridInput", 1},
       {"acsd.input.EstimateFluxInformationInput", 1},
       {"acsd.input.EvaluateSceneVarianceInput", 1},
       {"acsd.input.BuildSupportedTriangulationInput", 1},
@@ -248,6 +250,7 @@ const std::vector<Id>& input_type_rows() {
       "acsd.input.GeometryCovarianceBoundInput",
       "acsd.input.ControlCovarianceInput",
       "acsd.input.BuildDrizzleInput",
+      "acsd.input.DrizzleGridInput",
       "acsd.input.EstimateFluxInformationInput",
       "acsd.input.EvaluateSceneVarianceInput",
       "acsd.input.BuildSupportedTriangulationInput",
@@ -268,7 +271,7 @@ const char* status_json() {
 {
   "protocol": "acsd.typed-bindings/1",
   "processes": 22,
-  "operations": 57,
+  "operations": 58,
   "entries": [
     {
       "process": "observation.calibrate",
@@ -1408,6 +1411,31 @@ const char* status_json() {
         "revision": 1
       },
       "declaration": "Result<DrizzleResult> (Context &, Ref<Overlaps>, Ref<NativeObservation>, const DrizzleRequest &) build_drizzle(...)",
+      "plan_stage": "M5",
+      "run_status": "pending_m5",
+      "run_reason": "not integrated before M5: the geometry.drizzle run hook must call the single existing implementation through the runtime model-context bridge (M4/M5). M0 registers the typed binding, schema, codec and conservative bounds; no mock value is returned",
+      "bounds": {
+        "min_block_elements": 1,
+        "max_block_elements": 65536,
+        "max_window": 1,
+        "allow_spill": false,
+        "provisional": true,
+        "source": "provisional: no block-size upper bound is declared by the process document or DEVELOPMENT.md; conservative fallback"
+      }
+    },
+    {
+      "process": "geometry.drizzle",
+      "operation": "drizzle_grid",
+      "input_struct": "DrizzleGridInput",
+      "input_type": {
+        "schema": "acsd.input.DrizzleGridInput",
+        "revision": 1
+      },
+      "output_type": {
+        "schema": "acsd.DrizzleResult",
+        "revision": 1
+      },
+      "declaration": "Result<DrizzleResult> (Context &, Ref<FootprintProvider>, Ref<NativeObservation>, const Box &, const DrizzleRequest &) drizzle_grid(...)",
       "plan_stage": "M5",
       "run_status": "pending_m5",
       "run_reason": "not integrated before M5: the geometry.drizzle run hook must call the single existing implementation through the runtime model-context bridge (M4/M5). M0 registers the typed binding, schema, codec and conservative bounds; no mock value is returned",

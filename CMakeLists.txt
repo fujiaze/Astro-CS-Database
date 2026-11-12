@@ -261,6 +261,19 @@ if(ACSD_BUILD_SCIENCE)
   endif()
 endif()
 
+
+# Experimental geometry/driver targets for the M42 recovery round.  These are
+# measurement drivers, not gates: they only print actual timings/counters.
+if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/geo/perf_geometry.cpp)
+  add_executable(acsd_perf_geometry validation/geo/perf_geometry.cpp)
+  target_link_libraries(acsd_perf_geometry PRIVATE acsd_science)
+  target_include_directories(acsd_perf_geometry PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+endif()
+if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/m42/geometry_bench.cpp)
+  add_executable(acsd_geometry_bench validation/m42/geometry_bench.cpp)
+  target_link_libraries(acsd_geometry_bench PRIVATE acsd_science nlohmann_json::nlohmann_json)
+  target_include_directories(acsd_geometry_bench PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+endif()
 if(ACSD_BUILD_SCIENCE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/validation/lead/numerics_selftest.cpp)
   add_executable(acsd_numerics_selftest validation/lead/numerics_selftest.cpp)
   target_link_libraries(acsd_numerics_selftest PRIVATE numerics model)

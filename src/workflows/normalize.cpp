@@ -20,6 +20,8 @@
 #include <set>
 #include <fstream>
 #include <vector>
+#include <chrono>
+#include <cstdio>
 
 #include "acsd/contracts.hpp"
 #include "model/array.hpp"
@@ -27,6 +29,7 @@
 #include "model/result.hpp"
 #include "model/units.hpp"
 #include "operators/linear_action.hpp"
+#include "observation/observation.hpp"
 #include "sources/psf_internal.hpp"
 #include <acsd/modules/catalogue.hpp>
 #include <acsd/modules/coordinates.hpp>
@@ -120,6 +123,30 @@ inline const char* code_name(Code code) {
 // foundation form a_jp = Omega(D_j cap H_p) needs one area per source row and
 // per leaf, so the detector is partitioned into blocks of `block` by `block`
 // pixels.  The block is the rectangular collection domain of one source row.
+namespace {
+struct PixelTimers {
+  double footprint = 0.0;
+  double plan = 0.0;
+  double invoke = 0.0;
+  double merge = 0.0;
+  U64 count = 0;
+  bool enabled = false;
+};
+PixelTimers& pixel_timers() {
+  static PixelTimers timers;
+  static const bool init = [] {
+    const char* env = std::getenv("ACSD_PIXEL_TIMING");
+    timers.enabled = env && *env;
+    return true;
+  }();
+  (void)init;
+  return timers;
+}
+inline double since(std::chrono::steady_clock::time_point start) {
+  return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+}
+}  // namespace
+
 Result<Ref<DetectorFootprint>> block_footprint(Context& context, Ref<FootprintSet> set, U64 block,
                                                 U64 block_size, U64 source_row) {
   using model::fail;
@@ -306,8 +333,11 @@ bool stage_terminated(const Assessment& assessment, Code& code, std::string& rea
       case Code::nonconverged:
       case Code::geometry_solve_unresolved:
       case Code::selection_unresolved:
-      case Code::support_unresolved:
-      case Code::no_support:
+      // support_unresolved / no_support are local conditions of individual
+      // leaves (a grazing sliver has no certified lower bound).  The estimate
+      // publishes them as named NaN rows with complete=false; they are not a
+      // frame failure.  A frame with no resolved leaf at all is refused by the
+      // drizzle itself.
       case Code::not_identifiable:
       case Code::unsolved:
       case Code::hash_mismatch:
@@ -454,9 +484,11 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
   std::vector<Id> photometry_frames;
   std::vector<std::vector<U64>> source_ids_per_frame;
 
+  const bool debug_flow = std::getenv("ACSD_FLOW_DEBUG") != nullptr;
   for (std::size_t i = 0; i < request.frames.size(); ++i) {
     const NormalizeFrame& frame = request.frames[i];
     FrameOutcome& outcome = outcomes[i];
+    if (debug_flow) std::fprintf(stderr, "flow: i=%zu start %s\n", i, frame.frame.c_str());
     outcome.frame = frame.frame;
     outcome.assessment = model::make_assessment(Code::ok);
     outcome.assessment.complete = true;
@@ -573,6 +605,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       continue;
     }
     observation = value_of(bound);
+    if (debug_flow) std::fprintf(stderr, "flow: i=%zu bound\n", i);
 
     // The catalogue stars of the field.  query() is a provider method of the
     // storage service (WORKFLOWS: provider methods are not per-call processes);
@@ -595,17 +628,43 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
         coordinates::direction_from_tangent(*wcs, coordinates::tangent_offset(*wcs, uv[0], uv[1]));
     CatalogueQuery query;
     query.region.center = field_center;
-    const double radius =
+    // The query radius is the real sky footprint of the frame plus a PSF
+    // window.  The former code used scale_rad_pixel.upper, a blind-solve
+    // prior that can be smaller than the bound WCS scale (the M42 lights are
+    // 0.967"/px while the prior upper bound is 0.62"/px): corner stars were
+    // silently cut from the catalogue.
+    const double step1 = std::hypot(wcs->cd_rad_per_pixel[0], wcs->cd_rad_per_pixel[2]);
+    const double step2 = std::hypot(wcs->cd_rad_per_pixel[1], wcs->cd_rad_per_pixel[3]);
+    const double pixel_scale = std::max(step1, step2) > 0.0
+                                   ? std::max(step1, step2)
+                                   : (scale > 0.0 ? scale : 1e-6);
+    const double half_diagonal =
         0.5 * std::sqrt(static_cast<double>(width) * static_cast<double>(width) +
-                         static_cast<double>(height) * static_cast<double>(height)) *
-        scale;
+                        static_cast<double>(height) * static_cast<double>(height));
+    const double radius =
+        half_diagonal * pixel_scale * 1.05 +
+        2.0 * request.psf.window_radius_pixel * pixel_scale;
     query.region.radius_rad = radius > 0.0 ? radius : 1e-3;
     query.epoch_julian_year = observation->context.epoch_julian_year;
-    query.page_size = 64;
+    query.page_size = 4096;
     query.cursor = "";
-    Result<CataloguePage> page = catalogue.query(context, query);
+    // Walk every catalogue page: the provider orders by identifier, not by
+    // brightness, so a truncated page is a biased sample.
+    if (debug_flow) {
+      std::fprintf(stderr, "flow: i=%zu query centre=(%.6f,%.6f,%.6f) r=%.6g epoch=%.6f\n", i,
+                   field_center.nx, field_center.ny, field_center.nz, query.region.radius_rad,
+                   query.epoch_julian_year);
+    }
     std::vector<CatalogueStar> stars;
-    if (ok(page)) stars = value_of(page).stars;
+    std::set<std::string> seen_cursors;
+    for (int attempt = 0; attempt < 64; ++attempt) {
+      Result<CataloguePage> page = catalogue.query(context, query);
+      if (!ok(page)) break;
+      const CataloguePage& value = value_of(page);
+      for (const CatalogueStar& star : value.stars) stars.push_back(star);
+      if (value.next_cursor.empty() || !seen_cursors.insert(value.next_cursor).second) break;
+      query.cursor = value.next_cursor;
+    }
     Result<Done> star_ingest = model::ok_result(Done{});
     for (const CatalogueStar& star : stars) {
       star_ingest = ingest_star(context, *runtime, star);
@@ -629,6 +688,27 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     std::vector<CatalogueStar> in_frame;
     std::vector<PixelCenter0> in_frame_positions;
     const double margin = request.psf.window_radius_pixel + 4.0;
+    // The DQ saturation mask of the measurement window.  A PSF window whose
+    // samples are saturated at the core carries no usable template shape; the
+    // joint fit then has zero columns and is rank deficient.  The former code
+    // applied a centre-only test in measure, never to the PSF fit.
+    std::vector<std::uint16_t> quality;
+    if (observation->dq) {
+      // The DQ array was produced by the Host and lives in the runtime
+      // BlockStore, not in the CLI storage: reading it through the workflow
+      // storage view is what makes the mask see the real flags.
+      workflows::WorkflowStorage read_storage(context.storage, runtime->services);
+      Context read_context{context.resources, context.cancellation, read_storage};
+      Result<std::vector<std::uint16_t>> flags =
+          acsd::observation::read_u16_values(read_context, observation->dq);
+      if (ok(flags)) quality = val(flags);
+    }
+    const bool row_major_grid =
+        observation->native_index &&
+        observation->native_index->size == width * height &&
+        !quality.empty();
+    const long long window_radius = static_cast<long long>(
+        std::ceil(request.psf.window_radius_pixel > 0.0 ? request.psf.window_radius_pixel : 10.0));
     for (const CatalogueStar& star : stars) {
       Result<PixelCenter0> position = sources::psfmodel::detector_position(
           context, wcs, star, observation->context, request.psf.budget);
@@ -636,6 +716,33 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       if (position.value->x < -margin || position.value->x > static_cast<double>(width) + margin ||
           position.value->y < -margin || position.value->y > static_cast<double>(height) + margin)
         continue;
+      if (row_major_grid) {
+        const long long cx = static_cast<long long>(std::llround(position.value->x));
+        const long long cy = static_cast<long long>(std::llround(position.value->y));
+        if (cx < 0 || cy < 0 || cx >= static_cast<long long>(width) ||
+            cy >= static_cast<long long>(height))
+          continue;
+        const U64 centre_row = static_cast<U64>(cy) * width + static_cast<U64>(cx);
+        if ((quality[static_cast<std::size_t>(centre_row)] & acsd::observation::kDqSaturated) != 0u)
+          continue;
+        long long saturated = 0;
+        long long total = 0;
+        for (long long dy = -window_radius; dy <= window_radius; ++dy) {
+          const long long y = cy + dy;
+          if (y < 0 || y >= static_cast<long long>(height)) continue;
+          for (long long dx = -window_radius; dx <= window_radius; ++dx) {
+            const long long x = cx + dx;
+            if (x < 0 || x >= static_cast<long long>(width)) continue;
+            ++total;
+            const U64 row = static_cast<U64>(y) * width + static_cast<U64>(x);
+            if ((quality[static_cast<std::size_t>(row)] & acsd::observation::kDqSaturated) != 0u)
+              ++saturated;
+          }
+        }
+        // At most 15% of the window may be at ADC full scale: a larger
+        // fraction leaves the PSF shape unconstrained and the flux undefined.
+        if (total > 0 && saturated * 100 > total * 15) continue;
+      }
       in_frame.push_back(star);
       in_frame_positions.push_back(*position.value);
     }
@@ -666,13 +773,38 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       selected_stars.push_back(in_frame[index]);
       selected_positions.push_back(in_frame_positions[index]);
     }
-    if (selected_stars.empty()) selected_stars = in_frame;
+    if (debug_flow) std::fprintf(stderr, "flow: i=%zu in_frame=%zu selected=%zu stars=%zu\n", i,
+                                 in_frame.size(), selected_stars.size(), stars.size());
+    if (selected_stars.empty()) {
+      // The former code silently fell back to overlapping windows, which
+      // changes the estimator without telling anyone.  An unresolved
+      // selection is a named failure: the joint fit needs disjoint windows.
+      outcome.failed = true;
+      outcome.code = Code::selection_unresolved;
+      outcome.reason =
+          "no isolated science star: " + std::to_string(in_frame.size()) +
+          " in-frame stars but none is isolated at twice the PSF window radius";
+      result.frames.emplace_back(outcome.frame, outcome.assessment);
+      continue;
+    }
     std::vector<CatalogueStar> in_frame_selected = std::move(selected_stars);
-    constexpr std::size_t kMaxScienceStars = 4;
+    // The PSF and the relative scale need a real sample, not two stars.  The
+    // old cap of four (applied after the isolation pass) left the M42 core
+    // with two samples, one of them saturated.  The plan's work estimate is
+    // derived from this list, so the larger sample is budgeted.
+    constexpr std::size_t kMaxScienceStars = 24;
     if (in_frame_selected.size() > kMaxScienceStars) in_frame_selected.resize(kMaxScienceStars);
     in_frame = std::move(in_frame_selected);
+    if (std::getenv("ACSD_FLOW_DEBUG")) {
+      std::fprintf(stderr, "flow: i=%zu psf_selection=%zu of in_frame=%zu (stars=%zu)\n", i,
+                   in_frame.size(), in_frame.size(), stars.size());
+    }
     std::vector<CatalogueStar> psf_selection = in_frame;
-    constexpr std::size_t kMaxPsfStars = 4;
+    // The PSF shape is fitted jointly on a sample of stars.  Four stars leave
+    // the 16-parameter design (3 shape + 3 per star + 1 background) rank
+    // deficient as soon as one star carries no flux; the sample is large
+    // enough to constrain the shape without becoming a frame-sized problem.
+    constexpr std::size_t kMaxPsfStars = 12;
     if (psf_selection.size() > kMaxPsfStars) psf_selection.resize(kMaxPsfStars);
     auto star_ref = std::make_shared<const std::vector<CatalogueStar>>(std::move(in_frame));
     auto psf_star_ref =
@@ -719,6 +851,8 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       outcome.reason = measured.assessment.issues.empty()
                            ? "the science sources cannot be measured"
                            : measured.assessment.issues.front().reason;
+      if (debug_flow) std::fprintf(stderr, "flow: i=%zu measure failed %s\n", i,
+                                   outcome.reason.c_str());
       outcome.assessment = measured.assessment;
       continue;
     }
@@ -1008,189 +1142,23 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       continue;
     }
 
-    U64 block_size = 1;
-    if (const char* override_size = std::getenv("ACSD_DRIZZLE_BLOCK")) {
-      const long parsed = std::atol(override_size);
-      if (parsed > 0 && parsed <= 1024) block_size = static_cast<U64>(parsed);
-    }
-    if (block_size != 1) {
-      // The observation carries one integrated value per pixel and the
-      // drizzle estimator uses x[source_row].  A block source row would need
-      // an aggregated signal with its own response/area weights; until that
-      // estimator exists, a block size above one changes the estimated
-      // quantity instead of batching the same one.
-      outcome.failed = true;
-      outcome.code = Code::unsupported;
-      outcome.reason =
-          "block_size > 1 is not a supported source partition: the drizzle signal is "
-          "per pixel and a block row would change the estimand";
-      result.frames.emplace_back(outcome.frame, outcome.assessment);
-      continue;
-    }
-    std::vector<OverlapContribution> contributions;
-    U64 source_rows = 0;
-    bool geometry_failed = false;
-    Termination merged_termination = Termination::tolerance_met;
-    Validity merged_validity = Validity::certified;
-    SupportState merged_support = SupportState::absent;
-    std::vector<UnresolvedDomain> merged_unresolved;
-    std::vector<UnresolvedDomain> merged_status_unresolved;
-    Ref<GeometryRecipe> merged_recipe;
-    bool geometry_recipe_conflict = false;
-    bool geometry_primitives_unmerged = false;
-    std::string geometry_digest;
-    if (observation->footprints->width > 0 && observation->footprints->height > 0) {
-      const U64 width = observation->footprints->width;
-      const U64 height = observation->footprints->height;
-      const U64 blocks_per_row = (width + block_size - 1) / block_size;
-      const U64 block_count = blocks_per_row * ((height + block_size - 1) / block_size);
-      Result<Done> footprint_ingest = ingest_footprints(
-          context, *runtime, observation->footprints);
-      if (!footprint_ingest.value) {
-        outcome.failed = true;
-        outcome.code = footprint_ingest.code;
-        outcome.reason = "the footprint arrays cannot be served to the runtime";
-        outcome.assessment = footprint_ingest.assessment;
-        result.frames.emplace_back(outcome.frame, outcome.assessment);
-        geometry_failed = true;
-      }
-      for (U64 block = 0; !geometry_failed && block < block_count; ++block) {
-        if (context.cancellation.requested()) {
-          outcome.failed = true;
-          outcome.code = Code::cancelled;
-          outcome.reason = "the export was cancelled";
-          geometry_failed = true;
-          break;
-        }
-        Result<Ref<DetectorFootprint>> footprint =
-            block_footprint(context, observation->footprints, block, block_size, block);
-        if (!footprint.value) {
-          outcome.failed = true;
-          outcome.code = footprint.code;
-          outcome.reason = footprint.assessment.issues.empty()
-                               ? "the detector footprint cannot be built"
-                               : footprint.assessment.issues.front().reason;
-          outcome.assessment = footprint.assessment;
-          geometry_failed = true;
-          break;
-        }
-        auto overlap_input = std::make_shared<const ComputeOverlapInput>(
-            ComputeOverlapInput{value_of(provider), value_of(footprint),
-                                request.drizzle.order, request.drizzle.pixfrac,
-                                request.drizzle.budget});
-        Result<rt::InvocationPlan> overlap_plan = plan_geometry_overlap_compute_overlap(
-            runtime->command, overlap_input, runtime->options);
-        Result<Ref<Overlaps>> overlaps =
-            rt::wait_external(runtime->host->invoke<ComputeOverlapInput, Ref<Overlaps>>(
-                runtime->command, "geometry.overlap", "compute_overlap", overlap_input));
-        record(request.frames[i].frame, "compute_overlap", "geometry.overlap", "compute_overlap",
-               overlap_plan, overlaps.code, identity_of(overlaps.value));
-        if (ok(overlaps) &&
-            value_of(overlaps)->status.termination != Termination::tolerance_met) {
-          const Termination termination = value_of(overlaps)->status.termination;
-          outcome.failed = true;
-          outcome.code = termination == Termination::work      ? Code::resource_exhausted
-                          : termination == Termination::precision ? Code::precision_exhausted
-                                                                 : Code::unsupported;
-          outcome.reason = "the geometry did not reach the requested tolerance";
-          result.frames.emplace_back(outcome.frame, outcome.assessment);
-          geometry_failed = true;
-          break;
-        }
-        if (!ok(overlaps)) {
-          outcome.failed = true;
-          outcome.code = overlaps.code;
-          outcome.reason = overlaps.assessment.issues.empty()
-                               ? "the overlap cannot be computed"
-                               : overlaps.assessment.issues.front().reason;
-          outcome.assessment = overlaps.assessment;
-          geometry_failed = true;
-          break;
-        }
-        for (const OverlapContribution& contribution : value_of(overlaps)->contributions)
-          contributions.push_back(contribution);
-        // The per-block geometry status, recipe and undecided domain are part
-        // of the overlap, not decoration.  Dropping them would let Drizzle see
-        // a default-constructed status (tolerance_met/certified) and skip the
-        // order/pixfrac identity check.
-        const Overlaps& block_overlaps = *value_of(overlaps);
-        geometry_digest += block_overlaps.identity.content_hash;
-        geometry_digest += ":" + std::to_string(block_overlaps.contributions.size()) + ";";
-        auto worsen_termination = [](Termination current, Termination next) {
-          if (current == Termination::tolerance_met) return next;
-          return current;
-        };
-        merged_termination = worsen_termination(merged_termination, block_overlaps.status.termination);
-        if (static_cast<int>(block_overlaps.status.bound_validity) >
-            static_cast<int>(merged_validity)) {
-          merged_validity = block_overlaps.status.bound_validity;
-        }
-        if (block_overlaps.status.support == SupportState::positive) {
-          merged_support = SupportState::positive;
-        } else if (block_overlaps.status.support == SupportState::bounded_undecided &&
-                   merged_support == SupportState::absent) {
-          merged_support = SupportState::bounded_undecided;
-        }
-        for (const UnresolvedDomain& domain : block_overlaps.coarse_candidates)
-          merged_unresolved.push_back(domain);
-        for (const UnresolvedDomain& domain : block_overlaps.status.unresolved)
-          merged_status_unresolved.push_back(domain);
-        if (!merged_recipe && block_overlaps.recipe) merged_recipe = block_overlaps.recipe;
-        if (merged_recipe && block_overlaps.recipe) {
-          if (merged_recipe->order != block_overlaps.recipe->order ||
-              merged_recipe->pixfrac != block_overlaps.recipe->pixfrac) {
-            geometry_recipe_conflict = true;
-          }
-        }
-        if (block_overlaps.primitives || block_overlaps.constraints)
-          geometry_primitives_unmerged = true;
-        ++source_rows;
-      }
-    }
-    if (geometry_failed) {
-      if (result.frames.empty() || result.frames.back().first != outcome.frame)
-        result.frames.emplace_back(outcome.frame, outcome.assessment);
-      continue;
-    }
-    auto merged = std::make_shared<Overlaps>();
-    merged->contributions = std::move(contributions);
-    merged->coarse_candidates = std::move(merged_unresolved);
-    merged->recipe = merged_recipe;
-    merged->status.termination = geometry_recipe_conflict ? Termination::unsupported
-                                                          : merged_termination;
-    merged->status.bound_validity =
-        geometry_recipe_conflict ? Validity::invalid : merged_validity;
-    merged->status.support = merged_support;
-    merged->status.unresolved = std::move(merged_status_unresolved);
-    merged->identity = model::make_identity(
-        "acsd.Overlaps", 2, 0,
-        model::sha256_hex("acsd.normalize.overlaps:" + geometry_digest), "acsd");
-    merged->assessment = model::make_assessment(Code::ok);
-    merged->assessment.complete = merged->status.termination == Termination::tolerance_met;
-    if (geometry_primitives_unmerged) {
-      model::add_issue(merged->assessment, Code::unsupported,
-                       "the per-block primitive and constraint tables are not concatenated",
-                       "normalize", "the merged overlap keeps its numerical status but no "
-                       "reopenable primitive table");
-      model::set_omitted(merged->assessment, "merged_geometry_primitives");
-      merged->assessment.science = ScienceState::conditional;
-    }
-    merged->assessment.included.push_back(
-        block_size == 1
-            ? "the source rows are the pixels of the detector: " + std::to_string(source_rows) +
-                  " source rows for " + std::to_string(source_rows) + " pixels"
-            : "the source rows are the blocks of the detector: " + std::to_string(source_rows) +
-                  " blocks of " + std::to_string(block_size) + " by " + std::to_string(block_size) +
-                  " pixels");
-
-    auto drizzle_input = std::make_shared<const BuildDrizzleInput>(
-        BuildDrizzleInput{merged, observation, request.drizzle});
-    Result<rt::InvocationPlan> drizzle_plan = plan_geometry_drizzle_build_drizzle(
+    // The streaming pixel-grid drizzle: one invocation for the whole frame.
+    // The per-pixel sources are never materialised as OverlapContribution
+    // records (592 bytes plus a dozen heap strings each, 19-28 GiB for a
+    // 4096x4096 frame); the single DrizzleAccumulator keeps only the per-leaf
+    // aggregates and the compact CSR rows.
+    const U64 grid_width = observation->footprints->width;
+    const U64 grid_height = observation->footprints->height;
+    Box drizzle_window{{0.0, 0.0}, {static_cast<double>(grid_width),
+                                    static_cast<double>(grid_height)}};
+    auto drizzle_input = std::make_shared<const DrizzleGridInput>(
+        DrizzleGridInput{value_of(provider), observation, drizzle_window, request.drizzle});
+    Result<rt::InvocationPlan> drizzle_plan = plan_geometry_drizzle_drizzle_grid(
         runtime->command, drizzle_input, runtime->options);
     Result<DrizzleResult> drizzle =
-        rt::wait_external(runtime->host->invoke<BuildDrizzleInput, DrizzleResult>(
-            runtime->command, "geometry.drizzle", "build_drizzle", drizzle_input));
-    record(request.frames[i].frame, "build_drizzle", "geometry.drizzle", "build_drizzle",
+        rt::wait_external(runtime->host->invoke<DrizzleGridInput, DrizzleResult>(
+            runtime->command, "geometry.drizzle", "drizzle_grid", drizzle_input));
+    record(request.frames[i].frame, "drizzle_grid", "geometry.drizzle", "drizzle_grid",
            drizzle_plan, drizzle.code, identity_of(drizzle.value));
     if (!ok(drizzle)) {
       outcome.failed = true;
@@ -1276,8 +1244,29 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     result.frames.emplace_back(outcome.frame, outcome.assessment);
   }
 
-  // The published locations are the result of the run: clearing them here
-  // made the CLI report zero publications for every successful frame.
+  // One status per input frame, in input order.  The two loops above append a
+  // frame on several paths; the former code produced duplicate entries and
+  // reported a failed frame as "published" because its default assessment was
+  // still complete=true with no issue.  The final table is the single
+  // authority the CLI reads.
+  result.frames.clear();
+  for (std::size_t i = 0; i < request.frames.size(); ++i) {
+    FrameOutcome& outcome = outcomes[i];
+    Assessment assessment = outcome.assessment;
+    if (outcome.failed || outcome.unsolved || outcome.cancelled || !outcome.published) {
+      assessment.complete = false;
+      assessment.validity = Validity::invalid;
+      if (assessment.issues.empty()) {
+        model::add_issue(assessment,
+                         outcome.code == Code::ok
+                             ? (outcome.cancelled ? Code::cancelled : Code::unsolved)
+                             : outcome.code,
+                         outcome.reason.empty() ? "the frame was not published" : outcome.reason,
+                         "normalize", "the frame produced no product");
+      }
+    }
+    result.frames.emplace_back(request.frames[i].frame, assessment);
+  }
   return ok_result(result);
 }
 

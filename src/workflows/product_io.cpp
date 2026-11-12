@@ -994,6 +994,11 @@ json encode_product_graph(const ProductGraph& graph) {
     closure.push_back(encode_ref(model ? model->identity.object_id : Id()));
   }
   node["closure"] = closure;
+  json closure_actions = json::array();
+  for (const Ref<LinearAction>& action : graph.closure_actions) {
+    closure_actions.push_back(encode_ref(action ? action->identity.object_id : Id()));
+  }
+  node["closure_actions"] = closure_actions;
   node["inputs"] = graph.inputs;
   node["profile"] = graph.profile;
   return node;

@@ -523,6 +523,58 @@ std::vector<U64> candidate_rows(const FootprintSet& footprints,
   std::vector<U64> rows;
   if (positions.empty() || !footprints.index) return rows;
   const U64 count = footprints.index->size;
+  // Fast path for the regular detector grid that every production frame uses:
+  // the sample row is y*width+x and the footprint is the unit cell at that
+  // pixel.  The generic scan is O(count * positions) and dominated a 4096x4096
+  // PSF fit (hundreds of millions of footprint constructions per iteration).
+  const bool regular = footprints.width > 0 && footprints.height > 0 &&
+                       footprints.index->size == footprints.width * footprints.height;
+  if (regular) {
+    // Verify the row convention on the first valid sample instead of assuming
+    // it: a different collection domain falls back to the general scan.
+    bool convention = false;
+    for (U64 row = 0; row < count && row < 64; ++row) {
+      const SampleFootprint footprint = sample_footprint(footprints, row);
+      if (!footprint.valid) continue;
+      const U64 x = row % footprints.width;
+      const U64 y = row / footprints.width;
+      convention = footprint.x0 == static_cast<double>(x) - 0.5 &&
+                   footprint.y0 == static_cast<double>(y) - 0.5 &&
+                   footprint.x1 == static_cast<double>(x) + 0.5 &&
+                   footprint.y1 == static_cast<double>(y) + 0.5;
+      break;
+    }
+    if (convention) {
+      std::vector<char> seen(static_cast<std::size_t>(count), 0);
+      const long long reach = static_cast<long long>(std::ceil(radius)) + 1;
+      for (const PixelCenter0& position : positions) {
+        const long long cx = static_cast<long long>(std::floor(position.x));
+        const long long cy = static_cast<long long>(std::floor(position.y));
+        const long long x0 = std::max<long long>(0, cx - reach);
+        const long long x1 = std::min<long long>(static_cast<long long>(footprints.width) - 1,
+                                                 cx + reach);
+        const long long y0 = std::max<long long>(0, cy - reach);
+        const long long y1 = std::min<long long>(static_cast<long long>(footprints.height) - 1,
+                                                 cy + reach);
+        for (long long y = y0; y <= y1; ++y) {
+          for (long long x = x0; x <= x1; ++x) {
+            const U64 row = static_cast<U64>(y) * footprints.width + static_cast<U64>(x);
+            if (seen[static_cast<std::size_t>(row)]) continue;
+            const SampleFootprint footprint = sample_footprint(footprints, row);
+            if (!footprint.valid) continue;
+            const double dx = std::max({footprint.x0 - position.x, position.x - footprint.x1, 0.0});
+            const double dy = std::max({footprint.y0 - position.y, position.y - footprint.y1, 0.0});
+            if (dx * dx + dy * dy <= radius * radius) {
+              seen[static_cast<std::size_t>(row)] = 1;
+              rows.push_back(row);
+            }
+          }
+        }
+      }
+      std::sort(rows.begin(), rows.end());
+      return rows;
+    }
+  }
   for (U64 row = 0; row < count; ++row) {
     const SampleFootprint footprint = sample_footprint(footprints, row);
     if (!footprint.valid) continue;
