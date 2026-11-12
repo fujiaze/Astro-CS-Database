@@ -1083,6 +1083,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     }
     Ref<NativeObservation> observation = observations[measured_index];
     Ref<PhotoSolution> solution = solutions[measured_index];
+    const std::size_t measurement_index = measured_index;
     ++measured_index;
     if (solution) {
       auto scale_input = std::make_shared<const ApplyScaleInput>(
@@ -1254,6 +1255,56 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     outcome.assessment = value_of(drizzle).estimate->assessment;
     outcome.assessment.complete = true;
     result.published.push_back(value_of(published));
+    // The measured star sample travels with the frame.  The mosaic needs the
+    // per-frame flux ratios to apply the night-to-night multiplicative scale;
+    // the sample also carries the fitted detector position (not the catalogue
+    // position), which is what makes the Gaia residual an independent check
+    // rather than a WCS round trip.  A small side file next to the product
+    // manifest; its content hash is recorded by the mosaic.
+    if (measurement_index < measurements.size() && measurements[measurement_index]) {
+      const SourceMeasurements& measured_stars = *measurements[measurement_index];
+      std::vector<double> flux_lower;
+      std::vector<double> flux_upper;
+      if (measured_stars.flux_numerical_lower && measured_stars.flux_numerical_upper) {
+        Result<std::vector<double>> lower = operators::read_f64(
+            publish_context, measured_stars.flux_numerical_lower, 0,
+            measured_stars.flux_numerical_lower->shape.empty()
+                ? 0
+                : measured_stars.flux_numerical_lower->shape[0]);
+        Result<std::vector<double>> upper = operators::read_f64(
+            publish_context, measured_stars.flux_numerical_upper, 0,
+            measured_stars.flux_numerical_upper->shape.empty()
+                ? 0
+                : measured_stars.flux_numerical_upper->shape[0]);
+        if (ok(lower)) flux_lower = val(lower);
+        if (ok(upper)) flux_upper = val(upper);
+      }
+      std::ostringstream sample;
+      sample.precision(17);
+      sample << "{\n \"schema\": \"acsd.m42.photometry/1\",\n";
+      sample << " \"frame\": \"" << request.frames[i].frame << "\",\n";
+      sample << " \"stars\": [";
+      for (std::size_t k = 0; k < measured_stars.stars.size(); ++k) {
+        const StarFlux& star = measured_stars.stars[k];
+        if (k != 0) sample << ",";
+        sample << "\n  {\"id\":" << star.gaia_source_id << ",\"x\":" << star.position.x
+               << ",\"y\":" << star.position.y << ",\"flux\":" << star.integrated_flux;
+        if (k < flux_lower.size()) sample << ",\"flux_lower\":" << flux_lower[k];
+        if (k < flux_upper.size()) sample << ",\"flux_upper\":" << flux_upper[k];
+        sample << "}";
+      }
+      sample << "\n ]\n}\n";
+      const std::filesystem::path destination =
+          std::filesystem::path(request.outputs[i].destination) / "photometry.json";
+      const std::filesystem::path temporary = destination.string() + ".tmp";
+      std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
+      if (stream) {
+        stream << sample.str();
+        stream.close();
+        std::error_code ec;
+        std::filesystem::rename(temporary, destination, ec);
+      }
+    }
     result.frames.emplace_back(outcome.frame, outcome.assessment);
   }
 
