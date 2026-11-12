@@ -1,7 +1,7 @@
 # S2: process all 196 M42 frames into the formal four-channel FITS (authorized only after an independent S1 PASS)
 
 This issue is created by the S1 recovery run (issue #124) after the three-frame
-4096x4096 Normalize -> Mosaic -> Export chain passed independent review.  It is
+4096x4096 Normalize -> Mosaic -> Export chain has NOT yet passed independent review; this draft becomes actionable only after an independent S1 PASS.  It is
 the authorized stage-two delivery of
 `docs/workplans/m42/AUTONOMOUS-RECOVERY-TO-FULL-DATASET.md` (section 4 to 7).
 

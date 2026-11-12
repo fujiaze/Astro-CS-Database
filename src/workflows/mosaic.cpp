@@ -555,6 +555,20 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   std::vector<double> faint_ratio_p16(estimates.size(), 1.0);
   std::vector<double> faint_ratio_p84(estimates.size(), 1.0);
   bool faint_ratio_measured = false;
+  // Pairwise corrected-frame ratios (f vs frame 0) in the same level band.
+  // The frame-vs-mosaic ratio is self-referential (the mosaic contains the
+  // frame) and compressed; the pairwise ratio is the honest amplitude
+  // (independent S1 review, round 5).
+  std::vector<double> pair_ratio_median(estimates.size(), 1.0);
+  std::vector<double> pair_ratio_p16(estimates.size(), 1.0);
+  std::vector<double> pair_ratio_p84(estimates.size(), 1.0);
+  bool pair_ratio_measured = false;
+  // 8x8 spatial cells over the NESTED leaf order (Hilbert-contiguous segments
+  // of the selection index): the min/max of the cell medians is the measured
+  // spatial amplitude of the frame-to-frame multiplicative residual.
+  std::vector<double> spatial_min(estimates.size(), 1.0);
+  std::vector<double> spatial_max(estimates.size(), 1.0);
+  bool spatial_measured = false;
   if (!estimates.empty() && coadd_result.value && val(coadd_result).selection &&
       val(coadd_result).selection->index) {
     const Ref<Index> sample_index = val(coadd_result).selection->index;
@@ -688,6 +702,66 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
             faint_ratio_p84[f] = ratios[f][ratios[f].size() * 84 / 100];
             faint_ratio_measured = true;
           }
+          // Pairwise corrected-frame ratios over the same band.  Build the
+          // per-frame corrected maps once.
+          std::vector<std::map<std::pair<U32, U64>, double>> corrected_maps(frames_count);
+          for (std::size_t f = 0; f < frames_count; ++f) {
+            if (!unscaled_corrected[f] || !descriptions[f] || !descriptions[f]->index) continue;
+            Result<std::vector<double>> values = operators::read_f64(
+                read_context, unscaled_corrected[f], 0,
+                unscaled_corrected[f]->shape.empty() ? 0 : unscaled_corrected[f]->shape[0]);
+            Result<ArrayView> ids_view = read_storage.read(
+                read_context, descriptions[f]->index->ids,
+                BlockRequest{0, descriptions[f]->index->size * 2});
+            if (!ok(values) || !ok(ids_view)) continue;
+            const std::vector<U64> ids = model::decode_u64(val(ids_view).bytes);
+            const std::size_t rows = std::min(val(values).size(), ids.size() / 2);
+            for (std::size_t r = 0; r < rows; ++r) {
+              corrected_maps[f][{static_cast<U32>(ids[2 * r]), ids[2 * r + 1]}] = val(values)[r];
+            }
+          }
+          std::vector<std::vector<double>> pair_ratios(frames_count);
+          std::vector<std::vector<std::vector<double>>> cell_ratios(frames_count);
+          for (std::size_t f = 0; f < frames_count; ++f) cell_ratios[f].resize(64);
+          for (std::size_t p = 0; p < samples && p < val(mosaic_values).size(); ++p) {
+            const double m = val(mosaic_values)[p];
+            if (!std::isfinite(m) || std::fabs(m) < lower || std::fabs(m) > upper) continue;
+            const std::pair<U32, U64> leaf{static_cast<U32>(sample_ids[2 * p]),
+                                           sample_ids[2 * p + 1]};
+            const auto reference = corrected_maps[0].find(leaf);
+            if (reference == corrected_maps[0].end() || !std::isfinite(reference->second) ||
+                reference->second == 0.0) {
+              continue;
+            }
+            const std::size_t cell = samples == 0 ? 0 : (p * 64) / samples;
+            for (std::size_t f = 1; f < frames_count; ++f) {
+              const auto found = corrected_maps[f].find(leaf);
+              if (found == corrected_maps[f].end() || !std::isfinite(found->second)) continue;
+              const double ratio = found->second / reference->second;
+              pair_ratios[f].push_back(ratio);
+              if (cell < cell_ratios[f].size()) cell_ratios[f][cell].push_back(ratio);
+            }
+          }
+          for (std::size_t f = 1; f < frames_count; ++f) {
+            if (pair_ratios[f].size() < 100) continue;
+            std::sort(pair_ratios[f].begin(), pair_ratios[f].end());
+            pair_ratio_median[f] = pair_ratios[f][pair_ratios[f].size() / 2];
+            pair_ratio_p16[f] = pair_ratios[f][pair_ratios[f].size() * 16 / 100];
+            pair_ratio_p84[f] = pair_ratios[f][pair_ratios[f].size() * 84 / 100];
+            pair_ratio_measured = true;
+            std::vector<double> cells;
+            for (const auto& cell : cell_ratios[f]) {
+              if (cell.size() < 30) continue;
+              std::vector<double> sorted = cell;
+              std::sort(sorted.begin(), sorted.end());
+              cells.push_back(sorted[sorted.size() / 2]);
+            }
+            if (cells.size() >= 8) {
+              spatial_min[f] = *std::min_element(cells.begin(), cells.end());
+              spatial_max[f] = *std::max_element(cells.begin(), cells.end());
+              spatial_measured = true;
+            }
+          }
         }
       }
       // The additive offsets are stored in the same coadd frame order as the
@@ -730,10 +804,24 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
       note << " the coadd is expressed in frame 0's star scale; the p16..p84 spread is the "
               "named star-scale systematic";
       if (faint_ratio_measured) {
-        note << "; measured frame-to-mosaic ratio in the faint-sky band:";
+        note << "; measured frame-to-mosaic ratio in the 0.3-3x median level band (the "
+                "frame-vs-mosaic ratio is self-referential and compressed):";
         for (std::size_t f = 0; f < faint_ratio_median.size(); ++f) {
           note << " f" << f << "=" << faint_ratio_median[f] << " [" << faint_ratio_p16[f] << ","
                << faint_ratio_p84[f] << "]";
+        }
+        if (pair_ratio_measured) {
+          note << "; honest pairwise corrected-frame ratios in the same band:";
+          for (std::size_t f = 1; f < pair_ratio_median.size(); ++f) {
+            note << " f" << f << "/f0=" << pair_ratio_median[f] << " [" << pair_ratio_p16[f]
+                 << "," << pair_ratio_p84[f] << "]";
+          }
+        }
+        if (spatial_measured) {
+          note << "; 8x8 cell medians over the NESTED (Hilbert-contiguous) leaf order:";
+          for (std::size_t f = 1; f < spatial_min.size(); ++f) {
+            note << " f" << f << "=" << spatial_min[f] << ".." << spatial_max[f] << ";";
+          }
         }
         note << " (a common coadd would be 1.0); the residual is a spatially varying "
                 "multiplicative term correlated with the rotated master flat, a calibration "
