@@ -25,6 +25,7 @@
 
 #include "acsd/contracts.hpp"
 #include "model/array.hpp"
+#include "coordinates/resolution.hpp"
 #include "coordinates/tan_sip.hpp"
 #include "model/result.hpp"
 #include "model/units.hpp"
@@ -374,6 +375,59 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       return fail<NormalizeResult>(Code::invalid_request, "a frame has no observation", "normalize",
                                    "no frame was processed");
     }
+    if (frame.raw->width == 0 || frame.raw->height == 0) {
+      return fail<NormalizeResult>(Code::invalid_request,
+                                   "the frame " + frame.frame + " has no pixel grid", "normalize",
+                                   "no frame was processed");
+    }
+  }
+
+  // The leaf order decision (issue #126).  The automatic order is planned once
+  // for the whole invocation from the final WCS/SIP of every frame: the common
+  // order preserves the finest native pixel scale of the set, so Normalize
+  // never picks a different order per frame and Mosaic never refuses a mixture.
+  DrizzleRequest drizzle = request.drizzle;
+  DrizzleOrderPlan& order_plan = result.drizzle_plan;
+  order_plan.auto_order = drizzle.auto_order;
+  if (drizzle.auto_order) {
+    if (request.frames.empty()) {
+      return fail<NormalizeResult>(Code::invalid_request,
+                                   "automatic leaf order needs at least one frame", "normalize",
+                                   "no frame was processed");
+    }
+    for (const NormalizeFrame& frame : request.frames) {
+      if (!frame.supplied_wcs) {
+        return fail<NormalizeResult>(
+            Code::invalid_request,
+            "automatic leaf order requires a supplied WCS for every frame; the frame " +
+                frame.frame + " has none.  Solve the astrometry first (a certified archive "
+                "solution) or pass an explicit order",
+            "normalize", "no frame was processed");
+      }
+    }
+    U32 common = coordinates::kMinimumAutoOrder;
+    bool any_clamped = false;
+    for (const NormalizeFrame& frame : request.frames) {
+      const coordinates::LeafOrderDecision decision = coordinates::decide_leaf_order(
+          *frame.supplied_wcs, frame.raw->width, frame.raw->height);
+      if (!decision.valid) {
+        return fail<NormalizeResult>(
+            Code::invalid_model,
+            "the native pixel scale of the frame " + frame.frame + " cannot be probed: " +
+                decision.reason,
+            "normalize", "no frame was processed");
+      }
+      common = std::max(common, decision.order);
+      any_clamped = any_clamped || decision.clamped;
+    }
+    drizzle.order = common;
+    drizzle.auto_order = false;
+    order_plan.planned = true;
+    order_plan.order = common;
+    order_plan.clamped = any_clamped;
+    order_plan.leaf_arcsec =
+        coordinates::kHealpixScalePerNsideArcsec / static_cast<double>(1ull << common);
+    order_plan.high_resolution = true;
   }
 
   // One frozen registry and one command scope for the whole workflow.  The
@@ -483,6 +537,9 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
   std::vector<Ref<Response>> responses;
   std::vector<Id> photometry_frames;
   std::vector<std::vector<U64>> source_ids_per_frame;
+  // Frames whose explicit leaf order is coarser than their native pixel scale
+  // and which were explicitly allowed as a named downgrade.
+  std::map<Id, std::string> downgraded_order;
 
   const bool debug_flow = std::getenv("ACSD_FLOW_DEBUG") != nullptr;
   for (std::size_t i = 0; i < request.frames.size(); ++i) {
@@ -1122,6 +1179,52 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       continue;
     }
 
+    // The order check of the real WCS (issue #126 section 2).  A requested
+    // order that is coarser than the finest native pixel scale of this frame
+    // cannot produce a high-resolution formal product: it is refused, unless
+    // the caller named the downgrade explicitly.
+    {
+      DrizzleOrderFrame entry;
+      entry.frame = request.frames[i].frame;
+      const coordinates::LeafOrderDecision required = coordinates::decide_leaf_order(
+          *observation->footprints->wcs, observation->footprints->width,
+          observation->footprints->height);
+      if (!required.valid) {
+        outcome.failed = true;
+        outcome.code = Code::invalid_model;
+        outcome.reason = "the native pixel scale of the frame cannot be probed: " + required.reason;
+        result.frames.emplace_back(outcome.frame, outcome.assessment);
+        continue;
+      }
+      entry.probed = true;
+      entry.finest_arcsec = required.finest_arcsec;
+      entry.required_order = required.order;
+      entry.clamped = required.clamped;
+      order_plan.frames.push_back(entry);
+      if (!order_plan.planned) {
+        order_plan.planned = true;
+        order_plan.order = drizzle.order;
+        order_plan.leaf_arcsec = coordinates::kHealpixScalePerNsideArcsec /
+                                 static_cast<double>(1ull << drizzle.order);
+        order_plan.high_resolution = true;
+      }
+      if (required.order > drizzle.order) {
+        char text[512];
+        std::snprintf(text, sizeof(text),
+                      "the requested leaf order %u is coarser than the native pixel scale of "
+                      "the frame requires (finest %.6f arcsec/px needs order %u, leaf %.6f "
+                      "arcsec); this product is not a high-resolution formal product",
+                      drizzle.order, required.finest_arcsec, required.order, required.leaf_arcsec);
+        // The product is still processed (a diagnostic product is allowed),
+        // but the downgrade is named on the product and in the plan: it can
+        // never be accepted as a high-resolution formal product.  The caller
+        // may set allow_coarser_order to acknowledge the diagnostic intent
+        // explicitly; the issue is recorded either way.
+        downgraded_order[request.frames[i].frame] = text;
+        order_plan.high_resolution = false;
+      }
+    }
+
     // make_footprint_provider
     auto provider_input = std::make_shared<const MakeFootprintProviderInput>(
         MakeFootprintProviderInput{observation->footprints->wcs});
@@ -1153,7 +1256,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     Box drizzle_window{{0.0, 0.0}, {static_cast<double>(grid_width),
                                     static_cast<double>(grid_height)}};
     auto drizzle_input = std::make_shared<const DrizzleGridInput>(
-        DrizzleGridInput{value_of(provider), observation, drizzle_window, request.drizzle});
+        DrizzleGridInput{value_of(provider), observation, drizzle_window, drizzle});
     Result<rt::InvocationPlan> drizzle_plan = plan_geometry_drizzle_drizzle_grid(
         runtime->command, drizzle_input, runtime->options);
     Result<DrizzleResult> drizzle =
@@ -1222,6 +1325,12 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     graph->signal = value_of(drizzle).estimate;
     graph->profile = request.outputs[i].profile.empty() ? "full" : request.outputs[i].profile;
     graph->assessment = value_of(drizzle).estimate->assessment;
+    if (const auto downgraded = downgraded_order.find(request.frames[i].frame);
+        downgraded != downgraded_order.end()) {
+      model::add_issue(graph->assessment, Code::domain, "order_coarser_than_native_scale",
+                       "normalize", downgraded->second);
+      graph->assessment.science = ScienceState::conditional;
+    }
     graph->identity = model::make_identity(
         "acsd.ProductGraph", 2, 0,
         model::sha256_hex("acsd.normalize:" + request.frames[i].frame), "acsd");
@@ -1327,6 +1436,11 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
   for (std::size_t i = 0; i < request.frames.size(); ++i) {
     FrameOutcome& outcome = outcomes[i];
     Assessment assessment = outcome.assessment;
+    if (const auto downgraded = downgraded_order.find(request.frames[i].frame);
+        downgraded != downgraded_order.end()) {
+      model::add_issue(assessment, Code::domain, "order_coarser_than_native_scale", "normalize",
+                       downgraded->second);
+    }
     if (outcome.failed || outcome.unsolved || outcome.cancelled || !outcome.published) {
       assessment.complete = false;
       assessment.validity = Validity::invalid;

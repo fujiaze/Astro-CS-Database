@@ -23,6 +23,8 @@
 #include "resources/cpu_resources.hpp"
 #include "storage/local_storage.hpp"
 #include "observation/observation.hpp"
+#include "coordinates/healpix.hpp"
+#include "coordinates/resolution.hpp"
 
 namespace acsd::cli {
 namespace {
@@ -450,12 +452,45 @@ PsfRequest decode_psf_request(const json& node) {
 }
 
 // The drizzle request.
-DrizzleRequest decode_drizzle_request(const json& node) {
+//
+// Issue #126: the leaf order is no longer a silent default.  An absent order
+// (or the string "auto") asks Normalize to derive one common order from the
+// real WCS/SIP of every participating frame; an integer is an explicit order
+// that must not be coarser than the native pixel scale.  A wrong type is a
+// named configuration error, never a fallback.
+Result<DrizzleRequest> decode_drizzle_request(const json& node) {
   DrizzleRequest request;
-  request.order = static_cast<U32>(u64_field(node, "order", 6));
+  if (has(node, "order")) {
+    const json& value = node.at("order");
+    if (value.is_string() && value.get<std::string>() == "auto") {
+      request.auto_order = true;
+    } else if (value.is_string() && value.get<std::string>() == "plan") {
+      // The order is read from a frozen plan file (see run_normalize).  It is
+      // an explicit decision shared by every invocation that consumes it, not
+      // a per-frame automatic decision that only happens to agree.
+      request.auto_order = false;
+      request.order = 0;
+    } else if (value.is_number_integer()) {
+      const std::int64_t order = value.get<std::int64_t>();
+      if (order <= 0 || order > static_cast<std::int64_t>(coordinates::kMaxOrder)) {
+        return fail<DrizzleRequest>(Code::invalid_request,
+                                    "the drizzle order must be within 1..29", "cli.drizzle",
+                                    "the command cannot run");
+      }
+      request.order = static_cast<U32>(order);
+      request.auto_order = false;
+    } else {
+      return fail<DrizzleRequest>(Code::invalid_request,
+                                  "the drizzle order must be an integer or the string \"auto\"/\"plan\"",
+                                  "cli.drizzle", "the command cannot run");
+    }
+  } else {
+    request.auto_order = true;
+  }
   request.pixfrac = double_field(node, "pixfrac", 1.0);
+  request.allow_coarser_order = bool_field(node, "allow_coarser_order", false);
   if (has(node, "budget")) request.budget = decode_budget(node.at("budget"));
-  return request;
+  return ok_result(request);
 }
 
 // The joint photometry request.  The responses of the frames are the ones of
@@ -594,6 +629,123 @@ Result<FitsImage> read_fits_image(const std::filesystem::path& path) {
   }
   fits_close_file(file, &status);
   return ok_result(image);
+}
+
+// The detector size of a FITS frame.  The plan-only preflight only needs the
+// image size and the supplied WCS; it never reads the pixel data.
+Result<std::pair<U64, U64>> read_fits_size(const std::filesystem::path& path) {
+  int status = 0;
+  fitsfile* file = nullptr;
+  status = fits_open_file(&file, path.string().c_str(), READONLY, &status);
+  if (status || !file) {
+    return fail<std::pair<U64, U64>>(Code::invalid_request,
+                                     "the FITS file cannot be read: " + fits_message(status),
+                                     "cli.fits", "the plan cannot be computed");
+  }
+  int naxis = 0;
+  long naxes[4] = {1, 1, 1, 1};
+  status = fits_get_img_dim(file, &naxis, &status);
+  if (!status) status = fits_get_img_size(file, 4, naxes, &status);
+  fits_close_file(file, &status);
+  if (status || naxis < 2 || naxes[0] <= 0 || naxes[1] <= 0) {
+    return fail<std::pair<U64, U64>>(Code::invalid_request,
+                                     "the FITS file has no two dimensional image: " +
+                                         fits_message(status),
+                                     "cli.fits", "the plan cannot be computed");
+  }
+  return ok_result(std::pair<U64, U64>{static_cast<U64>(naxes[0]), static_cast<U64>(naxes[1])});
+}
+
+// One frame entry of the automatic leaf-order plan.
+json order_plan_entry(const std::string& frame, double finest_arcsec, U32 required_order,
+                      bool clamped, const std::string& clamp_reason) {
+  json entry;
+  entry["frame"] = frame;
+  entry["probed"] = true;
+  entry["finest_arcsec"] = finest_arcsec;
+  entry["required_nside"] = std::ldexp(1.0, static_cast<int>(required_order));
+  entry["required_order"] = required_order;
+  entry["leaf_arcsec"] = coordinates::kHealpixScalePerNsideArcsec /
+                         std::ldexp(1.0, static_cast<int>(required_order));
+  entry["clamped"] = clamped;
+  if (!clamp_reason.empty()) entry["clamp_reason"] = clamp_reason;
+  return entry;
+}
+
+// The plan document: the evidence of the automatic order decision.
+json order_plan_document(const std::string& source, U32 common_order, bool clamped,
+                         bool high_resolution, const std::vector<json>& entries) {
+  json doc;
+  doc["schema"] = "acsd.drizzle_plan/1";
+  doc["source"] = source;
+  doc["mode"] = "auto";
+  doc["common_leaf_order"] = common_order;
+  doc["nside"] = std::ldexp(1.0, static_cast<int>(common_order));
+  doc["leaf_arcsec"] =
+      coordinates::kHealpixScalePerNsideArcsec / std::ldexp(1.0, static_cast<int>(common_order));
+  doc["clamped"] = clamped;
+  doc["high_resolution"] = high_resolution;
+  doc["coarser_than_native"] = !high_resolution;
+  doc["frames"] = entries;
+  return doc;
+}
+
+// Reads a frozen automatic leaf-order plan (the file written by plan_only or
+// by a Normalize run).  The caller consumes the common order explicitly, so
+// every invocation of a multi-run dataset uses the same decision instead of
+// two independent automatic decisions that merely agree.
+Result<U32> read_resolution_plan(const std::filesystem::path& path, bool& clamped,
+                                 bool& high_resolution) {
+  std::ifstream stream(path, std::ios::binary);
+  if (!stream) {
+    return fail<U32>(Code::invalid_request,
+                     "the resolution plan cannot be read: " + path.string(), "cli.plan",
+                     "the frame cannot be processed");
+  }
+  json document;
+  try {
+    stream >> document;
+  } catch (const json::exception& error) {
+    return fail<U32>(Code::invalid_request,
+                     "the resolution plan is not valid JSON: " + std::string(error.what()),
+                     "cli.plan", "the frame cannot be processed");
+  }
+  const json& order = field(document, "common_leaf_order");
+  if (!order.is_number_integer()) {
+    return fail<U32>(Code::invalid_request,
+                     "the resolution plan has no integer common_leaf_order", "cli.plan",
+                     "the frame cannot be processed");
+  }
+  clamped = bool_field(document, "clamped", false);
+  high_resolution = bool_field(document, "high_resolution", true);
+  return ok_result(static_cast<U32>(order.get<std::int64_t>()));
+}
+
+// Writes the plan next to the products of the command.
+Result<std::filesystem::path> write_order_plan(const Config& config, const json& document) {
+  const std::filesystem::path directory = config.base / config.output;
+  std::error_code ec;
+  std::filesystem::create_directories(directory, ec);
+  if (ec) {
+    return fail<std::filesystem::path>(Code::io_error,
+                                       "the output directory cannot be created: " + ec.message(),
+                                       "cli.plan", "the plan cannot be written");
+  }
+  const std::filesystem::path destination = directory / "drizzle_plan.json";
+  const std::filesystem::path temporary = destination.string() + ".tmp";
+  std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
+  if (!stream) {
+    return fail<std::filesystem::path>(Code::io_error, "the plan file cannot be opened", "cli.plan",
+                                       "the plan cannot be written");
+  }
+  stream << document.dump(1, '\n') << "\n";
+  stream.close();
+  std::filesystem::rename(temporary, destination, ec);
+  if (ec) {
+    return fail<std::filesystem::path>(Code::io_error, "the plan file cannot be renamed: " + ec.message(),
+                                       "cli.plan", "the plan cannot be written");
+  }
+  return ok_result(destination);
 }
 
 // The numeric value of a header card.
@@ -1245,6 +1397,89 @@ int run_normalize(Config& config, EventWriter& events, CancellationSource& cance
     if (options.count(input.frame_id) == 0) continue;
   }
 
+  // The plan-only preflight of the automatic leaf order (issue #126).  It
+  // reads the detector size and the certified supplied WCS of every frame,
+  // derives the single common order that preserves the finest native pixel
+  // scale of the whole set, writes the plan and processes no frame.  The
+  // subsequent per-frame runs consume the same decision explicitly, so a
+  // mosaic cannot be built from frames planned at different orders.
+  const bool plan_only = bool_field(val(scientific).request, "plan_only", false);
+  if (plan_only) {
+    if (!has(val(scientific).request, "drizzle")) {
+      events.issue("invalid_request", "plan_only needs a drizzle request");
+      events.run_finished(kInvalidInput,
+                          make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                       json::array()));
+      return kInvalidInput;
+    }
+    Result<DrizzleRequest> drizzle_request =
+        decode_drizzle_request(val(scientific).request.at("drizzle"));
+    if (!ok(drizzle_request) || !val(drizzle_request).auto_order) {
+      const std::string reason = ok(drizzle_request)
+                                     ? "plan_only is only meaningful for the automatic order"
+                                     : drizzle_request.assessment.issues.front().reason;
+      events.issue("invalid_request", reason);
+      events.run_finished(kInvalidInput,
+                          make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                       json::array()));
+      return kInvalidInput;
+    }
+    std::vector<json> entries;
+    U32 common = coordinates::kMinimumAutoOrder;
+    bool clamped = false;
+    for (const InputEntry& input : config.inputs) {
+      const auto option = options.find(input.frame_id);
+      if (option == options.end() || !has(*option->second, "supplied_wcs")) {
+        events.issue("invalid_request",
+                     "the frame " + input.frame_id +
+                         " has no supplied WCS; the automatic order cannot be planned");
+        events.run_finished(kInvalidInput,
+                            make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                         json::array()));
+        return kInvalidInput;
+      }
+      const Ref<WcsModel> wcs = decode_wcs(option->second->at("supplied_wcs"));
+      Result<std::pair<U64, U64>> size = read_fits_size(config.base / input.path);
+      if (!ok(size)) {
+        events.issue(code_name(size.code), size.assessment.issues.front().reason);
+        events.run_finished(kInvalidInput,
+                            make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                         json::array()));
+        return kInvalidInput;
+      }
+      const coordinates::LeafOrderDecision decision =
+          coordinates::decide_leaf_order(*wcs, size.value->first, size.value->second);
+      if (!decision.valid) {
+        events.issue("invalid_model",
+                     "the native pixel scale of the frame " + input.frame_id +
+                         " cannot be probed: " + decision.reason);
+        events.run_finished(kInvalidInput,
+                            make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                         json::array()));
+        return kInvalidInput;
+      }
+      entries.push_back(order_plan_entry(input.frame_id, decision.finest_arcsec, decision.order,
+                                         decision.clamped, decision.reason));
+      common = std::max(common, decision.order);
+      clamped = clamped || decision.clamped;
+    }
+    json document = order_plan_document("auto-preflight", common, clamped, !clamped, entries);
+    Result<std::filesystem::path> written = write_order_plan(config, document);
+    if (!ok(written)) {
+      events.issue(code_name(written.code), written.assessment.issues.front().reason);
+      events.run_finished(kFailure,
+                          make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                       json::array()));
+      return kFailure;
+    }
+    json summary = make_summary(config.inputs.size(), 0, 0, 0, 0, json::array());
+    summary["plan_only"] = true;
+    summary["common_leaf_order"] = common;
+    summary["drizzle_plan"] = written.value->string();
+    events.run_finished(kSuccess, summary);
+    return kSuccess;
+  }
+
   resources::CpuResources resources(config.resources);
   storage::LocalStorage storage;
   Context context{resources, cancellation, storage};
@@ -1358,7 +1593,52 @@ int run_normalize(Config& config, EventWriter& events, CancellationSource& cance
     request.psf = decode_psf_request(scientific_request.at("psf"));
   }
   if (has(scientific_request, "drizzle")) {
-    request.drizzle = decode_drizzle_request(scientific_request.at("drizzle"));
+    const json& drizzle_node = scientific_request.at("drizzle");
+    Result<DrizzleRequest> drizzle_request = decode_drizzle_request(drizzle_node);
+    if (ok(drizzle_request) && !val(drizzle_request).auto_order &&
+        val(drizzle_request).order == 0) {
+      // A frozen plan file: the common leaf order is consumed explicitly.
+      const std::string plan_path = string_field(drizzle_node, "plan", "");
+      if (plan_path.empty()) {
+        events.issue("invalid_request", "the drizzle order \"plan\" needs a plan path");
+        events.run_finished(kInvalidInput,
+                            make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                         json::array()));
+        return kInvalidInput;
+      }
+      bool clamped = false;
+      bool high_resolution = true;
+      Result<U32> order = read_resolution_plan(config.base / plan_path, clamped, high_resolution);
+      if (!ok(order)) {
+        events.issue(code_name(order.code), order.assessment.issues.front().reason);
+        events.run_finished(kInvalidInput,
+                            make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                         json::array()));
+        return kInvalidInput;
+      }
+      DrizzleRequest planned = val(drizzle_request);
+      planned.order = val(order);
+      drizzle_request.value = planned;
+      if (clamped || !high_resolution) {
+        events.issue("domain",
+                     "the frozen resolution plan is marked coarser than the native pixel "
+                     "scale; the product is not a high-resolution formal product");
+      }
+    }
+    if (!ok(drizzle_request)) {
+      events.issue(code_name(drizzle_request.code),
+                   drizzle_request.assessment.issues.front().reason);
+      events.run_finished(kInvalidInput,
+                          make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0,
+                                       json::array()));
+      return kInvalidInput;
+    }
+    request.drizzle = val(drizzle_request);
+  } else {
+    // No drizzle section: the automatic order is the default (issue #126).
+    request.drizzle.auto_order = true;
+    request.drizzle.order = 0;
+    request.drizzle.pixfrac = 1.0;
   }
   if (has(scientific_request, "photometry")) {
     request.photometry = decode_photometry_request(scientific_request.at("photometry"), request.frames);
@@ -1393,6 +1673,24 @@ int run_normalize(Config& config, EventWriter& events, CancellationSource& cance
     events.run_finished(exit_code_of(result.code),
                         make_summary(config.inputs.size(), 0, 0, config.inputs.size(), 0, frames));
     return exit_code_of(result.code);
+  }
+
+  // The automatic order decision is published as evidence next to the
+  // products: the per-frame native pixel scale, the order it requires and the
+  // one order shared by the run.
+  if (val(result).drizzle_plan.planned) {
+    std::vector<json> entries;
+    for (const DrizzleOrderFrame& frame : val(result).drizzle_plan.frames) {
+      entries.push_back(order_plan_entry(frame.frame, frame.finest_arcsec,
+                                         frame.required_order, frame.clamped, ""));
+    }
+    Result<std::filesystem::path> written = write_order_plan(
+        config, order_plan_document("normalize", val(result).drizzle_plan.order,
+                                    val(result).drizzle_plan.clamped,
+                                    val(result).drizzle_plan.high_resolution, entries));
+    if (!ok(written)) {
+      events.issue(code_name(written.code), written.assessment.issues.front().reason);
+    }
   }
 
   // The per frame status of the result.

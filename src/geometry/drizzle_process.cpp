@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "coordinates/healpix.hpp"
+#include "coordinates/resolution.hpp"
 #include "model/array.hpp"
 #include "model/hash.hpp"
 #include "model/result.hpp"
@@ -352,14 +353,22 @@ Result<rt::InvocationPlan> plan_drizzle_grid(rt::InvocationContext,
   const U64 work = sat_mul(pixels, 24) + 1024;
   // R: the observation arrays and the immutable WCS/metadata.
   const U64 r = observation_bytes(input->observation) + 64 * 1024;
-  // F: the accumulator members (one (source, weight) pair per contribution)
-  // plus the compact CSR rows; both are source-sized.
-  const U64 f = sat_mul(pixels, 2 * (sizeof(U64) + sizeof(double)) + 8 * 3) +
-                sat_mul(pixels, sizeof(double) * 2) + 16 * 1024 * 1024;
+  // F: the leaf aggregation table, the flat member lists and the published
+  // leaf arrays/CSR rows.  The capacity is derived from the certified local
+  // pixel/leaf scale ratio (issue #126: the accumulation must stay bounded at
+  // the automatic order, where a pixel is larger than a leaf) and the same
+  // capacity is enforced by the accumulator, so the declaration is not a
+  // guess that the kernel may silently exceed.
+  const coordinates::DrizzleCapacityEstimate capacity = coordinates::estimate_drizzle_capacity(
+      *input->provider->model(), input->observation->footprints->width,
+      input->observation->footprints->height, input->request.order);
+  const U64 f = (capacity.valid ? capacity.declared_bytes : 16 * 1024 * 1024);
   return model::ok_result(plan_of(
       options, work, r, f,
       digest({"drizzle_grid", input->provider->model()->identity.object_id,
               input->observation->identity.object_id, std::to_string(pixels),
+              std::to_string(capacity.valid ? capacity.maximum_leaves : 0),
+              std::to_string(capacity.valid ? capacity.maximum_terms : 0),
               std::to_string(input->request.order),
               std::to_string(input->request.pixfrac)})));
 }

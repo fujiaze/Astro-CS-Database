@@ -2932,6 +2932,20 @@ Result<Ref<SignalEstimate>> apply_sky_impl(Context& context, Ref<SignalEstimate>
     selection = sky::action_from_csr(context, forward, model::unit_dimensionless());
     selection_transposed = sky::action_from_csr(context, backward, model::unit_dimensionless());
     if (!ok(selection) || !ok(selection_transposed)) {
+      if (std::getenv("ACSD_SKY_DEBUG") != nullptr) {
+        const std::string reason =
+            !ok(selection)
+                ? (selection.assessment.issues.empty() ? "no reason"
+                                                       : selection.assessment.issues.front().reason)
+                : (selection_transposed.assessment.issues.empty()
+                       ? "no reason"
+                       : selection_transposed.assessment.issues.front().reason);
+        std::fprintf(stderr,
+                     "apply_sky: block selection failed joint_rows=%llu count=%zu "
+                     "row_offset=%llu reason=%s\n",
+                     static_cast<unsigned long long>(joint_rows), count,
+                     static_cast<unsigned long long>(row_offset), reason.c_str());
+      }
       return model::fail<Ref<SignalEstimate>>(Code::invalid_model,
                                               "the block selection cannot be built", "apply_sky",
                                               "the correction cannot be applied");

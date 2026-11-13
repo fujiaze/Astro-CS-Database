@@ -2,7 +2,7 @@
 """Check the frozen registry manifest against the process whitelist.
 
 The single source of truth for coverage is:
-  * docs/engineering/rebuild/processes/README.md  (22 processes, 57 typed
+  * docs/engineering/rebuild/processes/README.md  (22 processes, 58 typed
     operations; every row is the whitelist of one process), and
   * build/process-manifest.json                    (production build product
     exported from the frozen registry).
@@ -25,7 +25,7 @@ import sys
 
 PROTOCOL = "acsd.process/2"
 EXPECTED_PROCESSES = 22
-EXPECTED_OPERATIONS = 57
+EXPECTED_OPERATIONS = 58
 LEGAL_MODULES = {
     "model", "numerics", "coordinates", "observation", "catalogue", "sources",
     "response", "photometry", "geometry", "operators", "uncertainty",

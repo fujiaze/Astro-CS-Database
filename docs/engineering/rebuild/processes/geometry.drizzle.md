@@ -8,7 +8,7 @@
 |---|---|
 | process_id | `geometry.drizzle` |
 | 所属模块与代码归属 | `src/geometry`；本模块负责算法及typed adapter |
-| 注册operation白名单 | `build_drizzle`；一个操作映射一个本模块typed adapter，不能由字符串调用任意成员 |
+| 注册operation白名单 | `build_drizzle,drizzle_grid`；每个操作映射一个本模块typed adapter，不能由字符串调用任意成员 |
 | 输入与输出 | Overlaps、NativeObservation、DrizzleRequest → DrizzleResult/SignalEstimate和同R模型。 |
 | 数学依据 | 五份[科学基础](../README.md#科学基础)与本篇算法条款；不继承v1内部接口 |
 | CPU与未来后端 | 当前CPU；矩阵apply/归约可未来后端；几何与科学停止仍同一控制逻辑。 |
@@ -42,6 +42,7 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 | 操作 | 本模块合同 |
 |---|---|
 | build_drizzle | overlaps source全匹配NativeObservation、order/f同overlap身份；构造同R的signal/noise/support/response。no_support或未证明正支持不构造归一行。DrizzleRequest.budget.requested_functionals必须反映最终量，area-only只能证明area |
+| drizzle_grid | 同一估计量的流式入口：不物化逐(像元,叶)的OverlapContribution，直接走像素网格并喂同一个`DrizzleAccumulator`；window是检测器整行子矩形（部分列窗口具名拒绝），order/pixfrac与build_drizzle同一`DrizzleRequest`；每像元工作量由共享账本计费。叶聚合按4096叶一块的touched表 + 扁平成员数组（main的touched-tile语义），容量由`estimate_drizzle_capacity`从认证像元/叶尺度比导出并在`add()`强制，超过即具名`resource_exhausted`而不是继续增长；输出叶序、CSR源行序与区间加法顺序与build_drizzle一致。失败必须保留真实原因（不吞成`pixel_grid_failed`） |
 
 
 ### 可复用计算模块组合

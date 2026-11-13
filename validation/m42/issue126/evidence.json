@@ -1,0 +1,248 @@
+{
+ "schema": "acsd.issue126.evidence/1",
+ "date": "2026-11-14",
+ "binary": {
+  "path": "build/v2-126/acsd",
+  "sha256": "65583aaec288daa77c12d12eeca914dad5f062967a5db0e64b9d8996f6dcf56b",
+  "version": "acsd 2.0.0 (cli --version event stream) ; source_id=ACSD_SOURCE_ID (git d7e5b0ba4-dirty)"
+ },
+ "full_plan": {
+  "clamped": false,
+  "coarser_than_native": false,
+  "common_leaf_order": 18,
+  "frames": [
+   {
+    "clamped": false,
+    "finest_arcsec": 0.9404774497439962,
+    "frame": "M42_M5_T2_flying_dutchman-20251212@041842-600S-H-alpha",
+    "leaf_arcsec": 0.8051921844482421,
+    "probed": true,
+    "required_nside": 262144.0,
+    "required_order": 18
+   }
+  ],
+  "high_resolution": true,
+  "leaf_arcsec": 0.8051921844482421,
+  "mode": "auto",
+  "nside": 262144.0,
+  "schema": "acsd.drizzle_plan/1",
+  "source": "auto-preflight"
+ },
+ "roi256_plan_o18": {
+  "clamped": false,
+  "common_leaf_order": 18,
+  "frames": [
+   {
+    "clamped": false,
+    "finest_arcsec": 0.9409237736725373,
+    "frame": "M42_M5_T2_flying_dutchman-20251228_051230-600S-H-alpha",
+    "leaf_arcsec": 0.8051921844482421,
+    "probed": true,
+    "required_nside": 262144.0,
+    "required_order": 18
+   }
+  ],
+  "leaf_arcsec": 0.8051921844482421,
+  "mode": "auto",
+  "nside": 262144.0,
+  "schema": "acsd.drizzle_plan/1",
+  "source": "normalize"
+ },
+ "roi256_plan_o13": {
+  "clamped": false,
+  "coarser_than_native": true,
+  "common_leaf_order": 13,
+  "frames": [
+   {
+    "clamped": false,
+    "finest_arcsec": 0.9409237736725373,
+    "frame": "M42_M5_T2_flying_dutchman-20251228_051230-600S-H-alpha",
+    "leaf_arcsec": 0.8051921844482421,
+    "probed": true,
+    "required_nside": 262144.0,
+    "required_order": 18
+   }
+  ],
+  "high_resolution": false,
+  "leaf_arcsec": 25.76614990234375,
+  "mode": "auto",
+  "nside": 8192.0,
+  "schema": "acsd.drizzle_plan/1",
+  "source": "normalize"
+ },
+ "cross_panel_plan": {
+  "clamped": false,
+  "common_leaf_order": 18,
+  "frames": [
+   {
+    "clamped": false,
+    "finest_arcsec": 0.9529103487646423,
+    "frame": "M42_M2_T2_flying_dutchman-20251212_021829-600S-H-alpha",
+    "leaf_arcsec": 0.8051921844482421,
+    "probed": true,
+    "required_nside": 262144.0,
+    "required_order": 18
+   },
+   {
+    "clamped": false,
+    "finest_arcsec": 0.9533040867211847,
+    "frame": "M42_M5_T2_flying_dutchman-20251212_041842-600S-H-alpha",
+    "leaf_arcsec": 0.8051921844482421,
+    "probed": true,
+    "required_nside": 262144.0,
+    "required_order": 18
+   }
+  ],
+  "leaf_arcsec": 0.8051921844482421,
+  "mode": "auto",
+  "nside": 262144.0,
+  "schema": "acsd.drizzle_plan/1",
+  "source": "auto-preflight"
+ },
+ "cross_panel_plan512": {
+  "clamped": false,
+  "coarser_than_native": false,
+  "common_leaf_order": 18,
+  "frames": [
+   {
+    "clamped": false,
+    "finest_arcsec": 0.9408383642736171,
+    "frame": "M42_M2_T2_flying_dutchman-20251212_021829-600S-H-alpha",
+    "leaf_arcsec": 0.8051921844482421,
+    "probed": true,
+    "required_nside": 262144.0,
+    "required_order": 18
+   },
+   {
+    "clamped": false,
+    "finest_arcsec": 0.9442878851052869,
+    "frame": "M42_M5_T2_flying_dutchman-20251212_041842-600S-H-alpha",
+    "leaf_arcsec": 0.8051921844482421,
+    "probed": true,
+    "required_nside": 262144.0,
+    "required_order": 18
+   }
+  ],
+  "high_resolution": true,
+  "leaf_arcsec": 0.8051921844482421,
+  "mode": "auto",
+  "nside": 262144.0,
+  "schema": "acsd.drizzle_plan/1",
+  "source": "auto-preflight"
+ },
+ "m2_wcs_fit": {
+  "schema": "acsd.issue126.panel_wcs/1",
+  "frame": "testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M2/M42_M2_T2_flying_dutchman-20251212@021829-600S-H-alpha.fts",
+  "tag": "20251212_M2",
+  "degree": 3,
+  "date_obs": "2025-12-12T02:18:43.000",
+  "epoch_jyear": 2025.9455067242122,
+  "detections": 36121,
+  "gaia_in_frame": 523,
+  "header_association": 1772,
+  "matched_final": 116,
+  "train": 85,
+  "holdout": 31,
+  "train_rms_arcsec": 0.17419036749310282,
+  "holdout_rms_arcsec": 0.20386961328554137,
+  "sip_order": 3,
+  "crpix": [
+   2049.255613765711,
+   2049.2012552259253
+  ],
+  "cd": [
+   8.31240070745193e-08,
+   4.698703059505951e-06,
+   -4.6890733629256396e-06,
+   7.22207059821187e-08
+  ],
+  "crval_deg": [
+   83.27895131660922,
+   -5.41930541555114
+  ]
+ },
+ "detail_ab_256": {
+  "input": "M42 M5 T2 20251228 051230 H-alpha 256x256 crop (x0=2048,y0=3456)",
+  "same_target_wcs": "native crop WCS, 0.9666 arcsec/px",
+  "order18": {
+   "leaves": 92880,
+   "terms": 521810,
+   "product_bytes": 16777216,
+   "export_fits": "run/issue126/staging/m5_256_0_0/export/signal.fits"
+  },
+  "order13": {
+   "leaves": 117,
+   "terms": 73206,
+   "product_bytes": 1400000,
+   "export_fits": "run/issue126/staging/m5_256_0_0_o13/export/signal.fits",
+   "plan_high_resolution": false
+  },
+  "ratio_18_over_13": {
+   "median": 0.9950483204577951,
+   "p16": 0.9131520638638264,
+   "p84": 1.0764311842353784
+  },
+  "exact_zero_second_difference_fraction": {
+   "order18": 0.0,
+   "order13": 0.7942759596456693,
+   "raw": 0.015086737204724409
+  },
+  "highpass_correlation_with_raw": {
+   "order18": 0.18795673029213564,
+   "order13": -0.00030025437993164893
+  },
+  "high_frequency_power_fraction_k8_60": {
+   "order18": 0.6080297210243367,
+   "order13": 0.10816032605593082,
+   "raw": 0.6427834577831545
+  },
+  "note": "implementer self-check on the same ROI; not an independent PSF/MTF oracle. order18 has one NaN edge pixel (absent leaf), order13 edge columns show normaliser amplification up to 1.19e14 ADU/SR."
+ },
+ "cross_panel": {
+  "wcs_source": {
+   "M2": "run/issue126/astrometry/wcs_20251212_M2.json (independent polynomial fit)",
+   "M5": "run/m42-s1/inputs/gaia/wcs_20251212.json (S1 certified)"
+  },
+  "1024_products": {
+   "M2": {
+    "leaves": 1484951,
+    "terms": 8351003,
+    "product": "run/issue126/cross_panel/M2_north_1024/out"
+   },
+   "M5": {
+    "leaves": 1485677,
+    "terms": 8350007,
+    "product": "run/issue126/cross_panel/M5_north_1024/out"
+   }
+  },
+  "1024_mosaic": {
+   "status": "NOT_RUN",
+   "reason": "the mosaic ran 37 min CPU without a product and was killed by the 2400 s timeout; the same-panel S1 mosaic (23790 leaves, 15 s) scales linearly and 3.0M leaves needs ~30-40 min; no intermediate product is retained"
+  },
+  "512_products": {
+   "M2": {
+    "leaves": 370094,
+    "product": "run/issue126/cross_panel/M2_north_512/out"
+   },
+   "M5": {
+    "leaves": 370265,
+    "product": "run/issue126/cross_panel/M5_north_512b/out"
+   }
+  },
+  "512_mosaic": {
+   "status": "FAIL",
+   "counterexample": [
+    "first run: apply_sky failed 'the block selection cannot be built' (src/sky/sky.cpp:2934) with joint_rows=740359 count=370094 row_offset=0; the progress arena could not store the whole-signal CSR offsets because plan_sky_apply declared only per-cohort scratch (src/sky/sky_fit_process.cpp:452)",
+    "after the workspace declaration fix (elements*96 for the four whole-signal CSR payloads): the next failure is 'the leaf identities cannot be stored' in the coadd/select stage, i.e. the next under-declared whole-signal payload of the cross-panel path"
+   ],
+   "conclusion": "the cross-panel mosaic path is not merely unverified: it fails on a real two-panel input at the typed sky/coadd workspace bounds, which is exactly why the S1 same-leaf three-frame mosaic passed and a two-panel mosaic does not. This is a P0 finding for issue #126 section D."
+  },
+  "psf_fit_instability": {
+   "counterexample": "src/sources/psf_fit.cpp:567 rank deficiency with 2 exactly zero singular values on 256/512/1024 crops at some x0/y0; the same 1024 crop at x0=0 passes. PSF selection is star-sample dependent, no fix attempted"
+  },
+  "full_4096": {
+   "status": "NOT_RUN",
+   "reason": "order 18 declared F ~9.5 GB (capacity estimate) and the full-frame actual peak ~8.5-9 GB; the machine had another independent experiment holding 7-12 GiB of 17 GiB during the whole window. No order reduction or target reduction was used to fake a pass."
+  }
+ }
+}

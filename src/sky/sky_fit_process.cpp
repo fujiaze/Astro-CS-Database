@@ -449,7 +449,16 @@ Result<rt::InvocationPlan> plan_sky_apply(rt::InvocationContext,
   const U64 cohorts = (elements + block - 1) / block;
   const U64 persistent = 1ull << 20;
   const U64 per_leaf = 8 * 3 + 1;
-  const U64 progress_floor = sat_add(sat_mul(block, per_leaf), kWorkspaceUpper);
+  // apply_sky builds the whole-signal block selection and the two products
+  // S E and T S^T in one invocation (the selection is a contiguous block of the
+  // training leaf space, not a per-cohort slice).  Declaring only the per
+  // cohort scratch under-declared the real workspace: the cross-panel
+  // M2+M5 512x512 mosaic failed with "the CSR offsets cannot be stored" from
+  // the exhausted progress arena at 370094 leaves.  The bound below is the
+  // real size of those four CSR payloads (two selection actions, S E, T S^T).
+  const U64 whole_signal = sat_mul(elements, 96);
+  const U64 progress_floor =
+      sat_add(sat_add(sat_mul(block, per_leaf), whole_signal), kWorkspaceUpper);
   const U64 work_upper = sat_add(sat_mul(elements, 32), 64);
 
   rt::InvocationPlan plan;

@@ -16,15 +16,32 @@
 //   w_jp = a_jp / A_j,  F_p = sum_j w_jp x_j,  N_p = sum_j w_jp Omega_j,
 //   B_p = F_p / N_p,   R_pj = w_jp / N_p,
 // with the same outward interval enclosure for a_jp, A_j and Omega_j.
+//
+// Storage of the accumulation: the leaves of one HEALPix order are grouped in
+// blocks of 4096 consecutive nested indices.  A touched block owns one dense
+// per-leaf aggregate table (eight doubles and a member head per leaf) and only
+// touched blocks exist.  The members of every leaf are a singly linked list in
+// one flat vector of 20 bytes per (source, leaf) term.  This is the main
+// production structure (touched tiles), and it is what makes the automatic
+// order of issue #126 feasible: a 4096x4096 frame at order 18 has ~24 million
+// leaves and ~80 million (source, leaf) terms, for which a per-leaf std::map
+// node plus a per-leaf member vector costs several extra GiB of node and
+// allocator overhead, while a flat per-term vector of records needs ~6 GiB
+// before the output arrays are even built.
+//
+// The interval sums of a leaf are evaluated in add() order, exactly as before;
+// the CSR columns of the leaf are sorted by source row at finish(), so the
+// published enclosures and rows are unchanged by the storage change.
+#include <array>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <utility>
 #include <vector>
 
 #include <acsd/runtime/task.hpp>
 
 #include "acsd/contracts.hpp"
-
 
 #include "acsd/model.hpp"
 
@@ -70,34 +87,66 @@ struct DrizzleLeafOutput {
   bool any_drop_lower_not_positive = false;
 };
 
+// The bounds the caller enforces on the accumulation (0 = unbounded).  They
+// are derived from the certified pixel/leaf scale ratio and are the same
+// numbers the invocation plan declares to the resource ledger.
+struct DrizzleCapacity {
+  U64 maximum_leaves = 0;
+  U64 maximum_terms = 0;
+};
+
 class DrizzleAccumulator {
  public:
-  DrizzleAccumulator();
+  static constexpr U32 kBlockOrder = 12;
+  static constexpr U64 kBlockLeaves = 1ull << kBlockOrder;  // 4096
+  static constexpr U64 kBlockMask = kBlockLeaves - 1;
+
+  explicit DrizzleAccumulator(DrizzleCapacity capacity = {});
 
   // Adds one contribution.  The source value is read by the caller; the
   // contribution must satisfy the same enclosures that compute_overlap
   // publishes (ordered, non-negative areas, source row inside the native
-  // values).  A malformed term is rejected instead of being clamped.
+  // values).  A malformed term is rejected instead of being clamped.  When a
+  // declared capacity would be exceeded the term is refused with a named
+  // resource failure instead of growing past the plan.
   Result<rt::Done> add(const DrizzleTerm& term);
 
-  // Builds the per-leaf rows.  The leaf order is the sorted (order, ipix)
-  // order, the row columns are the source rows in ascending order; both are
-  // deterministic and independent of the order in which add() was called.
-  DrizzleLeafOutput finish() const;
+  U64 leaves() const { return leaves_; }
+  U64 contributions() const { return sources_.size(); }
+
+  // Builds the per-leaf rows and releases the accumulation storage.  The leaf
+  // order is the sorted (order, ipix) order, the row columns are the source
+  // rows in ascending order; both are deterministic and independent of the
+  // order in which add() was called.
+  DrizzleLeafOutput finish();
 
  private:
-  struct LeafState {
-    double f_lower = 0.0;
-    double f_upper = 0.0;
-    double n_lower = 0.0;
-    double n_upper = 0.0;
-    double f_nominal = 0.0;
-    double n_nominal = 0.0;
-    double union_lower = 0.0;
-    double union_upper = 0.0;
-    std::vector<std::pair<U64, double>> members;
+  struct Block {
+    // Per leaf: the outward enclosures of F and N, their nominal values and
+    // the support union.
+    std::array<double, kBlockLeaves> f_lower{};
+    std::array<double, kBlockLeaves> f_upper{};
+    std::array<double, kBlockLeaves> n_lower{};
+    std::array<double, kBlockLeaves> n_upper{};
+    std::array<double, kBlockLeaves> f_nominal{};
+    std::array<double, kBlockLeaves> n_nominal{};
+    std::array<double, kBlockLeaves> union_lower{};
+    std::array<double, kBlockLeaves> union_upper{};
+    std::array<std::uint32_t, kBlockLeaves> member_head{};  // index + 1, 0 = none
+    std::array<std::uint8_t, kBlockLeaves> present{};
   };
-  std::map<std::pair<U32, U64>, LeafState> leaves_;
+
+  static double leaf_solid_angle_upper(U32 order);
+
+  DrizzleCapacity capacity_;
+  U64 leaves_ = 0;
+  // (order, block index) -> the dense per-leaf aggregate table of that block.
+  std::map<std::pair<U32, U64>, std::unique_ptr<Block>> blocks_;
+  // The flat member lists: the source row, the certified nominal weight and
+  // the next member of the same leaf (index + 1, 0 = end of list).
+  std::vector<U64> sources_;
+  std::vector<double> weights_;
+  std::vector<std::uint32_t> next_member_;
   bool any_drop_lower_not_positive_ = false;
 };
 

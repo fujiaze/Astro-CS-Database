@@ -92,6 +92,19 @@ Result<ProductLocation> export_signal(Context& context, const ExportResult& imag
   return workflows::publish_graph(context, graph, request, &image);
 }
 
+namespace {
+// True when the assessment already names the coarser-than-native order issue.
+bool downgrade_carried(const Assessment& assessment) {
+  for (const Issue& issue : assessment.issues) {
+    if (issue.code == Code::domain &&
+        issue.reason.find("coarser than the native pixel scale") != std::string::npos) {
+      return true;
+    }
+  }
+  return false;
+}
+}  // namespace
+
 Result<ProductLocation> export_image(Context& context, const ExportWorkflowRequest& request) {
   // The cancellation is checked before the product is opened and before it
   // is published: a cancelled export leaves no product behind.
@@ -167,6 +180,25 @@ Result<ProductLocation> export_image(Context& context, const ExportWorkflowReque
         if (text.find("seam_low_frequency") != std::string::npos) {
           model::set_included(copy->assessment, text);
         }
+      }
+      // A product that was produced at a leaf order coarser than its native
+      // pixel scale must not launder that downgrade by being exported: the
+      // input's named issue is carried into the exported assessment (issue
+      // #126 section B: a coarse product is never a high-resolution formal
+      // product).
+      for (const Issue& issue : input_graph->signal->assessment.issues) {
+        if (issue.code == Code::domain &&
+            issue.reason.find("coarser than the native pixel scale") != std::string::npos) {
+          model::add_issue(copy->assessment, issue.code, issue.origin, issue.reason,
+                           issue.impact);
+        }
+      }
+      if (input_graph->assessment.science == ScienceState::conditional &&
+          !downgrade_carried(input_graph->signal->assessment)) {
+        // The conditional state of a coarse input is a lower bound on the
+        // exported state; keep it conditional rather than downgrading to a
+        // bounded claim.
+        copy->assessment.science = ScienceState::conditional;
       }
     }
     publishable.estimate = copy;

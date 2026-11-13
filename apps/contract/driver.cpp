@@ -1147,7 +1147,7 @@ json Driver::run_export_signal() {
   image.estimate = estimate;
   json body = envelope_header();
   json result;
-  Result<ProductLocation> location = export_signal(*context_, image, *publish);
+  Result<ProductLocation> location = export_signal(*context_, image, *publish, Id{});
   if (!ok(location)) {
     result["code"] = encode_code(location.code);
     result["value"] = nullptr;

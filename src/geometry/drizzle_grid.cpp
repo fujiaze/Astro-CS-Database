@@ -9,6 +9,8 @@
 // leaf aggregates and the compact CSR rows are kept.
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <limits>
 #include <map>
 #include <set>
@@ -17,6 +19,7 @@
 
 #include "acsd/contracts.hpp"
 #include "coordinates/footprint_provider.hpp"
+#include "coordinates/resolution.hpp"
 #include "geometry/drizzle_core.hpp"
 #include "geometry/drizzle_package.hpp"
 #include "geometry/kernel.hpp"
@@ -95,7 +98,18 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
   std::vector<std::uint8_t> saturated_row(0);
   const U64 window_samples = row_count * width;
 
-  geometry::DrizzleAccumulator accumulator;
+  // The accumulation capacity of the automatic order.  It is derived from the
+  // certified pixel/leaf scale ratio and is the same bound the invocation plan
+  // declares; a term that would exceed it fails closed instead of growing past
+  // the plan.
+  const coordinates::DrizzleCapacityEstimate capacity =
+      coordinates::estimate_drizzle_capacity(*wcs, width, height, request.order);
+  geometry::DrizzleCapacity limits;
+  if (capacity.valid) {
+    limits.maximum_leaves = capacity.maximum_leaves;
+    limits.maximum_terms = capacity.maximum_terms;
+  }
+  geometry::DrizzleAccumulator accumulator(limits);
   bool failed = false;
   Result<rt::Done> failure;
   const geometry::PixelTermSink sink = [&](U64 source_row,
@@ -133,7 +147,19 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
     drizzle_term.omega_lower = term.native_lower;
     drizzle_term.omega_upper = term.native_upper;
     drizzle_term.value = x[source_row];
-    return accumulator.add(drizzle_term);
+    Result<rt::Done> added = accumulator.add(drizzle_term);
+    if (!ok(added) && std::getenv("ACSD_DRIZZLE_DEBUG") != nullptr) {
+      std::fprintf(stderr,
+                   "drizzle_grid: capacity stop order=%u pixels=%llu terms=%llu "
+                   "leaves=%llu cap_terms=%llu cap_leaves=%llu ratio=%.3f code=%d\n",
+                   request.order, static_cast<unsigned long long>(width * height),
+                   static_cast<unsigned long long>(accumulator.contributions()),
+                   static_cast<unsigned long long>(accumulator.leaves()),
+                   static_cast<unsigned long long>(capacity.valid ? capacity.maximum_terms : 0),
+                   static_cast<unsigned long long>(capacity.valid ? capacity.maximum_leaves : 0),
+                   capacity.pixel_leaf_ratio, static_cast<int>(added.code));
+    }
+    return added;
   };
 
   // The row window is walked in complete detector rows; the column range is
@@ -162,12 +188,28 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
         return added;
       });
   if (!ok(walked)) {
-    return fail<DrizzleResult>(walked.code, "pixel_grid_failed", "drizzle_grid",
-                               walked.assessment.issues.empty()
+    // The reason of the walk is the named scientific failure (the former
+    // message "pixel_grid_failed" hid it in the impact string).
+    const std::string reason = walked.assessment.issues.empty()
                                    ? "the pixel grid overlap failed"
-                                   : walked.assessment.issues.front().reason);
+                                   : walked.assessment.issues.front().reason;
+    return fail<DrizzleResult>(walked.code, reason, "drizzle_grid",
+                               "the pixel grid overlap did not complete");
   }
+  const U64 accumulated_leaves = accumulator.leaves();
+  const U64 accumulated_terms = accumulator.contributions();
   geometry::DrizzleLeafOutput leaf_output = accumulator.finish();
+  if (std::getenv("ACSD_DRIZZLE_DEBUG") != nullptr) {
+    std::fprintf(stderr,
+                 "drizzle_grid: order=%u pixels=%llu leaves=%llu/%llu terms=%llu/%llu "
+                 "leaf_ratio=%.3f\n",
+                 request.order, static_cast<unsigned long long>(width * height),
+                 static_cast<unsigned long long>(accumulated_leaves),
+                 static_cast<unsigned long long>(capacity.valid ? capacity.maximum_leaves : 0),
+                 static_cast<unsigned long long>(accumulated_terms),
+                 static_cast<unsigned long long>(capacity.valid ? capacity.maximum_terms : 0),
+                 capacity.pixel_leaf_ratio);
+  }
   // Append the all-saturated leaves that the walk touched but that have no
   // usable sample: they stay in the index as absent (NaN signal, zero area)
   // and the export's NaN pixels can be attributed to them.  They never enter

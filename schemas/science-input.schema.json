@@ -5868,12 +5868,20 @@
         },
         "budget": {
           "$ref": "#/$defs/GeometryBudget"
+        },
+        "auto_order": {
+          "type": "boolean"
+        },
+        "allow_coarser_order": {
+          "type": "boolean"
         }
       },
       "required": [
         "order",
         "pixfrac",
-        "budget"
+        "budget",
+        "auto_order",
+        "allow_coarser_order"
       ]
     },
     "DrizzleOperator": {
@@ -6930,10 +6938,34 @@
         "signal": {
           "$ref": "#/$defs/SignalEstimateRef"
         },
+        "closure_actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LinearActionRef"
+          }
+        },
         "closure": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/ModelRef"
+          }
+        },
+        "sky_beta": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "coadd_coefficients": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "sky_leaf_offsets": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "relative_scales": {
+          "$ref": "#/$defs/ArrayRef"
+        },
+        "coadd_frame_order": {
+          "type": "array",
+          "items": {
+            "type": "string"
           }
         },
         "inputs": {
@@ -6949,7 +6981,13 @@
       "required": [
         "stage",
         "signal",
+        "closure_actions",
         "closure",
+        "sky_beta",
+        "coadd_coefficients",
+        "sky_leaf_offsets",
+        "relative_scales",
+        "coadd_frame_order",
         "inputs",
         "profile"
       ]
@@ -6976,6 +7014,9 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 4294967295
+        },
+        "content_sha256": {
+          "type": "string"
         }
       },
       "required": [
@@ -6983,7 +7024,8 @@
         "path",
         "type",
         "major",
-        "minor"
+        "minor",
+        "content_sha256"
       ]
     },
     "AlgorithmIdentity": {
@@ -7286,6 +7328,111 @@
         "outputs"
       ]
     },
+    "DrizzleOrderFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "frame": {
+          "type": "string"
+        },
+        "probed": {
+          "type": "boolean"
+        },
+        "finest_arcsec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "f64"
+              ],
+              "properties": {
+                "f64": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{16}$"
+                }
+              }
+            }
+          ]
+        },
+        "required_order": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "clamped": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "frame",
+        "probed",
+        "finest_arcsec",
+        "required_order",
+        "clamped"
+      ]
+    },
+    "DrizzleOrderPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "auto_order": {
+          "type": "boolean"
+        },
+        "planned": {
+          "type": "boolean"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "leaf_arcsec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "f64"
+              ],
+              "properties": {
+                "f64": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{16}$"
+                }
+              }
+            }
+          ]
+        },
+        "clamped": {
+          "type": "boolean"
+        },
+        "high_resolution": {
+          "type": "boolean"
+        },
+        "frames": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DrizzleOrderFrame"
+          }
+        }
+      },
+      "required": [
+        "auto_order",
+        "planned",
+        "order",
+        "leaf_arcsec",
+        "clamped",
+        "high_resolution",
+        "frames"
+      ]
+    },
     "NormalizeResult": {
       "type": "object",
       "additionalProperties": false,
@@ -7311,11 +7458,15 @@
             "minItems": 2,
             "maxItems": 2
           }
+        },
+        "drizzle_plan": {
+          "$ref": "#/$defs/DrizzleOrderPlan"
         }
       },
       "required": [
         "published",
-        "frames"
+        "frames",
+        "drizzle_plan"
       ]
     },
     "MosaicRequest": {
@@ -13519,6 +13670,78 @@
         }
       ]
     },
+    "DrizzleOrderFrameRef": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "$ref"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "$ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "data"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "DrizzleOrderFrame"
+            },
+            "data": {
+              "$ref": "#/$defs/DrizzleOrderFrame"
+            }
+          }
+        }
+      ]
+    },
+    "DrizzleOrderPlanRef": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "$ref"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "$ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "data"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "DrizzleOrderPlan"
+            },
+            "data": {
+              "$ref": "#/$defs/DrizzleOrderPlan"
+            }
+          }
+        }
+      ]
+    },
     "NormalizeResultRef": {
       "anyOf": [
         {
@@ -14759,6 +14982,37 @@
       "type": "object",
       "properties": {
         "operation": {
+          "const": "drizzle_grid"
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "$ref": "#/$defs/FootprintProviderRef"
+            },
+            "observation": {
+              "$ref": "#/$defs/NativeObservationRef"
+            },
+            "window": {
+              "$ref": "#/$defs/Box"
+            }
+          },
+          "required": [
+            "provider",
+            "observation",
+            "window"
+          ]
+        },
+        "request": {
+          "$ref": "#/$defs/DrizzleRequest"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "operation": {
           "const": "refine_geometry"
         },
         "arguments": {
@@ -15323,10 +15577,14 @@
           "properties": {
             "image": {
               "$ref": "#/$defs/ExportResult"
+            },
+            "input_hash": {
+              "type": "string"
             }
           },
           "required": [
-            "image"
+            "image",
+            "input_hash"
           ]
         },
         "request": {
@@ -16507,6 +16765,12 @@
           },
           {
             "$ref": "#/$defs/NormalizeRequestRef"
+          },
+          {
+            "$ref": "#/$defs/DrizzleOrderFrameRef"
+          },
+          {
+            "$ref": "#/$defs/DrizzleOrderPlanRef"
           },
           {
             "$ref": "#/$defs/NormalizeResultRef"

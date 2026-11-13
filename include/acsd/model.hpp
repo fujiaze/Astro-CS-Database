@@ -349,7 +349,13 @@ struct PhotoSolution : Model { ArrayRef theta; Ref<CovarianceAction> covariance;
   Ref<ReferenceSED> reference; RankReport rank; FitInfluence influence;
   std::vector<Id> frames; Id application_id;
   ArrayRef parameter_lower,parameter_upper; Ref<ErrorRecord> error; };
-struct DrizzleRequest { U32 order; double pixfrac; GeometryBudget budget; };
+struct DrizzleRequest { U32 order = 0; double pixfrac = 1.0; GeometryBudget budget{};
+  // Issue #126: the leaf order is a scientific decision, not a free knob.  When
+  // auto_order is set the Normalize workflow derives one common order from the
+  // real WCS/SIP of every participating frame (main compute_auto_nside_ex);
+  // an explicit order that is coarser than the finest native pixel scale is
+  // refused as a formal product unless allow_coarser_order names the downgrade.
+  bool auto_order = false; bool allow_coarser_order = false; };
 struct DrizzleOperator : Model { Ref<LinearAction> rows; Ref<Index> source_index;
   Ref<Overlaps> bounds; ArrayRef normalizer_sr; Ref<SupportMap> support; GeometryStatus status; };
 struct DrizzleResult { Ref<DrizzleOperator> op; Ref<SignalEstimate> estimate; };
@@ -477,8 +483,17 @@ struct NormalizeRequest { std::vector<NormalizeFrame> frames; SolverRequest astr
   PsfRequest psf; PhotometryRequest photometry; DrizzleRequest drizzle;
   std::vector<ReferenceInformationRequest> information; bool allow_relative_uncalibrated;
   std::vector<PublishRequest> outputs; };
+// The leaf-order decision of one Normalize invocation (issue #126).  It is the
+// audit record of the automatic order: the finest native pixel scale probed on
+// each frame, the order that frame requires, and the one order shared by the
+// invocation.  It is evidence, not a scientific product field.
+struct DrizzleOrderFrame { Id frame; bool probed = false; double finest_arcsec = 0.0;
+  U32 required_order = 0; bool clamped = false; };
+struct DrizzleOrderPlan { bool auto_order = false; bool planned = false; U32 order = 0;
+  double leaf_arcsec = 0.0; bool clamped = false; bool high_resolution = false;
+  std::vector<DrizzleOrderFrame> frames; };
 struct NormalizeResult { std::vector<ProductLocation> published;
-  std::vector<std::pair<Id,Assessment>> frames; };
+  std::vector<std::pair<Id,Assessment>> frames; DrizzleOrderPlan drizzle_plan; };
 struct MosaicRequest { std::vector<ProductLocation> inputs; SkyRequest sky{};
   CoaddRequest coaddition{}; PublishRequest output{}; };
 struct ExportWorkflowRequest { ProductLocation input; ExportRequest projection;
@@ -546,7 +561,7 @@ Result<Ref<Selection>> select_samples(Context& context,const FramesProvider& fra
 Result<Ref<WeightSolution>> solve_weights(Context& context,const FramesProvider& frames,Ref<Selection> selection,const CoaddRequest& request);
 Result<CoaddResult> coadd(Context& context,const FramesProvider& frames,Ref<SkyFit> sky,const CoaddRequest& request);
 Result<ExportResult> build_export(Context& context,const ProductProvider& product,const ExportRequest& request);
-Result<ProductLocation> export_signal(Context& context,const ExportResult& image,const PublishRequest& request);
+Result<ProductLocation> export_signal(Context& context,const ExportResult& image,const PublishRequest& request,const Id& input_hash);
 Result<Ref<ProductProvider>> open_product(Context& context,const ProductLocation& location);
 Result<ProductLocation> publish_product(Context& context,Ref<ProductGraph> graph,const PublishRequest& request);
 Result<NormalizeResult> normalize(Context& context,const CatalogueProvider& catalogue,const NormalizeRequest& request);
