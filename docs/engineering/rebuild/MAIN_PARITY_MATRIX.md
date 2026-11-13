@@ -2,7 +2,7 @@
 
 > **本文件是审计导航，不是自动生成的报告，也不是验收门禁。** 仓库明确禁止用 CI、自动文档脚本、覆盖率或自动 PASS 判决代替数学证明与独立复核（[AGENTS](../../../AGENTS.md) §2/§4、[IMPLEMENTATION-STATUS](../../audit/IMPLEMENTATION-STATUS.md)）。下表**不写任何 PASS**：有真实产物也只写“已测（范围）”并给出产物路径；只有代码没有实测写 `NOT_VERIFIED`；没有运行写 `NOT_RUN`。
 >
-> **源码身份**：分支 `rebuild/acsd-v2`，HEAD `d7e5b0ba4`。**自动选阶的实现尚未提交**——`git status` 显示 `M apps/cli/commands.cpp`、`M src/workflows/normalize.cpp`、`M src/geometry/drizzle_core.*`、`M src/geometry/drizzle_grid.cpp`、`M src/geometry/drizzle_process.cpp`、`?? src/coordinates/resolution.cpp`、`?? src/coordinates/resolution.hpp`。所以下文每一处 `src/...:line` 指**当前工作树**内容；引用前必须按 `git status`/`git diff` 复核，不能把它当成 HEAD 的已冻结事实。
+> **源码身份**：分支 `rebuild/acsd-v2`，HEAD `c416f0be3`（自动选阶与有界累加器见 `1fa753068`，reviewer 轮次修复见 `c416f0be3`；`1fa753068` 之前为 `d7e5b0ba4`）。下文 `src/...:line` 指 `c416f0be3` 的内容。独立 reviewer（reviewer-126）对 `1fa753068` 的 PASS_SCOPED/FAIL/数据更正见 [issue126 审计记录](../../audit/issue126-2026-11-14.md) §10；本矩阵的"缺口"列已按修复后的状态更新，但**不把修复当 PASS**。
 >
 > **审计边界**：每行只引用 [00-BASELINE-ASSETS](migration/00-BASELINE-ASSETS.md) §2 判为“正式生产可达”的 main 资产（`git show main:<path>`，main `c5fee09f`）。`phase1_session/`、退役 UPM F1–F6、legacy AIO、`healpix_stack/` 等 ARCHIVE 行不出现在任何一行里——本矩阵的分类与 00 一致。
 >
