@@ -10,7 +10,7 @@ main `lib/infrastructure/cli/commands.cpp`→`lib/infrastructure/scheduler/src/{
 1. 将旧每个 `p1_op_* / p2_op_* / p3_op_*` 的解析分成 **(i) typed request binding, (ii) 可复用纯数值kernel, (iii) publish/diagnostics**，接入现有22 Process和固定三命令workflow。每个操作只能有一个生产代码入口；旧session C ABI compatibility与旧per-node目录不能成为第二套执行线。
 2. 保留旧算法调用时真正检查过的输入shape/单位/WCS/response和失败状态，现由V2 `Result<>,Assessment,Issue`表达，不能把旧全0 sentinel/空文件当成功。迁入main行为时附严格表：旧flag→V2正式参数→实际消费者→无效时Code→单位/identity。
 3. 大像元数组作为Ref/ArrayRef + Storage Block由运行期维护不可变ID/只读lease；必要科学元数据为小的typed对象，不能嵌入传输全4096² JSON。真正的下游根据持久化对象引用取块，不能“名字存在就算上游完成”。
-4. 迁移后按实际硬依赖删除旧临时工作文件消费者；必要的外部/FITS交换仅在阶段边界和受控spill/cache，三命令在新进程上读取正式manifest。检验无任何读者把兼容sid ecar当唯一真值。
+4. 迁移后按实际硬依赖删除旧临时工作文件消费者；必要的外部/FITS交换仅在阶段边界和受控spill/cache，三命令在新进程上读取正式manifest。检验无任何读者把兼容sidecar当唯一真值。
 5. Runtime/process的缓存键与科学身份分离：`input_sha + calibration_model + WCS/SIP + response/PSF + GeometryRecipe/order + root identities + source_sha`；科学不变的下游共享一个不可变输出。仅sky/weights变化不能重新Normalize；仅目标Export WCS变化不能重新Mosaic；改变自动order必须让R→产品→Mosaic→Export失效，而非错误重用旧order13产品。
 
 ## R-01 BlockFrame/Task/Pipe和唯一资源预算

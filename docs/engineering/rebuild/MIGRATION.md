@@ -4,7 +4,7 @@
 
 ## 0. 重构目标与不变边界
 
-**目标不是替换旧科学系统，而是让 main 已生产可达的能力在 V2 单一标准工程中继续成立，并修正已证伪问题。** 保留 Normalize→Mosaic→Export 三命令、真实 Ga ia/WCS/PSF/测光、动态 NSIDE、原生像元→球面 Drizzle、全区域多面板 Mosaic、Sky/排异/权重、HiPS 与平面 FITS、Windows/Linux、诊断与界面合同。原 `main` 已有 49 帧 M42 三命令历史实验；不能把 V2 的三帧固定 order13 数值闭包称为原功能等价。
+**目标不是替换旧科学系统，而是让 main 已生产可达的能力在 V2 单一标准工程中继续成立，并修正已证伪问题。** 保留 Normalize→Mosaic→Export 三命令、真实 Gaia/WCS/PSF/测光、动态 NSIDE、原生像元→球面 Drizzle、全区域多面板 Mosaic、Sky/排异/权重、HiPS 与平面 FITS、Windows/Linux、诊断与界面合同。原 `main` 已有 49 帧 M42 三命令历史实验；不能把 V2 的三帧固定 order13 数值闭包称为原功能等价。
 
 **不要求兼容旧 ABI、JSON、临时文件目录/内部对象布局**，但不等于拒绝复用旧 C++ 算法或运行优化。V2 只允许一套 Host/ProcessRegistry/Task/Pipe/BlockStore/Storage、统一类型与单位、一条正式科学计算路径。旧算法核按正确性与性能经审查后 **优先提取和适配**；新严格几何/协方差/共享根优于旧科学近似时，保留新实现并继承旧有的候选搜索与性能方法。禁止把旧 `module_adapters.cpp` 的 18k 行胶水整体搬回来。
 
