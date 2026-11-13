@@ -1,13 +1,19 @@
-# S2: process all 196 M42 frames into the formal four-channel FITS (authorized only after an independent S1 PASS)
+# S2: process all 196 M42 frames into the formal four-channel FITS (authorized after the independent S1 PASS)
 
 This issue is created by the S1 recovery run (issue #124) after the three-frame
-4096x4096 Normalize -> Mosaic -> Export chain has NOT yet passed independent review; this draft becomes actionable only after an independent S1 PASS.  It is
-the authorized stage-two delivery of
+4096x4096 Normalize -> Mosaic -> Export chain PASSED the ninth independent
+review (`docs/audit/reviews/M42-S1-2026-11-13-round9.md`: S1 PASS, no remaining
+P0/P1 blockers).  It is the authorized stage-two delivery of
 `docs/workplans/m42/AUTONOMOUS-RECOVERY-TO-FULL-DATASET.md` (section 4 to 7).
 
 ## Frozen S1 baseline
 
-- branch `rebuild/acsd-v2`, commit recorded in `docs/audit/m42-s1-recovery-2026-11-12.md`
+- branch `rebuild/acsd-v2`, frozen at commit `3e9825122` (mosaic/export built
+  from the clean tree `70f5200e8`; the three Normalize products from `e2235bf1a`)
+- independent S1 verdict: PASS (`M42-S1-2026-11-13-round9.md`); the mosaic is a
+  named conditional product (seam K1/K3 6.31%, main band 8.43% vs interior
+  1.87%; the residual flat screen is not removed; science=conditional,
+  noise=unknown)
 - three T2/M5 H-alpha 600 s frames, 4096x4096, SHA256 frozen in
   `validation/m42/inputs_manifest.json`
 - three Normalize products, one Mosaic, one Export FITS with the independent
