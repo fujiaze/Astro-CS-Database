@@ -3,8 +3,9 @@
  "date": "2026-11-14",
  "binary": {
   "path": "build/v2-126/acsd",
-  "sha256": "65583aaec288daa77c12d12eeca914dad5f062967a5db0e64b9d8996f6dcf56b",
-  "version": "acsd 2.0.0 (cli --version event stream) ; source_id=ACSD_SOURCE_ID (git d7e5b0ba4-dirty)"
+  "sha256": "4b70d19217971e9b5d0ab5dfa2dc2c78554ad5241e5c52d3b5a8796b6cbe7a0e",
+  "version": "acsd 2.0.0 (cli --version event stream) ; source_id=ACSD_SOURCE_ID (git d7e5b0ba4-dirty)",
+  "note": "all \u00a72/\u00a73/\u00a76 plan+A/B+plan-consumption runs were re-executed with this binary after the reviewer fixes"
  },
  "full_plan": {
   "clamped": false,
@@ -162,41 +163,68 @@
   ]
  },
  "detail_ab_256": {
-  "input": "M42 M5 T2 20251228 051230 H-alpha 256x256 crop (x0=2048,y0=3456)",
+  "input": "M42 M5 T2 20251228 051230 H-alpha 256x256 crop (x0=0, y0=0; corrected: the earlier note said 2048/3456)",
   "same_target_wcs": "native crop WCS, 0.9666 arcsec/px",
   "order18": {
    "leaves": 92880,
    "terms": 521810,
    "product_bytes": 16777216,
-   "export_fits": "run/issue126/staging/m5_256_0_0/export/signal.fits"
+   "export_fits": "run/issue126/staging/m5_256_0_0/export/signal.fits",
+   "export_fits_sha256": "53e6ef8fbcc42588a0c6d21aaa13560b157a0c78d228e8f9314a7434d35f03ba"
   },
   "order13": {
    "leaves": 117,
    "terms": 73206,
    "product_bytes": 1400000,
    "export_fits": "run/issue126/staging/m5_256_0_0_o13/export/signal.fits",
-   "plan_high_resolution": false
+   "plan_high_resolution": false,
+   "export_fits_sha256": "440910630333ff58743eceaf0f02331702d7fbff37d8a62a8a5c4772cd77f850"
   },
-  "ratio_18_over_13": {
-   "median": 0.9950483204577951,
-   "p16": 0.9131520638638264,
-   "p84": 1.0764311842353784
+  "metrics_script": "validation/m42/issue126/tools/ab_metrics.py",
+  "metrics": {
+   "schema": "acsd.issue126.ab_metrics/1",
+   "order18_export": "run/issue126/staging/m5_256_0_0/export/signal.fits",
+   "order13_export": "run/issue126/staging/m5_256_0_0_o13/export/signal.fits",
+   "input_frame": "run/issue126/staging/m5_256_0_0/frame.fits",
+   "zero_second_differences": {
+    "order18": {
+     "axis0": 0.0,
+     "axis1": 0.0,
+     "both_axes": 0.0
+    },
+    "order13": {
+     "axis0": 0.8085322342519685,
+     "axis1": 0.7942759596456693,
+     "both_axes": 0.7101494202988407
+    },
+    "raw": {
+     "axis0": 0.014563853346456693,
+     "axis1": 0.015086737204724409,
+     "both_axes": 0.006649513299026598
+    }
+   },
+   "highpass_correlation_with_raw": {
+    "order18": 0.960253460622344,
+    "order13": 0.0003027962884140803
+   },
+   "high_frequency_power_fraction": {
+    "order18": 0.606695097609316,
+    "order13": 0.10804220640727456,
+    "raw": 0.6400285647872935
+   },
+   "interior_ratio_18_over_13": {
+    "n": 63504,
+    "median": 0.9949802423586346,
+    "p16": 0.9134939073260246,
+    "p84": 1.076130222458797
+   },
+   "note": "the input frame is the calibrated crop; its WCS equals the export target WCS. The high-pass/HF definitions are the reviewer's; the earlier ad-hoc values (0.188 / 0.608 / 0.108) were not reproducible and are superseded."
   },
-  "exact_zero_second_difference_fraction": {
-   "order18": 0.0,
-   "order13": 0.7942759596456693,
-   "raw": 0.015086737204724409
-  },
-  "highpass_correlation_with_raw": {
-   "order18": 0.18795673029213564,
-   "order13": -0.00030025437993164893
-  },
-  "high_frequency_power_fraction_k8_60": {
-   "order18": 0.6080297210243367,
-   "order13": 0.10816032605593082,
-   "raw": 0.6427834577831545
-  },
-  "note": "implementer self-check on the same ROI; not an independent PSF/MTF oracle. order18 has one NaN edge pixel (absent leaf), order13 edge columns show normaliser amplification up to 1.19e14 ADU/SR."
+  "superseded_note": "the earlier ad-hoc high-pass correlation 0.188 was not reproducible; the committed definition gives 0.960 (the independent reviewer also measured 0.960). The HF fraction under the committed band is 0.607/0.108/0.640; the reviewer's independent variant (different band normalization) gave 0.851/0.353/0.866 - same ordering and direction. Both replace the earlier 0.608/0.108/0.643 values only in the sense of a fixed definition; the scientific conclusion (order 13 loses the high-frequency structure) is unchanged.",
+  "corrections": {
+   "crop_origin": "(0,0) from run_identity.json/header/WCS; the report's 2048/3456 was wrong",
+   "1024_crop_sky_boxes": "M2 RA 83.678..83.823 DEC -5.140..-4.865; M5 RA 83.678..83.823 DEC -5.167..-4.889 (reviewer independent WCS evaluation; the report's earlier boxes were for a discarded x0=1536 crop)"
+  }
  },
  "cross_panel": {
   "wcs_source": {
@@ -230,12 +258,11 @@
    }
   },
   "512_mosaic": {
-   "status": "FAIL",
-   "counterexample": [
-    "first run: apply_sky failed 'the block selection cannot be built' (src/sky/sky.cpp:2934) with joint_rows=740359 count=370094 row_offset=0; the progress arena could not store the whole-signal CSR offsets because plan_sky_apply declared only per-cohort scratch (src/sky/sky_fit_process.cpp:452)",
-    "after the workspace declaration fix (elements*96 for the four whole-signal CSR payloads): the next failure is 'the leaf identities cannot be stored' in the coadd/select stage, i.e. the next under-declared whole-signal payload of the cross-panel path"
-   ],
-   "conclusion": "the cross-panel mosaic path is not merely unverified: it fails on a real two-panel input at the typed sky/coadd workspace bounds, which is exactly why the S1 same-leaf three-frame mosaic passed and a two-panel mosaic does not. This is a P0 finding for issue #126 section D."
+   "status": "FAIL (confirmed independently)",
+   "reproduced_counterexample": "on HEAD the 512 mosaic exits 4 resource_exhausted 'the leaf identities cannot be stored', peak RSS 793 MB, wall 2:51; not a 12 GiB exhaustion",
+   "mechanism": "plan_coadd_select declares elements = groups*65536 = 65536 (progress_floor 4.0 MiB) while select_samples materialises the whole 370094-leaf joint space (eligibility+accepted+reasons+leaf_ids = 8.5 MiB); the fix class is a whole-signal declaration, not the per-cohort proxy. apply_sky's fix is empirically effective (the run now gets past apply_sky).",
+   "refuted_subclaim": "the earlier 'S1 passed because its leaf sets were nearly identical and the contiguous-block assumption fails for two panels' explanation is REFUTED: the debug line shows matches=1, row_offset=0, joint_rows=740359=370094+370265; the contiguity held. The discriminator is size (23.8K leaves fit 4 MiB, 370K do not).",
+   "1024_mosaic": "NOT_RUN/NOT_VERIFIED: the process was observed at 37 min CPU with no product and no artifact recording the timing; the 2400 s timeout killed it"
   },
   "psf_fit_instability": {
    "counterexample": "src/sources/psf_fit.cpp:567 rank deficiency with 2 exactly zero singular values on 256/512/1024 crops at some x0/y0; the same 1024 crop at x0=0 passes. PSF selection is star-sample dependent, no fix attempted"
@@ -244,5 +271,38 @@
    "status": "NOT_RUN",
    "reason": "order 18 declared F ~9.5 GB (capacity estimate) and the full-frame actual peak ~8.5-9 GB; the machine had another independent experiment holding 7-12 GiB of 17 GiB during the whole window. No order reduction or target reduction was used to fake a pass."
   }
+ },
+ "downgrade_guard": {
+  "normalize_product_marker": "verified: the o13 product frame_science.json carries domain/order_coarser_than_native_scale after the product.cpp merge fix",
+  "export_marker": "verified: the o13 export manifest/export_science.json carry the marker after the matcher fix",
+  "enforcement": "verified: the same o13 config WITHOUT allow_coarser_order exits 4 with the named reason; with the flag it publishes and is marked",
+  "frozen_plan": "verified: a real Normalize run with order:'plan' + plan path consumed the frozen plan (exit 0)",
+  "reverified_with_final_binary": true
+ },
+ "reviewer": {
+  "agent": "reviewer-126 (independent subagent, did not write the code)",
+  "head_reviewed": "1fa753068",
+  "verdicts": {
+   "build": "PASS_SCOPED (up-to-date target build; probe TU recompiled against HEAD)",
+   "resolution_probe": "PASS_SCOPED (dense 161^2 scan reproduces finest 0.940477, rel 5e-15; basis change immaterial)",
+   "common_order_failclosed": "PASS_SCOPED (real 18+19->19; missing WCS exits 2)",
+   "accumulator_equivalence": "PASS_SCOPED (40/40 random sequences bitwise identical)",
+   "downgrade_guard": "FAIL first round -> FIXED and re-verified (reject without flag; marker on Normalize product and Export; plan consumed)",
+   "leaf_capacity": "FAIL first round -> FIXED (per-leaf check; u32 cursor guard)",
+   "plan_F_kernel": "FAIL first round -> FIXED (invalid probe fails closed; block rounding counted)",
+   "A/B_metrics": "PASS_SCOPED with one data error: implementer 0.188 not reproducible, reviewer 0.960; committed definition adopted",
+   "cross_panel_reality": "PASS_SCOPED (real overlap; independent Gaia star median 0.363 arcsec = 0.38 px)",
+   "512_mosaic": "FAIL confirmed (exit 4 resource_exhausted, 793 MB, 2:51; plan_coadd_select 4.0 MiB vs 8.5 MiB whole joint space)",
+   "overclaim": "PASS (no PASS claimed for 4096^2/mosaic/seam/196 frames)"
+  },
+  "remaining_blockers": [
+   "no 4096^2 order-18 product or perf record",
+   "no cross-panel mosaic/export/seam",
+   "downgrade now enforced but only the sidecar plan is consumed across invocations (no default flow)",
+   "no uncertainty/SNR/PSF-MTF oracle",
+   "HiPS tile order non-standard",
+   "WCS still external python",
+   "A/B metric definitions were undefined until this commit"
+  ]
  }
 }

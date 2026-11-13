@@ -1324,8 +1324,24 @@ Result<ProductLocation> workflows::publish_graph(Context& context, Ref<ProductGr
 
   ProductBuilder builder;
   Assessment effective_assessment = graph->assessment;
+  // The estimate's own assessment replaces the graph's one inside
+  // collect_signal(); keep the graph issues (the workflow may have named a
+  // coarse-order downgrade, issue #126) and merge them back after the call.
+  const Assessment graph_assessment = graph->assessment;
   Result<std::string> collected =
       collect_signal(context, builder, *graph->signal, &effective_assessment);
+  if (ok(collected)) {
+    for (const Issue& issue : graph_assessment.issues) {
+      bool present = false;
+      for (const Issue& existing : effective_assessment.issues) {
+        if (existing.code == issue.code && existing.reason == issue.reason) present = true;
+      }
+      if (!present) effective_assessment.issues.push_back(issue);
+    }
+    if (graph_assessment.science == ScienceState::conditional) {
+      effective_assessment.science = ScienceState::conditional;
+    }
+  }
   if (!ok(collected)) {
     // A product whose closure cannot be written is not published at all: the
     // former retry path published a partial product with a "complete"

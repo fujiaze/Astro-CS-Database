@@ -97,7 +97,9 @@ namespace {
 bool downgrade_carried(const Assessment& assessment) {
   for (const Issue& issue : assessment.issues) {
     if (issue.code == Code::domain &&
-        issue.reason.find("coarser than the native pixel scale") != std::string::npos) {
+        (issue.reason.find("order_coarser_than_native_scale") != std::string::npos ||
+               issue.reason.find("coarser than the native pixel scale") != std::string::npos ||
+               issue.impact.find("coarser than the native pixel scale") != std::string::npos)) {
       return true;
     }
   }
@@ -186,11 +188,19 @@ Result<ProductLocation> export_image(Context& context, const ExportWorkflowReque
       // input's named issue is carried into the exported assessment (issue
       // #126 section B: a coarse product is never a high-resolution formal
       // product).
-      for (const Issue& issue : input_graph->signal->assessment.issues) {
-        if (issue.code == Code::domain &&
-            issue.reason.find("coarser than the native pixel scale") != std::string::npos) {
-          model::add_issue(copy->assessment, issue.code, issue.origin, issue.reason,
-                           issue.impact);
+      // The downgrade is recorded on the published product assessment (the
+      // graph cell) as well as on the signal; scan both, because the product
+      // reopen path may expose it only on one of them.
+      for (const Assessment* assessment :
+           {&input_graph->assessment, &input_graph->signal->assessment}) {
+        for (const Issue& issue : assessment->issues) {
+          if (issue.code == Code::domain &&
+              (issue.reason.find("order_coarser_than_native_scale") != std::string::npos ||
+               issue.reason.find("coarser than the native pixel scale") != std::string::npos ||
+               issue.impact.find("coarser than the native pixel scale") != std::string::npos)) {
+            model::add_issue(copy->assessment, issue.code, issue.origin, issue.reason,
+                             issue.impact);
+          }
         }
       }
       if (input_graph->assessment.science == ScienceState::conditional &&

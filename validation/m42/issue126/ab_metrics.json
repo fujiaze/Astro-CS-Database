@@ -1,0 +1,39 @@
+{
+ "schema": "acsd.issue126.ab_metrics/1",
+ "order18_export": "run/issue126/staging/m5_256_0_0/export/signal.fits",
+ "order13_export": "run/issue126/staging/m5_256_0_0_o13/export/signal.fits",
+ "input_frame": "run/issue126/staging/m5_256_0_0/frame.fits",
+ "zero_second_differences": {
+  "order18": {
+   "axis0": 0.0,
+   "axis1": 0.0,
+   "both_axes": 0.0
+  },
+  "order13": {
+   "axis0": 0.8085322342519685,
+   "axis1": 0.7942759596456693,
+   "both_axes": 0.7101494202988407
+  },
+  "raw": {
+   "axis0": 0.014563853346456693,
+   "axis1": 0.015086737204724409,
+   "both_axes": 0.006649513299026598
+  }
+ },
+ "highpass_correlation_with_raw": {
+  "order18": 0.960253460622344,
+  "order13": 0.0003027962884140803
+ },
+ "high_frequency_power_fraction": {
+  "order18": 0.606695097609316,
+  "order13": 0.10804220640727456,
+  "raw": 0.6400285647872935
+ },
+ "interior_ratio_18_over_13": {
+  "n": 63504,
+  "median": 0.9949802423586346,
+  "p16": 0.9134939073260246,
+  "p84": 1.076130222458797
+ },
+ "note": "the input frame is the calibrated crop; its WCS equals the export target WCS. The high-pass/HF definitions are the reviewer's; the earlier ad-hoc values (0.188 / 0.608 / 0.108) were not reproducible and are superseded."
+}

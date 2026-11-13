@@ -104,11 +104,16 @@ Result<DrizzleResult> drizzle_grid(Context& context, Ref<FootprintProvider> prov
   // the plan.
   const coordinates::DrizzleCapacityEstimate capacity =
       coordinates::estimate_drizzle_capacity(*wcs, width, height, request.order);
-  geometry::DrizzleCapacity limits;
-  if (capacity.valid) {
-    limits.maximum_leaves = capacity.maximum_leaves;
-    limits.maximum_terms = capacity.maximum_terms;
+  if (!capacity.valid) {
+    // Without a certified pixel/leaf scale ratio the accumulation capacity is
+    // unknown, and an unbounded accumulator would silently exceed the plan.
+    return fail<DrizzleResult>(Code::invalid_model, "drizzle_capacity_not_certified",
+                               "drizzle_grid",
+                               "the pixel/leaf scale ratio of the frame cannot be probed");
   }
+  geometry::DrizzleCapacity limits;
+  limits.maximum_leaves = capacity.maximum_leaves;
+  limits.maximum_terms = capacity.maximum_terms;
   geometry::DrizzleAccumulator accumulator(limits);
   bool failed = false;
   Result<rt::Done> failure;

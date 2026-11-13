@@ -206,8 +206,12 @@ DrizzleCapacityEstimate estimate_drizzle_capacity(const WcsModel& wcs, U64 width
                static_cast<U64>(8.0 * std::sqrt(pixels) * (ratio + 1.0)) + 1024;
   if (leaves > estimate.maximum_terms) leaves = estimate.maximum_terms;
   estimate.maximum_leaves = leaves;
-  // 69 bytes of per-leaf aggregate table plus 20 bytes of member per term.
-  estimate.accumulation_bytes = leaves * 69ull + estimate.maximum_terms * 20ull;
+  // The aggregate table is allocated per touched 4096-leaf block, so the
+  // declared bytes must count full blocks (a partial block still costs 4096
+  // entries); 69 bytes of table per leaf plus 20 bytes of member per term.
+  const U64 blocks = (leaves + 4095ull) / 4096ull;
+  const U64 table_leaves = blocks * 4096ull;
+  estimate.accumulation_bytes = table_leaves * 69ull + estimate.maximum_terms * 20ull;
   // 91 bytes per published leaf array entry plus 16 bytes per CSR term.
   estimate.output_bytes = leaves * 91ull + estimate.maximum_terms * 16ull;
   estimate.declared_bytes = estimate.accumulation_bytes + estimate.output_bytes +

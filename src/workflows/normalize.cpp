@@ -407,6 +407,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     }
     U32 common = coordinates::kMinimumAutoOrder;
     bool any_clamped = false;
+    bool coarser_due_to_clamp = false;
     for (const NormalizeFrame& frame : request.frames) {
       const coordinates::LeafOrderDecision decision = coordinates::decide_leaf_order(
           *frame.supplied_wcs, frame.raw->width, frame.raw->height);
@@ -419,6 +420,12 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
       }
       common = std::max(common, decision.order);
       any_clamped = any_clamped || decision.clamped;
+      // The high clamp (2^22) makes the leaf coarser than the native scale:
+      // that is a real downgrade and the plan must not call it high resolution.
+      if (decision.clamped &&
+          decision.required_nside > static_cast<double>(1ull << coordinates::kMaximumAutoOrder)) {
+        coarser_due_to_clamp = true;
+      }
     }
     drizzle.order = common;
     drizzle.auto_order = false;
@@ -427,7 +434,7 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
     order_plan.clamped = any_clamped;
     order_plan.leaf_arcsec =
         coordinates::kHealpixScalePerNsideArcsec / static_cast<double>(1ull << common);
-    order_plan.high_resolution = true;
+    order_plan.high_resolution = !coarser_due_to_clamp;
   }
 
   // One frozen registry and one command scope for the whole workflow.  The
@@ -1215,11 +1222,17 @@ Result<NormalizeResult> normalize(Context& context, const CatalogueProvider& cat
                       "the frame requires (finest %.6f arcsec/px needs order %u, leaf %.6f "
                       "arcsec); this product is not a high-resolution formal product",
                       drizzle.order, required.finest_arcsec, required.order, required.leaf_arcsec);
-        // The product is still processed (a diagnostic product is allowed),
-        // but the downgrade is named on the product and in the plan: it can
-        // never be accepted as a high-resolution formal product.  The caller
-        // may set allow_coarser_order to acknowledge the diagnostic intent
-        // explicitly; the issue is recorded either way.
+        // An explicit coarse order is refused as a high-resolution formal
+        // product (issue #126 section B).  The caller may set
+        // allow_coarser_order to acknowledge a *diagnostic* product; the
+        // downgrade is then named on the estimate/product and in the plan.
+        if (!drizzle.allow_coarser_order) {
+          outcome.failed = true;
+          outcome.code = Code::domain;
+          outcome.reason = text;
+          result.frames.emplace_back(outcome.frame, outcome.assessment);
+          continue;
+        }
         downgraded_order[request.frames[i].frame] = text;
         order_plan.high_resolution = false;
       }

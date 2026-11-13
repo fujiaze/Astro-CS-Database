@@ -103,17 +103,20 @@ Result<rt::Done> DrizzleAccumulator::add(const DrizzleTerm& term) {
   const auto key = std::make_pair(term.order, block_index);
   auto found = blocks_.find(key);
   if (found == blocks_.end()) {
-    if (capacity_.maximum_leaves != 0 && leaves_ + 1 > capacity_.maximum_leaves) {
-      return fail<rt::Done>(Code::resource_exhausted, "drizzle_leaf_capacity_exhausted",
-                            "drizzle.add",
-                            "the accumulation would exceed the leaf capacity of the plan");
-    }
     auto created = std::make_unique<Block>();
     found = blocks_.emplace(key, std::move(created)).first;
   }
   Block& block = *found->second;
   const std::size_t leaf_slot = static_cast<std::size_t>(slot);
   if (block.present[leaf_slot] == 0) {
+    // The leaf cap is enforced for every new leaf, not only when a new block is
+    // created: a block holds up to 4096 leaves, and the former check let a
+    // single block exceed the declared cap by up to 4095 leaves.
+    if (capacity_.maximum_leaves != 0 && leaves_ + 1 > capacity_.maximum_leaves) {
+      return fail<rt::Done>(Code::resource_exhausted, "drizzle_leaf_capacity_exhausted",
+                            "drizzle.add",
+                            "the accumulation would exceed the leaf capacity of the plan");
+    }
     block.present[leaf_slot] = 1;
     block.member_head[leaf_slot] = 0;
     ++leaves_;
@@ -139,6 +142,11 @@ Result<rt::Done> DrizzleAccumulator::add(const DrizzleTerm& term) {
     return fail<rt::Done>(Code::resource_exhausted, "drizzle_term_capacity_exhausted",
                           "drizzle.add",
                           "the accumulation would exceed the term capacity of the plan");
+  }
+  if (sources_.size() >= 0xffffffffull) {
+    return fail<rt::Done>(Code::resource_exhausted, "drizzle_member_cursor_overflow",
+                          "drizzle.add",
+                          "the flat member list exceeds the 32 bit leaf cursor");
   }
   sources_.push_back(term.source_row);
   weights_.push_back(midpoint(weight));
