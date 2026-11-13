@@ -6,6 +6,9 @@ review (`docs/audit/reviews/M42-S1-2026-11-13-round9.md`: S1 PASS, no remaining
 P0/P1 blockers).  It is the authorized stage-two delivery of
 `docs/workplans/m42/AUTONOMOUS-RECOVERY-TO-FULL-DATASET.md` (section 4 to 7).
 
+Created as GitHub issue
+[fujiaze/Astro-CS-Database#125](https://github.com/fujiaze/Astro-CS-Database/issues/125).
+
 ## Frozen S1 baseline
 
 - branch `rebuild/acsd-v2`, frozen at commit `3e9825122` (mosaic/export built
