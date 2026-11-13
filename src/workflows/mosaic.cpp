@@ -547,7 +547,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
   ArrayRef sky_offsets_array;
   ArrayRef relative_scales_array;
   ArrayRef sky_beta_ordered_array;
-  // The measured frame-to-mosaic ratio in the faint-sky band: the coadd is
+  // The measured frame-to-mosaic ratio in the 0.3-3x median level band: the coadd is
   // expressed in frame 0's star scale, but the residual spatial multiplicative
   // term (master-flat mismatch between nights) makes it non-common; the
   // numbers are named in the assessment.
@@ -651,7 +651,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
           context, scales, std::vector<U64>{static_cast<U64>(scales.size())},
           model::unit_dimensionless(), Id());
       if (ok(stored_scales)) relative_scales_array = val(stored_scales);
-      // Measure the frame-to-mosaic ratio in a faint-sky band.  A common
+      // Measure the frame-to-mosaic ratio in the 0.3-3x median level band.  A common
       // coadd would give 1.0 for every frame; the measured p16..p84 is the
       // named amplitude of the spatial multiplicative residual.
       Result<std::vector<double>> mosaic_values = operators::read_f64(
@@ -793,10 +793,18 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
       ok(weights) && val(weights) && val(weights)->coefficients) {
     workflows::WorkflowStorage seam_storage(context.storage, workflow_runtime.services);
     Context seam_context{context.resources, context.cancellation, seam_storage};
+    // read_f64's count is the number of *flattened* elements; using shape[0]
+    // read only the first third of a [leaves,3] array and the diagnostic
+    // silently covered 1/3 of the support (independent S1 review, round 7).
+    U64 coef_count = 1;
+    for (U64 extent : val(weights)->coefficients->shape) coef_count *= extent;
     Result<std::vector<double>> coef_values = operators::read_f64(
-        seam_context, val(weights)->coefficients, 0,
-        val(weights)->coefficients->shape.empty() ? 0
-                                                  : val(weights)->coefficients->shape[0]);
+        seam_context, val(weights)->coefficients, 0, coef_count);
+    if (ok(coef_values) && val(coef_values).size() != coef_count) {
+      return fail<ProductLocation>(Code::invalid_model,
+                                   "the coefficient array read is truncated", "mosaic",
+                                   "no product was published");
+    }
     Result<std::vector<double>> signal_values = operators::read_f64(
         seam_context, val(coadd_result).estimate->signal, 0,
         val(coadd_result).estimate->signal->shape.empty()
@@ -830,6 +838,7 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
           median_level = finite_levels[finite_levels.size() / 2];
         }
         std::vector<double> interior, boundary13, boundary23, interior_dim;
+        std::vector<double> boundary13_dim, boundary23_dim;
         for (std::size_t i = 0; i + 1 < count; ++i) {
           if (ids[2 * i] != ids[2 * i + 2]) continue;
           if (ids[2 * i + 1] + 1 != ids[2 * i + 3]) continue;
@@ -847,13 +856,22 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
             }
           } else if ((ka == 1 && kb == 3) || (ka == 3 && kb == 1)) {
             boundary13.push_back(delta);
+            const double mean = 0.5 * (std::fabs(a) + std::fabs(b));
+            if (median_level > 0 && mean >= 0.9 * median_level && mean <= 1.3 * median_level) {
+              boundary13_dim.push_back(delta);
+            }
           } else if ((ka == 2 && kb == 3) || (ka == 3 && kb == 2)) {
             boundary23.push_back(delta);
+            const double mean = 0.5 * (std::fabs(a) + std::fabs(b));
+            if (median_level > 0 && mean >= 0.9 * median_level && mean <= 1.3 * median_level) {
+              boundary23_dim.push_back(delta);
+            }
           }
         }
-        auto stats = [](std::vector<double> values, double& median, double& mad) {
+        auto stats = [](std::vector<double> values, double& median, double& mad, double& absolute) {
           median = 0.0;
           mad = 0.0;
+          absolute = 0.0;
           if (values.empty()) return;
           std::sort(values.begin(), values.end());
           median = values[values.size() / 2];
@@ -862,21 +880,58 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
           for (double value : values) deviations.push_back(std::fabs(value - median));
           std::sort(deviations.begin(), deviations.end());
           mad = deviations[deviations.size() / 2];
+          std::vector<double> magnitudes;
+          magnitudes.reserve(values.size());
+          for (double value : values) magnitudes.push_back(std::fabs(value));
+          std::sort(magnitudes.begin(), magnitudes.end());
+          absolute = magnitudes[magnitudes.size() / 2];
         };
-        double i13 = 0, m13 = 0, i23 = 0, m23 = 0, i33 = 0, m33 = 0, idim = 0, mdim = 0;
-        stats(boundary13, i13, m13);
-        stats(boundary23, i23, m23);
-        stats(interior, i33, m33);
-        stats(interior_dim, idim, mdim);
+        double i13 = 0, m13 = 0, a13 = 0, i23 = 0, m23 = 0, a23 = 0;
+        double i33 = 0, m33 = 0, a33 = 0, idim = 0, mdim = 0, adim = 0;
+        double i13d = 0, m13d = 0, a13d = 0, i23d = 0, m23d = 0, a23d = 0;
+        stats(boundary13, i13, m13, a13);
+        stats(boundary23, i23, m23, a23);
+        stats(interior, i33, m33, a33);
+        stats(interior_dim, idim, mdim, adim);
+        stats(boundary13_dim, i13d, m13d, a13d);
+        stats(boundary23_dim, i23d, m23d, a23d);
+        // The residual low-frequency field: median |delta| per cell of an 8x8
+        // split of the selection order (Hilbert-contiguous cells).
+        std::vector<double> cell_medians;
+        for (std::size_t cell = 0; cell < 8; ++cell) {
+          std::vector<double> values;
+          for (std::size_t i = 0; i + 1 < count; ++i) {
+            if (ids[2 * i] != ids[2 * i + 2] || ids[2 * i + 1] + 1 != ids[2 * i + 3]) continue;
+            if (coverage[i] != 3 || coverage[i + 1] != 3) continue;
+            if (i * 8 / count != cell) continue;
+            const double a = level[i];
+            const double b = level[i + 1];
+            if (!std::isfinite(a) || !std::isfinite(b) || a + b == 0.0) continue;
+            values.push_back(std::fabs((b - a) / (0.5 * (std::fabs(a) + std::fabs(b)))));
+          }
+          if (values.size() < 30) continue;
+          std::sort(values.begin(), values.end());
+          cell_medians.push_back(values[values.size() / 2]);
+        }
+        double lf_min = 0.0, lf_max = 0.0;
+        if (!cell_medians.empty()) {
+          lf_min = *std::min_element(cell_medians.begin(), cell_medians.end());
+          lf_max = *std::max_element(cell_medians.begin(), cell_medians.end());
+        }
         seam_note.precision(4);
         seam_note << "seam_low_frequency: K=1/K=3 boundary signed median " << 100.0 * i13
-                  << "% (MAD " << 100.0 * m13 << "%, n=" << boundary13.size()
-                  << "); K=2/K=3 " << 100.0 * i23 << "% (MAD " << 100.0 * m23
-                  << "%, n=" << boundary23.size() << "); interior K=3/K=3 " << 100.0 * i33
-                  << "% (MAD " << 100.0 * m33 << "%, n=" << interior.size()
-                  << "); dim band (0.9-1.3x median) boundary " << 100.0 * idim
-                  << "% (MAD " << 100.0 * mdim << "%, n=" << interior_dim.size()
-                  << "); the residual flat screen is not removed";
+                  << "% med|delta| " << 100.0 * a13 << "% MAD " << 100.0 * m13
+                  << "% n=" << boundary13.size() << "; K=2/K=3 signed " << 100.0 * i23
+                  << "% med|delta| " << 100.0 * a23 << "% MAD " << 100.0 * m23
+                  << "% n=" << boundary23.size() << "; interior K=3/K=3 signed " << 100.0 * i33
+                  << "% med|delta| " << 100.0 * a33 << "% MAD " << 100.0 * m33
+                  << "% n=" << interior.size() << "; dim band (0.9-1.3x median): K1/K3 med|delta| "
+                  << 100.0 * a13d << "% n=" << boundary13_dim.size() << ", K2/K3 "
+                  << 100.0 * a23d << "% n=" << boundary23_dim.size() << ", interior "
+                  << 100.0 * adim << "% n=" << interior_dim.size() << "; interior 8x8 cell "
+                  << "median |delta| " << 100.0 * lf_min << ".." << 100.0 * lf_max
+                  << "% (17-cell field); standardized residual not computable: the coadd noise "
+                     "is unknown and named; the residual flat screen is not removed";
         seam_measured = true;
       }
     }
