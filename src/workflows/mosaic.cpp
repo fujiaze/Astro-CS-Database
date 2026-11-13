@@ -902,14 +902,14 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
       std::sort(magnitudes.begin(), magnitudes.end());
       absolute = magnitudes[magnitudes.size() / 2];
     };
-    auto field_range = [](const std::vector<std::vector<double>>& cells, std::size_t& used,
-                          double& low, double& high) {
+    auto field_range = [](const std::vector<std::vector<double>>& cells, std::size_t min_pairs,
+                          std::size_t& used, double& low, double& high) {
       used = 0;
       low = 0.0;
       high = 0.0;
       bool first = true;
       for (const auto& cell : cells) {
-        if (cell.size() < 30) continue;
+        if (cell.size() < min_pairs) continue;
         std::vector<double> sorted = cell;
         std::sort(sorted.begin(), sorted.end());
         const double value = sorted[sorted.size() / 2];
@@ -934,8 +934,8 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
     stats(boundary23_dim, i23d, m23d, a23d);
     std::size_t interior_cells_used = 0, boundary_cells_used = 0;
     double interior_low = 0, interior_high = 0, boundary_low = 0, boundary_high = 0;
-    field_range(interior_cells, interior_cells_used, interior_low, interior_high);
-    field_range(boundary_cells, boundary_cells_used, boundary_low, boundary_high);
+    field_range(interior_cells, 30, interior_cells_used, interior_low, interior_high);
+    field_range(boundary_cells, 1, boundary_cells_used, boundary_low, boundary_high);
     const double standardized13 = m33 > 0 ? a13 / m33 : 0.0;
     const double standardized23 = m33 > 0 ? a23 / m33 : 0.0;
     const double standardized13d = m33 > 0 ? a13d / m33 : 0.0;
@@ -961,7 +961,10 @@ Result<ProductLocation> mosaic(Context& context, const MosaicRequest& request) {
               << "%, boundary K1/K3 " << boundary_cells_used << " non-empty cells "
               << 100.0 * boundary_low << ".." << 100.0 * boundary_high
               << "%; correlated noise and N_eff unavailable: the coadd noise is unknown and "
-                 "named; the residual flat screen is not removed";
+                 "named; the residual flat screen is not removed; identifiability: with three "
+                 "frames over one scene the flat-screen residual is not identifiable from these "
+                 "frames alone (a per-night or external flat screen is required), so the mosaic "
+                 "is a named conditional product";
     seam_measured = true;
   }
   // The applied relative scale is named on a mutable copy of the coadd  // The applied relative scale is named on a mutable copy of the coadd
