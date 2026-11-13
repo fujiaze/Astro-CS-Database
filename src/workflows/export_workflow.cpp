@@ -154,7 +154,24 @@ Result<ProductLocation> export_image(Context& context, const ExportWorkflowReque
   }
   workflows::WorkflowStorage storage(context.storage, workflow_runtime.services);
   Context publish_context{context.resources, context.cancellation, storage};
-  return export_signal(publish_context, value_of(image), request.output,
+  // The projection builds a new estimate; the input's seam/low-frequency
+  // evidence must travel into the exported product's assessment, or the
+  // conditional mosaic and its export disagree (independent S1 review,
+  // round 8).
+  ExportResult publishable = value_of(image);
+  if (publishable.estimate) {
+    auto copy = std::make_shared<SignalEstimate>(*publishable.estimate);
+    Ref<ProductGraph> input_graph = value_of(product)->graph();
+    if (input_graph && input_graph->signal) {
+      for (const std::string& text : input_graph->signal->assessment.included) {
+        if (text.find("seam_low_frequency") != std::string::npos) {
+          model::set_included(copy->assessment, text);
+        }
+      }
+    }
+    publishable.estimate = copy;
+  }
+  return export_signal(publish_context, publishable, request.output,
                        request.input.manifest_hash);
 }
 
