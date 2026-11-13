@@ -98,3 +98,11 @@ measure_science_sources 必须实际构造 SourceMeasurements.flux_numerical_low
 M-MEASURE：三像元`H=[[1/2,0],[0,1/2],[1/2,1/2]]`、Z=1、C=I、d=[5,7,10]，真值F=[6,10]、β=2，通量covariance为[[8,4],[4,8]]。逐星窗口和/忽略共同背景会失败。另加共同常量根τ²11ᵀ，其对这两个F的贡献严格为0，检验交叉项而非另加背景variance。
 
 M-RANK：两列H相同，只F1+F2可估，必须报告not_identifiable而非各半并宣称已知。M-BACKGROUND：H=[1/2,0,1/2]、Z=[1,2,1]、F=6、β=2，d=[5,4,5]；错误将采样后背景设为1会给F=2。M-BOUND：固定D而d3区间扩大±δ，两F均须扩大±2δ；M-ROOT：PSF与像元同根不能双计；M-GROUP：不相交窗口但共享latent，独立解与联合解对照必须暴露差别。全部再走typed/wire、低H、取消和新进程重开；本轮未执行生产测试。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 当前为**施工计划而非本Process的功能PASS**。正确旧内核优先抽取入V2唯一typed实现；旧接口/Runtime不复制，科学正本仍由本篇拥有。
+
+- **旧生产位置**：main star_detection/sdet_image、psf/pixel_integrated_psf、photometry/frame_photometry_fit；p1_op_star_psf_impl与p1_op_photometry。
+- **V2接收者**：V2 src/sources/{measure,measure_process}.cpp；复用积分模板与局部背景/混叠组联合拟合。详细迁移见[模块工作单](../migration/01-NORMALIZE.md)。
+- **测试与性能**：真实M42旧负299万与低SNR负值合法、已知flux双星；windows/s与缓存。同质量对照和独立科学判据见[性能合同](../migration/06-PERFORMANCE.md)、[22Process验证](../migration/07-VERIFICATION.md)，未实际运行标NOT_RUN。

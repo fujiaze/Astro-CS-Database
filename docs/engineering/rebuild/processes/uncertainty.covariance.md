@@ -93,3 +93,11 @@ control_covariance生成T C Tᵀ惰性action，cross-frame Γ从共同根联合�
 ### 资源与独立反例
 
 F计触及根/因子nnz、输入泛函、latent向量与实际action workspace；R只持不可变图，按共享根预算去重。协方差未知不需尝试分配稠密矩阵“求一个近似”。C-ROOT：同标量根variance=4、两个influence=1和−1，合并输出variance=0，独立相加会成8；两帧同根各1的Γ=4·11ᵀ。C-UNKNOWN的未知共同offset在t=[1,-1]下有结构性零，可给有限已知泛函；单帧t则unknown。C-PSD含精确零、轻微负谱和未决跨0；C-GEOM含signed t检验绝对项不能抵消。沿公开入口/产品重开验证同根身份，不能只检查矩阵数字。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 这是迁移施工计划，既有数学合同不改；旧源码存在不等于新V2生产PASS，正确旧核优先抽取、旧性能优化须保留。
+
+- **main调用资产**：main noise_snr/cpp/src/{noise_model,sparse_reference}.cpp与integration/normalize_science的协方差链。
+- **V2唯一接收者**：V2 src/uncertainty/{covariance,covariance_process}.cpp；shared_root/action和PCPᵀ，不复刻旧独立Fisher误用。见[迁移细则](../migration/02-GEOMETRY.md)。
+- **独立验证/性能**：双叶共享母版与sky同数据负协方差、PSD/非对角；action_apply与无稠密C。统一[性能](../migration/06-PERFORMANCE.md)和[完整22行任务矩阵](../migration/07-VERIFICATION.md)，无实测保持NOT_RUN。

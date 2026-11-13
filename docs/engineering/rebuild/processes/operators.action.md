@@ -90,3 +90,11 @@ dependency_blocks、serialize_recipe、row_enclosure通过本process中具名typ
 ### 固定反例、停止与复用
 
 A-OPS用A=[[1,2],[0,3]]、x=[4,5]，Ax=[14,15]，对y=[7,11]有Aᵀy=[7,47]，两侧内积263；七个入口需各自typed/wire可达。duplicate COO同列须求和；signed误差用[1,-1]不能互消；compose以非对易2×2矩阵验证顺序；低H transpose必须外存完成或在开始前具名拒绝。取消在读取/归约/迭代段检查，不能无限排队；row_enclosure能力缺失要真正失败，不能只测metadata能序列化。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 当前为**施工计划而非本Process的功能PASS**。正确旧内核优先抽取入V2唯一typed实现；旧接口/Runtime不复制，科学正本仍由本篇拥有。
+
+- **旧生产位置**：main drizzle的稀疏R与noise_snr/sparse_reference.cpp、resample的算子组合思路。
+- **V2接收者**：V2 src/operators/{linear_action,api,action_process}.cpp；只保留一份CSR/action及其闭包依赖。详细迁移见[模块工作单](../migration/02-GEOMETRY.md)。
+- **测试与性能**：apply/transpose/compose与缺LinearAction负例；SpMV bytes、读块、无稠密展开。同质量对照和独立科学判据见[性能合同](../migration/06-PERFORMANCE.md)、[22Process验证](../migration/07-VERIFICATION.md)，未实际运行标NOT_RUN。

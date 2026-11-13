@@ -89,3 +89,11 @@ H可估性不足返回not_identifiable带nullspace，不给任意scale；未达�
 ### 资源与独立例
 
 每星谱维d、局部观测k、全局参数p：F计(k+d)×(d+p)设计、d²消元和区间/解算workspace；R计p²或实际稀疏全局系统/共享根，外存贡献不能漏全局工作集。P-LATENT：两帧同星counts=[2,3]、Gaia c=1、v=1，精确名义a=[2,3]；设Gaia方差σ²且counts无噪声，log a的交叉协方差=σ²（在c=1的线性化），不能因帧不同归零。P-NUMERIC用counts=100的[100,100]与[99,101]区间，在同固定谱q=100下分别包a=1和a∈[.99,1.01]；P-RANK空间列共线不给满秩，P-SCORE非零残差时真实H与GN不相等，需独立导数对照。P-PSD-PROFILE令Φ=(c−1)²/2、精确约束e^θ c=d，θ=0、d=2时profile梯度=−2，普通偏导gθ=0不能代替它；KKT乘子项必须给出正确梯度。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 当前为**施工计划而非本Process的功能PASS**。正确旧内核优先抽取入V2唯一typed实现；旧接口/Runtime不复制，科学正本仍由本篇拥有。
+
+- **旧生产位置**：main photometry/cpp/src/{frame_photometry_fit,star_matcher,spatial_gain}.cpp；p1_op_photometry。
+- **V2接收者**：V2 src/photometry/{joint_fit,spatial_basis,photometry_fit_process}.cpp；源测量/空间零点与共享Gaia latent统一。详细迁移见[模块工作单](../migration/01-NORMALIZE.md)。
+- **测试与性能**：真实跨夜比1.2766、强背景和rank；GLS/LM解算耗时/矩阵占用。同质量对照和独立科学判据见[性能合同](../migration/06-PERFORMANCE.md)、[22Process验证](../migration/07-VERIFICATION.md)，未实际运行标NOT_RUN。

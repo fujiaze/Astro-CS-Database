@@ -74,3 +74,11 @@ validate先查solution.frames中唯一frame、application_id未应用、原单�
 ### 资源、停止与独立例
 
 按真实parent行块，F计x/θ读取、basis、α及输出端点/DQ，R保新模型/G/解引用；大G依赖行遵operators外存，不能全图α常驻。无法认证exp或θ盒时完整误差状态conditional，依请求决定保名义值或precision_exhausted。A-SCALE：x=[2,4]、α=[1,2]、G=[1,1]，真值10，先sum再中心α=1.5会给9。A-SAMEDATA：标量θ=log x且target=1时αx恒1，完整微分为0，错误独立加法非零；检查同根合并。另测重复应用、改变response和重开依赖，不能悄悄复用旧PSF。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 当前为**施工计划而非本Process的功能PASS**。正确旧内核优先抽取入V2唯一typed实现；旧接口/Runtime不复制，科学正本仍由本篇拥有。
+
+- **旧生产位置**：main photometry/cpp/src/image_corrector.cpp及校准photometry_apply.cpp；旧#9相同输入测光开关真实链。
+- **V2接收者**：V2 src/photometry/{apply_scale,photometry_apply_process}.cpp；恰好一次Dα和单位/协方差二次律。详细迁移见[模块工作单](../migration/01-NORMALIZE.md)。
+- **测试与性能**：signal×α、variance×α²、ivar÷α²和重复应用拒绝；额外大图pass数。同质量对照和独立科学判据见[性能合同](../migration/06-PERFORMANCE.md)、[22Process验证](../migration/07-VERIFICATION.md)，未实际运行标NOT_RUN。

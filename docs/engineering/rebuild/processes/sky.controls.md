@@ -80,3 +80,11 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 固定mask不能在控制值上median/clip后仍把T叫线性；可选排星范围只来自明确请求。空公共支持no_support，不可比组unsupported/unavailable，未达匹配误差须conditional或拒绝。F包括patch完整halo、support Boolean、T/H/A稀疏行、卷积/根workspace，R保矩阵recipe和公共mask；管道先把组控制贡献提交R再释放F。
 
 K-SUPPORT：两帧支持[0,2]与[1,3]，公共区[1,2]，两行T只积分该区，独立各自归一会不同；K-CORR同一像元进入两个控制时其cov非零；K-HALO在边界缺输入不得补0；K-BASIS给平面真值并检查A=T E精确一致。PSF不同但假定未匹配的共同s须被前置拒绝，不等sky拟合失败才发现。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 这是迁移施工计划，既有数学合同不改；旧源码存在不等于新V2生产PASS，正确旧核优先抽取、旧性能优化须保留。
+
+- **main调用资产**：main coverage/src/{coverage,sampler,stage2_common}.cpp；p2_op_coverage与p2_op_sample。
+- **V2唯一接收者**：V2 src/sky/{sky_controls_process,sky}.cpp；真实多面板球面重叠图/合法响应与空间控点。见[迁移细则](../migration/03-MOSAIC.md)。
+- **独立验证/性能**：跨M1–M6不同面板、天区/非NESTED整数邻接；TilePair读取与controls/s。统一[性能](../migration/06-PERFORMANCE.md)和[完整22行任务矩阵](../migration/07-VERIFICATION.md)，无实测保持NOT_RUN。

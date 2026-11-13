@@ -88,3 +88,11 @@ Gaia XP连续表示的系数、误差和相关矩阵按[DPAC原始发布论文](
 ### 资源与独立验收
 
 F=有限页+实际谱维d及d²协方差/转换workspace+KD访问栈，R为只读索引目录；所有页/quad计数及字节先checked，排序可spill。Q-DECODE用source_id>2^53、已知2×2相关矩阵检验精度/布局；Q-EPOCH用20年、4角秒/年的移动星跨分片命中，与ERFA独立对照；Q-XP对冻结GaiaXPy输出和完整covariance逐项比较；Q-INDEX按小目录全枚举生成规则验证query/quads/pagination无漏/重/错cursor。它们验证实际模型，不认证XP无法恢复的窄线物理真值。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 当前为**施工计划而非本Process的功能PASS**。旧版正确算法优先抽取入V2唯一typed实现，旧框架/旧产品不兼容；具体操作依赖和数学正本仍以本篇前文为准。
+
+- **旧生产位置**：main本地GaiaDR3/XP索引与IPV query、photometry星表获取；需查实际数据库接口而非文件名。
+- **新实现接线**：V2 src/catalogue/{index,provider,columns,sky_geometry}.cpp；只读provider与历元传播，禁止每帧重复加载整个索引。详细施工见[迁移工作单](../migration/01-NORMALIZE.md)。
+- **独立与性能证据**：历史真实Gaia精度/错hash/自行/双星；查询IO/cache/Gaia内存。统一工程警戒线和质量判断见[性能合同](../migration/06-PERFORMANCE.md)、[测试矩阵](../migration/07-VERIFICATION.md)；未实际复验记NOT_RUN，不在本篇复制算法数学。

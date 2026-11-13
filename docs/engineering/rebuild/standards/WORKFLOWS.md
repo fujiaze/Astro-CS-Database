@@ -2,6 +2,18 @@
 
 本篇只拥有科学数据边和阶段屏障，调度器/生命周期只由[SYSTEM](../SYSTEM.md)拥有。工作流不含求解或像元算法。边由输出类型/单位/index/content hash及科学能力验证；process descriptor的depends_on表示静态代码/能力依赖，不自动推断一次运行的数据图。一个process可出现多个invocation，每次都给显式输入和唯一invocation_id。
 
+## main → V2 功能无损的必要前置
+
+本文件只定义数据边/阶段屏障。旧main正式 Normalize 已有按最终 WCS/SIP 局部尺度自动选 NSIDE，Mosaic已有 Coverage→Sampler→Sky→Rejection→Integration→Write，Export有目标层级选择、共享有界Tile缓存与流式FITS。迁移时按 [main源码施工](../MIGRATION.md) 保留这些**被生产消费的功能与优化**；科学公式、公共接口、性能指标仍由各自唯一正本拥有。不能以工作流新设计替换旧算法后只做三帧低阶验证。
+
+### 全帧分辨率预规划屏障（正式Normalize前置）
+
+1. 轻量只读预flight输入清单、已解/待解WCS、真实仪器像元尺寸、通带/校准/曝光身份，不复制原始FITS。若需要求解WCS，仅对该帧调用已有 sources.astrometry/coordinates.wcs，引用缓存中相同WCS身份。
+2. 每帧由最终有效WCS/SIP和其局部Jacobian取得空间角尺度/有效域的尺度估计及可信程度，**复用main compute_auto_nside_ex 的数学/性能策略**，在V2唯一coordinates/geometry模块中实现；后续选阶合同由[02-GEOMETRY](../migration/02-GEOMETRY.md)拥有。输出明确区分 source pixel scale、HEALPix **leaf order**、512像素 HiPS **tile order**、目标FITS scale。
+3. 将**计划参与的整个帧集合**的局部尺度/科学目标合并成**共同的高阶分辨率计划**，冻结实际 nside/leaf order、所有frame WCS hashes、target WCS hash、policy和许可的数学条件。多次独立Normalize可从同一不可变plan身份读取；不是每帧随机选择不同阶后让Mosaic报错。
+4. 资源估算应决定region/chunk/IO缓存和真实可行性，**不得静默降低leaf order或丢曝光来适应内存**。不足时按已知资源合同先缩块、spill、限并发，无法完成报resource_exhausted/blocked并保留合法缓存。
+5. plan变动的失效依赖为 WCS/GeometryRecipe→overlap/R→singleFrame products→sky/coadd→Export；校准/Gaia/response/已合法WCS若身份不变可重用。不得拿旧S1 order13数据作为高阶plan的合法Normalize输入。
+
 ## Normalize
 
 1. 读取观测、校准输入、响应与时间上下文；建立源身份、单位和校准随机根。校准/修复输出新观测版本，显式保留 G 或非线性条件。
@@ -16,7 +28,7 @@
 
 ## Mosaic
 
-1. 从完整发布 manifest 打开用户选定产品；统一 ICRS/NESTED、同 leaf order、可解释单位。混 order 明确拒绝；不同仪器/滤镜名不是拒绝条件。缺失参考 SED 转换时要求显式混合目标，不伪造相同物理量。
+1. 从完整发布 manifest 打开用户选定产品；输入的共同 leaf order 应由上面的ResolutionPlan事先冻结并可独立重算；统一 ICRS/NESTED、同 leaf order、可解释单位。混 order 明确拒绝；不同仪器/滤镜名不是拒绝条件。缺失参考 SED 转换时要求显式混合目标，不伪造相同物理量。
 2. provider 暴露逐帧 signal、邻域、support、PSF/response、noise 和原生到叶 action。重复产品/source 身份核对，重复读取不能制造新观测。actual-scene 方差优先直接 action；仅有稀疏控点时按其条件、有限支持及外部曲率界重建。
 3. 对响应和有效空间观测可比较的帧构造控制 T、共同天空 H 与 A；需要 PSF 匹配时只使用可实现的共同较宽核。不同响应不建伪差模边；无可比控制的帧保留零修正规范及“未测相对背景”状态。
 4. 逐真实连通分量拟合相对 sky，保存全部共同常量/斜坡及其它不可辨识模式、gauge、秩、K/T/E。控制足迹外的修正带预测状态。背景拟合形成全局屏障，不能边写最终 tile 边改变 β。
@@ -27,7 +39,15 @@
 
 ## Export
 
+Export必须根据真实输入细层、目标WCS像元角尺度和上游实际PSF选择合法细层/核；低阶 HiPS 再插值到高像素数**不创造细节**。跨M1–M6面板全域目标WCS必须以真正footprint并集冻结，所有通道在同一目标WCS输出，不得擅自裁剪只显示M42中心。main的层级选择、共享LRU/负缓存、子块流与FITS严格发布优化迁入[04-EXPORT](../migration/04-EXPORT.md)；具体数据边仍沿本节，禁止复制第二套writer。
+
 目标 WCS 使用同一 coordinates/provider 模型域。支持均值 Q_ip=b_ip/Σb 与支持积分 Q_ip=b_ip 是两个独立请求，默认输出支持面亮度均值；整像元通量外推需显式选择。b=Ω(E_i∩H_p∩U_p)，不做第二次 drop 收缩。只有 full-leaf 近似支持时标明近似，不用一个比例恢复子叶形状。Q 对 signal、可用 noise 和 response 同步作用；只有最终 signal 时 noise=unknown。无支持为 NaN，负值与零保留。HiPS 层级派生也保存自身算子/支持近似，不能把低阶层伪装成重新 Normalize 的同阶独立观测。
+
+## 多面板天空接缝与性能屏障
+
+在Mosaic步骤3建立实际天球footprint的多面板连接图；不能把单M5多次曝光或连续NESTED整数序列区段当作M1–M6空间接缝。Sky控制与全局连通gauge先拟合冻结，再按受支持空间chunk做Select/Weights/Coadd；乘性夜间flat差要与加性sky差模分开建模，不能用高通/羽化掩盖M42真实低频星云。Agent对有向边界差、星点PSF/flux/低频保真及SNR/排异负责，最终交给用户的FITS应经过此关口。[03-MOSAIC](../migration/03-MOSAIC.md)规定迁入源码和反例，[07-VERIFICATION](../migration/07-VERIFICATION.md)规定真实实验。
+
+三命令的有界块执行统一借用Host的CPU/I/O/MemoryScope/Storage与科学身份缓存，**不保留main第二线程池**；旧Drizzle touched tile/几何LRU、P2分块Schur、P3共享LRU/负缓存/流式FITS等性能不变量见[06-PERFORMANCE](../migration/06-PERFORMANCE.md)。只有实际相同科学输入、相同精度且完整成功的运行才比较速度；不能以降低NSIDE/使用更少帧当性能PASS。
 
 ## 绑定表与重算
 

@@ -83,3 +83,11 @@ supported_mean用b/Σb，supported_flux用b，extrapolated_full_flux用Ω(E_q)b/
 计算块和最终FITS/HiPS序列化分离：build_export只产Q/estimate，writer只序列化一次，不在写文件时重投影。F包括完整目标行的触及leaf/halo、支持树frontier、b端点、writer/codec及几何精度；长行可spool/多遍，目标width×height/字节checked。R持Q recipe和所需support/noise闭包；新进程没有原FITS仍可打开full产品重算查询，缺闭包具名失败。
 
 E-MERGE：同一leaf两个不重叠support片各面积1/4、B=2、Var=9，目标supported_flux=1，variance=(1/2)^2·9=9/4，错误按片独立得到9/8。supported_mean=2；目标全面积1且显式均匀外推则full_flux=2，但必须带外推假设。E-HOLE目标跨hole不得补支持；E-REOPEN跨进程验证Q/noise共享根/未知项和FITS头像元/单位；E-TILE按OBJECTS的NESTED索引检查边界，不拿浏览PNG作为第二科学signal。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 仅登记施工任务，不把旧代码或文档存在冒称当前生产PASS。已有V2数学正本不被旧近似覆盖，正确main算法及性能核优先复用。
+
+- **main正式资产**：main projection/p3_wcs.cpp、resample/p3_resample.cpp的SharedTileCache/负缓存、fits_output/p3_output.cpp::P3FitsStream及ExportStreamScheduler。
+- **V2接线**：V2 src/projection/{export_process,export_projection}.cpp、src/workflows/{export_workflow,fits_writer,product}.cpp；统一Storage。[详细迁移任务](../migration/04-EXPORT.md)。
+- **关键验证/性能**：高阶tile order、FWHM/MTF/实际面缝、合法长卡/新进程重开；LRU容量与IO/输出像元每秒。统一[性能警戒线](../migration/06-PERFORMANCE.md)与[独立任务矩阵](../migration/07-VERIFICATION.md)，未跑记NOT_RUN。

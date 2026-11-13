@@ -92,3 +92,11 @@ for 每target行p，先流式计算N_p及其完整区间，判支持
 plan输入至少包含源数、实际nnz上界、最大活跃归并路数、索引/offset、R端点/误差recipe、MPFR/ledger位长、行spool和writer/codec工作集；并行窗口另计E。R metadata/recipe计持久R，排序/归并/单行两遍计F，spill累计写量也受配额；不把外存当无界存储。每个读块/归并段/有向归约按实际work，取消后私有run安全清理。
 
 D-ROW：两个source的Ω=A=1，当前叶a=[1,1/2]，第二叶a=[0,1/2]，x=[2,5]。当前行N=3/2、R=[2/3,1/3]、B=3；C=diag(1,4)则Var(B)=8/9。两叶F总和=7，但当前覆盖并集可为1，不能把N=3/2当union。D-SHARED：同一source拆两个leaf，独立像元variance必须含交叉项；D-SIGNED用负x；D-ZERO使N区间跨0；D-REFINE细化共享A而只重算一行应被身份检查拒绝。小H spill与内存路径需同科学结果/误差和hash，失败seal不遗留正式产品。本轮未运行这些生产验收。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 这是迁移施工计划，既有数学合同不改；旧源码存在不等于新V2生产PASS，正确旧核优先抽取、旧性能优化须保留。
+
+- **main调用资产**：main drizzle/healpix_drizzle/{drizzle_engine,hp_drizzle_api,astro_sphere_sink}.cpp生产自动NSIDE/striped/touched处理。
+- **V2唯一接收者**：V2 src/geometry/{drizzle,drizzle_core,drizzle_grid,drizzle_process}.cpp及Normalize；恢复全帧共同高阶和真实R。见[迁移细则](../migration/02-GEOMETRY.md)。
+- **独立验证/性能**：512/4096²高阶PSF/flux/面缝、旧6.1GiB空Tile反例；nnz、touched tiles、CPU/RSS。统一[性能](../migration/06-PERFORMANCE.md)和[完整22行任务矩阵](../migration/07-VERIFICATION.md)，无实测保持NOT_RUN。

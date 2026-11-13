@@ -2,6 +2,8 @@
 
 本协议依据[独立证据规范](../../science/foundation/INDEPENDENT_ORACLES.md)，使用[公共 API](API.md)验证[统一对象](OBJECTS.md)和[执行模型](EXECUTION.md)。本篇定义验收目标与审核条件，**不代表已经通过**。已有M0—M4 Runtime较新16/16冻结PASS和部分M5结果，但共享严格数值认证仍有阻碍；实际证据范围以 [实施状态正本](../../audit/IMPLEMENTATION-STATUS.md) 与冻结 manifest/comparison 为准。有限历史证据保持自己的输入与源码身份，不转记为新核心证据。
 
+> **功能等价与性能验收增补（2026-11-13）**：V2不得把main上已有的自动NSIDE、高分辨率源像元→球面Drizzle、多面板Sky/Mosaic、PSF/测光、排异、共享Tile LRU及流式FITS简化掉。逐模块旧生产调用映射见[迁移任务](MIGRATION.md)，22Process真实数学/性能/资源及负例见[07-VERIFICATION](migration/07-VERIFICATION.md)、[06-PERFORMANCE](migration/06-PERFORMANCE.md)。原有数学认证与工程验收继续有效，但旧S1三帧固定order13的内部PASS不能认证高分辨率真实成品或跨面板接缝；必须有实际相同科学目标、同输入的main/V2对照及独立质量证据。性能文件的20%/25%目标是工程回归警戒线，数学增强额外成本需独立分析，不可降科学阶数换速度；不新增CI/自动PASS门禁。
+
 ## 独立性和输入包
 
 独立 Agent 阅读五份科学规范、本目录和公开协议。生成真值前不阅读被测求解器内部，不 import 生产 coordinates/overlap/noise/sky/coadd helper；允许共享标准定义、公开schema、输入头、单位、source身份和通用第三方库。生产C++ API由进程驱动调用，驱动只转字段/数组，不做科学计算。真值生成与被测结果文件分目录，原始请求冻结并hash后再启动被测程序。

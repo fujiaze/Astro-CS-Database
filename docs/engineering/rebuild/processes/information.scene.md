@@ -87,3 +87,11 @@ evaluate_scene_variance对具名leaf把原生根经实际估计量action回溯�
 ### 资源、停止与独立例
 
 F计chart的实际M点、三角邻接/精确谓词位长和查询块；最坏M² work受预算，超限不能发布半网当完整支持。S-TRI：三点(0,0),(1,0),(0,1)，u=[0,1,2]，query=(1/4,1/4)，uhat=3/4；δ_i=1/10、M=0时Δ=1/10。三角顶点均在支持、但中央有hole时整三角必须拒绝；共线/重复冲突/共圆tie、跨chart、无M的任意高bump负例须覆盖。直接variance查询与重建分别验收，不能将插值成功认证噪声图恢复。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 这是迁移施工计划，既有数学合同不改；旧源码存在不等于新V2生产PASS，正确旧核优先抽取、旧性能优化须保留。
+
+- **main调用资产**：main noise_snr/cpp/src/{noise_model,snr_science,sparse_reference}.cpp及phase2_integrate/weight_chain.cpp反例。
+- **V2唯一接收者**：V2 src/information/{information,triangulation,information_scene_process}.cpp；实际scene方差不可直接复用参考Fisher。见[迁移细则](../migration/02-GEOMETRY.md)。
+- **独立验证/性能**：V_F≠V_B和支撑外推/未知根；稀疏区间/每目标叶成本。统一[性能](../migration/06-PERFORMANCE.md)和[完整22行任务矩阵](../migration/07-VERIFICATION.md)，无实测保持NOT_RUN。

@@ -88,3 +88,11 @@ Native.linear_view不能进入Normalize物理Drizzle；若NormalizeFrame.regroup
 工作单元为完整G行及其全部依赖，F包含该行真实nnz、源块、footprint环/洞、输出双端点及归约workspace；R保G/parent/索引，长行可多遍/spill。非法维度invalid_model，非线性且无influence为unsupported，无成员为no_support，预算拒绝不改G。
 
 G-REGROUP：x=[2,4,8]、C=I、G=[[1,1,0],[0,1,1]]作linear_view，y=[6,12]、Cov=[[2,1],[1,2]]；此重叠G不得当物理互斥bin。物理mean仅用第0、2 photosite时值5、variance=1/2，恢复sum为10、variance=2，足迹中间洞仍在。再测signed行[1,-1,0]的区间、共享master根和跨进程重开；测试不能用G apply自身生成truth。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 当前为**施工计划而非本Process的功能PASS**。旧版正确算法优先抽取入V2唯一typed实现，旧框架/旧产品不兼容；具体操作依赖和数学正本仍以本篇前文为准。
+
+- **旧生产位置**：main校准/Drizzle的物理像元与逻辑视图；没有证据表明独立Regroup是旧正式科学节点。
+- **新实现接线**：V2 src/observation/{regroup,regroup_process}.cpp；本项是V2增强，不凭旧命名强制复制旧G。详细施工见[迁移工作单](../migration/01-NORMALIZE.md)。
+- **独立与性能证据**：G与Dα不交换、缺孔mean/sum/flip；稀疏映射、不稠密化。统一工程警戒线和质量判断见[性能合同](../migration/06-PERFORMANCE.md)、[测试矩阵](../migration/07-VERIFICATION.md)；未实际复验记NOT_RUN，不在本篇复制算法数学。

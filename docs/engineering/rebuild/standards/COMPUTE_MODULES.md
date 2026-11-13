@@ -4,6 +4,12 @@
 
 基建行为遵循[FOUNDATION_API](FOUNDATION_API.md)；以下模块函数与资源公式是接入合同，部分模块已实现，另一些仍待接入或完整验收，见[状态正本](../../../audit/IMPLEMENTATION-STATUS.md)。编译装配/调度按[SCHEDULER](SCHEDULER.md)，完整校准模块见[实施例](CALIBRATION_WALKTHROUGH.md)。
 
+## main已有计算核的复用原则
+
+当前V2所有可复用函数须先对照main正式生产调用图：[旧源码资产](../migration/00-BASELINE-ASSETS.md)→[逐模块迁移](../MIGRATION.md)。**先抽取已证明正确且高性能的旧科学kernel并适配本篇typed接口，不能因旧C ABI/临时文件格式不可兼容而重写数学**；旧严格性不足（四角近似、Fisher/scene误用、低N排异、响应错误）的局部代码只用作性能/负例参照，不降低现有V2数值与随机根合同。一个函数只保留一套生产计算核，PSF/response/geometry/sky/weights不能在各consumer又重新实现。
+
+旧Drizzle条带确定归约、per-thread几何bounded LRU和touched tile，Sky Schur/IRLS，P2 microchunk，Export SharedTileCache/负缓存与流式FITS等优化须按模块迁入，**最终**只占用一套Host资源账本/CPU pool/Storage，而不是把旧库独立executor或IO driver复制进来。性能/成本与冷暖缓存对照统一按[06-PERFORMANCE](../migration/06-PERFORMANCE.md)；迁移验收按[07-VERIFICATION](../migration/07-VERIFICATION.md)。本篇仍只拥有通用计算积木，旧算法接入细节不在此重复。
+
 ## 计算积木的分层
 
 | 模块族 | 提供什么 | 复用者与边界 |

@@ -77,3 +77,11 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 局部控制贡献按顺序提交R，全部EOF后才借全局求解F，禁止E=0时某cohort持唯一lane等下一cohort。R/F依据实际连通分量n_c、参数p、nnz和白化/预条件器workspace，dense_max_bytes不能被忽略；迭代残差及请求输出泛函同时达标才成功。取消不发布部分β给后续coadd。
 
 K-SKY：两帧一位置y=[3,5]、相同公共s、offset模型且reference β1=0，真值s=3、β2=2、corrected=[3,3]；C_y=I时P=[[1,0],[1,0]]，corrected covariance=11ᵀ，不是两个独立方差或各自加skyvariance。K-CROSS：约束后D=[[1,0],[1,0],[0,1],[0,1]]，C=I且C13=C31=1/2，y=[0,0,0,1]；联合GLS为(2/15,7/15)，错误按两组独立求解为(0,1/2)。再测全部控制共线的平面、孤立帧、同一真公共梯度与训练域外查询；K/P action序列化重开必须保同根/有效修正域。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 仅登记施工任务，不把旧代码或文档存在冒称当前生产PASS。已有V2数学正本不被旧近似覆盖，正确main算法及性能核优先复用。
+
+- **main正式资产**：main coverage/src/sky_plane.cpp的p2_sky_plane_build_joint/Schur/IRLS与p2_op_upm_fit；upm.cpp旧核需分辨是否退役。
+- **V2接线**：V2 src/sky/{sky,sky_fit_process}.cpp；保留可证旧分块解算优化、全局组件gauge和PCPᵀ。[详细迁移任务](../migration/03-MOSAIC.md)。
+- **关键验证/性能**：旧#80 nonSPD、8.43%主带乘性屏和真正跨面板sky；rank/IRLS/矩阵内存。统一[性能警戒线](../migration/06-PERFORMANCE.md)与[独立任务矩阵](../migration/07-VERIFICATION.md)，未跑记NOT_RUN。

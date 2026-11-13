@@ -84,3 +84,11 @@ Selection/WeightSolution是目标typed输入的必需强引用。当前公开声
 ### 资源、失败与独立例
 
 F计当前leaf完整K样本/权/端点和根块，R为最终模型/recipe，分块输出不物化全图×全部帧。integrate实际work只计读取/归约/模型构造，不重复消耗select/weights预算；输入的科学分支没有完成则不能创建complete结果。C-INTEGRATE：z=[2,5]、t=[2/3,1/3]得3，Γ=diag(1,4)得V=8/9；若两帧共享variance4的同根，t归一后共享项仍4，不能被平均缩小。C-WORK给恰够一轮的总work，前三阶段各执行一次能完成；C-ID给另一SkyFit/selection的权，必须拒绝而非重算。输出重开保response及选择条件。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 仅登记施工任务，不把旧代码或文档存在冒称当前生产PASS。已有V2数学正本不被旧近似覆盖，正确main算法及性能核优先复用。
+
+- **main正式资产**：main coverage/src/integrate.cpp::p2_integrate_pixel与module_adapters.cpp::p2_op_integrate/write。
+- **V2接线**：V2 src/coadd/{coadd,coadd_integrate_process}.cpp + Mosaic workflow；Sel/Weight消费一次。[详细迁移任务](../migration/03-MOSAIC.md)。
+- **关键验证/性能**：真多面板并集/覆盖、负零NaN、共享R与跨帧身份；leaf/s和Tile写盘。统一[性能警戒线](../migration/06-PERFORMANCE.md)与[独立任务矩阵](../migration/07-VERIFICATION.md)，未跑记NOT_RUN。

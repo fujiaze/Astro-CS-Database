@@ -101,3 +101,11 @@ validate逐环核方向/自交/洞内含及detector_frame，构造显式收缩Q(
 ### 资源与固定反例
 
 F包含有界候选/曲线段/精确谓词、MPFR位长、dyadic树frontier、ledger及归并buffer；4096限制是本篇工作frontier上界，超出应流式细分/外存而不截掉候选。precision按既定宽度比规则升级，不因高亮误差难满足改科学目标。O-HOLE：外方形4面积、中心洞1，identity等面积小例给3；补洞应失败。O-SLIVER：宽2^-40的交带仍有正上界，不准“采样未见=0”；O-TANGENT接触边不生假正面积，O-APEX跨面/极点用A仍保余量；O-REFINE证据同源约束不能各自独立重造。所有measure/interval/open/refine操作分别核身份/参数域和缺能力分支。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 当前为**施工计划而非本Process的功能PASS**。正确旧内核优先抽取入V2唯一typed实现；旧接口/Runtime不复制，科学正本仍由本篇拥有。
+
+- **旧生产位置**：main drizzle/healpix_drizzle/{spherical_overlap,poly_clip,drizzle_engine}.cpp中的候选/快近似，必须分开。
+- **V2接收者**：V2 src/geometry/{overlap,refine,exact_polygon,containment}.cpp；保留严格真实曲边/支持区间及复用候选优化。详细迁移见[模块工作单](../migration/02-GEOMETRY.md)。
+- **测试与性能**：面缝/极区/sliver/强SIP候选无遗漏；overlap/s、geometry LRU命中。同质量对照和独立科学判据见[性能合同](../migration/06-PERFORMANCE.md)、[22Process验证](../migration/07-VERIFICATION.md)，未实际运行标NOT_RUN。

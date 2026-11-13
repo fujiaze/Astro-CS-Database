@@ -72,3 +72,11 @@ BLUE在SPD解Γq=1并认证正分母；PSD按NUMERICS先找归一零方差解，
 ### 资源与固定独立例
 
 F计实际K² Γ及端点、PSD/QR/QP因子、K权和有界active-set记录；超过dense_max_bytes需已有合法结构action路线或resource_exhausted。W-BLUE：Γ=diag(1,4)，t=[4/5,1/5]、V=4/5；equal为[1/2,1/2]、V=5/4。W-NEG：Γ=[[1,2],[2,5]]，BLUE=[3/2,−1/2]、V=1/2，非负QP=[1,0]、V=1；W-PSD：diag(0,1)给[1,0]且V=0。W-UNKNOWN的automatic等权并保unknown，显式blue不可成功；W-KKT故意扰权使sum或reduced gradient失败，检测器必须拒绝。所有真值由独立有理数算，不复用生产solver。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 仅登记施工任务，不把旧代码或文档存在冒称当前生产PASS。已有V2数学正本不被旧近似覆盖，正确main算法及性能核优先复用。
+
+- **main正式资产**：main coverage/src/integrate.cpp与integration/phase2_integrate/src/weight_chain.cpp；旧参考Fisher取权缺条件。
+- **V2接线**：V2 src/coadd/{weights,coadd_weights_process}.cpp；使用真实scene variance/shared根及明确条件权。[详细迁移任务](../migration/03-MOSAIC.md)。
+- **关键验证/性能**：V_F与V_B不同、Γ共享噪声、unknown保守策略；每块权重/CPU/RSS。统一[性能警戒线](../migration/06-PERFORMANCE.md)与[独立任务矩阵](../migration/07-VERIFICATION.md)，未跑记NOT_RUN。

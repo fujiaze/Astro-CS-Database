@@ -102,3 +102,11 @@ forward.center0/edge0只在绑定detector坐标中各自解释原点；共享一
 所有容差/位长/迭代来自NumericBudget，模型误差来自输入头/context，不从roundtrip自造。work计每Box/解析/精度段；F含degree对应系数/区间、逆根盒队列及MPFR位长。Box队列有界，不能把全域细分节点无限驻留。原语未认证、极点分支/导数符号未决或唯一性不能证实时，按domain/precision_exhausted及具体reason返回；不以中心值WCS继续严格geometry。bind_wcs只在域/frame一致后创建新revision。
 
 W-ORIGIN用CRPIX=(17.293,41.617)的非整数外部真值，W-SIP用Jacobian跨0而采样点均正常的多项式，W-CUT跨RA0及靠近天极，W-PRIMITIVE使用sin[1000,1002]依赖负例证明认证不能越过NUMERICS门槛。C01需独立标准库世界坐标对照；有小roundtrip仍不能省原点/全域准入负例。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 当前为**施工计划而非本Process的功能PASS**。旧版正确算法优先抽取入V2唯一typed实现，旧框架/旧产品不兼容；具体操作依赖和数学正本仍以本篇前文为准。
+
+- **旧生产位置**：main drizzle/healpix_drizzle/wcs_sip.cpp，IPV ipv_wcs/ipv_sip/ipv_itertrans.cpp，photometry/wcs_transform.cpp。
+- **新实现接线**：V2 src/coordinates/{tan_sip,wcs,chart,footprint_provider}.cpp；唯一Provider，输出Jacobian供autoNside。详细施工见[迁移工作单](../migration/01-NORMALIZE.md)。
+- **独立与性能证据**：旧#92零Gaia误杀、非整数CRPIX/强SIP/镜像CD；转换速度和缓存。统一工程警戒线和质量判断见[性能合同](../migration/06-PERFORMANCE.md)、[测试矩阵](../migration/07-VERIFICATION.md)；未实际复验记NOT_RUN，不在本篇复制算法数学。

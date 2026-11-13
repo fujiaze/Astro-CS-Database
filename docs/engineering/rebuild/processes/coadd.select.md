@@ -90,3 +90,11 @@ accepted := eligibility；冻结候选数N（只计合格帧）
 ### 资源与独立反例
 
 F计完整K signal/DQ、Γ的K²、每次LOO solve的workspace和有界分数；逐k复用解工作区，不同时存K个K²矩阵。S-SKIP的N=1..3/unknown Γ必须保合法样本；S-LOO令Γ=I、N=5、z=[0,0,0,0,20]、α=.001，τ约3.719，坏帧|q|约17.889，其余约4.472；正确只拒第5帧，错误并行拒全部超阈者会拒5帧，故例子有判别力。整体z+10，mask必须相同；相等候选按ID且只拒一个；阈值包围跨界不得报告certified。runtime顺序/块大小不改变mask。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 仅登记施工任务，不把旧代码或文档存在冒称当前生产PASS。已有V2数学正本不被旧近似覆盖，正确main算法及性能核优先复用。
+
+- **main正式资产**：main coverage/src/rejection.cpp::p2_reject_stack_ex的RCR/ESD/MAD等与正式p2_op_reject。
+- **V2接线**：V2 src/coadd/{coadd,coadd_select_process}.cpp；方法可复用但小N/percentile需反例。[详细迁移任务](../migration/03-MOSAIC.md)。
+- **关键验证/性能**：N≤3保守、N4/5污染、注入卫星/宇宙线TPR/FPR；stack/s。统一[性能警戒线](../migration/06-PERFORMANCE.md)与[独立任务矩阵](../migration/07-VERIFICATION.md)，未跑记NOT_RUN。

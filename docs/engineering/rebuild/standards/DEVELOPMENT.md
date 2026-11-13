@@ -2,6 +2,8 @@
 
 从本篇分配实施任务。骨架在SYSTEM，冻结类型/签名在[FOUNDATION_API](FOUNDATION_API.md)，调度算法在[SCHEDULER](SCHEDULER.md)，计算函数在[COMPUTE_MODULES](COMPUTE_MODULES.md)，完整接入示例在[CALIBRATION_WALKTHROUGH](CALIBRATION_WALKTHROUGH.md)。这些是当前唯一目标合同，开发者不再自行决定另一套Task/资源/注册协议；内部容器、锁实现和文件拆分可在行为不变且验收通过时自行选择。
 
+> **实施顺序纠正**：M0–M6保留作为V2基础设施/算法接入依赖，不意味着每个算法要从零重写。main已有经生产调用的IPV/PSF/光度/自动NSIDE/Drizzle/Coverage/Sky/Rejection/Export及重要性能优化；实际施工先读[main源码资产](../migration/00-BASELINE-ASSETS.md)，按[总迁移任务](../MIGRATION.md)复用正确旧核，再适配唯一typed API/Task/Pipe/Storage，既不复制旧Runtime，也不删旧科学能力。具体源码任务与相同科学质量性能/测试门见[08](../migration/08-EXECUTION.md)。已实现M0–M4和其它Process不重复重写，缺实测证据保持PENDING。
+
 ## 可以分工的实施顺序
 
 | 里程碑 | 交付代码责任/具体结果 | 开始下一阶段的门槛 |

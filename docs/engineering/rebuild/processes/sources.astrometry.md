@@ -95,3 +95,11 @@ validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借�
 ### 资源与固定反例
 
 最大候选C、假设H受Request，F计C² gating边/增广路径、训练设计m×p及p²/区间workspace；图太大先空间索引但不改变gating集合，超额度拒绝。A-MATCH用gated成本[[1,2],[1.1,不可达]]，正确为d1→s2/d2→s1两匹配，贪心只一对失败；A-UNDER含5星但自由参数更多须not_identifiable/unsolved；A-TIE倒序线程完成仍选同一第一合格候选；A-FOLD训练点好但全域Jacobian跨0不得接受；A-EMPTY留出为空不得“最大误差0通过”。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 当前为**施工计划而非本Process的功能PASS**。旧版正确算法优先抽取入V2唯一typed实现，旧框架/旧产品不兼容；具体操作依赖和数学正本仍以本篇前文为准。
+
+- **旧生产位置**：main lib/algorithms/platesolve/cpp/ipv/src/ipv_{solver,triangle,kvector,ransac,robust_refine,sip}.cpp；p1_op_wcs。
+- **新实现接线**：V2 src/sources/{astrometry_detection,astrometry_match,astrometry_fit,astrometry_wcs}.cpp；抽可证成熟核+独立Gaia留出。详细施工见[迁移工作单](../migration/01-NORMALIZE.md)。
+- **独立与性能证据**：无CD三十帧、#92六帧回归与RANSAC限额；候选/work/IPV线程。统一工程警戒线和质量判断见[性能合同](../migration/06-PERFORMANCE.md)、[测试矩阵](../migration/07-VERIFICATION.md)；未实际复验记NOT_RUN，不在本篇复制算法数学。

@@ -4,6 +4,8 @@
 
 内部开发允许直接破坏式重构。只维护一套当前接口/对象/产品/配置格式，旧v1及早期v2产物无兼容或转换义务；格式不匹配具名拒绝并由原始输入重新生成。Git提交历史和原始科学证据保留；保存历史不要求保留旧运行接口。
 
+**必须区分旧API兼容与旧算法复用**：无需保留main的C ABI、临时工作文件、旧Runtime或旧产品reader；但应优先抽取main已经生产使用且经科学/性能复核的C++算法核、空间索引、缓存/分块/确定性归约及真实多面板流水线，并接入本篇唯一Host/Pool/Task/Pipe/Storage。新科学正本更严格时保留新数学和旧性能方法，不允许因框架重构让autoNSIDE、真实源像元到球面、Sky/Rejection/Export的用户能力缩水。源码资产、完整迁移与性能见[main无损迁移](MIGRATION.md)。
+
 ## 结构与职责
 
 ```mermaid
@@ -175,7 +177,7 @@ uncertainty 只依赖 operators 与 numerics。科学核只借公开Context/Proc
 
 生产构建新增ProcessHost/registry装配职责归resources（目标，不是假称当前已有）；模块descriptor归本模块，workflows只选ID/typed operation及绑定数据边。resources只依赖公开模型/服务接口及通用numerics，不include具体科学模块实现；根装配单元链接所有模块并调用登记，避免resources反向链接整个科学树形成环。模块本地adapter与其科学代码同属模块库。
 
-生产 C++20，标准库和成熟数值库。采用 Eigen 3.4 API（MPL2）密集 QR/SVD/稀疏 QR，MPFR4/GMP6（LGPL3+/LGPL3+ 或各上游许可选项）有向区间和精确有理裁剪，CFITSIO4（上游许可证）FITS，WCSLIB8（LGPL3+）解码/外部标准校验，ERFA2（BSD3）历元，nlohmann_json3（MIT）配置，zstd1（BSD3 或 GPL2 取 BSD3）块，Qt6（LGPL3 或商业，GUI独立）。HEALPix 生产索引按科学公式独立实现，禁止复制旧内部文件；不引入 GPL healpix_cxx。源的来源与版本由 third_party 清单登记，构建使用系统/工具链依赖，不在线下载浮动 master。每次实施构建记录精确版本、来源hash、编译选项和 license；首次实现提交即锁定两平台可用版本，不把本轮未安装依赖宣称已测试。
+生产 C++20，标准库和成熟数值库。采用 Eigen 3.4 API（MPL2）密集 QR/SVD/稀疏 QR，MPFR4/GMP6（LGPL3+/LGPL3+ 或各上游许可选项）有向区间和精确有理裁剪，CFITSIO4（上游许可证）FITS，WCSLIB8（LGPL3+）解码/外部标准校验，ERFA2（BSD3）历元，nlohmann_json3（MIT）配置，zstd1（BSD3 或 GPL2 取 BSD3）块，Qt6（LGPL3 或商业，GUI独立）。HEALPix 生产索引必须符合现有科学公式和独立标准Oracle；可合法抽取main已有、经审查与性能核验的NESTED位运算/父子/tile算法并适配为V2唯一实现，不复制旧不兼容Runtime/AIO或有科学缺陷的近似；不引入 GPL healpix_cxx。源的来源与版本由 third_party 清单登记，构建使用系统/工具链依赖，不在线下载浮动 master。每次实施构建记录精确版本、来源hash、编译选项和 license；首次实现提交即锁定两平台可用版本，不把本轮未安装依赖宣称已测试。
 
 Windows 科学 CLI 优先 MSYS2 UCRT64 GCC14+，MPFR/GMP 与库使用同一 CRT/ABI；Linux GCC14+/Clang18+、glibc，Ninja+系统依赖。GUI Qt6/MSVC独立，不跨 CRT 传 C++ 对象。AVX2/FMA 单独翻译单元运行时检测，baseline x86-64 无可选指令；认证区间禁 fast-math，FP contraction off，SIMD 结果需有向包含证据。库默认串行数值后端，由 Context 租线程。
 
@@ -187,7 +189,7 @@ Windows 科学 CLI 优先 MSYS2 UCRT64 GCC14+，MPFR/GMP 与库使用同一 CRT/
 
 框架首个可用增量必须能在同一Host中登记两个测试process、拒绝重复/错类型、独立调用与组合调用、共享资源计费、取消/异常清理、单/多线程同结果，并自动得到两者性能包围；科学模块随后逐个接入。本期只设计GPU边界，验收不要求GPU设备或SDK。
 
-当前阶段只交付上述设计；后续实施先修统一公开声明、VirtualComputePool/Task/Pipe及registry边界，再同步schema/decoder、CPU/Storage/诊断服务和逐模块接入。允许删除过时接口及重建内部产物，不增加兼容别名、双reader、版本转换器或历史产品迁移模块。
+本篇固定架构所有权与实施合同；现分支已有Host/Pool/Task/Pipe/Storage及部分正式三命令实现，真实功能/性能是否通过必须按受检SHA及实际结果独立判断。后续优先补回main实际已实现的算法能力与性能优化，再做统一public声明、schema/decoder、CPU/Storage/诊断和逐模块受控接线，禁止重新开发第二套科学内核。允许删除过时接口及重建内部产物，不增加兼容别名、双reader、版本转换器或历史产品迁移模块。
 
 
 ## 直接开发入口

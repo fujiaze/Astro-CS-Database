@@ -86,3 +86,11 @@ NativeObservation.numerical_lower/upper随integrated_values同index；calibrate�
 参数唯一来自Calibration、Raw.context/单位和NumericBudget；flat≤0/NaN/DQ冲突按实施例处理，负raw/x合法。数值包围须依赖已验证四则，随机shot/master根另算；未验证interval实现不能把正常输出称certified。像元之间可并行，母版和noise根共享；所有输入/输出/codec/区间临时峰值必须在60n+S及持久R中实测核对，不能只证明预留数值合适。
 
 验收在C-CAL上增加A-CAL-PEAK：真实allocator日志逐块证明输入34n、输出26n与S的上界，失败allocate不增allocated，第四writer seal失败后前三个私有产物回收。A-CAL-CERT让N-ADD失败后，上游不得仍标严格数值证书。取消、work耗尽、DEV_MODE磁盘故障按既有完整实施例；这些是待实跑门槛。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 当前为**施工计划而非本Process的功能PASS**。旧版正确算法优先抽取入V2唯一typed实现，旧框架/旧产品不兼容；具体操作依赖和数学正本仍以本篇前文为准。
+
+- **旧生产位置**：main lib/algorithms/calibration/src/{calibrator,dark_optimizer,master_generator}.cpp 和 calibration/cpp/cosmetic_corrector.cpp；生产 p1_op_calibrate/cosmetic。
+- **新实现接线**：V2 src/observation/{calibration_kernel,calibrate,stream_map}.cpp；复用正确像元算子，统一校准master、DQ及shared root。详细施工见[迁移工作单](../migration/01-NORMALIZE.md)。
+- **独立与性能证据**：真实T2 master逐像元、T3缺master/错shape；像元每秒、内存完整图复制和读盘。统一工程警戒线和质量判断见[性能合同](../migration/06-PERFORMANCE.md)、[测试矩阵](../migration/07-VERIFICATION.md)；未实际复验记NOT_RUN，不在本篇复制算法数学。

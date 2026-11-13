@@ -95,3 +95,11 @@ Taylor路径令m=(a+b)/2、L=b−a、`c_k=f^(k)(m)/k!`，逐项有向积分`Σ(k
 ### 固定独立反例
 
 I-POLY：f(λ)=1+2λ、response=1、[0,1]且conversion=false，精确积分2；跨λ=1/2的阶跃响应分别解析积分，不能一段GK差值为0就停止。I-UNIT：平坦`1 W m^-2 nm^-1`、450..650nm、无量纲photon response，真值`10^-9(650²−450²)/(2hc)`，核对单位和常数而不是凭数量级判错。I-TAIL：谱支持[500,600]而response[450,650]，无外界必须不完整；I-OSC：含内部振荡但端点/常用节点同值的函数，只有导数/范围界才能认证；I-CANCEL包含正负basis积分接近0，rel精度不能除零。不同块/线程有相同模型身份及包含真值；本轮只冻结这些验收。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 当前为**施工计划而非本Process的功能PASS**。正确旧内核优先抽取入V2唯一typed实现；旧接口/Runtime不复制，科学正本仍由本篇拥有。
+
+- **旧生产位置**：main photometry/cpp/src/{spectrum_integrator,filter_curve_json}.cpp；p1_op_photometry的响应配置。
+- **V2接收者**：V2 src/response/{spectral,integrate_process}.cpp；复用正确谱分段积分但保留严格误差/真实QE。详细迁移见[模块工作单](../migration/01-NORMALIZE.md)。
+- **测试与性能**：旧Antlia误配Baader通带+Q≡1、XP分段尾界；积分缓存/次数。统一[性能合同](../migration/06-PERFORMANCE.md)和[22Process验证](../migration/07-VERIFICATION.md)，未实际运行标NOT_RUN。

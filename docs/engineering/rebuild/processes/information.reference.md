@@ -81,3 +81,11 @@ SPD时，在白化空间用QR投影背景列，以h对Z列空间的正交残差�
 ### 资源、参数与独立例
 
 行窗口由明确模板和背景支持决定，F计n×(p+1)设计/端点、QR或PSD约束、C action workspace，R只保请求/结果/依赖；iterative分支需完整输出泛函残差证书。I-INFO：h=[1,0]、Z=[1,1]、C=I，F估计=d1−d2，V_F=2；h=[1,1]则完全被背景吸收，unavailable/not_identifiable；C=0且设计满秩则精确F，V=0。I-PSD：D=[[1,1],[1,2]]、C=diag(0,1)，F=2d1−d2、V=1，不能因正谱只有一行就误判不可估。扩大h区间应改变数值可估性/误差，不能只沿用名义V。比较独立有理矩阵例和实际PSF窗口入口，确保二者同一算法。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 这是迁移施工计划，既有数学合同不改；旧源码存在不等于新V2生产PASS，正确旧核优先抽取、旧性能优化须保留。
+
+- **main调用资产**：main noise_snr/cpp/src/{sparse_reference,information_weight}.cpp与normalize_precision.cpp::stage_frame_precision。
+- **V2唯一接收者**：V2 src/information/{information,internal,information_reference_process}.cpp；同一R/PSF/response的参考信息。见[迁移细则](../migration/02-GEOMETRY.md)。
+- **独立验证/性能**：解析F_ref与稀疏GLS/未知条件，真正跨源latents；求解器rank/工作内存。统一[性能](../migration/06-PERFORMANCE.md)和[完整22行任务矩阵](../migration/07-VERIFICATION.md)，无实测保持NOT_RUN。

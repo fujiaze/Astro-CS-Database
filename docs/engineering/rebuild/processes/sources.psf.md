@@ -120,3 +120,11 @@ evaluate_psf按output_rows只计算真实依赖原生行，先分割PRF cell，�
 ### 资源、停止和独立例
 
 F计窗口m×源数、Jacobian m×p、局部q²因子、全局形状p²、积分面板与MPFR；R计参数/误差/influence，外层每次迭代先重新准入，不能以缩窗改变估计量。PSF-TAIL对σ=1圆Gaussian在R=2外质量=e^-2；Moffat β=2、R=1尾=1/2；Airy R=0尾=1、r=0密度为k²/(4π)，高精度解析对照必须包含。PSF-STATIONARY无噪声真初值允许零步成功；PSF-BLEND相同模板列不可估；PSF-BOX扩大宽度参数盒不能仍给原窄尾界；PSF-ROWS窗口子行与全行子矩阵相同且不重归一。
+
+## main→V2 源码与性能迁移（工程工作单）
+
+> 当前为**施工计划而非本Process的功能PASS**。旧版正确算法优先抽取入V2唯一typed实现，旧框架/旧产品不兼容；具体操作依赖和数学正本仍以本篇前文为准。
+
+- **旧生产位置**：main star_detection/src/{sdet_image,nls_lm}.cpp与psf/src/{pixel_integrated_psf,spatial_psf}.cpp；p1_op_star_psf_impl。
+- **新实现接线**：V2 src/sources/{psf,psf_fit,psf_model,psf_process}.cpp；保持空间像元积分、局部星云背景与收敛证据。详细施工见[迁移工作单](../migration/01-NORMALIZE.md)。
+- **独立与性能证据**：真实M42 PSF负通量、饱和/双星/强梯度；窗口批复用/迭代成本。统一工程警戒线和质量判断见[性能合同](../migration/06-PERFORMANCE.md)、[测试矩阵](../migration/07-VERIFICATION.md)；未实际复验记NOT_RUN，不在本篇复制算法数学。

@@ -27,6 +27,8 @@
 | [coadd.integrate](coadd.integrate.md) | coadd | coadd |
 | [projection.export](projection.export.md) | projection | build_export |
 
+**源码迁移任务索引**：每个Process已有科学算法合同，不在22篇内重新复制main源码说明。旧真实生产函数→V2模块文件→最小移植任务/性能与测试分别维护在[01-NORMALIZE](../migration/01-NORMALIZE.md)、[02-GEOMETRY](../migration/02-GEOMETRY.md)、[03-MOSAIC](../migration/03-MOSAIC.md)、[04-EXPORT](../migration/04-EXPORT.md)、[05-RUNTIME](../migration/05-RUNTIME.md)；完整22行独立oracle/性能案例见[07-VERIFICATION](../migration/07-VERIFICATION.md)，任务依赖见[08-EXECUTION](../migration/08-EXECUTION.md)。迁移算法前必须核main实际生产可达入口和旧反例，旧正确的C++核心优先复用；新数学更严格时仅保留旧性能策略，不能退化成低order示范。
+
 ## 添加或修改一个process
 
 按[TEMPLATE](TEMPLATE.md)定义一个有明确数据边界的科学步骤，在所属模块声明一次descriptor/typed binding，提供CPU实现与独立反例。输入输出沿公开类型传递，不把每个标量原语变成调度节点。构建自动汇总注册；工作流只选择process_id/operation及显式数据边，框架无需新增算法switch。CLI、合同驱动、独立C++进程内调用必须经过同一registry边界；内部科学helper调用同一实现，不递归建立调度池。
