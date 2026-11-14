@@ -4,6 +4,27 @@
 
 下述V2文件名均是当前仓库的目标接收位置，而不是声称实际已连好数据。任何修改先保证相同物理估计量/单位/索引，随后将旧科学核接到同一Memory/Pipe数据面。
 
+## 每个源码模块对应的完整科学推导（必须逐篇核对）
+
+以下是 **main的完整科学分册与V2的工程责任之间的直接连接**。不是新算法列表、也不是自动验收表；研究性推导只提供物理/数值依据，是否需要实现取决于main的真实生产消费者与实际错误。
+
+| 模块 | 对应科学正本和算法详细步骤 |
+|---|---|
+| M01 原生校准与DQ | [CALIBRATION](../../science/calibration/CALIBRATION.md) · [CCD_DEFECT](../../science/calibration/CCD_DEFECT.md) · [CALIBRATION_ALGORITHMS](../../science/algorithms/normalize/CALIBRATION_ALGORITHMS.md) |
+| M02 Gaia/IPV与WCS | [ASTROMETRY](../../science/detection/ASTROMETRY.md) · [PLATESOLVE](../../science/algorithms/normalize/PLATESOLVE.md) · [OBSERVATION_COORDINATES](../../science/foundation/OBSERVATION_COORDINATES.md) |
+| M03 检测、PSF、源测量 | [STAR_DETECTION](../../science/detection/STAR_DETECTION.md) · [PSF](../../science/psf/PSF.md) · [STAR_PSF_ALGORITHMS](../../science/algorithms/normalize/STAR_PSF_ALGORITHMS.md) |
+| M04 光度与响应 | [PHOTOMETRY](../../science/photometry/PHOTOMETRY.md) · [GAIA_RESPONSE](../../science/foundation/GAIA_RESPONSE.md) · [PHOTOMETRIC_FIT](../../science/algorithms/normalize/PHOTOMETRIC_FIT.md) |
+| M05 几何与Drizzle | [DRIZZLE](../../science/drizzle/DRIZZLE.md) · [SPHERICAL_DRIZZLE](../../science/foundation/SPHERICAL_DRIZZLE.md) · [DRIZZLE_GEOMETRY](../../science/algorithms/export/DRIZZLE_GEOMETRY.md) |
+| M06 Coverage/空间索引 | [PHASE2_COVERAGE](../../science/algorithms/mosaic/PHASE2_COVERAGE.md) · [HIPS_TILE_FORMAT](../../science/formats/HIPS_TILE_FORMAT.md) |
+| M07 Sky/Sampler | [UPM](../../science/sky/UPM.md) · [PHASE2_SAMPLER](../../science/algorithms/mosaic/PHASE2_SAMPLER.md) |
+| M08 传统排异 | [REJECTION](../../science/integration/REJECTION.md) · [PHASE2_REJECTION](../../science/algorithms/mosaic/PHASE2_REJECTION.md) |
+| M09 传统积分/权重 | [INTEGRATION](../../science/integration/INTEGRATION.md) · [PHASE2_INTEGRATION](../../science/algorithms/mosaic/PHASE2_INTEGRATION.md) |
+| M10 数据块与区域索引 | [DATA_SEMANTICS](../../science/unified/DATA_SEMANTICS.md) · [UNIFIED_SCIENCE_MODEL](../../science/unified/UNIFIED_SCIENCE_MODEL.md) |
+| M11 HiPS/Export | [HIPS_TO_FITS](../../science/projection/HIPS_TO_FITS.md) · [RESAMPLE](../../science/resample/RESAMPLE.md) · [PHASE3_FITS_IMPL](../../science/algorithms/export/PHASE3_FITS_IMPL.md) |
+| M12 统计量/资源解释 | [NOISE_SNR](../../science/noise_snr/NOISE_SNR.md) · [STATISTICS_SKY_COADD](../../science/foundation/STATISTICS_SKY_COADD.md) |
+
+**统一基础**：[观测/坐标](../../science/foundation/OBSERVATION_COORDINATES.md)、[响应](../../science/foundation/GAIA_RESPONSE.md)、[球面映射](../../science/foundation/SPHERICAL_DRIZZLE.md)、[Sky和传统叠加](../../science/foundation/STATISTICS_SKY_COADD.md)、[物理/数值依据](../../science/foundation/INDEPENDENT_ORACLES.md)。任何已迁代码若与科学分册的旧文件布局/C ABI不一致，修文档的工程引用，**不因删除旧文本而失去数学公式和边界条件**。
+
 ## M01｜FITS输入、Master和Native校准
 
 - **main来源**：`lib/algorithms/calibration/src/calibrator.cpp`、`dark_optimizer.cpp`、`master_generator.cpp`、cosmetic correction；生产`p1_op_calibrate`与`p1_op_cosmetic`；旧AIO读FITS/XISF时只抽取正确格式处理、IO缓存。

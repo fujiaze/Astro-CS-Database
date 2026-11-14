@@ -1,23 +1,19 @@
-# ACSD v2：固定基建与科学process
+# ACSD｜天文观测标准化、球面拼接与FITS输出
 
-从[设计入口](docs/engineering/rebuild/README.md)开始：[一份基建骨架](docs/engineering/rebuild/SYSTEM.md)维护注册、生命周期、调度和服务；[各科学process](docs/engineering/rebuild/processes/README.md)独立维护算法与模块边界；公共API/对象/执行/验收标准统一复用。
+ACSD 将CCD/CMOS原始曝光通过 **Normalize → Mosaic → Export** 转换为统一天球坐标和科学量纲的HiPS与FITS。当前`rebuild/acsd-v2`的任务是将`main`已有科学算法及其性能优化迁入更可维护的模块化架构，并把真实大数据通过有界内存流水线处理；**不是重新研发算法，也不是仅生成接口/夹具通过报告**。
 
-基建以VirtualComputePool统一CPU/内存/I/O资源，提供Task、有界内存管道和异步I/O；算法通过[封装好的计算模块](docs/engineering/rebuild/standards/COMPUTE_MODULES.md)与强类型函数组合，实现逐模块维护和后续接入。
+## 文档入口
 
-内部开发只维护一套当前格式，允许破坏式重构，不兼容v1或早期v2产品/接口，也不实现旧产品转换。Git历史及原始科学证据保留。GPU只设计KernelExecutor/ArrayBacking/Completion扩展，本期CPU，不实现GPU后端。
+- **[完整科学文档](docs/science/README.md)**：恢复main实际使用的完整数学与算法分册，以及V2现有五篇基础推导；包括校准、Gaia/IPV/WCS、PSF、光度、球面Drizzle、噪声、Sky、**传统排异和加权平均**、HiPS/FITS。
+- **[工程架构总入口](docs/engineering/rebuild/README.md)**：模块、数据流、技术协议和工程任务的唯一导航。
+- [模块与main源码迁移](docs/engineering/rebuild/MODULES.md)、[真正内存流水线](docs/engineering/rebuild/PIPELINE.md)、[性能](docs/engineering/rebuild/PERFORMANCE.md)。
+- [API](docs/engineering/rebuild/API.md)、[对象/持久化](docs/engineering/rebuild/OBJECTS.md)、[执行/资源](docs/engineering/rebuild/EXECUTION.md)。
+- [工程任务](docs/engineering/rebuild/TASKS.md)、[真实代码与科学推理审查](docs/engineering/rebuild/REVIEW.md)、[Agent协作规则](AGENTS.md)。
 
-本分支已经从纯设计推进至 Runtime（M0—M4）和部分 typed 科学模块（M5）的实际实现。**当前唯一进度与缺口入口**：[实施与验收状态](docs/audit/IMPLEMENTATION-STATUS.md)。Runtime已有较新16/16 case的冻结PASS，但共享interval/严格矩阵证书仍有阻碍；具体被测SHA、当前复验和科学链状态仅以该状态页为准。新增/修改算法继续通过模块 process 文档和唯一 typed descriptor 接入，不向 Host 增加算法分支。
+## 实际状态与原则
 
-既有CMake/测试工具可以用于编译、复现实验和观察错误，但**不作为科学或文档是否正确的自动门槛**，不启动CI，文档的数学正确性依赖一手论文、正向推导及独立审查。科学与工程重构任务入口：[V2总任务组](docs/workplans/v2-science-engineering/README.md)。实际程序运行情况以源代码、可重现证据和独立审核结果为准。[本次更正与复核](docs/audit/process-framework.md)记录文档范围和验证边界。继续在rebuild/acsd-v2追加提交，完整保留已有历史。
+`main`算法是迁移基础。V2已经有Typed模型、Host/Task/Pipe/Storage和部分Normalize、Mosaic、Export源码，自动NSIDE和order18 ROI也已有局部真实数据证据；**但已有Pipe类不代表实际科学像元已经逐块流动，Mosaic和全幅正式交付还没有完成**。必须按真实生产代码、公式、内存所有权和实际FITS判断状态，不用历史轮次的PASS/FAIL或文档自动检查代替工程成果。
 
+独立命令之间可以使用必要正式科学产品持久化；进程内高数据量模块交接应使用真正有Lease、背压和预算的Block/Pipe，不再用层层临时文件或整幅重复数组作默认通信。保留原main有根据的科学模型与成熟数值算法，修复已证实的错误，继承Drizzle/HiPS/Sky/Export的缓存与流式性能；不开发新BLUE/QP、新乘性flat求解器或联合超分算法。
 
-
-直接开发从[任务书](docs/engineering/rebuild/standards/DEVELOPMENT.md)开始，依次读[定稿基建接口](docs/engineering/rebuild/standards/FOUNDATION_API.md)、[调度实施算法](docs/engineering/rebuild/standards/SCHEDULER.md)和[完整校准模块例](docs/engineering/rebuild/standards/CALIBRATION_WALKTHROUGH.md)。它们规定具体字段/函数/资源和错误规则，当前实现接入状态仍按实际证据。
-
-## 当前执行与验证入口
-
-- 基建：`validation/runtime/build.sh` + `validation/runtime/run_cases.py --no-build`（依赖已配置的 CPU OFF/DEV ON 构建；较新multi01已记录冻结PASS，旧失败attempt仍保留；不预设新运行结果）。
-- 已接入的科学模块：`validation/process/README.md` 及各模块冻结 case。
-- 完整科学链：`validation/run_summary.json` 只是旧身份的 11-case 汇总；正式验收以 [VERIFICATION](docs/engineering/rebuild/VERIFICATION.md) 与最新成功发布/重开证据为准。
-
-本次文档订正未重新运行以上测试，不改变科学与 Runtime 代码。
+原始main、Gaia、原始观测数据只读。生产代码和当前科学规格的差异，由实际调用与科学依据推理收敛；当前分支的文档和代码必须同步更新。未执行的全幅、跨面板或全部196帧处理不得宣称已通过。
