@@ -1,6 +1,6 @@
 # Normalize：单帧球面观测模型
 
-本分册依据[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，说明从传感器像元到单帧 HiPS 的科学因果链。数据字段由[Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)规定，节点责任见[生产架构](../../engineering/architecture/NORMALIZE_PIPELINE.md)。本文陈述目标模型，实际实现与证据见[实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+本分册依据[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，说明从传感器像元到单帧 HiPS 的科学因果链。数据字段由[Normalize 数据合同](../../engineering/rebuild/OBJECTS.md)规定，节点责任见[生产架构](../../engineering/rebuild/PIPELINE.md)。本文陈述目标模型，实际实现与证据见[实施差异](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 问题、输入与输出估计量
 
@@ -146,13 +146,13 @@ S_p 单位为 [x]/sr。N_p、Σa_jp、覆盖并集和叶面积不能互换；无
 
 writer 等实际 AIO 完成，核对同帧同版本的 signal、模型和 sidecar，再发布完成 manifest。缺精度模型的合法 signal 与磁盘损坏、发布失败分开表达。运行清单枚举全部预期输入及 succeeded/failed/cancelled，不能把部分成功写成 N/N。
 
-Mosaic 最终单 signal、Export 普通 signal FITS 不要求 Normalize 删除必要模型。工程字段、能力状态、sidecar schema 与读取兼容统一见[数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。
+Mosaic 最终单 signal、Export 普通 signal FITS 不要求 Normalize 删除必要模型。工程字段、能力状态、sidecar schema 与读取兼容统一见[数据合同](../../engineering/rebuild/OBJECTS.md)。
 
 ## 9. 独立验证与局限
 
 独立评价分别检验：无 WCS 头帧的真实 IPV 尝试与留出误差；校准共享误差；已知 SED/响应的标度；像元积分 PSF；三类 SNR 的估计量；同次 R 下模板和协方差；真实曲边、孔径通量与相邻相关；模型独立读取和失败发布。
 
-内部坐标往返、序列化一致、库函数存在和命令成功均不能单独证明完整阶段一精度。真实运行、局部数学支持与目标合同的覆盖范围见[实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)和[收敛记录](../../engineering/governance/NORMALIZE_CONVERGENCE.md)。本轮待统一论证的事项集中在[待推导问题](../../../实验/documentation-refactor/docs/SCIENTIFIC_QUESTIONS.md)。
+内部坐标往返、序列化一致、库函数存在和命令成功均不能单独证明完整阶段一精度。真实运行、局部数学支持与目标合同的覆盖范围见[实施差异](../../engineering/rebuild/MODULES.md)和收敛记录。本轮待统一论证的事项集中在待推导问题。
 
 ## 参考文献
 

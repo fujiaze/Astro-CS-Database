@@ -769,7 +769,7 @@ CURRENT：
 - p3_op_writer 生产以 ExportStreamScheduler 的 bounded block/RAM 队列流式写一幅 PRIMARY FITS signal，crop 只改变读取窗口和输出 CRPIX/宽高，完整画面已在 resample 计算好；p3_op_verify 独立重开产品并校对实际窗口，不新建误差 HDU，不能用老 p3_session 全图驻留参考代码描述当前生产。
 - 目前 writer 把 resampled canonical bunit 强制与 kP3BunitSurfaceBrightness 字符串比较。**这是当前硬编码的导出可接受量纲族/标度限制，不是上游所有 P1 applied 真实 linear_unit 都被科学重标定的证据**；#9 的 P1/P2 数值单位和标签错误，不能通过 P3 canonical 单纯重命名修复。实际 FITS BUNIT 应与真实 L/sr 一致，跨阶段同一数值的 bytes 不应被隐式倍乘。
 
-TARGET #79 provenance 合同仍单独引用 [Export detail](../../../detail/export/modules.md)：P2 signal/properties:obs_filter、p2_final:response_distribution 与源身份和 hash 必须由 p3_op_properties 验证同一 revision，再显式进入 p3_resampled 和 FITS。单一种真实非空响应可携 FILTER；unknown 不虚构；mixed 不能伪装为单滤镜（推荐 ACSDRESP 具名三态+完整 RSPHASH/sidecar，关键词为目标而非现实现）；R_eff(lambda,omega) 必须以真实贡献权重及每源响应定模，留给 #14，不由混合标签推出。
+TARGET #79 provenance 合同仍单独引用 [Export detail](../../../engineering/rebuild/MODULES.md)：P2 signal/properties:obs_filter、p2_final:response_distribution 与源身份和 hash 必须由 p3_op_properties 验证同一 revision，再显式进入 p3_resampled 和 FITS。单一种真实非空响应可携 FILTER；unknown 不虚构；mixed 不能伪装为单滤镜（推荐 ACSDRESP 具名三态+完整 RSPHASH/sidecar，关键词为目标而非现实现）；R_eff(lambda,omega) 必须以真实贡献权重及每源响应定模，留给 #14，不由混合标签推出。
 
 ### D7-A.4 #88/#89 与本篇 WCS 的交叉条件
 

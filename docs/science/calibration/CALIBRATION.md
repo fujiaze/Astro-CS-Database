@@ -1,6 +1,6 @@
 # 单帧校准与母版不确定性
 
-本分册依据[最高设计](../../ACSD_DESIGN.md)与[Normalize 科学链](../normalize/NORMALIZE_SCIENCE.md)，定义偏置、暗流、平场的信号算术、条件假设和误差传播。数据输入与模块职责见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。
+本分册依据[最高设计](../../ACSD_DESIGN.md)与[Normalize 科学链](../normalize/NORMALIZE_SCIENCE.md)，定义偏置、暗流、平场的信号算术、条件假设和误差传播。数据输入与模块职责见 [Normalize 数据合同](../../engineering/rebuild/OBJECTS.md)。
 
 ## 1. 数据单位与母版身份
 
@@ -75,7 +75,7 @@ D_c若由D_t−B构造，B与D_c相关；用含偏置式直接传播时B的系�
 
 高斯分布下MAD的一致性尺度为1/Φ⁻¹(0.75)≈1.482602218505602。有限样本、相关像元和结构污染不能仅靠该常数恢复传感器方差。点缺陷、坏列、拖尾和天体结构的可分性需结合母版、空间形态与真实幅度，详见[CCD线性缺陷](CCD_DEFECT.md)。掩膜1表示坏点，修复后的相关性与有效性随信号传递。
 
-实现事实与实验读数由[阶段一架构](../../engineering/architecture/NORMALIZE_PIPELINE.md)和[科学实现差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)登记；本分册的公式不等于生产已完成传播。
+实现事实与实验读数由[阶段一架构](../../engineering/rebuild/PIPELINE.md)和[科学实现差异](../../engineering/rebuild/MODULES.md)登记；本分册的公式不等于生产已完成传播。
 
 ## 7. 参考文献与开源对照
 

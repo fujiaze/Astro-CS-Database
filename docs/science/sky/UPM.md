@@ -1,6 +1,6 @@
 # 跨设备球面背景、接缝与科学信号保真模型（UPM / Mosaic）
 
-本分册依据[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，定义球面相对背景、规范自由度及信号保真。精度语义见[噪声分册](../noise_snr/NOISE_SNR.md)，实现状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+本分册依据[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，定义球面相对背景、规范自由度及信号保真。精度语义见[噪声分册](../noise_snr/NOISE_SNR.md)，实现状态见[科学实施差异](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 用户可以合并任意设备与通带
 
@@ -36,14 +36,14 @@
 理想差模约束：
 \[
  y_i(p)-y_j(p)\approx a_i(p)-a_j(p)+
- [H_i-H_j]B_0(p)+[r_i-r_j](p)+n_i(p)-n_j(p).
+ [H_i-H_j]B_0(p)+[r_i-r_j](../README.md)+n_i(p)-n_j(p).
 \]
 若忽略模型不一致项，就可能把真实天体颜色/PSF 结构拟合成加性差。
 
 对每个连通分量 \(\mathcal C\)，背景相对差对公共偏置自由：
 \[
  B_0(p)\to B_0(p)+g_{\mathcal C}(p),\quad
- a_k(p)\to a_k(p)-[H_k g_{\mathcal C}](p).
+ a_k(p)\to a_k(p)-[H_k g_{\mathcal C}](../README.md).
 \]
 这里g必须属于共同退化空间：每个H_k g均可由该帧允许的背景基表示，且满足实际控制观测的相同变换。仅在H_k≈I及其近似适用时才简写a_k→a_k−g。共同零空间取决于响应、背景基和有效重叠，不能把任意空间函数都当作规范；它可能不只包含常数。需要按模型参数空间判定可辨识秩与零空间，并为每个分量固定规范（例如相对参考帧、或在有共同支持的位置加权校正和为零）。指定某个参考帧为 0 是坐标选择，不是该帧物理背景恰好为 0 的观测证明。
 
@@ -117,7 +117,7 @@ d=B\eta+e,\qquad B_{e,i}=1,\ B_{e,j}=-1,\qquad\operatorname{Cov}(e)=\Sigma_e\suc
 
 循环中 `d_{ij}+d_{jk}+d_{ki}` 理论期望为0（方向一致），标准化残差使用完整边协方差检验；显著非零可能来自 PSF/颜色/时变透明度系统项、关联误差或不正确的统计独立性，不自动归结为真正残余 gain。参数数超过图 rank，或者低阶 `η_k(p)` 的空间场基与现有星点位置不匹配时，**图连通本身不保证空间增益场可辨识**，仍需对实际 `J_\eta` 做秩诊断。
 
-独立可运行数学参考（非 production）：[graph_and_affine_oracles.py](../../../实验/innovation-closure/code/graph_and_affine_oracles.py)，含连通/断连分量、正定加权、规范及相对协方差的解析对照；实验预注册见 [#76](https://github.com/fujiaze/Astro-CS-Database/issues/76)。本节不声称生产已装入该参数求解器。
+独立可运行数学参考（非 production）：graph_and_affine_oracles.py，含连通/断连分量、正定加权、规范及相对协方差的解析对照；实验预注册见 [#76](https://github.com/fujiaze/Astro-CS-Database/issues/76)。本节不声称生产已装入该参数求解器。
 
 ### 4.2 当前 additive-only 校正与扩展增益的一般误差
 
@@ -174,7 +174,7 @@ Q=I-H(H^TWH)^+H^TW,\qquad
 
 **PSF/采样差异**通过响应建模、适当的有效 PSF 对照与采样方法处理；必要时允许用户为科学精度主动做 PSF matching，但不默认强行把所有图像退化到最差设备 PSF，以免损失高分辨率数据。用于背景控制的共同采样尺度与最终图像最佳保真尺度可以不同。
 
-乘性模型须包含真值g=1的阴性对照；拟合降低接缝RMS也可能来自额外自由度、噪声过拟合或真实结构损失，不能单凭这一读数证明增益可辨识。具体对照见[增益与边界实验](../../../实验/additive-sky-seamless/docs/S07_REPORT.md)。
+乘性模型须包含真值g=1的阴性对照；拟合降低接缝RMS也可能来自额外自由度、噪声过拟合或真实结构损失，不能单凭这一读数证明增益可辨识。具体对照见增益与边界实验。
 
 ## 7. 接缝评估必须同时估计真实信号损失
 
@@ -198,7 +198,7 @@ Q=I-H(H^TWH)^+H^TW,\qquad
 
 ## 9. 独立评价与参考文献
 
-相对分量、加性差和扩展源的独立构型见[背景实验报告](../../../实验/additive-sky-seamless/REPORT_experiment.md)，控制统计量方差的限定见[控制方差分析](../../../实验/additive-sky-seamless/docs/control-variance-adjudication.md)。评价须同时覆盖断连图、真实低频、无增益阴性场和有增益阳性场，结果不由接缝单指标决定。
+相对分量、加性差和扩展源的独立构型见背景实验报告，控制统计量方差的限定见控制方差分析。评价须同时覆盖断连图、真实低频、无增益阴性场和有增益阳性场，结果不由接缝单指标决定。
 
 重采样相关噪声需按实际算子处理[2]；不同PSF的最优点源组合[3]不等于任意弥散像元的逆方差合成。
 

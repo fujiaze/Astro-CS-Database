@@ -1,6 +1,6 @@
 # 球面产品覆盖并集与层级聚合
 
-本页从[统一科学模型](../../unified/UNIFIED_SCIENCE_MODEL.md)、[背景模型](../../sky/UPM.md)及[Mosaic管线](../../../detail/mosaic/pipeline.md)定义输入产品的几何并集和离散父聚合。完整六个C函数、五种结构、实际字段/容量/错误见[Coverage详细设计](../../../detail/mosaic/modules.md#coverage)。coverage是几何登记，support是样本支撑，validity/accepted是数据资格，三者独立；它们都不凭名称取得统计逆方差意义。
+本页从[统一科学模型](../../unified/UNIFIED_SCIENCE_MODEL.md)、[背景模型](../../sky/UPM.md)及[Mosaic管线](../../../engineering/rebuild/PIPELINE.md)定义输入产品的几何并集和离散父聚合。完整六个C函数、五种结构、实际字段/容量/错误见[Coverage详细设计](../../../engineering/rebuild/MODULES.md)。coverage是几何登记，support是样本支撑，validity/accepted是数据资格，三者独立；它们都不凭名称取得统计逆方差意义。
 
 ## 集合模型、层级与分辨率
 
@@ -94,7 +94,7 @@ NESTED合法o,p要求0≤p<12·4^o且位移<64；下游像元阶又加9，不能
 
 原F1–F6设计仍有价值：固定seed2–8帧/混阶3–8/断连与跨面；probe/fill及重复；缺属性/非512/非法frame/显式RING；单输入与空MOC；所有错误的rc/status；同快照不同枚举/worker及I/O成本。当前不同filter/空filter合法，不延用旧filter-mismatch负例；新增两遍变化/小容量、越界order、tile读取失败和异常资源负例。只有已存在且实际执行的测试才报告通过。
 
-旧RealHipsUnion和FilterMismatchRejected、target7、Fatduck本机路径/GTEST_SKIP与源码行数都属于当时登记；当前所查树没有lib/algorithms/coverage/tests目录，不能把它们当现成可运行测试。原始任务/测试登记全文保留[既有来源档案](../../../../实验/documentation-refactor/docs/MOSAIC_REDUCERS_SOURCE.txt)，本轮未构建或执行Coverage/真实HiPS；科学几何与接口静态核对分别报告。
+旧RealHipsUnion和FilterMismatchRejected、target7、Fatduck本机路径/GTEST_SKIP与源码行数都属于当时登记；当前所查树没有lib/algorithms/coverage/tests目录，不能把它们当现成可运行测试。原始任务/测试登记全文保留既有来源档案，本轮未构建或执行Coverage/真实HiPS；科学几何与接口静态核对分别报告。
 
 ## 标准、原始论文和参考代码
 

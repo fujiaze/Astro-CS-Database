@@ -1,6 +1,6 @@
 # HEALPix 球面 Drizzle、HiPS 层级与相关噪声
 
-本分册依据[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，定义球面交叠、信号归一及相关噪声。条件参考精度见[噪声分册](../noise_snr/NOISE_SNR.md)，实现状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+本分册依据[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，定义球面交叠、信号归一及相关噪声。条件参考精度见[噪声分册](../noise_snr/NOISE_SNR.md)，实现状态见[科学实施差异](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 系统坐标与图像量
 
@@ -68,7 +68,7 @@ Drizzle 通过缩小探测器足迹控制额外卷积和噪声相关[2]。**唯�
 \]
 另外检查源/目标 footprint、面缝走向、负交叠面积、候选遗漏、浮点下溢和近零 drop。第一个量接近 0 **不能排除**源/目标几何同时采用错误曲边模型。
 
-几何数值研究的构型、分割残差和失效域见[球面实验报告](../../../实验/healpix-polar/REPORT_experiment.md)及[曲边推导](../../../实验/healpix-polar/docs/DERIVATIONS-P3.md)。某个近似几何模型的分割残差不是与真实曲边的误差上界。
+几何数值研究的构型、分割残差和失效域见球面实验报告及曲边推导。某个近似几何模型的分割残差不是与真实曲边的误差上界。
 
 ### 3.2 独立坐标测试
 

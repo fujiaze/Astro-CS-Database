@@ -1,6 +1,6 @@
 # Gaia DR3 XP 跨仪器光度标定与通带差异
 
-本分册依据[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，定义逐帧光度响应、参考光谱、标度应用和通带差异。阶段一的生产边界见[Normalize科学链](../normalize/NORMALIZE_SCIENCE.md)，实现状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+本分册依据[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，定义逐帧光度响应、参考光谱、标度应用和通带差异。阶段一的生产边界见[Normalize科学链](../normalize/NORMALIZE_SCIENCE.md)，实现状态见[科学实施差异](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 科学任务
 
@@ -179,11 +179,11 @@ r_{ks}=\ln C_{ks}-\ln Q_{ks}
 5. 不把本模型在真实帧中的观测 scatter 自己用作“误差预算上界”的组成来形成不可判错循环；测量误差和系统误差用独立来源界定；
 6. 真实 M42/Gaia XP 数据须按每帧自身 WCS、通带、曝光、图像/母版哈希重跑，分别记录拟合、应用、球面产品和留出评价，局部残差不代表全链已获支持。
 
-独立合成光度的约定和保留读数见[合成通量推导](../../../实验/photometric-magnitude/docs/fsyn_convention.md)，真实观测及限制见[光度实验报告](../../../实验/photometric-magnitude/REPORT_experiment.md)。它们只支持各自输入、响应和测量条件；残差不能自动归为Gaia误差或完整误差上界。重叠测光的全局相对约束见[3]。
+独立合成光度的约定和保留读数见合成通量推导，真实观测及限制见光度实验报告。它们只支持各自输入、响应和测量条件；残差不能自动归为Gaia误差或完整误差上界。重叠测光的全局相对约束见[3]。
 
 ## 7. 数据交接
 
-归一参数、每帧 response、application ID、空间参考模板和输出单位的工程表达见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。默认完整 signal 可以是 native_calibrated 或明确相对标度；未知曲线不伪造 response-calibrated 标志。
+归一参数、每帧 response、application ID、空间参考模板和输出单位的工程表达见 [Normalize 数据合同](../../engineering/rebuild/OBJECTS.md)。默认完整 signal 可以是 native_calibrated 或明确相对标度；未知曲线不伪造 response-calibrated 标志。
 
 ## 8. 参考文献
 

@@ -53,22 +53,22 @@
 
 `eng/tests/unit/gaia_cat_test.c` 所指测试文件当前未在仓内取得；不能继续把这一登记当作可执行证据。具体 fixture、命令与输出须在对应实验记录中取得后才能引用为运行证据。模块源码中的属性测试数目或 memory 摘要不是本文重新执行的结果。星表物理与量化误差应分别评价，查询集合一致也不证明后续天测或测光正确。
 
-查询差分和属性比较的保留读数、文档来源身份及复核限制见[证据记录](../../../../实验/normalize-precision-p5/DOCUMENTATION_EVIDENCE_NOTES.md)，不把有限比较推成全域正确性。
+查询差分和属性比较的保留读数、文档来源身份及复核限制见证据记录，不把有限比较推成全域正确性。
 
 ## 光谱量化统计的适用域
 
 8bit解码步长Δ=flux_mul，若编码为无裁切就近舍入，则逐样本绝对误差≤Δ/2；相对误差还依真实f_λ和flux_min，接近0时无统一相对上界。谱样本误差与响应积分后误差不同，积分传播由[光度算法](../normalize/PHOTOMETRIC_FIT.md)定义，不能用一个相对分位替代两者。
 
-旧GAIA_QUANT的median0.21%/p951.8%没有可追溯原始星表总体、样本量和采样定义，当前只能标**出处待补的历史读数**，不能恢复成通用验收界。ROUND7的零原点均匀构型理论p95=1/51≈1.9608%，已给出总体不匹配反例；通过选择flux_min/Δ使分位压到1.8%的夹具仅说明条件依赖，不补回旧真实样本出处。详见[量化复核](../../../../实验/normalize-precision-p5/ROUND7_QUANTIZATION_S12.md)，本轮不改生产量化或阈值。
+旧GAIA_QUANT的median0.21%/p951.8%没有可追溯原始星表总体、样本量和采样定义，当前只能标**出处待补的历史读数**，不能恢复成通用验收界。ROUND7的零原点均匀构型理论p95=1/51≈1.9608%，已给出总体不匹配反例；通过选择flux_min/Δ使分位压到1.8%的夹具仅说明条件依赖，不补回旧真实样本出处。详见量化复核，本轮不改生产量化或阈值。
 
 ## 参考文献
 
 [1] [天体测量与坐标](../../detection/ASTROMETRY.md)。
 
-[2] [公共 API](../../../engineering/api/PUBLIC_API.md)。
+[2] [公共 API](../../../engineering/rebuild/API.md)。
 
-[3] [本地星表模块说明](../../../detail/infrastructure/gaia_xpsd_client.md)。
+[3] 本地星表模块说明。
 
-[4] [开发诊断构建](../../../engineering/architecture/DEV_MODE.md)。
+[4] [开发诊断构建](../../../engineering/rebuild/ARCHITECTURE.md)。
 
 [5] [Normalize 科学链](../../normalize/NORMALIZE_SCIENCE.md)。

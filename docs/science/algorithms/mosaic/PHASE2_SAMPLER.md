@@ -1004,7 +1004,7 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 
 ## D6 正式科学勘误与当前生产合同（2026-10-17；CURRENT / SCIENCE_TARGET / RESEARCH_OPEN）
 
-**证据身份**：本卷在原 63eccbb6 的 1004 行 / 77933 UTF-8 字节、blob `c45afdeb67ae2a3dac4a810e18a04f239f5d8aa6` 上作逐主题保全，保留前述详细公式与实验但以本节更新的**当前函数语义、物理单位和能力状态**裁决旧源码行号/已废弃假设。对照 main `f0f28f5f28a1ef00a548b85031c85a07dd9bd9e6` 的 `sampler.cpp`（2009行）、`sampler.h`（324行）、`module_adapters.cpp::p2_op_sample`、D5 `sky_plane.cpp` / Writer / [Mosaic API](../../../detail/mosaic/modules.md)。**本 D6 未执行真实/合成科学测试**；旧文中的 MC 数字仍是旧实验报告的结果，不是本批重新产生。
+**证据身份**：本卷在原 63eccbb6 的 1004 行 / 77933 UTF-8 字节、blob `c45afdeb67ae2a3dac4a810e18a04f239f5d8aa6` 上作逐主题保全，保留前述详细公式与实验但以本节更新的**当前函数语义、物理单位和能力状态**裁决旧源码行号/已废弃假设。对照 main `f0f28f5f28a1ef00a548b85031c85a07dd9bd9e6` 的 `sampler.cpp`（2009行）、`sampler.h`（324行）、`module_adapters.cpp::p2_op_sample`、D5 `sky_plane.cpp` / Writer / [Mosaic API](../../../engineering/rebuild/MODULES.md)。**本 D6 未执行真实/合成科学测试**；旧文中的 MC 数字仍是旧实验报告的结果，不是本批重新产生。
 
 ### D6.1 三种输入和三种不同精度
 

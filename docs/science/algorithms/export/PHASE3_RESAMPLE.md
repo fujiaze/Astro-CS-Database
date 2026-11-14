@@ -240,7 +240,7 @@ diagnostics 标红计数；**该键不是失败态**，是 unavailable 显式登
 
 ## 11. D7-C G1–G5：真实数学与五节点实现（CURRENT / TARGET / RESEARCH_OPEN）
 
-**本节为现行正文的科学与工程解释**。上文保留原G1–G5构造、兼容接口、伪代码和实验判据的历史价值，但以此处明确的科学量与实际源码为消费依据。上位：[最高设计](../../../ACSD_DESIGN.md)、[统一科学模型](../../unified/UNIFIED_SCIENCE_MODEL.md)、[HiPS→FITS](../../projection/HIPS_TO_FITS.md)、[球面重采样](../../resample/RESAMPLE.md)；函数级详细设计：[Projection](PHASE3_PROJ_IMPL.md)、[Resample](PHASE3_RSMP_IMPL.md)、[FITS](PHASE3_FITS_IMPL.md)，以及[Export modules](../../../detail/export/modules.md)。
+**本节为现行正文的科学与工程解释**。上文保留原G1–G5构造、兼容接口、伪代码和实验判据的历史价值，但以此处明确的科学量与实际源码为消费依据。上位：[最高设计](../../../ACSD_DESIGN.md)、[统一科学模型](../../unified/UNIFIED_SCIENCE_MODEL.md)、[HiPS→FITS](../../projection/HIPS_TO_FITS.md)、[球面重采样](../../resample/RESAMPLE.md)；函数级详细设计：[Projection](PHASE3_PROJ_IMPL.md)、[Resample](PHASE3_RSMP_IMPL.md)、[FITS](PHASE3_FITS_IMPL.md)，以及[Export modules](../../../engineering/rebuild/MODULES.md)。
 
 ### 11.1 G1/G2 WCS、面积与裁剪
 

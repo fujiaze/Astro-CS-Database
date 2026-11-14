@@ -19,7 +19,7 @@
 | xy/local/FITS→逆映射 | 同一 tile 的离散像素 | 检查排列、手性和整数互逆 |
 | 父→子/子→父 | 明确阶差的层级 | 检查编码范围及祖先一致性 |
 
-旧文同时写“round-trip≤1e−12度”和按像元尺度的 `1.2 hp_res+1e−9` 包络，没有充分区分上述对象；记录为[Q25](../../../../实验/documentation-refactor/docs/SCIENTIFIC_QUESTIONS.md)。本轮不选择新的通用误差界，旧数值与声明全部保留于[来源档案](../../../../实验/documentation-refactor/docs/SPATIAL_NOTES_SOURCE.txt)。
+旧文同时写“round-trip≤1e−12度”和按像元尺度的 `1.2 hp_res+1e−9` 包络，没有充分区分上述对象；记录为Q25。本轮不选择新的通用误差界，旧数值与声明全部保留于来源档案。
 
 ## 3. 实际入口与错误
 

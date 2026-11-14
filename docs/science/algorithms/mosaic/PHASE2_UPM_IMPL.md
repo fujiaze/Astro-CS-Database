@@ -1,6 +1,6 @@
 # Phase 2 球面公共天光与逐帧差模：生产数值设计和 P5 研究边界
 
-**D5 原文保全复核（2026-10-17）**。本篇逐节核对基线 `63eccbb6133aef56389641d43c55df6e243819c5` 的同名 580 行长文（原 Git blob `f9cb801d4dbef42da8caa96bc6c65dc07a29986b`）；其 F1–F6、接口、伪代码、误差与参考思想在下文依**当前科学对象**重新编排，而非当作历史实现继续执行。科学身份见 [UPM](../../sky/UPM.md)、[噪声](../../noise_snr/NOISE_SNR.md)；模块间真实接口见 [Mosaic modules](../../../detail/mosaic/modules.md#upm-fit)。基线生产源码 `main=322da061bd9f46cd001a5a45c0f226a05b57777b`，如源码后来变化须按提交再核。
+**D5 原文保全复核（2026-10-17）**。本篇逐节核对基线 `63eccbb6133aef56389641d43c55df6e243819c5` 的同名 580 行长文（原 Git blob `f9cb801d4dbef42da8caa96bc6c65dc07a29986b`）；其 F1–F6、接口、伪代码、误差与参考思想在下文依**当前科学对象**重新编排，而非当作历史实现继续执行。科学身份见 [UPM](../../sky/UPM.md)、[噪声](../../noise_snr/NOISE_SNR.md)；模块间真实接口见 [Mosaic modules](../../../engineering/rebuild/MODULES.md)。基线生产源码 `main=322da061bd9f46cd001a5a45c0f226a05b57777b`，如源码后来变化须按提交再核。
 
 ## 1. 三种不同对象——先辨认谁在生产
 
@@ -132,7 +132,7 @@ sky_apply(frame, position, raw):
 5. **F5 二分图分量/规范**：`frame-control` 双向邻接，逐分量最小稳定 frame_id 作参考，未观测几何点是 sentinel；单帧区的平滑延拓只是模型先验而不是新的数据。
 6. **F6 历史持久化与读侧**：`p2_upm_save/open` 旧 `acsd-upm-v2`、dense `acsd-upm-dense-v2`，`model_hash` 由规范化 config/manifest/frames/controls/coeff/gauge 序列得到，dense cache 必须检测 stale；属于旧模型族，**不能**作为 `p2_sky_plane.bin` 的版本兼容 reader。
 
-旧 API 的精准声明族和分配责任见 [模块 API 详细设计](../../../detail/mosaic/modules.md#upm-fit) 及 `coverage/include/astro/phase2/upm.h`；不混用两族 opaque handle 或 `close`。旧实现 per-control 空单元处理、跨 tile 外推、基于纯独立控制假设的权重，以及“整图 seam 降低=科学通过”均不作正式生产授权。
+旧 API 的精准声明族和分配责任见 [模块 API 详细设计](../../../engineering/rebuild/MODULES.md) 及 `coverage/include/astro/phase2/upm.h`；不混用两族 opaque handle 或 `close`。旧实现 per-control 空单元处理、跨 tile 外推、基于纯独立控制假设的权重，以及“整图 seam 降低=科学通过”均不作正式生产授权。
 
 ## 6. 真实三帧非 SPD：Issue #80 的只读诊断施工规格
 
@@ -168,11 +168,11 @@ sky_apply(frame, position, raw):
 
 对一个经过 P1 定标的物理响应组，联合候选为
 \[
- y_k(\omega)=\exp\{\eta_k(\omega)\}\,[H_k S](\omega)+a_k(\omega)+\epsilon_k(\omega),
+ y_k(\omega)=\exp\{\eta_k(\omega)\}\,[H_k S](../../README.md)+a_k(\omega)+\epsilon_k(\omega),
 \]
 \(S\) 为真实天体场，\(H_k\) 包含响应/PSF/像元积分/Drizzle（不一定同一滤镜可约成共同标量场），\(\eta\) 是 **P1 标度之后的残余**乘性场，\(a\) 为非目标相对加性场。局部一阶扰动 \(\delta y_k =g_kH_k\,\delta S +g_k(H_k S)\,\delta\eta_k +\delta a_k\)，其 Jacobian 的秩、列相关与逐分量规范决定可估计自由度。特别在 \(H_k\approx I\) 时，可出现 \(S\to S+u,\ a_k\to a_k-g_k u\) 以及 \(S\to cS,\ g_k\to g_k/c\) 等退化；正则化只能选择解，不凭空提供物理绝对锚。
 
-残余增益的独立约束优先使用同一恒星、扣背景的积分通量差 \(\log f_{ks}-\log f_{js}\)，同时显式处理颜色、响应、PSF 包围能量、饱和、星点协方差；仅当数据支持更高自由度时由标量提升为空间 \(\eta_k(u,v)\)。空背景 overlap 才用于相对 \(a_k\)，不能用星点强度误差当加性天光。推荐对照序为 `g=1` 阴性 + 纯加性 + 纯乘性 + 联合 + 独立低频天体 + 异响应/PSF；严格配对模拟 seeds、HST 有效区及真实 M42 E2，报告 held-out 星/天区、光度、低频功率、接缝、方差与置信区间覆盖。已有 [S07](../../../../实验/additive-sky-seamless/docs/S07_REPORT.md) 在 `g_true=1` 十种 seeds 的乘性负例不通过，**现生产 g=identity，候选仍 FAIL/NOT_VERIFIED**。参考 PMM/NSG/Montage 只能是对照研究，不能将旧文 M+C 称作已实现 PMM。
+残余增益的独立约束优先使用同一恒星、扣背景的积分通量差 \(\log f_{ks}-\log f_{js}\)，同时显式处理颜色、响应、PSF 包围能量、饱和、星点协方差；仅当数据支持更高自由度时由标量提升为空间 \(\eta_k(u,v)\)。空背景 overlap 才用于相对 \(a_k\)，不能用星点强度误差当加性天光。推荐对照序为 `g=1` 阴性 + 纯加性 + 纯乘性 + 联合 + 独立低频天体 + 异响应/PSF；严格配对模拟 seeds、HST 有效区及真实 M42 E2，报告 held-out 星/天区、光度、低频功率、接缝、方差与置信区间覆盖。已有 S07 在 `g_true=1` 十种 seeds 的乘性负例不通过，**现生产 g=identity，候选仍 FAIL/NOT_VERIFIED**。参考 PMM/NSG/Montage 只能是对照研究，不能将旧文 M+C 称作已实现 PMM。
 
 ## 8. 误差、模型身份、所有权、复杂度与失败语义
 

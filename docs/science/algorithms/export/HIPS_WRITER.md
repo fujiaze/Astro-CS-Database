@@ -414,7 +414,7 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
 
 ## 12. D7-C 正式重构：公共 HiPS Writer 的现行科学量、接口、精度、事务及独立实验
 
-**原文保全与分层**：以`63eccbb6133aef56389641d43c55df6e243819c5`的427行原版、blob`ae917e6510915845b7de97f1fc5367d838ca7ff6`完整精读为基础，保留历史ALG-HIPS-001..005、测试fixture G、面积加权父层、标准文件布局、MOC/TSV、负例判据及标准出处。本文的旧 §1–11 中与2026-10-17最新版冲突的“直接覆盖正式tile、f32累计、仅flags≤31、NaN精度处理、无原子properties、历史P1权重链”等，应以本节的**CURRENT**取代；仍有效的原数学、参数和实验设计保留作为可执行研究内容。事实源码：`lib/infrastructure/aio/include/aio_hips.h`（405行）、`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（3138行）、`astro_sphere_sink.cpp`、`module_adapters.cpp`、`aio_hips_reader.cpp`与`hips_properties.cpp`。科学正本：[Drizzle](../../drizzle/DRIZZLE.md)、[统一模型](../../unified/UNIFIED_SCIENCE_MODEL.md)、[数据语义](../../unified/DATA_SEMANTICS.md)；接口详见[共用HiPS写入](../../../detail/infrastructure/hips_writer.md)、[Normalize正式数据合同](../../../engineering/contracts/NORMALIZE_DATA.md)、[原子发布](../../../engineering/contracts/ATOMIC_PUBLISH.md)。
+**原文保全与分层**：以`63eccbb6133aef56389641d43c55df6e243819c5`的427行原版、blob`ae917e6510915845b7de97f1fc5367d838ca7ff6`完整精读为基础，保留历史ALG-HIPS-001..005、测试fixture G、面积加权父层、标准文件布局、MOC/TSV、负例判据及标准出处。本文的旧 §1–11 中与2026-10-17最新版冲突的“直接覆盖正式tile、f32累计、仅flags≤31、NaN精度处理、无原子properties、历史P1权重链”等，应以本节的**CURRENT**取代；仍有效的原数学、参数和实验设计保留作为可执行研究内容。事实源码：`lib/infrastructure/aio/include/aio_hips.h`（405行）、`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（3138行）、`astro_sphere_sink.cpp`、`module_adapters.cpp`、`aio_hips_reader.cpp`与`hips_properties.cpp`。科学正本：[Drizzle](../../drizzle/DRIZZLE.md)、[统一模型](../../unified/UNIFIED_SCIENCE_MODEL.md)、[数据语义](../../unified/DATA_SEMANTICS.md)；接口详见共用HiPS写入、[Normalize正式数据合同](../../../engineering/rebuild/OBJECTS.md)、[原子发布](../../../engineering/rebuild/OBJECTS.md)。
 
 ### 12.1 真球面 leaf/tile/FITS/MOC 四种“阶”和三个面积
 

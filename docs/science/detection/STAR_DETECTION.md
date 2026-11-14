@@ -1,6 +1,6 @@
 # 星点候选与Gaia引导科学源表
 
-本分册依据[Normalize科学链](../normalize/NORMALIZE_SCIENCE.md)，定义科学源表的坐标、测量与质量状态，并说明盲检诊断的阈值和适用域。天测由[ASTROMETRY](ASTROMETRY.md)定义，空间积分模型由[PSF分册](../psf/PSF.md)定义；正式对象和实现状态分别见[Normalize数据合同](../../engineering/contracts/NORMALIZE_DATA.md)与[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+本分册依据[Normalize科学链](../normalize/NORMALIZE_SCIENCE.md)，定义科学源表的坐标、测量与质量状态，并说明盲检诊断的阈值和适用域。天测由[ASTROMETRY](ASTROMETRY.md)定义，空间积分模型由[PSF分册](../psf/PSF.md)定义；正式对象和实现状态分别见[Normalize数据合同](../../engineering/rebuild/OBJECTS.md)与[科学实施差异](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 解算候选与科学测量
 
@@ -32,7 +32,7 @@ IPV内部在校准像元上盲检solver_detections，用于星表匹配及WCS求
 
 递归高斯滤波可按Young–van Vliet方法实现[4]，有限边界与实际递推系数决定有效核。以σ_s=2.0的项目递推为例，q=1.1532634818423229、B=0.227285251090804、b₁=1.2327675485381264、b₂=−0.5533139546361017、b₃=0.09326115500717135，直流增益约1；保留的核范数读数为Σk_1D²≈0.133174181553，分离二维核ΣK²≈0.017735362632，√(ΣK²)≈0.133174181553。因此κ=5在该条件下约为37.5448个平滑噪声尺度。该数不自动适用于边界、相关输入或另一组系数。
 
-连续二维高斯近似给√(ΣK²)≈1/(2σ_s√π)=0.1410474，等效35.4491，与实际递推核不同。只凭σ_s名称不能宣称核完全一致。实际核、边界和冲激响应的算法对照见[检测细节](../../detail/normalize/modules/star_detection.md)，其中工程行为不能反向改变本页坐标和统计定义。
+连续二维高斯近似给√(ΣK²)≈1/(2σ_s√π)=0.1410474，等效35.4491，与实际递推核不同。只凭σ_s名称不能宣称核完全一致。实际核、边界和冲激响应的算法对照见[检测细节](../../engineering/rebuild/MODULES.md)，其中工程行为不能反向改变本页坐标和统计定义。
 
 ## 4. 召回与虚警
 
@@ -66,4 +66,4 @@ science_sources和PSF共享源绑定；photometry消费正确通量估计及单�
 
 [6] Clopper, C. J., Pearson, E. S. The Use of Confidence or Fiducial Limits Illustrated in the Case of the Binomial. Biometrika, 26, 404–413. [论文](https://doi.org/10.1093/biomet/26.4.404)。
 
-过程记录与复算示例见[记录](../../../实验/documentation-refactor/docs/DETECTION_OBSERVATIONS.md)；正文定义不以未配套复现载体的历史读数作为验证依据。
+过程记录与复算示例见记录；正文定义不以未配套复现载体的历史读数作为验证依据。

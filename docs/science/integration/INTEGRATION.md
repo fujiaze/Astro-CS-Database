@@ -1,6 +1,6 @@
 # 接受样本的数值集成
 
-本分册依据[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，定义同一球面位置的候选归约、支持摘要与状态。样本资格由[排异](REJECTION.md)决定，权重的统计解释由[噪声分册](../noise_snr/NOISE_SNR.md)定义；实际入口及字段见[Mosaic 模块](../../detail/mosaic/modules.md#integrate)。
+本分册依据[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，定义同一球面位置的候选归约、支持摘要与状态。样本资格由[排异](REJECTION.md)决定，权重的统计解释由[噪声分册](../noise_snr/NOISE_SNR.md)定义；实际入口及字段见[Mosaic 模块](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 输入与目标
 
@@ -72,7 +72,7 @@
 
 核验包括解析加权均值、常量场、零/负信号、接受零权样本的支撑、六种状态、有限大值溢出、帧映射和不同 worker。零权样本不改变 signal，但可能改变 support；这两个不变量分别检查。
 
-统计实验另测相同目标量、不同噪声、相关帧、共享参数和排异后的偏差/覆盖。接口通过不替代这些证据。生产 reducer 为 `p2_integrate_pixel`，静态调用与限制见[实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)；本轮没有运行数值检验。
+统计实验另测相同目标量、不同噪声、相关帧、共享参数和排异后的偏差/覆盖。接口通过不替代这些证据。生产 reducer 为 `p2_integrate_pixel`，静态调用与限制见[实施差异](../../engineering/rebuild/MODULES.md)；本轮没有运行数值检验。
 
 ## 参考文献
 

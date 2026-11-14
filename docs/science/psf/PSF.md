@@ -1,6 +1,6 @@
 # PSF轮廓、像元积分响应与空间模型
 
-本分册依据[Normalize科学链](../normalize/NORMALIZE_SCIENCE.md)，定义点源轮廓、尺度、总通量、有限窗口与空间积分响应。检测的高斯候选参数与本页Moffat参数分名；参考通量估计及协方差由[噪声分册](../noise_snr/NOISE_SNR.md)定义。正式对象见[Normalize数据合同](../../engineering/contracts/NORMALIZE_DATA.md)，实现状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+本分册依据[Normalize科学链](../normalize/NORMALIZE_SCIENCE.md)，定义点源轮廓、尺度、总通量、有限窗口与空间积分响应。检测的高斯候选参数与本页Moffat参数分名；参考通量估计及协方差由[噪声分册](../noise_snr/NOISE_SNR.md)定义。正式对象见[Normalize数据合同](../../engineering/rebuild/OBJECTS.md)，实现状态见[科学实施差异](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 连续轮廓与离散像元
 
@@ -108,9 +108,9 @@ Drizzle消费同一原生P；有空间标度时先形成h_ref=(α/α_*)P，再�
 
 核验覆盖半高点、平移、归轴等价、解析积分、有限窗份额、子像元相位和空间留出。对不同θ的非等价模型取最小残差会产生选择效应，不能宣称该步骤保持参数或残差。无噪声恒等式检验数学定义，带噪重复采样检验偏差和覆盖，二者分别报告。
 
-附录数值积分构型s_x=2.3、s_y=3.1、A=7在[-30,30]²的积分约104.5309487，整平面解析约104.5312596；有限窗与求积离散化要分别收敛，不能仅由一个残差断言误差全来自窗外。已有Moffat尺度对照见[尺度复算脚本](../../../实验/absolute-snr/code/audit/route2/exp04_moffat4_sigma.py)。生产调用与模型能力由工程差异记录，不因本页公式存在就视作完成。
+附录数值积分构型s_x=2.3、s_y=3.1、A=7在[-30,30]²的积分约104.5309487，整平面解析约104.5312596；有限窗与求积离散化要分别收敛，不能仅由一个残差断言误差全来自窗外。已有Moffat尺度对照见尺度复算脚本。生产调用与模型能力由工程差异记录，不因本页公式存在就视作完成。
 
-已有同族对照采用真实518星（train414/hold104）的相同样本、窗口和L1指标：spatial中位0.0986、circular中位0.2058；详情及脚本/日志见[ROUND6运行记录](../../../实验/normalize-precision-p5/RUN.md)。这是约2.09的比值，不能沿用早先不同统计量拼出的“3.5倍”。把留出星放回顶点得到L1=0是泄漏对照，不能当模型外推精度。这里转录已存记录，本轮未重跑，支持域/仪器/星族之外不宣称同样改善。
+已有同族对照采用真实518星（train414/hold104）的相同样本、窗口和L1指标：spatial中位0.0986、circular中位0.2058；详情及脚本/日志见ROUND6运行记录。这是约2.09的比值，不能沿用早先不同统计量拼出的“3.5倍”。把留出星放回顶点得到L1=0是泄漏对照，不能当模型外推精度。这里转录已存记录，本轮未重跑，支持域/仪器/星族之外不宣称同样改善。
 
 ## 7. 参考文献
 
@@ -118,4 +118,4 @@ Drizzle消费同一原生P；有空间标度时先形成h_ref=(α/α_*)P，再�
 
 [2] Astropy. [Moffat2D模型](https://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Moffat2D.html)，通用轮廓参数与FWHM的独立实现对照。
 
-过程记录与复算示例见[记录](../../../实验/documentation-refactor/docs/PSF_CALCULATION_EXAMPLE.md)；正文定义不以未配套复现载体的历史读数作为验证依据。
+过程记录与复算示例见记录；正文定义不以未配套复现载体的历史读数作为验证依据。

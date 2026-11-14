@@ -46,6 +46,6 @@ ACSD_DEV_MODE 只决定是否编入被动开发中间快照/详细性能探针�
 
 ## 9. 科学定义与实现状态
 
-全项目物理模型由[统一科学模型](UNIFIED_SCIENCE_MODEL.md)和[数据语义](DATA_SEMANTICS.md)承载；阶段一因果链由[Normalize](../normalize/NORMALIZE_SCIENCE.md)统一，各专题细化公式与适用域。正式对象见[Normalize数据合同](../../engineering/contracts/NORMALIZE_DATA.md)，C++消费与迁移见[接口规格](../../detail/normalize/contracts.md)。
+全项目物理模型由[统一科学模型](UNIFIED_SCIENCE_MODEL.md)和[数据语义](DATA_SEMANTICS.md)承载；阶段一因果链由[Normalize](../normalize/NORMALIZE_SCIENCE.md)统一，各专题细化公式与适用域。正式对象见[Normalize数据合同](../../engineering/rebuild/OBJECTS.md)，C++消费与迁移见接口规格。
 
-生产实现与证据集中见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。独立实验可以证伪模型或界定误差；代码存在、实际运行和独立支持分别报告。
+生产实现与证据集中见[科学实施差异](../../engineering/rebuild/MODULES.md)。独立实验可以证伪模型或界定误差；代码存在、实际运行和独立支持分别报告。

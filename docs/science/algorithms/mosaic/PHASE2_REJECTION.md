@@ -888,6 +888,6 @@ a_k=A_kw_k/\sum_j A_jw_j.
 
 ### D6.5 API、资源与独立数值验证
 
-原有 P2RejectionPlanRequest/Plan、P2EligibilityGatherInput/Output、P2CandidateStack、P2RejectionDecision、P2LargeScaleParams、分类参数、10种 typed 参数仍为完整规范；实际 C 函数参数/所有权见[模块细则](../../../detail/mosaic/modules.md)。kernel <=64 候选走固定 scratch，>64 堆 scratch；线性/排序/迭代方法的基本开销 O(n) 或 O(nlogn)，多轮排序和 RCR 需再乘迭代数或按源码分支实际 profile，不能全部宣称严格一次 O(nlogn)。生产完整内存要另加 union tile ×512² 的 accepted/nrej/candidates，和按 tile 各帧深度复制的 sample_mask/support/读缓冲，容量随真实深度增加。线程靠 Runtime 租约，取消/磁盘错误必须由上层阻止 partial product 进入最终完成态。
+原有 P2RejectionPlanRequest/Plan、P2EligibilityGatherInput/Output、P2CandidateStack、P2RejectionDecision、P2LargeScaleParams、分类参数、10种 typed 参数仍为完整规范；实际 C 函数参数/所有权见[模块细则](../../../engineering/rebuild/MODULES.md)。kernel <=64 候选走固定 scratch，>64 堆 scratch；线性/排序/迭代方法的基本开销 O(n) 或 O(nlogn)，多轮排序和 RCR 需再乘迭代数或按源码分支实际 profile，不能全部宣称严格一次 O(nlogn)。生产完整内存要另加 union tile ×512² 的 accepted/nrej/candidates，和按 tile 各帧深度复制的 sample_mask/support/读缓冲，容量随真实深度增加。线程靠 Runtime 租约，取消/磁盘错误必须由上层阻止 partial product 进入最终完成态。
 
 独立 oracle：NIST Rosner 54值和 ESD 单 sqrt/回看k；Siril 1.4.3 winsor/linear harness（**次生对照实现**）、Maples 2018 RCR 加权/未加权3段；方法1/2/3/8在非高斯/离群下确实不同、percentile median=0、minmax等值 tie，十种显式方法的 n=0/1/2/3/4/5/6/15/16/20、NaN/Inf/坏阈值/非法 plan；strided gather/source_indices、低/高的 reason、large_scale tile seam、同输入 1 vs N worker mask bitwise、输出信号误拒/召回/星点通量/扩展源低频功率/噪声方差。与 #20/#21 的统计与 PSF 保护一同分析；旧 NIST、Siril 8000 样本、M42 FPR 数据只是原实验证据，不冒充 D6 新运行。**科学真值、真实 CLI、MC、ABI 本批全部 NOT_RUN**。

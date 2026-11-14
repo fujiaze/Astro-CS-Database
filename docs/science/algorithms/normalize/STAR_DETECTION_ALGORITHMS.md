@@ -1,6 +1,6 @@
 # 图像盲检与引导拟合的数值方法
 
-本页补充[检测科学](../../detection/STAR_DETECTION.md)的数值构造。Normalize先由IPV内部候选求WCS，再以Gaia引导独立science_sources；两者不共享候选职责。真实sdet入口、字段、所有权与调用见[检测模块](../../../detail/normalize/modules/star_detection.md)。本页不授权更换检测核、拟合模型或阈值。
+本页补充[检测科学](../../detection/STAR_DETECTION.md)的数值构造。Normalize先由IPV内部候选求WCS，再以Gaia引导独立science_sources；两者不共享候选职责。真实sdet入口、字段、所有权与调用见[检测模块](../../../engineering/rebuild/MODULES.md)。本页不授权更换检测核、拟合模型或阈值。
 
 ## 噪声与阈值
 
@@ -47,7 +47,7 @@ mag由实际方形窗扣拟合背景后的和计算，非正和得到NaN；API�
 
 盲检阈值表、相位、PSF、种子、注入/匹配数及虚警分母必须绑定。零失败二项试验的一侧下界、至少299的样本条件和择阈多重比较见检测正本；旧n≥298和“经验零失败格点必定是阈”不再作为正式定义。单个宽度上的非单调有限样本读数不能单独证明不同物理区制。
 
-核验需要噪声/相关场、冲激核、边缘、不同宽度/相位、拥挤与不等通量双星、饱和/失配、纯噪声、坐标转换及并发输出。稳定排序不证明全浮点逐位相同，库间行为相似也不证明独立真值。记录的历史读数、召回阈表、谱系备选和逐算子原文完整保存在[检测来源](../../../../实验/documentation-refactor/docs/DETECTION_SOURCE.txt)；本轮未重跑这些实验。
+核验需要噪声/相关场、冲激核、边缘、不同宽度/相位、拥挤与不等通量双星、饱和/失配、纯噪声、坐标转换及并发输出。稳定排序不证明全浮点逐位相同，库间行为相似也不证明独立真值。记录的历史读数、召回阈表、谱系备选和逐算子原文完整保存在检测来源；本轮未重跑这些实验。
 
 ## Gaussian最小二乘、Jacobian与数值后端
 
@@ -80,7 +80,7 @@ mag由实际方形窗扣拟合背景后的和计算，非正和得到NaN；API�
 
 每次solve的具体停机顺序是参数步、代价下降、梯度；xtol=ftol=gtol=1e−3、xtol_abs=1e−6。参数步检查每分量abs(h_j)≤xtol_abs+xtol·abs(p_j)。这类相对步判据按不同参数单位工作，不保证中心误差≤1e−3px。代价分支中当前变量`cost_old=cost−actred`与“旧代价”的注释不符，梯度分支使用此次步前g；需按实际实现与独立负例核对，见E67，不能因注释称“与GSL一致”而当数值等价已证明。
 
-默认20轮，去顶饱和通道60轮；到上限不接受为Success。七参数重试、冻结θ六参数、同宽五参数及轴比失败后重拟合的具体次序见[O12](../../../detail/normalize/modules/star_detection.md#o12-椭圆高斯与lm数值过程)。降维是当前回退政策，不能证明对任意真实椭圆PSF都无偏；比较模型残差、定位和形状并保留失败构型。
+默认20轮，去顶饱和通道60轮；到上限不接受为Success。七参数重试、冻结θ六参数、同宽五参数及轴比失败后重拟合的具体次序见[O12](../../../engineering/rebuild/MODULES.md)。降维是当前回退政策，不能证明对任意真实椭圆PSF都无偏；比较模型残差、定位和形状并保留失败构型。
 
 拟合残差的MAD=median(abs(f−median(f)))与RMSE=√(Σf²/m)是两个量。O13使用1.482602218505602MAD/A，内部码名RMSE_TOO_LARGE不改变这一事实；这也不同于Poisson误差、背景估计方差或参数标准误。
 
@@ -114,4 +114,4 @@ mag由实际方形窗扣拟合背景后的和计算，非正和得到NaN；API�
 8. [SExtractor 2.28.2 refine.c](https://github.com/astromatic/sextractor/blob/2.28.2/src/refine.c)是本轮查阅的作者代码版本。其分裂基准取根对象fdflux，枝减当前阈底；gatherup包含幅度/交叉矩及随机分配，区别于本项目轴向score的确定argmax。文件头为GPL-3.0-or-later，纠正旧detail的LGPL描述；本轮未复制其源码。
 9. [SEP 1.4.1 deblend.c](https://github.com/sep-developers/sep/blob/v1.4.1/src/deblend.c)与[许可证](https://github.com/sep-developers/sep/blob/v1.4.1/licenses/LGPL_LICENSE.txt)供独立分裂参考，不能将SEP许可套给SExtractor。仅核对参考位置/部分分支，未完整复现实验。
 
-CLEAN/DAOFIND/Kron的备选身份与当前O1–O16逐项规格见[模块详细设计](../../../detail/normalize/modules/star_detection.md)，本轮不切换检测器。Kron的一阶矩和k=2.5/损失约6%为基线转引，未经原文与构型确认不升级为通用通量保证；Irwin1985、Nielsen1999的旧转引缺完整著录，不编造页码。独立方法对照不能替代实际运行和来源绑定。
+CLEAN/DAOFIND/Kron的备选身份与当前O1–O16逐项规格见[模块详细设计](../../../engineering/rebuild/MODULES.md)，本轮不切换检测器。Kron的一阶矩和k=2.5/损失约6%为基线转引，未经原文与构型确认不升级为通用通量保证；Irwin1985、Nielsen1999的旧转引缺完整著录，不编造页码。独立方法对照不能替代实际运行和来源绑定。

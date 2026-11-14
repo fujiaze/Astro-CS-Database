@@ -1,6 +1,6 @@
 # CCD与CMOS缺陷、修复及不确定度
 
-本分册从[Normalize科学链](../normalize/NORMALIZE_SCIENCE.md)与[校准](CALIBRATION.md)定义缺陷分类、列检测、修复和误差传播。正式对象与能力状态见[Normalize数据合同](../../engineering/contracts/NORMALIZE_DATA.md)，生产实现状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+本分册从[Normalize科学链](../normalize/NORMALIZE_SCIENCE.md)与[校准](CALIBRATION.md)定义缺陷分类、列检测、修复和误差传播。正式对象与能力状态见[Normalize数据合同](../../engineering/rebuild/OBJECTS.md)，生产实现状态见[科学实施差异](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 缺陷的物理分类
 
@@ -63,7 +63,7 @@
 
 验证分别比较缺陷识别、信号预测和信息传播：母版固定列与天体结构的混合；常量、线性梯度和星核穿过坏列；相关与独立邻元；宽缺陷及贴边单侧复制。检查J的实际系数、JCJᵀ、修复与邻元的协方差，以及使用全部样本后的最终估计方差。κ的改变只检验配置政策，不证明完整统计模型。
 
-无缺陷时信号算子应为恒等；有缺陷时与实际插值规则一致。错误掩膜、遗漏交叉协方差、重复把修复视为独立观测等负例需能被实验区分。已有缺陷探针保存在[背景单元缺陷脚本](../../../实验/additive-sky-seamless/code/g08_defect_probe.py)；其输入域和结果不能自动推广到所有缺陷。
+无缺陷时信号算子应为恒等；有缺陷时与实际插值规则一致。错误掩膜、遗漏交叉协方差、重复把修复视为独立观测等负例需能被实验区分。已有缺陷探针保存在背景单元缺陷脚本；其输入域和结果不能自动推广到所有缺陷。
 
 ## 6. 参考文献
 
@@ -81,4 +81,4 @@
 
 [7] SDSS. [Imaging Data Caveats](https://www.sdss4.org/dr17/imaging/caveats/)。
 
-过程记录与复算示例见[记录](../../../实验/documentation-refactor/docs/CCD_DEFECT_OBSERVATIONS.md)；正文定义不以未配套复现载体的历史读数作为验证依据。
+过程记录与复算示例见记录；正文定义不以未配套复现载体的历史读数作为验证依据。

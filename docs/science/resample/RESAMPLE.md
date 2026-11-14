@@ -1,6 +1,6 @@
 # 单信号球面 HiPS 到平面 FITS 的数值重采样
 
-本分册依据[最高设计](../../ACSD_DESIGN.md)与[平面导出合同](../projection/HIPS_TO_FITS.md)，定义已有球面信号的数值重采样及几何、图像质量影响。输入量见[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，实现状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+本分册依据[最高设计](../../ACSD_DESIGN.md)与[平面导出合同](../projection/HIPS_TO_FITS.md)，定义已有球面信号的数值重采样及几何、图像质量影响。输入量见[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)，实现状态见[科学实施差异](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 重采样是已成像信号的数值表示变更
 
@@ -60,7 +60,7 @@ V=\begin{pmatrix}1&1&1\\x_0&x_1&x_2\\y_0&y_1&y_2\end{pmatrix}.
 \]
 但输入是 HEALPix **叶面积平均值** 时尚有 cell averaging/source PSF/球面曲率与 WCS 的模型误差，不能把本式用作整个 Stage3 physical brightness error certificate。针对不规则点集的真实影响需真实几何采样与有真值的 forward scene 实验。
 
-同一个输入 leaf 在候选角重复时，对随机变量的权要先按完整 leaf ID 聚合：`a_j=\sum_{k:id(k)=j}c_k`，再在**不同叶独立**条件下得到 `Var(\widehat B)=\sum_j a_j^2V_j`；一般含跨叶相关时为 `a^TCa`。当前 `p3_uncertainty_propagate` 已包含重复叶聚合，不应沿用 #88 旧行号把现版误判为未修。纯数学对照见 [graph_and_affine_oracles.py](../../../实验/innovation-closure/code/graph_and_affine_oracles.py)；真实 Stage3 full-sky 几何和 E2 尚待 #90/#88 分别验证。
+同一个输入 leaf 在候选角重复时，对随机变量的权要先按完整 leaf ID 聚合：`a_j=\sum_{k:id(k)=j}c_k`，再在**不同叶独立**条件下得到 `Var(\widehat B)=\sum_j a_j^2V_j`；一般含跨叶相关时为 `a^TCa`。当前 `p3_uncertainty_propagate` 已包含重复叶聚合，不应沿用 #88 旧行号把现版误判为未修。纯数学对照见 graph_and_affine_oracles.py；真实 Stage3 full-sky 几何和 E2 尚待 #90/#88 分别验证。
 
 ## 4. 面积交叠核与相关性
 
@@ -88,7 +88,7 @@ HiPS 的父层本来是从叶层再次粗化的图像，而阶段三进一步在
 
 返回一个二维 FITS signal 图像，头中记录 FITS WCS、BUNIT、有效光度系统/响应说明、实际层序和采样核。NaN 表示不支持/无数据，零与负数是合法科学信号。不要要求阶段二额外发布 support/variance/ivar 来让现有 export API 通过；应按单信号产品修改阶段三消费合同。
 
-具体可用核和生产消费限制以[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)为准。独立评价在同一真值世界中分离Drizzle、层级派生和Export；几何构型与保留证据见[球面实验报告](../../../实验/healpix-polar/REPORT_experiment.md)。
+具体可用核和生产消费限制以[科学实施差异](../../engineering/rebuild/MODULES.md)为准。独立评价在同一真值世界中分离Drizzle、层级派生和Export；几何构型与保留证据见球面实验报告。
 
 ## 7. 参考文献
 

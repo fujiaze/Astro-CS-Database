@@ -108,18 +108,18 @@ OpenMP 的逐像元工作应消费宿主租约；原始 `ac_set_num_threads` 改
 
 共址 `tests/test_photometry_apply.cpp` 的路径需以当前文件树核对，不能由文档登记推断测试存在或已通过。数学、静态接线、已有局部记录与真实全链运行分别报告[3,6]。
 
-单位声明、暗场外推、真实帧标度和 NumPy 比较的详细保留读数与来源身份见[证据记录](../../../../实验/normalize-precision-p5/DOCUMENTATION_EVIDENCE_NOTES.md)，其中未复测部分不能当成当前运行结果。
+单位声明、暗场外推、真实帧标度和 NumPy 比较的详细保留读数与来源身份见证据记录，其中未复测部分不能当成当前运行结果。
 
 ## 参考文献
 
 [1] [校准算术与共享误差](../../calibration/CALIBRATION.md)。
 
-[2] [Normalize 数据合同](../../../engineering/contracts/NORMALIZE_DATA.md)。
+[2] [Normalize 数据合同](../../../engineering/rebuild/OBJECTS.md)。
 
-[3] [Normalize 生产链与责任](../../../engineering/architecture/NORMALIZE_PIPELINE.md)。
+[3] [Normalize 生产链与责任](../../../engineering/rebuild/PIPELINE.md)。
 
-[4] [配置合同](../../../engineering/contracts/CONFIG.md)。
+[4] [配置合同](../../../engineering/rebuild/API.md)。
 
 [5] [缺陷检测与修复算法](COSMETIC_ALGORITHMS.md)。
 
-[6] [科学设计与实现差异](../../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+[6] [科学设计与实现差异](../../../engineering/rebuild/MODULES.md)。

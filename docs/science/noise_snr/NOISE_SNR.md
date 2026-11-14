@@ -1,6 +1,6 @@
 # 噪声、条件参考 SNR 与面亮度精度
 
-本分册从[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)推导 Normalize 参考精度及其在 Mosaic 中的适用条件。数据表达见 [Normalize 数据合同](../../engineering/contracts/NORMALIZE_DATA.md)，生产实现与验证状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+本分册从[统一科学模型](../unified/UNIFIED_SCIENCE_MODEL.md)推导 Normalize 参考精度及其在 Mosaic 中的适用条件。数据表达见 [Normalize 数据合同](../../engineering/rebuild/OBJECTS.md)，生产实现与验证状态见[科学实施差异](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 被估计量与观测域
 

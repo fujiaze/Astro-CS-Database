@@ -1,6 +1,6 @@
 # ACSD 统一科学模型｜观测、精度、球面重建与最终产品
 
-本分册依据[最高设计](../../ACSD_DESIGN.md)，统一观测量、条件精度、球面算子和最终产品含义。专题推导由[Normalize](../normalize/NORMALIZE_SCIENCE.md)、[噪声](../noise_snr/NOISE_SNR.md)、[Drizzle](../drizzle/DRIZZLE.md)与[背景](../sky/UPM.md)承接；实现与证据状态见[科学实现差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+本分册依据[最高设计](../../ACSD_DESIGN.md)，统一观测量、条件精度、球面算子和最终产品含义。专题推导由[Normalize](../normalize/NORMALIZE_SCIENCE.md)、[噪声](../noise_snr/NOISE_SNR.md)、[Drizzle](../drizzle/DRIZZLE.md)与[背景](../sky/UPM.md)承接；实现与证据状态见[科学实现差异](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 系统边界与用户选择
 
@@ -157,7 +157,7 @@ export 是既有单信号 HiPS 的平面重采样，不从单图像恢复不存�
 
 Normalize采用固定参考源条件下的GLS方差。协方差半正定时区分观测子空间、精确约束与参数可辨识性；冗余背景参数不自动使通量不可估计。满列秩R并且模板/背景/协方差经同一算子传递时，条件信息保持；降采样与选择一般不保持。推导见[噪声分册](../noise_snr/NOISE_SNR.md)。
 
-独立证据分别回答解析量纲与恒等式、数值求积误差、随机覆盖率、真实输入适用域和生产实现是否命中；局部算术正确不等于真实全链完成。实现与运行事实由[科学实现差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)维护。
+独立证据分别回答解析量纲与恒等式、数值求积误差、随机覆盖率、真实输入适用域和生产实现是否命中；局部算术正确不等于真实全链完成。实现与运行事实由[科学实现差异](../../engineering/rebuild/MODULES.md)维护。
 
 ## 10. 参考文献
 

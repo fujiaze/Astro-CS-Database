@@ -435,7 +435,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 
 ## D7-B｜现行 Stage3 NESTED 重采样、有效值、统计和资源正式设计（2026-10-17）
 
-**证据基线**：完整阅读 `63eccbb6133aef56389641d43c55df6e243819c5` 的 427 行原文（原 blob `35e05649bba5bc4a6e2473261299e9d3e32ec317`，清单 36496 bytes）与当前 427 行正文；原 §1–14 的 G3/G4、API、缓存、复杂度、DISP、实验原设计及文献均保留。本文新增的是以 **main 51e06540eb021c7272e87cf67b34e53c0648cf7a** 的源码为事实的 CURRENT 合同与唯一研究 TARGET；原文旧版文件行数、FIFO状态、估计数、会话入口等只保留为历史参照。现行头 `p3_resample.h` 204 行、实现 `p3_resample.cpp` 606 行；科学原理正本在 [RESAMPLE](../../resample/RESAMPLE.md)，P3 实际消费者在 [Export modules](../../../detail/export/modules.md)，FITS 发布见 [FITS 实现](PHASE3_FITS_IMPL.md)，不要从本章倒推出 P1 HEALPix 曲边已经由 P3 修复。
+**证据基线**：完整阅读 `63eccbb6133aef56389641d43c55df6e243819c5` 的 427 行原文（原 blob `35e05649bba5bc4a6e2473261299e9d3e32ec317`，清单 36496 bytes）与当前 427 行正文；原 §1–14 的 G3/G4、API、缓存、复杂度、DISP、实验原设计及文献均保留。本文新增的是以 **main 51e06540eb021c7272e87cf67b34e53c0648cf7a** 的源码为事实的 CURRENT 合同与唯一研究 TARGET；原文旧版文件行数、FIFO状态、估计数、会话入口等只保留为历史参照。现行头 `p3_resample.h` 204 行、实现 `p3_resample.cpp` 606 行；科学原理正本在 [RESAMPLE](../../resample/RESAMPLE.md)，P3 实际消费者在 [Export modules](../../../engineering/rebuild/MODULES.md)，FITS 发布见 [FITS 实现](PHASE3_FITS_IMPL.md)，不要从本章倒推出 P1 HEALPix 曲边已经由 P3 修复。
 
 ### B1. 输入事实、真正的 HiPS 格式与坐标离散
 

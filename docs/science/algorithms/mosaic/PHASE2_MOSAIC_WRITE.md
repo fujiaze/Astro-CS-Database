@@ -1,6 +1,6 @@
 # Phase 2 最终单 Signal HiPS Writer：算法、生产接口与 Export 科学身份
 
-**D5 完整长卷语义重构（2026-10-17）**。全文复读 `63eccbb6133aef56389641d43c55df6e243819c5:docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md` 原 524 行（blob `ade52b4f0f307c7503a29b224eb04c7bd81c7483`），对照当前 `module_adapters.cpp::p2_op_write`、AIO HiPS Writer 与 [Mosaic 模块](../../../detail/mosaic/modules.md#write)、[Export 模块](../../../detail/export/modules.md)。本篇保留原 ALG-P2-HIPS-001..004 的数值/布局/资源/边界/Oracle，但纠正其把旧独立工具 `coverage/tools/stage2.cpp::main` 与旧多通道能力冒充生产 CLI 的描述。生产代码审查基线 `322da061bd9f46cd001a5a45c0f226a05b57777b`，文档不代表 D5 新编译或真实运行。
+**D5 完整长卷语义重构（2026-10-17）**。全文复读 `63eccbb6133aef56389641d43c55df6e243819c5:docs/science/algorithms/mosaic/PHASE2_MOSAIC_WRITE.md` 原 524 行（blob `ade52b4f0f307c7503a29b224eb04c7bd81c7483`），对照当前 `module_adapters.cpp::p2_op_write`、AIO HiPS Writer 与 [Mosaic 模块](../../../engineering/rebuild/MODULES.md)、[Export 模块](../../../engineering/rebuild/MODULES.md)。本篇保留原 ALG-P2-HIPS-001..004 的数值/布局/资源/边界/Oracle，但纠正其把旧独立工具 `coverage/tools/stage2.cpp::main` 与旧多通道能力冒充生产 CLI 的描述。生产代码审查基线 `322da061bd9f46cd001a5a45c0f226a05b57777b`，文档不代表 D5 新编译或真实运行。
 
 ## 1. 最终科学形状：唯一 Signal
 

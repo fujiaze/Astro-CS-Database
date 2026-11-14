@@ -1,6 +1,6 @@
 # 天体测量与世界坐标系
 
-本分册依据[Normalize科学链](../normalize/NORMALIZE_SCIENCE.md)，定义逐帧天测、坐标桥接、TAN与SIP，以及独立残差评价。正式对象见[Normalize数据合同](../../engineering/contracts/NORMALIZE_DATA.md)，生产调用和证据状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+本分册依据[Normalize科学链](../normalize/NORMALIZE_SCIENCE.md)，定义逐帧天测、坐标桥接、TAN与SIP，以及独立残差评价。正式对象见[Normalize数据合同](../../engineering/rebuild/OBJECTS.md)，生产调用和证据状态见[科学实施差异](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 求解责任与来源
 
@@ -76,4 +76,4 @@ Drizzle消费本帧已解WCS+SIP以定义真实像元足迹，science_sources与
 
 [4] Astropy. [WCS接口与独立变换](https://docs.astropy.org/en/stable/wcs/index.html)。
 
-过程记录与复算示例见[记录](../../../实验/documentation-refactor/docs/ASTROMETRY_BUDGET_RECORDS.md)；正文定义不以未配套复现载体的历史读数作为验证依据。
+过程记录与复算示例见记录；正文定义不以未配套复现载体的历史读数作为验证依据。

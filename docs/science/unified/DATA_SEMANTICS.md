@@ -1,6 +1,6 @@
 # ACSD 数据语义｜三阶段产品、单位、坐标与无效值
 
-本分册从[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](UNIFIED_SCIENCE_MODEL.md)定义三阶段产品、单位、坐标和无效值。字段与持久化结构由[Normalize数据合同](../../engineering/contracts/NORMALIZE_DATA.md)承载。
+本分册从[最高设计](../../ACSD_DESIGN.md)与[统一科学模型](UNIFIED_SCIENCE_MODEL.md)定义三阶段产品、单位、坐标和无效值。字段与持久化结构由[Normalize数据合同](../../engineering/rebuild/OBJECTS.md)承载。
 
 ## 1. 一条科学量传递链
 
@@ -20,7 +20,7 @@ HiPS 的 Norder/Dir/Npix 目录、NESTED index、HiPS 层级 FITS tile、MOC（�
 - 外部 RA/Dec 使用 ICRS 度；球面计算用弧度和单位方向向量。RA 范围 [0°,360°)，禁止在回绕处直接对经度作直线插值；极区的经度无单独意义。
 - HEALPix 使用 NESTED，nside=2^K，ipix 的绝对编号与 tile 内存像元序分开处理。
 - ACSD 的 local NESTED→FITS row-major 映射约定：local=(x,y) Morton 位交错，x 在偶位、y 在奇位，tile 512 时 row=511−x、col=y、offset=row×512+col。该布局须与独立HiPS生产者核对；NESTED位交错本身不能单独确定FITS矩阵方向。
-- 所有阶段读写使用同一个公共转换接口，独立验证采用外部WCS/HiPS生产者；实现位置见[科学实现差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+- 所有阶段读写使用同一个公共转换接口，独立验证采用外部WCS/HiPS生产者；实现位置见[科学实现差异](../../engineering/rebuild/MODULES.md)。
 
 球面 leaf 立体角 Ω_leaf=4π/(12nside²)。HEALPix 叶边界是分段曲线，不能以叶的等面积性推出任意“四角大圆弧面积”恰是其真实面积。
 
@@ -98,7 +98,7 @@ HiPS 的 Norder/Dir/Npix 目录、NESTED index、HiPS 层级 FITS tile、MOC（�
 
 ## 8. 稀疏 SNR 控制点的生产对象
 
-Normalize 每帧唯一正式精度载体为 frame_science.json，包含 Drizzle 后的球面 control records、逐点 F_ref/V_F/SNR、response/reference、局部 PSF/协方差、支持域与缺项状态，完整合同见[Normalize数据合同](../../engineering/contracts/NORMALIZE_DATA.md)。Catalogue HiPS 只可作为浏览投影；像素网格 sparse_snr_layer 是兼容视图，不能因 schema 可加载就视为球面数据完备。
+Normalize 每帧唯一正式精度载体为 frame_science.json，包含 Drizzle 后的球面 control records、逐点 F_ref/V_F/SNR、response/reference、局部 PSF/协方差、支持域与缺项状态，完整合同见[Normalize数据合同](../../engineering/rebuild/OBJECTS.md)。Catalogue HiPS 只可作为浏览投影；像素网格 sparse_snr_layer 是兼容视图，不能因 schema 可加载就视为球面数据完备。
 
 控制点的 C_ref 依 reference-source 条件计算；actual-scene 面亮度方差另行求值。T 有单位和独立 availability；没有 T 不能假设为 1。无精度的合法信号仍可发布，但下游必须报告精度能力。
 
@@ -118,7 +118,7 @@ Mosaic 只接收同一选定 HEALPix target order，混阶明确拒绝（现有 
 
 ## 10. 研究与实现对照
 
-实现状态见[科学实现差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。外部兼容性依据FITS[1]与HiPS[2]，用独立读者检验坐标、单位和文件方向；本项目writer与reader互相一致不足以证明兼容性。
+实现状态见[科学实现差异](../../engineering/rebuild/MODULES.md)。外部兼容性依据FITS[1]与HiPS[2]，用独立读者检验坐标、单位和文件方向；本项目writer与reader互相一致不足以证明兼容性。
 
 [1] FITS Working Group. [FITS标准](https://fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.pdf)。
 

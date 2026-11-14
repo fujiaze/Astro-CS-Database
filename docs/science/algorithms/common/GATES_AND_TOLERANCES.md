@@ -46,7 +46,7 @@ Moffat4 的残差尺度、FWHM、全 PSF 总通量及像元积分口径按 PSF �
 
 ## 外部闭环工具与已知边界
 
-仓内工具 [closure_metric.py](../../../../eng/tools/astrometry/closure_metric.py) [6] 不导入 ACSD 科学库，使用 Astropy WCS、外部 NPZ 星表及残差向量；它提供 `compute`、`check`、`fault-inject` 和 `selftest`。示例命令从仓库根执行，路径须由运行清单解析后填入：
+仓内工具 closure_metric.py [6] 不导入 ACSD 科学库，使用 Astropy WCS、外部 NPZ 星表及残差向量；它提供 `compute`、`check`、`fault-inject` 和 `selftest`。示例命令从仓库根执行，路径须由运行清单解析后填入：
 
 ```bash
 python3 eng/tools/astrometry/closure_metric.py compute --product RUN_PRODUCT --catalog CATALOG.npz --flavor solved --out ANALYSIS_DIR
@@ -64,9 +64,9 @@ python3 eng/tools/astrometry/closure_metric.py fault-inject A.json --mode count-
 
 登记中的 NGC55、LDN43 和 Galaxy Center 例曾分别列出 solved 中位残差 0.5644、0.4202、0.1077 pixel，以及匹配率约 4.86%、3.52%、31.32%。这些数值没有在本页绑定可重跑的逐帧输入和输出，且登记指出母版单位存在限制；它们不作为当前阈值、当前精度或两跑零漂移的实证。读取证据时须回到对应实验单元保留完整过程，不能用一行 PASS 代替。
 
-`gate2_psf_oracle.py` 的原址及输入当前未取得，不能借其四个阈值背书。已有独立源引导与盲检对照入口保留在[测光实验](../../../../实验/photometric-magnitude/code/step4_guided_vs_blind.py) [7]；真实无原始 WCS 的单帧 IPV 记录见[独立复核](../../../../实验/normalize-precision-p5/INDEPENDENT_REVIEW_950C261.md) [8]。这些证据各按其输入和估计量解释，不合并成全 Normalize 验证。
+`gate2_psf_oracle.py` 的原址及输入当前未取得，不能借其四个阈值背书。已有独立源引导与盲检对照入口保留在测光实验 [7]；真实无原始 WCS 的单帧 IPV 记录见独立复核 [8]。这些证据各按其输入和估计量解释，不合并成全 Normalize 验证。
 
-质心合成、两跑比较、FP80 与几何扫描的来源读数和适用限制保留在[证据记录](../../../../实验/normalize-precision-p5/DOCUMENTATION_EVIDENCE_NOTES.md)，完整来源文字可按记录中的 Git blob 恢复。
+质心合成、两跑比较、FP80 与几何扫描的来源读数和适用限制保留在证据记录，完整来源文字可按记录中的 Git blob 恢复。
 
 接缝评价另属背景科学正本[9]：在实际重叠边界测阶跃，同时检查真实低频、星点光度及未测边界。把背景全部扣平可使差值退化，不能据残差小证明天空或通带响应正确，也不把固定“2 倍参考”当无来源的通用标准。
 
@@ -80,12 +80,12 @@ python3 eng/tools/astrometry/closure_metric.py fault-inject A.json --mode count-
 
 [4] [Normalize 科学链](../../normalize/NORMALIZE_SCIENCE.md)。
 
-[5] [Normalize 数据合同](../../../engineering/contracts/NORMALIZE_DATA.md)。
+[5] [Normalize 数据合同](../../../engineering/rebuild/OBJECTS.md)。
 
-[6] [外部闭环测量工具](../../../../eng/tools/astrometry/closure_metric.py)。
+[6] 外部闭环测量工具。
 
-[7] [引导与盲检对照脚本](../../../../实验/photometric-magnitude/code/step4_guided_vs_blind.py)。
+[7] 引导与盲检对照脚本。
 
-[8] [阶段一独立复核](../../../../实验/normalize-precision-p5/INDEPENDENT_REVIEW_950C261.md)。
+[8] 阶段一独立复核。
 
 [9] [相对天空与低频保真](../../sky/UPM.md)。

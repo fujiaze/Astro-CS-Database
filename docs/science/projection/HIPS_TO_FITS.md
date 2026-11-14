@@ -1,6 +1,6 @@
 # 阶段三：单信号 HiPS → 平面 WCS FITS
 
-本分册依据[最高设计](../../ACSD_DESIGN.md)，定义单信号HiPS的平面WCS导出。输入量见[数据语义](../unified/DATA_SEMANTICS.md)，数值核见[重采样](../resample/RESAMPLE.md)，实现状态见[科学实施差异](../../engineering/architecture/SCIENCE_IMPLEMENTATION_DELTA.md)。
+本分册依据[最高设计](../../ACSD_DESIGN.md)，定义单信号HiPS的平面WCS导出。输入量见[数据语义](../unified/DATA_SEMANTICS.md)，数值核见[重采样](../resample/RESAMPLE.md)，实现状态见[科学实施差异](../../engineering/rebuild/MODULES.md)。
 
 ## 1. 固定产品职责
 

@@ -65,20 +65,20 @@ F 是与完整 PSF 配对的总通量。求解窗截断模板，不重新归一�
 
 对确定性标度 alpha，固定输入方差应满足 `v'=alpha²v`、`ivar'=ivar/alpha²`；有限精度下用声明容差，回乘不承诺逐位恒等。gain 诊断式 `mu/g+(RN/g)²` 只适用于对应原生 ADU 条件，经验底噪已含的分量不能再次相加。缺 gain 只有在遗漏项确为 PSD、模板和观测域固定等条件满足时才支持条件 SNR 上界[1]。
 
-已有[局部 GLS 与 Monte Carlo 记录](../../../../实验/normalize-precision-p5/evidence/ROUND1_VERIFY.log)[6]保留异方差、背景、秩亏、标度和 leaf 0 构型。它支持记录中的局部模型，不证明真实逐帧响应、空间积分 PSF、完整 reader 或发布事务已闭合；本页没有重新运行。
+已有局部 GLS 与 Monte Carlo 记录[6]保留异方差、背景、秩亏、标度和 leaf 0 构型。它支持记录中的局部模型，不证明真实逐帧响应、空间积分 PSF、完整 reader 或发布事务已闭合；本页没有重新运行。
 
-方差平面负预测、信号损失及各 oracle 比较目标的来源记录保留在[证据说明](../../../../实验/normalize-precision-p5/DOCUMENTATION_EVIDENCE_NOTES.md)。数值目标、实现自陈与可复跑结果分别判读。
+方差平面负预测、信号损失及各 oracle 比较目标的来源记录保留在证据说明。数值目标、实现自陈与可复跑结果分别判读。
 
 ## 参考文献
 
 [1] [噪声与条件参考精度](../../noise_snr/NOISE_SNR.md)。
 
-[2] [Normalize 数据合同](../../../engineering/contracts/NORMALIZE_DATA.md)。
+[2] [Normalize 数据合同](../../../engineering/rebuild/OBJECTS.md)。
 
-[3] [配置合同](../../../engineering/contracts/CONFIG.md)。
+[3] [配置合同](../../../engineering/rebuild/API.md)。
 
-[4] [公共 API](../../../engineering/api/PUBLIC_API.md)。
+[4] [公共 API](../../../engineering/rebuild/API.md)。
 
-[5] [Normalize 生产链](../../../engineering/architecture/NORMALIZE_PIPELINE.md)。
+[5] [Normalize 生产链](../../../engineering/rebuild/PIPELINE.md)。
 
-[6] [局部 GLS 与 Monte Carlo 记录](../../../../实验/normalize-precision-p5/evidence/ROUND1_VERIFY.log)。
+[6] 局部 GLS 与 Monte Carlo 记录。
