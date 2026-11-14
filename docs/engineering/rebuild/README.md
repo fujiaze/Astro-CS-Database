@@ -10,7 +10,8 @@
 4. [PERFORMANCE.md](PERFORMANCE.md)：原主分支具体优化及对等负载下的实际性能分析。
 5. [TASKS.md](TASKS.md)：一条连续执行的工程任务，源码顺序、并发分工、现有已知阻断。
 6. [REVIEW.md](REVIEW.md)：**根据文档和真实代码推理**、查看数据流、分析真实产品的审查办法；不设计自动门禁、人工造绿的夹具或覆盖率评分。
-7. [科学定义](../../science/SCIENCE.md)：实际采用的校准、WCS、Drizzle、传统排异/加权叠加、背景和 Export 数学语义。
+7. **[完整科学文档总索引](../../science/README.md)**：main完整科学模型、校准、天测、PSF、Gaia、响应、测光、噪声、真实球面Drizzle、Mosaic/Sky、传统Rejection/Integration、HiPS/WCS/FITS数值与算法实现，以及V2五篇完整科学基础；[生产科学简要范围](../../science/SCIENCE.md)仅是概要，**不能代替这些分册**。
+8. **[API](API.md)、[OBJECTS](OBJECTS.md)、[EXECUTION](EXECUTION.md)**：当前公开协议、产品与对象身份、资源/线程/块生命周期的详尽技术合同。实际C++头文件优先级最高。
 
 [AGENTS.md](../../../AGENTS.md) 是执行者的简短工作纪律。**可编译接口始终以 include/acsd/ 的现有真实头文件和生产调用为准**；文档不能虚构一个尚未实现的 API。需要改头文件时，先明确消费者及资源生命周期，随同实际代码修改同步维护这组文档。
 
@@ -26,4 +27,4 @@ BLUE、非负 QP、新的相关噪声最优化、全新乘性 flat 屏求解器�
 
 main 生产入口为 `lib/infrastructure/cli/commands.cpp` → `lib/infrastructure/scheduler/src/module_adapters.cpp` → `lib/algorithms/`。V2 已有 `src/runtime/{pipe,memory,storage}.cpp` 等基础设施，但现时 `src/workflows/frames_provider.cpp::read_leaf_block` 忽略请求范围、`src/workflows/mosaic.cpp` 全域物化、`src/coadd/` 沿新统计模型重写旧传统叠加。因此**管道的存在不等于真实数据已经在内存中流动**。已恢复的自动 NSIDE / order18 ROI 只是有用的局部成果，不是工程改造完成。
 
-**施工顺序：先让代码真正打通流水线，再同步本组文档；不得继续累积纯设计文档、回合审查存档和虚假的自动成功声明。** 旧历史文件从当前文档工作树删除；Git版本本身的历史无法通过删除工作树文件抹去，但不会再成为规范入口。不得修改 main。
+**科学与工程必须同时完整迁移**：保留数学推导、生产算法、接口对象、资源/生命周期及真实代码责任。工作流要实际打通内存管道；不得以删科学细节或保留旧文件通信的方式求简单。 旧历史文件从当前文档工作树删除；Git版本本身的历史无法通过删除工作树文件抹去，但不会再成为规范入口。不得修改 main。
