@@ -334,8 +334,6 @@ endif()
 add_library(acsd_contracts_compile OBJECT validation/contracts_compile.cpp)
 target_link_libraries(acsd_contracts_compile PRIVATE acsd_contracts)
 find_package(Python3 3.12 REQUIRED COMPONENTS Interpreter)
-add_custom_target(check_design ALL
- COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_design.py
- WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} VERBATIM)
+# Do not run design document scoring/automatic PASS as part of the build.
+# Runtime debugging/real input reasoning are described in docs/engineering/rebuild/REVIEW.md.
 enable_testing()
-add_test(NAME design_integrity COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_design.py)

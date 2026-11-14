@@ -1,8 +1,8 @@
-# 科学process目录
+# 现有V2注册清单（代码生成器输入）
 
-每行是一份独立维护的算法模块文档，operation是该process内的typed操作白名单。固定调度/注册/资源规则只在[SYSTEM](../SYSTEM.md)维护；公共格式与执行标准不在本目录复制。此表是文档目录，不再维护一份手工代码注册表。生产构建从模块本地声明汇总只读注册表并校验本目录覆盖；实现前不能把本表当已有可执行registry。
+仅给已经接入的 typed bindings 代码生成器提供操作ID，不代表必须研发22种算法。真正的代码模块与内存管道在 [MODULES](../MODULES.md) 和 [PIPELINE](../PIPELINE.md)。这些登记会在旧main算法迁入时与实际注册一起删除/合并；不可把登记数量当作质量指标。
 
-| process_id / 文档 | 模块 | typed operation |
+| 已登记过程 | 当前模块 | 操作ID |
 |---|---|---|
 | [observation.calibrate](observation.calibrate.md) | observation | calibrate_observation |
 | [observation.regroup](observation.regroup.md) | observation | regroup_observation |
@@ -26,19 +26,3 @@
 | [coadd.weights](coadd.weights.md) | coadd | solve_weights |
 | [coadd.integrate](coadd.integrate.md) | coadd | coadd |
 | [projection.export](projection.export.md) | projection | build_export |
-
-**源码迁移任务索引**：每个Process已有科学算法合同，不在22篇内重新复制main源码说明。旧真实生产函数→V2模块文件→最小移植任务/性能与测试分别维护在[01-NORMALIZE](../migration/01-NORMALIZE.md)、[02-GEOMETRY](../migration/02-GEOMETRY.md)、[03-MOSAIC](../migration/03-MOSAIC.md)、[04-EXPORT](../migration/04-EXPORT.md)、[05-RUNTIME](../migration/05-RUNTIME.md)；完整22行独立oracle/性能案例见[07-VERIFICATION](../migration/07-VERIFICATION.md)，任务依赖见[08-EXECUTION](../migration/08-EXECUTION.md)。迁移算法前必须核main实际生产可达入口和旧反例，旧正确的C++核心优先复用；新数学更严格时仅保留旧性能策略，不能退化成低order示范。
-
-## 添加或修改一个process
-
-按[TEMPLATE](TEMPLATE.md)定义一个有明确数据边界的科学步骤，在所属模块声明一次descriptor/typed binding，提供CPU实现与独立反例。输入输出沿公开类型传递，不把每个标量原语变成调度节点。构建自动汇总注册；工作流只选择process_id/operation及显式数据边，框架无需新增算法switch。CLI、合同驱动、独立C++进程内调用必须经过同一registry边界；内部科学helper调用同一实现，不递归建立调度池。
-
-流程组合见[WORKFLOWS](../standards/WORKFLOWS.md)；通用求解方法见[NUMERICS](../standards/NUMERICS.md)。具体实现与证据状态按模块提交和冻结验证记录，本文目录不证明其已经接线。
-
-## 实际接入状态
-
-本目录 22 个 process 文档和 57 个 operation 是科学责任和目标覆盖范围，**不代表每个 operation 都已通过生产级验证**。实际接入与独立证据见 [M0—M6 状态表](../../../audit/IMPLEMENTATION-STATUS.md) 及 [M5 固定用例](../../../../validation/process/README.md)。
-
-## 独立算法复现
-
-每篇末尾“可独立实施的算法合同”固定其步骤、参数来源、资源/停止与独立例；统一门槛见[ALGORITHM_CONTRACTS](../standards/ALGORITHM_CONTRACTS.md)。sources.measure明确窗口/联合GLS/背景/误差，response.integrate明确认证积分，geometry.drizzle明确外存CSR/误差/细化；其余模块也不能只靠骨架段落登记完成。案例目录不意味着生产已实跑。

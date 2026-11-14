@@ -1,84 +1,9 @@
-# photometry.apply：应用空间标度
+# photometry.apply｜现有typed注册信息
 
-状态：本篇规定目标算法及实施合同；已有部分Runtime和科学模块实现，具体完成/验收只看[统一状态](../../../audit/IMPLEMENTATION-STATUS.md)，不能由本文标题推断全部未实现或已通过。本轮仅修文档。公共process标准见[基建骨架](../SYSTEM.md)，字段/输入协议见[API](../API.md)，共享原语见[数值标准](../standards/NUMERICS.md)。
+本文件仅给当前生成器提供operation及观察点标识，**不是独立研究算法、完成证明或自动门禁**。实际科学行为见[SCIENCE](../../../science/SCIENCE.md)，真实main→V2源码迁移见[MODULES](../MODULES.md)，大数据在[PIPELINE](../PIPELINE.md)中按块流动。
 
-## 注册与边界
+当前代码模块：`photometry`。已登记操作：`apply_scale`。
 
-| 项 | 该process的固定声明 |
-|---|---|
-| process_id | `photometry.apply` |
-| 所属模块与代码归属 | `src/photometry`；本模块负责算法及typed adapter |
-| 注册operation白名单 | `apply_scale`；一个操作映射一个本模块typed adapter，不能由字符串调用任意成员 |
-| 输入与输出 | PhotoSolution、NativeObservation、frame → 新NativeObservation/PSF版本。 |
-| 数学依据 | 五份[科学基础](../README.md#科学基础)与本篇算法条款；不继承v1内部接口 |
-| CPU与未来后端 | 当前CPU；逐元素批次，设备位置由基建持有，不在科学对象藏指针。 |
+本process只登记：`photometry.apply.signal`。
 
-## 算法与失败合同
-
-α(u)=exp(-hθ)逐原生样本应用一次；application_id重复identity_conflict；physical bin沿parent应用G Dα。
-
-source端a(source)与detector端α分开；signal/template/noise使用同一实际链及单位L。
-
-输入在基建通用形状检查后由本模块校验科学语义；失败沿Result/Assessment/Issue返回，不exit。缺能力与未达精度/资源上限分别具名，不拿空数组或零variance伪装成功。数学模型改变需先修科学依据，再改本模块及受影响消费者。
-
-## 执行、寿命与观测
-
-按parent样本块并行；旧/新版本同时存活时计峰值；不原位写读者仍借用的观测。
-
-validate/plan/run/finalize遵统一状态机；输入为不可变Ref/有界借用，plan只给保守资源模型与可行分块，正式数值计算只在run。输出用Storage封存后一次提交；partial仅按科学状态消费，工作流不把partial当完整发布。取消检查、容量arena、跨调用输出寿命与不可控库分配余量按[EXECUTION](../EXECUTION.md)。
-
-默认span及资源快照由框架自动包围每个invocation，带process_id/operation/invocation_id。本process只登记：`photometry.apply.signal`。注册表中的pipeline前缀是稳定语义标签，不限制该process只能从对应命令调用；需要观察其它已有边界时在本篇登记新id并由构建校验唯一性。I/O、资源及FITS writer探针由基建service登记，带当前invocation归因，不在本模块重复登记。数组/模型快照仅复制已在手的选定块，不触发新科学计算/设备读回。
-
-## 独立验收与维护
-
-最小反例：F01/U01；常数及梯度α、bin内变化、重复application_id、模板L单位。还需通过公共注册/取消/资源/单线程与多线程矩阵；计时必须包含本process的读取、执行、封存及明确分摊的共享成本，不能用失败更快冒充优化。
-
-改算法时先改本篇的数学/输入输出/停止与反例，再改模块typed adapter与实现。仅新增本模块已声明operation无需改框架调度分支；改变共享类型/资源规则才联动公共标准。具体函数签名只在唯一公开声明落实，当前接口及能力以公开头/registry核对，规格与代码偏差必须明确记录。
-
-## 算法详细条款
-
-### 生产者的跨模块合同
-
-apply_scale创建新的EffectivePSF：source_scale引用PhotoSolution、frame绑定观测；查询源位置时源端幅值a(source)=exp(h(source)^Tθ)是native ADU/L，生成a(source)*P_native，再经同实际G Dα/R/P等transfer，得到每单位已校准L的模板。这里source端a和detector端α(u_j)分开，不用星心α替代全PSF，也不把未乘a的αP误称L单位的归一模板。source_scale指向fit使用的原PSF/测量依赖，新PSF为后续revision，依赖图无环。跨response的reference c仍由ReferenceSED/response处理，不重复吸收。raw模板与校准模板的unit/reference身份明确，information按其目标L使用相同版本。
-
-### 公开操作语义
-
-| 操作 | 本模块合同 |
-|---|---|
-| apply_scale | solution显式含frame，application_id不重复，原单位与模型匹配；输出新NativeObservation，α空间逐像元；下游PSF/noise/signal只取新revision |
-
-
-### 可复用计算模块组合
-
-目标组合：parent读取 → elementwise exp/区间α → operators G Dα及noise/PSF链 → 有界输出pipe → 封存。
-
-这些是[COMPUTE_MODULES](../standards/COMPUTE_MODULES.md)的强类型库调用，沿同一虚拟计算池、预算和取消域执行。I/O与独立块可重叠，pipe/在途上限和最小进展容量在plan给出；不在本process新建池/磁盘worker或重写公共原语。小型同步helper可直接调用，大块与异步等待交Task组合器，顶层invoke在真正完成后返回。
-
-
-## 直接开发的实施合同
-
-本process的算法复现按[独立实施标准](../standards/ALGORITHM_CONTRACTS.md)验收。全部operation的Input/Output按[FOUNDATION_API的typed规则](../standards/FOUNDATION_API.md#当前科学操作的typed输入标准)从公开参数机械生成；跨度/provider均转强所有权，codec先register_type再登记typed hooks。bounds给最小/最大块和spill能力，plan显式接受PlanOptions，不能读取全局当前块大小。资源key/不可拆相关组/上界项见[DEVELOPMENT本process行](../standards/DEVELOPMENT.md#模块plan和工作单元表)，具体数学/停止仍由本篇拥有。
-
-有全局拟合屏障时拆stream→ordered_accumulator→barrier region：每cohort提交R内聚合状态即可退F，不能让唯一进展cohort等待下一cohort。科学迭代以显式epoch重新准入，work不重置。取消/失败只允许内建清理继续，模块不提交新科学计算；公开输出只在所有必需任务/写入/校验结束后交付。
-
-实施交付包含所属模块plan/kernel/adapter/codec、独立小例/负例及真实service资源/取消证据，逐项门槛见[DEVELOPMENT](../standards/DEVELOPMENT.md)。完整编排代码可参照[校准实施例](../standards/CALIBRATION_WALKTHROUGH.md)，不得复制其中像元公式到其它process。GPU只预留同一批次/内存位置/完成事件边界，不实现后端。
-
-## 可独立实施的算法合同
-
-### 固定应用程序与同数据随机量
-
-validate先查solution.frames中唯一frame、application_id未应用、原单位与response/PSF来源匹配。回溯Native.parent/G到原始physical samples，在每个真实样本按持久化Basis计算h_j，再用exp区间得到α_j；先x'_j=α_j x_j，之后才执行G，不能用bin中心或星心α。PSF的源端a(source)和detector端α分别按本篇既有规则乘入唯一模板，不让平均后的PSF重新归一。
-
-数值端点由x和θ盒的同一signed运算传播。随机influence在原生域为`Dα L_x − diag(α x) H L_θ`，再乘G；x与θ同根就先加两个influence再作covariance，不能加两个独立variance。未知共同root或物理响应项仍unknown。产生新Native/EffectivePSF/error revision，旧引用只读，重复application_id立即identity_conflict。
-
-### 资源、停止与独立例
-
-按真实parent行块，F计x/θ读取、basis、α及输出端点/DQ，R保新模型/G/解引用；大G依赖行遵operators外存，不能全图α常驻。无法认证exp或θ盒时完整误差状态conditional，依请求决定保名义值或precision_exhausted。A-SCALE：x=[2,4]、α=[1,2]、G=[1,1]，真值10，先sum再中心α=1.5会给9。A-SAMEDATA：标量θ=log x且target=1时αx恒1，完整微分为0，错误独立加法非零；检查同根合并。另测重复应用、改变response和重开依赖，不能悄悄复用旧PSF。
-
-## main→V2 源码与性能迁移（工程工作单）
-
-> 当前为**施工计划而非本Process的功能PASS**。正确旧内核优先抽取入V2唯一typed实现；旧接口/Runtime不复制，科学正本仍由本篇拥有。
-
-- **旧生产位置**：main photometry/cpp/src/image_corrector.cpp及校准photometry_apply.cpp；旧#9相同输入测光开关真实链。
-- **V2接收者**：V2 src/photometry/{apply_scale,photometry_apply_process}.cpp；恰好一次Dα和单位/协方差二次律。详细迁移见[模块工作单](../migration/01-NORMALIZE.md)。
-- **测试与性能**：signal×α、variance×α²、ivar÷α²和重复应用拒绝；额外大图pass数。同质量对照和独立科学判据见[性能合同](../migration/06-PERFORMANCE.md)、[22Process验证](../migration/07-VERIFICATION.md)，未实际运行标NOT_RUN。
+重构时若撤并本登记，须同步修改实际代码注册、生成器输入表与消费者，不保留空实现占位。
