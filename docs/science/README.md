@@ -14,58 +14,58 @@
 
 ### 统一观测、适用范围与单位
 
-- [UNIFIED_SCIENCE_MODEL ](unified/UNIFIED_SCIENCE_MODEL.md)
-- [DATA_SEMANTICS ](unified/DATA_SEMANTICS.md)
-- [SCIENCE_SCOPE ](unified/SCIENCE_SCOPE.md)
+- [UNIFIED_SCIENCE_MODEL](unified/UNIFIED_SCIENCE_MODEL.md)
+- [DATA_SEMANTICS](unified/DATA_SEMANTICS.md)
+- [SCIENCE_SCOPE](unified/SCIENCE_SCOPE.md)
 
 ### 校准与原像元质量
 
-- [CALIBRATION ](calibration/CALIBRATION.md)
-- [CCD_DEFECT ](calibration/CCD_DEFECT.md)
-- [CALIBRATION_ALGORITHMS ](algorithms/normalize/CALIBRATION_ALGORITHMS.md)
-- [COSMETIC_ALGORITHMS ](algorithms/normalize/COSMETIC_ALGORITHMS.md)
+- [CALIBRATION](calibration/CALIBRATION.md)
+- [CCD_DEFECT](calibration/CCD_DEFECT.md)
+- [CALIBRATION_ALGORITHMS](algorithms/normalize/CALIBRATION_ALGORITHMS.md)
+- [COSMETIC_ALGORITHMS](algorithms/normalize/COSMETIC_ALGORITHMS.md)
 
 ### Gaia、天测、检测、PSF
 
-- [ASTROMETRY ](detection/ASTROMETRY.md)
-- [STAR_DETECTION ](detection/STAR_DETECTION.md)
-- [PSF ](psf/PSF.md)
-- [PLATESOLVE ](algorithms/normalize/PLATESOLVE.md)
-- [STAR_DETECTION_ALGORITHMS ](algorithms/normalize/STAR_DETECTION_ALGORITHMS.md)
-- [STAR_PSF_ALGORITHMS ](algorithms/normalize/STAR_PSF_ALGORITHMS.md)
+- [ASTROMETRY](detection/ASTROMETRY.md)
+- [STAR_DETECTION](detection/STAR_DETECTION.md)
+- [PSF](psf/PSF.md)
+- [PLATESOLVE](algorithms/normalize/PLATESOLVE.md)
+- [STAR_DETECTION_ALGORITHMS](algorithms/normalize/STAR_DETECTION_ALGORITHMS.md)
+- [STAR_PSF_ALGORITHMS](algorithms/normalize/STAR_PSF_ALGORITHMS.md)
 
 ### 光度与响应
 
-- [PHOTOMETRY ](photometry/PHOTOMETRY.md)
-- [PHOTOMETRIC_FIT ](algorithms/normalize/PHOTOMETRIC_FIT.md)
-- [GAIA_QUERY ](algorithms/common/GAIA_QUERY.md)
+- [PHOTOMETRY](photometry/PHOTOMETRY.md)
+- [PHOTOMETRIC_FIT](algorithms/normalize/PHOTOMETRIC_FIT.md)
+- [GAIA_QUERY](algorithms/common/GAIA_QUERY.md)
 
 ### 噪声与Drizzle
 
-- [NOISE_SNR ](noise_snr/NOISE_SNR.md)
-- [DRIZZLE ](drizzle/DRIZZLE.md)
-- [DRIZZLE_GEOMETRY ](algorithms/export/DRIZZLE_GEOMETRY.md)
-- [HEALPIX_MAPPING ](algorithms/export/HEALPIX_MAPPING.md)
+- [NOISE_SNR](noise_snr/NOISE_SNR.md)
+- [DRIZZLE](drizzle/DRIZZLE.md)
+- [DRIZZLE_GEOMETRY](algorithms/export/DRIZZLE_GEOMETRY.md)
+- [HEALPIX_MAPPING](algorithms/export/HEALPIX_MAPPING.md)
 
 ### Mosaic、真实天光、传统排异与加权叠加
 
-- [UPM ](sky/UPM.md)
-- [REJECTION ](integration/REJECTION.md)
-- [INTEGRATION ](integration/INTEGRATION.md)
-- [PHASE2_COVERAGE ](algorithms/mosaic/PHASE2_COVERAGE.md)
-- [PHASE2_SAMPLER ](algorithms/mosaic/PHASE2_SAMPLER.md)
-- [PHASE2_REJECTION ](algorithms/mosaic/PHASE2_REJECTION.md)
-- [PHASE2_INTEGRATION ](algorithms/mosaic/PHASE2_INTEGRATION.md)
+- [UPM](sky/UPM.md)
+- [REJECTION](integration/REJECTION.md)
+- [INTEGRATION](integration/INTEGRATION.md)
+- [PHASE2_COVERAGE](algorithms/mosaic/PHASE2_COVERAGE.md)
+- [PHASE2_SAMPLER](algorithms/mosaic/PHASE2_SAMPLER.md)
+- [PHASE2_REJECTION](algorithms/mosaic/PHASE2_REJECTION.md)
+- [PHASE2_INTEGRATION](algorithms/mosaic/PHASE2_INTEGRATION.md)
 
 ### HiPS、重采样与FITS
 
-- [HIPS_TILE_FORMAT ](formats/HIPS_TILE_FORMAT.md)
-- [HIPS_TO_FITS ](projection/HIPS_TO_FITS.md)
-- [RESAMPLE ](resample/RESAMPLE.md)
-- [PHASE3_PROJ_IMPL ](algorithms/export/PHASE3_PROJ_IMPL.md)
-- [PHASE3_RESAMPLE ](algorithms/export/PHASE3_RESAMPLE.md)
-- [PHASE3_RSMP_IMPL ](algorithms/export/PHASE3_RSMP_IMPL.md)
-- [PHASE3_FITS_IMPL ](algorithms/export/PHASE3_FITS_IMPL.md)
+- [HIPS_TILE_FORMAT](formats/HIPS_TILE_FORMAT.md)
+- [HIPS_TO_FITS](projection/HIPS_TO_FITS.md)
+- [RESAMPLE](resample/RESAMPLE.md)
+- [PHASE3_PROJ_IMPL](algorithms/export/PHASE3_PROJ_IMPL.md)
+- [PHASE3_RESAMPLE](algorithms/export/PHASE3_RESAMPLE.md)
+- [PHASE3_RSMP_IMPL](algorithms/export/PHASE3_RSMP_IMPL.md)
+- [PHASE3_FITS_IMPL](algorithms/export/PHASE3_FITS_IMPL.md)
 
 ## 当前实施约束
 
